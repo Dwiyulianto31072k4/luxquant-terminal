@@ -4,11 +4,27 @@
 // live preview form, real analytics charts, mobile-first cards
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../services/authApi";
 import CoinLogo from "./CoinLogo";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { PageHeader } from "./ui/PageHeader";
+import { isAdminStaff } from "../utils/roles";
+
+/** Active sub / staff may link LuxQuant signals (match backend require_subscription). */
+const canLinkLuxSignals = (user) => {
+  if (!user) return false;
+  if (isAdminStaff(user) || user.is_admin === true) return true;
+  if (user.role === "premium" || user.role === "subscriber") {
+    if (!user.subscription_expires_at) return true;
+    try {
+      return new Date(user.subscription_expires_at) > new Date();
+    } catch {
+      return false;
+    }
+  }
+  return false;
+};
 
 // Constant, so it belongs at module scope — declared inside the component it
 // was a new array every render, which defeated the memo that depended on it.
@@ -102,6 +118,10 @@ const STATUS_LABEL = {
 // ════════════════════════════════════════════════════════════════
 
 const stripQuote = (sym) => (sym || "").replace(/USDT$|USDC$|BUSD$|USD$/i, "");
+
+/** LuxQuant mode = linked to a signal or tagged as LuxQuant Signal */
+const isLuxEntry = (e) =>
+  !!(e?.signal_id || (e?.strategy_tags || []).includes("LuxQuant Signal"));
 
 const fmtPrice = (p) => {
   if (p == null || p === "" || isNaN(p)) return "—";
@@ -393,6 +413,8 @@ const IconBan = (p) => (
 const JournalPage = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const luxAccess = canLinkLuxSignals(user);
   const [activeTab, setActiveTab] = useState("history");
   const [entries, setEntries] = useState([]);
   const [stats, setStats] = useState(null);
@@ -405,58 +427,54 @@ const JournalPage = () => {
   const [filterPair, setFilterPair] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterStrategy, setFilterStrategy] = useState("all");
+  // all | luxquant (signal-linked) | my (discretionary)
+  const [filterMode, setFilterMode] = useState("all");
   const [sortBy, setSortBy] = useState("entry_at");
   const [sortOrder, setSortOrder] = useState("desc");
 
   // Form
   const [form, setForm] = useState({ ...EMPTY_FORM });
 
+  // Strip signal linkage for free users (no data leak via prefill)
+  const applyPrefill = useCallback(
+    (p) => {
+      const allowSignal = luxAccess && !!p?.signal_id;
+      setForm((prev) => ({
+        ...prev,
+        signal_id: allowSignal ? p.signal_id : null,
+        pair: p.pair || "",
+        planned_entry: allowSignal || !p.signal_id ? p.planned_entry || "" : "",
+        planned_tp1: allowSignal || !p.signal_id ? p.planned_tp1 || "" : "",
+        planned_tp2: allowSignal || !p.signal_id ? p.planned_tp2 || "" : "",
+        planned_tp3: allowSignal || !p.signal_id ? p.planned_tp3 || "" : "",
+        planned_tp4: allowSignal || !p.signal_id ? p.planned_tp4 || "" : "",
+        planned_sl: allowSignal || !p.signal_id ? p.planned_sl || "" : "",
+        actual_entry: p.planned_entry || p.actual_entry || "",
+        strategy_tags: allowSignal ? ["LuxQuant Signal"] : [],
+      }));
+      setActiveTab("entry");
+    },
+    [luxAccess]
+  );
+
   // ─── Prefill from router state ───
   useEffect(() => {
     if (location.state?.prefill) {
-      const p = location.state.prefill;
-      setForm((prev) => ({
-        ...prev,
-        signal_id: p.signal_id || null,
-        pair: p.pair || "",
-        planned_entry: p.planned_entry || "",
-        planned_tp1: p.planned_tp1 || "",
-        planned_tp2: p.planned_tp2 || "",
-        planned_tp3: p.planned_tp3 || "",
-        planned_tp4: p.planned_tp4 || "",
-        planned_sl: p.planned_sl || "",
-        actual_entry: p.planned_entry || "",
-        strategy_tags: p.signal_id ? ["LuxQuant Signal"] : [],
-      }));
-      setActiveTab("entry");
+      applyPrefill(location.state.prefill);
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state, applyPrefill]);
 
   // ─── Prefill from sessionStorage (from SignalModal) ───
   useEffect(() => {
     const raw = sessionStorage.getItem("journal_prefill");
     if (raw) {
       try {
-        const p = JSON.parse(raw);
-        setForm((prev) => ({
-          ...prev,
-          signal_id: p.signal_id || null,
-          pair: p.pair || "",
-          planned_entry: p.planned_entry || "",
-          planned_tp1: p.planned_tp1 || "",
-          planned_tp2: p.planned_tp2 || "",
-          planned_tp3: p.planned_tp3 || "",
-          planned_tp4: p.planned_tp4 || "",
-          planned_sl: p.planned_sl || "",
-          actual_entry: p.planned_entry || "",
-          strategy_tags: p.signal_id ? ["LuxQuant Signal"] : [],
-        }));
-        setActiveTab("entry");
+        applyPrefill(JSON.parse(raw));
       } catch {}
       sessionStorage.removeItem("journal_prefill");
     }
-  }, []);
+  }, [applyPrefill]);
 
   // ─── API calls ───
   const fetchEntries = useCallback(async () => {
@@ -517,6 +535,10 @@ const JournalPage = () => {
   };
 
   const handleSignalSelect = (d) => {
+    if (!luxAccess) {
+      navigate("/pricing");
+      return;
+    }
     setForm((prev) => ({
       ...prev,
       signal_id: d.signal_id,
@@ -548,13 +570,31 @@ const JournalPage = () => {
     }));
   };
 
+  const toIso = (local) => {
+    if (!local) return null;
+    // datetime-local → ISO; if already ISO keep
+    try {
+      const d = new Date(local);
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    } catch {
+      return null;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!form.pair || !form.actual_entry) return;
+    // Belt-and-suspenders: free users cannot POST signal_id
+    if (form.signal_id && !luxAccess) {
+      alert("Subscription required to link LuxQuant signals");
+      navigate("/pricing");
+      return;
+    }
     setSaving(true);
     try {
       const p = {
         ...form,
         pair: form.pair.toUpperCase(),
+        signal_id: luxAccess ? form.signal_id || null : null,
         actual_entry: parseFloat(form.actual_entry),
         actual_exit: form.actual_exit ? parseFloat(form.actual_exit) : null,
         planned_entry: form.planned_entry ? parseFloat(form.planned_entry) : null,
@@ -566,8 +606,8 @@ const JournalPage = () => {
         leverage: parseFloat(form.leverage) || 1,
         position_size_usd: form.position_size_usd ? parseFloat(form.position_size_usd) : null,
         fees_usd: parseFloat(form.fees_usd) || 0,
-        entry_at: form.entry_at || null,
-        exit_at: form.exit_at || null,
+        entry_at: toIso(form.entry_at),
+        exit_at: toIso(form.exit_at),
       };
       if (editId) await api.put(`/api/v1/journal/${editId}`, p);
       else await api.post("/api/v1/journal/", p);
@@ -575,15 +615,30 @@ const JournalPage = () => {
       setActiveTab("history");
       fetchEntries();
     } catch (e) {
-      alert("Failed: " + (e.response?.data?.detail || e.message));
+      const detail = e.response?.data?.detail || e.message;
+      alert("Failed: " + detail);
+      if (e.response?.status === 403) navigate("/pricing");
     } finally {
       setSaving(false);
     }
   };
 
+  const toLocalInput = (iso) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      // datetime-local needs YYYY-MM-DDTHH:mm in local tz
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch {
+      return "";
+    }
+  };
+
   const handleEdit = (e) => {
     setForm({
-      signal_id: e.signal_id,
+      signal_id: luxAccess ? e.signal_id : null,
       pair: e.pair,
       direction: e.direction,
       planned_entry: e.planned_entry || "",
@@ -605,8 +660,8 @@ const JournalPage = () => {
       chart_before_url: e.chart_before_url || "",
       chart_after_url: e.chart_after_url || "",
       tradingview_link: e.tradingview_link || "",
-      entry_at: e.entry_at || "",
-      exit_at: e.exit_at || "",
+      entry_at: toLocalInput(e.entry_at),
+      exit_at: toLocalInput(e.exit_at),
     });
     setEditId(e.id);
     setActiveTab("entry");
@@ -637,86 +692,132 @@ const JournalPage = () => {
     }
   };
 
+  const luxCount = useMemo(
+    () => entries.filter((e) => isLuxEntry(e)).length,
+    [entries]
+  );
+  const myCount = entries.length - luxCount;
+
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-3 pb-10 sm:space-y-4">
       <JournalStyles />
 
-      {/* ═══ HEADER ═══ */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-            <IconBook className="h-3 w-3" />
-            <span>Personal Trading Logbook</span>
-          </div>
-          <PageHeader title="Trade Journal" />
-          <p className="mt-1.5 text-[13px] text-text-secondary">
-            Track, analyze, and improve your trading edge ·{" "}
+      <PageHeader
+        title="Trade Journal"
+        subtitle={
+          <>
+            Log · process · improve ·{" "}
             <span className="font-mono font-semibold tabular-nums text-text-primary">
               {entries.length}
             </span>{" "}
-            entries logged
-          </p>
+            trades
+          </>
+        }
+        right={
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={entries.length === 0}
+              className="flex h-9 items-center gap-2 rounded-xl border border-ink/[0.08] bg-surface-raised px-3 text-[12px] font-medium text-text-muted transition-colors hover:border-ink/16 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <IconDownload className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setActiveTab("entry");
+              }}
+              className="flex h-9 items-center gap-2 rounded-xl bg-accent px-3.5 text-[12px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
+            >
+              <IconPlus className="h-3.5 w-3.5" />
+              <span>New entry</span>
+            </button>
+          </div>
+        }
+      />
+
+      {/* Mode + tabs — Home/Gate soft shells */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex rounded-xl border border-ink/[0.06] bg-surface-raised p-1">
+          {[
+            { id: "all", label: "All", n: entries.length },
+            { id: "luxquant", label: "LuxQuant", n: luxCount },
+            { id: "my", label: "My Trades", n: myCount },
+          ].map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setFilterMode(m.id)}
+              className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                filterMode === m.id
+                  ? "bg-accent text-accent-fg"
+                  : "text-text-secondary hover:bg-ink/[0.04] hover:text-text-primary"
+              }`}
+            >
+              {m.label}
+              <span
+                className={`ml-1.5 font-mono text-[11px] tabular-nums ${
+                  filterMode === m.id ? "text-accent-fg/75" : "text-text-muted"
+                }`}
+              >
+                {m.n}
+              </span>
+            </button>
+          ))}
         </div>
 
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={entries.length === 0}
-            className="flex h-9 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-secondary px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <IconDownload className="h-3.5 w-3.5" />
-            <span>Export Excel</span>
-          </button>
-          <button
-            type="button"
+        <nav className="inline-flex rounded-xl border border-ink/[0.06] bg-surface-raised p-1">
+          <TabButton
+            active={activeTab === "history"}
+            onClick={() => setActiveTab("history")}
+            icon={<IconBook className="h-3.5 w-3.5" />}
+            label="History"
+            count={entries.length}
+          />
+          <TabButton
+            active={activeTab === "entry"}
             onClick={() => {
-              resetForm();
+              if (!editId) resetForm();
               setActiveTab("entry");
             }}
-            className="flex h-9 items-center gap-2 rounded-md border border-transparent bg-accent px-3.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-accent-fg transition-opacity hover:opacity-90"
-          >
-            <IconPlus className="h-3.5 w-3.5" />
-            <span>New Entry</span>
-          </button>
-        </div>
-      </header>
+            icon={<IconPencil className="h-3.5 w-3.5" />}
+            label={editId ? "Edit" : "Log"}
+          />
+          <TabButton
+            active={activeTab === "analytics"}
+            onClick={() => setActiveTab("analytics")}
+            icon={<IconChart className="h-3.5 w-3.5" />}
+            label="Analytics"
+          />
+        </nav>
+      </div>
 
-      {/* ═══ TAB STRIP ═══ */}
-      <nav className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-1 grid grid-cols-3 gap-1">
-        <TabButton
-          active={activeTab === "history"}
-          onClick={() => setActiveTab("history")}
-          icon={<IconBook className="h-3.5 w-3.5" />}
-          label="History"
-          count={entries.length}
-        />
-        <TabButton
-          active={activeTab === "entry"}
-          onClick={() => {
-            if (!editId) resetForm();
-            setActiveTab("entry");
-          }}
-          icon={<IconPencil className="h-3.5 w-3.5" />}
-          label={editId ? "Edit Entry" : "New Entry"}
-        />
-        <TabButton
-          active={activeTab === "analytics"}
-          onClick={() => setActiveTab("analytics")}
-          icon={<IconChart className="h-3.5 w-3.5" />}
-          label="Analytics"
-        />
-      </nav>
-
-      {/* ═══ TAB CONTENT ═══ */}
       {activeTab === "history" && (
         <HistoryView
           entries={entries}
           loading={loading}
+          filterMode={filterMode}
+          luxAccess={luxAccess}
+          onUpgrade={() => navigate("/pricing")}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onNewEntry={() => {
             resetForm();
+            setActiveTab("entry");
+          }}
+          onLogFromSignal={() => {
+            if (!luxAccess) {
+              navigate("/pricing");
+              return;
+            }
+            resetForm();
+            setForm((p) => ({
+              ...p,
+              strategy_tags: ["LuxQuant Signal"],
+            }));
             setActiveTab("entry");
           }}
           filterPair={filterPair}
@@ -737,6 +838,8 @@ const JournalPage = () => {
           setForm={setForm}
           editId={editId}
           saving={saving}
+          luxAccess={luxAccess}
+          onUpgrade={() => navigate("/pricing")}
           onToggleTag={toggleTag}
           onSignalSelect={handleSignalSelect}
           onSignalClear={handleSignalClear}
@@ -757,7 +860,12 @@ const JournalPage = () => {
         />
       )}
       {activeTab === "analytics" && (
-        <AnalyticsView stats={stats} insights={insights} entries={entries} />
+        <AnalyticsView
+          stats={stats}
+          insights={insights}
+          entries={entries}
+          filterMode={filterMode}
+        />
       )}
 
       {/* Context-aware help assistant */}
@@ -768,22 +876,24 @@ const JournalPage = () => {
 
 export default JournalPage;
 
-// ── Tab button ───────────────────────────────────────────
+// ── Tab button (pill, Home language) ─────────────────────
 const TabButton = ({ active, onClick, icon, label, count }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`relative flex h-10 items-center justify-center gap-2 rounded-md text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+    className={`relative flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-[12px] font-medium transition-colors ${
       active
-        ? "border border-transparent bg-accent text-accent-fg"
-        : "border border-transparent text-text-muted hover:bg-ink/[0.03] hover:text-text-primary"
+        ? "bg-ink/[0.08] text-text-primary shadow-sm"
+        : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
     }`}
   >
     {icon}
     <span>{label}</span>
     {count != null && (
       <span
-        className={`rounded-sm px-1.5 py-0.5 font-mono text-[9px] tabular-nums ${active ? "bg-black/15 text-accent-fg" : "bg-ink/[0.05] text-text-muted"}`}
+        className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${
+          active ? "bg-ink/[0.08] text-text-secondary" : "bg-ink/[0.04] text-text-muted"
+        }`}
       >
         {count}
       </span>
@@ -798,9 +908,13 @@ const TabButton = ({ active, onClick, icon, label, count }) => (
 const HistoryView = ({
   entries,
   loading,
+  filterMode = "all",
+  luxAccess = true,
+  onUpgrade,
   onEdit,
   onDelete,
   onNewEntry,
+  onLogFromSignal,
   filterPair,
   setFilterPair,
   filterStatus,
@@ -812,9 +926,14 @@ const HistoryView = ({
   sortOrder,
   setSortOrder,
 }) => {
-  // ─── Stats ───
+  const scoped = useMemo(() => {
+    if (filterMode === "luxquant") return entries.filter(isLuxEntry);
+    if (filterMode === "my") return entries.filter((e) => !isLuxEntry(e));
+    return entries;
+  }, [entries, filterMode]);
+
   const stats = useMemo(() => {
-    const closed = entries.filter((e) => e.status !== "open" && e.pnl_usd != null);
+    const closed = scoped.filter((e) => e.status !== "open" && e.pnl_usd != null);
     const wins = closed.filter((e) => e.status === "closed_win");
     const losses = closed.filter((e) => e.status === "closed_loss");
     const totalPnl = closed.reduce((s, e) => s + (e.pnl_usd || 0), 0);
@@ -822,9 +941,12 @@ const HistoryView = ({
     const avgPnl = closed.length > 0 ? totalPnl / closed.length : 0;
     const best = closed.length > 0 ? Math.max(...closed.map((e) => e.pnl_usd || 0)) : 0;
     const worst = closed.length > 0 ? Math.min(...closed.map((e) => e.pnl_usd || 0)) : 0;
-    const openCount = entries.filter((e) => e.status === "open").length;
+    const openCount = scoped.filter((e) => e.status === "open").length;
+    const rVals = closed.map((e) => e.rr_ratio).filter((r) => r != null && !isNaN(r));
+    const avgR = rVals.length ? rVals.reduce((a, b) => a + b, 0) / rVals.length : null;
+    const luxN = scoped.filter(isLuxEntry).length;
     return {
-      total: entries.length,
+      total: scoped.length,
       open: openCount,
       wins: wins.length,
       losses: losses.length,
@@ -833,12 +955,14 @@ const HistoryView = ({
       best,
       worst,
       winRate,
+      avgR,
+      luxN,
+      myN: scoped.length - luxN,
     };
-  }, [entries]);
+  }, [scoped]);
 
-  // ─── Equity curve points ───
   const equityCurve = useMemo(() => {
-    const closed = entries
+    const closed = scoped
       .filter((e) => e.status !== "open" && e.pnl_usd != null && e.exit_at)
       .sort((a, b) => new Date(a.exit_at) - new Date(b.exit_at));
     let cum = 0;
@@ -846,33 +970,32 @@ const HistoryView = ({
       cum += e.pnl_usd || 0;
       return { date: e.exit_at, equity: cum, pnl: e.pnl_usd, pair: e.pair };
     });
-  }, [entries]);
+  }, [scoped]);
 
-  // ─── Loading ───
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-10 text-center">
-        <div className="text-[11px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
-          Loading journal…
-        </div>
+      <div className="rounded-xl border border-ink/[0.06] bg-surface-raised px-6 py-14 text-center text-[13px] text-text-muted">
+        Loading journal…
       </div>
     );
   }
 
-  // ─── Empty ───
   if (entries.length === 0 && !filterPair && filterStatus === "all" && filterStrategy === "all") {
-    return <HistoryEmptyState onNewEntry={onNewEntry} />;
+    return (
+      <HistoryEmptyState
+        onNewEntry={onNewEntry}
+        onLogFromSignal={onLogFromSignal}
+        luxAccess={luxAccess}
+        onUpgrade={onUpgrade}
+      />
+    );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Metric strip */}
-      {entries.length > 0 && <MetricStrip stats={stats} />}
-
-      {/* Equity curve */}
+    <div className="space-y-3 sm:space-y-4">
+      {scoped.length > 0 && <MetricStrip stats={stats} />}
       {equityCurve.length > 0 && <EquityCurveCard points={equityCurve} />}
 
-      {/* Filters */}
       <FilterBar
         filterPair={filterPair}
         setFilterPair={setFilterPair}
@@ -884,81 +1007,112 @@ const HistoryView = ({
         setSortBy={setSortBy}
         sortOrder={sortOrder}
         setSortOrder={setSortOrder}
-        resultCount={entries.length}
+        resultCount={scoped.length}
       />
 
-      {/* Table + Calendar */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
-        <TradeTable entries={entries} onEdit={onEdit} onDelete={onDelete} />
-        <CalendarHeatmap entries={entries} />
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_300px] xl:gap-4">
+        <TradeTable entries={scoped} onEdit={onEdit} onDelete={onDelete} />
+        <CalendarHeatmap entries={scoped} />
       </div>
     </div>
   );
 };
 
-// ── Empty state ──────────────────────────────────────────
-const HistoryEmptyState = ({ onNewEntry }) => (
-  <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-10 sm:p-16 text-center">
-    <div className="relative z-10 flex flex-col items-center gap-4">
-      <div className="w-14 h-14 rounded-md border border-ink/10 bg-surface-secondary flex items-center justify-center text-text-muted">
-        <IconBook className="h-6 w-6" />
-      </div>
-      <div className="space-y-1.5">
-        <h3 className="text-base font-semibold text-text-primary tracking-tight">
-          Your logbook is empty
-        </h3>
-        <p className="text-[12px] text-text-muted/60 max-w-md mx-auto leading-relaxed">
-          Every trade you log builds your edge. Start with one entry — track entry, exit, mood, and
-          outcome. AI Coach insights unlock at 3 entries.
-        </p>
-      </div>
+const HistoryEmptyState = ({ onNewEntry, onLogFromSignal, luxAccess = true, onUpgrade }) => (
+  <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised px-6 py-14 text-center sm:px-10">
+    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-ink/[0.08] bg-ink/[0.03] text-text-muted">
+      <IconBook className="h-5 w-5" />
+    </div>
+    <h3 className="text-[16px] font-semibold tracking-tight text-text-primary">
+      Start your edge logbook
+    </h3>
+    <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-text-muted">
+      Two modes, one coach: journal LuxQuant signals you execute, or your own discretionary
+      trades. R-multiple and process tags unlock real improvement — not just P&amp;L.
+    </p>
+    <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+      {luxAccess ? (
+        <button
+          type="button"
+          onClick={onLogFromSignal}
+          className="flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-[13px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
+        >
+          <IconSparkles className="h-3.5 w-3.5" />
+          Log LuxQuant signal
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onUpgrade}
+          className="flex h-10 items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 text-[13px] font-semibold text-accent transition-opacity hover:bg-accent/15"
+        >
+          <IconSparkles className="h-3.5 w-3.5" />
+          Subscribe to log LuxQuant signals
+        </button>
+      )}
       <button
+        type="button"
         onClick={onNewEntry}
-        className="flex items-center gap-2 mt-2 h-9 px-4 rounded-md border border-transparent bg-accent text-accent-fg hover:opacity-90 transition-all text-[11px] font-medium uppercase tracking-[0.14em]"
+        className="flex h-10 items-center gap-2 rounded-xl border border-ink/[0.1] bg-surface-secondary px-4 text-[13px] font-medium text-text-primary transition-colors hover:border-ink/18"
       >
         <IconPlus className="h-3.5 w-3.5" />
-        <span>Log your first trade</span>
+        Log my trade
       </button>
     </div>
   </div>
 );
 
 // ════════════════════════════════════════════════════════════════
-// METRIC STRIP — hairline-divided horizontal cells
+// METRIC STRIP — Home snapshot cards (2×2 / 4-up)
 // ════════════════════════════════════════════════════════════════
 
 const MetricStrip = ({ stats }) => {
-  const cells = [
-    { label: "Total", value: stats.total, accent: "white" },
-    { label: "Open", value: stats.open, accent: "blue" },
-    { label: "Wins", value: stats.wins, accent: "emerald" },
-    { label: "Losses", value: stats.losses, accent: "red" },
+  const cards = [
     {
-      label: "Win Rate",
-      value: fmtPct(stats.winRate, { decimals: 1 }),
-      accent: stats.winRate >= 50 ? "emerald" : "red",
-    },
-    {
-      label: "Net PnL",
+      label: "Net P&L",
       value: fmtMoney(stats.totalPnl, { sign: true }),
-      accent: stats.totalPnl >= 0 ? "emerald" : "red",
+      note: `${stats.wins}W · ${stats.losses}L · ${stats.open} open`,
+      tone: stats.totalPnl >= 0 ? "text-profit" : "text-loss",
     },
     {
-      label: "Avg PnL",
-      value: fmtMoney(stats.avgPnl, { sign: true }),
-      accent: stats.avgPnl >= 0 ? "emerald" : "red",
+      label: "Win rate",
+      value: fmtPct(stats.winRate, { decimals: 1 }),
+      note: `${stats.wins + stats.losses} closed`,
+      tone: stats.winRate >= 50 ? "text-profit" : "text-loss",
     },
-    { label: "Best", value: fmtMoney(stats.best, { sign: true }), accent: "emerald" },
-    { label: "Worst", value: fmtMoney(stats.worst, { sign: true }), accent: "red" },
+    {
+      label: "Avg R",
+      value: stats.avgR == null ? "—" : `${stats.avgR >= 0 ? "+" : ""}${stats.avgR.toFixed(2)}R`,
+      note: "Risk multiples (closed)",
+      tone: (stats.avgR ?? 0) >= 0 ? "text-accent" : "text-loss",
+    },
+    {
+      label: "Trades",
+      value: String(stats.total),
+      note:
+        stats.luxN != null
+          ? `${stats.luxN} LuxQuant · ${stats.myN} own`
+          : `${stats.open} still open`,
+      tone: "text-text-primary",
+    },
   ];
 
   return (
-    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
-      <div className="relative z-10 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 divide-x divide-y sm:divide-y-0 divide-ink/[0.04]">
-        {cells.map((cell, i) => (
-          <MetricCell key={i} {...cell} />
-        ))}
-      </div>
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+      {cards.map((c) => (
+        <div
+          key={c.label}
+          className="rounded-xl border border-ink/[0.06] bg-surface-raised px-3 py-2.5 transition-colors hover:border-ink/[0.12] sm:px-4 sm:py-3.5"
+        >
+          <div className="text-[11px] font-medium text-text-muted sm:text-[12px]">{c.label}</div>
+          <div className={`mt-1 font-mono text-[18px] font-semibold tabular-nums tracking-tight sm:text-[22px] ${c.tone}`}>
+            {c.value}
+          </div>
+          <div className="mt-0.5 truncate text-[10px] text-text-muted/75 sm:mt-1 sm:text-[11px]">
+            {c.note}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
@@ -996,16 +1150,15 @@ const EquityCurveCard = ({ points }) => {
   const hasData = points.length >= 2;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
-      <div className="relative z-10 p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+    <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
+      <div className="p-4 sm:p-5">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55 mb-1.5">
-              <IconChart className="h-3 w-3 text-text-muted" />
-              <span>Equity Curve</span>
-              <span className="font-mono tabular-nums text-text-muted/40">·</span>
-              <span className="font-mono tabular-nums text-text-muted/40">
-                {points.length} closed
+            <div className="mb-1 flex items-center gap-2 text-[14px] font-semibold text-text-primary">
+              <IconChart className="h-4 w-4 text-text-muted" />
+              Equity curve
+              <span className="font-mono text-[11px] font-normal tabular-nums text-text-muted">
+                · {points.length} closed
               </span>
             </div>
             <div className="flex items-baseline gap-3 flex-wrap">
@@ -1173,71 +1326,67 @@ const FilterBar = ({
   ];
 
   return (
-    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
-      <div className="relative z-10 p-3 flex flex-col gap-3">
-        <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center">
-          <label className="group flex h-9 min-w-0 md:w-56 flex-shrink-0 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-ink/12 focus-within:bg-ink/[0.05]">
-            <IconSearch className="h-3.5 w-3.5 text-text-muted/55 transition-colors group-focus-within:text-text-muted shrink-0" />
-            <input
-              type="text"
-              placeholder="Search pair..."
-              value={filterPair}
-              onChange={(e) => setFilterPair(e.target.value)}
-              className="w-full min-w-0 bg-transparent text-[12px] font-mono outline-none placeholder:text-text-muted/40 text-text-primary"
-            />
-          </label>
+    <div className="space-y-2.5 rounded-xl border border-ink/[0.06] bg-surface-raised p-3 sm:p-3.5">
+      <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-center">
+        <label className="group flex h-9 min-w-0 shrink-0 items-center gap-2 rounded-lg border border-ink/[0.08] bg-surface-secondary px-3 focus-within:border-ink/16 md:w-52">
+          <IconSearch className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Search pair…"
+            value={filterPair}
+            onChange={(e) => setFilterPair(e.target.value)}
+            className="w-full min-w-0 bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-muted"
+          />
+        </label>
 
-          <select
-            value={filterStrategy}
-            onChange={(e) => setFilterStrategy(e.target.value)}
-            className="h-9 px-2.5 bg-ink/[0.03] border border-ink/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-ink/[0.14] focus:border-ink/12 transition-colors font-medium cursor-pointer"
-          >
-            <option value="all">All Strategy</option>
-            {STRATEGY_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={`${sortBy}_${sortOrder}`}
-            onChange={(e) => {
-              const [field, order] = e.target.value.split("_");
-              setSortBy(field === "pnl" ? "pnl_usd" : field === "entry" ? "entry_at" : field);
-              setSortOrder(order);
-            }}
-            className="h-9 px-2.5 bg-ink/[0.03] border border-ink/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-ink/[0.14] focus:border-ink/12 transition-colors font-medium cursor-pointer"
-          >
-            <option value="entry_at_desc">Newest first</option>
-            <option value="entry_at_asc">Oldest first</option>
-            <option value="pnl_usd_desc">Best P&amp;L</option>
-            <option value="pnl_usd_asc">Worst P&amp;L</option>
-          </select>
-
-          <span className="md:ml-auto text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45 font-medium">
-            {resultCount} {resultCount === 1 ? "trade" : "trades"}
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 items-center pt-2.5 border-t border-ink/[0.04]">
-          <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted/55 mr-1">
-            Status
-          </span>
-          {statuses.map((s) => (
-            <button
-              key={s.v}
-              onClick={() => setFilterStatus(s.v)}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
-                filterStatus === s.v
-                  ? "bg-accent text-accent-fg border-transparent"
-                  : "bg-ink/[0.03] text-text-muted/70 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
-              }`}
-            >
-              {s.l}
-            </button>
+        <select
+          value={filterStrategy}
+          onChange={(e) => setFilterStrategy(e.target.value)}
+          className="h-9 cursor-pointer rounded-lg border border-ink/[0.08] bg-surface-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none hover:border-ink/16"
+        >
+          <option value="all">All strategy</option>
+          {STRATEGY_OPTIONS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
-        </div>
+        </select>
+
+        <select
+          value={`${sortBy}_${sortOrder}`}
+          onChange={(e) => {
+            const [field, order] = e.target.value.split("_");
+            setSortBy(field === "pnl" ? "pnl_usd" : field === "entry" ? "entry_at" : field);
+            setSortOrder(order);
+          }}
+          className="h-9 cursor-pointer rounded-lg border border-ink/[0.08] bg-surface-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none hover:border-ink/16"
+        >
+          <option value="entry_at_desc">Newest first</option>
+          <option value="entry_at_asc">Oldest first</option>
+          <option value="pnl_usd_desc">Best P&amp;L</option>
+          <option value="pnl_usd_asc">Worst P&amp;L</option>
+        </select>
+
+        <span className="font-mono text-[11px] tabular-nums text-text-muted md:ml-auto">
+          {resultCount} {resultCount === 1 ? "trade" : "trades"}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 border-t border-ink/[0.05] pt-2.5">
+        {statuses.map((s) => (
+          <button
+            key={s.v}
+            type="button"
+            onClick={() => setFilterStatus(s.v)}
+            className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+              filterStatus === s.v
+                ? "bg-accent text-accent-fg"
+                : "bg-ink/[0.04] text-text-secondary hover:bg-ink/[0.08] hover:text-text-primary"
+            }`}
+          >
+            {s.l}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -1250,60 +1399,50 @@ const FilterBar = ({
 const TradeTable = ({ entries, onEdit, onDelete }) => {
   if (entries.length === 0) {
     return (
-      <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-10 flex flex-col items-center gap-3">
-        <IconFilter className="h-6 w-6 text-text-muted/30" />
-        <p className="text-[12px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
-          No trades match your filters
-        </p>
+      <div className="flex flex-col items-center gap-2 rounded-xl border border-ink/[0.06] bg-surface-raised px-6 py-12 text-center">
+        <IconFilter className="h-5 w-5 text-text-muted/40" />
+        <p className="text-[13px] text-text-muted">No trades match this mode / filters</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
-      <div className="relative z-10">
-        {/* DESKTOP */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted/55 border-b border-ink/[0.06] bg-ink/[0.015]">
-                <th className="px-4 py-2.5 text-left">Date</th>
-                <th className="px-4 py-2.5 text-left">Pair</th>
-                <th className="px-2 py-2.5 text-left">Dir</th>
-                <th className="px-2 py-2.5 text-right">Entry</th>
-                <th className="px-2 py-2.5 text-right">Exit</th>
-                <th className="px-2 py-2.5 text-right">Lev</th>
-                <th className="px-3 py-2.5 text-right">P&amp;L $</th>
-                <th className="px-3 py-2.5 text-right">P&amp;L %</th>
-                <th className="px-3 py-2.5 text-center">Mood</th>
-                <th className="px-3 py-2.5 text-center">Status</th>
-                <th className="px-2 py-2.5 w-8"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <TableRow key={e.id} entry={e} onEdit={onEdit} onDelete={onDelete} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
+      <div className="flex items-center justify-between border-b border-ink/[0.06] px-4 py-3">
+        <h3 className="text-[14px] font-semibold text-text-primary">Trades</h3>
+        <span className="font-mono text-[11px] tabular-nums text-text-muted">
+          {entries.length} · click to edit
+        </span>
+      </div>
 
-        {/* MOBILE */}
-        <div className="md:hidden divide-y divide-ink/[0.04]">
-          {entries.map((e) => (
-            <MobileCard key={e.id} entry={e} onEdit={onEdit} />
-          ))}
-        </div>
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-ink/[0.06] text-[11px] font-medium text-text-muted">
+              <th className="px-4 py-2.5 text-left">Date</th>
+              <th className="px-4 py-2.5 text-left">Pair</th>
+              <th className="px-2 py-2.5 text-left">Dir</th>
+              <th className="px-2 py-2.5 text-right">Entry</th>
+              <th className="px-2 py-2.5 text-right">Exit</th>
+              <th className="px-2 py-2.5 text-right">Lev</th>
+              <th className="px-3 py-2.5 text-right">R</th>
+              <th className="px-3 py-2.5 text-right">P&amp;L</th>
+              <th className="px-3 py-2.5 text-center">Status</th>
+              <th className="w-8 px-2 py-2.5" />
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e) => (
+              <TableRow key={e.id} entry={e} onEdit={onEdit} onDelete={onDelete} />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-        {/* Footer */}
-        <div className="px-4 py-2 border-t border-ink/[0.06] flex items-center justify-between bg-ink/[0.015]">
-          <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45">
-            {entries.length} {entries.length === 1 ? "entry" : "entries"}
-          </span>
-          <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45 hidden sm:inline">
-            Click row to edit
-          </span>
-        </div>
+      <div className="divide-y divide-ink/[0.04] md:hidden">
+        {entries.map((e) => (
+          <MobileCard key={e.id} entry={e} onEdit={onEdit} />
+        ))}
       </div>
     </div>
   );
@@ -1315,86 +1454,78 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
   const isOpen = status === "open";
   const pnlPositive = (entry.pnl_usd ?? 0) >= 0;
 
+  const r = entry.rr_ratio;
+  const lux = isLuxEntry(entry);
+
   return (
     <tr
       onClick={() => onEdit(entry)}
-      className="border-b border-ink/[0.025] hover:bg-ink/[0.025] cursor-pointer transition-colors group"
+      className="group cursor-pointer border-b border-ink/[0.04] transition-colors last:border-0 hover:bg-ink/[0.02]"
     >
-      <td className="px-4 py-2.5 text-[11px] font-mono tabular-nums text-text-muted/75 whitespace-nowrap">
+      <td className="whitespace-nowrap px-4 py-3 font-mono text-[12px] tabular-nums text-text-muted">
         {fmtDate(entry.entry_at)}
       </td>
-      <td className="px-4 py-2.5">
+      <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <CoinLogo pair={entry.pair} size={22} />
-          <span className="text-[12px] font-medium text-text-primary tracking-tight">
+          <span className="text-[13px] font-semibold text-text-primary">
             {stripQuote(entry.pair)}
           </span>
-          {entry.signal_id && (
-            <span className="text-[8.5px] font-mono uppercase tracking-wider text-text-muted bg-accent/10 border border-ink/10 rounded-sm px-1 py-px">
-              sig
+          {lux && (
+            <span className="rounded-md bg-accent/12 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+              LQ
             </span>
           )}
         </div>
       </td>
-      <td className="px-2 py-2.5">
+      <td className="px-2 py-3">
         <span
-          className={`inline-flex items-center gap-1 text-[10px] font-mono font-medium uppercase tracking-[0.12em] ${isLong ? "text-profit" : "text-loss"}`}
+          className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase ${isLong ? "text-profit" : "text-loss"}`}
         >
           {isLong ? <IconUpTri /> : <IconDownTri />}
           {entry.direction?.toUpperCase()}
         </span>
       </td>
-      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-text-primary/85 text-right">
+      <td className="px-2 py-3 text-right font-mono text-[12px] tabular-nums text-text-primary">
         ${fmtPrice(entry.actual_entry)}
       </td>
-      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-text-primary/85 text-right">
-        {entry.actual_exit != null ? (
-          `$${fmtPrice(entry.actual_exit)}`
-        ) : (
-          <span className="text-text-muted/40">—</span>
-        )}
+      <td className="px-2 py-3 text-right font-mono text-[12px] tabular-nums text-text-primary">
+        {entry.actual_exit != null ? `$${fmtPrice(entry.actual_exit)}` : "—"}
       </td>
-      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-text-primary/65 text-right">
+      <td className="px-2 py-3 text-right font-mono text-[12px] tabular-nums text-text-muted">
         {entry.leverage || 1}×
       </td>
       <td
-        className={`px-3 py-2.5 text-[11px] font-mono tabular-nums font-medium text-right ${isOpen ? "text-text-muted/50" : pnlPositive ? "text-profit" : "text-loss"}`}
+        className={`px-3 py-3 text-right font-mono text-[12px] font-semibold tabular-nums ${
+          r == null ? "text-text-muted" : r >= 0 ? "text-accent" : "text-loss"
+        }`}
+      >
+        {r == null ? "—" : `${r >= 0 ? "+" : ""}${Number(r).toFixed(2)}R`}
+      </td>
+      <td
+        className={`px-3 py-3 text-right font-mono text-[12px] font-semibold tabular-nums ${
+          isOpen ? "text-text-muted" : pnlPositive ? "text-profit" : "text-loss"
+        }`}
       >
         {isOpen || entry.pnl_usd == null ? "—" : fmtMoney(entry.pnl_usd, { sign: true })}
       </td>
-      <td
-        className={`px-3 py-2.5 text-[11px] font-mono tabular-nums font-medium text-right ${isOpen ? "text-text-muted/50" : pnlPositive ? "text-profit" : "text-loss"}`}
-      >
-        {isOpen || entry.pnl_pct == null ? "—" : fmtPct(entry.pnl_pct, { sign: true })}
-      </td>
-      <td className="px-3 py-2.5 text-center">
-        {entry.emotions?.mood ? (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-sm bg-ink/[0.04] text-[10px] font-mono text-text-muted/85"
-            title={entry.emotions.mood}
-          >
-            {MOOD_GLYPH[entry.emotions.mood] || entry.emotions.mood[0]}
-          </span>
-        ) : (
-          <span className="text-text-muted/30 text-[10px] font-mono">—</span>
-        )}
-      </td>
-      <td className="px-3 py-2.5 text-center">
+      <td className="px-3 py-3 text-center">
         <span
-          className={`inline-flex items-center text-[9px] font-mono font-medium uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-sm border ${STATUS_STYLES[status] || STATUS_STYLES.open}`}
+          className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STATUS_STYLES[status] || STATUS_STYLES.open}`}
         >
           {STATUS_LABEL[status] || status.toUpperCase()}
         </span>
       </td>
-      <td className="px-2 py-2.5">
+      <td className="px-2 py-3">
         <button
+          type="button"
           onClick={(ev) => {
             ev.stopPropagation();
             onDelete(entry.id);
           }}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted/55 hover:text-loss transition-all"
+          className="rounded-md p-1 text-text-muted opacity-0 transition-all hover:bg-loss/10 hover:text-loss group-hover:opacity-100"
         >
-          <IconTrash className="h-3 w-3" />
+          <IconTrash className="h-3.5 w-3.5" />
         </button>
       </td>
     </tr>
@@ -1531,14 +1662,13 @@ const CalendarHeatmap = ({ entries }) => {
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
-      <div className="relative z-10 p-3.5">
-        <div className="flex items-center justify-between mb-3">
+    <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
+      <div className="p-3.5 sm:p-4">
+        <div className="mb-3 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">
-              <span>Performance</span>
-              <span className="font-mono tabular-nums text-text-muted/40">·</span>
-              <span className="font-mono tabular-nums text-text-muted">
+            <div className="text-[14px] font-semibold text-text-primary">
+              Calendar
+              <span className="ml-1.5 font-mono text-[11px] font-normal tabular-nums text-text-muted">
                 {viewMonth.toLocaleDateString("en-US", { month: "short", year: "numeric" })}
               </span>
             </div>
@@ -1680,6 +1810,8 @@ const EntryView = ({
   setForm,
   editId,
   saving,
+  luxAccess = true,
+  onUpgrade,
   onToggleTag,
   onSignalSelect,
   onSignalClear,
@@ -1706,11 +1838,13 @@ const EntryView = ({
 
   return (
     <div className="space-y-4">
-      {/* Signal Picker */}
+      {/* Signal Picker — locked for free users */}
       <SignalPicker
         selectedSignalId={form.signal_id}
         onSelect={onSignalSelect}
         onClear={onSignalClear}
+        luxAccess={luxAccess}
+        onUpgrade={onUpgrade}
       />
 
       {/* Live Preview Banner */}
@@ -1772,13 +1906,25 @@ const EntryView = ({
 // SIGNAL PICKER — Flowscan dark dropdown
 // ════════════════════════════════════════════════════════════════
 
-const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
+const SignalPicker = ({
+  selectedSignalId,
+  onSelect,
+  onClear,
+  luxAccess = true,
+  onUpgrade,
+}) => {
   const [signals, setSignals] = useState([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Never fetch signal lists for free users — closes bulk data leak
+    if (!luxAccess) {
+      setSignals([]);
+      setLoading(false);
+      return;
+    }
     (async () => {
       setLoading(true);
       try {
@@ -1797,7 +1943,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [luxAccess]);
 
   const filtered = useMemo(() => {
     const s = search.toUpperCase();
@@ -1812,6 +1958,10 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
   };
 
   const handleSelect = async (sig) => {
+    if (!luxAccess) {
+      onUpgrade?.();
+      return;
+    }
     setOpen(false);
     setSearch("");
     try {
@@ -1826,7 +1976,12 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
         planned_tp4: data.planned_tp4,
         planned_sl: data.planned_sl,
       });
-    } catch {
+    } catch (err) {
+      // 403 = free user / expired sub — do not fall back to raw signal prices
+      if (err?.response?.status === 403) {
+        onUpgrade?.();
+        return;
+      }
       onSelect({
         signal_id: sig.signal_id,
         pair: sig.pair,
@@ -1839,6 +1994,38 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
       });
     }
   };
+
+  // Free user: paywall card (no signal list fetch)
+  if (!luxAccess) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-accent/25 bg-accent/10 text-accent">
+              <IconLink className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[12px] font-semibold text-text-primary tracking-tight">
+                Link LuxQuant Signal
+              </div>
+              <p className="mt-0.5 text-[12px] leading-relaxed text-text-muted">
+                Subscribers can auto-fill entry, SL &amp; TPs from live LuxQuant calls. Free plan
+                can still journal discretionary trades.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onUpgrade?.()}
+            className="flex h-9 flex-shrink-0 items-center justify-center gap-1.5 rounded-xl bg-accent px-3.5 text-[12px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
+          >
+            <IconSparkles className="h-3.5 w-3.5" />
+            Upgrade
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // LINKED STATE
   if (selectedSignalId) {
@@ -2093,8 +2280,28 @@ const FieldLabel = ({ label, required, auto, children }) => (
 // EXECUTION SECTION
 // ════════════════════════════════════════════════════════════════
 
-const ExecutionSection = ({ form, update, isLinked }) => (
-  <FormCard title="Execution Details" icon={<IconTarget className="h-3.5 w-3.5" />}>
+const ExecutionSection = ({ form, update, isLinked }) => {
+  // Planned R if exit hits TP1 vs risk to SL (research: plan before emotion)
+  const planR = useMemo(() => {
+    const e = parseFloat(form.planned_entry || form.actual_entry);
+    const sl = parseFloat(form.planned_sl);
+    const tp = parseFloat(form.planned_tp1);
+    if (!e || !sl || !tp || isNaN(e) || isNaN(sl) || isNaN(tp)) return null;
+    const risk = Math.abs(e - sl);
+    if (risk === 0) return null;
+    return Math.abs(tp - e) / risk;
+  }, [form.planned_entry, form.actual_entry, form.planned_sl, form.planned_tp1]);
+
+  return (
+  <FormCard
+    title="Execution Details"
+    icon={<IconTarget className="h-3.5 w-3.5" />}
+    description={
+      planR != null
+        ? `Planned R to TP1 ≈ ${planR.toFixed(2)}R · fill actuals to track slippage vs plan`
+        : "Plan first (entry · SL · TP), then log actuals for process review"
+    }
+  >
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
       <FieldLabel label="Pair" required auto={isLinked}>
         <input
@@ -2181,6 +2388,25 @@ const ExecutionSection = ({ form, update, isLinked }) => (
       </FieldLabel>
     </div>
 
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <FieldLabel label="Entry time">
+        <input
+          type="datetime-local"
+          value={form.entry_at || ""}
+          onChange={(e) => update("entry_at", e.target.value)}
+          className="form-input font-mono text-[12px]"
+        />
+      </FieldLabel>
+      <FieldLabel label="Exit time">
+        <input
+          type="datetime-local"
+          value={form.exit_at || ""}
+          onChange={(e) => update("exit_at", e.target.value)}
+          className="form-input font-mono text-[12px]"
+        />
+      </FieldLabel>
+    </div>
+
     <div className="grid grid-cols-3 gap-2">
       <FieldLabel label="Leverage">
         <input
@@ -2213,7 +2439,8 @@ const ExecutionSection = ({ form, update, isLinked }) => (
       </FieldLabel>
     </div>
   </FormCard>
-);
+  );
+};
 
 const DirectionButton = ({ active, onClick, type }) => {
   const isLong = type === "long";
@@ -2482,11 +2709,19 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
 // ★ ANALYTICS VIEW ★
 // ════════════════════════════════════════════════════════════════
 
-const AnalyticsView = ({ stats, insights, entries }) => {
+const AnalyticsView = ({ stats, insights, entries, filterMode = "all" }) => {
+  // Scope equity to mode filter when set on History toggles
+  const scopedEntries = useMemo(() => {
+    if (!entries?.length) return [];
+    if (filterMode === "luxquant") return entries.filter(isLuxEntry);
+    if (filterMode === "my") return entries.filter((e) => !isLuxEntry(e));
+    return entries;
+  }, [entries, filterMode]);
+
   // Hooks must run unconditionally (rules-of-hooks)
   const equityCurve = useMemo(() => {
-    if (!entries?.length) return [];
-    const closedSorted = entries
+    if (!scopedEntries?.length) return [];
+    const closedSorted = scopedEntries
       .filter((e) => e.status !== "open" && e.pnl_usd != null && e.exit_at)
       .sort((a, b) => new Date(a.exit_at) - new Date(b.exit_at));
     let cum = 0;
@@ -2494,7 +2729,7 @@ const AnalyticsView = ({ stats, insights, entries }) => {
       cum += e.pnl_usd || 0;
       return { date: e.exit_at, equity: cum, pnl: e.pnl_usd, pair: e.pair };
     });
-  }, [entries]);
+  }, [scopedEntries]);
 
   if (!stats) {
     return (
@@ -2509,24 +2744,39 @@ const AnalyticsView = ({ stats, insights, entries }) => {
     );
   }
 
-  // Profit factor
-  const closed = entries.filter((e) => e.status !== "open" && e.pnl_usd != null);
+  // Profit factor (prefer API, fallback local)
+  const closed = scopedEntries.filter((e) => e.status !== "open" && e.pnl_usd != null);
   const wins = closed.filter((e) => e.pnl_usd > 0);
   const losses = closed.filter((e) => e.pnl_usd < 0);
   const grossWin = wins.reduce((s, e) => s + e.pnl_usd, 0);
   const grossLoss = Math.abs(losses.reduce((s, e) => s + e.pnl_usd, 0));
-  const profitFactor = grossLoss > 0 ? grossWin / grossLoss : null;
-  const expectancy = stats.total_trades > 0 ? (stats.total_pnl_usd || 0) / closed.length : 0;
+  const profitFactor =
+    stats.profit_factor != null
+      ? stats.profit_factor
+      : grossLoss > 0
+        ? grossWin / grossLoss
+        : null;
+  const expectancy =
+    stats.expectancy != null
+      ? stats.expectancy
+      : closed.length > 0
+        ? (stats.total_pnl_usd || 0) / closed.length
+        : 0;
 
   return (
     <div className="space-y-4">
-      {/* HERO */}
+      {/* HERO — research core: PnL · WR · PF · Expectancy */}
       <AnalyticsHero
         stats={stats}
         profitFactor={profitFactor}
         expectancy={expectancy}
         closedCount={closed.length}
       />
+
+      {/* LuxQuant vs My Trades */}
+      {(stats.lux_vs_my?.luxquant || stats.lux_vs_my?.my) && (
+        <LuxVsMyCard data={stats.lux_vs_my} />
+      )}
 
       {/* AI COACH */}
       <AICoachCard insights={insights} stats={stats} closedCount={closed.length} />
@@ -2536,8 +2786,14 @@ const AnalyticsView = ({ stats, insights, entries }) => {
 
       {/* TWO COLUMN: P&L DISTRIBUTION + STRATEGY */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <PnlDistributionCard entries={entries} />
+        <PnlDistributionCard entries={scopedEntries} />
         <StrategyBreakdownCard stats={stats} />
+      </div>
+
+      {/* MISTAKES + R distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <MistakeCostCard stats={stats} />
+        <RDistributionCard entries={scopedEntries} />
       </div>
 
       {/* MOOD + DAY OF WEEK */}
@@ -2553,7 +2809,7 @@ const AnalyticsView = ({ stats, insights, entries }) => {
 };
 
 // ── Analytics Hero — 4 hero stats ────────────────────────
-const AnalyticsHero = ({ stats, _profitFactor, expectancy, closedCount }) => {
+const AnalyticsHero = ({ stats, profitFactor, expectancy, closedCount }) => {
   const totalPnl = stats.total_pnl_usd || 0;
   const winRate = stats.win_rate || 0;
   const cards = [
@@ -2570,15 +2826,15 @@ const AnalyticsHero = ({ stats, _profitFactor, expectancy, closedCount }) => {
       accent: winRate >= 50 ? "emerald" : winRate >= 40 ? "amber" : "red",
     },
     {
-      label: "Avg R:R",
-      value: stats.avg_rr != null ? stats.avg_rr.toFixed(2) : "—",
-      sub: "Risk : Reward",
-      accent: stats.avg_rr != null && stats.avg_rr >= 1.5 ? "emerald" : "white",
+      label: "Profit Factor",
+      value: profitFactor != null ? profitFactor.toFixed(2) : "—",
+      sub: "gross win ÷ gross loss",
+      accent: profitFactor != null && profitFactor >= 1.5 ? "emerald" : profitFactor != null && profitFactor >= 1 ? "amber" : "red",
     },
     {
       label: "Expectancy",
       value: fmtMoney(expectancy, { sign: true }),
-      sub: "per trade avg",
+      sub: "avg $ per closed trade",
       accent: expectancy >= 0 ? "emerald" : "red",
     },
   ];
@@ -2588,6 +2844,188 @@ const AnalyticsHero = ({ stats, _profitFactor, expectancy, closedCount }) => {
       {cards.map((c, i) => (
         <HeroCard key={i} {...c} />
       ))}
+    </div>
+  );
+};
+
+// ── LuxQuant vs My Trades ────────────────────────────────
+const LuxVsMyCard = ({ data }) => {
+  const lux = data?.luxquant || {};
+  const mine = data?.my || {};
+  const rows = [
+    { key: "LuxQuant", d: lux, tone: "text-accent" },
+    { key: "My Trades", d: mine, tone: "text-text-primary" },
+  ];
+  return (
+    <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised p-4 sm:p-5">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="text-[12px] font-semibold uppercase tracking-[0.18em] text-text-primary">
+          LuxQuant vs My Trades
+        </h3>
+        <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-muted/50">
+          dual-mode edge
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {rows.map(({ key, d, tone }) => (
+          <div
+            key={key}
+            className="rounded-xl border border-ink/[0.06] bg-surface-secondary/60 px-3.5 py-3"
+          >
+            <div className={`text-[13px] font-semibold tracking-tight ${tone}`}>{key}</div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+              <div>
+                <div className="text-text-muted/55 uppercase tracking-[0.12em] text-[9px]">Trades</div>
+                <div className="font-mono tabular-nums text-text-primary">{d.total ?? 0}</div>
+              </div>
+              <div>
+                <div className="text-text-muted/55 uppercase tracking-[0.12em] text-[9px]">Win rate</div>
+                <div className="font-mono tabular-nums text-text-primary">
+                  {d.win_rate != null ? `${d.win_rate}%` : "—"}
+                </div>
+              </div>
+              <div>
+                <div className="text-text-muted/55 uppercase tracking-[0.12em] text-[9px]">Net P&L</div>
+                <div
+                  className={`font-mono tabular-nums ${
+                    (d.pnl || 0) >= 0 ? "text-profit" : "text-loss"
+                  }`}
+                >
+                  {fmtMoney(d.pnl || 0, { sign: true })}
+                </div>
+              </div>
+              <div>
+                <div className="text-text-muted/55 uppercase tracking-[0.12em] text-[9px]">Avg R</div>
+                <div className="font-mono tabular-nums text-text-primary">
+                  {d.avg_rr != null ? d.avg_rr.toFixed(2) : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── Mistake cost ─────────────────────────────────────────
+const MistakeCostCard = ({ stats }) => {
+  const rows = useMemo(() => {
+    const m = stats?.mistake_stats || {};
+    return Object.entries(m)
+      .map(([name, d]) => ({
+        name,
+        count: d.count || 0,
+        pnl: d.pnl || 0,
+        avg: d.avg_pnl || 0,
+        losses: d.losses || 0,
+      }))
+      .sort((a, b) => a.pnl - b.pnl);
+  }, [stats]);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised p-4 sm:p-5">
+      <div className="mb-3 flex items-center gap-2">
+        <h3 className="text-[12px] font-semibold uppercase tracking-[0.18em] text-text-primary">
+          Mistake cost
+        </h3>
+        <span className="text-[9.5px] font-mono uppercase tracking-[0.15em] text-text-muted/45">
+          process → edge
+        </span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="flex h-32 items-center justify-center text-[11px] font-mono uppercase tracking-[0.15em] text-text-muted/40">
+          Tag mistakes on closed trades
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rows.slice(0, 8).map((r) => (
+            <div key={r.name} className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="truncate text-[12px] font-medium text-text-primary">{r.name}</div>
+                <div className="text-[10px] font-mono text-text-muted/50">
+                  {r.count}× · {r.losses}L
+                </div>
+              </div>
+              <div
+                className={`font-mono text-[12px] tabular-nums font-medium ${
+                  r.pnl >= 0 ? "text-profit" : "text-loss"
+                }`}
+              >
+                {fmtMoney(r.pnl, { sign: true })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── R-multiple distribution ──────────────────────────────
+const RDistributionCard = ({ entries }) => {
+  const bins = useMemo(() => {
+    const closed = (entries || []).filter(
+      (e) => e.status !== "open" && e.rr_ratio != null && !isNaN(e.rr_ratio)
+    );
+    const edges = [-Infinity, -1, -0.5, 0, 0.5, 1, 2, 3, Infinity];
+    const labels = ["≤-1R", "-1/-0.5", "-0.5/0", "0/0.5", "0.5/1", "1/2", "2/3", "≥3R"];
+    const counts = new Array(labels.length).fill(0);
+    closed.forEach((e) => {
+      const v = e.rr_ratio;
+      // Signed R from PnL direction
+      const signed = (e.pnl_usd || 0) < 0 ? -Math.abs(v) : Math.abs(v);
+      for (let i = 0; i < edges.length - 1; i++) {
+        if (signed >= edges[i] && signed < edges[i + 1]) {
+          counts[i]++;
+          return;
+        }
+      }
+    });
+    return { labels, counts, n: closed.length };
+  }, [entries]);
+  const max = Math.max(1, ...bins.counts);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised p-4 sm:p-5">
+      <div className="mb-3 flex items-center gap-2">
+        <h3 className="text-[12px] font-semibold uppercase tracking-[0.18em] text-text-primary">
+          R distribution
+        </h3>
+        <span className="text-[9.5px] font-mono uppercase tracking-[0.15em] text-text-muted/45">
+          {bins.n} with R
+        </span>
+      </div>
+      {bins.n === 0 ? (
+        <div className="flex h-32 items-center justify-center text-[11px] font-mono uppercase tracking-[0.15em] text-text-muted/40">
+          Need SL + exit for R
+        </div>
+      ) : (
+        <div className="flex h-36 items-end gap-1">
+          {bins.counts.map((c, i) => {
+            const h = (c / max) * 100;
+            const isNeg = i < 3;
+            return (
+              <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                <span className="h-3 font-mono text-[9px] tabular-nums text-text-muted/55">
+                  {c || ""}
+                </span>
+                <div className="flex h-24 w-full flex-col-reverse">
+                  <div
+                    className={`w-full rounded-t-sm ${
+                      isNeg ? "bg-loss/35" : "bg-profit/35"
+                    }`}
+                    style={{ height: `${Math.max(h, c ? 8 : 3)}%` }}
+                  />
+                </div>
+                <span className="h-6 text-center font-mono text-[8px] uppercase leading-tight text-text-muted/45">
+                  {bins.labels[i]}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
@@ -2984,7 +3422,10 @@ const DayOfWeekCard = ({ stats }) => {
 };
 
 // ── Streaks Row ─────────────────────────────────────────
-const StreaksRow = ({ stats }) => (
+const StreaksRow = ({ stats }) => {
+  const curType = stats.current_streak_type;
+  const curN = stats.current_streak || 0;
+  return (
   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
     <StreakCard
       label="Best Trade"
@@ -3009,21 +3450,22 @@ const StreaksRow = ({ stats }) => (
       icon={<IconArrowDown className="h-3.5 w-3.5" />}
     />
     <StreakCard
-      label="Win Streak"
-      value={stats.longest_win_streak || 0}
-      sub="consecutive"
-      accent="emerald"
+      label="Current streak"
+      value={curN > 0 ? `${curN}` : "—"}
+      sub={curType === "win" ? "wins in a row" : curType === "loss" ? "losses in a row" : "no streak"}
+      accent={curType === "win" ? "emerald" : curType === "loss" ? "red" : "white"}
       icon={<IconFire className="h-3.5 w-3.5" />}
     />
     <StreakCard
-      label="Loss Streak"
-      value={stats.longest_loss_streak || 0}
-      sub="consecutive"
-      accent="red"
+      label="Best / worst run"
+      value={`${stats.longest_win_streak || 0}W · ${stats.longest_loss_streak || 0}L`}
+      sub="longest consecutive"
+      accent="white"
       icon={<IconFire className="h-3.5 w-3.5" />}
     />
   </div>
-);
+  );
+};
 
 const StreakCard = ({ label, value, sub, accent, icon }) => {
   const colorMap = { emerald: "text-profit", profit: "text-profit", red: "text-loss" };

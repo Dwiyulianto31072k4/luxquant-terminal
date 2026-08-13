@@ -2478,9 +2478,9 @@ const ControlBar = ({
         </div>
       </div>
 
-      {/* Row 2: Source + Timeframe — desk SegGroup (mobile-friendly wrap) */}
+      {/* Row 2: Source + TF stay on one desk strip */}
       <div className="flex flex-col gap-2 pt-3 border-t border-ink/[0.04] sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 sm:flex-1">
           <span className="w-[52px] shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
             Source
           </span>
@@ -2498,51 +2498,7 @@ const ControlBar = ({
             ]}
           />
         </div>
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="w-[52px] shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
-            Calls
-          </span>
-          <SegGroup
-            size="sm"
-            fill
-            aria-label="Called filter"
-            wrap
-            value={callFilter}
-            onChange={setCallFilter}
-            options={[
-              { key: "all", label: "All" },
-              {
-                key: "called",
-                label: "Called",
-                badge: entitled ? null : "VIP",
-                title: entitled
-                  ? "Movers our algorithm has already called"
-                  : "VIP — overlay coins that have momentum and a live LuxQuant call",
-              },
-              {
-                key: "uncalled",
-                label: "Not called",
-                badge: entitled ? null : "VIP",
-                title: entitled
-                  ? "Movers we have not signalled"
-                  : "VIP — see which movers have no LuxQuant call yet",
-              },
-            ]}
-          />
-          {callFilter === "called" && entitled ? (
-            <span className="text-[10px] text-text-muted">
-              Momentum plus a live LuxQuant plan — tap a coin for the call
-            </span>
-          ) : null}
-          {callFilter === "called" && !entitled ? (
-            <span className="text-[10px] text-text-muted">
-              {calledCount
-                ? `${calledCount} coins called this week — activate VIP to overlay them`
-                : "Activate VIP to overlay our calls on this tape"}
-            </span>
-          ) : null}
-        </div>
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 sm:flex-1">
           <span className="w-[52px] shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
             TF
           </span>
@@ -2567,6 +2523,55 @@ const ControlBar = ({
         <span className="sm:ml-auto text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted">
           24h rolling
         </span>
+      </div>
+
+      {/* Row 3: Calls overlay — own row so VIP copy never collides with TF */}
+      <div className="flex flex-col gap-2 border-t border-ink/[0.04] pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex w-[52px] shrink-0 items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+            Calls
+            {!entitled ? (
+              <span className="rounded-sm border border-accent/25 bg-accent/[0.08] px-1 py-px font-mono text-[8px] tracking-[0.12em] text-accent">
+                VIP
+              </span>
+            ) : null}
+          </span>
+          <SegGroup
+            size="sm"
+            aria-label="Called filter"
+            value={callFilter}
+            onChange={setCallFilter}
+            options={[
+              { key: "all", label: "All" },
+              {
+                key: "called",
+                label: "Called",
+                title: entitled
+                  ? "Movers our algorithm has already called"
+                  : "VIP — coins with momentum and a live LuxQuant plan",
+              },
+              {
+                key: "uncalled",
+                label: "Not called",
+                title: entitled
+                  ? "Movers we have not signalled"
+                  : "VIP — movers with no LuxQuant call yet",
+              },
+            ]}
+          />
+        </div>
+        {!entitled && callFilter !== "all" ? (
+          <p className="min-w-0 text-[11px] leading-snug text-text-muted sm:max-w-sm sm:text-right">
+            {calledCount
+              ? `${calledCount} coins called this week — activate VIP to overlay them on this tape`
+              : "Activate VIP to overlay LuxQuant calls on this tape"}
+          </p>
+        ) : null}
+        {entitled && callFilter === "called" ? (
+          <p className="text-[11px] text-text-muted sm:text-right">
+            Momentum plus a live plan — tap a coin for the call
+          </p>
+        ) : null}
       </div>
     </div>
 
@@ -2832,61 +2837,50 @@ const CalledLocked = ({ count, filter = "called", onStayFree }) => {
   const navigate = useNavigate();
   const isCalled = filter === "called";
   return (
-    <div className="flex flex-col items-center gap-4 px-6 py-12 text-center sm:py-16">
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/[0.08] px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
-        <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-          <rect x="5" y="11" width="14" height="10" rx="2" />
-          <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
-        </svg>
-        VIP
-      </span>
-      <div className="max-w-md space-y-2">
-        <p className="text-[16px] font-semibold tracking-tight text-text-primary">
-          {isCalled ? "Called movers" : "Not-called movers"}
-        </p>
-        <p className="text-[13px] leading-relaxed text-text-secondary">
-          Pulse is free — every pump and dump stays on this tape.{" "}
-          {isCalled
-            ? "Called overlays the coins that also have a live LuxQuant plan: entry, take-profits, and stop."
-            : "Not called hides coins we already signalled, so you can scan movers that still have no plan."}
-        </p>
-        {count ? (
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent">
-            {count} coins called in the last 7 days
+    <div className="p-3 sm:p-4">
+      <div className="flex flex-col gap-4 rounded-lg border border-accent/20 bg-accent/[0.04] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-sm border border-accent/25 bg-accent/[0.1] px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-accent">
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="2" />
+                <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+              </svg>
+              VIP
+            </span>
+            <p className="text-[14px] font-semibold tracking-tight text-text-primary">
+              {isCalled ? "Called movers" : "Not-called movers"}
+            </p>
+            {count ? (
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-accent">
+                {count} called · 7d
+              </span>
+            ) : null}
+          </div>
+          <p className="max-w-xl text-[12px] leading-relaxed text-text-secondary">
+            {isCalled
+              ? "Pulse stays free. Called shows which of these movers already have a live LuxQuant plan — entry, targets, and stop."
+              : "Pulse stays free. Not called hides coins we already signalled, so you can scan movers with no plan yet."}
           </p>
-        ) : null}
-      </div>
-      <ul className="max-w-sm space-y-1.5 text-left text-[12px] leading-snug text-text-muted">
-        <li className="flex gap-2">
-          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
-          Momentum and our algorithm, in one list
-        </li>
-        <li className="flex gap-2">
-          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
-          Tap a coin for the entry, targets, and stop
-        </li>
-        <li className="flex gap-2">
-          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
-          Same calls the Agent can execute
-        </li>
-      </ul>
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-        <button
-          type="button"
-          onClick={() => navigate("/pricing")}
-          className="rounded-md bg-accent px-5 py-2 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
-        >
-          Activate VIP
-        </button>
-        {typeof onStayFree === "function" ? (
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={onStayFree}
-            className="rounded-md border border-ink/[0.1] bg-surface-secondary px-4 py-2 text-[12px] font-medium text-text-secondary transition-colors hover:border-ink/20 hover:text-text-primary"
+            onClick={() => navigate("/pricing")}
+            className="rounded-md bg-accent px-4 py-2 text-[12px] font-semibold text-accent-fg"
           >
-            Keep watching Pulse
+            Activate VIP
           </button>
-        ) : null}
+          {typeof onStayFree === "function" ? (
+            <button
+              type="button"
+              onClick={onStayFree}
+              className="rounded-md border border-ink/[0.1] bg-surface-raised px-3.5 py-2 text-[12px] font-medium text-text-secondary hover:text-text-primary"
+            >
+              Back to Pulse
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
