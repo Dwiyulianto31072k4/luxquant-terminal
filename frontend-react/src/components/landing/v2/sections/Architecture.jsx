@@ -43,7 +43,7 @@ const LOGO_SET_B = [
 const LOGO_CELLS = LOGO_SET_A.map((a, i) => [a, LOGO_SET_B[i], a, LOGO_SET_B[i]]);
 
 const DW = 1080;
-const DH = 560;
+const DH = 600;
 const PH = 36;
 
 function box(x, y, w, h) {
@@ -280,40 +280,44 @@ const D = (() => {
   const tg = 6;
   const t0 = (DW - (8 * tw + 7 * tg)) / 2;
   const T = FEEDS.map((_, i) => box(t0 + i * (tw + tg), 40, tw, PH));
-  const busY = 100;
-  const plan = box(372, 158, 336, PH);
-  const hub = box(500, 228, 80, 80);
-  const venues = box(268, 252, 136, PH);
-  const record = box(676, 252, 136, PH);
-  const logos = box(72, 216, 160, 108);
-  const dest = box(968, 248, 40, 40);
-  const desk = box(472, 352, 136, PH);
+  const hub = box(486, 196, 108, 108);
+  const drop = 92;
+  const venues = box(248, 234, 136, PH);
+  const record = box(696, 234, 136, PH);
+  const logos = box(56, 198, 160, 108);
+  const dest = box(980, 230, 40, 40);
+  const plan = box(360, 344, 360, 56);
+  const desk = box(472, 434, 136, PH);
   const ow = 168;
   const og = 14;
   const o0 = (DW - (4 * ow + 3 * og)) / 2;
-  const O = YOU_GET.map((_, i) => box(o0 + i * (ow + og), 488, ow, PH));
-  const neck = desk.b + 22;
-  const routes = [
-    ...T.map((t) => `M${t.cx} ${t.b} V${busY}`),
-    `M${T[0].cx} ${busY} H${T[7].cx}`,
-    `M${(T[0].cx + T[7].cx) / 2} ${busY} V${plan.y}`,
-    `M${plan.cx} ${plan.b} V${hub.y}`,
+  const O = YOU_GET.map((_, i) => box(o0 + i * (ow + og), 534, ow, PH));
+  const neck = desk.b + 20;
+  const intoHub = T.map((t) => `M${t.cx} ${t.b} V${drop} H${hub.cx} V${hub.y}`);
+  const outHub = [
     `M${logos.r} ${hub.cy} H${venues.x}`,
     `M${venues.r} ${hub.cy} H${hub.x}`,
     `M${hub.r} ${hub.cy} H${record.x}`,
     `M${record.r} ${hub.cy} H${dest.x}`,
-    `M${hub.cx} ${hub.b} V${desk.y}`,
+    `M${hub.cx} ${hub.b} V${plan.y}`,
+    `M${plan.cx} ${plan.b} V${desk.y}`,
     ...O.map((o) => `M${desk.cx} ${desk.b} V${neck} H${o.cx} V${o.y}`),
   ];
-  return { T, plan, hub, venues, record, logos, dest, desk, O, routes };
+  return { T, plan, hub, venues, record, logos, dest, desk, O, intoHub, outHub };
 })();
 
 function Desktop({ scene, running }) {
   return (
     <Plane width={DW} height={DH}>
       <svg className="pointer-events-none absolute inset-0 z-[1]" viewBox={`0 0 ${DW} ${DH}`} fill="none" aria-hidden="true">
-        {D.routes.map((d, i) => (
-          <path key={i} d={d} className="lq-flow" />
+        {[...D.intoHub, ...D.outHub].map((d, i) => (
+          <path key={`base-${i}`} d={d} className="lq-flow" />
+        ))}
+        {D.intoHub.map((d, i) => (
+          <path key={`in-${i}`} d={d} className="lq-flow-move is-in" style={{ animationDelay: `${i * 0.12}s` }} />
+        ))}
+        {D.outHub.map((d, i) => (
+          <path key={`out-${i}`} d={d} className="lq-flow-move is-out" style={{ animationDelay: `${0.4 + i * 0.08}s` }} />
         ))}
       </svg>
       <div className="lq-tag" style={{ left: D.T[0].x, top: 14, width: 360 }}>
@@ -326,11 +330,14 @@ function Desktop({ scene, running }) {
         </div>
       ))}
       <div className="lq-tag" style={{ left: D.plan.x, top: D.plan.y - 22, width: D.plan.w }}>
-        2 · They become one plan
+        2 · Trade projection setup
       </div>
-      <div className="lq-pill is-plan" style={{ left: D.plan.x, top: D.plan.y, width: D.plan.w, height: D.plan.h }}>
+      <div className="lq-plan" style={{ left: D.plan.x, top: D.plan.y, width: D.plan.w, height: D.plan.h }}>
         <Glyph type="plan" />
-        Entry · TP1–TP4 · Stop
+        <span>
+          <strong>Trade projection setup</strong>
+          <em>Entry · TP1–TP4 · Stop</em>
+        </span>
       </div>
       <div className="lq-apps" style={{ left: D.logos.x, top: D.logos.y, width: D.logos.w, height: D.logos.h }}>
         {LOGO_CELLS.map((items, i) => (
@@ -387,10 +394,13 @@ function Mobile({ scene, running }) {
 
       <span className="lq-m-line" aria-hidden="true" />
 
-      <p className="lq-m-tag">2 · They become one plan</p>
-      <div className="lq-chip lq-chip-lg">
+      <p className="lq-m-tag">2 · Trade projection setup</p>
+      <div className="lq-plan lq-plan-m">
         <Glyph type="plan" />
-        Entry · TP1–TP4 · Stop
+        <span>
+          <strong>Trade projection setup</strong>
+          <em>Entry · TP1–TP4 · Stop</em>
+        </span>
       </div>
 
       <span className="lq-m-line" aria-hidden="true" />
@@ -483,8 +493,7 @@ export default function Architecture() {
       className="relative z-10 w-full scroll-mt-32 overflow-hidden py-16 lg:py-24"
     >
       <div className="mx-auto w-full max-w-[1120px] px-4 lg:px-8">
-        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">How LuxQuant thinks</p>
-        <h2 className="mt-5 max-w-4xl text-[28px] font-semibold leading-[1.28] tracking-[-0.025em] sm:text-[34px] lg:text-[40px]">
+        <h2 className="max-w-4xl text-[28px] font-semibold leading-[1.28] tracking-[-0.025em] sm:text-[34px] lg:text-[40px]">
           <span className="text-text-primary">Lots of market data. One written plan. </span>
           <span className="text-text-muted">Then it shows up on your desk — and stays on the record.</span>
         </h2>
@@ -523,7 +532,27 @@ export default function Architecture() {
           -webkit-mask-image: linear-gradient(180deg, transparent, #737373 16%, #737373 84%, transparent);
           mask-image: linear-gradient(180deg, transparent, #737373 16%, #737373 84%, transparent);
         }
-        .lq-flow { stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 2 3; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .lq-flow { stroke: rgb(var(--accent) / 0.28); stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .lq-flow-move {
+          fill: none; stroke-linecap: round; stroke-linejoin: round;
+          stroke: #f0c84a; stroke-width: 1.7;
+          stroke-dasharray: 10 22;
+          filter: drop-shadow(0 0 3px rgba(240, 200, 74, .7));
+          animation: lqTravel 1.7s linear infinite;
+        }
+        .lq-flow-move.is-in { animation-duration: 1.55s; }
+        .lq-flow-move.is-out { animation-duration: 2.1s; stroke: #e7b72d; }
+        @keyframes lqTravel { to { stroke-dashoffset: -32; } }
+        .lq-plan {
+          position: absolute; z-index: 5;
+          display: flex; align-items: center; justify-content: center; gap: 10px;
+          border-radius: 10px; background: var(--pill); color: var(--ink);
+          box-shadow: 0 16px 28px -18px rgb(var(--scrim) / 0.4);
+        }
+        .lq-plan span { display: flex; flex-direction: column; line-height: 1.15; }
+        .lq-plan strong { font-size: 13.5px; font-weight: 750; letter-spacing: -0.02em; }
+        .lq-plan em { margin-top: 2px; font-style: normal; font-size: 11.5px; font-weight: 650; opacity: .72; }
+        .lq-plan-m { position: relative; width: min(100%, 300px); height: 56px; }
         .lq-pill, .lq-hub, .lq-apps, .lq-dest, .lq-tag { position: absolute; z-index: 4; box-sizing: border-box; }
         .lq-tag {
           z-index: 6; font-size: 10px; font-weight: 700; letter-spacing: .14em;
@@ -541,7 +570,13 @@ export default function Architecture() {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
           z-index: 7; border-radius: 10px;
           background: linear-gradient(288deg, #3a2a0c -7%, #d4a017 106%);
-          box-shadow: 0 16px 28px -16px rgb(var(--scrim) / 0.45);
+          box-shadow: 0 0 0 8px rgb(var(--accent) / 0.08), 0 22px 40px -16px rgb(var(--scrim) / 0.55);
+        }
+        .lq-hub::after {
+          content: "";
+          position: absolute; inset: -28px; z-index: -1; border-radius: 28px;
+          background: radial-gradient(circle, rgb(var(--accent) / 0.28), transparent 68%);
+          pointer-events: none;
         }
         .lq-hub img { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
         .lq-hub span { margin-top: 4px; color: #fbf3da; font-size: 9px; font-weight: 750; letter-spacing: -.04em; }
@@ -615,7 +650,8 @@ export default function Architecture() {
         @keyframes lqBot { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
 
         @media (prefers-reduced-motion: reduce) {
-          .lq-glyph path, .lq-glyph rect, .lq-glyph circle, .lq-glyph { animation: none !important; }
+          .lq-glyph path, .lq-glyph rect, .lq-glyph circle, .lq-glyph,
+          .lq-flow-move { animation: none !important; }
           .lq-app-flip { transition: none !important; }
         }
       `}</style>
