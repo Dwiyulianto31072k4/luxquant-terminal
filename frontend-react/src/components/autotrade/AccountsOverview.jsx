@@ -15,16 +15,18 @@ import {
   EmptyState,
   fmtDateTime,
 } from "./AutoTradeUI";
-import { BinanceIcon, BitgetIcon } from "./BrandIcons";
+import { BinanceIcon, BitgetIcon, BingxIcon } from "./BrandIcons";
 import ExchangeRoadmap from "./ExchangeRoadmap";
 
 const VENUE_ICONS = {
   binance: BinanceIcon,
   bitget: BitgetIcon,
+  bingx: BingxIcon,
 };
 
 function venueName(exchange) {
   if (exchange === "bitget") return "Bitget";
+  if (exchange === "bingx") return "BingX";
   if (exchange === "binance") return "Binance";
   return exchange || "Exchange";
 }
@@ -118,11 +120,12 @@ export default function AccountsOverview({
         <EmptyState
           icon="🔑"
           title="No exchange connected"
-          hint="Save Binance or Bitget API keys to unlock portfolio, configuration, positions and execution history."
+          hint="Save Binance, Bitget, or BingX API keys to unlock portfolio, configuration, positions and execution history."
           action={
             <div className="mt-1 flex flex-wrap gap-2">
               <GoldButton onClick={() => openConnect("binance")}>Connect Binance</GoldButton>
               <GoldButton onClick={() => openConnect("bitget")}>Connect Bitget</GoldButton>
+              <GoldButton onClick={() => openConnect("bingx")}>Connect BingX</GoldButton>
             </div>
           }
         />
@@ -165,7 +168,10 @@ export default function AccountsOverview({
         </div>
       )}
 
-      <ExchangeRoadmap onConnectBitget={() => openConnect("bitget")} />
+      <ExchangeRoadmap
+        onConnectBitget={() => openConnect("bitget")}
+        onConnectBingx={() => openConnect("bingx")}
+      />
     </div>
   );
 }

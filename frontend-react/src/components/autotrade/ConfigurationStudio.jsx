@@ -315,8 +315,9 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
   }, [config, dirty, saving]);
 
   const venue = config?.exchange || "binance";
-  const venueName = venue === "bitget" ? "Bitget" : "Binance";
-  const bitgetOnly = venue === "bitget";
+  const venueName =
+    venue === "bitget" ? "Bitget" : venue === "bingx" ? "BingX" : "Binance";
+  const futuresOnlyVenue = venue === "bitget" || venue === "bingx";
 
   const statusText = useMemo(() => {
     if (!hasConnectedAccount) return `Connect ${venueName} keys to start trading.`;
@@ -390,7 +391,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
     setSaving(true);
     try {
       const payload = toPayload(draft);
-      if (bitgetOnly) {
+      if (futuresOnlyVenue) {
         payload.spot_enabled = false;
         payload.futures_enabled = true;
       }
@@ -474,22 +475,22 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
             <Toggle
               label="Spot trading"
               hint={
-                bitgetOnly
-                  ? "Bitget v1 is USDT-M futures only."
+                futuresOnlyVenue
+                  ? `${venueName} v1 is USDT-M futures only.`
                   : "Execute spot orders for supported signals."
               }
-              checked={bitgetOnly ? false : draft.spot_enabled}
+              checked={futuresOnlyVenue ? false : draft.spot_enabled}
               onChange={(value) => patch({ spot_enabled: value })}
-              disabled={bitgetOnly}
+              disabled={futuresOnlyVenue}
             />
           </WithGuide>
           <WithGuide guide={FIELD_GUIDE.futures_enabled}>
             <Toggle
               label="Futures trading"
               hint="Execute leveraged futures orders."
-              checked={bitgetOnly ? true : draft.futures_enabled}
+              checked={futuresOnlyVenue ? true : draft.futures_enabled}
               onChange={(value) => patch({ futures_enabled: value })}
-              disabled={bitgetOnly}
+              disabled={futuresOnlyVenue}
             />
           </WithGuide>
         </div>

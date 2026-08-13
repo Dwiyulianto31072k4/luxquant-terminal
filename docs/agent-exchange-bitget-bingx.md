@@ -1,13 +1,12 @@
 # Agent — Bitget & BingX (Cryptobot spec)
 
-Live execution: **Binance** and **Bitget** (USDT-M futures). Users have asked, in order:
+Live execution: **Binance**, **Bitget**, and **BingX** (USDT-M futures). Users have asked, in order:
 
 1. **Bitget** (Canada / global futures users)
 2. **BingX** (India — Binance is hard or blocked)
 
-Bitget is wired on Cryptobot (`PUT /me/exchange-accounts/bitget`) and the
-Agent connect modal. BingX remains a waitlist at
-`POST /api/v1/agent/exchange-waitlist`.
+Both venues are wired on Cryptobot (`PUT /me/exchange-accounts/{bitget,bingx}`)
+and the Agent connect modal. Agent v1 still runs one venue at a time.
 
 ## Product rules (same as Binance)
 
@@ -33,12 +32,10 @@ Agent connect modal. BingX remains a waitlist at
 
 ## BingX (India)
 
-- Auth: API key + secret (HMAC). Confirm whether a passphrase is required
-  on the current key type.
-- Swap (USDT-M perpetual) first; spot second.
+- Auth: API key + secret (HMAC-SHA256 hex). No passphrase.
+- Swap (USDT-M perpetual) first. Symbols are `BTC-USDT`.
 - India users often cannot complete Binance KYC — this is the venue that
   unblocks them, not a nice-to-have.
-- Watch: symbol suffixes and contract IDs are not always `BTC-USDT`.
 - Same IP whitelist story as Binance — publish the Agent server IP in the
   connect modal.
 

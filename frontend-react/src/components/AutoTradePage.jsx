@@ -44,7 +44,7 @@ import PnLSummary from "./autotrade/PnLSummary";
 import TradeHistoryCalendar from "./autotrade/TradeHistoryCalendar";
 import AutoTradeHelpModal from "./autotrade/AutoTradeHelpModal";
 import AssistantWidget from "./assistant/AssistantWidget";
-import { BinanceIcon, BitgetIcon, TelegramIcon, SettingsIcon } from "./autotrade/BrandIcons";
+import { BinanceIcon, BitgetIcon, BingxIcon, TelegramIcon, SettingsIcon } from "./autotrade/BrandIcons";
 import {
   Card,
   SectionHeader,
@@ -69,6 +69,7 @@ const TABS = [
 const VENUE_META = {
   binance: { name: "Binance", Icon: BinanceIcon },
   bitget: { name: "Bitget", Icon: BitgetIcon },
+  bingx: { name: "BingX", Icon: BingxIcon },
 };
 
 function venueMeta(exchange) {
@@ -84,8 +85,10 @@ function pickStrategyConfig(items = [], accounts = []) {
   );
   const matched = items.filter((item) => valid.has(item.exchange));
   return (
+    matched.find((item) => item.exchange === "bingx") ||
     matched.find((item) => item.exchange === "bitget") ||
     matched[0] ||
+    items.find((item) => item.exchange === "bingx") ||
     items.find((item) => item.exchange === "bitget") ||
     items[0]
   );
@@ -541,6 +544,8 @@ function SetupCard({
   disabled = false,
   secondaryLabel,
   onSecondary,
+  tertiaryLabel,
+  onTertiary,
 }) {
   return (
     <Card className="border-ink/10 bg-accent/12">
@@ -557,6 +562,11 @@ function SetupCard({
           {secondaryLabel ? (
             <GhostButton onClick={onSecondary} disabled={disabled}>
               {secondaryLabel}
+            </GhostButton>
+          ) : null}
+          {tertiaryLabel ? (
+            <GhostButton onClick={onTertiary} disabled={disabled}>
+              {tertiaryLabel}
             </GhostButton>
           ) : null}
         </div>
@@ -762,7 +772,7 @@ export default function AutoTradePage() {
 
   const summaryText = useMemo(() => {
     if (!hasAutotradeToken) return "Cryptobot access required";
-    if (!hasExchangeAccount) return "Connect Binance or Bitget to unlock Agent";
+    if (!hasExchangeAccount) return "Connect Binance, Bitget, or BingX to unlock Agent";
     const totalAccounts = exchangeAccounts.length;
     const totalExecutions = liveExecutions.length;
     return `${totalAccounts} exchange${totalAccounts === 1 ? "" : "s"} connected · ${totalExecutions} execution job${totalExecutions === 1 ? "" : "s"}`;
@@ -851,11 +861,13 @@ export default function AutoTradePage() {
       ) : !hasExchangeAccount ? (
         <SetupCard
           title="Connect an exchange before using Agent"
-          body="Your Agent access is ready, but exchange credentials are required first. Save and validate Binance or Bitget keys to unlock portfolio, configuration, positions and execution history. Agent v1 runs one venue at a time."
+          body="Your Agent access is ready, but exchange credentials are required first. Save and validate Binance, Bitget, or BingX keys to unlock portfolio, configuration, positions and execution history. Agent v1 runs one venue at a time."
           actionLabel="Connect Binance"
           onAction={() => openConnect("binance")}
           secondaryLabel="Connect Bitget"
           onSecondary={() => openConnect("bitget")}
+          tertiaryLabel="Connect BingX"
+          onTertiary={() => openConnect("bingx")}
         />
       ) : (
         <>

@@ -2,15 +2,14 @@
 // ════════════════════════════════════════════════════════════════
 // LuxQuant — Agent · Connect exchange modal
 // Two-pane premium layout: left = guidance (permissions + IP + safety),
-// right = key form. Venue tabs: Binance (key/secret) and Bitget
-// (key/secret/passphrase). Stacks on mobile; rendered through a portal.
+// right = key form. Venue tabs: Binance, Bitget (passphrase), BingX.
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { checkExchangeKeys, saveExchangeKeys } from "../../services/autotradeApi";
 import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
-import { BinanceIcon, BitgetIcon } from "./BrandIcons";
+import { BinanceIcon, BitgetIcon, BingxIcon } from "./BrandIcons";
 
 const AUTOTRADE_SERVER_IP = "187.127.135.84";
 
@@ -47,6 +46,24 @@ const VENUES = {
     permissions: [
       { label: "Read", state: "yes" },
       { label: "Futures / Contract trading", state: "yes" },
+      { label: "Spot trading", state: "optional" },
+      { label: "Withdraw", state: "no" },
+    ],
+  },
+  bingx: {
+    id: "bingx",
+    name: "BingX",
+    Icon: BingxIcon,
+    needsPassphrase: false,
+    placeholderLabel: "My BingX Account",
+    keyPlaceholder: "Paste your BingX API key",
+    secretPlaceholder: "Paste your BingX API secret",
+    fundsStay: "Funds stay on BingX — withdrawal access is never requested.",
+    ipHint:
+      "If the BingX key is IP-restricted, whitelist the Agent server IP below. Enable Read + Futures/Perpetual. Leave withdraw off.",
+    permissions: [
+      { label: "Read", state: "yes" },
+      { label: "Futures / Perpetual trading", state: "yes" },
       { label: "Spot trading", state: "optional" },
       { label: "Withdraw", state: "no" },
     ],
@@ -130,7 +147,7 @@ function SecretField({ label, value, onChange, placeholder }) {
 }
 
 export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, exchange = "binance" }) {
-  const [venueId, setVenueId] = useState(exchange === "bitget" ? "bitget" : "binance");
+  const [venueId, setVenueId] = useState(VENUES[exchange] ? exchange : "binance");
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -141,7 +158,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
 
   useEffect(() => {
     if (!isOpen) return;
-    setVenueId(exchange === "bitget" ? "bitget" : "binance");
+    setVenueId(VENUES[exchange] ? exchange : "binance");
     setForm(INITIAL_FORM);
     setSaving(false);
     setError("");
@@ -251,7 +268,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
                     Connect {venue.name}
                   </h2>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-4 grid grid-cols-3 gap-2">
                   {Object.values(VENUES).map((item) => {
                     const TabIcon = item.Icon;
                     const on = item.id === venue.id;
