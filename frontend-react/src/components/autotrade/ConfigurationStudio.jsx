@@ -316,7 +316,17 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
 
   const venue = config?.exchange || "binance";
   const venueName =
-    venue === "bitget" ? "Bitget" : venue === "bingx" ? "BingX" : "Binance";
+    venue === "okx"
+      ? "OKX"
+      : venue === "bybit"
+        ? "Bybit"
+        : venue === "gate"
+          ? "Gate"
+          : venue === "bitget"
+            ? "Bitget"
+            : venue === "bingx"
+              ? "BingX"
+              : "Binance";
   const statusText = useMemo(() => {
     if (!hasConnectedAccount) return `Connect ${venueName} keys to start trading.`;
     return `These are your rules. Agent only follows them. It does not make ${venueName} profitable by itself.`;

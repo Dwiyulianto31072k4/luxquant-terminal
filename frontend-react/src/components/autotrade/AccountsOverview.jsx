@@ -16,13 +16,10 @@ import {
 } from "./AutoTradeUI";
 import ExchangeRoadmap from "./ExchangeRoadmap";
 import ExchangePicker from "./ExchangePicker";
-import { VenueLogo } from "./exchangeVenues";
+import { EXCHANGE_VENUES, VenueLogo } from "./exchangeVenues";
 
 function venueName(exchange) {
-  if (exchange === "bitget") return "Bitget";
-  if (exchange === "bingx") return "BingX";
-  if (exchange === "binance") return "Binance";
-  return exchange || "Exchange";
+  return EXCHANGE_VENUES[exchange]?.name || exchange || "Exchange";
 }
 
 function keyStatusTone(status) {
@@ -146,8 +143,8 @@ export default function AccountsOverview({
       )}
 
       <ExchangeRoadmap
-        onConnectBitget={() => openConnect("bitget")}
-        onConnectBingx={() => openConnect("bingx")}
+        onConnect={openConnect}
+        exclude={exchangeAccounts.map((account) => account.exchange)}
       />
     </div>
   );

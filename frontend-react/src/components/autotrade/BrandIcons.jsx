@@ -34,6 +34,36 @@ export function BingxIcon({ className = "h-6 w-6" }) {
   );
 }
 
+export function OkxIcon({ className = "h-6 w-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
+      <rect x="3" y="3" width="7" height="7" rx="1.2" />
+      <rect x="14" y="3" width="7" height="7" rx="1.2" />
+      <rect x="8.5" y="8.5" width="7" height="7" rx="1.2" />
+      <rect x="3" y="14" width="7" height="7" rx="1.2" />
+      <rect x="14" y="14" width="7" height="7" rx="1.2" />
+    </svg>
+  );
+}
+
+export function BybitIcon({ className = "h-6 w-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect width="24" height="24" rx="12" fill="#0B0E11" />
+      <path fill="#F7A600" d="M6.2 7.2h3.1L12 12l-2.7 4.8H6.2L9 12 6.2 7.2Zm8.5 0H18L15.2 12 18 16.8h-3.3L12 12l2.7-4.8Z" />
+    </svg>
+  );
+}
+
+export function GateIcon({ className = "h-6 w-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="#1652F0" />
+      <rect x="12.4" y="8.2" width="4.4" height="4.4" rx="0.8" fill="#17E6A1" />
+    </svg>
+  );
+}
+
 export function SettingsIcon({ className = "h-5 w-5" }) {
   return (
     <svg

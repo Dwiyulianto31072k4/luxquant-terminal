@@ -1,4 +1,4 @@
-// Post-disclaimer venue pick. Three desks, one venue at a time.
+// Post-disclaimer venue pick. Six desks, one venue at a time.
 
 import { EXCHANGE_LIST, VenueLogo } from "./exchangeVenues";
 

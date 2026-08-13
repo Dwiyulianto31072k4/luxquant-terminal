@@ -1,50 +1,38 @@
-// src/components/autotrade/ExchangeRoadmap.jsx
-// Bitget + BingX are live (USDT-M futures). One venue at a time.
+// Other live desks. Agent still runs one venue at a time.
 
 import { Card, StatusBadge, GoldButton } from "./AutoTradeUI";
-import { VenueLogo } from "./exchangeVenues";
+import { EXCHANGE_LIST, VenueLogo } from "./exchangeVenues";
 
-export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
+export default function ExchangeRoadmap({ onConnect, exclude = [] }) {
+  const hidden = new Set(exclude);
+  const rest = EXCHANGE_LIST.filter((venue) => !hidden.has(venue.id));
+  if (!rest.length) return null;
   return (
     <div className="space-y-3">
       <div>
         <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-          More exchanges
+          Switch venue
         </p>
         <p className="mt-1 text-[12px] leading-5 text-text-muted">
-          Bitget and BingX support spot and USDT-M futures. One venue at a time.
-          Still an assistant — you turn it off.
+          All six desks support spot and USDT-M. One venue at a time — connecting
+          another pauses the current one.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Card>
-          <div className="flex items-start justify-between gap-3">
-            <VenueLogo venue="bitget" className="h-10 w-10" />
-            <StatusBadge tone="good">Live</StatusBadge>
-          </div>
-          <h3 className="mt-3 text-base font-semibold text-text-primary">Bitget</h3>
-          <p className="mt-1 text-[12px] leading-5 text-text-muted">
-            Spot + USDT-M futures. Needs API key, secret, and passphrase.
-          </p>
-          <div className="mt-4">
-            <GoldButton onClick={onConnectBitget}>Connect Bitget</GoldButton>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-start justify-between gap-3">
-            <VenueLogo venue="bingx" className="h-10 w-10" />
-            <StatusBadge tone="good">Live</StatusBadge>
-          </div>
-          <h3 className="mt-3 text-base font-semibold text-text-primary">BingX</h3>
-          <p className="mt-1 text-[12px] leading-5 text-text-muted">
-            Spot + USDT-M perpetual for India and regions where Binance is hard to use. Key + secret only.
-          </p>
-          <div className="mt-4">
-            <GoldButton onClick={onConnectBingx}>Connect BingX</GoldButton>
-          </div>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {rest.map((venue) => (
+          <Card key={venue.id}>
+            <div className="flex items-start justify-between gap-3">
+              <VenueLogo venue={venue} className="h-10 w-10" />
+              <StatusBadge tone="good">Live</StatusBadge>
+            </div>
+            <h3 className="mt-3 text-base font-semibold text-text-primary">{venue.name}</h3>
+            <p className="mt-1 text-[12px] leading-5 text-text-muted">{venue.blurb}</p>
+            <div className="mt-4">
+              <GoldButton onClick={() => onConnect(venue.id)}>Connect {venue.name}</GoldButton>
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );

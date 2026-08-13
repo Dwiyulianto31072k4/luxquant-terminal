@@ -187,7 +187,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="grid gap-0 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-4 p-5 sm:p-6">
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {EXCHANGE_LIST.map((item) => {
                   const on = item.id === venue.id;
                   return (
