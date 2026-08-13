@@ -4,6 +4,14 @@ import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
+import {
+  BinanceIcon,
+  OkxIcon,
+  BybitIcon,
+  GateIcon,
+  BitgetIcon,
+  BingxIcon,
+} from "../../../autotrade/BrandIcons";
 
 /* Centered Stripe plus. Tape → sanitize → hub → terminal → venues.
    Every pill has a glyph. Geometry is validated below. */
@@ -31,12 +39,12 @@ const SCENES = [
 ];
 
 const VENUES = [
-  { src: "/exchanges/binance.png", name: "Binance" },
-  { src: "/exchanges/okx.png", name: "OKX" },
-  { src: "/exchanges/bybit.png?v=2", name: "Bybit" },
-  { src: "/exchanges/gate.png", name: "Gate" },
-  { src: "/exchanges/bitget.png", name: "Bitget" },
-  { src: "/exchanges/bingx.png?v=2", name: "BingX" },
+  { name: "Binance", Icon: BinanceIcon, bg: "#0B0E11", fg: "#F0B90B" },
+  { name: "OKX", Icon: OkxIcon, bg: "#111111", fg: "#ffffff" },
+  { name: "Bybit", Icon: BybitIcon, bg: "#0B0E11", fg: null },
+  { name: "Gate", Icon: GateIcon, bg: "#1652F0", fg: null },
+  { name: "Bitget", Icon: BitgetIcon, bg: "#00F0FF", fg: "#0B0E11" },
+  { name: "BingX", Icon: BingxIcon, bg: "#2B54FC", fg: null },
 ];
 
 const DW = 1000;
@@ -303,8 +311,8 @@ function DestVenues({ node }) {
   return (
     <div className="lq-dest" style={{ left: node.x, top: node.y, width: node.w, height: node.h }} aria-label="Your exchange">
       {VENUES.map((v) => (
-        <span key={v.name} title={v.name}>
-          <img src={v.src} alt={v.name} />
+        <span key={v.name} title={v.name} style={{ background: v.bg, color: v.fg || "currentColor" }}>
+          <v.Icon className="lq-dest-ico" />
         </span>
       ))}
     </div>
@@ -483,14 +491,13 @@ export default function Architecture() {
           gap: 8px;
         }
         .lq-dest span {
-          display: grid; place-items: center;
+          display: block;
           width: 36px; height: 36px;
           border-radius: 99px;
-          background: #fff;
-          box-shadow: 0 0 0 1px rgb(var(--ink) / 0.1);
           overflow: hidden;
+          box-shadow: 0 0 0 1px rgb(var(--ink) / 0.08);
         }
-        .lq-dest img { width: 68%; height: 68%; object-fit: contain; }
+        .lq-dest-ico { display: block; width: 100%; height: 100%; }
         .lq-ico { flex: 0 0 auto; }
         .lq-ico path, .lq-ico rect, .lq-ico circle { transform-box: fill-box; transform-origin: center; }
         .lq-ico-price .lq-g-main { animation: lqWave 2.6s ease-in-out infinite; }
