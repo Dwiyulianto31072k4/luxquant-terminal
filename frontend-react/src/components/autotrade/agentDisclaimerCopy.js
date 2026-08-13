@@ -2,7 +2,7 @@
 // posted to the log, printed on the PDF, and stored for admin. Bump VERSION
 // whenever wording changes so old PDFs stay historically accurate.
 
-export const ASSISTANT_FORM_VERSION = "2026-08-13.2";
+export const ASSISTANT_FORM_VERSION = "2026-08-13.3";
 export const LIVE_FORM_VERSION = "2026-08-13.1";
 
 export const ASSISTANT_FORM = {
@@ -11,8 +11,8 @@ export const ASSISTANT_FORM = {
   title: "Agent is an assistant, not a money machine",
   sections: [
     {
-      title: "This exists because users asked — a lot",
-      body: "Agent is not a product we invented to sell. It is a request we kept getting: from people at work, people in another timezone, people who sleep through a session, people in India who cannot finish Binance KYC, people in Canada who trade Bitget, people who said “can it just follow my own size and stop when I am not at the desk.” We built it because that queue of messages did not stop. If you never asked for this, you do not have to use it.",
+      title: "Why this feature exists",
+      body: "Agent started from a practical problem, not a product launch. Members kept writing in — at work, in another timezone, asleep through a session, unable to finish Binance KYC, trading Bitget instead — asking for a way to apply their own size and stop when they cannot sit on the exchange. That is the reason it is here. If you do not need that help, you do not have to use it.",
     },
     {
       title: "We do not commercialize it",

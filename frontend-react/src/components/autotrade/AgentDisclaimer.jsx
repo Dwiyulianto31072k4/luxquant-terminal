@@ -53,21 +53,21 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
   };
 
   return (
-    <div className="flex max-h-[min(78vh,820px)] flex-col overflow-hidden rounded-xl border border-ink/[0.1] bg-surface-raised">
+    <div className="flex h-[min(72vh,760px)] flex-col overflow-hidden rounded-xl border border-ink/[0.1] bg-surface-raised">
       <header className="shrink-0 border-b border-ink/[0.08] px-5 py-4 sm:px-7">
-        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-          User request · please read this first
+        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+          Please read this first
         </p>
         <h2 className="mt-1.5 text-[22px] font-semibold tracking-tight text-text-primary sm:text-[26px]">
           Agent is an assistant, not a money machine
         </h2>
         <p className="mt-1.5 text-[13px] leading-6 text-text-secondary">
-          Scroll the whole notice. Boxes unlock at the bottom. This form is saved
+          Scroll the notice. Boxes unlock at the bottom. The signed form is saved
           with time, IP, and version.
         </p>
         <div className="mt-3 h-0.5 overflow-hidden rounded-full bg-ink/[0.08]">
           <div
-            className="h-full bg-accent transition-[width] duration-150"
+            className="h-full bg-ink/30 transition-[width] duration-150"
             style={{ width: `${Math.round(progress * 100)}%` }}
           />
         </div>
@@ -77,9 +77,9 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
         <div
           ref={scrollerRef}
           onScroll={onScroll}
-          className="absolute inset-0 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7"
+          className="h-full overflow-y-auto overscroll-contain px-5 py-5 sm:px-7"
         >
-          <div className="mx-auto max-w-3xl space-y-7 pb-4">
+          <div className="mx-auto max-w-3xl space-y-7 pb-6">
             {ASSISTANT_FORM.sections.map((section) => (
               <section key={section.title} className="space-y-2">
                 <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
@@ -89,17 +89,16 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
               </section>
             ))}
 
-            <section className="rounded-lg border border-ink/[0.08] bg-surface-secondary/50 px-4 py-3.5">
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Why so many people asked
-              </p>
-              <ul className="mt-2 list-disc space-y-1.5 pl-4 text-[13px] leading-6 text-text-secondary">
-                <li>Desk is open while they are at work, asleep, or in another timezone.</li>
-                <li>India / blocked-KYC users wanted BingX, not another lecture about Binance.</li>
-                <li>Canada / Bitget users wanted the same rules they already set in the terminal.</li>
+            <section className="space-y-2">
+              <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
+                Typical situations that led here
+              </h3>
+              <ul className="list-disc space-y-1.5 pl-5 text-[13.5px] leading-7 text-text-secondary">
+                <li>The desk is open while they are at work, asleep, or in another timezone.</li>
+                <li>Some regions cannot complete Binance KYC, so they asked for BingX.</li>
+                <li>Others already trade Bitget and wanted the same rules they set here.</li>
                 <li>
-                  Repeated message: “just apply my size and stop when I cannot sit on the
-                  exchange.”
+                  The recurring ask: apply my size and stop when I cannot sit on the exchange.
                 </li>
               </ul>
             </section>
@@ -161,7 +160,7 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
             <p className="text-[12px] leading-5 text-text-muted">
               {scrolledEnd
                 ? "Tick every box above, then continue. Connect stays hidden until then."
-                : "Scroll the notice first — this is a user-requested helper, not a profit product."}
+                : "Scroll the notice first. Tick the boxes at the bottom when you have."}
             </p>
           )}
         </div>
@@ -175,8 +174,8 @@ export function AgentReminderStrip({ onReread }) {
     <div className="rounded-lg border border-ink/[0.08] bg-surface-secondary/60 px-4 py-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[12.5px] leading-5 text-text-secondary">
-          Agent exists because users asked for help. It is an assistant you switch
-          off. It does not guarantee profit.
+          Agent is an assistant you switch on and off. It does not guarantee profit.
+          Pause it when you cannot supervise.
         </p>
         <button
           type="button"
