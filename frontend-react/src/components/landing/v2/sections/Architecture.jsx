@@ -1,72 +1,55 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
-/* Konten.com hero: loose V→L→V spokes into a flat brand tile.
-   Data in → LuxQuant → trade setup → desk → execute on your exchange. */
+/* Exclusive web3 desk — Hyperliquid / Lighter / Ethena school.
+   The product chrome IS the explainer. No mind-map, no plus, no spokes. */
 
-const FEEDS = [
-  { id: "price", label: "Price", icon: "price" },
-  { id: "volume", label: "Volume", icon: "volume" },
-  { id: "book", label: "Order book", icon: "book" },
-  { id: "funding", label: "Funding", icon: "funding" },
-  { id: "liqs", label: "Liquidations", icon: "liqs" },
-  { id: "onchain", label: "On-chain", icon: "chain" },
-  { id: "vol", label: "Volatility", icon: "wave" },
-  { id: "breadth", label: "Breadth", icon: "grid" },
+const TAPE = [
+  { id: "price", label: "Price", meta: "Multi-venue", icon: "price" },
+  { id: "volume", label: "Volume", meta: "Spot + perps", icon: "volume" },
+  { id: "book", label: "Order book", meta: "Depth", icon: "book" },
+  { id: "funding", label: "Funding", meta: "Perps", icon: "funding" },
+  { id: "liqs", label: "Liquidations", meta: "Heat", icon: "liqs" },
+  { id: "onchain", label: "On-chain", meta: "Flows", icon: "chain" },
+  { id: "vol", label: "Volatility", meta: "Range", icon: "wave" },
+  { id: "breadth", label: "Breadth", meta: "Market", icon: "grid" },
 ];
 
-const VENUE_LOGOS = [
-  "/exchanges/binance.png",
-  "/exchanges/okx.png",
-  "/exchanges/bybit.png?v=2",
-  "/exchanges/gate.png",
-  "/exchanges/bitget.png",
-  "/exchanges/bingx.png?v=2",
+const SETUPS = [
+  { pair: "BTCUSDT", side: "Long", line: "Breadth and book agree." },
+  { pair: "ETHUSDT", side: "Short", line: "Funding and heat line up." },
+  { pair: "SOLUSDT", side: "Long", line: "Tape is one-sided." },
 ];
 
-const DW = 1120;
-const DH = 620;
+const VENUES = [
+  { src: "/exchanges/binance.png", name: "Binance" },
+  { src: "/exchanges/okx.png", name: "OKX" },
+  { src: "/exchanges/bybit.png?v=2", name: "Bybit" },
+  { src: "/exchanges/gate.png", name: "Gate" },
+  { src: "/exchanges/bitget.png", name: "Bitget" },
+  { src: "/exchanges/bingx.png?v=2", name: "BingX" },
+];
 
-function box(x, y, w, h) {
-  return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
-}
-
-/** Konten.com: V → diagonal L → V (or H → L → H from the side). */
-function spokeIn(from, hub) {
-  if (from.b < hub.y - 8) {
-    const drop = from.b + 34;
-    const approach = hub.y - 26;
-    return `M${from.cx} ${from.b} V${drop} L${hub.cx} ${approach} V${hub.y}`;
-  }
-  if (from.r < hub.x) {
-    const out = from.r + 42;
-    const inn = hub.x - 22;
-    return `M${from.r} ${from.cy} H${out} L${inn} ${hub.cy} H${hub.x}`;
-  }
-  const out = from.x - 42;
-  const inn = hub.r + 22;
-  return `M${from.x} ${from.cy} H${out} L${inn} ${hub.cy} H${hub.r}`;
-}
-
-function spokeOut(from, to) {
-  const leave = from.b + 26;
-  const approach = to.y - 22;
-  return `M${from.cx} ${from.b} V${leave} L${to.cx} ${approach} V${to.y}`;
-}
+const MOTES = [
+  { id: "m1", d: "M 28 16 C 46 16 54 30 74 34", dur: "3.4s", delay: "0s" },
+  { id: "m2", d: "M 28 38 C 48 34 52 48 74 50", dur: "4.1s", delay: "0.8s" },
+  { id: "m3", d: "M 28 58 C 46 62 54 60 74 64", dur: "3.7s", delay: "1.5s" },
+  { id: "m4", d: "M 28 80 C 48 74 52 76 74 78", dur: "4.6s", delay: "0.4s" },
+];
 
 function Glyph({ type }) {
   const c = {
     className: `lq-glyph lq-glyph-${type}`,
-    width: 15,
-    height: 15,
+    width: 16,
+    height: 16,
     viewBox: "0 0 20 20",
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: 1.6,
+    strokeWidth: 1.55,
     strokeLinecap: "round",
     strokeLinejoin: "round",
     "aria-hidden": true,
@@ -117,190 +100,44 @@ function Glyph({ type }) {
           <rect className="lq-g-s4" x="12" y="12" width="5" height="5" rx="1" />
         </svg>
       );
-    case "plan":
-      return (
-        <svg {...c}>
-          <circle cx="10" cy="10" r="6.5" />
-          <circle className="lq-g-pulse" cx="10" cy="10" r="2.2" fill="currentColor" stroke="none" />
-        </svg>
-      );
-    case "desk":
-      return (
-        <svg {...c}>
-          <rect x="2" y="4" width="16" height="10" rx="1.6" />
-          <path d="M7 17h6M10 14v3" />
-        </svg>
-      );
-    case "check":
-      return <svg {...c}><path className="lq-g-pulse" d="m4 10 4 4 8-8" /></svg>;
-    case "exchange":
-      return <svg {...c}><path d="M4 8h12M4 12h12M8 4v12M12 4v12" /></svg>;
     default:
       return <svg {...c}><circle cx="10" cy="10" r="6" /></svg>;
   }
 }
 
-function useFitScale(ref, designWidth) {
-  const [scale, setScale] = useState(1);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    const fit = () => setScale(Math.min(1, el.clientWidth / designWidth));
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    window.addEventListener("resize", fit);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", fit);
-    };
-  }, [designWidth, ref]);
-  return scale;
-}
-
-const D = (() => {
-  const hub = box(500, 228, 120, 120);
-  const left = [
-    box(36, 48, 148, 40),
-    box(72, 148, 148, 40),
-    box(36, 248, 148, 40),
-    box(72, 348, 148, 40),
-  ];
-  const right = [
-    box(936, 48, 148, 40),
-    box(900, 148, 148, 40),
-    box(936, 248, 148, 40),
-    box(900, 348, 148, 40),
-  ];
-  const setup = box(472, 420, 176, 40);
-  const desk = box(280, 532, 156, 40);
-  const exec = box(500, 532, 200, 40);
-  const record = box(748, 532, 156, 40);
-  const feeds = [...left, ...right];
-  const intoHub = feeds.map((f) => spokeIn(f, hub));
-  const outHub = [spokeOut(hub, setup), spokeOut(setup, desk), spokeOut(setup, exec), spokeOut(setup, record)];
-  return { hub, left, right, feeds, setup, desk, exec, record, intoHub, outHub };
-})();
-
-function Desktop() {
-  const host = useRef(null);
-  const scale = useFitScale(host, DW);
-  return (
-    <div ref={host} className="relative w-full" style={{ height: DH * scale }}>
-      <div
-        className="absolute top-0"
-        style={{
-          width: DW,
-          height: DH,
-          left: "50%",
-          marginLeft: -DW / 2,
-          transform: `scale(${scale})`,
-          transformOrigin: "top center",
-        }}
-      >
-        <svg className="pointer-events-none absolute inset-0 z-[1] overflow-visible" viewBox={`0 0 ${DW} ${DH}`} fill="none">
-          {[...D.intoHub, ...D.outHub].map((d, i) => (
-            <path key={`b${i}`} d={d} className="lq-flow" />
-          ))}
-          {D.intoHub.map((d, i) => (
-            <path key={`i${i}`} d={d} className="lq-flow-move" style={{ animationDelay: `${i * 0.18}s` }} />
-          ))}
-          {D.outHub.map((d, i) => (
-            <path key={`o${i}`} d={d} className="lq-flow-move is-out" style={{ animationDelay: `${0.3 + i * 0.15}s` }} />
-          ))}
-        </svg>
-
-        {D.left.map((n, i) => (
-          <div key={FEEDS[i].id} className="lq-pill" style={{ left: n.x, top: n.y, width: n.w, height: n.h }}>
-            <Glyph type={FEEDS[i].icon} />
-            {FEEDS[i].label}
-          </div>
-        ))}
-        {D.right.map((n, i) => (
-          <div key={FEEDS[i + 4].id} className="lq-pill" style={{ left: n.x, top: n.y, width: n.w, height: n.h }}>
-            <Glyph type={FEEDS[i + 4].icon} />
-            {FEEDS[i + 4].label}
-          </div>
-        ))}
-
-        <div className="lq-hub" style={{ left: D.hub.x, top: D.hub.y, width: D.hub.w, height: D.hub.h }}>
-          <img src="/logo.png" alt="LuxQuant" />
-        </div>
-
-        <div className="lq-pill" style={{ left: D.setup.x, top: D.setup.y, width: D.setup.w, height: D.setup.h }}>
-          <Glyph type="plan" />
-          Trade setup
-        </div>
-        <div className="lq-pill" style={{ left: D.desk.x, top: D.desk.y, width: D.desk.w, height: D.desk.h }}>
-          <Glyph type="desk" />
-          Your terminal
-        </div>
-        <div className="lq-exec" style={{ left: D.exec.x, top: D.exec.y, width: D.exec.w, height: D.exec.h }}>
-          <Glyph type="exchange" />
-          <span>Execute</span>
-          <span className="lq-exec-logos">
-            {VENUE_LOGOS.map((src) => (
-              <img key={src} src={src} alt="" />
-            ))}
-          </span>
-        </div>
-        <div className="lq-pill" style={{ left: D.record.x, top: D.record.y, width: D.record.w, height: D.record.h }}>
-          <Glyph type="check" />
-          Public record
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Mobile() {
-  return (
-    <div className="lq-m">
-      <div className="lq-m-feeds">
-        {FEEDS.map((f) => (
-          <span key={f.id} className="lq-chip">
-            <Glyph type={f.icon} />
-            {f.label}
-          </span>
-        ))}
-      </div>
-      <span className="lq-m-line" aria-hidden="true" />
-      <div className="lq-hub lq-hub-m">
-        <img src="/logo.png" alt="LuxQuant" />
-      </div>
-      <span className="lq-m-line" aria-hidden="true" />
-      <span className="lq-chip lq-chip-lg">
-        <Glyph type="plan" />
-        Trade setup
-      </span>
-      <span className="lq-m-line" aria-hidden="true" />
-      <span className="lq-chip lq-chip-lg">
-        <Glyph type="desk" />
-        Your terminal
-      </span>
-      <span className="lq-m-line" aria-hidden="true" />
-      <div className="lq-m-end">
-        <span className="lq-chip">
-          <Glyph type="check" />
-          Public record
-        </span>
-        <span className="lq-exec lq-exec-m">
-          <Glyph type="exchange" />
-          Execute
-          <span className="lq-exec-logos">
-            {VENUE_LOGOS.map((src) => (
-              <img key={src} src={src} alt="" />
-            ))}
-          </span>
-        </span>
-      </div>
-    </div>
-  );
+function utcClock(date) {
+  const hh = String(date.getUTCHours()).padStart(2, "0");
+  const mm = String(date.getUTCMinutes()).padStart(2, "0");
+  const ss = String(date.getUTCSeconds()).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
 }
 
 export default function Architecture() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const [now, setNow] = useState(() => new Date());
+  const [setupIdx, setSetupIdx] = useState(0);
+  const [ticketOn, setTicketOn] = useState(true);
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    if (reduce) return undefined;
+    const cycle = setInterval(() => {
+      setTicketOn(false);
+      window.setTimeout(() => {
+        setSetupIdx((i) => (i + 1) % SETUPS.length);
+        setTicketOn(true);
+      }, 280);
+    }, 7500);
+    return () => clearInterval(cycle);
+  }, []);
+
+  const setup = SETUPS[setupIdx];
 
   const goVerify = () => {
     trackFunnel("cta_click", { source: "how_it_works", path: "/" });
@@ -317,24 +154,95 @@ export default function Architecture() {
       data-lq-self=""
       className="relative z-10 w-full scroll-mt-32 overflow-hidden py-16 lg:py-24"
     >
-      <div className="mx-auto w-full max-w-[1120px] px-4 lg:px-8">
-        <h2 className="max-w-4xl text-[28px] font-semibold leading-[1.28] tracking-[-0.025em] sm:text-[34px] lg:text-[40px]">
-          <span className="text-text-primary">Market data in. A setup out. </span>
-          <span className="text-text-muted">You execute on your exchange — the record stays public.</span>
+      <div className="mx-auto max-w-[1120px] px-4 lg:px-8">
+        <h2 className="max-w-3xl text-[28px] font-semibold leading-[1.25] tracking-[-0.03em] text-text-primary sm:text-[36px] lg:text-[44px]">
+          The desk reads the tape.
+          <span className="mt-2 block text-text-muted">You take the setup to your exchange.</span>
         </h2>
       </div>
 
-      <div className="lq-sys relative mx-auto mt-10 w-full max-w-[1160px] px-3 sm:mt-12 sm:px-6">
-        <div className="lq-sys-dots" aria-hidden="true" />
-        <div className="relative hidden lg:block">
-          <Desktop />
-        </div>
-        <div className="relative lg:hidden">
-          <Mobile />
+      <div className="mx-auto mt-10 max-w-[1120px] px-4 lg:mt-14 lg:px-8">
+        <div className="lq-chrome">
+          <div className="lq-bar">
+            <img src="/logo.png" alt="" width="18" height="18" />
+            <strong>LuxQuant</strong>
+            <span className="lq-dot" />
+            <em>Desk</em>
+            <span className="lq-spacer" />
+            <time dateTime={now.toISOString()} className="lq-clock">
+              {utcClock(now)}
+              <abbr title="Coordinated Universal Time"> UTC</abbr>
+            </time>
+            <span className="lq-livepill">
+              <i />
+              Live
+            </span>
+          </div>
+
+          <div className="lq-body">
+            <aside className="lq-tape" aria-label="Market tape">
+              <p className="lq-kicker">Tape</p>
+              <div className="lq-scan" aria-hidden="true" />
+              <ul>
+                {TAPE.map((row) => (
+                  <li key={row.id}>
+                    <Glyph type={row.icon} />
+                    <span className="lq-tape-name">{row.label}</span>
+                    <span className="lq-tape-meta">{row.meta}</span>
+                    <i className="lq-pip" />
+                  </li>
+                ))}
+              </ul>
+            </aside>
+
+            <article className={`lq-ticket ${ticketOn ? "is-on" : ""}`} aria-live="polite">
+              <p className="lq-kicker">Setup</p>
+              <header className="lq-ticket-head">
+                <h3>{setup.pair}</h3>
+                <span className={`lq-side lq-side-${setup.side.toLowerCase()}`}>{setup.side}</span>
+              </header>
+              <p className="lq-thesis">{setup.line}</p>
+              <dl className="lq-fields">
+                <div>
+                  <dt>Size</dt>
+                  <dd>You decide</dd>
+                </div>
+                <div>
+                  <dt>Invalidation</dt>
+                  <dd>Yours</dd>
+                </div>
+              </dl>
+              <div className="lq-exec">
+                <p>Take it to your exchange</p>
+                <div className="lq-venues" aria-label="Venues">
+                  {VENUES.map((v) => (
+                    <img key={v.name} src={v.src} alt={v.name} title={v.name} />
+                  ))}
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <svg className="lq-motes" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            {MOTES.map((m) => (
+              <g key={m.id}>
+                <path id={m.id} d={m.d} fill="none" />
+                <circle r="0.7" fill="#f0c84a">
+                  <animateMotion dur={m.dur} begin={m.delay} repeatCount="indefinite">
+                    <mpath href={`#${m.id}`} />
+                  </animateMotion>
+                </circle>
+              </g>
+            ))}
+          </svg>
         </div>
       </div>
 
-      <div className="mt-8 flex flex-col items-center gap-2.5 px-4">
+      <p className="mx-auto mt-5 max-w-[1120px] px-4 text-center text-[13px] leading-relaxed text-text-muted lg:px-8">
+        Eight live feeds in. One written call out. You place it.
+      </p>
+
+      <div className="mt-8 flex justify-center px-4">
         <PrimaryButton size="md" width="fullMobile" onClick={goVerify} className="group">
           {isAuthenticated ? "See the full record" : "Verify the track record"}
           <BtnArrow />
@@ -342,58 +250,232 @@ export default function Architecture() {
       </div>
 
       <style>{`
-        .lq-sys { --pill: rgb(var(--accent)); --ink: #171304; }
-        .lq-sys-dots {
-          position: absolute; inset: -48px 0 -56px;
-          background-image: url("data:image/svg+xml;utf8,<svg width='10' height='10' xmlns='http://www.w3.org/2000/svg'><rect width='2' height='2' fill='%238a6a28'/></svg>");
-          background-size: 10px 10px; opacity: .38; pointer-events: none;
-          -webkit-mask-image: linear-gradient(180deg, transparent, #737373 14%, #737373 86%, transparent);
-          mask-image: linear-gradient(180deg, transparent, #737373 14%, #737373 86%, transparent);
-        }
-        .lq-flow {
-          stroke: rgb(var(--accent) / 0.32);
-          stroke-width: 1.35;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-          fill: none;
-        }
-        .lq-flow-move {
-          fill: none;
-          stroke: #e8b84a;
-          stroke-width: 1.6;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-          stroke-dasharray: 14 28;
-          filter: drop-shadow(0 0 4px rgba(232, 184, 74, .55));
-          animation: lqTravel 2.4s linear infinite;
-        }
-        .lq-flow-move.is-out { animation-duration: 2.8s; }
-        @keyframes lqTravel { to { stroke-dashoffset: -42; } }
-
-        .lq-pill, .lq-exec {
-          position: absolute; z-index: 4;
-          display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-          border-radius: 10px; background: var(--pill); color: var(--ink);
-          font-size: 13px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
-        }
-        .lq-exec { padding: 0 12px; }
-        .lq-exec-logos { display: inline-flex; gap: 3px; margin-left: 4px; }
-        .lq-exec-logos img { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; }
-
-        .lq-hub {
-          position: absolute; z-index: 8;
-          display: grid; place-items: center;
-          border-radius: 28px;
-          background: #d4a017;
+        .lq-chrome {
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgb(var(--ink) / 0.1);
+          border-radius: 22px;
+          background: rgb(var(--surface-raised) / 0.92);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.38),
-            inset 0 -10px 18px rgba(90,55,0,.16),
-            0 18px 36px -18px rgba(212,160,23,.5);
+            inset 0 1px 0 rgb(var(--ink) / 0.04),
+            0 28px 70px -36px rgba(0,0,0,.22);
         }
-        .lq-hub img { width: 48px; height: 48px; border-radius: 12px; object-fit: cover; }
-
-        .lq-glyph { flex: 0 0 auto; overflow: visible; }
-        .lq-glyph path, .lq-glyph rect, .lq-glyph circle { transform-box: fill-box; transform-origin: center; }
+        .lq-bar {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          height: 46px;
+          padding: 0 16px;
+          border-bottom: 1px solid rgb(var(--ink) / 0.08);
+        }
+        .lq-bar img {
+          width: 18px; height: 18px;
+          border-radius: 5px;
+          object-fit: cover;
+        }
+        .lq-bar strong {
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: -.02em;
+          color: rgb(var(--ink) / 0.92);
+        }
+        .lq-dot {
+          width: 3px; height: 3px; border-radius: 99px;
+          background: rgb(var(--ink) / 0.28);
+        }
+        .lq-bar em {
+          font-style: normal;
+          font-size: 13px;
+          font-weight: 500;
+          color: rgb(var(--ink) / 0.42);
+        }
+        .lq-spacer { flex: 1; }
+        .lq-clock {
+          font-variant-numeric: tabular-nums;
+          font-size: 11.5px;
+          font-weight: 600;
+          letter-spacing: .04em;
+          color: rgb(var(--ink) / 0.46);
+        }
+        .lq-clock abbr { text-decoration: none; letter-spacing: .08em; }
+        .lq-livepill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 22px;
+          padding: 0 8px 0 7px;
+          border-radius: 99px;
+          background: rgb(var(--accent) / 0.16);
+          color: rgb(var(--accent));
+          font-size: 10px;
+          font-weight: 750;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+        }
+        .lq-livepill i {
+          width: 6px; height: 6px; border-radius: 99px;
+          background: rgb(var(--accent));
+          box-shadow: 0 0 8px rgb(var(--accent) / .85);
+          animation: lqPulse 1.8s ease-in-out infinite;
+        }
+        .lq-body {
+          display: flex;
+          flex-direction: column;
+        }
+        .lq-kicker {
+          margin: 0 0 12px;
+          font-size: 10px;
+          font-weight: 750;
+          letter-spacing: .2em;
+          text-transform: uppercase;
+          color: rgb(var(--accent));
+        }
+        .lq-tape {
+          position: relative;
+          padding: 18px 16px 14px;
+          border-bottom: 1px solid rgb(var(--ink) / 0.08);
+        }
+        .lq-tape ul, .lq-tape li { list-style: none; margin: 0; padding: 0; }
+        .lq-tape ul {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .lq-tape ul::-webkit-scrollbar { display: none; }
+        .lq-tape li {
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          height: 36px;
+          padding: 0 10px 0 8px;
+          border: 1px solid rgb(var(--ink) / 0.08);
+          border-radius: 10px;
+          background: rgb(var(--surface) / 0.35);
+          font-size: 12.5px;
+          font-weight: 600;
+          color: rgb(var(--ink) / 0.88);
+          animation: lqRow 7.5s ease-in-out infinite;
+        }
+        .lq-tape li:nth-child(2) { animation-delay: .75s; }
+        .lq-tape li:nth-child(3) { animation-delay: 1.5s; }
+        .lq-tape li:nth-child(4) { animation-delay: 2.25s; }
+        .lq-tape li:nth-child(5) { animation-delay: 3s; }
+        .lq-tape li:nth-child(6) { animation-delay: 3.75s; }
+        .lq-tape li:nth-child(7) { animation-delay: 4.5s; }
+        .lq-tape li:nth-child(8) { animation-delay: 5.25s; }
+        .lq-tape-meta {
+          display: none;
+          font-size: 11px;
+          font-weight: 500;
+          color: rgb(var(--ink) / 0.38);
+        }
+        .lq-pip {
+          width: 5px; height: 5px; border-radius: 99px;
+          background: rgb(var(--accent));
+          box-shadow: 0 0 7px rgb(var(--accent) / .75);
+          animation: lqPulse 1.8s ease-in-out infinite;
+        }
+        .lq-scan { display: none; }
+        .lq-ticket {
+          position: relative;
+          padding: 20px 18px 18px;
+          background:
+            radial-gradient(ellipse 70% 50% at 78% 28%, rgb(var(--accent) / 0.1), transparent 70%);
+          opacity: 0;
+          transform: translateY(6px);
+          transition: opacity .35s ease, transform .35s ease;
+        }
+        .lq-ticket.is-on { opacity: 1; transform: none; }
+        .lq-ticket-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .lq-ticket-head h3 {
+          margin: 0;
+          font-size: 28px;
+          font-weight: 750;
+          letter-spacing: -.04em;
+          color: rgb(var(--ink) / 0.94);
+        }
+        .lq-side {
+          display: inline-flex;
+          align-items: center;
+          height: 26px;
+          padding: 0 10px;
+          border-radius: 7px;
+          font-size: 11px;
+          font-weight: 750;
+          letter-spacing: .14em;
+          text-transform: uppercase;
+        }
+        .lq-side-long {
+          background: #d4a017;
+          color: #171304;
+        }
+        .lq-side-short {
+          background: transparent;
+          color: rgb(var(--accent));
+          border: 1px solid rgb(var(--accent) / 0.55);
+        }
+        .lq-thesis {
+          margin: 14px 0 0;
+          max-width: 28ch;
+          font-size: 16px;
+          line-height: 1.4;
+          font-weight: 550;
+          letter-spacing: -.02em;
+          color: rgb(var(--ink) / 0.72);
+        }
+        .lq-fields {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin: 22px 0 0;
+        }
+        .lq-fields dt {
+          font-size: 10px;
+          font-weight: 750;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+          color: rgb(var(--ink) / 0.36);
+        }
+        .lq-fields dd {
+          margin: 5px 0 0;
+          font-size: 15px;
+          font-weight: 650;
+          letter-spacing: -.02em;
+          color: rgb(var(--ink) / 0.88);
+        }
+        .lq-exec {
+          margin-top: 22px;
+          padding-top: 16px;
+          border-top: 1px solid rgb(var(--ink) / 0.08);
+        }
+        .lq-exec p {
+          margin: 0 0 10px;
+          font-size: 12px;
+          font-weight: 600;
+          color: rgb(var(--ink) / 0.48);
+        }
+        .lq-venues { display: flex; gap: 8px; }
+        .lq-venues img {
+          width: 26px; height: 26px;
+          border-radius: 99px;
+          object-fit: cover;
+          border: 1px solid rgb(var(--ink) / 0.1);
+          background: rgb(var(--surface));
+        }
+        .lq-motes { display: none; }
+        .lq-glyph { color: rgb(var(--accent)); flex: 0 0 auto; }
+        .lq-glyph path, .lq-glyph rect, .lq-glyph circle {
+          transform-box: fill-box;
+          transform-origin: center;
+        }
         .lq-glyph-price .lq-g-main { animation: lqWave 2.6s ease-in-out infinite; }
         .lq-glyph-volume .lq-g-b1 { animation: lqBar 1.6s ease-in-out -.1s infinite; }
         .lq-glyph-volume .lq-g-b2 { animation: lqBar 1.6s ease-in-out -.5s infinite; }
@@ -401,43 +483,93 @@ export default function Architecture() {
         .lq-glyph-volume .lq-g-b4 { animation: lqBar 1.6s ease-in-out -.3s infinite; }
         .lq-glyph-book .lq-g-bl { animation: lqBookL 2.4s ease-in-out infinite; }
         .lq-glyph-book .lq-g-br { animation: lqBookR 2.4s ease-in-out infinite; }
-        .lq-glyph-liqs .lq-g-drop { animation: lqDrop 1.6s cubic-bezier(.4,0,.2,1) infinite; }
+        .lq-glyph-liqs .lq-g-drop { animation: lqDrop 1.6s ease-in-out infinite; }
         .lq-glyph-chain .lq-g-pkt { animation: lqPkt 1.8s cubic-bezier(.4,0,.2,1) infinite; }
         .lq-glyph-wave .lq-g-main { animation: lqVol 2.1s ease-in-out infinite; }
         .lq-glyph-grid .lq-g-s1 { animation: lqSq 2.4s ease-in-out 0s infinite; }
         .lq-glyph-grid .lq-g-s2 { animation: lqSq 2.4s ease-in-out .3s infinite; }
         .lq-glyph-grid .lq-g-s3 { animation: lqSq 2.4s ease-in-out .6s infinite; }
         .lq-glyph-grid .lq-g-s4 { animation: lqSq 2.4s ease-in-out .9s infinite; }
-        .lq-glyph-plan .lq-g-pulse, .lq-glyph-check .lq-g-pulse { animation: lqPulse 2s ease-in-out infinite; }
 
-        .lq-m { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 0; padding: 8px 4px 16px; }
-        .lq-m-feeds { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-        .lq-chip {
-          display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
-          border-radius: 10px; background: var(--pill); color: var(--ink);
-          font-size: 12.5px; font-weight: 700;
+        @media (min-width: 900px) {
+          .lq-bar { padding: 0 22px; }
+          .lq-body {
+            display: grid;
+            grid-template-columns: 38% 1fr;
+            min-height: 460px;
+          }
+          .lq-tape {
+            padding: 22px 8px 18px 22px;
+            border-bottom: 0;
+            border-right: 1px solid rgb(var(--ink) / 0.08);
+          }
+          .lq-tape ul {
+            display: block;
+            overflow: visible;
+          }
+          .lq-tape li {
+            display: grid;
+            grid-template-columns: 18px 1fr auto 8px;
+            width: 100%;
+            height: 44px;
+            padding: 0 10px 0 6px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            font-size: 14px;
+          }
+          .lq-tape-meta { display: inline; }
+          .lq-scan {
+            display: block;
+            position: absolute;
+            left: 12px; right: 10px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, transparent, rgb(var(--accent) / .1), transparent);
+            pointer-events: none;
+            animation: lqScan 7.5s ease-in-out infinite;
+          }
+          .lq-ticket { padding: 28px 32px 26px 34px; }
+          .lq-ticket-head h3 { font-size: 40px; }
+          .lq-thesis { font-size: 18px; margin-top: 18px; }
+          .lq-fields { margin-top: 32px; max-width: 360px; }
+          .lq-exec { margin-top: 36px; }
+          .lq-motes {
+            display: block;
+            position: absolute;
+            inset: 46px 0 0;
+            width: 100%;
+            height: calc(100% - 46px);
+            pointer-events: none;
+            opacity: .7;
+          }
         }
-        .lq-chip-lg { height: 40px; padding: 0 16px; }
-        .lq-m-line {
-          width: 1.5px; height: 22px; margin: 10px 0;
-          background: repeating-linear-gradient(to bottom, #e8b84a 0 4px, transparent 4px 8px);
-        }
-        .lq-hub-m { position: relative; width: 96px; height: 96px; margin: 4px 0; }
-        .lq-m-end { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
-        .lq-exec-m { position: relative; height: 40px; }
 
-        @keyframes lqWave { 0%,100% { transform: translateX(-.6px); } 50% { transform: translateX(.6px) scaleY(1.08); } }
+        @keyframes lqPulse { 0%,100% { opacity: .45; transform: scale(.82); } 50% { opacity: 1; transform: scale(1); } }
+        @keyframes lqWave { 0%,100% { transform: translateX(-.5px); } 50% { transform: translateX(.5px) scaleY(1.08); } }
         @keyframes lqBar { 0%,100% { transform: scaleY(.55); } 50% { transform: scaleY(1.08); } }
         @keyframes lqBookL { 0%,100% { transform: scaleX(.9); } 50% { transform: scaleX(1.08); } }
         @keyframes lqBookR { 0%,100% { transform: scaleX(1.08); } 50% { transform: scaleX(.9); } }
-        @keyframes lqPulse { 0%,100% { opacity: .55; transform: scale(.86); } 50% { opacity: 1; transform: scale(1); } }
-        @keyframes lqDrop { 0% { transform: translateY(-2px); opacity: .4; } 55%,100% { transform: none; opacity: 1; } }
-        @keyframes lqPkt { 0% { transform: translateX(-4px); opacity: 0; } 30%,70% { opacity: 1; } 100% { transform: translateX(7px); opacity: 0; } }
-        @keyframes lqVol { 0%,100% { transform: scaleY(.7); } 50% { transform: scaleY(1.14); } }
-        @keyframes lqSq { 0%,100% { opacity: .45; transform: scale(.78); } 40% { opacity: 1; transform: scale(1); } }
+        @keyframes lqDrop { 0% { transform: translateY(-2px); opacity: .4; } 60%,100% { transform: none; opacity: 1; } }
+        @keyframes lqPkt { 0% { transform: translateX(-4px); opacity: 0; } 30%,70% { opacity: 1; } 100% { transform: translateX(6px); opacity: 0; } }
+        @keyframes lqVol { 0%,100% { transform: scaleY(.7); } 50% { transform: scaleY(1.12); } }
+        @keyframes lqSq { 0%,100% { opacity: .4; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
+        @keyframes lqRow {
+          0%, 10%, 100% { background: transparent; }
+          5% { background: rgb(var(--accent) / .08); }
+        }
+        @keyframes lqScan {
+          0% { top: 44px; opacity: 0; }
+          8% { opacity: 1; }
+          92% { opacity: 1; }
+          100% { top: calc(100% - 52px); opacity: 0; }
+        }
 
         @media (prefers-reduced-motion: reduce) {
-          .lq-glyph path, .lq-glyph rect, .lq-glyph circle, .lq-glyph, .lq-flow-move { animation: none !important; }
+          .lq-livepill i, .lq-pip, .lq-scan, .lq-tape li,
+          .lq-glyph path, .lq-glyph rect, .lq-glyph circle { animation: none !important; }
+          .lq-motes { display: none !important; }
+          .lq-ticket { opacity: 1; transform: none; }
         }
       `}</style>
     </section>
