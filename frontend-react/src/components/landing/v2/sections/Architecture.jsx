@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
-/* Live Stripe homepage (DeveloperSystemsAnimation, chunk 55849):
-   4 scenes / 4s, 1s first tick, pause when hidden.
-   Top slots + bottom PSPs fill (opacity+scale). Method nodes stay on.
-   Logo cells flip rotateX 180deg / 2s. PSP paths draw via stroke-dashoffset. */
+/* Geometry-first Stripe plus. Lines are drawn between known box edges so
+   forks, spine, and the output fan actually meet the pills. */
 
 const SYSTEMS = [
   { id: "price", label: "Price & volume" },
@@ -32,8 +30,7 @@ const SCENES = [
   { systems: ["price", "onchain", "vol"], outputs: ["ai", "flow", "agent"] },
 ];
 
-const LOGO = (file) => `/exchanges/${file}`;
-
+const LOGO = (f) => `/exchanges/${f}`;
 const LOGO_CELLS = [
   [null, LOGO("binance.png"), null, LOGO("okx.png")],
   [LOGO("bybit.png?v=2"), LOGO("okx.png"), LOGO("gate.png"), LOGO("mexc.png")],
@@ -43,15 +40,128 @@ const LOGO_CELLS = [
   [LOGO("bingx.png?v=2"), LOGO("bitget.png"), LOGO("upbit.png"), LOGO("cryptocom.png")],
 ];
 
-const DEST_ICONS = ["tiles", "chart", "flow", "check"];
+const DW = 1000;
+const DH = 420;
+const MW = 380;
+const MH = 640;
+const PH = 32;
+
+function box(x, y, w, h) {
+  return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
+}
+
+function elbow(from, to, via) {
+  if (via === "v") {
+    const mid = (from.b + to.y) / 2;
+    if (Math.abs(from.cx - to.cx) < 1) return `M${from.cx} ${from.b} V${to.y}`;
+    return `M${from.cx} ${from.b} V${mid} H${to.cx} V${to.y}`;
+  }
+  if (Math.abs(from.cy - to.cy) < 1) return `M${from.r} ${from.cy} H${to.x}`;
+  const mid = (from.r + to.x) / 2;
+  return `M${from.r} ${from.cy} H${mid} V${to.cy} H${to.x}`;
+}
+
+/* Desktop — one plus, every endpoint is a box edge */
+const D = (() => {
+  const tw = 100;
+  const tg = 8;
+  const t0 = (DW - (5 * tw + 4 * tg)) / 2;
+  const T = [0, 1, 2, 3, 4].map((i) => box(t0 + i * (tw + tg), 16, tw, PH));
+  const tray = box(t0 - 8, 8, 5 * tw + 4 * tg + 16, 48);
+
+  const sanitize = box(338, 122, 92, PH);
+  const signals = box(570, 122, 92, PH);
+  const hub = box(460, 176, 80, 80);
+  const venues = box(248, 200, 88, PH);
+  const record = box(664, 200, 108, PH);
+  const logos = box(48, 164, 152, 104);
+  const dest = box(900, 196, 40, 40);
+  const terminal = box(454, 286, 92, PH);
+
+  const ow = 108;
+  const og = 14;
+  const o0 = (DW - (4 * ow + 3 * og)) / 2;
+  const O = [0, 1, 2, 3].map((i) => box(o0 + i * (ow + og), 366, ow, PH));
+
+  const neck = terminal.b + 18;
+  const routes = [
+    elbow(T[1], sanitize, "v"),
+    elbow(T[3], signals, "v"),
+    elbow(logos, venues, "h"),
+    elbow(venues, hub, "h"),
+    elbow(hub, record, "h"),
+    elbow(record, dest, "h"),
+    `M${hub.cx} ${hub.b} V${terminal.y}`,
+    ...O.map((o) => `M${terminal.cx} ${terminal.b} V${neck} H${o.cx} V${o.y}`),
+  ];
+
+  return { T, tray, sanitize, signals, hub, venues, record, logos, dest, terminal, O, routes };
+})();
+
+const M = (() => {
+  const tw = 168;
+  const T = [
+    box(16, 16, tw, PH),
+    box(196, 16, tw, PH),
+    box(16, 56, tw, PH),
+    box(196, 56, tw, PH),
+    box(106, 96, tw, PH),
+  ];
+  const sanitize = box(36, 156, 140, PH);
+  const signals = box(204, 156, 140, PH);
+  const hub = box(150, 220, 80, 80);
+  const venues = box(16, 244, 100, PH);
+  const record = box(264, 244, 100, PH);
+  const logos = box(114, 324, 152, 88);
+  const terminal = box(144, 436, 92, PH);
+  const O = [
+    box(16, 500, 168, PH),
+    box(196, 500, 168, PH),
+    box(16, 544, 168, PH),
+    box(196, 544, 168, PH),
+  ];
+  const routes = [
+    `M${T[0].cx} ${T[0].b} V${sanitize.y}`,
+    `M${T[1].cx} ${T[1].b} V${signals.y}`,
+    `M${T[4].cx} ${T[4].b} V${(T[4].b + sanitize.y) / 2} H${sanitize.cx} V${sanitize.y}`,
+    `M${sanitize.r} ${sanitize.cy} H${hub.x}`,
+    `M${signals.x} ${signals.cy} H${hub.r}`,
+    `M${venues.r} ${venues.cy} H${hub.x}`,
+    `M${hub.r} ${hub.cy} H${record.x}`,
+    `M${hub.cx} ${hub.b} V${logos.y}`,
+    `M${logos.cx} ${logos.b} V${terminal.y}`,
+    `M${terminal.cx} ${terminal.b} V${(terminal.b + O[0].y) / 2} H${O[0].cx} V${O[0].y}`,
+    `M${terminal.cx} ${terminal.b} V${(terminal.b + O[1].y) / 2} H${O[1].cx} V${O[1].y}`,
+    `M${terminal.cx} ${terminal.b} V${(terminal.b + O[2].y) / 2} H${O[2].cx} V${O[2].y}`,
+    `M${terminal.cx} ${terminal.b} V${(terminal.b + O[3].y) / 2} H${O[3].cx} V${O[3].y}`,
+  ];
+  return { T, sanitize, signals, hub, venues, record, logos, terminal, O, routes };
+})();
+
+function useFitScale(ref, designWidth) {
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const fit = () => setScale(Math.min(1, el.clientWidth / designWidth));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    window.addEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [designWidth, ref]);
+  return scale;
+}
 
 function useInView(ref) {
   const [on, setOn] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    if (reduce) {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
       setOn(true);
       return undefined;
     }
@@ -62,12 +172,65 @@ function useInView(ref) {
   return on;
 }
 
-function Slot({ label, active, initial }) {
+function Plane({ width, height, children }) {
+  const host = useRef(null);
+  const scale = useFitScale(host, width);
+  return (
+    <div ref={host} className="relative w-full" style={{ height: height * scale }}>
+      <div
+        className="absolute top-0"
+        style={{
+          width,
+          height,
+          left: "50%",
+          marginLeft: -width / 2,
+          transform: `scale(${scale})`,
+          transformOrigin: "top center",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Lines({ routes, width, height, lit = [] }) {
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0 z-[1]"
+      viewBox={`0 0 ${width} ${height}`}
+      fill="none"
+      aria-hidden="true"
+    >
+      {routes.map((d, i) => (
+        <path
+          key={i}
+          d={d}
+          className={lit[i] === false ? "lq-flow is-dim" : "lq-flow"}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function Pill({ node, children, className = "" }) {
   return (
     <div
-      className={`lq-sys-slot${active ? " is-on" : ""}${initial ? " is-init" : ""}`}
+      className={`lq-pill ${className}`}
+      style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
     >
-      <span className="lq-sys-slot-fill">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Slot({ node, label, on, init }) {
+  return (
+    <div
+      className={`lq-slot${on ? " is-on" : ""}${init ? " is-init" : ""}`}
+      style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
+    >
+      <span>{label}</span>
     </div>
   );
 }
@@ -83,9 +246,8 @@ function FlipLogo({ items, scene, delay, running }) {
   const onEnd = useCallback(
     (e) => {
       if (e.propertyName !== "transform") return;
-      const even = scene % 2 === 0;
       const next = (scene + 1) % items.length;
-      if (even) setBack(next);
+      if (scene % 2 === 0) setBack(next);
       else setFront(next);
     },
     [scene, items.length],
@@ -109,53 +271,83 @@ function FlipLogo({ items, scene, delay, running }) {
   const a = items[front];
   const b = items[back];
   return (
-    <div className="lq-sys-app" aria-hidden="true">
-      <div ref={wrap} className="lq-sys-app-flip" onTransitionEnd={onEnd}>
-        <div className="lq-sys-app-face is-front">
-          {a ? <img src={a} alt="" /> : <span className="lq-sys-app-empty" />}
+    <div className="lq-app">
+      <div ref={wrap} className="lq-app-flip" onTransitionEnd={onEnd}>
+        <div className="lq-app-face is-front">
+          {a ? <img src={a} alt="" /> : <i />}
         </div>
-        <div className="lq-sys-app-face is-back">
-          {b ? <img src={b} alt="" /> : <span className="lq-sys-app-empty" />}
-        </div>
+        <div className="lq-app-face is-back">{b ? <img src={b} alt="" /> : <i />}</div>
       </div>
     </div>
   );
 }
 
-function DestIcon({ kind }) {
-  if (kind === "chart") {
-    return (
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <path d="M3 17V9M8 17V5M13 17v-5M18 17V7" stroke="#171304" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (kind === "flow") {
-    return (
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <path d="M3 6h9M9 3l3 3-3 3M19 16H10M13 13l-3 3 3 3" stroke="#171304" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (kind === "check") {
-    return (
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <path d="m5 11 4 4 8-8" stroke="#171304" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
+function LogoCluster({ node, scene, running }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-      <rect x="1.5" y="1.5" width="8" height="8" rx="1.6" fill="#F0B90B" />
-      <rect x="12.5" y="1.5" width="8" height="8" rx="1.6" fill="#C9A227" />
-      <rect x="1.5" y="12.5" width="8" height="8" rx="1.6" fill="#8A6A22" />
-      <rect x="12.5" y="12.5" width="8" height="8" rx="1.6" fill="#1B1E2E" />
-    </svg>
+    <div className="lq-apps" style={{ left: node.x, top: node.y, width: node.w, height: node.h }}>
+      {LOGO_CELLS.map((items, i) => (
+        <FlipLogo key={i} items={items} scene={scene} delay={i * 70} running={running} />
+      ))}
+    </div>
   );
 }
 
-function Method({ label, wide }) {
-  return <div className={`lq-sys-method${wide ? " is-wide" : ""}`}>{label}</div>;
+function Hub({ node }) {
+  return (
+    <div className="lq-hub" style={{ left: node.x, top: node.y, width: node.w, height: node.h }}>
+      <img src="/logo.png" alt="" />
+      <span>luxquant</span>
+    </div>
+  );
+}
+
+function Dest({ node }) {
+  return (
+    <div className="lq-dest" style={{ left: node.x, top: node.y, width: node.w, height: node.h }}>
+      <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+        <rect x="1.5" y="1.5" width="8" height="8" rx="1.6" fill="#F0B90B" />
+        <rect x="12.5" y="1.5" width="8" height="8" rx="1.6" fill="#C9A227" />
+        <rect x="1.5" y="12.5" width="8" height="8" rx="1.6" fill="#8A6A22" />
+        <rect x="12.5" y="12.5" width="8" height="8" rx="1.6" fill="#1B1E2E" />
+      </svg>
+    </div>
+  );
+}
+
+function Diagram({ g, width, height, scene, init, running }) {
+  const active = SCENES[scene];
+  return (
+    <Plane width={width} height={height}>
+      <Lines routes={g.routes} width={width} height={height} />
+      {g.tray ? <div className="lq-tray" style={{ left: g.tray.x, top: g.tray.y, width: g.tray.w, height: g.tray.h }} /> : null}
+      {g.T.map((n, i) => (
+        <Slot
+          key={SYSTEMS[i].id}
+          node={n}
+          label={SYSTEMS[i].label}
+          on={active.systems.includes(SYSTEMS[i].id)}
+          init={init}
+        />
+      ))}
+      <Pill node={g.sanitize}>Sanitize</Pill>
+      <Pill node={g.signals}>Signals</Pill>
+      <LogoCluster node={g.logos} scene={scene} running={running} />
+      <Pill node={g.venues}>Venues</Pill>
+      <Hub node={g.hub} />
+      <Pill node={g.record}>Track record</Pill>
+      {g.dest ? <Dest node={g.dest} /> : null}
+      <Pill node={g.terminal}>Terminal</Pill>
+      {g.O.map((n, i) => (
+        <Slot
+          key={OUTPUTS[i].id}
+          node={n}
+          label={OUTPUTS[i].label}
+          on={active.outputs.includes(OUTPUTS[i].id)}
+          init={init}
+        />
+      ))}
+    </Plane>
+  );
 }
 
 export default function Architecture() {
@@ -164,13 +356,12 @@ export default function Architecture() {
   const root = useRef(null);
   const inView = useInView(root);
   const [scene, setScene] = useState(0);
-  const [initial, setInitial] = useState(true);
+  const [init, setInit] = useState(true);
   const [pageOn, setPageOn] = useState(() => typeof document === "undefined" || !document.hidden);
   const reduce =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   const live = inView && pageOn && !reduce;
-  const active = SCENES[scene];
 
   useEffect(() => {
     const onVis = () => setPageOn(!document.hidden);
@@ -181,7 +372,7 @@ export default function Architecture() {
   useEffect(() => {
     if (!live) return undefined;
     const first = setTimeout(() => {
-      setInitial(false);
+      setInit(false);
       setScene((s) => (s + 1) % SCENES.length);
     }, 1000);
     const tick = setInterval(() => setScene((s) => (s + 1) % SCENES.length), 4000);
@@ -200,19 +391,17 @@ export default function Architecture() {
     navigate(loginUrl("/performance", { source: "how_it_works" }));
   };
 
-  const outOn = (id) => active.outputs.includes(id);
-
   return (
     <section
       id="how-it-works"
       data-lq-self=""
-      className="relative z-10 w-full scroll-mt-28 overflow-hidden py-16 lg:py-24"
+      className="relative z-10 w-full scroll-mt-32 overflow-hidden py-16 lg:py-24"
     >
       <div className="mx-auto w-full max-w-[1120px] px-4 lg:px-8">
         <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
           How LuxQuant thinks
         </p>
-        <h2 className="lq-sys-kicker mt-5 max-w-4xl text-[28px] font-semibold leading-[1.28] tracking-[-0.025em] sm:text-[34px] lg:text-[40px]">
+        <h2 className="mt-5 max-w-4xl text-[28px] font-semibold leading-[1.28] tracking-[-0.025em] sm:text-[34px] lg:text-[40px]">
           <span className="text-text-primary">From market noise to a decision you can verify. </span>
           <span className="text-text-muted">
             A live intelligence network turns fragmented market data into risk-defined
@@ -221,117 +410,14 @@ export default function Architecture() {
         </h2>
       </div>
 
-      <div ref={root} className="lq-sys mx-auto mt-10 w-full max-w-[1120px] px-2 sm:mt-12 sm:px-4 lg:px-8">
+      <div ref={root} className="lq-sys relative mx-auto mt-10 w-full max-w-[1080px] px-3 sm:mt-12 sm:px-6">
         <div className="lq-sys-dots" aria-hidden="true" />
-
-        <figure className="lq-sys-figure" aria-label="How LuxQuant connects market inputs to a published call">
-          <div className="lq-sys-left" aria-hidden="true">
-            <div className="lq-sys-apps">
-              {LOGO_CELLS.map((items, i) => (
-                <FlipLogo
-                  key={i}
-                  items={items}
-                  scene={scene}
-                  delay={i * 80}
-                  running={live && !initial}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="lq-sys-center">
-            <div className="lq-sys-bar" aria-hidden="true">
-              <div className="lq-sys-bar-bg" />
-              <div className="lq-sys-bar-a">
-                {SYSTEMS.slice(0, 3).map((s) => (
-                  <Slot
-                    key={s.id}
-                    label={s.label}
-                    active={active.systems.includes(s.id)}
-                    initial={initial}
-                  />
-                ))}
-              </div>
-              <div className="lq-sys-bar-b">
-                {SYSTEMS.slice(3).map((s) => (
-                  <Slot
-                    key={s.id}
-                    label={s.label}
-                    active={active.systems.includes(s.id)}
-                    initial={initial}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="lq-sys-top-row">
-              <svg className="lq-sys-fork lq-sys-fork-dt" width="313" height="215" viewBox="0 0 313 215" fill="none" aria-hidden="true">
-                <path d="M1 0V96.976C1 101.395 4.582 104.976 9 104.976H118.527H148.372C152.79 104.976 156.372 108.558 156.372 112.976V214.258" stroke="currentColor" strokeDasharray="2 2" />
-                <path d="M311.671 0V96.976C311.671 101.395 308.09 104.976 303.671 104.976H194.144H164.3C159.882 104.976 156.3 108.558 156.3 112.976V114.258" stroke="currentColor" strokeDasharray="2 2" />
-              </svg>
-              <svg className="lq-sys-fork lq-sys-fork-mb" width="190" height="340" viewBox="0 0 190 340" fill="none" aria-hidden="true">
-                <path d="M1.00027 0L1 158.584C0.999992 163.002 4.58172 166.584 9 166.584H72.0989H86.9932C91.4114 166.584 94.9932 170.165 94.9932 174.584V340" stroke="currentColor" strokeDasharray="2 2" />
-                <path d="M189 0V158.584C189 163.002 185.418 166.584 181 166.584H117.901H103.007C98.5886 166.584 95.0068 170.165 95.0068 174.584V181.313" stroke="currentColor" strokeDasharray="2 2" />
-              </svg>
-              <div className="lq-sys-methods-top">
-                <Method label="Sanitize" />
-                <Method label="Signals" wide />
-              </div>
-            </div>
-
-            <div className="lq-sys-mid-row">
-              <Method label="Venues" />
-              <Method label="Track record" />
-            </div>
-
-            <div className="lq-sys-hub" aria-hidden="true">
-              <img src="/logo.png" alt="" />
-              <span>luxquant</span>
-            </div>
-
-            <svg className="lq-sys-spine lq-sys-spine-dt" viewBox="0 0 1000 386" fill="none" aria-hidden="true">
-              <path d="M1000 194H0" stroke="currentColor" strokeDasharray="2 2" vectorEffect="non-scaling-stroke" />
-            </svg>
-            <svg className="lq-sys-spine lq-sys-spine-mb" viewBox="0 0 592 83" fill="none" aria-hidden="true">
-              <path d="M0 1h529.645c4.661 0 8.441 3.582 8.441 8v74" stroke="currentColor" strokeDasharray="2 2" vectorEffect="non-scaling-stroke" />
-            </svg>
-
-            <div className="lq-sys-bottom-row">
-              <Method label="Terminal" />
-            </div>
-
-            <div className="lq-sys-outs" aria-hidden="true">
-              <svg
-                className="lq-sys-out-lines"
-                width="191"
-                height="102"
-                viewBox="0 0 191 102"
-                fill="none"
-              >
-                {[
-                  "M81.0576 0.342323C81.0576 13.3582 81.0576 11.8288 81.0576 18.4909C81.0576 22.9092 77.4759 26.4913 73.0577 26.4913L28.511 26.4915C24.0927 26.4916 20.511 30.0733 20.511 34.4915L20.511 59.9819",
-                  "M90.5 0L90.5 41.1113C90.5 45.5393 86.9031 49.125 82.4751 49.1113L78.5874 49.0992C74.1594 49.0854 70.5625 52.6712 70.5625 57.0992L70.5625 59.938",
-                  "M100.5 0L100.5 41.1113C100.5 45.5393 104.097 49.125 108.525 49.1113L112.413 49.0992C116.841 49.0854 120.437 52.6712 120.437 57.0992L120.437 59.938",
-                  "M109.942 0.342323C109.942 13.3582 109.942 11.8288 109.942 18.4909C109.942 22.9092 113.524 26.4913 117.942 26.4913L162.489 26.4915C166.907 26.4916 170.489 30.0733 170.489 34.4915L170.489 59.9819",
-                ].map((d, i) => (
-                  <g key={i}>
-                    <path d={d} className="lq-sys-out-idle" />
-                    <path d={d} className={`lq-sys-out-draw${outOn(OUTPUTS[i].id) ? " is-on" : ""}`} />
-                  </g>
-                ))}
-              </svg>
-              {OUTPUTS.map((o) => (
-                <Slot key={o.id} label={o.label} active={outOn(o.id)} initial={initial} />
-              ))}
-            </div>
-          </div>
-
-          <div className="lq-sys-right" aria-hidden="true">
-            <div className="lq-sys-dest">
-              <DestIcon kind={DEST_ICONS[scene]} />
-            </div>
-          </div>
-        </figure>
+        <div className="relative hidden lg:block">
+          <Diagram g={D} width={DW} height={DH} scene={scene} init={init} running={live && !init} />
+        </div>
+        <div className="relative lg:hidden">
+          <Diagram g={M} width={MW} height={MH} scene={scene} init={init} running={live && !init} />
+        </div>
       </div>
 
       <div className="mx-auto mt-10 flex max-w-[1120px] flex-col items-center gap-2.5 px-4 lg:mt-12 lg:px-8">
@@ -349,269 +435,64 @@ export default function Architecture() {
       </div>
 
       <style>{`
-        .lq-sys {
-          --sys-line: rgb(var(--accent) / 0.55);
-          --sys-idle: rgb(var(--accent) / 0.22);
-          --sys-pill: rgb(var(--accent));
-          --sys-ink: #171304;
-          --sys-ease: cubic-bezier(.4, 0, .2, 1);
-          position: relative;
-          container-type: inline-size;
-          container-name: lqsys;
-          overflow: hidden;
-        }
+        .lq-sys { --line: rgb(var(--accent) / 0.42); --idle: rgb(var(--accent) / 0.26); --pill: rgb(var(--accent)); --ink: #171304; }
         .lq-sys-dots {
-          position: absolute;
-          inset: -70px -8px -80px;
-          background-image: url("data:image/svg+xml;utf8,<svg width='10' height='10' xmlns='http://www.w3.org/2000/svg'><rect x='0' y='0' width='2' height='2' fill='%238a6a28'/></svg>");
-          background-size: 10px 10px;
-          opacity: .46;
-          -webkit-mask-image: linear-gradient(180deg, hsla(0,0%,85%,0), #737373 50%, hsla(0,0%,85%,0));
-          mask-image: linear-gradient(180deg, hsla(0,0%,85%,0), #737373 50%, hsla(0,0%,85%,0));
-          pointer-events: none;
+          position: absolute; inset: -48px 0 -56px;
+          background-image: url("data:image/svg+xml;utf8,<svg width='10' height='10' xmlns='http://www.w3.org/2000/svg'><rect width='2' height='2' fill='%238a6a28'/></svg>");
+          background-size: 10px 10px; opacity: .46; pointer-events: none;
+          -webkit-mask-image: linear-gradient(180deg, transparent, #737373 22%, #737373 78%, transparent);
+          mask-image: linear-gradient(180deg, transparent, #737373 22%, #737373 78%, transparent);
         }
-        .lq-sys-figure {
-          position: relative;
-          display: grid;
-          grid-template-columns: 1fr;
-          max-width: 1000px;
-          height: 560px;
-          margin: 0 auto;
+        .lq-flow { stroke: var(--line); stroke-width: 1.25; stroke-dasharray: 2 3; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .lq-tray { position: absolute; z-index: 1; border-radius: 8px; background: rgb(var(--surface) / 0.28); }
+        .lq-pill, .lq-slot, .lq-hub, .lq-apps, .lq-dest {
+          position: absolute; z-index: 4; box-sizing: border-box;
         }
-        .lq-sys-left { position: absolute; top: 52%; left: 8px; z-index: 3; }
-        .lq-sys-right { position: absolute; top: 68%; right: 8%; z-index: 3; }
-        .lq-sys-center {
-          position: relative;
-          display: grid;
-          grid-template-rows: 88px 75px 266px auto;
+        .lq-pill {
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 6px; background: var(--pill); color: var(--ink);
+          font-size: 12.5px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
         }
-        .lq-sys-apps {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          grid-template-rows: repeat(2, 1fr);
-          gap: 4px;
-          padding: 4px;
-          width: 112px;
-          height: 76px;
-          border-radius: 8px;
-          background: rgb(var(--surface) / 0.72);
-          border: 1px solid rgb(var(--ink) / 0.06);
+        .lq-slot {
+          display: flex; align-items: center; justify-content: center;
+          border: 1px dashed var(--idle); border-radius: 6px;
+          transition: border-color .5s cubic-bezier(.4,0,.2,1);
         }
-        .lq-sys-app {
-          position: relative;
-          width: 32px;
-          height: 32px;
-          border: 1px dashed var(--sys-idle);
-          border-radius: 6px;
-          perspective: 250px;
+        .lq-slot span {
+          display: flex; align-items: center; justify-content: center;
+          width: 100%; height: 100%; border-radius: 6px;
+          background: var(--pill); color: var(--ink);
+          font-size: 12px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
+          opacity: 0; transform: scale(.78);
+          transition: opacity .45s cubic-bezier(.4,0,.2,1), transform .45s cubic-bezier(.4,0,.2,1);
         }
-        .lq-sys-app-flip {
-          position: absolute;
-          inset: 0;
-          transform-style: preserve-3d;
-          transition: transform 2s cubic-bezier(.9, 0, .1, 1);
-        }
-        .lq-sys-app-face {
-          position: absolute;
-          inset: 0;
-          display: grid;
-          place-items: center;
-          overflow: hidden;
-          border-radius: 6px;
-          background: rgb(var(--surface));
-          backface-visibility: hidden;
-        }
-        .lq-sys-app-face.is-back { transform: rotateX(180deg); }
-        .lq-sys-app-face img { width: 100%; height: 100%; object-fit: cover; }
-        .lq-sys-app-empty { display: block; width: 100%; height: 100%; }
-        .lq-sys-bar {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          width: min(100%, 560px);
-          margin: 0 auto;
-          padding: 8px;
-        }
-        .lq-sys-bar-bg {
-          display: none;
-        }
-        .lq-sys-bar-a { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        .lq-sys-bar-b { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .lq-sys-slot {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 32px;
-          border: 1px dashed var(--sys-idle);
-          border-radius: 6px;
-          transition: border-color .5s var(--sys-ease);
-        }
-        .lq-sys-slot-fill {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 32px;
-          padding: 0 12px;
-          border-radius: 6px;
-          background: var(--sys-pill);
-          color: var(--sys-ink);
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: -0.01em;
-          white-space: nowrap;
-          opacity: 0;
-          scale: .75;
-          transition: opacity .5s var(--sys-ease), scale .5s var(--sys-ease);
-          box-shadow: 0 14px 21px -14px rgb(var(--scrim) / 0.28);
-        }
-        .lq-sys-slot.is-on { border-color: transparent; }
-        .lq-sys-slot.is-on .lq-sys-slot-fill,
-        .lq-sys-slot.is-init .lq-sys-slot-fill { opacity: 1; scale: 1; }
-        .lq-sys-slot.is-init .lq-sys-slot-fill { transition-duration: 0ms; }
-        .lq-sys-method {
-          position: relative;
-          z-index: 2;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 32px;
-          padding: 0 16px;
-          border-radius: 6px;
-          background: var(--sys-pill);
-          color: var(--sys-ink);
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: -0.01em;
-          white-space: nowrap;
-        }
-        .lq-sys-top-row { position: relative; display: flex; justify-content: center; }
-        .lq-sys-methods-top {
-          position: absolute;
-          bottom: 0;
-          display: inline-grid;
-          grid-template-columns: repeat(2, 185px);
-          z-index: 1;
-        }
-        .lq-sys-fork { color: var(--sys-line); }
-        .lq-sys-fork-dt { display: none; }
-        .lq-sys-fork-mb { position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 0; }
-        .lq-sys-mid-row { display: none; }
-        .lq-sys-hub {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          z-index: 4;
-          display: grid;
-          place-items: center;
-          width: 80px;
-          height: 80px;
+        .lq-slot.is-on { border-color: transparent; }
+        .lq-slot.is-on span, .lq-slot.is-init span { opacity: 1; transform: none; }
+        .lq-slot.is-init span { transition-duration: 0ms; }
+        .lq-hub {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
           border-radius: 10px;
           background: linear-gradient(288deg, #3a2a0c -7%, #d4a017 106%);
-          transform: translate(-50%, -40%);
-          box-shadow: 0 16px 32px -16px rgb(var(--scrim) / 0.4);
+          box-shadow: 0 16px 28px -16px rgb(var(--scrim) / 0.45);
         }
-        .lq-sys-hub img {
-          width: 22px;
-          height: 22px;
-          border-radius: 5px;
-          object-fit: cover;
+        .lq-hub img { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
+        .lq-hub span { margin-top: 4px; color: #fbf3da; font-size: 9px; font-weight: 750; letter-spacing: -.04em; }
+        .lq-apps {
+          display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
+          gap: 6px; padding: 8px; border-radius: 10px;
+          background: rgb(var(--surface) / 0.7); border: 1px solid rgb(var(--ink) / 0.06);
         }
-        .lq-sys-hub span {
-          margin-top: 4px;
-          color: #fbf3da;
-          font-size: 9px;
-          font-weight: 750;
-          letter-spacing: -0.04em;
-        }
-        .lq-sys-spine { color: var(--sys-line); pointer-events: none; }
-        .lq-sys-spine-dt { display: none; }
-        .lq-sys-spine-mb { display: block; position: absolute; top: 54%; width: 100%; }
-        .lq-sys-bottom-row { display: flex; justify-content: center; align-items: flex-end; }
-        .lq-sys-outs {
-          position: relative;
-          display: flex;
-          justify-content: center;
-          gap: 8px;
-          margin: 12px auto 0;
-          align-self: end;
-        }
-        .lq-sys-outs .lq-sys-slot { width: 40px; min-width: 40px; overflow: hidden; }
-        .lq-sys-outs .lq-sys-slot-fill { padding: 0 6px; font-size: 0; }
-        .lq-sys-outs .lq-sys-slot.is-on .lq-sys-slot-fill { font-size: 11px; }
-        .lq-sys-out-lines {
-          position: absolute;
-          left: 50%;
-          bottom: 32px;
-          transform: translateX(-50%);
-          pointer-events: none;
-        }
-        .lq-sys-out-idle { stroke: rgb(var(--accent) / 0.18); stroke-dasharray: 2 2; fill: none; }
-        .lq-sys-out-draw {
-          fill: none;
-          stroke: rgb(var(--accent) / 0.85);
-          stroke-dasharray: 120 120;
-          stroke-dashoffset: 120;
-          transition: stroke-dashoffset 1s cubic-bezier(.66, 0, .34, 1);
-        }
-        .lq-sys-out-draw.is-on { stroke-dashoffset: 0; transition-duration: 2s; }
-        .lq-sys-dest {
-          display: grid;
-          place-items: center;
-          width: 40px;
-          height: 40px;
-          border-radius: 8px;
-          background: #f4f1ea;
-          box-shadow: 0 10px 20px -12px rgb(var(--scrim) / 0.35);
-        }
-        @container lqsys (min-width: 600px) {
-          .lq-sys-figure { height: 386px; }
-          .lq-sys-center { max-width: 696px; grid-template-rows: 48px 75px 160px auto; }
-          .lq-sys-left { top: 44%; }
-          .lq-sys-apps { width: 152px; height: 105px; gap: 8px; padding: 8px; }
-          .lq-sys-app { width: 40px; height: 40px; }
-          .lq-sys-bar { flex-direction: row; height: 48px; align-items: center; padding: 8px; }
-          .lq-sys-bar-bg {
-            display: block;
-            position: absolute;
-            inset: 0;
-            border-radius: 8px;
-            background: rgb(var(--surface) / 0.35);
-          }
-          .lq-sys-bar-a, .lq-sys-bar-b { height: 32px; flex: 1; }
-          .lq-sys-slot-fill, .lq-sys-method { font-size: 13px; }
-          .lq-sys-methods-top { grid-template-columns: repeat(2, 308px); }
-          .lq-sys-fork-dt { display: block; position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 0; }
-          .lq-sys-fork-mb { display: none; }
-          .lq-sys-hub { transform: translate(-50%, -75%); }
-          .lq-sys-spine-mb { top: 50%; }
-          .lq-sys-outs .lq-sys-slot { width: auto; min-width: 88px; }
-          .lq-sys-outs .lq-sys-slot-fill,
-          .lq-sys-outs .lq-sys-slot.is-on .lq-sys-slot-fill { font-size: 13px; padding: 0 12px; }
-        }
-        @container lqsys (min-width: 882px) {
-          .lq-sys-figure { grid-template-columns: 152px auto 152px; height: 386px; }
-          .lq-sys-left, .lq-sys-right {
-            position: relative;
-            inset: unset;
-            display: flex;
-            align-items: center;
-          }
-          .lq-sys-right { justify-content: flex-end; }
-          .lq-sys-center { grid-template-rows: 48px 75px 136px 32px auto; }
-          .lq-sys-mid-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 36px;
-          }
-          .lq-sys-spine-dt { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
-          .lq-sys-spine-mb { display: none; }
+        .lq-app { position: relative; border: 1px dashed var(--idle); border-radius: 6px; perspective: 240px; min-height: 0; }
+        .lq-app-flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 2s cubic-bezier(.9,0,.1,1); }
+        .lq-app-face { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; border-radius: 6px; background: rgb(var(--surface)); backface-visibility: hidden; }
+        .lq-app-face.is-back { transform: rotateX(180deg); }
+        .lq-app-face img { width: 100%; height: 100%; object-fit: cover; }
+        .lq-dest {
+          display: grid; place-items: center; border-radius: 8px; background: #f4f1ea;
+          box-shadow: 0 10px 18px -12px rgb(var(--scrim) / 0.35);
         }
         @media (prefers-reduced-motion: reduce) {
-          .lq-sys-slot-fill, .lq-sys-app-flip, .lq-sys-out-draw { transition: none !important; }
+          .lq-slot span, .lq-app-flip { transition: none !important; }
         }
       `}</style>
     </section>
