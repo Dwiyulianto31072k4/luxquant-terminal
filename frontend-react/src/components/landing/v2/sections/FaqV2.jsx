@@ -8,7 +8,7 @@ import { LANDING_FAQ } from "../../../../content/faq";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { useAuth } from "../../../../context/AuthContext";
-import { CTA, DEST, FAQ_INTRO } from "../landingCopy";
+import { CTA } from "../landingCopy";
 import { PrimaryButton, SecondaryButton, BtnArrow } from "./shared/LandingButtons";
 
 const FAQ_DATA = LANDING_FAQ;
@@ -89,11 +89,11 @@ export default function FaqV2() {
 
   const goStart = () => {
     if (isAuthenticated) {
-      navigate(DEST.record);
+      navigate("/home");
       return;
     }
     trackFunnel("cta_click", { source: "faq_cta", path: "/" });
-    navigate(loginUrl(DEST.record, { source: "faq_cta" }));
+    navigate(loginUrl("/home", { source: "faq_cta" }));
   };
 
   return (
@@ -104,14 +104,15 @@ export default function FaqV2() {
       {/* Hero */}
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
-          {FAQ_INTRO.eyebrow}
+          Questions, answered
         </p>
         <h2 className="mt-3 sm:mt-4 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-          {FAQ_INTRO.titleLead}{" "}
-          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">{FAQ_INTRO.titleGold}</span>
+          Still wondering how it{" "}
+          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">really works?</span>
         </h2>
         <p className="mx-auto mt-4 max-w-lg text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
-          {FAQ_INTRO.body}
+          Algorithm, risk, track record, free tier, Agent — straight answers so you can verify
+          before you size up.
         </p>
       </div>
 
@@ -180,7 +181,7 @@ export default function FaqV2() {
       {/* Soft CTA — curiosity → action */}
       <div className="mt-12 flex flex-col items-center gap-4 text-center sm:mt-14">
         <p className="max-w-sm text-[14px] leading-relaxed text-text-muted">
-          Start free — Pulse, track record, and more. Upgrade later for live levels and optional Agent assistance.
+          Start free — Pulse, track record &amp; more. Upgrade later for live levels.
         </p>
         <PrimaryButton size="lg" width="fullMobile" onClick={goStart} className="group">
           {isAuthenticated ? CTA.primaryAuthed : CTA.primaryGuest}

@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { isPremiumUser } from "../../../../utils/roles";
-import { CTA, TERMINAL } from "../landingCopy";
+import { CTA } from "../landingCopy";
 import HeroSignupPill from "./shared/HeroSignupPill";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
@@ -87,8 +87,8 @@ const FEATURES = [
   {
     id: "agent",
     title: "Agent",
-    short: TERMINAL.agentShort,
-    desc: TERMINAL.agentDesc,
+    short: "Executes under your limits",
+    desc: "Connect exchange keys and let Agent follow the plan 24/7 — size, caps, and cooldowns stay yours.",
     img: "/mockups/mac-autotrade.webp",
     icon: ICONS.agent,
   },
@@ -196,14 +196,15 @@ export default function TerminalPreview() {
       {/* Header — honest, product-first */}
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
-          {TERMINAL.eyebrow}
+          The terminal
         </p>
         <h2 className="mt-3 sm:mt-4 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-          {TERMINAL.titleLead}{" "}
-          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">{TERMINAL.titleGold}</span>
+          One desk.{" "}
+          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">Every tool that matters.</span>
         </h2>
         <p className="mx-auto mt-4 max-w-lg text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
-          {TERMINAL.body}
+          Real product screens — switch a module and see the workspace. Free tools open first;
+          live levels &amp; Agent when you upgrade.
         </p>
       </div>
 
@@ -297,7 +298,7 @@ export default function TerminalPreview() {
                 Markets, Journal, Portfolio, News…
               </h3>
               <p className="max-w-sm text-[13px] leading-relaxed text-text-muted sm:text-[14px]">
-                {TERMINAL.moreNote}
+                Free tools open first. Live levels &amp; Agent when you upgrade.
               </p>
               {/* Only while the More tab is selected. The panel is mounted at
                   opacity 0 from first paint, so an always-rendered pill logged

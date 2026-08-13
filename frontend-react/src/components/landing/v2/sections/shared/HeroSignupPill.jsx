@@ -8,7 +8,7 @@ import {
   clearAuthRescueState,
   markFailedAuthProvider,
 } from "../../../../../utils/authRescue";
-import { CTA, DEST } from "../../landingCopy";
+import { CTA } from "../../landingCopy";
 import { PrimaryButton } from "./LandingButtons";
 
 function TelegramIcon() {
@@ -62,7 +62,7 @@ export default function HeroSignupPill({
   shortText = CTA.pillShort,
   className = "",
   source = "hero_pill",
-  redirect = DEST.record,
+  redirect = "/home",
 }) {
   const navigate = useNavigate();
   const { isAuthenticated, loginWithGoogle, loginWithTelegram, loginWithDiscord } = useAuth();

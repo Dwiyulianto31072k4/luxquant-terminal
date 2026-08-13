@@ -4,7 +4,6 @@ import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
-import { ARCH } from "../landingCopy";
 
 const SOURCES = [
   { label: "Price & volume", meta: "Multi-exchange OHLCV", icon: "pulse" },
@@ -20,7 +19,7 @@ const OUTPUTS = [
   { label: "AI research", meta: "Regime intelligence", icon: "spark" },
   { label: "Money flow", meta: "Capital rotation", icon: "flow" },
   { label: "On-chain alerts", meta: "Whale moves", icon: "bell" },
-  { label: "Agent", meta: ARCH.agentMeta, icon: "agent" },
+  { label: "Agent", meta: "Trade assistance", icon: "agent" },
   { label: "Track record", meta: "Public & timestamped", icon: "check" },
 ];
 
@@ -285,10 +284,10 @@ function DesktopDiagram() {
         eyebrow="EVIDENCE LAYER" title="Public track record" note="Timestamped · preserved · auditable"
       />
 
-      <SystemNode x={420} y={276} w={280} h={142} delay={3200} tone="core" title="Scoring & decision engine">
+      <SystemNode x={420} y={276} w={280} h={142} delay={3200} tone="core" title="Predictive intelligence core">
         <div className="arch-core-top">
           <span className="arch-core-mark"><img src="/logo.png" alt="LuxQuant" /></span>
-          <span className="arch-core-status"><i /> LIVE SCORING</span>
+          <span className="arch-core-status"><i /> ALWAYS ON</span>
         </div>
         <span className="arch-core-kicker">03 · DECISION ENGINE</span>
       </SystemNode>
@@ -350,10 +349,10 @@ function MobileDiagram() {
         eyebrow="02 · NORMALIZATION" title="Market data sanitizer" note="Fresh · consistent · clean"
       />
 
-      <SystemNode x={60} y={300} w={260} h={132} delay={2990} tone="core" title="Scoring & decision">
+      <SystemNode x={60} y={300} w={260} h={132} delay={2990} tone="core" title="Predictive intelligence">
         <div className="arch-core-top">
           <span className="arch-core-mark"><img src="/logo.png" alt="LuxQuant" /></span>
-          <span className="arch-core-status"><i /> LIVE SCORING</span>
+          <span className="arch-core-status"><i /> ALWAYS ON</span>
         </div>
         <span className="arch-core-kicker">03 · DECISION ENGINE</span>
       </SystemNode>
@@ -401,15 +400,15 @@ export default function Architecture() {
       className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-28 overflow-hidden px-4 py-16 lg:px-8 lg:py-24"
     >
       <div className="mx-auto max-w-4xl text-center">
-        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">{ARCH.eyebrow}</p>
+        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">How LuxQuant thinks</p>
         <h2 className="mt-7 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-          {ARCH.titleLead}{" "}
+          From market noise to a decision{" "}
           <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-            {ARCH.titleGold}
+            you can verify.
           </span>
         </h2>
         <p className="mx-auto mt-5 max-w-2xl text-[14px] font-medium leading-[1.7] text-text-muted sm:text-[17px] lg:text-[19px]">
-          {ARCH.body}
+          A live intelligence network turns fragmented market data into risk-defined calls—then preserves every published decision on the public record.
         </p>
       </div>
 
@@ -421,7 +420,7 @@ export default function Architecture() {
       </div>
 
       <p className="mx-auto mt-7 max-w-3xl text-center text-[13px] font-medium leading-[1.7] text-text-muted sm:text-[14.5px] lg:mt-8">
-        {ARCH.foot}
+        Observe the whole market, filter stale data, and define entry, targets, and exit before publication—then deliver the call and preserve its proof.
       </p>
 
       <div className="mt-5 flex flex-col items-center gap-2.5 lg:mt-6">

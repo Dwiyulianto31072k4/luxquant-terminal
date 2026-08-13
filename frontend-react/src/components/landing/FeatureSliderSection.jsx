@@ -8,7 +8,7 @@ const FEATURES = [
   {
     id: "signals",
     title: "Algorithmic Signals",
-    desc: "Precise entry, multiple take-profit targets, and strict stop-loss levels — timestamped on every call with risk scoring and volume ranking.",
+    desc: "Precise entry, multiple take-profit targets, and strict stop-loss levels — auto-delivered 24/7 with risk scoring and volume ranking on every single call.",
     macImg: "/mockups/mac-signals.webp",
     phoneImg: "/mockups/phone-signals.png",
     icon: (
@@ -161,7 +161,7 @@ const FEATURES = [
   {
     id: "autotrade",
     title: "Agent",
-    desc: "Optional execution assistance on your exchange. Agent follows the plan under your size and caps. Start in dry-run. Not set-and-forget.",
+    desc: "Coming Soon — Automated execution with smart risk management. Connect your exchange and let the system trade for you 24/7.",
     macImg: "/mockups/mac-autotrade.webp",
     phoneImg: "/mockups/phone-autotrade.png",
     icon: (

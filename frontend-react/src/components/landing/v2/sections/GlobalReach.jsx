@@ -11,7 +11,7 @@ import { onGuestProofOpen } from "../landingSoftGate";
 import LandingSoftGateSheet from "./shared/LandingSoftGateSheet";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
-import { CTA, DEST, GLOBAL } from "../landingCopy";
+import { CTA } from "../landingCopy";
 
 // ════════════════════════════════════════════════════════════════
 // GLOBAL REACH — LuxQuant (v4)
@@ -2686,7 +2686,7 @@ export default function GlobalReach({ gainers = [], stats = null }) {
   // that points at the record, so this one does not repeat it.
   const goClose = () => {
     trackFunnel("cta_click", { source: "global_reach_close", path: "/" });
-    navigate(isAuthenticated ? DEST.record : loginUrl(DEST.record, { source: "global_reach_close" }));
+    navigate(isAuthenticated ? "/home" : loginUrl("/home", { source: "global_reach_close" }));
   };
   const [modalOpen, setModalOpen] = useState(false);
   const [modalItem, setModalItem] = useState(null);
@@ -2798,10 +2798,10 @@ export default function GlobalReach({ gainers = [], stats = null }) {
 
       <div className="relative z-10 mx-auto max-w-6xl px-4">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[12px] font-medium tracking-wide text-text-muted">{GLOBAL.eyebrow}</p>
+          <p className="text-[12px] font-medium tracking-wide text-text-muted">Global reach</p>
           <h2 className="mt-2 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-            {GLOBAL.titleLead}{" "}
-            <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">{GLOBAL.titleGold}</span>
+            Precision intelligence,{" "}
+            <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">worldwide.</span>
           </h2>
         </div>
       </div>
@@ -2833,7 +2833,8 @@ export default function GlobalReach({ gainers = [], stats = null }) {
           open a soft gate, but only if a marker happens to be clicked. */}
       <div className="relative z-10 mt-14 flex flex-col items-center gap-3 px-4 text-center lg:mt-20">
         <p className="max-w-md text-[15px] leading-relaxed text-text-muted">
-          {GLOBAL.close}
+          <span className="font-semibold text-text-primary">Every call above is on record.</span>{" "}
+          Free account opens Pulse, News and the full track record — no card.
         </p>
         <PrimaryButton size="lg" width="fullMobile" onClick={goClose} className="group">
           {isAuthenticated ? CTA.openApp : CTA.pill}

@@ -73,7 +73,6 @@ const SignalsAnalytics = lazy(() => import("./components/terminal/SignalsAnalyti
 const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
 const AssistantFullPage = lazy(() => import("./components/assistant/AssistantFullPage"));
 const StatusPage = lazy(() => import("./components/StatusPage"));
-const LegalPage = lazy(() => import("./components/LegalPage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -1536,26 +1535,6 @@ function App() {
                     element={
                       <Suspense fallback={<PageLoader />}>
                         <StatusPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/terms"
-                    element={
-                      <Suspense fallback={<PageLoader />}>
-                        <AppShell>
-                          <LegalPage />
-                        </AppShell>
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/privacy"
-                    element={
-                      <Suspense fallback={<PageLoader />}>
-                        <AppShell>
-                          <LegalPage />
-                        </AppShell>
                       </Suspense>
                     }
                   />

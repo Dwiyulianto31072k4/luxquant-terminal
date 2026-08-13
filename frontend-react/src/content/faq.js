@@ -1,11 +1,10 @@
 // Shared landing FAQ — single source for UI (FaqV2) + FAQPage schema + prerender.
-// Answers = product reasoning + transparent risk framing. No invented stats.
-// Agent is optional assistance — dry-run first, not set-and-forget.
+// Answers = product reasoning + transparent risk framing + soft sell (no invented stats).
 
 export const LANDING_FAQ = [
   {
     q: "What is LuxQuant Terminal?",
-    a: "LuxQuant Terminal is a crypto market-intelligence desk built around algorithmic trade calls with a public, timestamped track record. Around that spine you also get money-flow and sector context, on-chain views, risk scoring, and AI research — so a decision can start from a written plan, not a hype thread. Explore the free tools, then unlock live levels, the full terminal, and optional Agent assistance when you are ready.",
+    a: "LuxQuant Terminal is a quantitative crypto market-intelligence platform: algorithmic trade calls with a public, timestamped track record, money-flow and sector context, on-chain whale signals, risk scoring, and AI research — so decisions start from data, not noise. Explore the free tier, then unlock full signals and Agent when you are ready.",
   },
   {
     q: "How does the LuxQuant algorithm reason about a trade?",
@@ -13,55 +12,55 @@ export const LANDING_FAQ = [
   },
   {
     q: "Why multiple take-profits instead of one target?",
-    a: "Markets rarely move in a straight line. Staged TPs let a winner pay something early while still leaving room for a larger run (including TP4+ peaks you can audit on Performance). The SL stays fixed so downside is pre-defined. That is risk design — not a promise that results will compound.",
+    a: "Markets rarely move in a straight line. Staged TPs let winners pay you early while still leaving room for larger runs (including TP4+ peaks you can audit on Performance). The SL stays fixed so downside is capped and pre-defined — that is how the edge is designed to compound over the full sample.",
   },
   {
     q: "Is it suitable for beginners?",
-    a: "The plan is written for you — exact entry, TP1–TP4, and SL — so you are not inventing levels on day one. That does not make this beginner-safe. Crypto, especially futures and leverage, can lose money quickly. Start on the free track record, size small, and do not turn Agent live until you have watched it in dry-run.",
+    a: "Yes. Every signal ships with the full plan — exact entry, TP1–TP4, and SL — so you know what to do on day one without inventing your own levels. Start small on the free tier, learn the workflow, then size up only when the process feels natural.",
   },
   {
     q: "What is the recommended starting capital?",
-    a: "There is no required minimum. Size so that a full stop-out is money you can lose — one risk unit per trade, not the whole account. If a stopped-out call would hurt, you are too large. Process first. Agent is optional and should stay in dry-run until you have watched it skip, fill, and pause.",
+    a: "There is no hard minimum, but many members start around $100–$500 so they can size positions sensibly and keep risk per trade under control. Quality of process beats size of account — LuxQuant is built for disciplined, plan-based execution.",
   },
   {
     q: "What happens when a call hits stop-loss?",
-    a: "Losses are part of trading. Every signal includes a strict SL so the downside is known before you enter. We do not hide stopped-out trades: Performance shows winners and losers together so you can judge the sample on the full history, not cherry-picked highlights.",
+    a: "Losses are part of trading. Every signal includes a strict SL so the downside is known before you enter. We do not hide stopped-out trades: Performance shows winners and losers together so you can judge the edge on the full history, not cherry-picked highlights.",
   },
   {
     q: "Do I need to watch charts 24/7?",
-    a: "No. Calls are published with levels already defined, and alerts can go to Telegram and the terminal when something needs attention. That is not the same as leaving live execution unsupervised. If Agent is LIVE, pause it when you cannot check it.",
+    a: "No. The system runs continuously and pushes alerts to Telegram and the terminal when something needs attention. You act on a plan with levels already defined — not glued to the screen.",
   },
   {
     q: "How is the track record verified?",
-    a: "Calls are recorded and timestamped from day one — no hidden book, no silent deletes. On the landing Performance section and inside the app you can audit how often a call reached a target, the exit mix (TP1–TP4 / SL), share of outcomes, and behavior across market regimes. If it is not in the public sample, we do not claim it.",
+    a: "Calls are recorded and timestamped from day one — no hidden book, no silent deletes. On the landing Performance section and inside the app you can audit win rate, exit mix (TP1–TP4 / SL), share of outcomes, and behavior across market regimes. If it is not in the public sample, we do not claim it.",
   },
   {
     q: "What does “share” mean on Where Winners Exit?",
-    a: "Share is the percentage of all closed trades that exited at that bucket (TP1, TP2, TP3, TP4+, or SL). It shows how often the plan paid at each step versus how often it stopped out — essential for understanding risk and expectancy, not just a single win-rate number.",
+    a: "Share is the percentage of all closed trades that exited at that bucket (TP1, TP2, TP3, TP4+, or SL). It shows how often the plan paid at each step versus how often it stopped out — essential for understanding risk and expectancy, not just win rate alone.",
   },
   {
     q: "Can LuxQuant auto-execute trades for me?",
-    a: "Optionally. Agent is an assistant, not a managed account. It can place orders on your exchange when a signal matches the rules you saved — size, max positions, cooldowns, spot or futures. Withdraw permission is never requested. One venue at a time. Start in dry-run. Pause it when you cannot supervise. A skip is not a bug; a fill is not a gift.",
+    a: "Yes. Agent can connect your exchange API keys and follow signal plans under your risk limits (size, max positions, cooldowns). You stay in control of keys, sizing, and on/off — LuxQuant supplies the plan and the automation layer. Start in dry-run if you want to observe first.",
   },
   {
     q: "Is Agent safe for my funds?",
-    a: "You trade on your own exchange account with keys you control. Use withdraw-disabled keys, set conservative notional and position caps, and check IP and permissions carefully. Agent does not remove market risk, slippage, liquidations, or exchange failures. It is not set-and-forget. Always size for survival first.",
+    a: "You trade on your own exchange account with keys you control. Use withdraw-disabled keys where the exchange allows it, set conservative notional and position caps, and validate IP/permissions carefully. Automation removes clicks — it does not remove market risk. Always size for survival first.",
   },
   {
     q: "What else is inside the Terminal besides signals?",
-    a: "Beyond calls you get money-flow and sector tools, on-chain context, market pulse views, risk-aware analytics, and AI research workflows — one workspace so you are not juggling three apps to form a view. Signals are the spine; the rest is situational awareness.",
+    a: "Beyond calls you get money-flow and sector tools, on-chain / whale context, market pulse views, risk-aware analytics, and AI research workflows — one workspace so you are not juggling three apps to form a view. Signals are the spine; the rest is situational awareness.",
   },
   {
     q: "Is there a free tier?",
-    a: "Yes. A free account opens Market Pulse, News, Performance, watchlist, tips, and the verified track record — no card. Upgrade when you want live signal levels, the full terminal, and optional Agent assistance. Free tools stay free after you upgrade.",
+    a: "Yes. Explore the product free, then upgrade when you want full algorithmic signals, Agent, deeper on-chain intelligence, and AI research. Pricing is transparent — start light, scale only when the process is earning your trust.",
   },
   {
     q: "Who is LuxQuant built for?",
-    a: "Traders and investors who want a written plan, an audit trail, and tools that explain market context — not hype threads. If you value transparent performance and plan-based risk over “trust me” calls, you are the audience.",
+    a: "Traders and investors who want a quant-style process: written levels, audit trail, and tools that explain market context — not hype threads. If you value transparent performance and plan-based risk over “trust me” calls, you are the audience.",
   },
   {
     q: "How do I get started in under five minutes?",
-    a: "Open the app (or sign up with Google), scan the latest calls and the Performance record, optionally link Telegram alerts, then follow a published entry / TP / SL at a size you can lose. If you want execution help later, connect exchange keys and keep Agent in dry-run until you have watched it. Do not leave it LIVE unsupervised.",
+    a: "Open the app (or Sign Up with Google), scan the latest calls and Performance proof, optionally link Telegram alerts, then paper-trade or size a small live position with the published entry/TP/SL. When you want hands-off execution, connect exchange keys and enable Agent with tight limits.",
   },
 ];
 

@@ -7,7 +7,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { isPremiumUser } from "../../../../utils/roles";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
-import { CTA, FOOTER, RISK } from "../landingCopy";
+import { CTA } from "../landingCopy";
 
 export default function FooterV2({ onNav }) {
   const navigate = useNavigate();
@@ -87,7 +87,7 @@ export default function FooterV2({ onNav }) {
   const ECOSYSTEM = [
     {
       label: "Telegram",
-      handle: "Public sample channel",
+      handle: "Free signals group",
       href: "https://t.me/LuxQuantSignal",
       bg: "linear-gradient(160deg,#38bdf8 0%,#1d93d2 100%)",
       glyph: (
@@ -183,7 +183,8 @@ export default function FooterV2({ onNav }) {
               </span>
             </div>
             <p className="mb-5 text-[13px] leading-relaxed text-text-muted">
-              {FOOTER.blurb}
+              Market intelligence for crypto — signals, execution, on-chain context, and research in
+              one terminal.
             </p>
 
             {/* Compact icon row — Stripe / OpenAI scale (~28–32px), tight gap */}
@@ -248,29 +249,20 @@ export default function FooterV2({ onNav }) {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 space-y-4 border-t border-ink/[0.08] pt-6">
-          <p className="max-w-3xl text-[11px] leading-relaxed text-text-muted">{RISK.footer}</p>
-          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <p className="text-[11px] text-text-muted">
-              © {new Date().getFullYear()} LuxQuant · Since 2023
-            </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted">
-              <Link to="/terms" className="transition-colors hover:text-text-primary">
-                Terms
-              </Link>
-              <Link to="/privacy" className="transition-colors hover:text-text-primary">
-                Privacy
-              </Link>
-              <Link to="/pricing" className="transition-colors hover:text-text-primary">
-                Pricing
-              </Link>
-              <Link to="/status" className="transition-colors hover:text-text-primary">
-                Status
-              </Link>
-              <Link to="/learn" className="transition-colors hover:text-text-primary">
-                Learn
-              </Link>
-            </div>
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-ink/[0.08] pt-6 sm:flex-row sm:items-center">
+          <p className="text-[11px] text-text-muted">
+            © {new Date().getFullYear()} LuxQuant · Since 2023
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted">
+            <Link to="/pricing" className="transition-colors hover:text-text-primary">
+              Pricing
+            </Link>
+            <Link to="/status" className="transition-colors hover:text-text-primary">
+              Status
+            </Link>
+            <Link to="/learn" className="transition-colors hover:text-text-primary">
+              Learn
+            </Link>
           </div>
         </div>
       </div>

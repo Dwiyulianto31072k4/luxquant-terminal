@@ -24,7 +24,7 @@ import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { isPremiumUser } from "../../../../utils/roles";
 import { PREMIUM_REQUIRED } from "../../../../utils/routeAccess";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
-import { CTA, DEST } from "../landingCopy";
+import { CTA } from "../landingCopy";
 import { PrimaryButton, SecondaryButton } from "./shared/LandingButtons";
 
 // Compact appearance picker for the landing header (admin-gated while theming
@@ -184,7 +184,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
   const goSignup = () => {
     setMobileOpen(false);
     trackFunnel("cta_click", { source: "header_signup", path: "/" });
-    navigate(loginUrl(DEST.free, { source: "header_signup" }));
+    navigate(loginUrl("/home", { source: "header_signup" }));
   };
 
   return (

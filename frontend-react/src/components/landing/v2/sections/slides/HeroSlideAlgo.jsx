@@ -170,14 +170,15 @@ export default function HeroSlideAlgo() {
         className="font-extrabold leading-[1.25] text-text-primary text-[32px] sm:text-[38px] lg:text-[48px]"
         style={{ textShadow: "0 2px 30px rgb(var(--scrim) / 0.35)" }}
       >
-        {HERO.line1}{" "}
+        Algo calls,{" "}
         <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-          {HERO.line2}
+          full transparency.
         </span>
       </h1>
 
       <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/60 sm:mt-5 sm:text-base">
-        {HERO.sub}
+        Every level is dated and auditable — charts, markets, on-chain and journal in one desk.
+        Free tools (Pulse, News, track record &amp; more); live levels &amp; Agent when you upgrade.
       </p>
 
       {/* ════════ Product proof — iMac + iPhone showcase ════════ */}
