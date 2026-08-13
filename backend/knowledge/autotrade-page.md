@@ -15,7 +15,10 @@ strategy. This guide explains setup, the tabs, and every setting.
    (`key_status: valid`) with trading permission. It will not go live without one.
 3. **Configure your strategy** in the Settings tab (TP/SL, risk limits, etc.).
 4. **Activate** the engine. You can start in **Dry Run** first (simulation, no real
-   orders) before going fully live.
+   orders) before going fully live. Switching to **LIVE** asks you to confirm that
+   you own the size, leverage, and any losses — LuxQuant does not guarantee profit.
+   Live execution is **Binance** today. Bitget and BingX are on a waitlist in
+   Settings → Connections.
 
 ## Engine states
 

@@ -86,6 +86,8 @@ UI_PREF_DEFAULTS = {
     "term_warnings": True,      # warning chips (late entry, parabolic…)
     "term_fng": True,           # Fear & Greed gauge
     "term_kpis": True,          # KPI strip above the grid
+    # Agent LIVE acknowledgement — user said they own size/leverage/losses.
+    "agent_live_ack": False,
 }
 
 

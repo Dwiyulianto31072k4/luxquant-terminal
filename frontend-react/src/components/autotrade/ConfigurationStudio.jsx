@@ -10,6 +10,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { updateBinanceStrategyConfig } from "../../services/autotradeApi";
 import { FIELD_GUIDE, ENGINE_RULES, MIN_LIVE_ENTRY_USDT } from "./autotradeFieldGuide";
+import LiveRiskAckModal from "./LiveRiskAckModal";
+import { useUiPrefs } from "../../hooks/useUiPrefs";
 import {
   Card,
   StatusDot,
@@ -303,6 +305,8 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [ackOpen, setAckOpen] = useState(false);
+  const { prefs, setPref } = useUiPrefs({ agent_live_ack: false });
 
   useEffect(() => {
     if (!dirty && !saving) {
@@ -408,6 +412,16 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
 
   return (
     <div className="space-y-5">
+      <LiveRiskAckModal
+        open={ackOpen}
+        firstTime={!prefs.agent_live_ack}
+        onCancel={() => setAckOpen(false)}
+        onConfirm={() => {
+          setPref("agent_live_ack", true);
+          setAckOpen(false);
+          patch({ dry_run: false });
+        }}
+      />
       {/* ── Header ── */}
       <Card>
         <div className="flex items-center gap-2.5">
@@ -474,7 +488,13 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                   : "OFF — LIVE mode. Matching signals may place real orders when the engine is started."
               }
               checked={Boolean(draft.dry_run)}
-              onChange={(value) => patch({ dry_run: value })}
+              onChange={(value) => {
+                if (draft.dry_run && !value) {
+                  setAckOpen(true);
+                  return;
+                }
+                patch({ dry_run: value });
+              }}
             />
           </WithGuide>
         </div>

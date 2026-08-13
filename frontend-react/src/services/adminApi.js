@@ -32,6 +32,11 @@ export const adminApi = {
     return response.data;
   },
 
+  getAgentExchangeWaitlist: async () => {
+    const response = await api.get("/api/v1/agent/admin/exchange-waitlist");
+    return response.data;
+  },
+
   getAutoTradeAnalytics: async (since) => {
     const response = await api.get("/api/v1/admin/autotrade/analytics", {
       params: since === undefined ? {} : { since },

@@ -14,6 +14,22 @@ export function TelegramIcon({ className = "h-6 w-6" }) {
   );
 }
 
+export function BitgetIcon({ className = "h-6 w-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
+      <path d="M4 7.2 12 3l8 4.2v9.6L12 21l-8-4.2V7.2Zm8 1.3L8.2 10.5 12 12.5l3.8-2L12 8.5Zm-4.4 3.5v3.3L12 17.6V14l-4.4-2.2Zm8.8 0L12 14v3.6l4.4-2.3v-3.3Z" />
+    </svg>
+  );
+}
+
+export function BingxIcon({ className = "h-6 w-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
+      <path d="M5 5h6.2l3.4 5.2L18.2 5H21l-5.1 7L21 19h-2.8l-3.6-5.4L11.2 19H5l5.2-7L5 5Zm2.4 1.8 3.5 5.2-3.5 5.2h1.7l3.5-5.2-3.5-5.2H7.4Z" />
+    </svg>
+  );
+}
+
 export function SettingsIcon({ className = "h-5 w-5" }) {
   return (
     <svg

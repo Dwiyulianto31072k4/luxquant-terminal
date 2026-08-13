@@ -174,6 +174,7 @@ export const AutoTradeOpsTab = () => {
   const [modalUser, setModalUser] = useState(null);
   const [closing, setClosing] = useState(null);
   const [since, setSince] = useState(FIXES_LANDED);
+  const [waitlist, setWaitlist] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -182,11 +183,13 @@ export const AutoTradeOpsTab = () => {
       adminApi.getAutoTradeOverview(),
       adminApi.getAutoTradePositions(),
       adminApi.getAutoTradeAnalytics(since),
+      adminApi.getAgentExchangeWaitlist().catch(() => null),
     ])
-      .then(([o, p, a]) => {
+      .then(([o, p, a, w]) => {
         setOverview(o);
         setPositions(p);
         setAnalytics(a);
+        setWaitlist(w);
       })
       .catch((e) => setError(e?.message || "Could not load Agent data"))
       .finally(() => setLoading(false));
@@ -283,6 +286,11 @@ export const AutoTradeOpsTab = () => {
             AGENT · BOT OPERATIONS
           </p>
           <h2 className="mt-1 text-[22px] font-semibold text-text-primary">Agent Monitor</h2>
+          {waitlist?.counts && Object.keys(waitlist.counts).length ? (
+            <p className="mt-1 font-mono text-[11px] text-accent">
+              Waitlist {Object.entries(waitlist.counts).map(([k, n]) => `${k} ${n}`).join(" · ")}
+            </p>
+          ) : null}
           <p className="mt-1 text-sm text-text-secondary">
             Every user&apos;s bot, its health, what it earns, and everything it is holding.
             {since ? (

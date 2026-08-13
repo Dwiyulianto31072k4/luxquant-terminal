@@ -36,6 +36,7 @@ import {
 import { authApi } from "../services/authApi";
 
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
+import LiveRiskAckModal from "./autotrade/LiveRiskAckModal";
 import AutoTradeSettings from "./autotrade/AutoTradeSettings";
 import PositionsBoard from "./autotrade/PositionsBoard";
 import ActivityTimeline from "./autotrade/ActivityTimeline";
@@ -55,6 +56,7 @@ import {
   Notice,
 } from "./autotrade/AutoTradeUI";
 import { PageHeader } from "./ui/PageHeader";
+import { useUiPrefs } from "../hooks/useUiPrefs";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -223,6 +225,8 @@ function AutoTradeControlCenter({
 }) {
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [ackOpen, setAckOpen] = useState(false);
+  const { prefs, setPref } = useUiPrefs({ agent_live_ack: false });
   if (!health || !config) return null;
 
   const active = Boolean(config?.is_active);
@@ -271,19 +275,10 @@ function AutoTradeControlCenter({
     };
   }
 
-  const toggle = async () => {
-    if (!active) {
-      const confirmed = window.confirm(
-        isDryRun
-          ? "Start DRY-RUN Agent? The bot will process signals but place no real Binance orders."
-          : "Start LIVE Agent? New matching signals may place real Binance orders."
-      );
-      if (!confirmed) return;
-    }
+  const applyToggle = async () => {
     setWorking(true);
     setActionError("");
     try {
-      // Do not force dry_run:false on start — mode is controlled in Settings.
       await setBinanceStrategyActive(!active);
       await onChanged?.();
     } catch (err) {
@@ -293,8 +288,36 @@ function AutoTradeControlCenter({
     }
   };
 
+  const toggle = async () => {
+    if (active) {
+      await applyToggle();
+      return;
+    }
+    if (isDryRun) {
+      const confirmed = window.confirm(
+        "Start DRY-RUN Agent? The bot will process signals but place no real exchange orders."
+      );
+      if (!confirmed) return;
+      await applyToggle();
+      return;
+    }
+    setAckOpen(true);
+  };
+
+  const confirmLive = async () => {
+    setPref("agent_live_ack", true);
+    setAckOpen(false);
+    await applyToggle();
+  };
+
   return (
     <div className={`overflow-hidden rounded-lg border ${state.panel}`}>
+      <LiveRiskAckModal
+        open={ackOpen}
+        firstTime={!prefs.agent_live_ack}
+        onCancel={() => setAckOpen(false)}
+        onConfirm={confirmLive}
+      />
       {/* Control row — status + primary action in one compact bar */}
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between lg:px-5">
         <div className="flex min-w-0 items-center gap-3">

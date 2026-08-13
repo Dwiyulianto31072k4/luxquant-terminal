@@ -217,4 +217,14 @@ export const authApi = {
   },
 };
 
+export async function getExchangeWaitlist() {
+  const response = await api.get("/api/v1/agent/exchange-waitlist");
+  return response.data;
+}
+
+export async function joinExchangeWaitlist(exchange) {
+  const response = await api.post("/api/v1/agent/exchange-waitlist", { exchange });
+  return response.data;
+}
+
 export default api;

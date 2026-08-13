@@ -16,6 +16,7 @@ import {
   fmtDateTime,
 } from "./AutoTradeUI";
 import { BinanceIcon } from "./BrandIcons";
+import ExchangeRoadmap from "./ExchangeRoadmap";
 
 function keyStatusTone(status) {
   if (status === "valid") return "good";
@@ -141,6 +142,8 @@ export default function AccountsOverview({
           })}
         </div>
       )}
+
+      <ExchangeRoadmap />
     </div>
   );
 }
