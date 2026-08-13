@@ -10,15 +10,19 @@ import { GoldButton, GhostButton } from "./AutoTradeUI";
 const ITEMS = [
   {
     id: "own",
-    label: "I choose the size, leverage, markets, and when the bot is on. LuxQuant does not.",
+    label: "I choose the size, leverage, markets, and when the assistant is on. LuxQuant does not manage my money.",
   },
   {
     id: "loss",
     label: "I can lose money, including all margin on a trade. Nothing here guarantees profit.",
   },
   {
+    id: "watch",
+    label: "I will pause LIVE when I cannot supervise it. Agent is not a set-and-forget money machine.",
+  },
+  {
     id: "self",
-    label: "Matching signals may place real exchange orders. I am responsible for those outcomes.",
+    label: "Matching signals may place real exchange orders. Those outcomes are mine, win or lose.",
   },
 ];
 
@@ -72,7 +76,7 @@ export default function LiveRiskAckModal({
         <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">
           Agent follows <span className="text-text-primary">your</span> rules on{" "}
           <span className="text-text-primary">your</span> exchange account. It is
-          not a promise, a managed account, or financial advice.
+          an assistant, not a promise, a managed account, or financial advice.
         </p>
 
         {firstTime ? (

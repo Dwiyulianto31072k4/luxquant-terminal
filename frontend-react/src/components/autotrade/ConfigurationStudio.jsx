@@ -319,7 +319,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
     venue === "bitget" ? "Bitget" : venue === "bingx" ? "BingX" : "Binance";
   const statusText = useMemo(() => {
     if (!hasConnectedAccount) return `Connect ${venueName} keys to start trading.`;
-    return `Configure how future ${venueName} spot and futures entries are sized, protected and limited.`;
+    return `These are your rules. Agent only follows them. It does not make ${venueName} profitable by itself.`;
   }, [hasConnectedAccount, venueName]);
 
   const patch = (changes) => {

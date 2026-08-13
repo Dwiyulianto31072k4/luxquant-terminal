@@ -35,6 +35,7 @@ import {
 import { authApi } from "../services/authApi";
 
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
+import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
 import LiveRiskAckModal from "./autotrade/LiveRiskAckModal";
 import AutoTradeSettings from "./autotrade/AutoTradeSettings";
 import PositionsBoard from "./autotrade/PositionsBoard";
@@ -270,36 +271,37 @@ function AutoTradeControlCenter({
     .join(" + ");
 
   let state = {
-    eyebrow: "BOT PAUSED",
-    title: "Agent is not processing new entries",
+    eyebrow: "PAUSED",
+    title: "Assistant is off — no new entries",
     description:
-      "Your configuration is saved. Start the bot when you want it to process incoming signals.",
+      "Your rules are saved. Start Agent only when you can supervise it. Pause anytime.",
     tone: "warn",
     panel: "border-ink/[0.1] bg-surface-raised",
   };
   if (active && isDryRun) {
     state = {
       eyebrow: "DRY RUN",
-      title: `Simulation mode — no real ${venueName} orders`,
+      title: `Simulating ${venueName} — no real orders`,
       description:
-        "The bot will follow signals and log activity, but will not place live orders. Turn off Dry run in Settings for live trading.",
+        "Useful while you learn the assistant. Turn off Dry run in Settings only when you accept live risk.",
       tone: "info",
       panel: "border-[#5B8DEF]/30 bg-[#5B8DEF]/[0.06]",
     };
   } else if (active && globalLive && !isDryRun) {
     state = {
-      eyebrow: "LIVE TRADING",
-      title: `Agent can place real ${venueName} orders`,
-      description: "Risk limits and your saved strategy are enforced before every live entry.",
+      eyebrow: "LIVE",
+      title: `Assistant can place real ${venueName} orders`,
+      description:
+        "Not a guarantee of profit. Pause if you cannot watch it. Risk limits still apply.",
       tone: "good",
       panel: "border-[#0ECB81]/30 bg-[#0ECB81]/[0.06]",
     };
   } else if (active && !globalLive && !isDryRun) {
     state = {
-      eyebrow: "LIVE ENGINE LOCKED",
-      title: "Agent cannot start live trading yet",
+      eyebrow: "LIVE LOCKED",
+      title: "Server live switch is off",
       description:
-        "The server-wide live order switch is disabled. Your strategy remains saved and no new orders can be placed.",
+        "Your strategy is saved. No new live orders can be placed until the engine is unlocked.",
       tone: "warn",
       panel: "border-accent/30 bg-accent/[0.06]",
     };
@@ -325,7 +327,7 @@ function AutoTradeControlCenter({
     }
     if (isDryRun) {
       const confirmed = window.confirm(
-        "Start DRY-RUN Agent? The bot will process signals but place no real exchange orders."
+        "Start DRY-RUN? Agent will follow signals and log what it would do. No real exchange orders."
       );
       if (!confirmed) return;
       await applyToggle();
@@ -365,7 +367,7 @@ function AutoTradeControlCenter({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
-                Agent engine
+                Assistant
               </span>
               <StatusBadge tone={state.tone}>{state.eyebrow}</StatusBadge>
             </div>
@@ -383,7 +385,7 @@ function AutoTradeControlCenter({
             </span>
           </GhostButton>
           <GoldButton onClick={toggle} disabled={working || !accountValid}>
-            {working ? "Updating…" : active ? "Pause Agent" : "Start Agent"}
+            {working ? "Updating…" : active ? "Pause assistant" : "Start assistant"}
           </GoldButton>
         </div>
       </div>
@@ -548,10 +550,10 @@ function SetupCard({
   onTertiary,
 }) {
   return (
-    <Card className="border-ink/10 bg-accent/12">
+    <Card className="border-ink/[0.1]">
       <div className="max-w-2xl space-y-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-          Agent Setup
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
+          Next step
         </p>
         <h2 className="text-2xl font-semibold tracking-tight text-text-primary">{title}</h2>
         <p className="text-sm leading-6 text-text-muted">{body}</p>
@@ -596,6 +598,11 @@ export default function AutoTradePage() {
   const [alertStatusError, setAlertStatusError] = useState("");
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [hasAutotradeToken, setHasAutotradeToken] = useState(Boolean(getStoredAutotradeToken()));
+  const [rereadDisclaimer, setRereadDisclaimer] = useState(false);
+  const { prefs, setPref, ready: prefsReady } = useUiPrefs({
+    agent_assistant_ack: false,
+    agent_live_ack: false,
+  });
   const identityRefreshAttempted = useRef(false);
   // Pause auto-refresh while Binance REST circuit is open (rate limit / IP ban).
   const binanceBackOffUntilRef = useRef(0);
@@ -771,12 +778,19 @@ export default function AutoTradePage() {
   }, [hasAutotradeToken]);
 
   const summaryText = useMemo(() => {
-    if (!hasAutotradeToken) return "Cryptobot access required";
-    if (!hasExchangeAccount) return "Connect Binance, Bitget, or BingX to unlock Agent";
+    if (!prefs.agent_assistant_ack) return "Read the assistant disclaimer before connecting anything";
+    if (!hasAutotradeToken) return "Link this LuxQuant account to the execution helper";
+    if (!hasExchangeAccount) return "Optional helper — connect an exchange only if you accept the risks";
     const totalAccounts = exchangeAccounts.length;
     const totalExecutions = liveExecutions.length;
     return `${totalAccounts} exchange${totalAccounts === 1 ? "" : "s"} connected · ${totalExecutions} execution job${totalExecutions === 1 ? "" : "s"}`;
-  }, [exchangeAccounts.length, liveExecutions.length, hasAutotradeToken, hasExchangeAccount]);
+  }, [
+    exchangeAccounts.length,
+    liveExecutions.length,
+    hasAutotradeToken,
+    hasExchangeAccount,
+    prefs.agent_assistant_ack,
+  ]);
 
   const handleAuthorizeAutotrade = async () => {
     setAuthActionLoading(true);
@@ -848,11 +862,22 @@ export default function AutoTradePage() {
 
       {error ? <Notice tone="error">{error}</Notice> : null}
 
-      {!hasAutotradeToken ? (
+      {!prefsReady ? (
+        <LoadingState />
+      ) : !prefs.agent_assistant_ack || rereadDisclaimer ? (
+        <AgentDisclaimer
+          compact={rereadDisclaimer}
+          onCollapse={() => setRereadDisclaimer(false)}
+          onAccept={() => {
+            setPref("agent_assistant_ack", true);
+            setRereadDisclaimer(false);
+          }}
+        />
+      ) : !hasAutotradeToken ? (
         <SetupCard
-          title="Connect Agent access"
-          body="Agent links your LuxQuant account to the execution engine using a secure one-time token exchange. No password or exchange keys are shared in this step."
-          actionLabel={authActionLoading ? "Connecting…" : "Connect Agent"}
+          title="Link the execution helper"
+          body="This only exchanges a short-lived token between LuxQuant and the helper. No exchange keys, no password. You can stop here — nothing trades until you connect a venue and start it yourself."
+          actionLabel={authActionLoading ? "Linking…" : "Link helper"}
           onAction={handleAuthorizeAutotrade}
           disabled={authActionLoading}
         />
@@ -860,8 +885,8 @@ export default function AutoTradePage() {
         <LoadingState />
       ) : !hasExchangeAccount ? (
         <SetupCard
-          title="Connect an exchange before using Agent"
-          body="Your Agent access is ready, but exchange credentials are required first. Save and validate Binance, Bitget, or BingX keys to unlock portfolio, configuration, positions and execution history. Agent v1 runs one venue at a time."
+          title="Connect an exchange if you still want the helper"
+          body="Keys stay encrypted on the helper. Funds stay on the exchange. Withdraw is never requested. One venue at a time. Start in dry-run. You turn it off. Losing trades are still your trades."
           actionLabel="Connect Binance"
           onAction={() => openConnect("binance")}
           secondaryLabel="Connect Bitget"
@@ -871,6 +896,7 @@ export default function AutoTradePage() {
         />
       ) : (
         <>
+          <AgentReminderStrip onReread={() => setRereadDisclaimer(true)} />
           <AutoTradeControlCenter
             health={health}
             config={strategyConfig}

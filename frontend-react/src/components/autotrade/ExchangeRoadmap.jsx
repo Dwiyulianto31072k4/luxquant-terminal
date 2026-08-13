@@ -12,7 +12,8 @@ export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
           More exchanges
         </p>
         <p className="mt-1 text-[12px] leading-5 text-text-muted">
-          Bitget and BingX support spot and USDT-M futures. Agent still runs one venue at a time.
+          Bitget and BingX support spot and USDT-M futures. One venue at a time.
+          Still an assistant — you turn it off.
         </p>
       </div>
 

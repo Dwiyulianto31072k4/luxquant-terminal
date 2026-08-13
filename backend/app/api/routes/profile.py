@@ -88,6 +88,8 @@ UI_PREF_DEFAULTS = {
     "term_kpis": True,          # KPI strip above the grid
     # Agent LIVE acknowledgement — user said they own size/leverage/losses.
     "agent_live_ack": False,
+    # Agent first-screen assistant disclaimer (not a product pitch).
+    "agent_assistant_ack": False,
 }
 
 

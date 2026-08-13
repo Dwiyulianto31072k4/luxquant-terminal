@@ -296,7 +296,8 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
                 </div>
                 <p className="mt-2.5 text-[13px] leading-6 text-text-secondary">{venue.fundsStay}</p>
                 <p className="mt-1 text-[12px] leading-5 text-text-muted">
-                  Agent v1 runs one venue at a time. Starting this strategy pauses the other.
+                  This is a helper, not a paid trading product. One venue at a time. You
+                  still decide when it is on. Losing trades stay yours.
                 </p>
 
                 <div className="mt-7">

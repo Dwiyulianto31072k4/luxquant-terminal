@@ -120,7 +120,7 @@ export default function AccountsOverview({
         <EmptyState
           icon="🔑"
           title="No exchange connected"
-          hint="Save Binance, Bitget, or BingX API keys to unlock portfolio, configuration, positions and execution history."
+          hint="Only connect keys if you already accepted that Agent is an assistant, not a profit guarantee."
           action={
             <div className="mt-1 flex flex-wrap gap-2">
               <GoldButton onClick={() => openConnect("binance")}>Connect Binance</GoldButton>
