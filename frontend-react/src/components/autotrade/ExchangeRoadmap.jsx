@@ -12,7 +12,7 @@ export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
           More exchanges
         </p>
         <p className="mt-1 text-[12px] leading-5 text-text-muted">
-          Bitget and BingX USDT-M futures are live. Agent v1 still runs one venue at a time.
+          Bitget and BingX support spot and USDT-M futures. Agent still runs one venue at a time.
         </p>
       </div>
 
@@ -26,7 +26,7 @@ export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
           </div>
           <h3 className="mt-3 text-base font-semibold text-text-primary">Bitget</h3>
           <p className="mt-1 text-[12px] leading-5 text-text-muted">
-            USDT-M futures, isolated by default. Needs API key, secret, and passphrase.
+            Spot + USDT-M futures. Needs API key, secret, and passphrase.
           </p>
           <div className="mt-4">
             <GoldButton onClick={onConnectBitget}>Connect Bitget</GoldButton>
@@ -42,7 +42,7 @@ export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
           </div>
           <h3 className="mt-3 text-base font-semibold text-text-primary">BingX</h3>
           <p className="mt-1 text-[12px] leading-5 text-text-muted">
-            USDT-M perpetual for India and regions where Binance is hard to use. Key + secret only.
+            Spot + USDT-M perpetual for India and regions where Binance is hard to use. Key + secret only.
           </p>
           <div className="mt-4">
             <GoldButton onClick={onConnectBingx}>Connect BingX</GoldButton>

@@ -317,11 +317,9 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
   const venue = config?.exchange || "binance";
   const venueName =
     venue === "bitget" ? "Bitget" : venue === "bingx" ? "BingX" : "Binance";
-  const futuresOnlyVenue = venue === "bitget" || venue === "bingx";
-
   const statusText = useMemo(() => {
     if (!hasConnectedAccount) return `Connect ${venueName} keys to start trading.`;
-    return `Configure how future ${venueName} entries are sized, protected and limited.`;
+    return `Configure how future ${venueName} spot and futures entries are sized, protected and limited.`;
   }, [hasConnectedAccount, venueName]);
 
   const patch = (changes) => {
@@ -391,10 +389,6 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
     setSaving(true);
     try {
       const payload = toPayload(draft);
-      if (futuresOnlyVenue) {
-        payload.spot_enabled = false;
-        payload.futures_enabled = true;
-      }
       const response = await updateStrategyConfig(venue, payload);
       if (response?.config) {
         setDraft(toDraft(response.config));
@@ -474,23 +468,17 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
           <WithGuide guide={FIELD_GUIDE.spot_enabled}>
             <Toggle
               label="Spot trading"
-              hint={
-                futuresOnlyVenue
-                  ? `${venueName} v1 is USDT-M futures only.`
-                  : "Execute spot orders for supported signals."
-              }
-              checked={futuresOnlyVenue ? false : draft.spot_enabled}
+              hint="Execute spot orders for supported signals."
+              checked={draft.spot_enabled}
               onChange={(value) => patch({ spot_enabled: value })}
-              disabled={futuresOnlyVenue}
             />
           </WithGuide>
           <WithGuide guide={FIELD_GUIDE.futures_enabled}>
             <Toggle
               label="Futures trading"
               hint="Execute leveraged futures orders."
-              checked={futuresOnlyVenue ? true : draft.futures_enabled}
+              checked={draft.futures_enabled}
               onChange={(value) => patch({ futures_enabled: value })}
-              disabled={futuresOnlyVenue}
             />
           </WithGuide>
         </div>

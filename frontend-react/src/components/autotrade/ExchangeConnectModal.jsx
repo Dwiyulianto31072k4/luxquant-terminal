@@ -42,11 +42,11 @@ const VENUES = {
     secretPlaceholder: "Paste your Bitget API secret",
     fundsStay: "Funds stay on Bitget — withdrawal access is never requested.",
     ipHint:
-      "If the Bitget key is IP-restricted, whitelist the Agent server IP below. Also turn off passphrase encryption when you create the key — paste the passphrase you typed, not a hashed copy.",
+      "If the Bitget key is IP-restricted, whitelist the Agent server IP below. Enable Read + Spot + Futures. Turn off passphrase encryption — paste the passphrase you typed.",
     permissions: [
       { label: "Read", state: "yes" },
       { label: "Futures / Contract trading", state: "yes" },
-      { label: "Spot trading", state: "optional" },
+      { label: "Spot trading", state: "yes" },
       { label: "Withdraw", state: "no" },
     ],
   },
@@ -60,11 +60,11 @@ const VENUES = {
     secretPlaceholder: "Paste your BingX API secret",
     fundsStay: "Funds stay on BingX — withdrawal access is never requested.",
     ipHint:
-      "If the BingX key is IP-restricted, whitelist the Agent server IP below. Enable Read + Futures/Perpetual. Leave withdraw off.",
+      "If the BingX key is IP-restricted, whitelist the Agent server IP below. Enable Read + Spot + Futures/Perpetual. Leave withdraw off.",
     permissions: [
       { label: "Read", state: "yes" },
       { label: "Futures / Perpetual trading", state: "yes" },
-      { label: "Spot trading", state: "optional" },
+      { label: "Spot trading", state: "yes" },
       { label: "Withdraw", state: "no" },
     ],
   },
