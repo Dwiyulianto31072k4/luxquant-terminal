@@ -7,6 +7,7 @@
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback } from "react";
 import api from "../../../services/api";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -42,6 +43,7 @@ export function ApiKeysTab() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [revokingId, setRevokingId] = useState(null);
+  const keyPages = useCollectionPagination(items, 10);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,7 +115,10 @@ export function ApiKeysTab() {
           {FILTERS.map((f) => (
             <button
               key={f.id}
-              onClick={() => setFilter(f.id)}
+              onClick={() => {
+                setFilter(f.id);
+                keyPages.resetPage();
+              }}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${
                 filter === f.id
                   ? "bg-accent text-accent-fg border-ink/12"
@@ -127,7 +132,10 @@ export function ApiKeysTab() {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            keyPages.resetPage();
+          }}
           placeholder="Search user / email / key…"
           className="px-3 py-1.5 rounded-lg text-sm text-text-primary bg-ink/[0.03] border border-ink/10 placeholder:text-text-muted/70 focus:outline-none focus:border-ink/15 sm:w-64"
         />
@@ -151,7 +159,7 @@ export function ApiKeysTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {items.map((k) => (
+          {keyPages.pagedItems.map((k) => (
             <div
               key={k.id}
               className={`rounded-xl p-4 border transition-colors ${
@@ -215,6 +223,15 @@ export function ApiKeysTab() {
           ))}
         </div>
       )}
+      <CollectionPagination
+        page={keyPages.page}
+        totalPages={keyPages.totalPages}
+        total={keyPages.total}
+        pageSize={keyPages.pageSize}
+        onPageChange={keyPages.setPage}
+        onPageSizeChange={keyPages.setPageSize}
+        itemLabel="API keys"
+      />
     </div>
   );
 }

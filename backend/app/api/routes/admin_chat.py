@@ -26,6 +26,7 @@ from app.api.deps import get_admin_user
 from app.core.database import get_db
 from app.models.user import User
 from app.services import chat_service
+from app.services.chat_media import delete_chat_image
 from app.services.chat_service import ChatSchemaMissing
 
 logger = logging.getLogger(__name__)
@@ -216,15 +217,23 @@ def conversation_for_user(
 def list_messages(
     conversation_id: int,
     after: int = Query(0, ge=0),
+    before: Optional[int] = Query(None, ge=1),
     limit: int = Query(chat_service.DEFAULT_PAGE, ge=1, le=500),
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ):
+    if before is not None and after:
+        raise HTTPException(status_code=400, detail="Use either after or before, not both")
     try:
         conv = _require_conv(db, conversation_id)
         # include_admin_only: the admin sees internal notes and AI drafts.
         messages = chat_service.list_messages(
-            db, conversation_id, after_seq=after, limit=limit, include_admin_only=True,
+            db,
+            conversation_id,
+            after_seq=after,
+            before_seq=before,
+            limit=limit,
+            include_admin_only=True,
         )
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
@@ -232,7 +241,13 @@ def list_messages(
     fresh = chat_service.get_conversation(db, conversation_id) or conv
     return {
         "messages": messages,
+        "message_updates": chat_service.list_message_tombstones(
+            db, conversation_id, include_admin_only=True,
+        ) if after else [],
         "last_seq": fresh["last_seq"],
+        "has_more_before": bool(messages) and chat_service.has_messages_before(
+            db, conversation_id, messages[0]["seq"], include_admin_only=True,
+        ),
         "status": fresh["status"],
         "user_last_read_seq": fresh.get("user_last_read_seq", 0),
         "admin_last_read_seq": fresh.get("admin_last_read_seq", 0),
@@ -264,6 +279,39 @@ def send_message(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"message": msg}
+
+
+@router.delete("/conversations/{conversation_id}/messages/{message_id}")
+def delete_message(
+    conversation_id: int,
+    message_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Remove content while preserving the message's sequence/read cursors."""
+    try:
+        _require_conv(db, conversation_id)
+        result = chat_service.delete_message(
+            db,
+            conversation_id=conversation_id,
+            message_id=message_id,
+            deleted_by_user_id=admin.id,
+            admin=True,
+        )
+    except ChatSchemaMissing as e:
+        raise _schema_guard(e)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    image_removed = False
+    if result["deleted_kind"] == "image":
+        image_removed = delete_chat_image(result["deleted_body"])
+    return {
+        "ok": True,
+        "message": result["message"],
+        "image_removed": image_removed,
+        "relay_was_sent": result["relay_was_sent"],
+    }
 
 
 @router.post("/conversations/{conversation_id}/read")

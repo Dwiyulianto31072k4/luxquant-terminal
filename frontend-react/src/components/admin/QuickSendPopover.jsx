@@ -232,7 +232,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
               }
               className="w-full px-3 py-2 rounded-md text-xs text-text-primary focus:outline-none resize-none font-mono"
               style={{
-                background: "rgb(var(--scrim) / 0.3)",
+                background: "rgb(var(--surface-secondary))",
                 border: "1px solid rgb(var(--ink) / 0.1)",
               }}
             />
@@ -269,7 +269,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
           <div
             className="rounded-lg overflow-hidden"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.05)",
             }}
           >
@@ -392,7 +392,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
       className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose && onClose()}
     >
-      <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl sm:max-w-none">
+      <div className="w-full max-w-lg max-h-[min(var(--lq-modal-maxh),100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl sm:max-w-none">
         <div className="flex justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>

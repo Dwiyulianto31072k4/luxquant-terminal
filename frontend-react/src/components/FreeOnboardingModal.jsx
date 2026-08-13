@@ -61,10 +61,9 @@ export default function FreeOnboardingModal() {
 
     const t = setTimeout(() => {
       setOpen(true);
-      trackFunnel("cta_click", {
-        source: "free_onboarding_shown",
+      trackFunnel("cta_shown", {
+        source: "free_onboarding",
         path: window.location.pathname,
-        meta: { impression: true },
       });
     }, DELAY_MS);
     return () => clearTimeout(t);
@@ -75,7 +74,8 @@ export default function FreeOnboardingModal() {
   const dismiss = (action = "dismiss") => {
     markDone();
     setOpen(false);
-    trackFunnel("cta_click", { source: `free_onboarding_${action}`, path: "/" });
+    // A dismissal is not a click on a call to action.
+    trackFunnel("cta_dismiss", { source: `free_onboarding_${action}`, path: "/" });
   };
 
   const go = (step) => {
@@ -89,14 +89,15 @@ export default function FreeOnboardingModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-scrim/55 p-3 sm:items-center sm:p-6"
+      className="lq-modal-safe fixed inset-0 z-[90] flex items-end justify-center bg-scrim/55 p-3 sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="free-onboard-title"
       onClick={() => dismiss("backdrop")}
     >
       <div
-        className="w-full max-w-md overflow-hidden rounded-[1.25rem] border border-ink/10 bg-surface shadow-2xl"
+        className="w-full max-w-md overflow-y-auto overscroll-contain rounded-[1.25rem] border border-ink/10 bg-surface shadow-2xl"
+        style={{ maxHeight: "min(100%, var(--lq-modal-maxh))" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 sm:px-6 sm:pt-6">

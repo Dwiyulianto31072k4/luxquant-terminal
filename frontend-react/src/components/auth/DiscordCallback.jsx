@@ -6,6 +6,9 @@ import { clearStoredRef } from "../../utils/referralStorage";
 import { syncCryptobotAuth } from "../../services/autotradeApi";
 import { consumePostLoginRedirect } from "../../utils/postLoginRedirect";
 import { trackFunnel } from "../../utils/funnelAnalytics";
+import { getStoredAcq } from "../../utils/acqAttribution";
+import { authApi } from "../../services/authApi";
+import { clearAuthRescueState, markFailedAuthProvider } from "../../utils/authRescue";
 
 const DiscordCallback = () => {
   const navigate = useNavigate();
@@ -22,11 +25,13 @@ const DiscordCallback = () => {
 
     if (error) {
       console.error("Discord login error:", error);
+      markFailedAuthProvider("discord");
       navigate("/login?error=discord_auth_failed", { replace: true });
       return;
     }
 
     if (token && refreshToken) {
+      clearAuthRescueState();
       localStorage.setItem("access_token", token);
       localStorage.setItem("refresh_token", refreshToken);
       if (cryptobotToken) {
@@ -47,12 +52,19 @@ const DiscordCallback = () => {
       // jadi localStorage udah ga butuh.
       clearStoredRef();
 
-      trackFunnel("auth_success", { provider: "discord", source: "oauth_callback" });
+      trackFunnel("auth_success", {
+        provider: "discord",
+        source: "oauth_callback",
+        meta: { is_new: params.get("is_new") === "1" },
+      });
+      const acq = getStoredAcq();
+      if (acq) authApi.claimAcq(acq).catch(() => {});
       const dest = consumePostLoginRedirect("/home");
       trackFunnel("post_login_land", { path: dest, provider: "discord" });
       navigate(dest, { replace: true });
     } else {
-      navigate("/login", { replace: true });
+      markFailedAuthProvider("discord");
+      navigate("/login?error=discord_callback_missing_token", { replace: true });
     }
   }, [location, navigate, setUser]);
 

@@ -19,6 +19,8 @@ const SIZES = {
   lg: "max-w-2xl",
   xl: "max-w-[820px]",
   "2xl": "max-w-[1100px]",
+  // Data desk — wide tables that are unreadable at any fixed width.
+  full: "max-w-[98vw]",
   // Reading / news desk — narrow phone sheet · wide desktop reader
   reader: "max-w-full sm:max-w-[min(720px,92vw)] md:max-w-[min(800px,90vw)] lg:max-w-[840px]",
 };
@@ -165,9 +167,11 @@ export default function Modal({
           frame, not the scrim. */}
       <div
         className={`lq-modal-safe pointer-events-none absolute inset-0 flex justify-center ${
+          /* Never use Tailwind p-0 here — it zeros padding-top and fights
+             header clearance on mobile sheets. Horizontal-only reset. */
           placement === "bottom"
-            ? "items-end p-0 sm:items-center sm:p-4 md:p-6"
-            : "items-center p-3 sm:p-4 md:p-6"
+            ? "items-end px-0 pb-0 sm:items-center sm:px-4 sm:pb-4 sm:pt-0 md:px-6 md:pb-6"
+            : "items-center px-3 pb-3 sm:px-4 sm:pb-4 md:px-6 md:pb-6"
         }`}
       >
         <div
@@ -176,16 +180,20 @@ export default function Modal({
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
-          className={`lqm-card pointer-events-auto relative flex w-full flex-col overflow-hidden border border-ink/[0.09] shadow-[0_28px_80px_rgb(var(--scrim) / 0.35)] isolate ${
+          className={`lqm-card pointer-events-auto relative flex min-h-0 w-full flex-col overflow-hidden border border-ink/[0.09] shadow-[0_28px_80px_rgb(var(--scrim) / 0.35)] isolate ${
             SIZES[size] || SIZES.md
           } ${
             placement === "bottom"
-              ? "lqm-sheet max-h-[min(94dvh,100%)] rounded-t-2xl border-b-0 sm:max-h-[min(90dvh,920px)] sm:rounded-2xl sm:border-b"
-              : "max-h-[min(92dvh,calc(100dvh-1.5rem))] rounded-2xl sm:max-h-[min(90dvh,920px)]"
+              ? "lqm-sheet rounded-t-2xl border-b-0 sm:rounded-2xl sm:border-b"
+              : "rounded-2xl"
           } ${className}`}
           style={{
-            // Explicit solid surface — never translucent over blurred scrim
+            // Explicit solid surface — never translucent over blurred scrim.
+            // Height budget comes from --lq-modal-maxh (header + gap + bottom
+            // clearance) so the card never jams under the app chrome; body
+            // scrolls inside instead.
             background: "rgb(var(--surface-raised))",
+            maxHeight: "min(100%, var(--lq-modal-maxh), 920px)",
           }}
         >
           {placement === "bottom" ? (

@@ -5,10 +5,16 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
-import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { isPremiumUser } from "../../../../utils/roles";
+import { CTA } from "../landingCopy";
 import HeroSignupPill from "./shared/HeroSignupPill";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
+
+// Where this section's CTA should land someone after the login door. The
+// section sells the premium product, so /pricing is the page that answers it —
+// /home discarded the interest the ten preceding screens just built.
+const SECTION_REDIRECT = "/pricing";
 
 const svgProps = {
   className: "h-4 w-4",
@@ -125,7 +131,8 @@ const TABS = [...FEATURES, MORE_SLIDE];
 
 export default function TerminalPreview() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isPremium = isPremiumUser(user);
   const [activeIdx, setActiveIdx] = useState(0);
   const tabRef = useRef(null);
 
@@ -148,13 +155,31 @@ export default function TerminalPreview() {
 
   const active = TABS[activeIdx];
 
+  // Three different people read this button and only one of them can open a
+  // terminal. It used to say "Open terminal" to every signed-in visitor and then
+  // send them to /home — /terminal is premium-gated, so a free account was being
+  // offered a door it could not walk through.
+  const ctaLabel = isPremium ? CTA.openTerminal : CTA.seePlans;
+
   const goFree = () => {
-    if (isAuthenticated) {
-      navigate("/home");
+    if (isPremium) {
+      trackFunnel("cta_click", { source: "terminal_preview:open", path: "/" });
+      navigate("/terminal");
       return;
     }
-    trackFunnel("cta_click", { source: "terminal_preview", path: "/" });
-    navigate(loginUrl("/home", { source: "terminal_preview" }));
+    // A guest used to be told "Create free account" and then handed /pricing —
+    // the label named one thing and the button did another, which is the same
+    // message-match break the button itself was fixed for this morning. And
+    // /pricing is public, so the login wall in front of it was buying nothing:
+    // it hid the price from exactly the person deciding whether to pay, in a
+    // category where a hidden price reads as a reason to be suspicious.
+    // Signing up still happens where it has to — /pricing → /payment needs an
+    // account — but now with intent behind it.
+    trackFunnel("cta_click", {
+      source: isAuthenticated ? "terminal_preview:plans" : "terminal_preview",
+      path: "/",
+    });
+    navigate(SECTION_REDIRECT);
   };
 
   return (
@@ -173,11 +198,11 @@ export default function TerminalPreview() {
         <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
           The terminal
         </p>
-        <h2 className="mt-3 text-[1.85rem] font-semibold leading-[1.1] tracking-tight text-text-primary sm:text-4xl lg:text-[2.75rem]">
+        <h2 className="mt-3 sm:mt-4 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
           One desk.{" "}
-          <span className="text-accent">Every tool that matters.</span>
+          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">Every tool that matters.</span>
         </h2>
-        <p className="mx-auto mt-3 max-w-lg text-[14px] leading-snug text-text-muted sm:mt-4 sm:text-base sm:leading-relaxed">
+        <p className="mx-auto mt-4 max-w-lg text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
           Real product screens — switch a module and see the workspace. Free tools open first;
           live levels &amp; Agent when you upgrade.
         </p>
@@ -200,9 +225,9 @@ export default function TerminalPreview() {
                 role="tab"
                 aria-selected={on}
                 onClick={() => handleTab(idx)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors sm:px-4 ${
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold transition-colors sm:px-4 ${
                   on
-                    ? "bg-surface text-text-primary shadow-sm ring-1 ring-ink/10"
+                    ? "lq-chip-on text-text-primary"
                     : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
                 }`}
               >
@@ -216,7 +241,7 @@ export default function TerminalPreview() {
 
       {/* Product stage — floating UI, no Mac chrome */}
       <div className="mx-auto mt-8 max-w-5xl sm:mt-10 lg:mt-12">
-        <div className="relative overflow-hidden rounded-[1.25rem] border border-ink/[0.08] bg-surface-raised shadow-[0_24px_80px_rgb(var(--scrim)/0.35)] sm:rounded-[1.5rem]">
+        <div className="relative overflow-hidden rounded-[1.25rem] border border-ink/[0.08] bg-surface-raised sm:rounded-[1.5rem]">
           {/* thin app chrome */}
           <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.02] px-3.5 py-2.5 sm:px-4">
             <div className="flex items-center gap-2 min-w-0">
@@ -275,13 +300,21 @@ export default function TerminalPreview() {
               <p className="max-w-sm text-[13px] leading-relaxed text-text-muted sm:text-[14px]">
                 Free tools open first. Live levels &amp; Agent when you upgrade.
               </p>
-              <div className="mt-1 w-full max-w-[320px]">
-                <HeroSignupPill
-                  text="Start free — no card"
-                  shortText="Start free"
-                  className="!max-w-[320px]"
-                />
-              </div>
+              {/* Only while the More tab is selected. The panel is mounted at
+                  opacity 0 from first paint, so an always-rendered pill logged
+                  an impression for a button nobody had looked at — and reported
+                  it under the hero's own source, on top of the hero's. */}
+              {active.isMore && (
+                <div className="mt-1 w-full max-w-[320px]">
+                  <HeroSignupPill
+                    text="Start free — no card"
+                    shortText="Start free"
+                    source="terminal_more"
+                    redirect={SECTION_REDIRECT}
+                    className="!max-w-[320px]"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -304,7 +337,7 @@ export default function TerminalPreview() {
         {!active.isMore && (
           <div className="mt-7 flex justify-center sm:mt-8">
             <PrimaryButton size="lg" width="fullMobile" onClick={goFree} className="group">
-              {isAuthenticated ? "Open terminal" : "Create free account"}
+              {ctaLabel}
               <BtnArrow />
             </PrimaryButton>
           </div>

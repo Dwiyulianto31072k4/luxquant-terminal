@@ -101,7 +101,7 @@ const ChartTip = ({ active, payload, label }) => {
     <div
       className="rounded-lg px-3 py-2 font-mono text-[10px]"
       style={{
-        background: "rgb(var(--scrim) / 0.96)",
+        background: "rgb(var(--surface-secondary))",
         border: "1px solid rgb(var(--ink) / 0.12)",
         color: "rgb(var(--fg))",
       }}

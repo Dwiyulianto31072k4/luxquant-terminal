@@ -130,7 +130,7 @@ export const ContactBadge = ({
     >
       <div
         className="flex items-center justify-center w-9 h-9 rounded-md shrink-0"
-        style={{ background: "rgb(var(--scrim) / 0.25)", color: cfg.color }}
+        style={{ background: "rgb(var(--surface-secondary))", color: cfg.color }}
       >
         <Icon size={18} colored />
       </div>

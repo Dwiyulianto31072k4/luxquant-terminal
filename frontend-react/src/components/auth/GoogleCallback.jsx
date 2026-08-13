@@ -10,6 +10,9 @@ import {
 } from "../../services/autotradeApi";
 import { consumePostLoginRedirect } from "../../utils/postLoginRedirect";
 import { trackFunnel } from "../../utils/funnelAnalytics";
+import { getStoredAcq } from "../../utils/acqAttribution";
+import { authApi } from "../../services/authApi";
+import { clearAuthRescueState, markFailedAuthProvider } from "../../utils/authRescue";
 
 const GoogleCallback = () => {
   const navigate = useNavigate();
@@ -60,6 +63,7 @@ const GoogleCallback = () => {
     const userStr = params.get("user");
 
     if (token && refreshToken) {
+      clearAuthRescueState();
       localStorage.setItem("access_token", token);
 
       localStorage.setItem("refresh_token", refreshToken);
@@ -83,7 +87,16 @@ const GoogleCallback = () => {
         }
       }
 
-      trackFunnel("auth_success", { provider: "google", source: "oauth_callback" });
+      // Redirect flow has no response body — the server appends is_new to the
+      // callback URL instead.
+      trackFunnel("auth_success", {
+        provider: "google",
+        source: "oauth_callback",
+        meta: { is_new: params.get("is_new") === "1" },
+      });
+      // First-touch UTM claim (redirect flow has no body)
+      const acq = getStoredAcq();
+      if (acq) authApi.claimAcq(acq).catch(() => {});
       const dest = consumePostLoginRedirect("/home");
       trackFunnel("post_login_land", { path: dest, provider: "google" });
       navigate(dest, { replace: true });
@@ -119,7 +132,8 @@ const GoogleCallback = () => {
     }
 
     // 4. Tidak ada apa-apa → kembali ke login
-    navigate("/login", {
+    markFailedAuthProvider("google");
+    navigate("/login?error=google_callback_missing_token", {
       replace: true,
     });
   }, [location, navigate, setUser]);

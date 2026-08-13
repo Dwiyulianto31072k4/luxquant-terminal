@@ -25,6 +25,7 @@ Mount in main.py:
     app.include_router(terminal.router, prefix="/api/v1/terminal", tags=["terminal"])
 """
 
+import math
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -435,6 +436,26 @@ def get_deep_screener(
 DERIV_BLOB_KEY = "lq:terminal:deriv"
 
 
+def _json_safe(o):
+    """Strip inf/NaN before serialising.
+
+    They are perfectly valid Python floats and completely invalid JSON, so one
+    of them anywhere in this 480-pair blob raises
+    "Out of range float values are not JSON compliant" and the endpoint 500s.
+    The terminal reads live prices out of this blob, so a single bad ratio on a
+    single coin emptied the anomaly scatter, the volume spikes and the BTC
+    header for every user. One coin must never be able to do that again:
+    a non-finite value now degrades its own field to null and nothing else.
+    """
+    if isinstance(o, dict):
+        return {k: _json_safe(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [_json_safe(v) for v in o]
+    if isinstance(o, float) and not math.isfinite(o):
+        return None
+    return o
+
+
 @router.get("/derivatives")
 def get_derivatives(current_user: User = Depends(require_subscription)):
     """Funding / OI / long-short / taker / RSI / volume-change per pair.
@@ -447,11 +468,11 @@ def get_derivatives(current_user: User = Depends(require_subscription)):
     cached = cache_get(DERIV_BLOB_KEY)
     if cached:
         cached["stale"] = False
-        return cached
+        return _json_safe(cached)
     stale, _ = cache_get_with_stale(DERIV_BLOB_KEY)
     if stale:
         stale["stale"] = True
-        return stale
+        return _json_safe(stale)
     return {"warming": True, "pairs": {}, "generated_at": None}
 
 
@@ -536,6 +557,157 @@ def preview_called_summary(
     except Exception:
         n = None
     return {"called_7d": int(n) if n is not None else None}
+
+
+@router.get("/preview/outcomes")
+def preview_outcomes(
+    days: int = Query(14, ge=1, le=60),
+    limit: int = Query(24, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Freemium teaser: signals that already reached TP3 or TP4.
+
+    Safe to show free users:
+      · pair, side (if known), outcome (tp3 / tp4), peak_pct, time-to-hit
+    NEVER returned here (the product):
+      · entry, targets, stop, open/tp1/tp2 live calls
+
+    Conversion framing: free sees the wins that matured; pro catches the plan
+    from entry. Open / TP1 / TP2 stay behind require_subscription screener.
+    """
+    cache_key = f"lq:terminal:preview:outcomes:v2:d{days}:l{limit}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    # created_at is TEXT ISO — filter by date prefix (same pattern as screener)
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+    # Prefer highest peak first (teaser strip = best wins), then recency
+    sql = text(f"""
+        WITH {_OUTCOMES_CTE}
+        SELECT
+            s.signal_id,
+            UPPER(s.pair) AS pair,
+            CASE WHEN so.outcome = 'tp4' THEN 'tp4' ELSE so.outcome END AS outcome,
+            s.peak_pct,
+            s.created_at,
+            lu.last_update_at AS hit_at,
+            e.signal_direction AS side
+        FROM signals s
+        JOIN signal_outcomes so ON so.signal_id = s.signal_id
+        LEFT JOIN last_updates lu ON lu.signal_id = s.signal_id
+        LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
+        WHERE s.created_at >= :cutoff
+          AND so.outcome IN ('tp3', 'tp4')
+          AND s.pair IS NOT NULL
+        ORDER BY COALESCE(s.peak_pct, 0) DESC, COALESCE(lu.last_update_at, s.created_at) DESC
+        LIMIT :lim
+    """)
+
+    try:
+        rows = db.execute(sql, {"cutoff": cutoff, "lim": limit}).mappings().all()
+    except Exception as e:
+        log.exception("preview outcomes failed: %s", e)
+        stale, _ = cache_get_with_stale(cache_key)
+        if stale:
+            return {**stale, "stale": True}
+        return {
+            "items": [],
+            "stats": {"tp3": 0, "tp4": 0, "total": 0, "days": days},
+            "stale": True,
+        }
+
+    items = []
+    n_tp3 = n_tp4 = 0
+    for r in rows:
+        outcome = (r["outcome"] or "").lower()
+        if outcome == "tp4":
+            n_tp4 += 1
+            label = "TP4"
+        else:
+            n_tp3 += 1
+            label = "TP3"
+            outcome = "tp3"
+
+        pair = (r["pair"] or "").upper()
+        peak = r["peak_pct"]
+        try:
+            peak_f = float(peak) if peak is not None else None
+        except (TypeError, ValueError):
+            peak_f = None
+
+        side = (r["side"] or "").lower() or None
+        if side and side not in ("long", "short", "buy", "sell"):
+            side = None
+        if side == "buy":
+            side = "long"
+        if side == "sell":
+            side = "short"
+
+        hours = None
+        try:
+            created = r["created_at"]
+            hit = r["hit_at"]
+            if created and hit:
+                c = created if not isinstance(created, str) else datetime.fromisoformat(
+                    created.replace("Z", "+00:00")
+                )
+                h = hit if not isinstance(hit, str) else datetime.fromisoformat(
+                    str(hit).replace("Z", "+00:00")
+                )
+                if getattr(c, "tzinfo", None) is None:
+                    c = c.replace(tzinfo=timezone.utc)
+                if getattr(h, "tzinfo", None) is None:
+                    h = h.replace(tzinfo=timezone.utc)
+                hours = max(0, round((h - c).total_seconds() / 3600, 1))
+        except Exception:
+            hours = None
+
+        items.append({
+            "signal_id": r["signal_id"],
+            "pair": pair,
+            "outcome": outcome,
+            "label": label,
+            "side": side,
+            "peak_pct": peak_f,
+            "hours_to_hit": hours,
+            "called_at": r["created_at"],
+            "signal_time": r["created_at"],
+            "hit_at": r["hit_at"],
+            # no entry / targets / stop — intentionally
+        })
+
+    # Stats over the whole window (not just returned page)
+    try:
+        stats_row = db.execute(text(f"""
+            WITH {_OUTCOMES_CTE}
+            SELECT
+                COUNT(*) FILTER (WHERE so.outcome = 'tp3') AS tp3,
+                COUNT(*) FILTER (WHERE so.outcome = 'tp4') AS tp4
+            FROM signals s
+            JOIN signal_outcomes so ON so.signal_id = s.signal_id
+            WHERE s.created_at >= :cutoff
+              AND so.outcome IN ('tp3', 'tp4')
+        """), {"cutoff": cutoff}).mappings().first()
+        st_tp3 = int(stats_row["tp3"] or 0) if stats_row else n_tp3
+        st_tp4 = int(stats_row["tp4"] or 0) if stats_row else n_tp4
+    except Exception:
+        st_tp3, st_tp4 = n_tp3, n_tp4
+
+    doc = {
+        "items": items,
+        "stats": {
+            "tp3": st_tp3,
+            "tp4": st_tp4,
+            "total": st_tp3 + st_tp4,
+            "days": days,
+        },
+        "stale": False,
+    }
+    cache_set(cache_key, doc, ttl=90)
+    return doc
 
 
 @router.get("/preview/volume-spikes")

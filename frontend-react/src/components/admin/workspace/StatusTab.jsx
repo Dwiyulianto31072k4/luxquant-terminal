@@ -21,6 +21,7 @@ import {
   ExternalLinkIcon,
   BellIcon,
 } from "../Icons";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 const INCIDENT_STATUSES = ["investigating", "identified", "monitoring", "resolved"];
 const MAINTENANCE_STATUSES = ["scheduled", "in_progress", "completed"];
@@ -58,7 +59,7 @@ const fmt = (iso) => {
 
 // ── shared field styling ──────────────────────────────────────────────
 const fieldStyle = {
-  background: "rgb(var(--scrim) / 0.3)",
+  background: "rgb(var(--surface-secondary))",
   border: "1px solid rgb(var(--ink) / 0.08)",
   color: "rgb(var(--fg))",
 };
@@ -293,7 +294,7 @@ function IncidentCard({ inc, busy, onUpdate, onDelete }) {
 
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="relative overflow-hidden rounded-xl"
       style={{
         background: "rgb(var(--surface-raised))",
         border: `1px solid ${closed ? "rgb(var(--ink) / 0.07)" : tint(accent, 0.3)}`,
@@ -471,6 +472,7 @@ export function StatusTab() {
 
   const active = incidents.filter((i) => !isClosed(i.status));
   const past = incidents.filter((i) => isClosed(i.status));
+  const pastPages = useCollectionPagination(past, 8);
 
   return (
     <div>
@@ -576,7 +578,7 @@ export function StatusTab() {
             Past
           </div>
           <div className="space-y-3">
-            {past.map((inc) => (
+            {pastPages.pagedItems.map((inc) => (
               <IncidentCard
                 key={inc.id}
                 inc={inc}
@@ -586,6 +588,16 @@ export function StatusTab() {
               />
             ))}
           </div>
+          <CollectionPagination
+            page={pastPages.page}
+            totalPages={pastPages.totalPages}
+            total={pastPages.total}
+            pageSize={pastPages.pageSize}
+            onPageChange={pastPages.setPage}
+            onPageSizeChange={pastPages.setPageSize}
+            pageSizeOptions={[8, 16, 32]}
+            itemLabel="past incidents"
+          />
         </>
       )}
     </div>

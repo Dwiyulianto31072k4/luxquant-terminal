@@ -1,0 +1,65 @@
+.admin-workspace-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--ink) / 0.16) transparent;
+}
+
+.admin-workspace-content::-webkit-scrollbar,
+.admin-nav-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.admin-workspace-content::-webkit-scrollbar-thumb,
+.admin-nav-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgb(var(--ink) / 0.16);
+  background-clip: padding-box;
+}
+
+.admin-workspace-content::-webkit-scrollbar-track,
+.admin-nav-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-workspace-content :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid rgb(var(--accent) / 0.55);
+  outline-offset: 2px;
+}
+
+.admin-workspace-content table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-workspace-content thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgb(var(--surface-raised) / 0.97);
+  backdrop-filter: blur(12px);
+}
+
+.admin-workspace-content tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.admin-workspace-content tbody tr:hover {
+  background: rgb(var(--ink) / 0.022);
+}
+
+.admin-workspace-content :is(input, select, textarea) {
+  accent-color: rgb(var(--accent));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-workspace-view {
+    animation: admin-workspace-enter 180ms ease-out both;
+  }
+}
+
+@keyframes admin-workspace-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+

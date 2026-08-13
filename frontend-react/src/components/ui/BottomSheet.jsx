@@ -97,8 +97,8 @@ export default function BottomSheet({
       />
 
       <div
-        className={`lq-bs-sheet absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full flex-col rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(90dvh,880px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:bg-surface-raised sm:shadow-2xl ${maxWidth} ${className}`}
-        style={{ maxHeight: "min(92dvh, var(--lq-modal-maxh))" }}
+        className={`lq-bs-sheet absolute inset-x-0 bottom-0 z-10 mx-auto flex min-h-0 w-full flex-col rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:bg-surface-raised sm:shadow-2xl ${maxWidth} ${className}`}
+        style={{ maxHeight: "min(var(--lq-modal-maxh), 880px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
@@ -158,7 +158,7 @@ export default function BottomSheet({
 export const sheetOverlayClass =
   "lq-modal-safe fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4";
 export const sheetCardClass =
-  "relative w-full max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:shadow-2xl";
+  "relative flex max-h-[min(var(--lq-modal-maxh),100%)] w-full min-h-0 flex-col overflow-hidden rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:shadow-2xl";
 export const sheetHandle = (
   <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
     <div className="h-1 w-10 rounded-full bg-ink/25" />

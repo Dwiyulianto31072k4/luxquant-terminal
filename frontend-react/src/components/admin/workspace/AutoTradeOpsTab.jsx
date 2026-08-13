@@ -26,6 +26,7 @@ import {
 import { adminApi } from "../../../services/adminApi";
 import { AutoTradeUserModal } from "./AutoTradeUserModal";
 import ForceCloseModal from "./ForceCloseModal";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 const UP = "#0ECB81";
 const DOWN = "#F6465D";
@@ -232,6 +233,9 @@ export const AutoTradeOpsTab = () => {
       return typeof av === "string" ? dir * av.localeCompare(bv) : dir * (av - bv);
     });
   }, [filtered, sort]);
+  const botPages = useCollectionPagination(shown, 20);
+  const positionRows = positions?.positions || [];
+  const positionPages = useCollectionPagination(positionRows, 20);
 
   const leverageData = useMemo(
     () =>
@@ -559,7 +563,10 @@ export const AutoTradeOpsTab = () => {
               <button
                 key={key}
                 type="button"
-                onClick={() => setFilter(key)}
+                onClick={() => {
+                  setFilter(key);
+                  botPages.resetPage();
+                }}
                 className={`rounded-full px-2.5 py-1 text-[11px] transition-colors ${
                   filter === key
                     ? "bg-accent text-surface-primary"
@@ -607,7 +614,7 @@ export const AutoTradeOpsTab = () => {
                 </tr>
               </thead>
               <tbody>
-                {shown.map((u) => (
+                {botPages.pagedItems.map((u) => (
                   <tr
                     key={u.subject}
                     onClick={() => setModalUser(u)}
@@ -684,6 +691,16 @@ export const AutoTradeOpsTab = () => {
           </div>
         )}
       </Card>
+      <CollectionPagination
+        page={botPages.page}
+        totalPages={botPages.totalPages}
+        total={botPages.total}
+        pageSize={botPages.pageSize}
+        onPageChange={botPages.setPage}
+        onPageSizeChange={botPages.setPageSize}
+        pageSizeOptions={[20, 40, 80]}
+        itemLabel="bots"
+      />
 
       {/* Positions */}
       <Card
@@ -717,7 +734,7 @@ export const AutoTradeOpsTab = () => {
                 </tr>
               </thead>
               <tbody>
-                {positions.positions.map((p, i) => (
+                {positionPages.pagedItems.map((p, i) => (
                   <tr
                     key={`${p.subject}-${p.symbol}-${i}`}
                     className="border-b border-ink/[0.05] text-[13px]"
@@ -776,6 +793,16 @@ export const AutoTradeOpsTab = () => {
           </div>
         )}
       </Card>
+      <CollectionPagination
+        page={positionPages.page}
+        totalPages={positionPages.totalPages}
+        total={positionPages.total}
+        pageSize={positionPages.pageSize}
+        onPageChange={positionPages.setPage}
+        onPageSizeChange={positionPages.setPageSize}
+        pageSizeOptions={[20, 40, 80]}
+        itemLabel="positions"
+      />
 
       <ForceCloseModal
         position={closing}

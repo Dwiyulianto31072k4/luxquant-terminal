@@ -34,7 +34,7 @@ import subprocess
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -651,9 +651,12 @@ def backend_health(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
         except Exception:
             pass
 
+    host = _host_metrics()
+
     result = {
         "generated_at": now.isoformat(),
         "window_hours": 24,
+        "host": host,
         "journald_ok": journ_ok,
         "worker_timeout": worker_timeout,
         "slow": {"count_24h": slow_total, "top": slow_top},
@@ -665,3 +668,130 @@ def backend_health(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     }
     cache_set("workspace:backend_health", result, ttl=60)
     return result
+
+
+# ============================================================
+# HOST — RAM / disk / CPU for this VPS
+# ============================================================
+#
+# Read straight from /proc and shutil rather than adding psutil. The box has no
+# psutil today, and a monitoring feature that requires installing a package on
+# a production host is a feature that gets skipped during the incident it was
+# built for. Everything below is stdlib and read-only.
+#
+# Every value is wrapped: this endpoint already reports worker timeouts and DB
+# pressure, and it must not start failing wholesale because one /proc field
+# moved on a kernel upgrade.
+
+def _read_meminfo() -> dict:
+    """/proc/meminfo in kB, as a plain dict."""
+    out = {}
+    try:
+        with open("/proc/meminfo", "r") as fh:
+            for line in fh:
+                k, _, rest = line.partition(":")
+                out[k.strip()] = int(rest.strip().split()[0])
+    except Exception:
+        return {}
+    return out
+
+
+def _disk_usage(path: str) -> Optional[dict]:
+    try:
+        import shutil as _sh
+        total, used, free = _sh.disk_usage(path)
+        return {
+            "path": path,
+            "total_gb": round(total / 1024**3, 1),
+            "used_gb": round(used / 1024**3, 1),
+            "free_gb": round(free / 1024**3, 1),
+            "pct": round(100.0 * used / total, 1) if total else None,
+        }
+    except Exception:
+        return None
+
+
+def _host_metrics() -> dict:
+    out = {}
+
+    # ── memory ──
+    mi = _read_meminfo()
+    if mi.get("MemTotal"):
+        total = mi["MemTotal"]
+        # MemAvailable is the honest number: "free" excludes reclaimable cache
+        # and makes a healthy Linux box look permanently full.
+        avail = mi.get("MemAvailable", mi.get("MemFree", 0))
+        out["mem"] = {
+            "total_mb": round(total / 1024),
+            "used_mb": round((total - avail) / 1024),
+            "available_mb": round(avail / 1024),
+            "pct": round(100.0 * (total - avail) / total, 1),
+        }
+        sw_total = mi.get("SwapTotal", 0)
+        if sw_total:
+            sw_free = mi.get("SwapFree", 0)
+            out["swap"] = {
+                "total_mb": round(sw_total / 1024),
+                "used_mb": round((sw_total - sw_free) / 1024),
+                "pct": round(100.0 * (sw_total - sw_free) / sw_total, 1),
+            }
+
+    # ── disk ──
+    disks = []
+    for path in ("/", "/opt/luxquant", "/var/www/luxquantdata"):
+        d = _disk_usage(path)
+        if d:
+            disks.append(d)
+    # Bind mounts and subdirectories of the same filesystem report identical
+    # totals; showing them twice reads as two disks that are both nearly full.
+    seen, uniq = set(), []
+    for d in disks:
+        key = (d["total_gb"], d["free_gb"])
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(d)
+    out["disks"] = uniq
+
+    # ── the directories that actually grow ──
+    # Named explicitly because they are the ones that have filled this box
+    # before: rendered cards and chart screenshots accumulate per signal.
+    big = []
+    for path in ("/opt/luxquant/screenshots", "/opt/luxquant/pnl-cards",
+                 "/opt/luxquant/news-images", "/var/log"):
+        try:
+            if not os.path.isdir(path):
+                continue
+            r = subprocess.run(["du", "-sb", path], capture_output=True,
+                               text=True, timeout=20)
+            if r.returncode == 0 and r.stdout.strip():
+                b = int(r.stdout.split()[0])
+                big.append({"path": path, "gb": round(b / 1024**3, 2)})
+        except Exception:
+            continue
+    out["big_dirs"] = sorted(big, key=lambda x: -x["gb"])
+
+    # ── load / cpu ──
+    try:
+        la1, la5, la15 = os.getloadavg()
+        cpus = os.cpu_count() or 1
+        out["load"] = {
+            "1m": round(la1, 2),
+            "5m": round(la5, 2),
+            "15m": round(la15, 2),
+            "cpus": cpus,
+            # Load per core is the number that means something across machines:
+            # 4.0 is idle on 8 cores and a queue on 2.
+            "per_core_1m": round(la1 / cpus, 2),
+        }
+    except Exception:
+        pass
+
+    # ── host uptime (distinct from the app uptime already reported) ──
+    try:
+        with open("/proc/uptime", "r") as fh:
+            out["uptime_seconds"] = int(float(fh.read().split()[0]))
+    except Exception:
+        pass
+
+    return out

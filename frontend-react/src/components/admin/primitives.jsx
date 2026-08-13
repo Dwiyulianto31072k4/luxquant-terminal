@@ -231,12 +231,60 @@ export const SectionHeader = ({
 // StatTile — primary KPI card (Total Users, Subscribers, etc.)
 // ════════════════════════════════════════════════════════════════════
 
+// A KPI is a number plus what it is being judged against. `delta` and `trend`
+// are the two cheapest ways to supply that, so the tile understands both — but
+// only ever draws them when a caller passes real values. Everything below is
+// additive: a tile given neither renders exactly as it always has.
+//
+// Sparkline: a bare polyline, no axes, no dots. It is there to say "rising",
+// "flat" or "spiky" at a glance; anyone who needs the values reads the chart
+// below. Drawn in a viewBox so it stretches to whatever width the tile has.
+const Sparkline = ({ points = [], className = "" }) => {
+  if (points.length < 2) return null;
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const span = max - min || 1;
+  const W = 100;
+  const H = 24;
+  // Inset by the stroke's half-width top and bottom, or a peak sitting at the
+  // very top of the range gets sliced in half by the edge of the viewBox.
+  const d = points
+    .map((v, i) => {
+      const x = (i / (points.length - 1)) * W;
+      const y = H - 2 - ((v - min) / span) * (H - 4);
+      return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      className={`h-6 w-full ${className}`}
+      aria-hidden
+    >
+      <path
+        d={d}
+        fill="none"
+        stroke="rgb(var(--accent))"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+};
+
 /**
  * Props:
  * label, value, sub (optional secondary line)
  * accent: 'blue' | 'green' | 'gold' | 'purple' | 'orange' | 'red' | 'teal' | 'amber'
  * Icon, active, onClick (optional click-to-filter)
  * loading
+ * delta: { pct, note, goodWhenUp = true } — signed change vs a NAMED period.
+ *        `note` is required in spirit: "+23%" against nothing is not a fact.
+ * trend: number[] — sparkline series, oldest first
+ * emphasis: render the value larger, for the one tile a row leads with
  */
 export const StatTile = ({
   label,
@@ -247,10 +295,18 @@ export const StatTile = ({
   active = false,
   onClick,
   loading = false,
+  delta = null,
+  trend = null,
+  emphasis = false,
   className = "",
 }) => {
   const accentColor = semantic.accent[accent] || NEUTRAL;
   const Wrapper = onClick ? "button" : "div";
+  const dp = delta && Number.isFinite(delta.pct) ? delta.pct : null;
+  // Direction is not the same as good. A rising error count is not a win, so
+  // the caller says which way is up for its own metric.
+  const good = dp == null ? null : (delta.goodWhenUp === false ? dp < 0 : dp > 0);
+  const flat = dp != null && Math.abs(dp) < 0.005;
 
   return (
     <Wrapper
@@ -270,14 +326,45 @@ export const StatTile = ({
           </span>
         )}
       </div>
-      <p className="font-mono text-[22px] sm:text-2xl font-semibold tabular-nums leading-none tracking-tight text-text-primary">
-        {loading ? (
-          <span className="lqsk inline-block h-6 w-12 rounded bg-ink/[0.08]" />
-        ) : (
-          (value ?? "—")
+      {/* Proportional figures, not tabular: tabular-nums gives every digit the
+          width of a zero, which reads as loose at display size. Tabular belongs
+          in columns that must align vertically, not on a standalone KPI. */}
+      {/* The delta hugs the value rather than being pushed to the far edge by
+          justify-between. On a wide tile that gap grew to a few hundred pixels
+          and the delta drifted over the end of the sparkline, where it read as a
+          label on the last point instead of a comparison against last period. */}
+      <div className="flex items-end gap-2">
+        <p
+          className={`font-mono font-semibold leading-none tracking-tight text-text-primary ${
+            emphasis ? "text-[28px] sm:text-[32px]" : "text-[22px] sm:text-2xl"
+          }`}
+        >
+          {loading ? (
+            <span className="lqsk inline-block h-6 w-12 rounded bg-ink/[0.08]" />
+          ) : (
+            (value ?? "—")
+          )}
+        </p>
+        {dp != null && !loading && (
+          <span
+            className={`shrink-0 pb-0.5 font-mono text-[11px] font-semibold leading-none ${
+              flat ? "text-text-muted" : good ? "text-profit" : "text-loss"
+            }`}
+            title={delta.note || undefined}
+          >
+            {flat ? "±0%" : `${dp > 0 ? "+" : "−"}${Math.abs(dp * 100).toFixed(0)}%`}
+          </span>
         )}
-      </p>
+      </div>
+      {trend?.length > 1 && !loading && (
+        <div className="mt-2 opacity-70">
+          <Sparkline points={trend} />
+        </div>
+      )}
       {sub && <p className="mt-1.5 text-[11px] text-text-muted/75">{sub}</p>}
+      {dp != null && delta.note && (
+        <p className="mt-0.5 text-[10px] text-text-muted/60">{delta.note}</p>
+      )}
     </Wrapper>
   );
 };
@@ -986,7 +1073,7 @@ export const Bar3D = ({ pct = 0, tone, heightClass = "h-2.5", className = "" }) 
     <div
       className={`relative flex-1 overflow-hidden ${heightClass} ${className}`}
       style={{
-        background: "rgb(var(--scrim) / 0.35)",
+        background: "rgb(var(--surface-secondary))",
         borderRadius: radius.pill,
         boxShadow: "inset 0 1px 2px rgb(var(--scrim) / 0.35)",
       }}

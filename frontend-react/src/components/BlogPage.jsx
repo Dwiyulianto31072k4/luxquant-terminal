@@ -75,7 +75,7 @@ function PostPage({ slug }) {
         logo: { "@type": "ImageObject", url: `${SITE}/favicon.png` },
       },
       mainEntityOfPage: url,
-      image: `${SITE}/og-default.png`,
+      image: `${SITE}/og-default-1200.png`,
     },
     {
       "@context": "https://schema.org",

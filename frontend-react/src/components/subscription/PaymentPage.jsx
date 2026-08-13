@@ -1,9 +1,10 @@
 // src/components/subscription/PaymentPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import subscriptionApi from "../../services/subscriptionApi";
+import { loginUrl } from "../../utils/postLoginRedirect";
 import SubscribeViaAdminModal from "./SubscribeViaAdminModal";
 
 // ═══════════════════════════════════════════
@@ -68,8 +69,17 @@ const PaymentPage = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
-  const { invoice, plan } = location.state || {};
+  const { refreshUser, isAuthenticated } = useAuth();
+  const { invoice: stateInvoice, plan: statePlan } = location.state || {};
+
+  // An invoice reached this page only through router state, so a reload, a new
+  // tab, or a link from a reminder lost it — and the bounce to /pricing below
+  // meant starting again, which mints a SECOND invoice and cancels the first.
+  // `recovered` is the same invoice fetched back from the server.
+  const [recovered, setRecovered] = useState(null);
+  const [recovering, setRecovering] = useState(!stateInvoice);
+  const invoice = stateInvoice || recovered;
+  const plan = statePlan || recovered?.plan || null;
 
   const [txHash, setTxHash] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -82,11 +92,47 @@ const PaymentPage = () => {
   const amount = invoice?.amount_usdt || invoice?.payment?.amount_usdt || "";
   const expiresAt = invoice?.expires_at || invoice?.payment?.expires_at || "";
   const paymentId = invoice?.payment?.id || invoice?.id || null;
+  // Derived, not typed: a hardcoded "24h payment window" sat under a 72h
+  // countdown and contradicted it on screen.
+  const windowHours = (() => {
+    const created = invoice?.payment?.created_at || invoice?.created_at;
+    if (!created || !expiresAt) return null;
+    const h = Math.round(
+      (new Date(expiresAt).getTime() - new Date(created).getTime()) / 3600000
+    );
+    return Number.isFinite(h) && h > 0 ? h : null;
+  })();
   const planLabel = plan?.label || invoice?.plan?.label || invoice?.plan?.name || "Subscription";
 
+  // Ask the server for the open checkout before giving up on it. Only bounce
+  // when there genuinely isn't one.
   useEffect(() => {
-    if (!invoice) navigate("/pricing");
-  }, [invoice, navigate]);
+    if (stateInvoice) return undefined;
+    // The reminder link is opened in whatever browser Telegram hands it to,
+    // which very often has no session. Sending them to /pricing there loses
+    // the invoice they were told to finish; sending them to sign in and
+    // straight back here does not.
+    if (!isAuthenticated) {
+      navigate(loginUrl("/payment", { source: "invoice_reminder" }), { replace: true });
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const open = await subscriptionApi.getPendingInvoice();
+        if (cancelled) return;
+        if (open) setRecovered(open);
+        else navigate("/pricing");
+      } catch {
+        if (!cancelled) navigate("/pricing");
+      } finally {
+        if (!cancelled) setRecovering(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stateInvoice, isAuthenticated, navigate]);
 
   useEffect(() => {
     if (!expiresAt) return;
@@ -114,14 +160,35 @@ const PaymentPage = () => {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleVerify = async () => {
+  // Cleared on unmount and whenever the customer acts, so a queued re-check
+  // can never fire against a page that has moved on.
+  const autoRetryRef = useRef([]);
+  const clearAutoRetry = () => {
+    autoRetryRef.current.forEach(clearTimeout);
+    autoRetryRef.current = [];
+  };
+  useEffect(() => clearAutoRetry, []);
+
+  const handleVerify = async (isAuto = false) => {
     if (!txHash.trim() || !paymentId) return;
+    if (!isAuto) clearAutoRetry();
     setVerifying(true);
-    setResult(null);
+    if (!isAuto) setResult(null);
 
     try {
       const res = await subscriptionApi.verifyPayment(paymentId, txHash.trim());
       setResult(res);
+
+      // "retryable" means the node could not answer yet — usually the block is
+      // still confirming. That resolves itself, so wait for it instead of
+      // making the customer notice and paste the hash again. A genuine
+      // rejection is final and is not retried.
+      if (res.status !== "confirmed" && res.retryable && !isAuto) {
+        autoRetryRef.current = [20000, 40000, 60000].map((ms) =>
+          setTimeout(() => handleVerify(true), ms)
+        );
+      }
+      if (res.status === "confirmed") clearAutoRetry();
 
       if (res.status === "confirmed") {
         if (res.user && refreshUser) {
@@ -144,6 +211,20 @@ const PaymentPage = () => {
   const isExpired = timeLeft === t("payment.expired");
 
   if (!invoice) return null;
+
+  // Recovering the invoice from the server. Rendering the checkout with no
+  // wallet, no amount and a blank countdown for that moment looks like the
+  // page is broken, which is the worst possible read on a payment screen.
+  if (recovering && !invoice) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex items-center gap-3 text-text-muted">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/30 border-t-accent" />
+          <span className="text-sm">{t("payment.loading_invoice", "Loading your invoice…")}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -269,7 +350,7 @@ const PaymentPage = () => {
               {timeLeft || t("payment.calculating")}
             </div>
             <div className="text-[10px] mt-1" style={{ color: "rgb(var(--fg-muted))" }}>
-              24h payment window
+              {windowHours ? `${windowHours}h payment window` : "Payment window"}
             </div>
           </StatCard>
         </div>
@@ -278,6 +359,57 @@ const PaymentPage = () => {
  MAIN GRID — 2 col on desktop, stacked mobile
  ════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+          {/* Placed BEFORE the transfer details on purpose: the moment someone
+              decides they cannot use this rail is the moment they open the
+              invoice, not the moment they reach the bottom of it. */}
+          <div
+            className="lg:col-span-2 rounded-2xl overflow-hidden mb-1"
+            style={{
+              background: "rgb(var(--accent) / 0.04)",
+              border: "1px solid rgb(var(--accent) / 0.18)",
+            }}
+          >
+            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgb(var(--accent) / 0.12)" }}
+                >
+                  <svg
+                    className="w-4.5 h-4.5"
+                    style={{ color: "rgb(var(--accent-text))", width: 18, height: 18 }}
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-text-primary mb-0.5">
+                    Don&rsquo;t have USDT, or prefer a bank transfer?
+                  </h4>
+                  <p
+                    className="text-xs leading-relaxed"
+                    style={{ color: "rgb(var(--fg-muted))" }}
+                  >
+                    Message an admin on Telegram and we will arrange bank transfer or
+                    another method by hand. Same plan, same price.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAdminModal(true)}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold transition-all hover:brightness-110 flex-shrink-0"
+                style={{
+                  background: "rgb(var(--accent))",
+                  color: "rgb(var(--accent-fg))",
+                }}
+              >
+                Pay another way
+              </button>
+            </div>
+          </div>
+
           {/* ═══ LEFT: Transfer Details ═══ */}
           <div
             className="rounded-2xl overflow-hidden"
@@ -332,6 +464,19 @@ const PaymentPage = () => {
                 </div>
                 <p className="text-sm font-mono text-text-primary/90 break-all leading-relaxed select-all">
                   {walletAddress || "—"}
+                </p>
+                {/* The rotating address is the single most suspicious-looking
+                    thing on this page to anyone who checks. Naming it first
+                    turns it from a red flag into a reason to trust us. */}
+                <p
+                  className="mt-2.5 text-[11px] leading-relaxed"
+                  style={{ color: "rgb(var(--fg-muted))" }}
+                >
+                  <span className="font-semibold text-text-primary/90">
+                    This address was issued for this invoice only.
+                  </span>{" "}
+                  It is how we match your transfer to your account, so do not reuse it
+                  for a later payment.
                 </p>
               </div>
 
@@ -414,6 +559,7 @@ const PaymentPage = () => {
                   permanent loss of funds.
                 </p>
               </div>
+
             </div>
           </div>
 
@@ -460,7 +606,14 @@ const PaymentPage = () => {
                   <input
                     type="text"
                     value={txHash}
-                    onChange={(e) => setTxHash(e.target.value)}
+                    onChange={(e) => {
+                      // A queued re-check closes over the hash that was in the
+                      // box when it was scheduled. If the customer edits it,
+                      // that pending call would fire with the old value and
+                      // overwrite their new result with a stale failure.
+                      clearAutoRetry();
+                      setTxHash(e.target.value);
+                    }}
                     placeholder="0x..."
                     className="w-full px-4 py-3.5 rounded-xl text-text-primary text-xs font-mono focus:outline-none transition-all"
                     style={{
@@ -473,7 +626,7 @@ const PaymentPage = () => {
                 </div>
 
                 <button
-                  onClick={handleVerify}
+                  onClick={() => handleVerify()}
                   disabled={verifying || !txHash.trim() || isExpired || !paymentId}
                   className="w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden group"
                   style={{
@@ -522,12 +675,12 @@ const PaymentPage = () => {
                     style={{
                       background:
                         result.status === "confirmed"
-                          ? "rgba(34,197,94,0.04)"
-                          : "rgba(239,68,68,0.04)",
+                          ? "rgb(var(--pos) / 0.06)"
+                          : "rgb(var(--accent) / 0.06)",
                       border: `1px solid ${
                         result.status === "confirmed"
-                          ? "rgba(34,197,94,0.2)"
-                          : "rgba(239,68,68,0.2)"
+                          ? "rgb(var(--pos) / 0.25)"
+                          : "rgb(var(--accent) / 0.3)"
                       }`,
                     }}
                   >
@@ -537,14 +690,17 @@ const PaymentPage = () => {
                         style={{
                           background:
                             result.status === "confirmed"
-                              ? "rgba(34,197,94,0.1)"
-                              : "rgba(239,68,68,0.1)",
+                              ? "rgb(var(--pos) / 0.12)"
+                              : "rgb(var(--accent) / 0.14)",
                         }}
                       >
                         <svg
                           className="w-4 h-4"
                           style={{
-                            color: result.status === "confirmed" ? "#22c55e" : "#f87171",
+                            color:
+                              result.status === "confirmed"
+                                ? "rgb(var(--pos-text))"
+                                : "rgb(var(--accent-text))",
                           }}
                           fill="none"
                           stroke="currentColor"
@@ -562,7 +718,7 @@ const PaymentPage = () => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
+                              d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           )}
                         </svg>
@@ -571,22 +727,106 @@ const PaymentPage = () => {
                         <h4
                           className="text-sm font-bold mb-1"
                           style={{
-                            color: result.status === "confirmed" ? "#22c55e" : "#f87171",
+                            color:
+                              result.status === "confirmed"
+                                ? "rgb(var(--pos-text))"
+                                : "rgb(var(--accent-text))",
                           }}
                         >
                           {result.status === "confirmed"
                             ? "Payment confirmed!"
-                            : "Verification failed"}
+                            : "We're still looking for it"}
                         </h4>
-                        <p className="text-xs" style={{ color: "rgb(var(--fg-muted))" }}>
-                          {result.status === "confirmed"
-                            ? `${result.subscription?.plan_label || planLabel} is now active. Redirecting…`
-                            : result.message}
-                        </p>
-                        {result.can_retry && (
-                          <p className="text-[10px] mt-2" style={{ color: "rgb(var(--fg-muted))" }}>
-                            You can submit a new TX hash to retry.
+
+                        {result.status === "confirmed" ? (
+                          <p className="text-xs" style={{ color: "rgb(var(--fg-muted))" }}>
+                            {`${result.subscription?.plan_label || planLabel} is now active. Redirecting…`}
                           </p>
+                        ) : (
+                          <div className="space-y-2.5">
+                            <p
+                              className="text-xs font-medium"
+                              style={{ color: "rgb(var(--fg-secondary))" }}
+                            >
+                              Your funds are safe. We have saved your transaction hash
+                              and nothing is lost.
+                            </p>
+                            <p className="text-xs" style={{ color: "rgb(var(--fg-muted))" }}>
+                              There are three reasons this happens:
+                            </p>
+                            <ul
+                              className="text-xs space-y-1.5 pl-4 list-disc"
+                              style={{ color: "rgb(var(--fg-muted))" }}
+                            >
+                              <li>
+                                <b style={{ color: "rgb(var(--fg-secondary))" }}>
+                                  The network is still confirming.
+                                </b>{" "}
+                                Give it a few minutes and check again.
+                              </li>
+                              <li>
+                                {/* This one is not the customer's fault and cannot be
+                                    retried into working: some exchanges settle a
+                                    withdrawal internally when the destination is one of
+                                    their own addresses, so no chain transaction is ever
+                                    created and no on-chain lookup can ever find it. */}
+                                <b style={{ color: "rgb(var(--fg-secondary))" }}>
+                                  You sent it from an exchange that settled it internally.
+                                </b>{" "}
+                                MEXC, Bybit and others do this when the destination is
+                                one of their own addresses — the transfer never reaches
+                                the blockchain, so no lookup can find it. Retrying will
+                                not help; send us the withdrawal ID instead.
+                              </li>
+                              <li>
+                                <b style={{ color: "rgb(var(--fg-secondary))" }}>
+                                  It went to a different network or amount.
+                                </b>{" "}
+                                We only receive USDT on BNB Smart Chain (BEP-20).
+                              </li>
+                            </ul>
+
+                            {result.retryable && (
+                              <p
+                                className="text-[11px] font-medium"
+                                style={{ color: "rgb(var(--accent-text))" }}
+                              >
+                                We&rsquo;re checking again automatically over the next
+                                minute — you can leave this page open.
+                              </p>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setShowAdminModal(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:brightness-110"
+                                style={{
+                                  background: "rgb(var(--accent))",
+                                  color: "rgb(var(--accent-fg))",
+                                }}
+                              >
+                                Send this to an admin
+                              </button>
+                              {result.can_retry && (
+                                <span
+                                  className="text-[11px]"
+                                  style={{ color: "rgb(var(--fg-muted))" }}
+                                >
+                                  or paste the hash again in a few minutes
+                                </span>
+                              )}
+                            </div>
+
+                            {result.message && (
+                              <p
+                                className="text-[10.5px] pt-1"
+                                style={{ color: "rgb(var(--fg-muted))" }}
+                              >
+                                Technical detail: {result.message}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -594,59 +834,59 @@ const PaymentPage = () => {
                 )}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* ════════════════════════════════════════════════
- ALTERNATIVE: Subscribe via Admin
- ════════════════════════════════════════════════ */}
-        <div
-          className="rounded-2xl overflow-hidden mb-6"
-          style={{
-            background: "rgb(var(--accent) / 0.03)",
-            border: "1px solid rgb(var(--line) / 0.1)",
-          }}
-        >
-          <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-start gap-3 flex-1">
+              {/* What happens after they press send — answered before they press
+                  send, which is the only time it reassures anyone. */}
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgb(var(--accent) / 0.1)" }}
+                className="mt-4 rounded-xl p-4"
+                style={{
+                  background: "rgb(var(--surface-secondary))",
+                  border: "1px solid rgb(var(--line) / 0.06)",
+                }}
               >
-                <svg
-                  className="w-5 h-5"
-                  style={{ color: "rgb(var(--accent-text))" }}
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
+                  style={{ color: "rgb(var(--fg-muted))" }}
                 >
-                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-text-primary mb-1">
-                  Prefer manual assistance?
-                </h4>
-                <p className="text-xs leading-relaxed" style={{ color: "rgb(var(--fg-muted))" }}>
-                  Contact our admin via Telegram for bank transfer, manual payment, or any
-                  payment-related questions.
+                  After you send
                 </p>
+                <ul className="space-y-2 text-[11.5px] leading-relaxed">
+                  <li className="flex gap-2.5">
+                    <span style={{ color: "rgb(var(--pos-text))" }}>&#10003;</span>
+                    <span style={{ color: "rgb(var(--fg-muted))" }}>
+                      Paste your transaction hash and we check it against the chain.
+                      <span className="text-text-primary/90">
+                        {" "}
+                        Most payments confirm automatically in under a minute.
+                      </span>
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span style={{ color: "rgb(var(--pos-text))" }}>&#10003;</span>
+                    <span style={{ color: "rgb(var(--fg-muted))" }}>
+                      Access opens the moment it confirms — no waiting for a human.
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span style={{ color: "rgb(var(--accent-text))" }}>&#8226;</span>
+                    <span style={{ color: "rgb(var(--fg-muted))" }}>
+                      If it does not confirm, your funds are safe and your hash is kept.
+                      A real person will match it by hand —{" "}
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminModal(true)}
+                        className="font-semibold underline underline-offset-2"
+                        style={{ color: "rgb(var(--accent-text))" }}
+                      >
+                        message an admin
+                      </button>
+                      .
+                    </span>
+                  </li>
+                </ul>
               </div>
-            </div>
-            <button
-              onClick={() => setShowAdminModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02] flex-shrink-0"
-              style={{
-                background: "rgb(var(--accent) / 0.08)",
-                border: "1px solid rgb(var(--line) / 0.25)",
-                color: "rgb(var(--accent-text))",
-              }}
-            >
-              Subscribe via Admin
-            </button>
           </div>
         </div>
 
-        {/* Modal */}
         <SubscribeViaAdminModal
           isOpen={showAdminModal}
           onClose={() => setShowAdminModal(false)}

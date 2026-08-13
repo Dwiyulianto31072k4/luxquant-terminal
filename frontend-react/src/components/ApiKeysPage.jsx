@@ -863,19 +863,19 @@ const CodeBlock = ({ code, lang = "bash", copyLabel = "Copy", copiedLabel = "Cop
     }
   };
   return (
-    <div className="rounded-lg bg-scrim/40 border border-ink/5 overflow-hidden my-2">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-ink/5">
+    <div className="my-2 overflow-hidden rounded-lg border border-ink/10 bg-surface-secondary">
+      <div className="flex items-center justify-between border-b border-ink/10 px-3 py-1.5">
         <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
           {lang}
         </span>
         <button
           onClick={copy}
-          className="text-[10px] font-semibold text-accent hover:text-accent transition-colors"
+          className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-accent transition-colors hover:bg-ink/[0.06]"
         >
           {copied ? copiedLabel : copyLabel}
         </button>
       </div>
-      <pre className="px-3 py-3 font-mono text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap break-all">
+      <pre className="whitespace-pre-wrap break-all px-3 py-3 font-mono text-[11.5px] leading-relaxed text-text-primary">
         {code}
       </pre>
     </div>
@@ -897,8 +897,8 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
     }
   };
   return (
-    <div className="rounded-lg bg-scrim/40 border border-ink/5 overflow-hidden my-2">
-      <div className="flex items-center justify-between border-b border-ink/5">
+    <div className="my-2 overflow-hidden rounded-lg border border-ink/10 bg-surface-secondary">
+      <div className="flex items-center justify-between border-b border-ink/10">
         <div className="flex">
           {tabs.map((tb, i) => (
             <button
@@ -909,7 +909,7 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
               }}
               className={`px-3 py-1.5 text-[11px] font-mono transition-colors border-b-2 -mb-px ${
                 i === active
-                  ? "text-accent border-accent/25"
+                  ? "border-accent text-accent"
                   : "text-text-muted hover:text-text-secondary border-transparent"
               }`}
             >
@@ -919,12 +919,12 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
         </div>
         <button
           onClick={copy}
-          className="px-3 text-[10px] font-semibold text-accent hover:text-accent transition-colors"
+          className="mr-1.5 rounded px-2 py-0.5 text-[10px] font-semibold text-accent transition-colors hover:bg-ink/[0.06]"
         >
           {copied ? copiedLabel : copyLabel}
         </button>
       </div>
-      <pre className="px-3 py-3 font-mono text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap break-all">
+      <pre className="whitespace-pre-wrap break-all px-3 py-3 font-mono text-[11.5px] leading-relaxed text-text-primary">
         {cur.code}
       </pre>
     </div>

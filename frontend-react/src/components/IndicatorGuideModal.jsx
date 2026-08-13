@@ -168,7 +168,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
       <div className="lq-scrim" />
 
       <div
-        className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] max-h-[min(92dvh,100%)] overflow-y-auto custom-scrollbar bg-surface border-t border-ink/15 sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
+        className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] max-h-[min(var(--lq-modal-maxh),100%)] overflow-y-auto custom-scrollbar bg-surface border-t border-ink/15 sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div

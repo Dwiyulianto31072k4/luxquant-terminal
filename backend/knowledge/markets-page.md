@@ -1,8 +1,8 @@
 # Guide: Markets
 
 The Markets page is a broad overview of the whole crypto market — global stats, a
-heatmap, trending coins, sector performance, a coin table, and derivatives data. This
-guide explains each section.
+heatmap, trending coins, sector performance, a coin table, and derivatives data. It
+is free with a login. This guide explains each section.
 
 > Note: This page is data and information, not a recommendation to buy or sell.
 

@@ -1,0 +1,39 @@
+# LuxQuant Shariah Screening Worker — Systemd Service
+#
+# Place at:
+#   /etc/systemd/system/luxquant-shariah-screening.service
+#
+# Then:
+#   systemctl daemon-reload
+#   systemctl enable luxquant-shariah-screening
+#   systemctl start luxquant-shariah-screening
+#
+# Worker akan:
+# - LISTEN 'new_pair_to_categorize' (dipicu trigger trg_new_pair_to_coins di tabel signals)
+# - Menyapu berkala: coin baru selalu tiba TANPA metadata, jadi penilaian pertama
+#   pasti 'unrated'. Sweep menilai ulang begitu coin_metadata_worker mengisi
+#   description-nya — tidak ada notifikasi yang memberi tahu kapan itu terjadi.
+# - Refresh sumber Sharlife mingguan. Kalau parse-nya anjlok (markup mereka berubah),
+#   worker menulis ERROR ke log, bukan diam menulis nol baris.
+
+[Unit]
+Description=LuxQuant Shariah Screening Worker (daemon mode)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+Environment="PYTHONPATH=/root/luxquant-terminal/backend"
+Environment="COINGECKO_SLEEP=15"
+Environment="LOG_DIR=/var/log/luxquant-sync"
+Environment="SHARIAH_SWEEP_SEC=180"
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python3 -m app.services.shariah_screening_worker --listen
+Restart=always
+RestartSec=30
+StandardOutput=append:/var/log/luxquant-sync/shariah-screening-daemon.log
+StandardError=append:/var/log/luxquant-sync/shariah-screening-daemon.log
+
+[Install]
+WantedBy=multi-user.target

@@ -23,7 +23,7 @@ from app.services.coinalyze_service import start_coinalyze_workers
 from app.services.notification_worker import start_notification_worker
 from app.api.routes import coins, daily_dashboard, edge_lab
 from app.api.routes import terminal
-from app.api.routes import workspace, finance, growth
+from app.api.routes import workspace, finance, growth, crm
 from app.api.routes import funnel
 from app.api.routes import services_monitor
 from app.api.routes import public_status
@@ -86,6 +86,22 @@ SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", "/opt/luxquant/screenshots")
 async def lifespan(app: FastAPI):
     print("🚀 LuxQuant API Starting...")
     print(f"📡 CoinGecko API Key: {'✓ Configured' if settings.COINGECKO_API_KEY else '✗ Not set'}")
+
+    # First-touch acq + geo columns must exist before any User SELECT (auth/me).
+    # Lazy ensure alone is too late — SQLAlchemy maps the columns at model load.
+    try:
+        from app.core.database import SessionLocal
+        from app.services.acq_helpers import _ensure_columns
+        from app.services.geo_helpers import _ensure_user_geo_columns
+        _db = SessionLocal()
+        try:
+            _ensure_columns(_db)
+            _ensure_user_geo_columns(_db)
+            print("📋 users.acq_* + geo_* columns ready")
+        finally:
+            _db.close()
+    except Exception as e:
+        print(f"⚠️ acq/geo column ensure failed: {e}")
 
     # === Initialize shared HTTP clients ===
     init_clients()
@@ -299,6 +315,7 @@ app.include_router(edge_lab.router, prefix="/api/v1", tags=["analytics"])
 app.include_router(terminal.router, prefix="/api/v1/terminal", tags=["terminal"])
 app.include_router(workspace.router, tags=["workspace"])
 app.include_router(services_monitor.router, tags=["workspace-services"])
+app.include_router(crm.router, tags=["workspace-crm"])
 app.include_router(public_status.router, tags=["public-status"])
 app.include_router(public_status.admin_router, tags=["public-status-admin"])
 app.include_router(finance.router, tags=["finance"])

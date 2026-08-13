@@ -647,8 +647,8 @@ const MarketPulsePageInner = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const [sourceFilter, setSourceFilter] = useState("all");
-  // Called = a pair LuxQuant has signalled. Free accounts still see every row;
-  // the paywall lands on the click, not on the list.
+  // Called / Not called overlay which Pulse movers our algorithm already
+  // signalled. Free users can scan the raw tape; the overlay is VIP.
   const [callFilter, setCallFilter] = useState("all");
   const [timeframeFilter, setTimeframeFilter] = useState("all");
   const [searchPair, setSearchPair] = useState("");
@@ -816,7 +816,7 @@ const MarketPulsePageInner = () => {
     // When a coin is focused (chip / detail), always show that coin's full pulse
     // tape. CALLS filter is for scanning the board, not for hiding a coin drill-down
     // (was: click AKE while CALLED → empty feed even with 200+ events).
-    if (callFilter !== "all" && !selectedCoin) {
+    if (callFilter !== "all" && !selectedCoin && pageStatusCtx?.entitled) {
       const wantCalled = callFilter === "called";
       out = out.filter((e) => {
         const isCalled = !!(signalMap && signalMap[(e.pair || "").toUpperCase()]);
@@ -824,7 +824,7 @@ const MarketPulsePageInner = () => {
       });
     }
     return out;
-  }, [feed, searchPair, callFilter, signalMap, selectedCoin]);
+  }, [feed, searchPair, callFilter, signalMap, selectedCoin, pageStatusCtx?.entitled]);
 
   // Pump = bullish / upside move; Dump = bearish / downside move.
   // Mirrors the heatmap direction logic so classification is consistent.
@@ -1138,6 +1138,8 @@ const MarketPulsePageInner = () => {
         coinDetail={coinDetail}
         timeAgo={timeAgo}
         openChartModal={openChartModal}
+        entitled={!!pageStatusCtx?.entitled}
+        calledCount={calledCount}
       />
 
       {/* ═══ MAIN GRID ═══ */}
@@ -1145,6 +1147,7 @@ const MarketPulsePageInner = () => {
         <div className="mp-feed-col">
           <ActivityFeedPanel
             callFilter={callFilter}
+            setCallFilter={setCallFilter}
             entitled={pageStatusCtx?.entitled}
             calledCount={calledCount}
             filteredFeed={filteredFeed}
@@ -1614,7 +1617,7 @@ const FlowScreener = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="hot-flow-title"
-          className="lq-sheet relative z-10 flex max-h-[min(92dvh,860px)] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:max-h-[min(88dvh,860px)] sm:rounded-2xl sm:border sm:shadow-[0_24px_64px_rgb(var(--scrim)_/_0.45)]"
+          className="lq-sheet relative z-10 flex max-h-[min(var(--lq-modal-maxh),860px)] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:max-h-[min(var(--lq-modal-maxh),860px)] sm:rounded-2xl sm:border sm:shadow-[0_24px_64px_rgb(var(--scrim)_/_0.45)]"
         >
           {/* Grab handle — the affordance that says "this is a sheet, swipe or
               tap away to dismiss". Phone only; a centred dialog has no edge to
@@ -2425,6 +2428,8 @@ const ControlBar = ({
   coinDetail,
   timeAgo,
   openChartModal,
+  entitled,
+  calledCount,
 }) => (
   <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
     <div className="relative z-10 flex flex-col gap-3 p-3.5 md:p-4">
@@ -2506,15 +2511,36 @@ const ControlBar = ({
             onChange={setCallFilter}
             options={[
               { key: "all", label: "All" },
-              { key: "called", label: "Called" },
-              { key: "uncalled", label: "Not called" },
+              {
+                key: "called",
+                label: "Called",
+                badge: entitled ? null : "VIP",
+                title: entitled
+                  ? "Movers our algorithm has already called"
+                  : "VIP — overlay coins that have momentum and a live LuxQuant call",
+              },
+              {
+                key: "uncalled",
+                label: "Not called",
+                badge: entitled ? null : "VIP",
+                title: entitled
+                  ? "Movers we have not signalled"
+                  : "VIP — see which movers have no LuxQuant call yet",
+              },
             ]}
           />
-          {callFilter === "called" && (
+          {callFilter === "called" && entitled ? (
             <span className="text-[10px] text-text-muted">
-              Tap a coin for the call — subscribers only
+              Momentum plus a live LuxQuant plan — tap a coin for the call
             </span>
-          )}
+          ) : null}
+          {callFilter === "called" && !entitled ? (
+            <span className="text-[10px] text-text-muted">
+              {calledCount
+                ? `${calledCount} coins called this week — activate VIP to overlay them`
+                : "Activate VIP to overlay our calls on this tape"}
+            </span>
+          ) : null}
         </div>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <span className="w-[52px] shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
@@ -2802,31 +2828,66 @@ const FeedList = ({
     );
   });
 
-const CalledLocked = ({ count }) => {
+const CalledLocked = ({ count, filter = "called", onStayFree }) => {
   const navigate = useNavigate();
+  const isCalled = filter === "called";
   return (
-    <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15">
-        <svg className="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <div className="flex flex-col items-center gap-4 px-6 py-12 text-center sm:py-16">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/[0.08] px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
+        <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <rect x="5" y="11" width="14" height="10" rx="2" />
           <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
         </svg>
+        VIP
       </span>
-      <div>
-        <p className="text-[14px] font-semibold text-text-primary">
-          {count ? `${count} coins called this week` : "Calls are for subscribers"}
+      <div className="max-w-md space-y-2">
+        <p className="text-[16px] font-semibold tracking-tight text-text-primary">
+          {isCalled ? "Called movers" : "Not-called movers"}
         </p>
-        <p className="mt-1 text-[12px] leading-snug text-text-muted">
-          Which coins we called — and the entry, targets and stop on each — comes with a plan.
+        <p className="text-[13px] leading-relaxed text-text-secondary">
+          Pulse is free — every pump and dump stays on this tape.{" "}
+          {isCalled
+            ? "Called overlays the coins that also have a live LuxQuant plan: entry, take-profits, and stop."
+            : "Not called hides coins we already signalled, so you can scan movers that still have no plan."}
         </p>
+        {count ? (
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent">
+            {count} coins called in the last 7 days
+          </p>
+        ) : null}
       </div>
-      <button
-        type="button"
-        onClick={() => navigate("/pricing")}
-        className="rounded-md bg-accent px-5 py-2 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
-      >
-        Unlock calls
-      </button>
+      <ul className="max-w-sm space-y-1.5 text-left text-[12px] leading-snug text-text-muted">
+        <li className="flex gap-2">
+          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
+          Momentum and our algorithm, in one list
+        </li>
+        <li className="flex gap-2">
+          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
+          Tap a coin for the entry, targets, and stop
+        </li>
+        <li className="flex gap-2">
+          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
+          Same calls the Agent can execute
+        </li>
+      </ul>
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => navigate("/pricing")}
+          className="rounded-md bg-accent px-5 py-2 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
+        >
+          Activate VIP
+        </button>
+        {typeof onStayFree === "function" ? (
+          <button
+            type="button"
+            onClick={onStayFree}
+            className="rounded-md border border-ink/[0.1] bg-surface-secondary px-4 py-2 text-[12px] font-medium text-text-secondary transition-colors hover:border-ink/20 hover:text-text-primary"
+          >
+            Keep watching Pulse
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 };
@@ -2909,6 +2970,7 @@ function usePulseFullscreen(open, setOpen) {
 
 const ActivityFeedPanel = ({
   callFilter,
+  setCallFilter,
   entitled,
   calledCount,
   _filteredFeed,
@@ -2994,7 +3056,17 @@ const ActivityFeedPanel = ({
         { value: "dump", label: "Dumps", accent: "red" },
       ];
 
-  const feedBody = isSplit ? (
+  const callsLocked = !entitled && (callFilter === "called" || callFilter === "uncalled");
+
+  const feedBody = callsLocked ? (
+    <div className={`relative z-10 ${feedFull ? "mp-feed-body-full" : ""}`}>
+      <CalledLocked
+        count={calledCount}
+        filter={callFilter}
+        onStayFree={() => setCallFilter?.("all")}
+      />
+    </div>
+  ) : isSplit ? (
     <div className={`mp-split-grid relative z-10 ${feedFull ? "mp-feed-body-full" : ""}`}>
       <div className="mp-split-col">
         <SplitColHeader dir="pump" count={pumpCount} />
@@ -3024,10 +3096,7 @@ const ActivityFeedPanel = ({
   ) : (
     <div className={`mp-feed-list pulse-feed-scroll relative z-10 ${feedFull ? "mp-feed-body-full" : ""}`}>
       {loading && feed.length === 0 && <FeedSkeleton />}
-      {!loading && groupedSide.length === 0 && callFilter === "called" && !entitled ? (
-        <CalledLocked count={calledCount} />
-      ) : null}
-      {!loading && groupedSide.length === 0 && !(callFilter === "called" && !entitled) && (
+      {!loading && groupedSide.length === 0 && (
         <FeedEmpty
           label={
             feedSide === "pump"
@@ -3665,8 +3734,13 @@ const HeatmapPanel = ({ heatmap, _selectedCoin, onSelect, sortMode, onSortChange
   const Legend = () => (
     <div className="mt-3 flex items-center justify-between border-t border-ink/[0.07] pt-2 font-mono text-[9px] text-text-muted">
       <span className="uppercase tracking-[0.12em]">
-        Size = activity · Color = direction ·{" "}
-        <span className="font-semibold text-accent">yellow border = call</span>
+        Size = activity · Color = direction
+        {statusCtx?.entitled ? (
+          <>
+            {" · "}
+            <span className="font-semibold text-accent">yellow border = call</span>
+          </>
+        ) : null}
       </span>
       <div className="flex items-center gap-2.5">
         <span className="flex items-center gap-1">
@@ -4257,7 +4331,7 @@ const CoinChartModal = ({ pair, onClose, outcome = null }) => {
         } ${
           expanded
             ? "h-[100dvh] max-h-[100dvh] max-w-none rounded-none border-0 shadow-none sm:h-[100dvh] sm:max-h-[100dvh] sm:rounded-none"
-            : "h-[min(92dvh,100%)] max-h-[92dvh] max-w-[1180px] rounded-t-3xl border-t border-ink/10 shadow-[0_-12px_40px_rgb(var(--scrim)/0.35)] sm:h-[calc(100dvh-110px)] sm:max-h-[920px] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:shadow-[0_24px_80px_-12px_rgb(var(--scrim)/0.8)]"
+            : "h-[min(var(--lq-modal-maxh),100%)] max-h-[var(--lq-modal-maxh)] max-w-[1180px] rounded-t-3xl border-t border-ink/10 shadow-[0_-12px_40px_rgb(var(--scrim)/0.35)] sm:h-[var(--lq-modal-maxh)] sm:max-h-[min(var(--lq-modal-maxh),920px)] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:shadow-[0_24px_80px_-12px_rgb(var(--scrim)/0.8)]"
         }`}
         onClick={(e) => e.stopPropagation()}
       >

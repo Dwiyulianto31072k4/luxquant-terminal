@@ -1,0 +1,11 @@
+[Unit]
+Description=LuxQuant Signal Brain — Daily Reflection Timer (00:35 UTC, after Compass)
+
+[Timer]
+OnCalendar=*-*-* 00:35:00 UTC
+Persistent=true
+RandomizedDelaySec=90
+Unit=luxquant-signal-reflection.service
+
+[Install]
+WantedBy=timers.target

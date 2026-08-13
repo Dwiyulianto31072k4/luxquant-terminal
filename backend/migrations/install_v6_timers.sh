@@ -54,6 +54,8 @@ UNITS=(
     "luxquant-compass-resolver.timer"
     "luxquant-compass-reflection.service"
     "luxquant-compass-reflection.timer"
+    "luxquant-signal-reflection.service"
+    "luxquant-signal-reflection.timer"
 )
 
 echo "[1/4] Copying unit files to $TARGET_DIR..."
@@ -89,14 +91,17 @@ systemctl enable luxquant-arena-v6-evaluator.timer
 systemctl enable luxquant-arena-v6-monitor.timer
 systemctl enable luxquant-compass-resolver.timer
 systemctl enable luxquant-compass-reflection.timer
+systemctl enable luxquant-signal-reflection.timer
 systemctl start luxquant-arena-v6-evaluator.timer
 systemctl start luxquant-arena-v6-monitor.timer
 systemctl start luxquant-compass-resolver.timer
 systemctl start luxquant-compass-reflection.timer
+systemctl start luxquant-signal-reflection.timer
 echo "  • luxquant-arena-v6.timer DISABLED (event-driven mode — monitor drives reports)"
 echo "  ✓ luxquant-arena-v6-evaluator.timer enabled + started"
 echo "  ✓ luxquant-arena-v6-monitor.timer enabled + started"
 echo "  ✓ luxquant-compass-resolver.timer enabled + started"
+echo "  ✓ luxquant-signal-reflection.timer enabled + started (BTC signal brain)"
 
 # ─────────────────────────────────────────────────────────────────────
 # Verify

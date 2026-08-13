@@ -19,7 +19,7 @@ export default function PhoneMockup({
   return (
     <div className={`relative ${className}`}>
       {/* Silver aluminium side rail — ultra thin */}
-      <div className="rounded-[2.3rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] shadow-[0_24px_56px_rgb(var(--scrim) / 0.85),0_0_34px_rgb(var(--accent) / 0.12)] sm:rounded-[2.6rem] lg:rounded-[2.9rem] lg:p-[1.5px]">
+      <div className="rounded-[2.3rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] sm:rounded-[2.6rem] lg:rounded-[2.9rem] lg:p-[1.5px]">
         {/* Thin black display bezel */}
         <div className="overflow-hidden rounded-[2.2rem] bg-black p-[1.5px] sm:rounded-[2.5rem] lg:rounded-[2.8rem] lg:p-[2px]">
           {/* Screen — follows the screenshot's own ratio (no crop) */}

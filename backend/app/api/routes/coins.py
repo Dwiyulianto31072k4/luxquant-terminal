@@ -57,6 +57,93 @@ class CoinCategoryResponse(BaseModel):
     metadata_source: Optional[str] = None
     review_status: Optional[str] = None
     is_categorized: bool = False
+    shariah: Optional["ShariahBlock"] = None
+
+
+class ShariahSource(BaseModel):
+    name: str
+    status: Optional[str] = None
+    url: Optional[str] = None
+    label: Optional[str] = None
+
+
+class ShariahBlock(BaseModel):
+    """Hasil screening syariah untuk satu pair.
+
+    Tiga field ini WAJIB ikut ke mana pun status dikirim — `basis_label`
+    (dari mana), `summary` (alasannya), dan `disclaimer` (peringatan bahwa ini
+    bisa keliru). Tidak boleh ada permukaan yang menampilkan `status` telanjang.
+    """
+    status: str                      # halal|mashbooh|haram|unrated|not_applicable
+    confidence: int = 0
+    asset_class: str = "crypto_token"
+    summary: Optional[str] = None    # selalu diawali "Menurut <sumber>: ..."
+    basis_engine: Optional[str] = None
+    basis_label: Optional[str] = None
+    basis_model: Optional[str] = None
+    disclaimer: Optional[str] = None
+    unrated_reason: Optional[str] = None
+    criteria: List[dict] = []        # [{key, verdict, reason, evidence, source}]
+    sources: List[ShariahSource] = []
+    identity_status: Optional[str] = None
+    identity_note: Optional[str] = None
+    reviewed: bool = False           # sudah disetujui/di-override manusia?
+    screened_at: Optional[str] = None
+
+
+# CoinCategoryResponse menyebut ShariahBlock sebagai forward reference karena
+# ia didefinisikan lebih dulu di berkas ini.
+CoinCategoryResponse.model_rebuild()
+
+# Kunci yang bukan kriteria — metadata internal di dalam kolom criteria jsonb.
+_SHARIAH_META_KEYS = {"_basis", "_disclaimer", "_unrated_reason"}
+
+
+def _build_shariah_block(row) -> Optional[ShariahBlock]:
+    if not row:
+        return None
+    raw = row["criteria"] if isinstance(row["criteria"], dict) else {}
+    basis = raw.get("_basis") or {}
+
+    criteria = []
+    for key, val in raw.items():
+        if key in _SHARIAH_META_KEYS or not isinstance(val, dict):
+            continue
+        # Sumber eksternal disajikan lewat `sources`, bukan diulang di kriteria.
+        if key.startswith("source_"):
+            continue
+        criteria.append({
+            "key": key,
+            "verdict": val.get("verdict"),
+            "reason": val.get("reason"),
+            "evidence": val.get("evidence"),
+            "source": val.get("source"),
+        })
+
+    # Override admin selalu menang atas apa pun yang dihasilkan mesin.
+    status = row["override_status"] or row["status"]
+
+    return ShariahBlock(
+        status=status,
+        confidence=row["confidence"] or 0,
+        asset_class=row["asset_class"],
+        summary=row["summary"],
+        basis_engine=basis.get("engine"),
+        basis_label=basis.get("engine_label"),
+        basis_model=basis.get("model"),
+        disclaimer=raw.get("_disclaimer"),
+        unrated_reason=(raw.get("_unrated_reason") or {}).get("text"),
+        criteria=criteria,
+        sources=[
+            ShariahSource(name=s["name"], status=s.get("status"), url=s.get("url"))
+            for s in (basis.get("sources") or [])
+            if isinstance(s, dict) and s.get("name")
+        ],
+        identity_status=row["identity_status"],
+        identity_note=row["identity_note"],
+        reviewed=row["review_status"] in ("approved", "overridden"),
+        screened_at=row["screened_at"].isoformat() if row["screened_at"] else None,
+    )
 
 
 class CoinStatsResponse(BaseModel):
@@ -134,7 +221,23 @@ async def get_coin_by_pair(pair: str):
         if not row:
             raise HTTPException(status_code=404, detail=f"Pair {pair} not found")
 
+        # Blok syariah. Tabelnya baru; kalau migrasinya belum jalan di suatu
+        # environment, fitur ini hilang diam-diam dan sisa response tetap utuh.
+        shariah = None
+        try:
+            with engine.begin() as conn:
+                s_row = conn.execute(text("""
+                    SELECT status, override_status, confidence, asset_class, summary,
+                           criteria, identity_status, identity_note, review_status,
+                           screened_at
+                      FROM coin_shariah WHERE pair = :pair
+                """), {"pair": pair}).mappings().first()
+            shariah = _build_shariah_block(s_row)
+        except Exception:
+            shariah = None
+
         return CoinCategoryResponse(
+            shariah=shariah,
             pair=row[0],
             base_symbol=row[1],
             quote_symbol=row[2],

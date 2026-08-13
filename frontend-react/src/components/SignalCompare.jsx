@@ -301,7 +301,7 @@ export function SignalCompare({ items, onRemove, onClear, onOpen, open, setOpen 
         role="dialog"
         aria-modal="true"
         aria-label="Compare setups"
-        className="lq-sheet flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.09] bg-surface-raised shadow-desk sm:rounded-2xl"
+        className="lq-sheet flex max-h-[var(--lq-modal-maxh)] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.09] bg-surface-raised shadow-desk sm:rounded-2xl"
       >
         {/* header — close sits top-right, per the modal standard */}
         <div className="flex items-start justify-between gap-4 border-b border-ink/[0.07] px-5 py-4">

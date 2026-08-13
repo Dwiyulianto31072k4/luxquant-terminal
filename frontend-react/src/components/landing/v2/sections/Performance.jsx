@@ -9,7 +9,7 @@
 //
 // Palette: LuxQuant gold = primary/performance · red = loss · BTC = orange.
 // ════════════════════════════════════════════════════════════════
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { sharedGet } from "../../../../utils/sharedGet";
 import { useNavigate } from "react-router-dom";
 import {
@@ -28,9 +28,13 @@ import {
   ReferenceLine,
 } from "recharts";
 import CoinLogo from "../../../CoinLogo";
+import { useAuth } from "../../../../context/AuthContext";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import DayDrillModal from "./DayDrillModal";
 import LockedPct, { isLockedTarget } from "./shared/LockedPct";
 import { PrimaryButton, SecondaryButton, BtnArrow } from "./shared/LandingButtons";
+import CountUp from "./shared/CountUp";
 
 const C = {
   gold: "#e7c373",
@@ -130,13 +134,6 @@ const EVENTS = [
 ];
 const EV_COLOR = { bull: C.gold, bear: C.loss, event: C.btc };
 // compact tab selector for the deep-analytics block
-const ANA_TABS = [
-  { id: "wrbtc", label: "WR × BTC" },
-  { id: "patterns", label: "Patterns" },
-  { id: "timing", label: "Timing" },
-  { id: "coins", label: "Coins" },
-];
-
 // Per-card explainer: what it is + how to read it (shown via the "i" tooltip).
 const INFO = {
   winRate: {
@@ -224,6 +221,30 @@ function pearson(xs, ys) {
   return d === 0 ? null : num / d;
 }
 
+function useLocalReveal(ref) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    if (reduce || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setVisible(true);
+        observer.disconnect();
+      },
+      { rootMargin: "-8% 0px -12% 0px", threshold: 0.14 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return visible;
+}
+
 /** Period filter popover — mobile-safe (never clips off the left edge). */
 function PeriodFilterPopover({
   filterOpen,
@@ -243,7 +264,7 @@ function PeriodFilterPopover({
       <button
         type="button"
         onClick={() => setFilterOpen((o) => !o)}
-        className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[10px] transition-colors sm:w-auto ${
+        className={`flex w-full items-center justify-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors sm:w-auto ${
           eventId || customOn
             ? "border-ink/18 text-text-primary"
             : "border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
@@ -273,13 +294,11 @@ function PeriodFilterPopover({
           {/* Fixed on mobile so Card overflow + right-0 never shove the panel off-screen.
  Desktop: anchor under the button. */}
           <div
-            className="fixed left-1/2 top-[18%] z-50 w-[min(300px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl border border-ink/12 bg-surface-secondary p-3 text-left shadow-[0_20px_50px_rgb(var(--scrim) / 0.7)] sm:absolute sm:left-auto sm:right-0 sm:top-9 sm:w-[280px] sm:translate-x-0"
+            className="fixed left-1/2 top-[18%] z-50 w-[min(300px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl border border-ink/12 bg-surface-secondary p-3 text-left sm:absolute sm:left-auto sm:right-0 sm:top-9 sm:w-[280px] sm:translate-x-0"
             role="dialog"
             aria-label="Market period filter"
           >
-            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">
-              Market period
-            </p>
+            <p className="mb-2 text-[13px] font-medium text-text-muted">Market period</p>
             <div className="relative">
               <select
                 value={customOn ? "" : eventId || ""}
@@ -288,7 +307,8 @@ function PeriodFilterPopover({
                   setCustomStart("");
                   setCustomEnd("");
                 }}
-                className="w-full appearance-none rounded-lg border border-ink/10 bg-ink/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-text-primary outline-none transition-colors hover:border-ink/20 focus:border-ink/18"
+                style={{ colorScheme: "dark" }}
+                className="w-full appearance-none rounded-lg border border-ink/10 bg-ink/[0.03] py-2.5 pl-3 pr-8 text-[14px] text-text-primary outline-none transition-colors hover:border-ink/20 focus:border-ink/18"
               >
                 <option value="" className="bg-surface-secondary">
                   All / none
@@ -327,14 +347,12 @@ function PeriodFilterPopover({
             </div>
 
             <div className="my-2.5 flex items-center gap-2">
-              <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/30">
-                or custom dates
-              </span>
+              <span className="text-[13px] font-medium text-text-muted">or custom dates</span>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-lg sm:border sm:border-ink/10 sm:bg-ink/[0.03] sm:px-2 sm:py-1.5">
               <label className="flex flex-col gap-1 rounded-lg border border-ink/10 bg-ink/[0.03] px-2 py-1.5 sm:flex-1 sm:border-0 sm:bg-transparent sm:p-0">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted sm:hidden">
+                <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted sm:hidden">
                   From
                 </span>
                 <input
@@ -350,7 +368,7 @@ function PeriodFilterPopover({
               </label>
               <span className="hidden font-mono text-[10px] text-text-muted sm:inline">→</span>
               <label className="flex flex-col gap-1 rounded-lg border border-ink/10 bg-ink/[0.03] px-2 py-1.5 sm:flex-1 sm:border-0 sm:bg-transparent sm:p-0">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted sm:hidden">
+                <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted sm:hidden">
                   To
                 </span>
                 <input
@@ -375,7 +393,7 @@ function PeriodFilterPopover({
                     setCustomStart("");
                     setCustomEnd("");
                   }}
-                  className="flex-1 rounded-lg border border-ink/10 px-2 py-1.5 font-mono text-[10px] text-text-muted transition-colors hover:border-ink/25 hover:text-text-primary"
+                  className="flex-1 rounded-lg border border-ink/12 px-3 py-2 text-[13px] font-medium text-text-muted transition-colors hover:border-ink/25 hover:text-text-primary"
                 >
                   Clear
                 </button>
@@ -383,7 +401,7 @@ function PeriodFilterPopover({
               <button
                 type="button"
                 onClick={() => setFilterOpen(false)}
-                className="flex-1 rounded-lg border border-ink/15 bg-accent px-2 py-1.5 font-mono text-[10px] text-accent transition-colors hover:bg-accent/25"
+                className="flex-1 rounded-lg bg-accent px-3 py-2 text-[13px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
               >
                 Done
               </button>
@@ -410,7 +428,7 @@ function InfoTip({ info }) {
         i
       </button>
       {open && (
-        <div className="absolute left-0 top-6 z-40 w-64 rounded-xl border border-ink/15 bg-surface-secondary/[0.98] p-3 text-left shadow-[0_16px_40px_rgb(var(--scrim) / 0.35)] backdrop-blur-md">
+        <div className="absolute left-0 top-6 z-40 w-64 rounded-xl border border-ink/15 bg-surface-secondary/[0.98] p-3 text-left backdrop-blur-md">
           <p className="mb-1.5 text-[11px] font-semibold text-text-primary">{info.title}</p>
           {info.lines.map((ln, i) => (
             <p key={i} className="mb-1.5 text-[11px] leading-snug text-text-primary/60 last:mb-0">
@@ -423,11 +441,6 @@ function InfoTip({ info }) {
   );
 }
 
-// Every locked bar is drawn at the same width, so the row conveys that five
-// levels exist and nothing about how they compare.
-const PLACEHOLDER_PCT = 26;
-const CENTRE_PCT = 22;
-
 /**
  * Reward against risk — shown as locked.
  *
@@ -439,80 +452,128 @@ const CENTRE_PCT = 22;
  * than one divided by the other. 1.75% at TP1 over a 3.3% stop is 0.53R, no
  * account required.
  *
- * So the bars are now uniform placeholders and the stop distance is gone. The
- * numerators can stay on the card above: without a denominator they convert to
- * nothing. That was the cheaper half of the fix and it leaves an honest, useful
- * panel intact rather than blurring four cells out of it.
+ * The public component therefore shows only order, not proportion: a fixed
+ * downside card and four equally weighted target milestones. The stop distance
+ * is gone, and the target values are not present in markup or inline styles.
  *
  * The stop keeps its -1.00R label — that is the definition of R, true of every
  * call in every system, and it reveals nothing about this book.
  */
 function RrLadder() {
-  const rows = [
-    { k: "Stop", r: -1 },
-    { k: "TP1", r: 1 },
-    { k: "TP2", r: 1 },
-    { k: "TP3", r: 1 },
-    { k: "TP4", r: 1 },
-  ];
-  const fill = { loss: "rgb(var(--neg))", locked: "rgb(var(--accent))" };
+  const targets = ["TP1", "TP2", "TP3", "TP4"];
 
   return (
-    <div>
-      <div className="flex items-baseline justify-between">
-        <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
-          Reward against risk
-        </p>
-        <p className="flex items-center gap-1 font-mono text-[9px] text-text-muted">
+    <div
+      className="lq-rr-map overflow-hidden rounded-2xl border border-ink/[0.09] bg-surface-raised p-4 sm:p-5"
+      aria-label="Illustrative reward against risk map. Stop is minus one R. Target R values are available after sign in."
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+            Reward against risk
+          </p>
+          <p className="mt-1.5 text-[13px] leading-snug text-text-primary/60">
+            One fixed downside. Four ordered reward checkpoints.
+          </p>
+        </div>
+        <span className="lq-private-badge inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.12em]">
           <LockIcon />
-          locked
-        </p>
+          Target values private
+        </span>
       </div>
 
-      <div className="mt-3 space-y-1.5">
-        {rows.map((row) => {
-          const neg = row.r < 0;
-          return (
-            <div key={row.k} className="flex items-center gap-2.5">
-              <span className="w-8 flex-shrink-0 font-mono text-[10px] text-text-muted">
-                {row.k}
+      <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(118px,0.68fr)_minmax(0,2.45fr)]">
+        {/* Stop is the only public numeric value: by definition every stop is
+            one risk unit. This solid block is intentionally unlike the reward
+            nodes so downside can be parsed before the eye follows the path. */}
+        <div className="lq-risk-card lq-rr-stop rounded-xl p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-loss/75">
+              Downside
+            </span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-loss/15 text-loss">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.2}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4v10m0 0-4-4m4 4 4-4M5 20h14"
+                />
+              </svg>
+            </span>
+          </div>
+          <div className="mt-3 flex items-end justify-between gap-2">
+            <span className="text-sm font-semibold text-text-primary">Stop</span>
+            <span className="font-mono text-[15px] font-bold tabular-nums text-loss">−1.00R</span>
+          </div>
+          <div className="lq-rr-stop-track mt-3 h-1.5 overflow-hidden rounded-full">
+            <span className="lq-rr-stop-fill block h-full rounded-full" aria-hidden="true" />
+          </div>
+          <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+            Risk unit fixed
+          </p>
+        </div>
+
+        <div className="lq-risk-card lq-rr-reward-panel rounded-xl p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="lq-rr-entry-dot h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
+                Entry · 0R
               </span>
-              <div className="relative h-3.5 flex-1 overflow-hidden rounded-[3px] bg-ink/[0.04]">
-                <span
-                  className="absolute inset-y-0 w-px bg-ink/20"
-                  style={{ left: `${CENTRE_PCT}%` }}
-                />
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-y-0 rounded-[3px] opacity-60"
-                  style={{
-                    background: neg ? fill.loss : fill.locked,
-                    filter: "blur(3px)",
-                    width: `${PLACEHOLDER_PCT}%`,
-                    ...(neg
-                      ? { right: `${100 - CENTRE_PCT}%` }
-                      : { left: `${CENTRE_PCT}%` }),
-                  }}
-                />
-              </div>
-              {neg ? (
-                <span className="w-14 flex-shrink-0 text-right font-mono text-[11px] tabular-nums text-loss">
-                  −1.00R
-                </span>
-              ) : (
-                <span
-                  aria-label={`${row.k} reward — sign in to view`}
-                  className="w-14 flex-shrink-0 select-none text-right font-mono text-[11px] tabular-nums text-text-primary/50"
-                  style={{ filter: "blur(4px)" }}
-                >
-                  <span aria-hidden="true">+0.00R</span>
-                </span>
-              )}
             </div>
-          );
-        })}
+            <span className="flex items-center gap-1 text-[10px] text-text-muted">
+              <LockIcon />
+              R multiples hidden
+            </span>
+          </div>
+
+          <div className="relative mt-4 pt-1">
+            <span className="lq-rr-rail-base absolute left-[5%] right-[5%] top-[21px] h-px" aria-hidden="true" />
+            <span className="lq-rr-reward-fill absolute left-[5%] right-[5%] top-[20px] h-[2px] origin-left" aria-hidden="true" />
+            <span className="lq-rr-rail-shimmer absolute left-[5%] right-[5%] top-[18px] h-[6px]" aria-hidden="true" />
+
+            <ol className="relative grid grid-cols-4 gap-2" aria-label="Ordered profit targets">
+              {targets.map((target, index) => (
+                <li
+                  key={target}
+                  className="lq-rr-target flex min-w-0 flex-col items-center"
+                  style={{ "--rr-delay": `${520 + index * 130}ms` }}
+                  aria-label={`${target} reward value locked`}
+                >
+                  <span className="lq-rr-target-face relative z-10 flex w-full min-w-0 flex-col items-center justify-center rounded-lg px-1 py-2">
+                    <span className="lq-rr-target-lock flex h-6 w-6 items-center justify-center rounded-md text-accent">
+                      <LockIcon />
+                    </span>
+                    <span className="mt-1.5 font-mono text-[10px] font-semibold text-text-primary">{target}</span>
+                    <span className="mt-0.5 font-mono text-[7.5px] uppercase tracking-[0.1em] text-text-muted">
+                      private
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
       </div>
 
+      <div className="mt-3 flex flex-col gap-2 border-t border-ink/[0.07] pt-3 text-[10px] text-text-muted sm:flex-row sm:items-center sm:justify-between">
+        <span className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-loss" aria-hidden="true" /> Fixed downside
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" /> Ordered targets
+          </span>
+        </span>
+        <span>Exact target R unlocks after sign-in</span>
+      </div>
     </div>
   );
 }
@@ -525,22 +586,175 @@ function RrLadder() {
  * prerendered HTML the crawler receives. Blurring a real number would only
  * hide it from people who do not open devtools.
  */
-function LockedStat({ label, hint }) {
-  // flat locked tiles — no nested card chrome
+/* ── Risk-adjusted edge (desain 2026-08-13) ───────────────────────────
+   Menggantikan susunan RrLadder + aside. Lihat catatan patch: yang dijual
+   adalah JARAK antara win rate impas dan win rate nyata — keduanya angka
+   publik. Tidak ada nilai R yang digambar, langsung maupun lewat proporsi. */
+function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
+  const breakeven = rGeo?.breakeven_win_rate_pct ?? null;
+  const actual = winRate > 0 ? winRate : null;
+  const calls = rGeo?.calls_measured ?? null;
+  const ready = breakeven != null && actual != null;
+  const targets = ["TP1", "TP2", "TP3", "TP4"];
+
   return (
-    <div>
-      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
-      <p
-        aria-label={`${label} — sign in to view`}
-        className="mt-1.5 select-none font-mono text-[26px] font-bold leading-none tabular-nums text-text-primary/45"
-        style={{ filter: "blur(6px)" }}
-      >
-        <span aria-hidden="true">••••</span>
-      </p>
-      <p className="mt-1.5 flex items-center gap-1 text-[11px] text-text-muted">
-        <LockIcon />
-        {hint}
-      </p>
+    <div className="lq-risk-suite lq-edge">
+      {/* ── KIRI: ceritanya, sebagai SATU grafik ambang batas ── */}
+      <div className="lq-edge-main">
+        <p className="lq-edge-eyebrow">Why it makes money</p>
+
+        {ready ? (
+          <div className="lq-edge-plot">
+            <div className="lq-edge-heads">
+              <div className="lq-edge-head" style={{ left: `${breakeven}%` }}>
+                <span className="lq-edge-head-num">
+                  <CountUp value={breakeven} active={visible} suffix="%" />
+                </span>
+                <span className="lq-edge-head-cap">needed to break even</span>
+              </div>
+              <div className="lq-edge-head lq-edge-head--live" style={{ left: `${actual}%` }}>
+                <span className="lq-edge-head-num lq-edge-num--live">
+                  <CountUp value={actual} active={visible} suffix="%" />
+                </span>
+                <span className="lq-edge-head-cap">we actually win</span>
+              </div>
+            </div>
+
+            <div
+              className="lq-edge-axis"
+              role="img"
+              aria-label={`Break-even at ${breakeven.toFixed(1)} percent, actual win rate ${actual.toFixed(1)} percent`}
+            >
+              <span className="lq-edge-seg-need" style={{ width: `${breakeven}%` }} />
+              <span
+                className="lq-edge-seg-edge"
+                style={{ left: `${breakeven}%`, width: `${Math.max(0, actual - breakeven)}%` }}
+              />
+              <span className="lq-edge-gate" style={{ left: `${breakeven}%` }} />
+            </div>
+
+            <div className="lq-edge-scale">
+              <span>0%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+
+            <p className="lq-edge-claim">
+              Only <strong>{breakeven.toFixed(1)}%</strong> of calls need to win just to cover
+              the losers. <strong>{actual.toFixed(1)}%</strong> actually do — that{" "}
+              <strong>{(actual - breakeven).toFixed(1)}-point gap</strong> is the profit
+              {calls != null ? `, across ${calls.toLocaleString("en-US")} calls` : ""}.
+            </p>
+
+            {/* Rincian dari mana 33,7% berasal. Sebuah angka tanpa dasar terbaca
+                seperti karangan — dan ini satu-satunya angka di section yang
+                pembacanya tidak bisa cek sendiri. Rasio di bawah dihitung dari
+                break-even itu sendiri, jadi tidak ada informasi baru yang
+                dibuka: nilai R tiap TP tetap tertutup. */}
+            <details className="lq-edge-why">
+              <summary>Where does {breakeven.toFixed(1)}% come from?</summary>
+              <div className="lq-edge-why-body">
+                <p>
+                  Every loss is capped at the stop — one risk unit, fixed before the trade is
+                  opened. Winners run an ordered ladder, so an average winner is worth about{" "}
+                  <strong>{((100 - breakeven) / breakeven).toFixed(2)}×</strong> what an average
+                  loser costs.
+                </p>
+                <p className="lq-edge-formula">
+                  break-even = avg loss ÷ (avg loss + avg win) = {breakeven.toFixed(1)}%
+                </p>
+                <p>
+                  Both averages are taken from every resolved call
+                  {calls != null ? ` — all ${calls.toLocaleString("en-US")} of them` : ""}. No
+                  model, no sample, no back-test.
+                </p>
+              </div>
+            </details>
+          </div>
+        ) : (
+          <p className="lq-edge-claim">Break-even derived from this ladder&apos;s geometry.</p>
+        )}
+      </div>
+
+      {/* ── KANAN: mekanikanya ── */}
+      <div className="lq-edge-side">
+        <div className="lq-edge-rowhead">
+          <p className="lq-edge-label">How the ladder is built</p>
+          <span className="lq-private-badge inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium">
+            <LockIcon />
+            Private
+          </span>
+        </div>
+
+        <div className="lq-edge-stopline">
+          <span className="lq-edge-stoptag">Downside</span>
+          <span className="lq-edge-stopval">&minus;1.00R</span>
+          <span className="lq-edge-cap">fixed, every call</span>
+        </div>
+
+        <div className="lq-edge-rail">
+          <span className="lq-edge-entry">Entry · 0R</span>
+          <div className="lq-edge-targets">
+            {targets.map((t) => (
+              <div key={t} className="lq-edge-tp">
+                <span className="lq-edge-tpname">{t}</span>
+                <LockIcon />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="lq-edge-locked">
+          <div className="lq-edge-lockedstat">
+            <p className="lq-edge-label">Expectancy</p>
+            <p className="lq-edge-dots" aria-label="Expectancy — sign in to view">
+              <span aria-hidden="true">••••</span>
+            </p>
+            <p className="lq-edge-cap">per call, in R</p>
+          </div>
+          <div className="lq-edge-lockedstat">
+            <p className="lq-edge-label">Cumulative R</p>
+            <p className="lq-edge-dots" aria-label="Cumulative R — sign in to view">
+              <span aria-hidden="true">••••</span>
+            </p>
+            <p className="lq-edge-cap">since Dec 2023</p>
+          </div>
+        </div>
+
+        <SecondaryButton size="lg" width="fullMobile" onClick={onUnlock} className="group">
+          Unlock expectancy &amp; R
+          <BtnArrow />
+        </SecondaryButton>
+      </div>
+    </div>
+  );
+}
+
+function LockedStat({ label, hint }) {
+  // Wrapped in the rotating ring rather than blurred flat.
+  //
+  // Blur implies a real figure sitting just out of focus; there is none — the
+  // public payload carries only the break-even rate and the sample size, so a
+  // blurred "0.00" was a number that did not exist pretending to be withheld.
+  // Dots plus a lock say the same thing honestly, and the ring does the work
+  // of making it look worth signing in for.
+  return (
+    <div className="lq-risk-card lq-stat-card min-w-0 w-full flex-1">
+      <div className="px-4 py-3.5">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+          {label}
+        </p>
+        <p
+          aria-label={`${label} — sign in to view`}
+          className="mt-2 select-none font-mono text-[26px] font-bold leading-none tracking-[0.12em] text-text-primary/35"
+        >
+          <span aria-hidden="true">••••</span>
+        </p>
+        <p className="mt-2 flex items-center gap-1 text-[11px] text-text-muted">
+          <LockIcon />
+          {hint}
+        </p>
+      </div>
     </div>
   );
 }
@@ -694,16 +908,16 @@ function TabIcon({ id, className = "h-4 w-4" }) {
  */
 function Seg({ items, value, onChange }) {
   return (
-    <div className="inline-flex gap-0.5 rounded-full bg-ink/[0.04] p-0.5 text-[11px]">
+    <div className="inline-flex gap-0.5 rounded-full bg-ink/[0.04] p-1 text-[13px]">
       {items.map((it) => (
         <button
           key={it}
           type="button"
           onClick={() => onChange(it)}
           aria-pressed={value === it}
-          className={`rounded-full px-3 py-1.5 font-medium transition-colors ${
+          className={`rounded-full px-3.5 py-1.5 font-medium transition-colors ${
             value === it
-              ? "bg-surface text-text-primary shadow-sm"
+              ? "bg-surface text-text-primary"
               : "text-text-muted hover:text-text-primary"
           }`}
         >
@@ -716,6 +930,18 @@ function Seg({ items, value, onChange }) {
 
 export default function Performance({ data }) {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  // Both CTAs in this section used a bare navigate("/performance"). The
+  // destination survived — RequireAuth rebuilds `?redirect=` from the path —
+  // but no cta_click was ever emitted, so the two most prominent gold buttons
+  // in the longest section of the page were invisible in the funnel. Every
+  // "81% of landing sessions clicked nothing" reading counted their clickers
+  // as non-clickers.
+  const goPerformance = (source) => {
+    trackFunnel("cta_click", { source, path: "/" });
+    navigate(isAuthenticated ? "/performance" : loginUrl("/performance", { source }));
+  };
   const [edge, setEdge] = useState(null);
   const [wrbtc, setWrbtc] = useState(null);
   const [timing, setTiming] = useState(null);
@@ -729,13 +955,16 @@ export default function Performance({ data }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [anaTab, setAnaTab] = useState("wrbtc");
   // Landing stays light — deep charts optional (skimmers convert first).
-  const [showDeep, setShowDeep] = useState(false);
   const [showBtc, setShowBtc] = useState(true);
   // Retires the tap cue once the user has actually opened a day.
   const [clickHintSeen, setClickHintSeen] = useState(false);
   const [drillDate, setDrillDate] = useState(null);
   const [drillData, setDrillData] = useState(null);
   const [drillLoading, setDrillLoading] = useState(false);
+  const riskRef = useRef(null);
+  const wrRef = useRef(null);
+  const riskVisible = useLocalReveal(riskRef);
+  const wrVisible = useLocalReveal(wrRef);
   const customOn = !!(customStart && customEnd);
   const activeEvent = !customOn ? EVENTS.find((e) => e.id === eventId) || null : null;
   const stats = data?.stats;
@@ -882,21 +1111,21 @@ export default function Performance({ data }) {
   return (
     <section
       id="performance"
-      className="relative z-10 mx-auto w-full max-w-6xl px-4 py-24 lg:px-8 lg:py-32"
+      className="relative z-10 mx-auto w-full max-w-7xl px-4 py-16 lg:px-8 lg:py-24"
     >
       {/* ── Autopilot-style hero: one number, plain language, no stat tiles ── */}
       <div className="mx-auto max-w-3xl text-center">
-        <p className="text-[13px] font-medium tracking-wide text-text-muted">
+        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
           Verified track record
         </p>
-        <h2 className="mt-4 text-[2.65rem] font-semibold leading-[1.05] tracking-tight text-text-primary sm:text-6xl lg:text-[4.25rem]">
+        <h2 className="mt-4 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
           Win rate is{" "}
-          <span style={{ color: C.gold }}>
+          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
             {stats ? `${winRate.toFixed(1)}%` : "—"}
           </span>
           <span className="text-text-primary/90"> all time.</span>
         </h2>
-        <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-text-muted sm:text-lg">
+        <p className="mx-auto mt-4 max-w-xl text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
           Every call on record since day one — no hidden trades, no cherry-picking.
           {stats ? (
             <>
@@ -1058,92 +1287,40 @@ export default function Performance({ data }) {
         </div>
       </div>
 
-      {/* ── Risk-adjusted — open (no card shell) ── */}
-      <div className="mt-16 border-t border-ink/[0.06] pt-12 lg:mt-24 lg:pt-16">
+      {/* ── Risk-adjusted — one premium system, not unrelated grey tiles ── */}
+      <div
+        ref={riskRef}
+        data-lq-local-in={riskVisible ? "true" : "false"}
+        className="lq-risk-section mt-16 border-t border-ink/[0.06] pt-12 lg:mt-24 lg:pt-16"
+      >
         <CardHead
           title="Risk-adjusted edge"
           info={INFO.rEdge}
           sub="Every result in R — the risk each call sets for itself"
         />
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-center">
-          <RrLadder />
-          <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
-            <div className="flex w-full justify-center gap-10 lg:justify-start">
-              <LockedStat label="Expectancy" hint="per call, in R" />
-              <LockedStat label="Cumulative R" hint="since Dec 2023" />
-            </div>
-            <p className="max-w-md text-[15px] leading-relaxed text-text-muted lg:max-w-none">
-              A win rate alone cannot tell you if a strategy makes money. This ladder needs{" "}
-              <span className="font-semibold text-text-primary">
-                {rGeo?.breakeven_win_rate_pct != null
-                  ? `a ${rGeo.breakeven_win_rate_pct.toFixed(1)}% win rate`
-                  : "a far lower win rate"}
-              </span>{" "}
-              just to break even — compare that with the number above.
-            </p>
-            <PrimaryButton
-              size="lg"
-              width="fullMobile"
-              onClick={() => navigate("/performance")}
-              className="group"
-            >
-              Unlock full breakdown
-              <BtnArrow />
-            </PrimaryButton>
-          </div>
-        </div>
+        <RiskEdge
+          rGeo={rGeo}
+          winRate={winRate}
+          visible={riskVisible}
+          onUnlock={() => goPerformance("performance_locked")}
+        />
       </div>
 
-      {/* ── Deep analytics: collapsed by default on landing ── */}
-      <div className="mt-16 lg:mt-24">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <p className="text-[13px] text-text-muted">
-            Want the full regime breakdown, patterns, and coin leaders?
-          </p>
-          <SecondaryButton
-            size="md"
-            onClick={() => setShowDeep((v) => !v)}
-            aria-expanded={showDeep}
-          >
-            {showDeep ? "Hide deep analytics" : "Show deep analytics"}
-          </SecondaryButton>
-        </div>
-
-        {showDeep && (
-        <>
-        <div className="mb-8 mt-10 flex justify-center">
-          <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-full bg-ink/[0.04] p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {ANA_TABS.map((tb) => {
-              const on = anaTab === tb.id;
-              return (
-                <button
-                  key={tb.id}
-                  type="button"
-                  onClick={() => setAnaTab(tb.id)}
-                  title={tb.label}
-                  aria-pressed={on}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-medium transition-colors sm:px-5 ${
-                    on
-                      ? "bg-surface text-text-primary shadow-sm"
-                      : "text-text-muted hover:text-text-primary"
-                  }`}
-                >
-                  <TabIcon
-                    id={tb.id}
-                    className={`h-3.5 w-3.5 flex-shrink-0 ${on ? "text-text-primary" : "text-text-muted"}`}
-                  />
-                  <span className="whitespace-nowrap">{tb.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
+      {/* ── Win rate vs BTC ──
+          Shown outright. It used to sit behind a "Show deep analytics" button
+          alongside Patterns, Timing and Coins; those three were cut as weak
+          sellers, and with one panel left a tab bar plus a disclosure toggle
+          were two layers of chrome around a single chart. */}
+      <div
+        ref={wrRef}
+        data-lq-local-in={wrVisible ? "true" : "false"}
+        className="lq-wr-section mt-16 lg:mt-24"
+      >
         {/* active panel — full width below the tabs */}
         <div className="min-w-0">
           {/* WIN RATE × BITCOIN (filterable, deep) */}
           {anaTab === "wrbtc" && (
-            <div className="overflow-visible">
+            <div className="lq-wr-suite overflow-visible p-5 sm:p-7 lg:p-8">
               <CardHead
                 title="Win Rate × Bitcoin"
                 info={INFO.wrBtc}
@@ -1214,7 +1391,7 @@ export default function Performance({ data }) {
               )}
 
               {/* range stats */}
-              <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1.5 font-mono text-[11px]">
+              <div className="lq-wr-metrics mb-4 flex flex-wrap gap-2.5 text-[14px]">
                 <span className="text-text-muted">
                   WR{" "}
                   <b className="text-text-primary" style={{ color: C.gold }}>
@@ -1238,7 +1415,8 @@ export default function Performance({ data }) {
                 )}
               </div>
 
-              <div className="relative h-56 w-full lg:h-72">
+              <div className="lq-wr-chart-stage relative h-72 w-full overflow-hidden rounded-2xl lg:h-[460px]">
+                <span className="lq-wr-curtain pointer-events-none absolute inset-0 z-20" aria-hidden="true" />
                 {/* The chart is clickable but nothing said so — the tip below it
                     was doing all the work and got read after the fact, if at
                     all. A cursor tapping a candle says it before you read.
@@ -1246,7 +1424,7 @@ export default function Performance({ data }) {
                     and it retires the moment a day is actually opened. */}
                 {trendData.length > 0 && !clickHintSeen && (
                   <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center motion-reduce:hidden">
-                    <span className="lq-tap-cue flex items-center gap-2 rounded-full border border-accent/30 bg-surface-raised/90 px-3 py-1.5 shadow-lg backdrop-blur-sm">
+                    <span className="lq-tap-cue flex items-center gap-2 rounded-full border border-accent/30 bg-surface-raised/90 px-3 py-1.5 backdrop-blur-sm">
                       <svg className="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M9 11.5V5a1.5 1.5 0 1 1 3 0v6" />
                         <path d="M12 11V4.5a1.5 1.5 0 1 1 3 0V11" />
@@ -1318,7 +1496,10 @@ export default function Performance({ data }) {
                           yAxisId="btc"
                           dataKey="range"
                           shape={<Candle />}
-                          isAnimationActive={false}
+                          isAnimationActive={wrVisible}
+                          animationBegin={240}
+                          animationDuration={1500}
+                          animationEasing="ease-out"
                         />
                       )}
                       <ReferenceLine
@@ -1334,6 +1515,10 @@ export default function Performance({ data }) {
                           dataKey="wr"
                           stroke="none"
                           fill="url(#wrFill)"
+                          isAnimationActive={wrVisible}
+                          animationBegin={180}
+                          animationDuration={1700}
+                          animationEasing="ease-out"
                         />
                       )}
                       <Line
@@ -1343,6 +1528,10 @@ export default function Performance({ data }) {
                         stroke={C.gold}
                         strokeWidth={2.2}
                         dot={false}
+                        isAnimationActive={wrVisible}
+                        animationBegin={260}
+                        animationDuration={1900}
+                        animationEasing="ease-out"
                         activeDot={{
                           r: 4,
                           fill: C.gold,
@@ -1402,7 +1591,7 @@ export default function Performance({ data }) {
 
               {/* hint — click a day → opens the proof modal */}
               {trendData.length > 0 && (
-                <p className="mt-2 font-mono text-[10px] text-text-muted">
+                <p className="lq-wr-tip mt-4 rounded-xl px-4 py-3 text-[14px] text-text-muted">
                   Tip: click any day to see its calls — with full proof (entry, targets &amp;
                   charts).
                 </p>
@@ -1410,7 +1599,7 @@ export default function Performance({ data }) {
 
               {/* BTC × WR analysis */}
               {showBtc && corr != null && (
-                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-ink/[0.06] pt-4 font-mono text-[11px]">
+                <div className="lq-wr-analysis mt-4 flex flex-wrap items-center gap-x-8 gap-y-2 rounded-xl px-4 py-4 text-[15px]">
                   <span className="text-text-muted">
                     On BTC <span style={{ color: C.win }}>up</span> days WR{" "}
                     <b className="text-text-primary">{pct(upWR)}</b>
@@ -1419,7 +1608,7 @@ export default function Performance({ data }) {
                     On BTC <span style={{ color: C.loss }}>down</span> days WR{" "}
                     <b className="text-text-primary">{pct(downWR)}</b>
                   </span>
-                  <span className="text-text-primary/40">
+                  <span className="text-text-muted">
                     {Math.abs(upWR - downWR) < 8
                       ? "Edge holds in both directions."
                       : `${signed(upWR - downWR)} swing — co-moves with BTC.`}
@@ -1428,159 +1617,7 @@ export default function Performance({ data }) {
               )}
             </div>
           )}
-
-          {/* HIGHEST-EDGE PATTERNS */}
-          {anaTab === "patterns" && (
-            <div className="flex flex-col">
-              <CardHead
-                title="Highest-Edge Patterns"
-                info={INFO.patterns}
-                sub="Expected gain per trade · 90d"
-                right={<span className="font-mono text-[10px] text-text-muted">EV</span>}
-              />
-              {patterns.length ? (
-                <div className="flex flex-1 flex-col justify-between gap-3.5">
-                  {patterns.map((p) => {
-                    const rc = REL[p.reliability] || C.amber;
-                    return (
-                      <div key={p.pattern}>
-                        <div className="mb-1 flex items-center justify-between gap-2">
-                          <span className="truncate font-mono text-[11px] uppercase tracking-wide text-text-primary">
-                            {niceName(p.pattern)}
-                          </span>
-                          <span
-                            className="font-mono text-[13px] font-bold tabular-nums"
-                            style={{ color: C.gold }}
-                          >
-                            +{(p.expected_value_realized ?? 0).toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Bar3D pct={((p.expected_value_realized ?? 0) / maxEv) * 100} />
-                          <span className="w-12 text-right font-mono text-[10px] tabular-nums text-text-muted">
-                            {pct(p.win_rate)}
-                          </span>
-                          <span
-                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-medium"
-                            style={{ color: rc, background: `${rc}1a` }}
-                          >
-                            <span className="h-1 w-1 rounded-full" style={{ background: rc }} /> n=
-                            {p.count}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <Spinner />
-              )}
-            </div>
-          )}
-
-          {/* TIME TO TARGET */}
-          {anaTab === "timing" && (
-            <div className="flex flex-col">
-              <CardHead
-                title="Time to Target"
-                info={INFO.timing}
-                sub="How fast our calls reach each TP"
-                right={
-                  timing ? (
-                    <span className="font-mono text-[10px] text-text-muted">
-                      All calls · n={nfmt(timing.sample_size)}
-                    </span>
-                  ) : null
-                }
-              />
-              {ttp.length ? (
-                <div className="flex flex-1 flex-col justify-between gap-3.5">
-                  {ttp.map((t) => (
-                    <div key={t.tp}>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="font-mono text-[12px] font-bold" style={{ color: C.gold }}>
-                          {t.tp}
-                        </span>
-                        <span className="font-mono text-[13px] font-semibold tabular-nums text-text-primary">
-                          {t.avg_human}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Bar3D pct={(t.avg_seconds / maxSec) * 100} />
-                        <span className="w-24 text-right font-mono text-[9px] text-text-muted">
-                          fastest {t.fastest_human}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {timing?.peak_potential && (
-                    <p className="mt-1 border-t border-ink/[0.06] pt-3 font-mono text-[10px] text-text-muted">
-                      avg peak excursion{" "}
-                      <span style={{ color: C.gold }}>
-                        {bigPct(timing.peak_potential.avg_peak_excursion_pct)}
-                      </span>{" "}
-                      · time in profit{" "}
-                      <span className="text-text-primary">
-                        {pct(timing.risk_profile?.avg_time_in_profit_pct)}
-                      </span>
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <Spinner />
-              )}
-            </div>
-          )}
-
-          {/* TOP COINS WE CALLED */}
-          {anaTab === "coins" && (
-            <div>
-              <CardHead
-                title="Top Coins We Called"
-                info={INFO.coins}
-                sub="Ranked by median peak · 90d"
-                right={
-                  <span className="font-mono text-[10px] text-text-muted">
-                    {edge?.coin_leaderboard?.length || ""} coins
-                  </span>
-                }
-              />
-              {coins.length ? (
-                <div className="divide-y divide-ink/[0.06]">
-                  {coins.map((c) => (
-                    <div key={c.pair} className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
-                      <CoinLogo pair={c.pair} size={32} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[15px] font-semibold tracking-tight text-text-primary">
-                          {sym(c.pair)}
-                          <span className="ml-2 text-[12px] font-normal text-text-muted">
-                            {c.sector}
-                          </span>
-                        </p>
-                        <Bar3D pct={(c.median_peak / maxPeak) * 100} className="mt-2 h-1.5" />
-                      </div>
-                      <div className="text-right">
-                        <p
-                          className="text-[17px] font-semibold tabular-nums tracking-tight"
-                          style={{ color: C.gold }}
-                        >
-                          {bigPct(c.median_peak)}
-                        </p>
-                        <p className="mt-0.5 text-[12px] text-text-muted">
-                          {pct(c.win_rate)} WR · n={c.count}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Spinner />
-              )}
-            </div>
-          )}
         </div>
-        </>
-        )}
       </div>
 
       {/* footer CTA — open, no boxed bar */}
@@ -1592,7 +1629,7 @@ export default function Performance({ data }) {
         <PrimaryButton
           size="lg"
           width="fullMobile"
-          onClick={() => navigate("/performance")}
+          onClick={() => goPerformance("performance_footer")}
           className="group"
         >
           See full analytics

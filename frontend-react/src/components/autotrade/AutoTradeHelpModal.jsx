@@ -811,7 +811,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
       <div className="lq-scrim" onClick={onClose} />
       <div
         onClick={(event) => event.stopPropagation()}
-        className="relative z-10 flex w-full max-w-[940px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgb(var(--scrim) / 0.35)]"
+        className="relative z-10 flex w-full max-w-[940px] max-h-[min(var(--lq-modal-maxh),100%)] flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgb(var(--scrim) / 0.35)]"
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />

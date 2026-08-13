@@ -106,11 +106,11 @@ export default function FaqV2() {
         <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
           Questions, answered
         </p>
-        <h2 className="mt-3 text-[1.85rem] font-semibold leading-[1.12] tracking-tight text-text-primary sm:mt-4 sm:text-4xl lg:text-[2.75rem]">
+        <h2 className="mt-3 sm:mt-4 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
           Still wondering how it{" "}
-          <span className="text-accent">really works?</span>
+          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">really works?</span>
         </h2>
-        <p className="mx-auto mt-3 max-w-lg text-[14px] leading-snug text-text-muted sm:mt-4 sm:text-base sm:leading-relaxed">
+        <p className="mx-auto mt-4 max-w-lg text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
           Algorithm, risk, track record, free tier, Agent — straight answers so you can verify
           before you size up.
         </p>
@@ -130,15 +130,19 @@ export default function FaqV2() {
 
       {/* Accordion list */}
       <div className="mt-10 space-y-2.5 sm:mt-12">
-        {FAQ_DATA.map((item, i) => (
+        {FAQ_DATA.map((item, i) => {
+          const shown = i < PREVIEW_COUNT || showAll;
+          return (
           <div
             key={i}
-            className={
-              i < PREVIEW_COUNT || showAll
-                ? ""
-                : "pointer-events-none h-0 overflow-hidden opacity-0"
-            }
-            aria-hidden={i < PREVIEW_COUNT || showAll ? undefined : "true"}
+            // aria-hidden alone was a half-fix, and half is worse than none: it
+            // hid these ten rows from a screen reader while leaving their
+            // buttons in the tab order, so a keyboard user could focus a
+            // control that announces nothing and is not on screen. `inert`
+            // takes both away together — and unlike aria-hidden it is not
+            // refused when a descendant happens to still hold focus.
+            {...(shown ? {} : { inert: "" })}
+            className={shown ? "" : "pointer-events-none h-0 overflow-hidden opacity-0"}
           >
             <Row
               index={i + 1}
@@ -148,7 +152,8 @@ export default function FaqV2() {
               onToggle={() => setOpenIdx(openIdx === i ? -1 : i)}
             />
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {hidden > 0 && (

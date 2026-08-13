@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { workspaceApi } from "../../../services/workspaceApi";
 import { palette, tint } from "../designSystem";
 import { RefreshIcon, DownloadIcon, LoaderIcon } from "../Icons";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 const money = (n) =>
   `$${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -86,6 +87,7 @@ export const ProfitSharingTab = () => {
   );
 
   const rows = useMemo(() => data?.rows || [], [data]);
+  const transactionPages = useCollectionPagination(rows, 15);
   const totals = useMemo(
     () => data?.totals || { gross: 0, owner: 0, bigstar: 0, external: 0 },
     [data]
@@ -309,7 +311,7 @@ export const ProfitSharingTab = () => {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {transactionPages.pagedItems.map((r) => (
                 <tr
                   key={r.payment_id}
                   style={{ borderTop: `1px solid ${tint(palette.warm[100], 0.07)}` }}
@@ -385,6 +387,16 @@ export const ProfitSharingTab = () => {
           </table>
         </div>
       )}
+      <CollectionPagination
+        page={transactionPages.page}
+        totalPages={transactionPages.totalPages}
+        total={transactionPages.total}
+        pageSize={transactionPages.pageSize}
+        onPageChange={transactionPages.setPage}
+        onPageSizeChange={transactionPages.setPageSize}
+        pageSizeOptions={[15, 30, 60]}
+        itemLabel="transactions"
+      />
     </div>
   );
 };

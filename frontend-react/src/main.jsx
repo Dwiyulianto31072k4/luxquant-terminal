@@ -4,6 +4,14 @@ import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import "./styles/index.css";
 import "./i18n"; // <--- Baris pemanggil kamus bahasa
+import { captureAcqFromUrl } from "./utils/acqAttribution";
+
+// First-touch UTM / social referrer (before React tree mounts)
+try {
+  captureAcqFromUrl();
+} catch {
+  /* ignore */
+}
 
 // ── Stale-bundle recovery ──────────────────────────────────────────────
 // After a deploy, a tab that's still open may try to load a lazy JS/CSS chunk

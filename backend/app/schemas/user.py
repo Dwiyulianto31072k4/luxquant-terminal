@@ -25,10 +25,25 @@ def _normalize_referral_code(v):
 # ════════════════════════════════════════════════════════════════════
 
 
+class AcqPayload(BaseModel):
+    """First-touch acquisition (UTM / referrer). Optional on login."""
+    source: Optional[str] = None
+    medium: Optional[str] = None
+    campaign: Optional[str] = None
+    content: Optional[str] = None
+    path: Optional[str] = None
+    # aliases some clients send
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    utm_content: Optional[str] = None
+
+
 class GoogleLogin(BaseModel):
     """Schema untuk Google OAuth login — frontend kirim id_token dari Google"""
     id_token: str
     referral_code: Optional[str] = None  # ← dari ?ref di URL atau localStorage
+    acq: Optional[AcqPayload] = None
 
     @field_validator('referral_code')
     @classmethod
@@ -46,6 +61,7 @@ class TelegramLogin(BaseModel):
     auth_date: int
     hash: str
     referral_code: Optional[str] = None  # ← dari ?ref di URL atau localStorage
+    acq: Optional[AcqPayload] = None
 
     @field_validator('referral_code')
     @classmethod
@@ -275,9 +291,27 @@ class AdminUserResponse(BaseModel):
     total_sessions: Optional[int] = 0
     last_feature_touched: Optional[str] = None
 
+    # First-touch acquisition (UTM)
+    acq_source: Optional[str] = None
+    acq_medium: Optional[str] = None
+    acq_campaign: Optional[str] = None
+    acq_content: Optional[str] = None
+    acq_path: Optional[str] = None
+
     # Display preferences
     country_code: Optional[str] = None
     currency_code: Optional[str] = 'USD'
+
+    # Auto geo from CF-IPCountry
+    geo_country: Optional[str] = None
+    geo_country_first: Optional[str] = None
+    geo_region: Optional[str] = None
+    geo_city: Optional[str] = None
+    geo_timezone: Optional[str] = None
+    geo_ip_prefix: Optional[str] = None
+    geo_ip_first_prefix: Optional[str] = None
+    geo_last_seen_at: Optional[datetime] = None
+    geo_first_seen_at: Optional[datetime] = None
 
     # ─── Admin enrichment (Layer Outreach) ───
     admin_telegram_username: Optional[str] = None
@@ -303,6 +337,12 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user: UserResponse
     cryptobot_token: Optional[str] = None
+    # Whether this call CREATED the account rather than signing an existing one
+    # in. The routes have always computed this for referral credit; it is
+    # returned so the client can tell the funnel apart from a login. Without it
+    # `auth_success` counts every sign-in, and the acquisition funnel reports
+    # more accounts created than accounts exist.
+    is_new_user: bool = False
 
 
 class MessageResponse(BaseModel):

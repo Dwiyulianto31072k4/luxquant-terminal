@@ -303,7 +303,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
       onClick={onClose}
     >
       <div
-        className="lq-sheet w-full max-w-md max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl border border-b-0 sm:border-b p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        className="lq-sheet w-full max-w-md max-h-[min(var(--lq-modal-maxh),100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl border border-b-0 sm:border-b p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         style={{ background: "rgb(var(--surface-hover))", borderColor: "rgb(var(--accent) / 0.2)" }}
         onClick={(e) => e.stopPropagation()}
       >

@@ -1589,6 +1589,13 @@ def start_cache_workers():
     # Terminal derivatives/TA blob (lazy import — avoids circulars at module load)
     from app.services.terminal_worker import terminal_deriv_loop
     loop.create_task(terminal_deriv_loop())
+    # Entitlement reconciliation (Discord Premium+ / legacy Telegram VIP).
+    # Daily at 00:00 UTC — see the loop for why it is not more often.
+    try:
+        from app.services.entitlement_audit import entitlement_daily_loop
+        loop.create_task(entitlement_daily_loop())
+    except Exception as e:
+        print(f"⚠️ Entitlement audit loop not started: {type(e).__name__}: {e}")
     # Binance WS ingest — realtime funding/mark/price/vol (zero REST weight)
     try:
         from app.services.binance_ws_worker import binance_ws_loop

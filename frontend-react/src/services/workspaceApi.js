@@ -23,15 +23,46 @@ export const workspaceApi = {
     return response.data;
   },
 
+  getReferralAdvocates: async (filters = {}) => {
+    const response = await api.get(
+      "/api/v1/workspace/growth/referrals/advocates",
+      {
+        params: filters,
+      },
+    );
+    return response.data;
+  },
+
+  // Policy-checked, one-at-a-time referral outreach. The backend deliberately
+  // exposes no bulk-send endpoint: every reminder stays an explicit approval.
+  sendReferralReminder: async (userId) => {
+    const response = await api.post(
+      `/api/v1/workspace/growth/referral-reminders/${userId}/send`,
+    );
+    return response.data;
+  },
+
+  setReferralReminderPreference: async (userId, optedOut, reason = null) => {
+    const response = await api.post(
+      `/api/v1/workspace/growth/referral-reminders/${userId}/preference`,
+      { opted_out: optedOut, reason },
+    );
+    return response.data;
+  },
+
   // ════════════════════════════════════
   // AI COST TRACKER
   // ════════════════════════════════════
   getAiCostSummary: async (days = 30) => {
-    const response = await api.get("/api/v1/workspace/ai-cost/summary", { params: { days } });
+    const response = await api.get("/api/v1/workspace/ai-cost/summary", {
+      params: { days },
+    });
     return response.data;
   },
   getAiCostRecent: async (limit = 50) => {
-    const response = await api.get("/api/v1/workspace/ai-cost/recent", { params: { limit } });
+    const response = await api.get("/api/v1/workspace/ai-cost/recent", {
+      params: { limit },
+    });
     return response.data;
   },
   getAiSettings: async () => {
@@ -39,7 +70,9 @@ export const workspaceApi = {
     return response.data;
   },
   setAiSettings: async (assistant_enabled) => {
-    const response = await api.post("/api/v1/workspace/ai-cost/settings", { assistant_enabled });
+    const response = await api.post("/api/v1/workspace/ai-cost/settings", {
+      assistant_enabled,
+    });
     return response.data;
   },
 
@@ -47,11 +80,15 @@ export const workspaceApi = {
   // X API USAGE & SPEND (Marketing tab)
   // ════════════════════════════════════
   getXUsageSummary: async (days = 30) => {
-    const response = await api.get("/api/v1/workspace/x-usage/summary", { params: { days } });
+    const response = await api.get("/api/v1/workspace/x-usage/summary", {
+      params: { days },
+    });
     return response.data;
   },
   getXUsageRecent: async (limit = 50) => {
-    const response = await api.get("/api/v1/workspace/x-usage/recent", { params: { limit } });
+    const response = await api.get("/api/v1/workspace/x-usage/recent", {
+      params: { limit },
+    });
     return response.data;
   },
   getXUsageSettings: async () => {
@@ -59,7 +96,9 @@ export const workspaceApi = {
     return response.data;
   },
   getXUsageTopups: async (limit = 40) => {
-    const response = await api.get("/api/v1/workspace/x-usage/topups", { params: { limit } });
+    const response = await api.get("/api/v1/workspace/x-usage/topups", {
+      params: { limit },
+    });
     return response.data;
   },
 
@@ -85,12 +124,18 @@ export const workspaceApi = {
 
   // Retention engine — auto-generate renewal + win-back follow-ups.
   generateFollowups: async (payload = {}) => {
-    const response = await api.post("/api/v1/workspace/followups/generate", payload);
+    const response = await api.post(
+      "/api/v1/workspace/followups/generate",
+      payload,
+    );
     return response.data;
   },
 
   updateFollowup: async (id, payload) => {
-    const response = await api.patch(`/api/v1/workspace/followups/${id}`, payload);
+    const response = await api.patch(
+      `/api/v1/workspace/followups/${id}`,
+      payload,
+    );
     return response.data;
   },
 
@@ -118,7 +163,10 @@ export const workspaceApi = {
   },
 
   updateCampaign: async (id, payload) => {
-    const response = await api.patch(`/api/v1/workspace/campaigns/${id}`, payload);
+    const response = await api.patch(
+      `/api/v1/workspace/campaigns/${id}`,
+      payload,
+    );
     return response.data;
   },
 
@@ -145,6 +193,19 @@ export const workspaceApi = {
     return response.data;
   },
 
+  // ── CRM: behavioural segments ──
+  getCrmSegments: async () => {
+    const response = await api.get("/api/v1/workspace/crm/segments");
+    return response.data;
+  },
+
+  getCrmSegment: async (key, limit = 200) => {
+    const response = await api.get(`/api/v1/workspace/crm/segments/${key}`, {
+      params: { limit },
+    });
+    return response.data;
+  },
+
   // ════════════════════════════════════
   // PAYMENT RECORD AUDIT + PROFIT SHARING
   // ════════════════════════════════════
@@ -153,20 +214,28 @@ export const workspaceApi = {
     return response.data;
   },
   assignPaymentAudit: async (userId, payload) => {
-    const response = await api.post(`/api/v1/workspace/payment-audit/${userId}`, payload);
+    const response = await api.post(
+      `/api/v1/workspace/payment-audit/${userId}`,
+      payload,
+    );
     return response.data;
   },
   getProfitSharing: async ({ from, to } = {}) => {
     const params = {};
     if (from) params.from = from;
     if (to) params.to = to;
-    const response = await api.get("/api/v1/workspace/profit-sharing", { params });
+    const response = await api.get("/api/v1/workspace/profit-sharing", {
+      params,
+    });
     return response.data;
   },
   setPaymentPartnerSource: async (paymentId, partner_source) => {
-    const response = await api.post(`/api/v1/workspace/payments/${paymentId}/partner-source`, {
-      partner_source,
-    });
+    const response = await api.post(
+      `/api/v1/workspace/payments/${paymentId}/partner-source`,
+      {
+        partner_source,
+      },
+    );
     return response.data;
   },
 
@@ -174,7 +243,7 @@ export const workspaceApi = {
   controlService: async (unit, action) => {
     const response = await api.post(
       `/api/v1/workspace/services/${encodeURIComponent(unit)}/action`,
-      { action }
+      { action },
     );
     return response.data;
   },

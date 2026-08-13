@@ -79,7 +79,7 @@ function OutcomeChip({ outcome }) {
   const color = isWin ? C.win : C.loss;
   return (
     <span
-      className="inline-flex rounded px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wide"
+      className="inline-flex rounded px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em]"
       style={{ color, background: `${color}18` }}
     >
       {outcome || "—"}
@@ -329,7 +329,9 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
 
   const shell = (
     <div
-      className="lq-modal-safe fixed inset-0 flex items-end justify-center sm:items-center sm:p-4 md:p-6"
+      // See LandingSoftGateSheet: portalled out of `.lp-v2`, so the scoped
+      // button/card finishes have to be re-established here.
+      className="lp-v2 lq-modal-safe fixed inset-0 flex items-end justify-center sm:items-center sm:p-4 md:p-6"
       // Drop below SignalDetailModal (z-100000) while a signal is open so it
       // stacks on top; back to 190000 (above the sticky nav) otherwise.
       style={{ zIndex: modalItem ? 90000 : 190000 }}
@@ -345,12 +347,12 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
         }}
       />
 
-      <div className="lq-sheet relative z-10 flex h-[min(94dvh,100%)] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(88vh,820px)] sm:rounded-xl">
+      <div className="lq-sheet relative z-10 flex h-[min(var(--lq-modal-maxh),100%)] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised sm:h-[min(var(--lq-modal-maxh),820px)] sm:rounded-xl">
         {/* ── Header ── */}
         <header className="shrink-0 border-b border-ink/[0.07] px-4 py-3 sm:px-5 sm:py-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
                 Resolved calls · row opens Trade proof with unique link
               </p>
               <h3 className="mt-0.5 font-display text-[17px] font-semibold tracking-tight text-text-primary sm:text-[19px]">
@@ -393,7 +395,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
                   onClick={() => setTab(t.id)}
                   className={`rounded-md px-3 py-1.5 font-mono text-[11px] font-medium transition ${
                     on
-                      ? "bg-ink/[0.12] text-text-primary shadow-sm"
+                      ? "bg-ink/[0.12] text-text-primary"
                       : "border border-ink/[0.08] bg-ink/[0.02] text-text-muted hover:border-ink/16 hover:text-text-primary"
                   }`}
                 >
@@ -422,19 +424,19 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
         {/* ── Column headers (desktop) ── */}
         {!loading && list.length > 0 && (
           <div className="hidden shrink-0 grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_1.25rem] gap-x-3 border-b border-ink/[0.05] bg-ink/[0.015] px-4 py-2 sm:grid">
-            <span className="font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted/55">
               Token
             </span>
-            <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
+            <span className="text-right font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted/55">
               Entry
             </span>
-            <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
+            <span className="text-right font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted/55">
               Peak
             </span>
-            <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
+            <span className="text-right font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted/55">
               Banked
             </span>
-            <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
+            <span className="text-right font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted/55">
               Resolved
             </span>
             <span />

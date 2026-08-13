@@ -152,6 +152,11 @@ def track_user_login(
     user: User,
     *,
     commit: bool = True,
+    country: Optional[str] = None,
+    ip: Optional[str] = None,
+    region: Optional[str] = None,
+    city: Optional[str] = None,
+    geo_timezone: Optional[str] = None,
 ) -> None:
     """
     Update login tracking fields. Dipanggil di setiap successful login.
@@ -160,6 +165,7 @@ def track_user_login(
         - user.last_login_at = NOW
         - user.login_count += 1
         - user.first_login_at = NOW (kalo belum)
+        - geo_country / geo_country_first from CF-IPCountry when provided
         - Kalo referee dengan ReferralUse status=pending → bump 'active'
     """
     now = datetime.now(timezone.utc)
@@ -185,6 +191,22 @@ def track_user_login(
                     f"📈 Referral #{use.id} bumped to ACTIVE: referee={user.id} "
                     f"first login at {now.isoformat()}"
                 )
+
+    if any((country, ip, region, city, geo_timezone)):
+        try:
+            from app.services.geo_helpers import apply_geo_to_user
+            apply_geo_to_user(
+                db,
+                user,
+                country,
+                ip=ip,
+                region=region,
+                city=city,
+                geo_timezone=geo_timezone,
+                commit=False,
+            )
+        except Exception:
+            logger.exception("geo apply on login failed user=%s", getattr(user, "id", None))
 
     if commit:
         db.commit()

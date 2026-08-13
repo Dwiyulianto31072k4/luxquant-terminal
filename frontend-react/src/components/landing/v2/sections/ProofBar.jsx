@@ -36,7 +36,7 @@ export default function ProofBar({ stats }) {
           <div key={i} className="flex items-center justify-center gap-1.5 sm:gap-3 lg:gap-5">
             <Laurel
               side="left"
-              className="w-6 h-10 sm:w-7 sm:h-12 lg:w-8 lg:h-14 flex-shrink-0 drop-shadow-[0_0_10px_rgb(var(--accent) / 0.3)]"
+              className="w-6 h-10 sm:w-7 sm:h-12 lg:w-8 lg:h-14 flex-shrink-0 drop-"
             />
             <div className="text-center">
               {/* angka: gede + bold + gradasi emas halus (putih→emas) */}
@@ -54,7 +54,7 @@ export default function ProofBar({ stats }) {
             </div>
             <Laurel
               side="right"
-              className="w-6 h-10 sm:w-7 sm:h-12 lg:w-8 lg:h-14 flex-shrink-0 drop-shadow-[0_0_10px_rgb(var(--accent) / 0.3)]"
+              className="w-6 h-10 sm:w-7 sm:h-12 lg:w-8 lg:h-14 flex-shrink-0 drop-"
             />
           </div>
         ))}

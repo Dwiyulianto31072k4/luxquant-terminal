@@ -9,6 +9,8 @@ import SignalJourneyExtended from "./SignalJourneyExtended";
 import SignalLevelsChart from "./charts/SignalLevelsChart";
 import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
+import ShariahCheckModal, { SHARIAH_META } from "./ShariahCheckModal";
+import { useAuth } from "../context/AuthContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
 import BTCCorrelationBadge from "./BTCCorrelationBadge";
@@ -71,6 +73,27 @@ const SignalModal = ({
   const [overrideSignal, setOverrideSignal] = useState(null);
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
   const [showCoinUtility, setShowCoinUtility] = useState(false);
+
+  // ── Shariah Check ──────────────────────────────────────────────
+  // Masih di balik flag admin (Fase 2). Titik warna di tombol hanya isyarat;
+  // status, sumber, alasan, dan disclaimer-nya ada di dalam modal.
+  const { user: authUser } = useAuth();
+  const shariahEnabled = authUser?.is_admin === true;
+  const [showShariah, setShowShariah] = useState(false);
+  const [shariahStatus, setShariahStatus] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen || !shariahEnabled || !signal?.pair) return;
+    let alive = true;
+    setShariahStatus(null);
+    fetch(`/api/v1/coins/${signal.pair}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => alive && setShariahStatus(d?.shariah?.status || null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isOpen, shariahEnabled, signal?.pair]);
   const [showBtcCorrelation, setShowBtcCorrelation] = useState(false);
   const [showIndicatorGuide, setShowIndicatorGuide] = useState(false);
   // Toggle "always show indicators" (MACD/RSI/BB) di chart — di-remember per user (DB).
@@ -1842,6 +1865,25 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                 {/* Utility actions — compact, right of the tab toolbar */}
                 <div className="flex shrink-0 items-center gap-1">
+                  {/* Shariah Check — tombol, bukan kartu tertanam. Titik warnanya
+                      cuma isyarat; status telanjang tidak pernah berdiri sendiri,
+                      keterangan lengkapnya ada di dalam modal. */}
+                  {shariahEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setShowShariah(true)}
+                      title="Shariah Check — hasil screening, bukan fatwa"
+                      aria-label="Shariah Check"
+                      className="flex h-8 items-center gap-1.5 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          SHARIAH_META[shariahStatus]?.dot || "bg-text-muted"
+                        }`}
+                      />
+                      <span className="hidden sm:inline">Shariah</span>
+                    </button>
+                  )}
                   <a
                     href={`https://x.com/search?q=${encodeURIComponent("$" + (signal?.pair || "").replace(/USDT$|USDC$|USD$/i, ""))}&src=typed_query&f=live`}
                     target="_blank"
@@ -2856,6 +2898,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         onClose={() => setShowCoinUtility(false)}
       />
 
+      {/* === Shariah Check — detail lengkap: status, sumber, alasan, bukti === */}
+      <ShariahCheckModal
+        pair={signal?.pair}
+        isOpen={showShariah}
+        onClose={() => setShowShariah(false)}
+      />
+
       {/* === BTC Correlation Modal === */}
       <IndicatorGuideModal
         isOpen={showIndicatorGuide}
@@ -2872,18 +2921,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       {/* FULLSCREEN LIGHTBOX - OVERLAY GAMBAR */}
       {lightboxImg && (
         <div
-          className="fixed inset-0 bg-scrim/95 flex items-center justify-center p-4 cursor-zoom-out"
+          className="lq-modal-safe fixed inset-0 flex cursor-zoom-out items-center justify-center bg-scrim/95 p-4"
           style={{ zIndex: 300000 }}
           onClick={() => setLightboxImg(null)}
         >
           <img
             src={lightboxImg}
             alt="Fullscreen Chart"
-            className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl border border-ink/10"
+            className="max-h-[min(var(--lq-modal-maxh),100%)] max-w-full rounded-lg border border-ink/10 object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-text-primary bg-ink/10 hover:bg-ink/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm"
+            className="lq-toast-safe absolute right-4 text-text-primary bg-ink/10 hover:bg-ink/20 p-2 sm:right-6 sm:p-3 rounded-full transition-colors backdrop-blur-sm"
             onClick={() => setLightboxImg(null)}
           >
             <svg
@@ -2963,7 +3012,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  .signal-modal-content {
  position: relative; width: 100%;
  max-width: min(1280px, 100%);
- height: min(94dvh, 100%); max-height: min(94dvh, 100%);
+ height: min(var(--lq-modal-maxh), 100%); max-height: min(var(--lq-modal-maxh), 100%);
  background: rgb(var(--surface-raised));
  border: none; border-top: 1px solid rgb(var(--ink) / 0.12);
  border-radius: 16px 16px 0 0;
@@ -2976,8 +3025,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  .signal-modal-overlay { align-items: center; }
  .signal-modal-container { align-items: center; padding: var(--lq-modal-top) 16px 16px; }
  .signal-modal-content {
- height: min(90dvh, 900px, 100%);
- max-height: min(90dvh, 900px, 100%);
+ height: min(var(--lq-modal-maxh), 900px, 100%);
+ max-height: min(var(--lq-modal-maxh), 900px, 100%);
  border-radius: 14px;
  border: 1px solid rgb(var(--ink) / 0.12);
  box-shadow: 0 24px 64px rgb(var(--scrim) / 0.45);

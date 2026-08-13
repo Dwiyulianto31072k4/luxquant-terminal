@@ -2405,7 +2405,7 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-2xl bg-surface-raised border-t border-ink/[0.08] sm:border flex flex-col shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
+        className="relative w-full max-w-5xl max-h-[min(var(--lq-modal-maxh),100%)] rounded-t-3xl sm:rounded-2xl bg-surface-raised border-t border-ink/[0.08] sm:border flex flex-col shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">

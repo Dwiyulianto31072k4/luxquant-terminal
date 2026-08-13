@@ -145,12 +145,59 @@ const UserCell = ({ user, onClick }) => (
         )}
         <CrmBadge status={user.crm_status} lastAt={user.last_followup_at} />
       </p>
-      <p className="text-[10px] truncate font-mono" style={{ color: "rgb(var(--fg-muted))" }}>
-        {user.email}
-      </p>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <p className="min-w-0 truncate font-mono text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+          {user.email}
+        </p>
+        {user.geo_country && (
+          <span
+            className="shrink-0 rounded border border-ink/[0.07] bg-ink/[0.03] px-1 py-px font-mono text-[8px] text-text-muted"
+            title={`Last detected network: ${user.geo_ip_prefix || "not recorded"}`}
+          >
+            {user.geo_country}
+          </span>
+        )}
+      </div>
     </div>
   </button>
 );
+
+const AcquisitionCell = ({ user, compact = false }) => {
+  const source = user.acq_source?.trim();
+  const detail = [user.acq_campaign, user.acq_content].filter(Boolean).join(" · ");
+
+  if (!source) {
+    return compact ? null : (
+      <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+        Unattributed
+      </span>
+    );
+  }
+
+  return (
+    <div className="min-w-0">
+      <span
+        className="inline-flex max-w-full items-center rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+        style={{
+          background: tint(palette.blue[400], 0.1),
+          color: palette.blue[400],
+          border: `1px solid ${tint(palette.blue[400], 0.22)}`,
+        }}
+      >
+        <span className="truncate">{source}</span>
+      </span>
+      {detail && (
+        <p
+          className="mt-0.5 max-w-[180px] truncate font-mono text-[9px]"
+          style={{ color: "rgb(var(--fg-muted))" }}
+          title={detail}
+        >
+          {detail}
+        </p>
+      )}
+    </div>
+  );
+};
 
 // ════════════════════════════════════════════════════════════════════
 // CRM touch indicator — has this user been followed up on?
@@ -316,12 +363,12 @@ const DesktopTable = ({
             className="w-3.5 h-3.5 rounded cursor-pointer accent-accent"
           />
         </th>
-        {["User", "Contact", "Role", "Subscription", "Activity", ""].map((h, i) => (
+        {["User", "Contact", "Role", "Subscription", "Acquisition", "Activity", ""].map((h, i) => (
           <th
             key={i}
             className={`px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider ${
-              i === 5 ? "text-right" : "text-left"
-            } ${i === 1 || i === 3 ? "hidden md:table-cell" : ""} ${i === 4 ? "hidden lg:table-cell" : ""}`}
+              i === 6 ? "text-right" : "text-left"
+            } ${i === 1 || i === 3 ? "hidden md:table-cell" : ""} ${i === 4 ? "hidden lg:table-cell" : ""} ${i === 5 ? "hidden xl:table-cell" : ""}`}
             style={{
               color: "rgb(var(--ink) / 0.4)",
               borderBottom: `1px solid ${surface.base.border}`,
@@ -382,6 +429,9 @@ const DesktopTable = ({
               )}
             </td>
             <td className="px-3 py-2.5 hidden lg:table-cell">
+              <AcquisitionCell user={u} />
+            </td>
+            <td className="px-3 py-2.5 hidden xl:table-cell">
               <span
                 className="text-[10px]"
                 style={{
@@ -473,6 +523,18 @@ const MobileCardStack = ({
               )}
             </div>
           </div>
+
+          {u.acq_source && (
+            <div className="flex items-center gap-2">
+              <span
+                className="text-[9px] font-semibold uppercase tracking-wider"
+                style={{ color: "rgb(var(--fg-muted))" }}
+              >
+                Acquisition
+              </span>
+              <AcquisitionCell user={u} compact />
+            </div>
+          )}
 
           {/* Bottom row — last login + actions */}
           <div className="flex items-center justify-between">

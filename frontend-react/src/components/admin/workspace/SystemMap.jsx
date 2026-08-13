@@ -727,14 +727,14 @@ const CSS = `
    a 20px gutter wastes the only screen where space is scarce. */
 /* Full-bleed so the dim and blur reach the top of the screen; padding-top is
    what clears the app header. Same contract as every other overlay. */
-.lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:var(--lq-modal-top) 0 0 0;background:rgb(var(--scrim) / var(--lq-scrim-alpha));backdrop-filter:blur(var(--lq-scrim-blur));-webkit-backdrop-filter:blur(var(--lq-scrim-blur));animation:lqfade .18s ease}
+.lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:var(--lq-modal-top) 0 var(--lq-modal-bottom) 0;box-sizing:border-box;overflow:auto;background:rgb(var(--scrim) / var(--lq-scrim-alpha));backdrop-filter:blur(var(--lq-scrim-blur));-webkit-backdrop-filter:blur(var(--lq-scrim-blur));animation:lqfade .18s ease}
 @keyframes lqfade{from{opacity:0}to{opacity:1}}
-.lqm-card{position:relative;width:100%;max-height:min(92dvh,100%);display:flex;flex-direction:column;background:linear-gradient(180deg,rgb(var(--surface-raised)),rgb(var(--surface)));border:1px solid rgb(var(--line) / .22);border-radius:18px 18px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.65);overflow:hidden;animation:lqup .32s cubic-bezier(.16,1,.3,1)}
+.lqm-card{position:relative;width:100%;max-height:min(var(--lq-modal-maxh),100%);display:flex;flex-direction:column;background:linear-gradient(180deg,rgb(var(--surface-raised)),rgb(var(--surface)));border:1px solid rgb(var(--line) / .22);border-radius:18px 18px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.65);overflow:hidden;animation:lqup .32s cubic-bezier(.16,1,.3,1)}
 .lqm-handle{flex:0 0 auto;display:flex;justify-content:center;padding:10px 0 2px}
 .lqm-handle span{display:block;width:40px;height:4px;border-radius:999px;background:rgb(var(--ink) / .25)}
 @media (min-width:640px){
-  .lqm-overlay{align-items:center;padding:var(--lq-modal-top) 20px 20px}
-  .lqm-card{width:min(680px,94vw);max-height:min(86vh,var(--lq-modal-maxh));border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
+  .lqm-overlay{align-items:center;padding:var(--lq-modal-top) 20px var(--lq-modal-bottom)}
+  .lqm-card{width:min(680px,94vw);max-height:min(var(--lq-modal-maxh),100%);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
   .lqm-handle{display:none}
 }
 @keyframes lqup{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -764,8 +764,9 @@ const CSS = `
 .lqd-cbtn{font-size:12px;font-weight:600;padding:9px 16px;border-radius:9px;cursor:pointer;border:1px solid;background:transparent;transition:.15s}
 .lqd-cbtn:hover{filter:brightness(1.3)}
 @media(max-width:640px){
- .lqm-overlay{padding:0;align-items:flex-end}
- .lqm-card{width:100%;max-height:90vh;border-radius:18px 18px 0 0;animation:lqup .28s cubic-bezier(.16,1,.3,1)}
+ /* Keep header clearance — never zero padding-top (was jamming under chrome). */
+ .lqm-overlay{align-items:flex-end;padding:var(--lq-modal-top) 0 var(--lq-modal-bottom)}
+ .lqm-card{width:100%;max-height:min(var(--lq-modal-maxh),100%);border-radius:18px 18px 0 0;animation:lqup .28s cubic-bezier(.16,1,.3,1)}
  .lqd-statwrap{grid-template-columns:1fr}
  .lqf-legend{display:none}
  .lqf-mini{display:none}

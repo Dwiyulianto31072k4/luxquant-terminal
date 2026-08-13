@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -25,6 +26,8 @@ from app.core.database import SessionLocal
 from app.services.news_article_extractor import ensure_extracts_table, extract_news_item, is_thin_text
 from app.services.social_image_generator import generate_ai_social_image
 
+
+logger = logging.getLogger(__name__)
 
 POSTS_DIR = Path(os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts"))
 DEFAULT_PLATFORM = os.environ.get("SOCIAL_POST_DEFAULT_PLATFORM", "x")
@@ -255,7 +258,50 @@ def _image_reference_for(item: NewsItem) -> Optional[str]:
     return item.extracted_image_url or item.image_url
 
 
+# ── Penjaga skema runtime ──────────────────────────────────────────────
+#
+# `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` TETAP mengambil kunci
+# ACCESS EXCLUSIVE meskipun kolomnya sudah ada dan pernyataannya jadi no-op.
+# Kunci itu mengantre di belakang pembaca mana pun yang sedang jalan, DAN
+# memblokir setiap pembaca berikutnya di belakangnya (antrean kunci FIFO).
+# Sesi web dibatasi `statement_timeout = 20s`, jadi begitu tabel `social_posts`
+# sedang sibuk, ALTER-nya kehabisan waktu dan seluruh pembuatan draft gagal:
+#
+#   (psycopg2.errors.QueryCanceled) canceling statement due to statement timeout
+#   [SQL: ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS image_mode ...]
+#
+# Ini pola yang sudah pernah menjatuhkan backend lewat tabel `users`. Karena
+# itu: PERIKSA dulu lewat katalog (cuma baca, tanpa kunci), dan jalankan DDL
+# HANYA bila kolomnya memang belum ada. Hasilnya di-cache per proses supaya
+# jalur normal tidak menyentuh katalog sama sekali.
+_SCHEMA_VERIFIED: set[str] = set()
+
+
+def _missing_columns(db, table: str, columns: tuple[str, ...]) -> list[str]:
+    rows = db.execute(
+        text("""
+            SELECT column_name FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = :t
+               AND column_name = ANY(:cols)
+        """),
+        {"t": table, "cols": list(columns)},
+    ).scalars().all()
+    have = set(rows)
+    return [c for c in columns if c not in have]
+
+
+_IMAGE_COLUMNS = ("image_mode", "image_prompt", "reference_image_url", "reference_image_path")
+
+
 def ensure_social_post_image_columns(db) -> None:
+    if "social_posts.image" in _SCHEMA_VERIFIED:
+        return
+    missing = _missing_columns(db, "social_posts", _IMAGE_COLUMNS)
+    if not missing:
+        _SCHEMA_VERIFIED.add("social_posts.image")
+        return
+
+    logger.warning("social_posts kekurangan kolom %s — menjalankan ALTER", missing)
     db.execute(text("""
         ALTER TABLE social_posts
             ADD COLUMN IF NOT EXISTS image_mode TEXT NOT NULL DEFAULT 'template',
@@ -268,14 +314,23 @@ def ensure_social_post_image_columns(db) -> None:
             ON social_posts(image_mode, created_at DESC)
     """))
     db.commit()
+    _SCHEMA_VERIFIED.add("social_posts.image")
 
 
 def ensure_social_post_cost_columns(db) -> None:
+    if "social_posts.gen_meta" in _SCHEMA_VERIFIED:
+        return
+    if not _missing_columns(db, "social_posts", ("gen_meta",)):
+        _SCHEMA_VERIFIED.add("social_posts.gen_meta")
+        return
+
+    logger.warning("social_posts kekurangan kolom gen_meta — menjalankan ALTER")
     db.execute(text("""
         ALTER TABLE social_posts
             ADD COLUMN IF NOT EXISTS gen_meta JSONB
     """))
     db.commit()
+    _SCHEMA_VERIFIED.add("social_posts.gen_meta")
 
 
 def _caption_for(item: NewsItem, headline: str, hashtags: list[str]) -> str:

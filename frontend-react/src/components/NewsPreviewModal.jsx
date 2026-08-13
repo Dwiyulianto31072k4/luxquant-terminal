@@ -4,25 +4,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Modal from "./ui/Modal";
+import NewsBody from "./NewsBody";
+import { newsTitleLine } from "../utils/newsFormat";
 
 const LUXQUANT_LOGO = "/logo.png";
-
-const cleanText = (s) => {
-  if (!s) return "";
-  try {
-    const el = document.createElement("textarea");
-    el.innerHTML = String(s);
-    return el.value
-      .replace(/\u00a0/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  } catch {
-    return String(s)
-      .replace(/&nbsp;/gi, " ")
-      .replace(/&amp;/gi, "&")
-      .trim();
-  }
-};
 
 const WirePlaceholder = () => (
   <div className="relative flex w-full max-h-[min(32vh,220px)] min-h-[9rem] flex-col items-center justify-center bg-[rgb(var(--surface))] select-none sm:max-h-[min(36vh,260px)] sm:min-h-[11rem]">
@@ -53,6 +38,9 @@ const NewsPreviewModal = ({ article, onClose }) => {
   };
 
   const hasImage = article.image && !imgFailed;
+  // Utamakan teks penuh bila ada; `description` sering hanya potongan awal
+  // dari teks yang sama, dan strukturnya sudah hilang di sana.
+  const bodyText = article.raw_text || article.full_text || article.description || null;
   const sourceLabel = article.source
     ? String(article.source)
         .replace(/^www\./i, "")
@@ -142,7 +130,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
       <div className="space-y-4 px-4 py-5 sm:space-y-5 sm:px-6 sm:py-6">
         <div className="space-y-2">
           <h2 className="font-display text-[17px] font-semibold leading-snug tracking-tight text-text-primary sm:text-[21px] sm:leading-[1.28]">
-            {article.title}
+            {newsTitleLine(article.title)}
           </h2>
           {article.author ? (
             <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
@@ -151,14 +139,14 @@ const NewsPreviewModal = ({ article, onClose }) => {
           ) : null}
         </div>
 
-        {article.description ? (
+        {bodyText ? (
           <section className="space-y-2">
             <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
               Summary
             </h3>
-            <p className="text-[14px] leading-relaxed text-text-secondary sm:text-[15px]">
-              {cleanText(article.description)}
-            </p>
+            {/* Dulu `cleanText(...)` di dalam <p> — newline-nya rata, jadi
+                daftar bertitik tampil sebagai satu paragraf. */}
+            <NewsBody text={bodyText} title={article.title} limit={1600} />
           </section>
         ) : null}
       </div>

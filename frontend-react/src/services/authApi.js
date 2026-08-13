@@ -99,9 +99,10 @@ export const authApi = {
    * @param {string} idToken - dari window.google.accounts.id callback
    * @param {string|null} referralCode - optional, dari ?ref= di URL atau localStorage
    */
-  googleLogin: async (idToken, referralCode = null) => {
+  googleLogin: async (idToken, referralCode = null, acq = null) => {
     const body = { id_token: idToken };
     if (referralCode) body.referral_code = referralCode;
+    if (acq) body.acq = acq;
     const response = await api.post("/api/v1/auth/google", body);
     return response.data;
   },
@@ -110,12 +111,40 @@ export const authApi = {
    * Telegram Login — kirim auth data dari Telegram Widget ke backend.
    * @param {object} telegramData - { id, first_name, ..., hash }
    * @param {string|null} referralCode - optional
+   * @param {object|null} acq - first-touch UTM / referrer
    */
-  telegramLogin: async (telegramData, referralCode = null) => {
+  /**
+   * Telegram Mini App login — the signed initData string, verified server-side.
+   * No popup, no redirect: Telegram already handed us the identity.
+   */
+  telegramWebAppLogin: async (initData, referralCode = null, acq = null) => {
+    const body = { init_data: initData };
+    if (referralCode) body.referral_code = referralCode;
+    if (acq) body.acq = acq;
+    const response = await api.post("/api/v1/auth/telegram/webapp", body);
+    return response.data;
+  },
+
+  telegramLogin: async (telegramData, referralCode = null, acq = null) => {
     const body = { ...telegramData };
     if (referralCode) body.referral_code = referralCode;
+    if (acq) body.acq = acq;
     const response = await api.post("/api/v1/auth/telegram", body);
     return response.data;
+  },
+
+  /**
+   * Claim first-touch acquisition after OAuth redirect (Google/Discord).
+   * Backend writes only if user.acq_source is still empty.
+   */
+  claimAcq: async (acq) => {
+    if (!acq) return { ok: true, written: false };
+    try {
+      const response = await api.post("/api/v1/auth/me/acq", acq);
+      return response.data;
+    } catch {
+      return { ok: false, written: false };
+    }
   },
 
   /**

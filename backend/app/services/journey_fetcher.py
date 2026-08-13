@@ -386,20 +386,69 @@ def fetch_klines_with_fallback(
 # CONVENIENCE: derive direction from signal targets
 # ============================================================
 
-def derive_direction(entry: float, target1: float) -> str:
+def derive_direction(
+    entry: float,
+    target1: float,
+    *,
+    target2: float | None = None,
+    target3: float | None = None,
+    target4: float | None = None,
+    stop1: float | None = None,
+) -> str:
     """
-    Infer signal direction from entry & target1.
+    Infer signal direction from the plan's levels.
 
-    LONG: target1 > entry (price goes up)
-    SHORT: target1 < entry (price goes down)
+    This used to take target1 alone and raise ValueError when target1 == entry,
+    calling that ambiguous. It is not ambiguous — TP1 landing on the entry tick
+    is a rounding artefact, and the stop and the far targets still say which way
+    the plan points.
 
-    Raises ValueError kalau target1 == entry (ambiguous).
+    The raise was not a visible error either. journey_persistor calls this while
+    building the record, so every signal that hit the tie simply never got a
+    journey row at all: 70 signals, 48 of them resolved, absent from
+    realized_outcome_pct and from every figure derived from it, against 100%
+    journey coverage for every other resolved signal.
+
+    Evidence in order of reliability:
+      1. stop1, when it differs from the entry — it always sits on the losing
+         side. stop2 is not consulted: measured over all 56,026 signals it
+         never changes the answer, because it is null exactly where stop1 is
+      2. the furthest target that differs from the entry, TP4 first, since the
+         furthest level is the least likely to round into the entry tick
+      3. long, the only direction this desk has ever published (measured across
+         55,989 signals: none carries a stop above its entry)
+
+    Never decides from a level equal to the entry — that equality is exactly the
+    artefact this function exists to survive.
+
+    Mirrors /opt/luxquant/signal_side.py, which fixes the same bug in the chart
+    and PnL-card workers. The two codebases share no modules; if this rule
+    changes, change it there too.
     """
-    if entry <= 0 or target1 <= 0:
-        raise ValueError(f"entry & target1 must be > 0 (got entry={entry}, target1={target1})")
-    if target1 == entry:
-        raise ValueError(f"Cannot derive direction: target1 ({target1}) == entry ({entry})")
-    return 'long' if target1 > entry else 'short'
+    if entry is None or entry <= 0:
+        raise ValueError(f"entry must be > 0 (got entry={entry})")
+
+    def _f(v):
+        # asyncpg hands these over as Decimal, and some rows carry None.
+        if v is None:
+            return None
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            return None
+        return f if f > 0 else None
+
+    e = float(entry)
+
+    stop = _f(stop1)
+    if stop is not None and stop != e:
+        return 'long' if stop < e else 'short'
+
+    for tgt in (_f(target4), _f(target3), _f(target2), _f(target1)):
+        if tgt is not None and tgt != e:
+            return 'long' if tgt > e else 'short'
+
+    return 'long'
 
 
 # ============================================================

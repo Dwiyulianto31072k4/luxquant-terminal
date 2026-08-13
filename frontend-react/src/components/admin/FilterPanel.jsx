@@ -150,7 +150,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
               ]}
             />
             <Select
-              label="Source"
+              label="Subscription Source"
               value={filters.source}
               onChange={update("source")}
               options={[

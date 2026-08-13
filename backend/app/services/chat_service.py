@@ -128,12 +128,18 @@ def set_status(db: Session, conversation_id: int, status: str) -> None:
 
 def _msg_dict(row) -> Dict[str, Any]:
     created = row["created_at"]
+    deleted_at = row.get("deleted_at")
+    deleted = deleted_at is not None or row["kind"] == "deleted"
+    expired = row["kind"] == "expired_image" and not deleted
     return {
         "id": row["id"],
         "seq": row["seq"],
         "sender": row["sender"],
-        "body": row["body"],
-        "kind": row["kind"],
+        "body": "" if deleted or expired else row["body"],
+        "kind": "deleted" if deleted else "expired_image" if expired else row["kind"],
+        "deleted": deleted,
+        "expired": expired,
+        "deleted_at": deleted_at.isoformat() if deleted_at else None,
         "client_msg_id": row["client_msg_id"],
         "created_at": created.isoformat() if created else None,
     }
@@ -186,7 +192,8 @@ def append_message(
         if client_msg_id:
             existing = db.execute(
                 text("""
-                    SELECT id, seq, sender, body, kind, client_msg_id, created_at
+                    SELECT id, seq, sender, body, kind, deleted_at,
+                           client_msg_id, created_at
                       FROM chat_messages
                      WHERE conversation_id = :cid AND client_msg_id = :cmid
                 """),
@@ -228,7 +235,8 @@ def append_message(
                     :vis, :src, :cmid, :relay,
                     :tgc, :tgm
                 )
-                RETURNING id, seq, sender, body, kind, client_msg_id, created_at
+                RETURNING id, seq, sender, body, kind, deleted_at,
+                          client_msg_id, created_at
             """),
             {
                 "cid": conversation_id, "seq": seq, "sender": sender,
@@ -253,31 +261,193 @@ def list_messages(
     after_seq: int = 0,
     limit: int = DEFAULT_PAGE,
     include_admin_only: bool = False,
+    before_seq: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
-    """Messages with seq > after_seq, oldest first.
+    """A deterministic page of messages, always returned oldest first.
 
     `include_admin_only=False` hides visibility='admin' rows — AI drafts and
     internal notes (phase 6). The user-facing route must never pass True.
+
+    `after_seq` polls forward, `before_seq` pages backward, and no cursor returns
+    the newest page. Returning the oldest page on first load would skip the
+    middle of a long thread as soon as the client advanced to `last_seq`.
     """
     limit = max(1, min(limit, 500))
     vis_clause = "" if include_admin_only else "AND visibility = 'all'"
+    if before_seq is not None and after_seq:
+        raise ValueError("after_seq and before_seq are mutually exclusive")
+
+    if before_seq is not None:
+        cursor_clause = "AND seq < :cursor"
+        cursor = max(1, int(before_seq))
+        direction = "DESC"
+    elif after_seq:
+        cursor_clause = "AND seq > :cursor"
+        cursor = max(0, int(after_seq))
+        direction = "ASC"
+    else:
+        cursor_clause = ""
+        cursor = 0
+        direction = "DESC"
+
     try:
         rows = db.execute(
             text(f"""
-                SELECT id, seq, sender, body, kind, client_msg_id, created_at
-                  FROM chat_messages
-                 WHERE conversation_id = :cid
-                   AND seq > :after
-                   {vis_clause}
+                SELECT id, seq, sender, body, kind, deleted_at,
+                       client_msg_id, created_at
+                  FROM (
+                    SELECT id, seq, sender, body, kind, deleted_at,
+                           client_msg_id, created_at
+                      FROM chat_messages
+                     WHERE conversation_id = :cid
+                       {cursor_clause}
+                       {vis_clause}
+                     ORDER BY seq {direction}
+                     LIMIT :lim
+                  ) page
                  ORDER BY seq ASC
-                 LIMIT :lim
             """),
-            {"cid": conversation_id, "after": after_seq, "lim": limit},
+            {"cid": conversation_id, "cursor": cursor, "lim": limit},
         ).mappings().all()
     except Exception as e:
         _guard_schema(e)
         raise
     return [_msg_dict(r) for r in rows]
+
+
+def has_messages_before(
+    db: Session,
+    conversation_id: int,
+    before_seq: int,
+    include_admin_only: bool = False,
+) -> bool:
+    """Cheap existence check used by the history pager."""
+    vis_clause = "" if include_admin_only else "AND visibility = 'all'"
+    row = db.execute(
+        text(f"""
+            SELECT 1
+              FROM chat_messages
+             WHERE conversation_id = :cid
+               AND seq < :before
+               {vis_clause}
+             LIMIT 1
+        """),
+        {"cid": conversation_id, "before": max(1, int(before_seq))},
+    ).first()
+    return row is not None
+
+
+def list_message_tombstones(
+    db: Session,
+    conversation_id: int,
+    include_admin_only: bool = False,
+) -> List[Dict[str, Any]]:
+    """Return deleted rows so an already-open client can replace old bubbles.
+
+    Deletion does not allocate a new seq (doing so would distort read counts),
+    so an `after=<last_seq>` poll cannot discover it naturally. Tombstones are
+    tiny and rare; returning the conversation's set during tail polls keeps both
+    sides live without introducing a second mutable cursor.
+    """
+    vis_clause = "" if include_admin_only else "AND visibility = 'all'"
+    rows = db.execute(
+        text(f"""
+            SELECT id, seq, sender, body, kind, deleted_at,
+                   client_msg_id, created_at
+              FROM chat_messages
+             WHERE conversation_id = :cid
+               AND kind IN ('deleted', 'expired_image')
+               {vis_clause}
+             ORDER BY seq ASC
+             LIMIT 500
+        """),
+        {"cid": conversation_id},
+    ).mappings().all()
+    return [_msg_dict(row) for row in rows]
+
+
+def delete_message(
+    db: Session,
+    *,
+    conversation_id: int,
+    message_id: int,
+    deleted_by_user_id: int,
+    admin: bool,
+) -> Dict[str, Any]:
+    """Blank message content but preserve its sequence as a tombstone."""
+    try:
+        row = db.execute(
+            text("""
+                SELECT id, seq, sender, sender_user_id, body, kind, deleted_at,
+                       client_msg_id, created_at, relay_state
+                  FROM chat_messages
+                 WHERE id = :mid AND conversation_id = :cid
+                   FOR UPDATE
+            """),
+            {"mid": message_id, "cid": conversation_id},
+        ).mappings().first()
+        if not row:
+            raise ValueError("Message not found")
+        if row["sender"] == "system":
+            raise ValueError("System messages cannot be deleted")
+        if not admin and not (
+            row["sender"] == "user" and row["sender_user_id"] == deleted_by_user_id
+        ):
+            raise PermissionError("You can only delete your own messages")
+
+        original = dict(row)
+        if row["deleted_at"] is None:
+            updated = db.execute(
+                text("""
+                    UPDATE chat_messages
+                       SET body = '', kind = 'deleted', deleted_at = now(),
+                           deleted_by_user_id = :uid,
+                           relay_state = CASE WHEN relay_state = 'pending'
+                                              THEN 'skipped' ELSE relay_state END,
+                           relay_error = CASE WHEN relay_state = 'pending'
+                                              THEN 'message deleted before relay'
+                                              ELSE relay_error END
+                     WHERE id = :mid
+                 RETURNING id, seq, sender, body, kind, deleted_at,
+                           client_msg_id, created_at
+                """),
+                {"uid": deleted_by_user_id, "mid": message_id},
+            ).mappings().first()
+            db.execute(
+                text("""
+                    UPDATE chat_conversations c
+                       SET last_user_message_at = (
+                               SELECT max(created_at) FROM chat_messages
+                                WHERE conversation_id = c.id
+                                  AND sender = 'user' AND kind <> 'deleted'
+                           ),
+                           last_admin_message_at = (
+                               SELECT max(created_at) FROM chat_messages
+                                WHERE conversation_id = c.id
+                                  AND sender IN ('admin', 'ai') AND kind <> 'deleted'
+                           ),
+                           updated_at = now()
+                     WHERE c.id = :cid
+                """),
+                {"cid": conversation_id},
+            )
+            db.commit()
+        else:
+            updated = row
+    except (ValueError, PermissionError):
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        _guard_schema(e)
+        raise
+
+    return {
+        "message": _msg_dict(updated),
+        "deleted_kind": original["kind"],
+        "deleted_body": original["body"],
+        "relay_was_sent": original["relay_state"] == "sent",
+    }
 
 
 def mark_read(db: Session, conversation_id: int, who: str, seq: int) -> None:
@@ -452,15 +622,19 @@ def admin_conversation_list(
                        c.last_message_at, c.last_user_message_at,
                        c.last_admin_message_at, c.tg_topic_state,
                        c.handoff_sent_at, c.dm_bound_at,
-                       u.username, u.email, u.role,
+                       u.username, u.email, u.avatar_url, u.role,
                        u.subscription_expires_at, u.telegram_id,
                        u.telegram_username, u.telegram_in_group,
                        u.last_active_at, u.created_at AS user_created_at,
-                       (SELECT m.body FROM chat_messages m
+                       (SELECT CASE WHEN m.kind = 'expired_image'
+                                    THEN 'Image expired' ELSE m.body END
+                          FROM chat_messages m
                          WHERE m.conversation_id = c.id AND m.visibility = 'all'
+                           AND m.kind <> 'deleted'
                          ORDER BY m.seq DESC LIMIT 1) AS last_body,
                        (SELECT m.sender FROM chat_messages m
                          WHERE m.conversation_id = c.id AND m.visibility = 'all'
+                           AND m.kind <> 'deleted'
                          ORDER BY m.seq DESC LIMIT 1) AS last_sender
                   FROM chat_conversations c
                   JOIN users u ON u.id = c.user_id

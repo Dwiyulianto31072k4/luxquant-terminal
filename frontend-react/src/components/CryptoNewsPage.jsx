@@ -18,6 +18,8 @@ import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
+import NewsBody from "./NewsBody";
+import { newsTitleLine } from "../utils/newsFormat";
 import { SegGroup } from "./ui/SegGroup";
 import { PageHeader } from "./ui/PageHeader";
 
@@ -553,7 +555,7 @@ const NewsModal = ({ item, onClose }) => {
             </span>
           ) : null}
           <h2 className="font-display text-[18px] font-semibold leading-[1.3] tracking-tight text-text-primary sm:text-[22px] sm:leading-[1.28] md:text-[24px]">
-            {item.title}
+            {newsTitleLine(item.title)}
           </h2>
           {authors.length > 0 ? (
             <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
@@ -576,9 +578,7 @@ const NewsModal = ({ item, onClose }) => {
             <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
               Summary
             </h3>
-            <p className="text-[14px] leading-[1.7] text-text-secondary sm:text-[15px] sm:leading-[1.75]">
-              {cleanText(leadText)}
-            </p>
+            <NewsBody text={leadText} title={item.title} limit={900} />
           </section>
         ) : bodyText ? null : (
           <p className="font-mono text-[11px] text-text-muted/70">
@@ -608,10 +608,10 @@ const NewsModal = ({ item, onClose }) => {
                 Article preview
               </h3>
             ) : null}
-            <p className="whitespace-pre-line text-[14px] leading-[1.7] text-text-secondary sm:text-[15px] sm:leading-[1.75]">
-              {cleanText(bodyText).slice(0, 1400)}
-              {cleanText(bodyText).length > 1400 ? "…" : ""}
-            </p>
+            {/* Dulu `cleanText(bodyText)` — ia meratakan newline, jadi
+                `whitespace-pre-line` tidak punya apa pun untuk dipertahankan dan
+                daftar dari Telegram tampil sebagai satu paragraf panjang. */}
+            <NewsBody text={bodyText} title={item.title} />
           </section>
         ) : null}
 
@@ -774,7 +774,7 @@ const FeaturedCard = ({ item, onSelect }) => {
       }}
       role="button"
       tabIndex={0}
-      aria-label={`Read: ${item.title || "article"}`}
+      aria-label={`Read: ${newsTitleLine(item.title) || "article"}`}
       className="h-full cursor-pointer"
     >
       <div className={cardShell}>
@@ -791,7 +791,7 @@ const FeaturedCard = ({ item, onSelect }) => {
             </span>
           </div>
           <h2 className="text-[15px] font-semibold leading-snug tracking-tight text-text-primary line-clamp-3 sm:text-[17px]">
-            {item.title}
+            {newsTitleLine(item.title)}
           </h2>
           {item.description ? (
             <p className="text-[12.5px] leading-relaxed text-text-secondary line-clamp-2">
@@ -808,7 +808,8 @@ const FeaturedCard = ({ item, onSelect }) => {
 const StoryCard = ({ item, onSelect }) => {
   const src = getCardImage(item);
   const hasVideo = !!getVideoSrc(item);
-  const title = item.title || "Untitled";
+  // `title` di DB kadang memuat seluruh isi pesan, bukan judulnya saja.
+  const title = newsTitleLine(item.title) || "Untitled";
 
   return (
     <button type="button" onClick={() => onSelect(item)} className={cardShell}>

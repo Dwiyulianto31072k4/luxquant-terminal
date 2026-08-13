@@ -939,7 +939,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
  .da-modal-backdrop { position: absolute; inset: 0; background: rgb(var(--scrim) / var(--lq-scrim-alpha)); backdrop-filter: blur(var(--lq-scrim-blur)); -webkit-backdrop-filter: blur(var(--lq-scrim-blur)); }
  .da-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; max-height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: var(--lq-modal-top) 0 0 0; pointer-events: none; }
  .da-modal-container > * { pointer-events: auto; }
- .da-modal-content { position: relative; width: 100%; max-width: 1100px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: rgb(var(--surface-raised)); border-top: 1px solid rgb(var(--ink) / 0.08); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -16px 48px rgb(var(--scrim) / 0.35); animation: daUp .32s cubic-bezier(.16,1,.3,1); }
+ .da-modal-content { position: relative; width: 100%; max-width: 1100px; height: min(var(--lq-modal-maxh), 100%); max-height: min(var(--lq-modal-maxh), 100%); min-height: min(70dvh, var(--lq-modal-maxh)); background: rgb(var(--surface-raised)); border-top: 1px solid rgb(var(--ink) / 0.08); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -16px 48px rgb(var(--scrim) / 0.35); animation: daUp .32s cubic-bezier(.16,1,.3,1); }
 
  @media(min-width:640px) {
  .da-modal-overlay { align-items: center; }

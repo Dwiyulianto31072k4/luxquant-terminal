@@ -1,8 +1,8 @@
 # Guide: Bitcoin
 
 The Bitcoin page is a data dashboard for BTC — price, market structure, sentiment,
-technicals, network health, and on-chain metrics in one place. This guide explains
-each section and metric.
+technicals, network health, and on-chain metrics in one place. It is free with a
+login. This guide explains each section and metric.
 
 > Note: This page is data and information, not a recommendation to buy or sell.
 

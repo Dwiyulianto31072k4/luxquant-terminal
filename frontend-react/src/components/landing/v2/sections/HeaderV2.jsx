@@ -15,12 +15,14 @@
 // Floating capsule on scroll is preserved from the previous header.
 // ════════════════════════════════════════════════════════════════
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import MoreMenuDropdown from "../../../MoreMenuDropdown";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { isPremiumUser } from "../../../../utils/roles";
+import { PREMIUM_REQUIRED } from "../../../../utils/routeAccess";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { CTA } from "../landingCopy";
 import { PrimaryButton, SecondaryButton } from "./shared/LandingButtons";
@@ -58,7 +60,7 @@ function LandingThemePicker() {
             onClick={() => setTheme(o.k)}
             className={`relative h-5 w-5 rounded-full border transition-transform before:absolute before:-inset-2 before:content-[''] ${
               on
-                ? "border-accent scale-110 shadow-[0_0_0_1.5px_rgb(var(--accent))]"
+                ? "border-accent scale-110"
                 : "border-ink/15 opacity-70 hover:opacity-100 hover:scale-105"
             }`}
             style={{ background: THEME_SWATCH[o.k] }}
@@ -124,7 +126,8 @@ const MOBILE_FEATURES = [
 
 export default function HeaderV2({ onNav, activeId = "hero" }) {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isPremium = isPremiumUser(user);
 
   const [scrolled, setScrolled] = useState(false);
   // The hero carries its own CTA in the first screen. Showing the header's copy
@@ -134,6 +137,17 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
   const [openGroups, setOpenGroups] = useState({}); // mobile accordion — collapsed by default
 
   const toggleGroup = (name) => setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+
+  // Closing the drawer makes it inert, so focus sitting inside it would be
+  // stranded in a subtree nothing can reach. Hand it back to the control that
+  // opened it — the same thing a well-behaved dialog does on dismiss.
+  const drawerRef = useRef(null);
+  const burgerRef = useRef(null);
+  useEffect(() => {
+    if (mobileOpen) return;
+    const drawer = drawerRef.current;
+    if (drawer && drawer.contains(document.activeElement)) burgerRef.current?.focus();
+  }, [mobileOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -179,7 +193,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
         className={[
           "mx-auto w-full border transition-all duration-500 ease-out",
           scrolled
-            ? "mt-3 max-w-[1280px] rounded-full border-ink/[0.08] bg-surface/80 shadow-[0_8px_32px_rgb(var(--scrim) / 0.35)] backdrop-blur-xl"
+            ? "mt-3 max-w-[1280px] rounded-full border-ink/[0.08] bg-surface/80 backdrop-blur-xl"
             : "mt-0 max-w-7xl rounded-none border-transparent bg-transparent",
         ].join(" ")}
       >
@@ -236,12 +250,17 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
  Uppercase ONLY the trigger (direct div>button), so the
  dropdown item labels keep their normal app casing. */}
               <div className="ml-0.5 [&>div>button]:text-[12.5px] [&>div>button]:tracking-[0.01em]">
+                {/* Was isPremium={false} with premiumPaths={[]} — the menu had
+                    no idea what costs money, so it marked nothing PRO for a
+                    free account and, just as wrong, would have marked things
+                    PRO for a member who already pays. Same two inputs the app
+                    shell passes. */}
                 <MoreMenuDropdown
                   label="More"
                   isActive={() => false}
-                  isPremium={false}
+                  isPremium={isPremium}
                   isAdmin={false}
-                  premiumPaths={[]}
+                  premiumPaths={PREMIUM_REQUIRED}
                   onNavigate={goFeature}
                   moreHasActive={false}
                 />
@@ -300,9 +319,9 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           {/* Desktop-only gold CTA. Mobile: sticky "Continue" owns conversion after
               scroll; menu holds Start Free — avoids two competing gold primaries. */}
             <PrimaryButton
-              size="md"
+              size="sm"
               onClick={isAuthenticated ? () => navigate("/home") : goSignup}
-              className={`!hidden !h-10 !px-4 !text-[13px] lg:!inline-flex ${
+              className={`hidden lg:inline-flex ${
                 isAuthenticated || pastHero
                   ? "lg:pointer-events-auto lg:opacity-100"
                   : "lg:pointer-events-none lg:opacity-0"
@@ -313,6 +332,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
 
           {/* Mobile hamburger */}
           <button
+            ref={burgerRef}
             type="button"
             onClick={() => setMobileOpen((value) => !value)}
             className="-mr-1 flex h-11 w-11 items-center justify-center text-text-primary/70 transition-colors hover:text-text-primary lg:hidden"
@@ -344,14 +364,31 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
         </div>
       </div>
 
-      {/* Mobile / tablet menu */}
+      {/* Mobile / tablet menu
+          `max-h-0 + opacity-0 + overflow-hidden` hides this from the eye but
+          not from the machine: overflow clips paint, not layout, so every
+          control inside kept its box, its place in the tab order and its voice
+          in the accessibility tree. Measured while closed: 44 focusable
+          elements inside opacity-0 containers, and 32 tab stops before a
+          keyboard could reach the hero's primary CTA.
+          `inert` removes focus and AT exposure in one attribute.
+
+          It is deliberately NOT paired with aria-hidden. Tapping a button in
+          here closes the drawer while that button still holds focus, and the
+          browser then refuses the attribute outright: "Blocked aria-hidden on
+          an element because its descendant retained focus." Chrome's own advice
+          in that message is to use inert instead — which is what this does, and
+          which already hides the subtree from assistive tech. The paired
+          aria-hidden was belt-and-braces that only ever produced the warning. */}
       <div
+        ref={drawerRef}
+        {...(mobileOpen ? {} : { inert: "" })}
         className={[
           "absolute left-3 right-3 top-full mt-2 overflow-hidden rounded-2xl",
           "bg-surface/95 backdrop-blur-3xl transition-all duration-500 ease-in-out",
           mobileOpen
-            ? "max-h-[82vh] border border-ink/[0.08] opacity-100 shadow-2xl"
-            : "max-h-0 border border-transparent opacity-0",
+            ? "max-h-[82vh] border border-ink/[0.08] opacity-100"
+            : "pointer-events-none max-h-0 border border-transparent opacity-0",
         ].join(" ")}
       >
         <div className="max-h-[82vh] space-y-0.5 overflow-y-auto px-3 py-3">
@@ -402,10 +439,14 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
+                  {/* Same trap one level down: a collapsed group still held
+                      focusable buttons even while the drawer itself was open.
+                      inert only — see the note on the drawer above. */}
                   <div
+                    {...(open ? {} : { inert: "" })}
                     className={[
                       "overflow-hidden transition-all duration-300 ease-in-out",
-                      open ? "max-h-96 opacity-100" : "max-h-0 opacity-0",
+                      open ? "max-h-96 opacity-100" : "pointer-events-none max-h-0 opacity-0",
                     ].join(" ")}
                   >
                     <div className="space-y-0.5 pb-1 pl-2">
@@ -432,16 +473,15 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           >
             {!isAuthenticated && (
               <SecondaryButton
-                size="md"
+                size="sm"
                 width="full"
                 onClick={goLogin}
-                className="!text-[13px]"
               >
                 {CTA.logIn}
               </SecondaryButton>
             )}
             <PrimaryButton
-              size="md"
+              size="sm"
               width="full"
               onClick={
                 isAuthenticated
@@ -451,7 +491,6 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                     }
                   : goSignup
               }
-              className="!text-[13px]"
             >
               {isAuthenticated ? CTA.openAppHeader : CTA.signUp}
             </PrimaryButton>

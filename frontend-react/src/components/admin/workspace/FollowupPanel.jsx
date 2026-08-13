@@ -82,7 +82,7 @@ const UserPicker = ({ selectedUser, onChange }) => {
         onFocus={() => setShowResults(true)}
         placeholder="Search user (min 2 chars)…"
         className="w-full rounded-lg py-2 pl-9 pr-3 text-xs text-text-primary focus:outline-none"
-        style={{ background: "rgb(var(--scrim) / 0.3)", border: "1px solid rgb(var(--ink) / 0.1)" }}
+        style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgb(var(--ink) / 0.1)" }}
       />
       {showResults && results.length > 0 && (
         <div
@@ -294,7 +294,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             maxLength={200}
             className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
             }}
           />
@@ -339,7 +339,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             onChange={(e) => setDueDate(e.target.value)}
             className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
               colorScheme: "dark",
             }}
@@ -361,7 +361,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             placeholder="Additional detail, context, or action items…"
             className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
             }}
           />

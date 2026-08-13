@@ -19,6 +19,14 @@ const subscriptionApi = {
     return response.data;
   },
 
+  // The one open, unexpired invoice this customer has — or null. Until this
+  // existed an invoice lived only in the router state of the tab that made it,
+  // so a reload, a new tab, or a link from a reminder lost it entirely.
+  getPendingInvoice: async () => {
+    const response = await api.get("/api/v1/subscription/pending");
+    return response.data?.invoice || null;
+  },
+
   verifyPayment: async (paymentId, txHash) => {
     const response = await api.post("/api/v1/subscription/verify", {
       payment_id: paymentId,

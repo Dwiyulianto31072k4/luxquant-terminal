@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SignalsTable from "./SignalsTable";
+import { useAuth } from "../context/AuthContext";
+import { isEntitled } from "../utils/entitlement";
 import SignalModal from "./SignalModal";
 import BtcDomAlert from "./BtcDomAlert";
-import { classifyCoin } from "./coinIntelShared";
+import { classifyCoin, classifySignalVerdict } from "./coinIntelShared";
 import { InfoTip, GuideModal } from "./GuideInfo";
 import { watchlistApi } from "../services/watchlistApi";
 import moneyFlowApi from "../services/moneyFlowApi";
@@ -12,8 +14,30 @@ import { signalsApi } from "../services/api";
 import CoinLogo from "./CoinLogo";
 import CompassSnapshot from "./aiArenaV6/CompassSnapshot";
 import AssistantWidget from "./assistant/AssistantWidget";
-import { filtersToParams } from "../utils/signalFilters";
-import { PageHeader } from "./ui/PageHeader";
+import EdgePlaybook, { buildRunnerTagSet } from "./EdgePlaybook";
+import EdgeActiveFilters from "./EdgeActiveFilters";
+import EdgeCorrelationPanel from "./EdgeCorrelationPanel";
+import EdgeRecipesBar from "./EdgeRecipesBar";
+import { buildEdgeScoreMap, plainEdgeWhy } from "../utils/edgeScore";
+import {
+  DEFAULT_SORTS,
+  MAX_SORTS,
+  MULTI_SORT_PRESETS,
+  applySortClick,
+  formatSortChain,
+  isDefaultSorts,
+  normalizeSorts,
+  orderLabel,
+  primaryOf,
+  removeSortLevel,
+  setPrimarySort,
+  sortSignals,
+  sortsFromLegacy,
+  SORT_LABELS as SORT_FIELD_LABELS,
+  toggleSortLevel,
+} from "../utils/signalSort";
+
+
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -254,51 +278,182 @@ const Icon = {
   ),
 };
 
-const ProductSwitcher = ({ active = "trades", onTerminal, onResearch }) => {
-  const base =
-    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors";
-  const on = "bg-ink/[0.1] text-text-primary shadow-sm";
-  const off = "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]";
-  return (
-    <div
-      className="inline-flex items-center rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-0.5"
-      role="navigation"
-      aria-label="Product"
+// Desk KPI cell — Stripe/Bloomberg strip: quiet label, big number, human sub
+// A locked KPI keeps its own shape — same label, same footprint — so the row
+// still reads as a row and the reader can see exactly what they are missing.
+// The value is rendered and then blurred rather than replaced by dots: the
+// blur says "there is a real number here", which a placeholder does not.
+const LockedKpi = ({ label, value, sub, edge, onUnlock }) => (
+  <button
+    type="button"
+    onClick={onUnlock}
+    aria-label={`${label} — subscribe to unlock`}
+    className={`group relative min-w-0 overflow-hidden px-3.5 py-3 text-left sm:px-5 sm:py-3.5 ${
+      edge ? "" : "border-l border-ink/[0.06]"
+    }`}
+  >
+    <p className="text-[11px] font-medium text-text-muted">{label}</p>
+    <p
+      aria-hidden="true"
+      className="mt-1 select-none font-mono text-[22px] font-semibold tabular-nums leading-none tracking-tight text-text-primary sm:text-[26px]"
+      style={{ filter: "blur(7px)", opacity: 0.55 }}
+    >
+      {value}
+    </p>
+    {sub ? (
+      <p
+        aria-hidden="true"
+        className="mt-1.5 select-none truncate text-[11px] text-text-muted/85"
+        style={{ filter: "blur(4px)", opacity: 0.55 }}
+      >
+        {sub}
+      </p>
+    ) : null}
+    <span
+      className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+      style={{ background: "rgb(var(--surface-raised) / 0.72)" }}
     >
       <span
-        className={`${base} ${active === "trades" ? on : off}`}
-        aria-current={active === "trades" ? "page" : undefined}
+        className="rounded-md px-2.5 py-1 text-[10.5px] font-semibold"
+        style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
       >
-        Trades
+        Unlock
+      </span>
+    </span>
+  </button>
+);
+
+// Stands in for a research panel a free account cannot open. It says what the
+// panel does and what it is for, because a benefit converts and a greyed-out
+// control panel just frustrates.
+const ProLock = ({ eyebrow, title, blurb, points = [], onUnlock }) => (
+  <div
+    className="overflow-hidden rounded-xl border border-ink/[0.07]"
+    style={{ background: "rgb(var(--accent) / 0.05)" }}
+  >
+    <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <div className="min-w-0">
+        <div className="mb-1.5 flex items-center gap-2">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            style={{ color: "rgb(var(--accent-text))" }}
+            aria-hidden="true"
+          >
+            <rect x="4" y="10" width="16" height="11" rx="2" />
+            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+          </svg>
+          <span
+            className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "rgb(var(--accent-text))" }}
+          >
+            {eyebrow}
+          </span>
+        </div>
+        <p className="text-[13.5px] font-semibold text-text-primary">{title}</p>
+        <p className="mt-1 max-w-2xl text-[11.5px] leading-relaxed text-text-muted">
+          {blurb}
+        </p>
+        {points.length > 0 && (
+          <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+            {points.map((pt) => (
+              <li
+                key={pt}
+                className="flex items-center gap-1.5 text-[11px] text-text-muted"
+              >
+                <span style={{ color: "rgb(var(--accent-text))" }}>&#10003;</span>
+                {pt}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onUnlock}
+        className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
+        style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+      >
+        Take a look
+      </button>
+    </div>
+  </div>
+);
+
+// Names the tier before the reader interprets its limits as the product being
+// thin. Dismissible per session: read once, then out of the way.
+const FreeTierNotice = ({ onUpgrade }) => {
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return sessionStorage.getItem("lq:signals:free-notice") === "1";
+    } catch {
+      return false;
+    }
+  });
+  if (hidden) return null;
+  const dismiss = () => {
+    try {
+      sessionStorage.setItem("lq:signals:free-notice", "1");
+    } catch {
+      /* private mode — the notice simply returns next load */
+    }
+    setHidden(true);
+  };
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-4 py-2.5"
+      style={{
+        borderColor: "rgb(var(--accent) / 0.28)",
+        background: "rgb(var(--accent) / 0.06)",
+      }}
+    >
+      <span
+        className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+        style={{ color: "rgb(var(--accent-text))" }}
+      >
+        Free version
+      </span>
+      <span className="min-w-0 flex-1 text-[12px] leading-relaxed text-text-muted">
+        No active subscription — you&rsquo;re seeing calls that already finished.
+        The ones running right now, and the desk tools around them, open with VIP.
       </span>
       <button
         type="button"
-        onClick={onTerminal}
-        className={`${base} ${active === "terminal" ? on : off}`}
+        onClick={onUpgrade}
+        className="shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[11.5px] font-semibold transition-all hover:brightness-110"
+        style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
       >
-        Terminal
+        See VIP
       </button>
       <button
         type="button"
-        onClick={onResearch}
-        className={`${base} ${active === "research" ? on : off}`}
+        onClick={dismiss}
+        aria-label="Dismiss"
+        className="shrink-0 rounded-md px-1.5 py-1 text-[13px] leading-none text-text-muted transition-colors hover:text-text-primary"
       >
-        AI Research
+        &times;
       </button>
     </div>
   );
 };
 
-// Single KPI cell inside the ribbon
 const KpiCell = ({ label, value, valueColor = "text-text-primary", sub, edge }) => (
-  <div className={`min-w-0 px-4 py-3.5 sm:px-5 ${edge ? "" : "border-l border-ink/[0.06]"}`}>
-    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">{label}</p>
+  <div
+    className={`min-w-0 px-3.5 py-3 sm:px-5 sm:py-3.5 ${edge ? "" : "border-l border-ink/[0.06]"}`}
+  >
+    <p className="text-[11px] font-medium text-text-muted">{label}</p>
     <p
-      className={`mt-1.5 font-mono text-xl sm:text-2xl font-semibold tabular-nums leading-none tracking-tight ${valueColor}`}
+      className={`mt-1 font-mono text-[22px] font-semibold tabular-nums leading-none tracking-tight sm:text-[26px] ${valueColor}`}
     >
       {value}
     </p>
-    {sub ? <p className="mt-1.5 font-mono text-[10px] text-text-muted/80 truncate">{sub}</p> : null}
+    {sub ? (
+      <p className="mt-1.5 truncate text-[11px] text-text-muted/85">{sub}</p>
+    ) : null}
   </div>
 );
 
@@ -404,6 +559,27 @@ const SignalsPage = () => {
     bootCache ? new Date(bootCache.at) : null
   );
   const [stats, setStats] = useState(() => bootCache?.stats || null);
+  const [apiIsSubscriber, setIsSubscriber] = useState(
+    () => bootCache?.isSubscriber ?? false
+  );
+  const [apiAnswered, setEntitlementKnown] = useState(
+    () => bootCache?.isSubscriber != null
+  );
+  // The account itself is the fast answer and needs no request; the payload
+  // confirms it. OR-ed, so a stale snapshot can never take access away from
+  // someone who has it.
+  const { user, loading: authLoading } = useAuth();
+  const entitledByAccount = isEntitled(user);
+  const isSubscriber = entitledByAccount || apiIsSubscriber;
+  // Guessing wrong is a bug in both directions: guess "free" and a paying
+  // admin gets a blurred desk; guess "paid" and a free account sees the real
+  // numbers flash before they are hidden. So lock nothing until one of the two
+  // sources has actually spoken.
+  const entitlementKnown = !authLoading || apiAnswered;
+  const [hiddenCount, setHiddenCount] = useState(
+    () => bootCache?.hiddenCount ?? 0
+  );
+  const [vipSample, setVipSample] = useState(() => bootCache?.vipSample ?? null);
 
   // Coin Intelligence map { pair: coinObj } — used to join win-streak (and other
   // anomaly data) onto signal rows for the new column / filter / sort.
@@ -436,13 +612,31 @@ const SignalsPage = () => {
   const [flowCount, setFlowCount] = useState(10); // berapa koin ditampilkan (min 10)
   const [flowSort, setFlowSort] = useState({ key: "intensity", dir: "desc" }); // sort tabel flow
   const navigate = useNavigate();
+  // Every blurred number is a button, and they all lead here.
+  const goPricing = () => navigate("/pricing?src=signals_locked");
   const tabScrollRef = useRef(null); // horizontal scroll tab bar (day tabs)
-  const [sortBy, setSortBy] = useState("created_at");
-  const [sortOrder, setSortOrder] = useState("desc");
+  // Multi-level sort chain: [{ field, order }, ...] — primary first.
+  const [sorts, setSorts] = useState(() => [...DEFAULT_SORTS]);
+  const sortBy = sorts[0]?.field || "created_at";
+  const sortOrder = sorts[0]?.order || "desc";
+  const setSortBy = useCallback((field) => {
+    setSorts((prev) => {
+      const order = prev[0]?.field === field ? prev[0].order : "desc";
+      return setPrimarySort(field, order);
+    });
+  }, []);
+  const setSortOrder = useCallback((order) => {
+    setSorts((prev) => {
+      const p = primaryOf(prev);
+      return [{ field: p.field, order: order === "asc" ? "asc" : "desc" }, ...prev.slice(1)];
+    });
+  }, []);
 
   // Tag intelligence (historical WR per important tag + active signal map).
   const [tagWr, setTagWr] = useState(() => bootCache?.tagWr || []); // raw list from /analytics/tag-wr
-  const [selectedTags, setSelectedTags] = useState([]); // tag names the user filters by
+  const [selectedTags, setSelectedTags] = useState([]); // multi-select tags (combine freely)
+  // any = OR (has at least one tag); all = AND (must carry every selected tag)
+  const [tagMatchMode, setTagMatchMode] = useState("any");
   const [showAllTags, setShowAllTags] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
@@ -467,7 +661,8 @@ const SignalsPage = () => {
         fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/stats`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
-        fetch(`${API_BASE}/api/v1/analytics/tag-wr?days=90&min_n=200`, { headers: authHeaders }),
+        // days=0 = all since tag-metrics era (2026-03-10); min_n=40 matches correlation.
+        fetch(`${API_BASE}/api/v1/analytics/tag-wr?days=0&min_n=40`, { headers: authHeaders }),
       ]);
       // Collected as we go so the cache written at the end holds one coherent
       // snapshot — never a mix of this fetch and the previous one.
@@ -476,7 +671,17 @@ const SignalsPage = () => {
       if (signalsRes.status === "fulfilled" && signalsRes.value.ok) {
         const data = await signalsRes.value.json();
         snapshot.signals = data.items || [];
+        // The API is the authority on what this account may see — reading the
+        // role from a local token would let a stale claim disagree with the
+        // payload actually served.
+        snapshot.isSubscriber = Boolean(data.is_subscriber);
+        snapshot.hiddenCount = Number(data.hidden_count) || 0;
+        snapshot.vipSample = data.vip_sample || null;
         setAllSignals(snapshot.signals);
+        setIsSubscriber(snapshot.isSubscriber);
+        setHiddenCount(snapshot.hiddenCount);
+        setVipSample(snapshot.vipSample);
+        setEntitlementKnown(true);
       } else {
         throw new Error("Failed to fetch signals.");
       }
@@ -512,6 +717,11 @@ const SignalsPage = () => {
       writeSignalsCache({
         at,
         signals: snapshot.signals,
+        // Entitlement has to survive the reload too, or a returning subscriber
+        // gets the free-account view until the fetch catches up.
+        isSubscriber: snapshot.isSubscriber ?? bootCache?.isSubscriber ?? false,
+        hiddenCount: snapshot.hiddenCount ?? bootCache?.hiddenCount ?? 0,
+        vipSample: snapshot.vipSample ?? bootCache?.vipSample ?? null,
         stats: snapshot.stats ?? bootCache?.stats ?? null,
         coinIntel: snapshot.coinIntel ?? bootCache?.coinIntel ?? {},
         currentFlow: snapshot.currentFlow ?? bootCache?.currentFlow ?? null,
@@ -631,6 +841,23 @@ const SignalsPage = () => {
     };
   }, [selectedSignalId, allSignals]);
 
+  // The three biggest movers in the loaded window, ranked by peak —
+  // close_price holds the recorded high (final target when no high was
+  // captured). Drawn from rows already on the page, so the showcase follows
+  // the period instead of being a hand-picked brag that goes stale.
+  // Chosen server-side: the coin objects have to travel with the choice, and
+  // /coin-intel is subscriber-only so the client cannot fetch them.
+  const vipSamples = useMemo(() => {
+    const ids = vipSample?.signal_ids;
+    if (!ids?.length) return [];
+    const byId = new Map((allSignals || []).map((x) => [x.signal_id, x]));
+    return ids.map((id) => byId.get(id)).filter(Boolean);
+  }, [vipSample, allSignals]);
+
+  // The desk's own figures, verbatim. Deriving them here is what produced a
+  // 63.8% win rate and an "Avoid" verdict on a call rated Worth 82.
+  const vipSampleIntel = vipSample?.intel || {};
+
   const openSignal = useCallback(
     (sig, tab = "chart") => {
       if (!sig) return;
@@ -678,8 +905,7 @@ const SignalsPage = () => {
     corrHighAlign,
     verdictFilter,
     selectedDates,
-    sortBy,
-    sortOrder,
+    sorts,
     selectedTags,
     showWatchlistOnly,
   ]);
@@ -758,7 +984,7 @@ const SignalsPage = () => {
     return { dec, hi };
   }, [allSignals]);
 
-  // Verdict (worth_it / avoid / neutral) per pair, computed once from coin-intel.
+  // Pair-level verdict (coin detail / recipes). Row filters use LOO below.
   const verdictByPair = useMemo(() => {
     const map = {};
     for (const pair in coinIntel) {
@@ -767,23 +993,47 @@ const SignalsPage = () => {
     return map;
   }, [coinIntel]);
 
+  // Per-signal Avoid/Worth: leave-one-out when closed so the row's own
+  // outcome cannot invent the label (as-of-entry best practice).
+  const getVerdictForSignal = useCallback(
+    (signal) => {
+      if (!signal?.pair) return null;
+      const coin = coinIntel?.[signal.pair];
+      if (!coin) return null;
+      return classifySignalVerdict(coin, signal);
+    },
+    [coinIntel]
+  );
+
   const verdictCounts = useMemo(() => {
     let worth = 0,
       avoid = 0;
     for (const s of allSignals) {
-      const v = verdictByPair[s.pair];
+      const v = getVerdictForSignal(s);
       if (v === "worth_it") worth++;
       else if (v === "avoid") avoid++;
     }
     return { worth, avoid };
-  }, [allSignals, verdictByPair]);
+  }, [allSignals, getVerdictForSignal]);
 
   // Tag WR lookup { tagName: { wr, n, median_peak } } — for chip labels & badges.
   const tagWrMap = useMemo(() => {
     const m = {};
-    for (const t of tagWr) m[t.tag] = { wr: t.win_rate, n: t.n, median_peak: t.median_peak };
+    for (const t of tagWr) {
+      m[t.tag] = {
+        wr: t.win_rate,
+        n: t.n,
+        median_peak: t.median_peak,
+        median_peak_wins: t.median_peak_wins,
+        tp4_rate: t.tp4_rate,
+        full_tp_rate: t.full_tp_rate,
+      };
+    }
     return m;
   }, [tagWr]);
+
+  // Tags historically associated with fuller targets / higher peak (for row badges)
+  const runnerTagSet = useMemo(() => buildRunnerTagSet(tagWr), [tagWr]);
 
   // Map { signal_id: [tagName, ...] } built from each signal's own tags
   // (provided by bulk-7d). This is what makes the filter dynamic — it reflects
@@ -798,10 +1048,57 @@ const SignalsPage = () => {
     return m;
   }, [allSignals]);
 
+  // Overall resolved baseline WR from edge-correlation (same base_wr as API open score).
+  // Fallback: client weighted tag avg inside buildEdgeScoreContext.
+  const [edgeBaselineWr, setEdgeBaselineWr] = useState(null);
+  // Server open_scored map — single source of truth for open ranks vs Edge column.
+  const [apiOpenScoreById, setApiOpenScoreById] = useState({});
+  // Edge Score v2 — EB-shrunk tags + multi-factor (vol/risk/BTC/tt/coin/expectancy)
+  const { map: edgeScoreMap } = useMemo(() => {
+    const { map, ctx } = buildEdgeScoreMap(
+      allSignals,
+      signalTags,
+      tagWr,
+      edgeBaselineWr,
+      coinIntel
+    );
+    // Overlay server open scores so Edge column matches ranked open table exactly.
+    for (const [id, row] of Object.entries(apiOpenScoreById || {})) {
+      if (row == null || row.score == null) continue;
+      const merged = {
+        ...(map[id] || {}),
+        score: row.score,
+        scoreVersion: row.score_version || "v2",
+        confidence: row.confidence ?? map[id]?.confidence,
+        avgLift: row.avg_lift_pp ?? map[id]?.avgLift,
+        avgFull: row.avg_full_tp ?? map[id]?.avgFull,
+        avg_lift_pp: row.avg_lift_pp,
+        avg_full_tp: row.avg_full_tp,
+        bestTag: row.best_tag ?? map[id]?.bestTag,
+        bestTagWr: row.best_tag_wr ?? map[id]?.bestTagWr,
+        caution: row.caution_tags ?? map[id]?.caution,
+        caution_tags: row.caution_tags,
+        matchedN: row.matched_n ?? map[id]?.matchedN,
+        preferN: map[id]?.preferN,
+        reason: row.reason ?? map[id]?.reason,
+        factors: row.factors ?? map[id]?.factors,
+        expectancyR: row.expectancy_r ?? map[id]?.expectancyR,
+        fromApi: true,
+      };
+      merged.plainWhy = plainEdgeWhy(merged);
+      map[id] = merged;
+    }
+    return { map, ctx };
+  }, [allSignals, signalTags, tagWr, edgeBaselineWr, apiOpenScoreById, coinIntel]);
+
   // Tags sorted by WR desc (chips); top 10 unless "show all".
   const sortedTagsForChips = useMemo(() => {
     return [...tagWr].sort((a, b) => b.win_rate - a.win_rate);
   }, [tagWr]);
+
+  // UTC calendar day (default) — matches backend bulk timestamps and historical
+  // Signals tabs. created_at is ISO; first 10 chars are the UTC date.
+  const signalUtcYmd = (iso) => (iso ? String(iso).slice(0, 10) : "");
 
   // Signals passing every filter EXCEPT the tag filter — used to compute
   // dynamic per-tag counts (how many currently-visible signals carry each tag)
@@ -822,7 +1119,9 @@ const SignalsPage = () => {
       f = f.filter((s) => pairMatchesQuery(s.pair, searchPair));
     }
     if (!showWatchlistOnly && selectedDates.length > 0) {
-      f = f.filter((s) => s.created_at && selectedDates.includes(s.created_at.slice(0, 10)));
+      f = f.filter(
+        (s) => s.created_at && selectedDates.includes(signalUtcYmd(s.created_at))
+      );
     }
     if (statusFilter === "updated") {
       f = f.filter((s) => s.last_update_at);
@@ -838,6 +1137,12 @@ const SignalsPage = () => {
             return st === "tp2";
           case "tp3":
             return st === "tp3";
+          case "tp1_plus":
+            return ["tp1", "tp2", "tp3", "tp4", "closed_win"].includes(st);
+          case "tp2_plus":
+            return ["tp2", "tp3", "tp4", "closed_win"].includes(st);
+          case "full_tp":
+            return st === "tp3" || st === "tp4" || st === "closed_win";
           case "tp4":
           case "closed_win":
             return st === "closed_win" || st === "tp4";
@@ -872,7 +1177,7 @@ const SignalsPage = () => {
     }
     if (corrDecoupled) f = f.filter((s) => s.btc_decoupled === true);
     if (corrHighAlign) f = f.filter((s) => (s.btc_align_score ?? -1) >= 70);
-    if (verdictFilter !== "all") f = f.filter((s) => verdictByPair[s.pair] === verdictFilter);
+    if (verdictFilter !== "all") f = f.filter((s) => getVerdictForSignal(s) === verdictFilter);
     return f;
   }, [
     allSignals,
@@ -884,7 +1189,7 @@ const SignalsPage = () => {
     corrDecoupled,
     corrHighAlign,
     verdictFilter,
-    verdictByPair,
+    getVerdictForSignal,
     coinIntel,
     showWatchlistOnly,
     watchlistSignals,
@@ -915,10 +1220,9 @@ const SignalsPage = () => {
   }, [allSignals, watchlistSignals]);
 
   const todayStats = useMemo(() => {
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const todayStr = new Date().toISOString().slice(0, 10);
     const todaySignals = allSignals.filter(
-      (s) => s.created_at && s.created_at.slice(0, 10) === todayStr
+      (s) => s.created_at && signalUtcYmd(s.created_at) === todayStr
     );
     const total = todaySignals.length;
     const open = todaySignals.filter((s) => s.status === "open").length;
@@ -935,17 +1239,19 @@ const SignalsPage = () => {
     const now = new Date();
     for (let i = 0; i < 7; i++) {
       const d = new Date(now);
-      d.setDate(d.getDate() - i);
+      d.setUTCDate(d.getUTCDate() - i);
       const dateStr = d.toISOString().slice(0, 10);
       const dayLabel =
         i === 0
           ? "Today"
           : i === 1
             ? "Yesterday"
-            : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-      const count = allSignals.filter(
-        (s) => s.created_at && s.created_at.slice(0, 10) === dateStr
-      ).length;
+            : d.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                timeZone: "UTC",
+              });
+      const count = allSignals.filter((s) => signalUtcYmd(s.created_at) === dateStr).length;
       if (count > 0) {
         options.push({ value: dateStr, label: dayLabel, count });
       }
@@ -985,25 +1291,7 @@ const SignalsPage = () => {
     return wr == null ? null : wr;
   };
 
-  const getOrderLabel = () => {
-    const isTime = ["created_at", "last_update"].includes(sortBy);
-    const isAlpha = sortBy === "pair";
-    const isRisk = sortBy === "risk_level";
-    const isStatus = sortBy === "status";
-    if (sortOrder === "desc") {
-      if (isTime) return "Newest";
-      if (isAlpha) return "Z–A";
-      if (isRisk) return "High";
-      if (isStatus) return "Latest";
-      return "Highest";
-    } else {
-      if (isTime) return "Oldest";
-      if (isAlpha) return "A–Z";
-      if (isRisk) return "Low";
-      if (isStatus) return "Early";
-      return "Lowest";
-    }
-  };
+  const getOrderLabel = () => orderLabel(sortBy, sortOrder);
 
   // Count of active advanced (secondary) filters — drives the badge on the
   // "Advanced filters" toggle. TIDAK lagi memaksa panel terbuka: user boleh
@@ -1029,7 +1317,7 @@ const SignalsPage = () => {
     corrHighAlign ||
     verdictFilter !== "all" ||
     selectedDates.length > 0 ||
-    sortBy !== "created_at" ||
+    !isDefaultSorts(sorts) ||
     selectedTags.length > 0 ||
     showWatchlistOnly;
 
@@ -1039,7 +1327,7 @@ const SignalsPage = () => {
     );
   };
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setSearchPair("");
     setStatusFilter("all");
     setRiskFilter("all");
@@ -1049,30 +1337,35 @@ const SignalsPage = () => {
     setVerdictFilter("all");
     setSelectedDates([]);
     setSelectedTags([]);
+    setTagMatchMode("any");
     setShowWatchlistOnly(false);
-    setSortBy("created_at");
-    setSortOrder("desc");
-  };
+    setSorts([...DEFAULT_SORTS]);
+    setPage(1);
+  }, []);
 
-  // Open Terminal with current table filters preserved.
-  const goTerminal = () => {
-    const params = filtersToParams({
-      searchPair,
-      statusFilter,
-      riskFilter,
-      streakFilter,
-      corrDecoupled,
-      corrHighAlign,
-      verdictFilter,
-      selectedDates,
-      selectedTags,
-      showWatchlistOnly,
-      sortBy,
-      sortOrder,
-    });
-    const qs = params.toString();
-    navigate(qs ? `/terminal/scan?${qs}` : "/terminal/scan");
-  };
+  /** Apply a full recipe / saved-view state (Cara cepat + My recipes). */
+  const applyRecipeState = useCallback((state) => {
+    if (!state || typeof state !== "object") return;
+    setSelectedTags(Array.isArray(state.selectedTags) ? state.selectedTags : []);
+    setTagMatchMode(state.tagMatchMode === "all" ? "all" : "any");
+    setVerdictFilter(state.verdictFilter || "all");
+    setStatusFilter(state.statusFilter || "all");
+    setRiskFilter(state.riskFilter || "all");
+    setStreakFilter(state.streakFilter || "all");
+    if (Array.isArray(state.sorts) && state.sorts.length) {
+      setSorts(normalizeSorts(state.sorts));
+    } else {
+      setSorts(sortsFromLegacy(state.sortBy || "created_at", state.sortOrder || "desc"));
+    }
+    setSearchPair(state.searchPair || "");
+    setCorrDecoupled(!!state.corrDecoupled);
+    setCorrHighAlign(!!state.corrHighAlign);
+    setSelectedDates([]);
+    setShowWatchlistOnly(false);
+    setPage(1);
+  }, []);
+
+
 
   const toggleDateFilter = (dateVal) => {
     if (dateVal === "all") {
@@ -1106,9 +1399,10 @@ const SignalsPage = () => {
     }
 
     // Filter tanggal hanya berlaku di mode non-watchlist (watchlist lintas-tanggal).
+    // UTC calendar day — matches created_at ISO prefix and default Signals tabs.
     if (!showWatchlistOnly && selectedDates.length > 0) {
       filtered = filtered.filter(
-        (s) => s.created_at && selectedDates.includes(s.created_at.slice(0, 10))
+        (s) => s.created_at && selectedDates.includes(signalUtcYmd(s.created_at))
       );
     }
 
@@ -1126,6 +1420,12 @@ const SignalsPage = () => {
             return st === "tp2";
           case "tp3":
             return st === "tp3";
+          case "tp1_plus":
+            return ["tp1", "tp2", "tp3", "tp4", "closed_win"].includes(st);
+          case "tp2_plus":
+            return ["tp2", "tp3", "tp4", "closed_win"].includes(st);
+          case "full_tp":
+            return st === "tp3" || st === "tp4" || st === "closed_win";
           case "tp4":
           case "closed_win":
             return st === "closed_win" || st === "tp4";
@@ -1170,170 +1470,31 @@ const SignalsPage = () => {
       filtered = filtered.filter((s) => (s.btc_align_score ?? -1) >= 70);
     }
 
-    // Verdict filter (Worth It / Avoid) — from Coin Intelligence classification.
+    // Verdict filter — per-signal LOO (closed rows exclude own outcome).
     if (verdictFilter !== "all") {
-      filtered = filtered.filter((s) => verdictByPair[s.pair] === verdictFilter);
+      filtered = filtered.filter((s) => getVerdictForSignal(s) === verdictFilter);
     }
 
-    // Tag filter — signal passes if it carries ANY of the selected tags.
+    // Tag filter — multi-select; match mode any (OR) or all (AND).
     if (selectedTags.length > 0) {
       filtered = filtered.filter((s) => {
         const tags = signalTags[s.signal_id];
-        if (!tags) return false;
-        return selectedTags.some((t) => tags.includes(t));
+        if (!tags?.length) return false;
+        return tagMatchMode === "all"
+          ? selectedTags.every((t) => tags.includes(t))
+          : selectedTags.some((t) => tags.includes(t));
       });
     }
 
-    // Stable tiebreaker — when two rows compare equal (or share missing/0 data),
-    // fall back to a deterministic order (newest call first). This is what stops
-    // rows from reshuffling every refresh, especially on page 2+.
-    const tiebreak = (a, b) => (b.call_message_id || 0) - (a.call_message_id || 0);
-
-    filtered.sort((a, b) => {
-      // Pair: alphabetical, with stable tiebreaker for duplicate pairs
-      if (sortBy === "pair") {
-        const pa = (a.pair || "").toLowerCase();
-        const pb = (b.pair || "").toLowerCase();
-        const r = sortOrder === "asc" ? pa.localeCompare(pb) : pb.localeCompare(pa);
-        return r !== 0 ? r : tiebreak(a, b);
-      }
-
-      let valA, valB;
-      switch (sortBy) {
-        case "current_price":
-          valA = getPriceVal(a.pair);
-          valB = getPriceVal(b.pair);
-          break;
-        case "entry":
-          valA = parseFloat(a.entry) || 0;
-          valB = parseFloat(b.entry) || 0;
-          break;
-        case "max_target": {
-          const getMaxPct = (s) => {
-            const targets = [s.target4, s.target3, s.target2, s.target1].filter(Boolean);
-            if (targets.length === 0 || !s.entry) return 0;
-            const maxT = Math.max(...targets.map(Number));
-            const entry = parseFloat(s.entry);
-            return entry > 0 ? ((maxT - entry) / entry) * 100 : 0;
-          };
-          valA = getMaxPct(a);
-          valB = getMaxPct(b);
-          break;
-        }
-        case "stop_loss":
-          valA = parseFloat(a.stop1) || 0;
-          valB = parseFloat(b.stop1) || 0;
-          break;
-        case "status": {
-          const statusRank = {
-            open: 0,
-            tp1: 1,
-            tp2: 2,
-            tp3: 3,
-            closed_win: 4,
-            tp4: 4,
-            closed_loss: 5,
-            sl: 5,
-          };
-          valA = statusRank[(a.status || "").toLowerCase()] ?? 9;
-          valB = statusRank[(b.status || "").toLowerCase()] ?? 9;
-          break;
-        }
-        case "risk_level": {
-          const riskRank = (r) => {
-            const rl = (r || "").toLowerCase();
-            if (rl.startsWith("low")) return 1;
-            if (rl.startsWith("med") || rl.startsWith("nor")) return 2;
-            if (rl.startsWith("high")) return 3;
-            return 4;
-          };
-          valA = riskRank(a.risk_level);
-          valB = riskRank(b.risk_level);
-          break;
-        }
-        case "market_cap": {
-          const parseMcap = (mcap) => {
-            if (!mcap) return 0;
-            const str = mcap.toString().toUpperCase();
-            const num = parseFloat(str.replace(/[^0-9.]/g, "")) || 0;
-            if (str.includes("T")) return num * 1e12;
-            if (str.includes("B")) return num * 1e9;
-            if (str.includes("M")) return num * 1e6;
-            if (str.includes("K")) return num * 1e3;
-            return num;
-          };
-          valA = parseMcap(a.market_cap);
-          valB = parseMcap(b.market_cap);
-          break;
-        }
-        case "volume":
-          valA = getVolVal(a.pair);
-          valB = getVolVal(b.pair);
-          break;
-        case "win_streak":
-          valA = getStreakVal(a.pair);
-          valB = getStreakVal(b.pair);
-          break;
-        case "win_rate":
-          valA = getWinRateVal(a.pair);
-          valB = getWinRateVal(b.pair);
-          break;
-        case "btc_corr":
-          valA = a.btc_align_score ?? null;
-          valB = b.btc_align_score ?? null;
-          break;
-        case "verdict": {
-          const rank = (p) => {
-            const v = verdictByPair[p];
-            return v === "worth_it" ? 2 : v === "avoid" ? 1 : null;
-          };
-          valA = rank(a.pair);
-          valB = rank(b.pair);
-          break;
-        }
-        case "last_update": {
-          const tsA = a.last_update_at ? new Date(a.last_update_at).getTime() : 0;
-          const tsB = b.last_update_at ? new Date(b.last_update_at).getTime() : 0;
-          if (tsA === 0 && tsB !== 0) return 1;
-          if (tsA !== 0 && tsB === 0) return -1;
-          valA = tsA;
-          valB = tsB;
-          break;
-        }
-        case "created_at":
-        default:
-          valA = a.call_message_id || 0;
-          valB = b.call_message_id || 0;
-          break;
-      }
-
-      // Live-derived metrics (fetched from the price provider): rows with no data
-      // (value 0) always sink to the bottom regardless of asc/desc, so they never
-      // pollute the top of an ascending volume/price sort.
-      if (sortBy === "volume" || sortBy === "current_price") {
-        const hasA = valA > 0;
-        const hasB = valB > 0;
-        if (hasA !== hasB) return hasA ? -1 : 1;
-      }
-
-      // Win streak / BTC alignment: rows without that data (null) always sink,
-      // regardless of direction — valid negatives (loss streaks) must not be
-      // treated as "missing".
-      if (
-        sortBy === "win_streak" ||
-        sortBy === "btc_corr" ||
-        sortBy === "win_rate" ||
-        sortBy === "verdict"
-      ) {
-        const hasA = valA !== null && valA !== undefined;
-        const hasB = valB !== null && valB !== undefined;
-        if (hasA !== hasB) return hasA ? -1 : 1;
-        valA = valA ?? 0;
-        valB = valB ?? 0;
-      }
-
-      const cmp = sortOrder === "asc" ? valA - valB : valB - valA;
-      return cmp !== 0 ? cmp : tiebreak(a, b);
+    // Multi-level sort: e.g. verdict ↓ → edge ↓ → called ↓ (stable tiebreak inside).
+    filtered = sortSignals(filtered, sorts, {
+      getPriceVal,
+      getVolVal,
+      getStreakVal,
+      getWinRateVal,
+      edgeScoreMap,
+      coinIntel,
+      getVerdictForSignal,
     });
 
     const total = filtered.length;
@@ -1351,28 +1512,28 @@ const SignalsPage = () => {
     corrDecoupled,
     corrHighAlign,
     verdictFilter,
-    verdictByPair,
+    getVerdictForSignal,
     selectedDates,
-    sortBy,
-    sortOrder,
+    sorts,
     page,
     pageSize,
     priceVersion,
     coinIntel,
     selectedTags,
+    tagMatchMode,
     signalTags,
+    edgeScoreMap,
     showWatchlistOnly,
     watchlistIds,
     watchlistSignals,
+    getVerdictForSignal,
   ]);
 
-  const handleSort = (field) => {
-    if (sortBy === field) setSortOrder(sortOrder === "desc" ? "asc" : "desc");
-    else {
-      setSortBy(field);
-      setSortOrder("desc");
-    }
-  };
+  /** Table header click — Shift/⌘/Ctrl adds a secondary sort level. */
+  const handleSort = useCallback((field, ev) => {
+    const additive = !!(ev && (ev.shiftKey || ev.metaKey || ev.ctrlKey));
+    setSorts((prev) => applySortClick(prev, field, { additive }));
+  }, []);
 
   const statusOptions = [
     { value: "all", label: "All Status" },
@@ -1393,6 +1554,7 @@ const SignalsPage = () => {
   ];
 
   const sortOptions = [
+    { value: "edge_score", label: "Edge Score (learn)" },
     { value: "created_at", label: "Called Time" },
     { value: "last_update", label: "Last Update" },
     { value: "pair", label: "Pair Name" },
@@ -1405,92 +1567,150 @@ const SignalsPage = () => {
     { value: "win_rate", label: "Win Rate" },
     { value: "win_streak", label: "Win Streak" },
     { value: "btc_corr", label: "BTC Alignment" },
-    { value: "verdict", label: "Verdict (Worth/Avoid)" },
+    { value: "verdict", label: "Verdict (Worth→Avoid)" },
     { value: "market_cap", label: "Market Cap" },
     { value: "volume", label: "Volume 24H" },
   ];
 
   return (
-    <div className="space-y-5 pb-10">
-      {/* ── WORKSPACE HEADER — timeless product chrome ── */}
-      <header className="space-y-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="space-y-4 pb-10">
+      {/* ── SIGNALS DESK — command center (title + KPI + BTC in one board) ── */}
+      <header className="space-y-3">
+        {/* Title row — slim, no brochure subtitle */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <PageHeader title="Signals" />
-            <p className="mt-1.5 text-sm text-text-secondary">
-              Live algo setups with entry, targets & risk — last 7 days
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
+              Signals
+            </h1>
+            <p className="mt-0.5 text-[13px] text-text-muted">
+              Desk · last 7 days
               <span className="mx-1.5 text-text-muted/40">·</span>
-              <span className="font-mono tabular-nums text-text-primary/80">
+              <span className="font-mono tabular-nums text-text-secondary">
                 {allSignals.length}
               </span>
-              <span className="text-text-muted"> signals</span>
-              {updatedCount > 0 && (
+              {updatedCount > 0 ? (
                 <>
-                  <span className="mx-1.5 text-text-muted/40">·</span>
-                  <span className="font-mono tabular-nums text-text-primary/70">
+                  <span className="text-text-muted"> signals · </span>
+                  <span className="font-mono tabular-nums text-text-secondary">
                     {updatedCount}
                   </span>
                   <span className="text-text-muted"> updated</span>
                 </>
+              ) : (
+                <span className="text-text-muted"> signals</span>
               )}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <ProductSwitcher
-              active="trades"
-              onTerminal={goTerminal}
-              onResearch={() => navigate("/ai-arena")}
-            />
-            <div className="inline-flex items-center gap-2 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-ink/[0.04] px-2.5 py-1.5">
               <span className="relative flex h-1.5 w-1.5">
-                <span
-                  className={`relative inline-flex h-1.5 w-1.5 rounded-full ${loading ? "bg-warning" : "bg-positive"}`}
-                />
+                {loading ? (
+                  <span className="relative inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-warning" />
+                ) : (
+                  <>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-40" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-positive" />
+                  </>
+                )}
               </span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
+              <span className="text-[11px] font-medium tabular-nums text-text-muted">
                 {loading
                   ? "Syncing"
                   : lastUpdated
-                    ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}`
-                    : "Ready"}
+                    ? lastUpdated.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })
+                    : "Live"}
               </span>
             </div>
           </div>
         </div>
 
-        {/* KPI ribbon — single desk strip (Bloomberg / exchange style) */}
+        {!isSubscriber && entitlementKnown && (
+          <div className="mb-3">
+            <FreeTierNotice onUpgrade={goPricing} />
+          </div>
+        )}
+
+        {/* Unified desk board: KPIs + embedded Compass */}
         <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
           <div className="grid grid-cols-2 sm:grid-cols-4">
+            {isSubscriber || !entitlementKnown ? (
+              <KpiCell
+                edge
+                label="Today"
+                value={todayStats.total}
+                sub={`${todayStats.open} open · ${todayStats.wins}W / ${todayStats.losses}L`}
+              />
+            ) : (
+              <LockedKpi
+                edge
+                label="Today"
+                value={todayStats.total}
+                sub={`${todayStats.open} open · ${todayStats.wins}W / ${todayStats.losses}L`}
+                onUnlock={goPricing}
+              />
+            )}
+            {isSubscriber || !entitlementKnown ? (
+              <KpiCell
+                label="Desk WR"
+                value={`${todayStats.wr}%`}
+                valueColor={
+                  todayStats.wr >= 50
+                    ? "text-profit"
+                    : todayStats.wr > 0
+                      ? "text-text-primary"
+                      : "text-text-primary"
+                }
+                sub={`${todayStats.closedCount} closed today`}
+              />
+            ) : (
+              <LockedKpi
+                label="Desk WR"
+                value={`${todayStats.wr}%`}
+                sub={`${todayStats.closedCount} closed today`}
+                onUnlock={goPricing}
+              />
+            )}
             <KpiCell
-              edge
-              label="Today"
-              value={todayStats.total}
-              sub={`${todayStats.open} open · ${todayStats.wins}W / ${todayStats.losses}L`}
-            />
-            <KpiCell
-              label="Win rate today"
-              value={`${todayStats.wr}%`}
-              valueColor={
-                todayStats.wr >= 50
-                  ? "text-positive"
-                  : todayStats.wr > 0
-                    ? "text-text-primary"
-                    : "text-text-primary"
-              }
-              sub={`${todayStats.closedCount} closed`}
-            />
-            <KpiCell
-              label="Overall WR"
+              label="Lifetime WR"
               value={stats?.win_rate != null ? `${stats.win_rate}%` : "—"}
-              sub={stats ? `${(stats.total_signals || 0).toLocaleString()} lifetime` : "—"}
+              valueColor={
+                stats?.win_rate != null && stats.win_rate >= 70
+                  ? "text-profit"
+                  : "text-text-primary"
+              }
+              sub={
+                stats
+                  ? `${(stats.total_signals || 0).toLocaleString()} trades`
+                  : "—"
+              }
             />
-            <KpiCell label="In view" value={allSignals.length} sub="last 7 days" />
+            {isSubscriber || !entitlementKnown ? (
+              <KpiCell
+                label="In view"
+                value={allSignals.length}
+                sub="rolling 7 days"
+              />
+            ) : (
+              <LockedKpi
+                label="In view"
+                // The real 7-day count, blurred — not the filtered length,
+                // which would understate the desk by whatever we hid.
+                value={allSignals.length + hiddenCount}
+                sub="rolling 7 days"
+                onUnlock={goPricing}
+              />
+            )}
+          </div>
+
+          <div className="border-t border-ink/[0.06]">
+            <CompassSnapshot embedded />
           </div>
         </div>
-
-        {/* BTC Compass + deep-links to AI Research / Terminal */}
-        <CompassSnapshot />
       </header>
 
       {/* ── COIN FLOW INTENSITY — tabel tipis + data call LuxQuant, default tertutup ── */}
@@ -1594,70 +1814,22 @@ const SignalsPage = () => {
             if (sig) openSignal(sig);
             else navigate("/money-flow");
           };
+          // Collapsed chip preview — top movers at a glance
+          const preview = sortedFlow.slice(0, 6);
+
           return (
-            <div className="mt-2.5 bg-ink/[0.02] rounded-xl px-4 py-2.5">
-              {/* Header */}
-              <div className="flex items-center justify-between gap-2">
+            <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
+              <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 sm:px-4">
                 <button
+                  type="button"
                   onClick={() => setFlowOpen((v) => !v)}
-                  className="group flex items-center gap-2 min-w-0"
+                  className="group flex min-w-0 items-center gap-2"
                 >
-                  <svg
-                    className={`w-3.5 h-3.5 text-text-muted transition-transform ${flowOpen ? "" : "-rotate-90"}`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-transform group-hover:bg-ink/[0.05] ${flowOpen ? "" : "-rotate-90"}`}
                   >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted group-hover:text-text-primary/85 whitespace-nowrap">
-                    Coin Flow Intensity
-                  </span>
-                  {!flowOpen && (
-                    <span className="font-mono text-[9px] normal-case tracking-normal text-text-muted/60 group-hover:text-text-muted truncate">
-                      — where capital is rotating now
-                    </span>
-                  )}
-                </button>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {flowOpen && (
-                    <div className="relative">
-                      <select
-                        value={flowCount}
-                        onChange={(e) => setFlowCount(Number(e.target.value))}
-                        className="appearance-none pl-2 pr-6 py-1 bg-surface border border-ink/[0.1] rounded-md font-mono text-[10px] text-text-primary/80 focus:outline-none focus:border-ink/20 cursor-pointer"
-                      >
-                        {[10, 20, 30, 50].map((n) => (
-                          <option key={n} value={n} className="bg-surface">
-                            Top {n}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-primary/50">
-                        <svg
-                          className="w-3 h-3"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </span>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => navigate("/money-flow")}
-                    className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors"
-                  >
-                    More
                     <svg
-                      className="w-3 h-3"
+                      className="h-3 w-3"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -1665,22 +1837,80 @@ const SignalsPage = () => {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <path d="M9 5l7 7-7 7" />
+                      <path d="M6 9l6 6 6-6" />
                     </svg>
+                  </span>
+                  <span className="text-[13px] font-medium text-text-primary">Coin flow</span>
+                  <span className="hidden text-[12px] text-text-muted sm:inline">
+                    capital rotation
+                  </span>
+                </button>
+                <div className="flex items-center gap-2">
+                  {flowOpen && (
+                    <select
+                      value={flowCount}
+                      onChange={(e) => setFlowCount(Number(e.target.value))}
+                      className="cursor-pointer appearance-none rounded-md border border-ink/[0.08] bg-ink/[0.03] py-1 pl-2 pr-7 text-[11px] text-text-secondary focus:outline-none"
+                    >
+                      {[10, 20, 30, 50].map((n) => (
+                        <option key={n} value={n}>
+                          Top {n}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/money-flow")}
+                    className="text-[12px] font-medium text-text-muted transition-colors hover:text-accent"
+                  >
+                    More →
                   </button>
                 </div>
               </div>
 
+              {/* Collapsed: horizontal chips */}
+              {!flowOpen && (
+                <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-t border-ink/[0.05] px-3.5 py-2.5 sm:px-4">
+                  {preview.map(({ c, fromCall }) => {
+                    const chg = c.price_change_24h;
+                    const up = chg != null && chg >= 0;
+                    return (
+                      <button
+                        key={c.coin_id || c.symbol}
+                        type="button"
+                        onClick={() => openCoin(c)}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-2.5 py-1.5 transition-colors hover:border-ink/12 hover:bg-ink/[0.04]"
+                      >
+                        <CoinLogo pair={`${c.symbol}USDT`} size={16} />
+                        <span className="text-[12px] font-medium text-text-primary">
+                          {c.symbol}
+                        </span>
+                        <span
+                          className={`font-mono text-[11px] tabular-nums ${chg == null ? "text-text-muted" : up ? "text-profit" : "text-loss"}`}
+                        >
+                          {chg == null ? "—" : `${up ? "+" : ""}${chg.toFixed(1)}%`}
+                        </span>
+                        {fromCall != null ? (
+                          <span
+                            className={`hidden font-mono text-[10px] tabular-nums sm:inline ${fromCall >= 0 ? "text-profit/70" : "text-loss/70"}`}
+                          >
+                            call {fromCall >= 0 ? "+" : ""}
+                            {fromCall.toFixed(1)}%
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {flowOpen && (
-                <>
-                  <p className="mt-2 mb-1 font-mono text-[10px] leading-relaxed text-text-primary/40 normal-case">
-                    <span className="text-text-primary/65">
-                      Flow intensity = 24h volume ÷ market cap
-                    </span>{" "}
-                    — how fast capital is rotating (higher = money moving in/out faster). Click a
-                    coin to open its LuxQuant call.
+                <div className="border-t border-ink/[0.06] px-2 pb-2 sm:px-3">
+                  <p className="px-1.5 py-2 text-[11px] text-text-muted">
+                    Intensity = 24h volume ÷ market cap. Click a row to open its call.
                   </p>
-                  <div className="overflow-x-auto no-scrollbar -mx-1">
+                  <div className="no-scrollbar -mx-1 overflow-x-auto">
                     <table className="w-full min-w-[640px] border-collapse">
                       <thead>
                         <tr className="border-b border-ink/[0.06]">
@@ -1705,80 +1935,72 @@ const SignalsPage = () => {
                             <tr
                               key={c.coin_id || c.symbol}
                               onClick={() => openCoin(c)}
-                              className="border-b border-ink/[0.04] hover:bg-ink/[0.03] cursor-pointer transition-colors"
+                              className="cursor-pointer border-b border-ink/[0.04] transition-colors last:border-0 hover:bg-ink/[0.03]"
                             >
-                              {/* Coin */}
-                              <td className="py-2 px-2">
+                              <td className="px-2 py-2">
                                 <div className="flex items-center gap-2">
                                   <CoinLogo pair={`${c.symbol}USDT`} size={20} />
-                                  <span className="font-mono text-[12px] font-semibold text-text-primary">
+                                  <span className="text-[12px] font-medium text-text-primary">
                                     {c.symbol}
                                   </span>
                                   {c.is_luxquant_signal && (
-                                    <span className="font-mono text-[7.5px] uppercase tracking-wider text-text-primary border border-ink/15 rounded px-1 py-0.5 leading-none">
+                                    <span className="rounded bg-accent/10 px-1 py-0.5 text-[9px] font-medium text-accent">
                                       Call
                                     </span>
                                   )}
                                 </div>
                               </td>
-                              {/* 24h */}
                               <td
-                                className={`py-2 px-2 text-right font-mono text-[12px] tabular-nums font-semibold ${chg == null ? "text-text-primary/40" : up ? "text-profit" : "text-loss"}`}
+                                className={`px-2 py-2 text-right font-mono text-[12px] font-medium tabular-nums ${chg == null ? "text-text-muted" : up ? "text-profit" : "text-loss"}`}
                               >
                                 {chg == null ? "—" : `${up ? "+" : ""}${chg.toFixed(2)}%`}
                               </td>
-                              {/* Intensity + bar */}
-                              <td className="py-2 px-2">
+                              <td className="px-2 py-2">
                                 <div className="flex items-center justify-end gap-2">
-                                  <div className="w-14 h-1 rounded-full bg-ink/[0.07] overflow-hidden hidden sm:block">
+                                  <div className="hidden h-1 w-14 overflow-hidden rounded-full bg-ink/[0.07] sm:block">
                                     <div
-                                      className="h-full rounded-full bg-gradient-to-r from-ink/35 to-ink/55"
+                                      className="h-full rounded-full bg-ink/40"
                                       style={{ width: `${barW}%` }}
                                     />
                                   </div>
-                                  <span className="font-mono text-[11px] tabular-nums text-text-primary/70 w-9 text-right">
+                                  <span className="w-9 text-right font-mono text-[11px] tabular-nums text-text-secondary">
                                     {c.flow_intensity != null ? c.flow_intensity.toFixed(2) : "—"}
                                   </span>
                                 </div>
                               </td>
-                              {/* From Call */}
-                              <td className="py-2 px-2 text-left">
+                              <td className="px-2 py-2 text-left">
                                 {fromCall != null ? (
                                   <span
-                                    className={`font-mono text-[11px] tabular-nums font-semibold ${fromCall >= 0 ? "text-profit" : "text-loss"}`}
+                                    className={`font-mono text-[11px] font-medium tabular-nums ${fromCall >= 0 ? "text-profit" : "text-loss"}`}
                                   >
                                     {fromCall >= 0 ? "+" : ""}
                                     {fromCall.toFixed(2)}%
                                   </span>
                                 ) : (
-                                  <span className="text-text-primary/25 text-[11px]">—</span>
+                                  <span className="text-[11px] text-text-muted">—</span>
                                 )}
                               </td>
-                              {/* Status */}
-                              <td className="py-2 px-2 text-left">
+                              <td className="px-2 py-2 text-left">
                                 {sm ? (
                                   <span
-                                    className={`font-mono text-[8.5px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${sm.c}`}
+                                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${sm.c.replace(/border-\S+/g, "").trim()}`}
                                   >
                                     {sm.l}
                                   </span>
                                 ) : (
-                                  <span className="text-text-primary/25 text-[11px]">—</span>
+                                  <span className="text-[11px] text-text-muted">—</span>
                                 )}
                               </td>
-                              {/* Called */}
-                              <td className="py-2 px-2 text-left whitespace-nowrap">
+                              <td className="px-2 py-2 text-left whitespace-nowrap">
                                 {sig ? (
-                                  <div className="flex flex-col leading-tight">
-                                    <span className="font-mono text-[10px] text-text-primary/70">
-                                      {fmtDT(sig.created_at)}
-                                    </span>
-                                    <span className="font-mono text-[9px] text-text-primary/35">
+                                  <span className="font-mono text-[11px] tabular-nums text-text-secondary">
+                                    {fmtDT(sig.created_at)}
+                                    <span className="ml-1.5 text-text-muted">
                                       {timeAgo(sig.created_at)}
                                     </span>
-                                  </div>
+                                  </span>
                                 ) : (
-                                  <span className="text-text-primary/25 text-[11px]">—</span>
+                                  <span className="text-[11px] text-text-muted">—</span>
                                 )}
                               </td>
                             </tr>
@@ -1787,25 +2009,24 @@ const SignalsPage = () => {
                       </tbody>
                     </table>
                   </div>
-                </>
+                </div>
               )}
             </div>
           );
         })()}
 
       {/* FILTER CONSOLE */}
-      <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-4 relative overflow-hidden">
-        <div className="flex items-center justify-between border-b border-ink/[0.06] pb-3 mb-3">
-          <div className="flex items-center gap-2.5">
+      <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-4">
+        <div className="mb-3 flex items-center justify-between border-b border-ink/[0.06] pb-3">
+          <div className="flex items-center gap-2">
             {Icon.filter("w-3.5 h-3.5 text-text-muted")}
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary">
-              Call Filter
-            </h2>
+            <h2 className="text-[13px] font-medium text-text-primary">Filters</h2>
             <button
+              type="button"
               onClick={() => setShowGuide(true)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-ink/12 text-text-primary/80 hover:bg-ink/[0.06] hover:border-ink/18 transition-all font-mono text-[9px] uppercase tracking-wider"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
             >
-              <span className="inline-flex items-center justify-center w-3 h-3 rounded-full border border-ink/18 text-[8px] leading-none">
+              <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ink/15 text-[9px] leading-none">
                 ?
               </span>
               {t("guide.button")}
@@ -1813,11 +2034,12 @@ const SignalsPage = () => {
           </div>
           {hasActiveFilters && (
             <button
+              type="button"
               onClick={resetFilters}
-              className="flex items-center gap-1.5 px-3 py-1 bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/[0.06] hover:border-ink/[0.12] transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary"
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
             >
               {Icon.close("w-3 h-3")}
-              Reset All
+              Reset
             </button>
           )}
         </div>
@@ -1899,43 +2121,124 @@ const SignalsPage = () => {
           </button>
         </div>
 
-        {/* ── Controls row — search (kiri) + Called Time + order (kanan) ── */}
-        <div className="flex items-center gap-2 mb-4">
-          <div className="relative flex-1 min-w-0">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
-              {Icon.search("w-3.5 h-3.5")}
-            </span>
-            <input
-              type="text"
-              placeholder="Search pair (e.g. BTC, ETH, SOL)..."
-              value={searchPair}
-              onChange={(e) => setSearchPair(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-ink/15 focus:outline-none focus:bg-ink/[0.02] transition-all"
-            />
-          </div>
-          <div className="relative flex-shrink-0">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="pl-3 pr-8 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-ink/15 focus:outline-none appearance-none cursor-pointer transition-all"
+        {/* ── Controls row — search + multi-sort stack ── */}
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-0">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
+                {Icon.search("w-3.5 h-3.5")}
+              </span>
+              <input
+                type="text"
+                placeholder="Search pair (e.g. BTC, ETH, SOL)..."
+                value={searchPair}
+                onChange={(e) => setSearchPair(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-ink/15 focus:outline-none focus:bg-ink/[0.02] transition-all"
+              />
+            </div>
+            <div className="relative flex-shrink-0">
+              <select
+                value={sortBy}
+                onChange={(e) => setSorts(setPrimarySort(e.target.value, "desc"))}
+                title="Primary sort (replaces chain). Shift+click table headers to add levels."
+                className="pl-3 pr-8 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-ink/15 focus:outline-none appearance-none cursor-pointer transition-all"
+              >
+                {sortOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value} className="bg-surface">
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-primary/70 pointer-events-none">
+                {Icon.chevronDown("w-3 h-3")}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-ink/[0.08] hover:border-ink/12 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
+              title="Toggle primary sort direction"
             >
-              {sortOptions.map((opt) => (
-                <option key={opt.value} value={opt.value} className="bg-surface">
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-primary/70 pointer-events-none">
-              {Icon.chevronDown("w-3 h-3")}
+              {sortOrder === "desc" ? Icon.arrowDown("w-3 h-3") : Icon.arrowUp("w-3 h-3")}
+              <span className="hidden sm:inline">{getOrderLabel()}</span>
+            </button>
+          </div>
+
+          {/* Multi-sort chain + presets */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted mr-0.5">
+              Sort
+            </span>
+            {sorts.map((s, i) => (
+              <button
+                key={`${s.field}-${i}`}
+                type="button"
+                onClick={() => setSorts((prev) => toggleSortLevel(prev, s.field))}
+                title={`Level ${i + 1}: click to flip direction`}
+                className="inline-flex items-center gap-1 rounded-md border border-accent/25 bg-accent/[0.08] px-2 py-1 font-mono text-[10px] text-text-primary transition-colors hover:border-accent/40"
+              >
+                <span className="tabular-nums text-accent opacity-80">{i + 1}</span>
+                <span>{SORT_FIELD_LABELS[s.field] || s.field}</span>
+                <span className="text-accent">{s.order === "asc" ? "↑" : "↓"}</span>
+                {sorts.length > 1 && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSorts((prev) => removeSortLevel(prev, s.field));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSorts((prev) => removeSortLevel(prev, s.field));
+                      }
+                    }}
+                    className="ml-0.5 text-text-muted hover:text-loss"
+                    aria-label={`Remove ${s.field} from sort`}
+                  >
+                    ×
+                  </span>
+                )}
+              </button>
+            ))}
+            {!isDefaultSorts(sorts) && (
+              <button
+                type="button"
+                onClick={() => setSorts([...DEFAULT_SORTS])}
+                className="rounded-md border border-ink/[0.08] px-2 py-1 font-mono text-[10px] text-text-muted hover:text-text-primary"
+              >
+                Reset
+              </button>
+            )}
+            <span className="mx-0.5 hidden h-3 w-px bg-ink/10 sm:inline-block" />
+            {MULTI_SORT_PRESETS.map((p) => {
+              const active =
+                sorts.length === p.sorts.length &&
+                sorts.every(
+                  (s, i) => s.field === p.sorts[i].field && s.order === p.sorts[i].order
+                );
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  title={p.hint}
+                  onClick={() => setSorts(normalizeSorts(p.sorts))}
+                  className={`rounded-md border px-2 py-1 font-mono text-[10px] transition-colors ${
+                    active
+                      ? "border-accent/35 bg-accent/12 text-accent"
+                      : "border-ink/[0.08] text-text-muted hover:border-ink/15 hover:text-text-primary"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+            <span className="w-full font-mono text-[9px] text-text-muted/70 sm:w-auto sm:ml-1">
+              Shift+click column headers to stack up to {MAX_SORTS} levels
             </span>
           </div>
-          <button
-            onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-ink/[0.08] hover:border-ink/12 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
-          >
-            {sortOrder === "desc" ? Icon.arrowDown("w-3 h-3") : Icon.arrowUp("w-3 h-3")}
-            <span className="hidden sm:inline">{getOrderLabel()}</span>
-          </button>
         </div>
 
         {/* ADVANCED FILTERS TOGGLE */}
@@ -2173,6 +2476,7 @@ const SignalsPage = () => {
                   onClick={() =>
                     setVerdictFilter(verdictFilter === "worth_it" ? "all" : "worth_it")
                   }
+                  title="As-of-entry: closed rows exclude their own outcome"
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     verdictFilter === "worth_it"
                       ? "bg-profit/15 border border-profit/30 text-profit"
@@ -2192,6 +2496,7 @@ const SignalsPage = () => {
 
                 <button
                   onClick={() => setVerdictFilter(verdictFilter === "avoid" ? "all" : "avoid")}
+                  title="As-of-entry: closed rows exclude their own outcome"
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     verdictFilter === "avoid"
                       ? "bg-loss/15 border border-loss/30 text-loss"
@@ -2293,6 +2598,329 @@ const SignalsPage = () => {
         )}
       </div>
 
+      {/* Quick path recipes (English) — opt-in shortlists */}
+      {!isSubscriber ? (
+        <ProLock
+          eyebrow="Subscribers only · Quick path"
+          title="When there are more calls than time, this picks first"
+          blurb="Choose how you want to trade today — the strongest setups, the ones hunting a full take-profit, or the careful ones — and the desk reorders itself around that."
+          points={["Strongest setups", "Hunt full TP", "Caution first", "Save your own views"]}
+          onUnlock={goPricing}
+        />
+      ) : (
+      <EdgeRecipesBar
+        tagWr={tagWr}
+        selectedTags={selectedTags}
+        tagMatchMode={tagMatchMode}
+        verdictFilter={verdictFilter}
+        statusFilter={statusFilter}
+        riskFilter={riskFilter}
+        streakFilter={streakFilter}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        sorts={sorts}
+        searchPair={searchPair}
+        corrDecoupled={corrDecoupled}
+        corrHighAlign={corrHighAlign}
+        filteredCount={totalSignals}
+        onApplyState={applyRecipeState}
+        onReset={resetFilters}
+        onScrollToPlaybook={() => {
+          document.getElementById("edge-playbook")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }}
+      />
+      )}
+
+      {/* Sticky current-filter chips */}
+      <EdgeActiveFilters
+        variant="bar"
+        sticky
+        selectedTags={selectedTags}
+        tagMatchMode={tagMatchMode}
+        verdictFilter={verdictFilter}
+        statusFilter={statusFilter}
+        riskFilter={riskFilter}
+        streakFilter={streakFilter}
+        corrDecoupled={corrDecoupled}
+        corrHighAlign={corrHighAlign}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        sorts={sorts}
+        selectedDates={selectedDates}
+        searchPair={searchPair}
+        filteredCount={totalSignals}
+        totalUnfiltered={allSignals?.length}
+        onRemoveTag={(tag) => {
+          toggleTag(tag);
+          setPage(1);
+        }}
+        onTagMatchMode={(mode) => {
+          setTagMatchMode(mode === "all" ? "all" : "any");
+          setPage(1);
+        }}
+        onVerdictFilter={(v) => {
+          setVerdictFilter(v);
+          setPage(1);
+        }}
+        onStatusFilter={(v) => {
+          setStatusFilter(v);
+          setPage(1);
+        }}
+        onRiskFilter={(v) => {
+          setRiskFilter(v);
+          setPage(1);
+        }}
+        onStreakFilter={(v) => {
+          setStreakFilter(v);
+          setPage(1);
+        }}
+        onCorrDecoupled={(v) => {
+          setCorrDecoupled(!!v);
+          setPage(1);
+        }}
+        onCorrHighAlign={(v) => {
+          setCorrHighAlign(!!v);
+          setPage(1);
+        }}
+        onSortReset={() => {
+          setSorts([...DEFAULT_SORTS]);
+          setPage(1);
+        }}
+        onRemoveSortLevel={(field) => {
+          setSorts((prev) => removeSortLevel(prev, field));
+          setPage(1);
+        }}
+        onToggleSortLevel={(field) => {
+          setSorts((prev) => toggleSortLevel(prev, field));
+          setPage(1);
+        }}
+        onClearDates={() => {
+          setSelectedDates([]);
+          setPage(1);
+        }}
+        onClearSearch={() => {
+          setSearchPair("");
+          setPage(1);
+        }}
+        onClearAll={resetFilters}
+      />
+
+      {/* Edge playbook — knowledge graph + multi-filter (default collapsed) */}
+      {!isSubscriber ? (
+        <ProLock
+          eyebrow="Subscribers only · Edge playbook"
+          title="Which setups have actually been paying"
+          blurb="Every setup we have ever tagged, scored on how often it won and how far it ran — so you can follow only the conditions you already trust."
+          points={["Win rate per setup", "Stack multiple conditions", "Sort by Edge Score"]}
+          onUnlock={goPricing}
+        />
+      ) : (
+      <EdgePlaybook
+        defaultOpen={false}
+        tagWr={tagWr}
+        verdictCounts={verdictCounts}
+        signalTags={signalTags}
+        selectedTags={selectedTags}
+        tagMatchMode={tagMatchMode}
+        verdictFilter={verdictFilter}
+        statusFilter={statusFilter}
+        riskFilter={riskFilter}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        sorts={sorts}
+        edgeFilterActive={
+          verdictFilter !== "all" ||
+          selectedTags.length > 0 ||
+          statusFilter !== "all" ||
+          riskFilter !== "all" ||
+          !isDefaultSorts(sorts)
+        }
+        filteredCount={totalSignals}
+        onToggleTag={(tag) => {
+          if (!tag) return;
+          toggleTag(tag);
+          setPage(1);
+        }}
+        onSetTags={(tags) => {
+          setSelectedTags(Array.isArray(tags) ? tags : []);
+          setPage(1);
+        }}
+        onTagMatchMode={(mode) => {
+          setTagMatchMode(mode === "all" ? "all" : "any");
+          setPage(1);
+        }}
+        onVerdictFilter={(v) => {
+          setVerdictFilter(v);
+          setPage(1);
+        }}
+        onStatusFilter={(v) => {
+          setStatusFilter(v);
+          setPage(1);
+        }}
+        onRiskFilter={(v) => {
+          setRiskFilter(v);
+          setPage(1);
+        }}
+        onSort={(field, order) => {
+          if (field) {
+            setSorts(setPrimarySort(field, order || "desc"));
+          }
+          setPage(1);
+        }}
+        onSorts={(next) => {
+          setSorts(normalizeSorts(next));
+          setPage(1);
+        }}
+        onApplyEdge={(tags) => {
+          setVerdictFilter("worth_it");
+          if (tags?.length) {
+            setSelectedTags((prev) => [...new Set([...prev, ...tags])]);
+          }
+          setSorts(
+            normalizeSorts([
+              { field: "verdict", order: "desc" },
+              { field: "edge_score", order: "desc" },
+              { field: "created_at", order: "desc" },
+            ])
+          );
+          setPage(1);
+        }}
+        onScreenRunners={(tags) => {
+          setVerdictFilter("worth_it");
+          if (tags?.length) {
+            setSelectedTags((prev) => [...new Set([...prev, ...tags])]);
+          }
+          setTagMatchMode("any");
+          setSorts(
+            normalizeSorts([
+              { field: "edge_score", order: "desc" },
+              { field: "created_at", order: "desc" },
+            ])
+          );
+          setPage(1);
+        }}
+        onFilterTag={(tag) => {
+          if (!tag) return;
+          toggleTag(tag);
+          setPage(1);
+        }}
+        onClear={resetFilters}
+      />
+      )}
+
+      {/* Learn from past (tag era) → rank open by Edge Score (default collapsed) */}
+      {!isSubscriber ? (
+        <ProLock
+          eyebrow="Subscribers only · Learn from the past"
+          title="How today's calls compare to the ones before them"
+          blurb="The whole history, pointed at what is open right now — so you can see which of today's calls look like the ones that ran, and which look like the ones that did not."
+          points={["Rank open calls by Edge", "Full per-setup numbers", "Pattern reliability"]}
+          onUnlock={goPricing}
+        />
+      ) : (
+      <EdgeCorrelationPanel
+        defaultOpen={false}
+        deskSignals={allSignals}
+        signalTags={signalTags}
+        edgeScoreMap={edgeScoreMap}
+        onFilterTag={(tag) => {
+          if (!tag) return;
+          toggleTag(tag);
+          setPage(1);
+        }}
+        onEdgeData={(payload) => {
+          const wr = payload?.baseline?.win_rate;
+          if (wr != null && Number.isFinite(Number(wr))) setEdgeBaselineWr(Number(wr));
+          // Prefer correlation tags (EB fields) for client Edge when available
+          if (Array.isArray(payload?.tags) && payload.tags.length) {
+            setTagWr((prev) => {
+              // merge by tag name — keep active_signal_ids from tag-wr if present
+              const by = Object.fromEntries((prev || []).map((t) => [t.tag, t]));
+              for (const t of payload.tags) {
+                by[t.tag] = { ...(by[t.tag] || {}), ...t };
+              }
+              return Object.values(by);
+            });
+          }
+          const scored = payload?.open_scored || [];
+          const byId = {};
+          for (const row of scored) {
+            if (row?.signal_id != null) byId[String(row.signal_id)] = row;
+          }
+          setApiOpenScoreById(byId);
+        }}
+        onSelectPair={(pair, signalId) => {
+          setSelectedTags([]);
+          setTagMatchMode("any");
+          setVerdictFilter("all");
+          setRiskFilter("all");
+          setStreakFilter("all");
+          setCorrDecoupled(false);
+          setCorrHighAlign(false);
+          setSelectedDates([]);
+          setShowWatchlistOnly(false);
+          if (pair) setSearchPair(String(pair).replace(/USDT$/i, ""));
+          setSortBy("edge_score");
+          setSortOrder("desc");
+          setPage(1);
+          if (signalId) {
+            const fromList = allSignals.find(
+              (s) => String(s.signal_id) === String(signalId)
+            );
+            if (fromList?.status) {
+              const st = String(fromList.status).toLowerCase();
+              if (st === "open") setStatusFilter("open");
+              else if (["tp1", "tp2", "tp3", "tp4", "closed_win"].includes(st))
+                setStatusFilter("tp1_plus");
+              else setStatusFilter("all");
+            }
+            openSignal(
+              fromList || {
+                signal_id: String(signalId),
+                pair: pair || undefined,
+                status: "open",
+              }
+            );
+          }
+        }}
+        onApplyToTable={({ statusFilter: st, sortBy: sb, sortOrder: so }) => {
+          setSelectedTags([]);
+          setTagMatchMode("any");
+          setVerdictFilter("all");
+          setStatusFilter(st || "all");
+          setRiskFilter("all");
+          setStreakFilter("all");
+          setCorrDecoupled(false);
+          setCorrHighAlign(false);
+          setSelectedDates([]);
+          setShowWatchlistOnly(false);
+          setSearchPair("");
+          setSortBy(sb || "edge_score");
+          setSortOrder(so || "desc");
+          setPage(1);
+        }}
+        onShowOpenOnDesk={() => {
+          setSelectedTags([]);
+          setTagMatchMode("any");
+          setVerdictFilter("all");
+          setStatusFilter("open");
+          setRiskFilter("all");
+          setStreakFilter("all");
+          setCorrDecoupled(false);
+          setCorrHighAlign(false);
+          setSelectedDates([]);
+          setShowWatchlistOnly(false);
+          setSearchPair("");
+          setSortBy("edge_score");
+          setSortOrder("desc");
+          setPage(1);
+        }}
+      />
+      )}
+
       {/* BTC Dominance Alert — self-contained (has its own expand) */}
       <BtcDomAlert allSignals={allSignals} onSignalClick={(sig) => openSignal(sig)} />
 
@@ -2318,16 +2946,94 @@ const SignalsPage = () => {
         </div>
       )}
 
+      {!isSubscriber && vipSamples.length > 0 && (
+        <div
+          className="overflow-hidden rounded-xl border"
+          style={{
+            borderColor: "rgb(var(--accent) / 0.35)",
+            background: "rgb(var(--accent) / 0.04)",
+          }}
+        >
+          <div
+            className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            style={{ background: "rgb(var(--accent) / 0.10)" }}
+          >
+            <div className="min-w-0">
+              <p
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: "rgb(var(--accent-text))" }}
+              >
+                A recent VIP call · open for you to check
+              </p>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">
+                This is what a subscriber sees — every column, every level, every
+                score, nothing held back. A few of our recent calls, left open so you
+                can check any of them against a chart yourself.{" "}
+                <span className="font-medium text-text-primary">
+                  Click any row to see the proof, transparently.
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={goPricing}
+              className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
+              style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+            >
+              See it live
+            </button>
+          </div>
+
+          {/* The real component, forced into subscriber mode. Showing the actual
+              table beats any mock-up of it: the prospect is looking at the
+              product, not at a picture of the product. */}
+          <SignalsTable
+            signals={vipSamples}
+            loading={false}
+            isSubscriber
+            onRowClick={(sig) => openSignal(sig, "trade")}
+            sortBy="created_at"
+            sortOrder="desc"
+            sorts={sorts}
+            onSort={() => {}}
+            page={1}
+            totalPages={1}
+            totalSignals={vipSamples.length}
+            countLabel="sample of what you get as a subscriber"
+            rowHint="Detail"
+            onPageChange={() => {}}
+            allPairs={vipSamples.map((x) => x.pair)}
+            coinIntel={vipSampleIntel}
+            // Empty on purpose: with no cached verdict, the table derives one
+            // from the win rate above via classifyCoin.
+            verdictByPair={{}}
+            currentFlow={currentFlow}
+            tagWrMap={tagWrMap}
+            runnerTagSet={runnerTagSet}
+            edgeScoreMap={edgeScoreMap}
+            signalTags={signalTags}
+          />
+        </div>
+      )}
+
       {!error && (
         <SignalsTable
           signals={signals}
           loading={loading}
-          onRowClick={(sig) => openSignal(sig)}
+          isSubscriber={isSubscriber}
+          onSubscribe={goPricing}
+          hiddenCount={hiddenCount}
+          // A free account only ever sees finished calls, so the live chart is
+          // the wrong landing tab for every one of them.
+          onRowClick={(sig) => openSignal(sig, isSubscriber ? "chart" : "trade")}
+          onOpenProof={(sig) => openSignal(sig, "trade")}
           sortBy={sortBy}
           sortOrder={sortOrder}
+          sorts={sorts}
           onSort={handleSort}
           page={page}
           totalPages={totalPages}
+          totalSignals={totalSignals}
           onPageChange={setPage}
           onPricesUpdate={handlePricesUpdate}
           allPairs={allPairs}
@@ -2335,15 +3041,15 @@ const SignalsPage = () => {
           verdictByPair={verdictByPair}
           currentFlow={currentFlow}
           tagWrMap={tagWrMap}
+          runnerTagSet={runnerTagSet}
+          edgeScoreMap={edgeScoreMap}
           signalTags={signalTags}
           onWatchlistChange={(signalId, newState) => {
-            // optimistic badge
             setWatchlistIds((prev) =>
               newState ? [...new Set([...prev, signalId])] : prev.filter((id) => id !== signalId)
             );
             if (!newState)
               setWatchlistSignals((prev) => prev.filter((s) => s.signal_id !== signalId));
-            // sync objek sinyal penuh (buat item baru yang di-star)
             refreshWatchlist();
           }}
         />

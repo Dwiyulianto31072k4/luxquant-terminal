@@ -4,11 +4,12 @@
 // upload-or-URL, CTA, audience targeting, frequency, schedule, status).
 // Backend: /api/v1/admin/announcements (+ /upload-image)
 // ════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { announcementApi } from "../../../services/announcementApi";
-import { palette, surface, semantic } from "../designSystem";
-import { Surface, SectionHeader, Badge, StatusBadge } from "../primitives";
+import { palette } from "../designSystem";
+import { Surface, SectionHeader, StatusBadge } from "../primitives";
 import { PlusIcon, EditIcon, TrashIcon, CloseIcon } from "../Icons";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 const AUDIENCES = [
   { value: "all", label: "Everyone" },
@@ -54,6 +55,20 @@ export const AnnouncementsTab = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return items.filter((item) => {
+      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (!query) return true;
+      return [item.title, item.body, item.audience]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    });
+  }, [items, search, statusFilter]);
+  const announcementPages = useCollectionPagination(filteredItems, 8);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -361,7 +376,7 @@ export const AnnouncementsTab = () => {
               onClick={save}
               disabled={saving}
               className="px-4 py-2 rounded-md text-[11px] uppercase tracking-wider font-bold font-mono transition-all disabled:opacity-50"
-              style={{ background: palette.gold[300], color: "rgb(var(--accent-fg))" }}
+              style={{ background: palette.gold[500], color: "rgb(var(--accent-fg))" }}
             >
               {saving ? "Saving..." : editing === "new" ? "Create" : "Save changes"}
             </button>
@@ -385,10 +400,36 @@ export const AnnouncementsTab = () => {
         <button
           onClick={openNew}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[11px] uppercase tracking-wider font-bold font-mono transition-all"
-          style={{ background: palette.gold[300], color: "rgb(var(--accent-fg))" }}
+          style={{ background: palette.gold[500], color: "rgb(var(--accent-fg))" }}
         >
           <PlusIcon size={14} /> New
         </button>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            announcementPages.resetPage();
+          }}
+          placeholder="Search title, message, or audience…"
+          className="min-w-0 flex-1 rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2.5 text-xs text-text-primary outline-none placeholder:text-text-muted/60 focus:border-accent/35"
+        />
+        <select
+          value={statusFilter}
+          onChange={(event) => {
+            setStatusFilter(event.target.value);
+            announcementPages.resetPage();
+          }}
+          className="rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2.5 text-xs font-medium text-text-primary outline-none focus:border-accent/35"
+        >
+          <option value="all">All statuses</option>
+          {STATUSES.map((status) => (
+            <option key={status} value={status}>{status}</option>
+          ))}
+        </select>
       </div>
 
       {loading ? (
@@ -403,13 +444,13 @@ export const AnnouncementsTab = () => {
             </Surface>
           ))}
         </div>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <Surface className="p-8 text-center text-text-primary/40 text-xs">
-          No announcements yet. Click “New” to create one.
+          {items.length ? "No announcements match this view." : "No announcements yet. Click “New” to create one."}
         </Surface>
       ) : (
         <div className="space-y-2">
-          {items.map((a) => (
+          {announcementPages.pagedItems.map((a) => (
             <Surface key={a.id} className="p-3.5 flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -448,6 +489,16 @@ export const AnnouncementsTab = () => {
           ))}
         </div>
       )}
+      <CollectionPagination
+        page={announcementPages.page}
+        totalPages={announcementPages.totalPages}
+        total={announcementPages.total}
+        pageSize={announcementPages.pageSize}
+        onPageChange={announcementPages.setPage}
+        onPageSizeChange={announcementPages.setPageSize}
+        pageSizeOptions={[8, 16, 32]}
+        itemLabel="announcements"
+      />
     </div>
   );
 };

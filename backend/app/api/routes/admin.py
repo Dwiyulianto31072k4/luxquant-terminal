@@ -170,6 +170,18 @@ def get_admin_stats(
         User.created_at >= thirty_days
     ).scalar()
 
+    # VIP Telegram group membership (directory quick-filters)
+    vip_in_group = db.query(func.count(User.id)).filter(
+        User.telegram_in_group == True
+    ).scalar() or 0
+    vip_outside_group = db.query(func.count(User.id)).filter(
+        User.telegram_id.isnot(None),
+        User.telegram_in_group == False,
+    ).scalar() or 0
+    vip_no_telegram = db.query(func.count(User.id)).filter(
+        User.telegram_id.is_(None)
+    ).scalar() or 0
+
     # Auth provider breakdown
     provider_stats = db.query(
         User.auth_provider,
@@ -193,6 +205,9 @@ def get_admin_stats(
         "anomaly_paid_outside": anomaly_paid_outside,
         "anomaly_paid_no_tg": anomaly_paid_no_tg,
         "anomaly_expired_inside": anomaly_expired_inside,
+        "vip_in_group": vip_in_group,
+        "vip_outside_group": vip_outside_group,
+        "vip_no_telegram": vip_no_telegram,
         "new_users_30d": new_users_30d,
         "auth_providers": {provider: count for provider, count in provider_stats},
         "confirmed_payments": confirmed_payments,
@@ -209,7 +224,7 @@ def get_admin_stats(
 def list_users(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
-    search: Optional[str] = Query(None, description="Search by username, email, telegram, admin TG/DC"),
+    search: Optional[str] = Query(None, description="Search by identity, contact, country, or masked IP network"),
     role: Optional[str] = Query(None, description="Filter by role: free, subscriber, admin"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter: active, inactive, expiring, expired"),
     provider: Optional[str] = Query(None, description="Filter by auth_provider: google/telegram/discord/local"),
@@ -245,6 +260,10 @@ def list_users(
                 func.lower(User.discord_username).like(search_term),
                 func.lower(User.admin_telegram_username).like(search_term),
                 func.lower(User.admin_discord_handle).like(search_term),
+                func.lower(User.geo_country).like(search_term),
+                func.lower(User.geo_region).like(search_term),
+                func.lower(User.geo_city).like(search_term),
+                func.lower(User.geo_ip_prefix).like(search_term),
             )
         )
 
@@ -679,7 +698,16 @@ async def admin_generate_vip_invite(
     - User must exist
     - User must have a linked telegram_id (else cannot be tracked/kicked)
     Returns invite link + a flag if the user is already in the group.
+
+    If the user was previously kicked (Telegram status=kicked), we unban first
+    so the new invite actually works.
     """
+    from app.services.telegram_group import (
+        get_member_status,
+        VIP_GROUP_CHAT_ID as _VIP_CHAT,
+        _post as tg_post,
+    )
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -690,10 +718,8 @@ async def admin_generate_vip_invite(
             detail="User hasn't linked Telegram yet. Ask them to connect Telegram in their profile before they can be invited to the VIP group.",
         )
 
-    # If already inside, no need for a new link
-    already = await is_in_group(user.telegram_id)
-    if already is True:
-        # keep flag in sync
+    member_status = await get_member_status(user.telegram_id)
+    if member_status in ("creator", "administrator", "member", "restricted"):
         if not user.telegram_in_group:
             user.telegram_in_group = True
             db.commit()
@@ -702,6 +728,20 @@ async def admin_generate_vip_invite(
             "invite_link": None,
             "message": "User is already a member of the VIP group.",
         }
+
+    # Kicked users stay banned until unban — unban so invite join succeeds.
+    if member_status == "kicked":
+        await tg_post(
+            "unbanChatMember",
+            {
+                "chat_id": _VIP_CHAT,
+                "user_id": user.telegram_id,
+                "only_if_banned": True,
+            },
+        )
+        if user.telegram_in_group:
+            user.telegram_in_group = False
+            db.commit()
 
     invite_link = await create_one_time_invite_link(
         expire_seconds=3600,
@@ -712,6 +752,77 @@ async def admin_generate_vip_invite(
             status_code=502,
             detail="Failed to create invite link. Please try again shortly.",
         )
+
+    return {
+        "already_member": False,
+        "invite_link": invite_link,
+        "expires_in": 3600,
+        "message": "Single-use invite link (1 hour). Send to the user to rejoin VIP.",
+    }
+
+
+@router.post("/users/{user_id}/vip-kick")
+async def admin_kick_vip(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Remove a user from the VIP Telegram group (admin manual kick).
+
+    Uses ban → unban (same as subscription_worker): they leave the group but
+    are NOT permanently banned, so a later vip-invite / join-vip works again.
+    """
+    from app.services.telegram_group import kick_member, get_member_status
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.telegram_id:
+        raise HTTPException(
+            status_code=400,
+            detail="User has no linked Telegram account.",
+        )
+
+    member_status = await get_member_status(user.telegram_id)
+    if member_status is None:
+        raise HTTPException(
+            status_code=502,
+            detail="Could not check Telegram membership. Try again shortly.",
+        )
+
+    if member_status in ("left", "kicked"):
+        if user.telegram_in_group:
+            user.telegram_in_group = False
+            db.commit()
+        return {
+            "ok": True,
+            "already_out": True,
+            "message": "User is already outside the VIP group.",
+            "telegram_status": member_status,
+        }
+
+    ok = await kick_member(user.telegram_id)
+    if not ok:
+        raise HTTPException(
+            status_code=502,
+            detail="Telegram kick failed. Check that the bot is admin with Ban Users permission.",
+        )
+
+    user.telegram_in_group = False
+    # Clear grace flag if any — manual kick is explicit
+    if hasattr(user, "telegram_grace_until"):
+        user.telegram_grace_until = None
+    db.commit()
+
+    return {
+        "ok": True,
+        "already_out": False,
+        "message": "User removed from VIP group. They can rejoin via a new invite (not permanently banned).",
+        "telegram_status": "left",
+    }
+
 
 def _build_followup_message(invite_link: str) -> str:
     return (
@@ -1564,3 +1675,150 @@ def render_outreach_template(
         raise HTTPException(status_code=400, detail=str(e))
 
     return TemplateRenderResponse(**result)
+
+
+# ════════════════════════════════════════════
+# Entitlement audit — access already earned, never claimed
+# ════════════════════════════════════════════
+
+@router.get("/entitlements")
+def get_entitlements(admin: User = Depends(get_admin_user)):
+    """People who already hold LuxQuant access rights but have no account.
+
+    Read-only from Redis. The reconciliation makes a few hundred Discord and
+    Telegram calls and takes about a minute, so it is never computed in the
+    request path — POST /entitlements/refresh does that in the background.
+    """
+    from app.services.entitlement_audit import read_cached
+
+    blob = read_cached()
+    if not blob:
+        return {"warming": True, "summary": {}, "rows": [], "generated_at": None}
+    return blob
+
+
+@router.post("/entitlements/refresh")
+async def refresh_entitlements(admin: User = Depends(get_admin_user)):
+    """Kick off a recompute in the background and return immediately."""
+    import asyncio as _asyncio
+
+    from app.services.entitlement_audit import compute_and_cache
+
+    _asyncio.create_task(compute_and_cache())
+    return {"started": True}
+
+
+@router.post("/entitlements/paid")
+def set_entitlement_paid(
+    payload: dict,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Settlement mark and operator note for one entitlement row.
+
+    Both fields are optional and independent: sending only `note` must not
+    silently clear a paid flag, and ticking paid must not wipe a note somebody
+    typed. Anything absent from the payload is left exactly as it was.
+
+    Two ways a row becomes paid:
+      · `lynk_form` — seeded from the Lynk ID signup sheet, already settled
+      · `manual`    — an operator confirmed it here, normally after invoicing
+                      the DRC partner for somebody who never went through Lynk
+
+    The join between that sheet and Discord is the USERNAME, and Discord lets
+    people change theirs at will. A holder who renamed since signing up reads as
+    "never in the sheet" and would be invoiced twice — which is why confirming
+    is a human action with a name and a timestamp against it.
+    """
+    platform = (payload.get("platform") or "discord").strip()
+    pid = str(payload.get("platform_id") or payload.get("discord_id") or "").strip()
+    if not pid:
+        raise HTTPException(status_code=400, detail="platform_id required")
+
+    has_paid = "paid" in payload and payload["paid"] is not None
+    has_note = "note" in payload
+    if not (has_paid or has_note):
+        raise HTTPException(status_code=400, detail="nothing to update")
+
+    paid = bool(payload.get("paid"))
+    note = payload.get("note")
+    note = note.strip() if isinstance(note, str) else None
+    actor = admin.username or admin.email
+
+    db.execute(
+        text(
+            """
+            INSERT INTO entitlement_paid
+                (platform, discord_id, handle, paid, paid_source,
+                 checked_at, checked_by, note)
+            VALUES (:platform, :id, :handle, :paid,
+                    CASE WHEN :has_paid THEN 'manual' ELSE NULL END,
+                    CASE WHEN :has_paid THEN NOW() ELSE NULL END,
+                    CASE WHEN :has_paid THEN :by ELSE NULL END,
+                    :note)
+            ON CONFLICT (platform, discord_id) DO UPDATE SET
+                paid        = CASE WHEN :has_paid THEN EXCLUDED.paid
+                                   ELSE entitlement_paid.paid END,
+                -- A seeded lynk_form row that gets unticked becomes a manual
+                -- decision; keep the provenance honest either way.
+                paid_source = CASE
+                    WHEN NOT :has_paid THEN entitlement_paid.paid_source
+                    WHEN EXCLUDED.paid THEN COALESCE(entitlement_paid.paid_source, 'manual')
+                    ELSE 'manual' END,
+                checked_at  = CASE WHEN :has_paid THEN NOW()
+                                   ELSE entitlement_paid.checked_at END,
+                checked_by  = CASE WHEN :has_paid THEN :by
+                                   ELSE entitlement_paid.checked_by END,
+                note        = CASE WHEN :has_note THEN EXCLUDED.note
+                                   ELSE entitlement_paid.note END,
+                updated_at  = NOW()
+            """
+        ),
+        {
+            "platform": platform,
+            "id": pid,
+            "handle": payload.get("handle"),
+            "paid": paid,
+            "note": note,
+            "by": actor,
+            "has_paid": has_paid,
+            "has_note": has_note,
+        },
+    )
+    db.commit()
+
+    row = db.execute(
+        text(
+            """SELECT paid, paid_source, checked_at, checked_by, note
+               FROM entitlement_paid
+               WHERE platform = :platform AND discord_id = :id"""
+        ),
+        {"platform": platform, "id": pid},
+    ).mappings().first()
+
+    out = {
+        "platform_id": pid,
+        "paid": bool(row["paid"]),
+        "paid_source": row["paid_source"],
+        "paid_checked_at": row["checked_at"].isoformat() if row["checked_at"] else None,
+        "paid_checked_by": row["checked_by"],
+        "note": row["note"],
+    }
+
+    # The audit blob is a cached snapshot; patch this one row in place so an
+    # edit survives closing the modal without paying for a one-minute recompute.
+    try:
+        from app.services.entitlement_audit import BLOB_KEY
+        from app.core.redis import cache_get, cache_set
+
+        blob = cache_get(BLOB_KEY)
+        if blob:
+            for r in blob.get("rows", []):
+                if r.get("platform_id") == pid:
+                    r.update({k: v for k, v in out.items() if k != "platform_id"})
+                    break
+            cache_set(BLOB_KEY, blob, ttl=60 * 60 * 12)
+    except Exception:
+        pass
+
+    return out

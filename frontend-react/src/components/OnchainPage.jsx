@@ -1056,7 +1056,7 @@ const AlertModal = ({ alert, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-label="Alert detail"
-        className="lq-sheet relative flex max-h-[min(92dvh,100%)] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:rounded-2xl sm:border"
+        className="lq-sheet relative flex max-h-[min(var(--lq-modal-maxh),100%)] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:rounded-2xl sm:border"
         onClick={(ev) => ev.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">

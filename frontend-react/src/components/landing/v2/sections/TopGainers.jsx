@@ -24,6 +24,7 @@ import { peakLagFromSeconds } from "../../../../utils/peakTiming";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { CTA } from "../landingCopy";
+import { CountUp } from "./shared/reveal";
 import { onGuestProofOpen } from "../landingSoftGate";
 import LandingSoftGateSheet from "./shared/LandingSoftGateSheet";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
@@ -54,7 +55,7 @@ const GainerCard = ({ item, onClick }) => (
           {symbolOf(item.pair)}
           <span className="text-text-muted font-normal">USDT</span>
         </p>
-        <span className="inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-text-muted">
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
           <svg
             className="h-2.5 w-2.5"
             viewBox="0 0 24 24"
@@ -71,7 +72,7 @@ const GainerCard = ({ item, onClick }) => (
     <p className="text-xl lg:text-2xl font-semibold text-profit leading-none tabular-nums">
       +{(item.gain_pct ?? 0).toFixed(1)}%
     </p>
-    <p className="text-text-muted text-[10px] mt-1.5 uppercase tracking-wider">
+    <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
       {peakLagFromSeconds(item.duration_seconds)
         ? `Peak · ${peakLagFromSeconds(item.duration_seconds)} after call`
         : "Peak since call"}
@@ -101,13 +102,15 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
   const [gateItem, setGateItem] = useState(null);
   /** Queue soft-gate until proof modal closes (never stack on chart). */
   const [gatePending, setGatePending] = useState(false);
+  // The section is the track record, so the track record is where the login
+  // door should open — /home threw away the reason they clicked.
   const goPlatform = () => {
     if (isAuthenticated) {
-      navigate("/home");
+      navigate("/performance");
       return;
     }
     trackFunnel("cta_click", { source: "top_gainers_cta", path: "/" });
-    navigate(loginUrl("/home", { source: "top_gainers_cta" }));
+    navigate(loginUrl("/performance", { source: "top_gainers_cta" }));
   };
 
   // ── custom date range (top-performers supports date_from/date_to) ──
@@ -279,20 +282,16 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
     >
       {/* header — framed as LuxQuant's own signal calls (not market noise) */}
       <div className="text-center mb-12 lg:mb-16">
-        <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.25em] text-text-muted">
-          <span className="h-px w-7 bg-gradient-to-r from-transparent to-accent/55" />
-          Verified Track Record
-          <span className="h-px w-7 bg-gradient-to-l from-transparent to-accent/55" />
-        </span>
+        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">Verified track record</p>
 
         <h2
-          className="mt-5 font-bold text-text-primary text-3xl lg:text-5xl tracking-tight"
+          className="mt-5 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]"
           style={{ textShadow: "0 0 30px rgb(var(--ink) / 0.12)" }}
         >
           Top Gainers We Called
         </h2>
 
-        <p className="mx-auto mt-4 max-w-2xl text-sm lg:text-base leading-relaxed text-text-primary/55">
+        <p className="mx-auto mt-4 max-w-2xl text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
           Not market noise — every coin below is a real LuxQuant entry. These are the peak gains
           each one ran after our call, each labelled with how long after the call that peak
           arrived — so you can check any of them on a chart.
@@ -308,7 +307,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
               <Wrap
                 key={s.label}
                 onClick={s.onClick || undefined}
-                className={`group relative flex-1 p-2 text-center transition-colors sm:p-3 lg:flex-none lg:p-0 lg:text-left ${
+                className={`group relative grid min-w-0 flex-1 content-start grid-rows-[2rem_2rem_2.8rem] p-2 text-center transition-colors sm:grid-rows-[2.25rem_2.5rem_3rem] sm:p-3 lg:block lg:flex-none lg:p-0 lg:text-left ${
                   s.onClick ? "cursor-pointer hover:opacity-90" : ""
                 }`}
               >
@@ -329,7 +328,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
                     />
                   </svg>
                 )}
-                <p className="mb-1.5 flex items-center justify-center gap-1.5 text-[8px] font-medium uppercase leading-tight tracking-[0.1em] text-text-muted sm:mb-2 sm:text-[10px] sm:tracking-[0.16em] lg:mb-2.5 lg:justify-start lg:text-[13px] lg:tracking-[0.16em]">
+                <p className="flex min-w-0 items-end justify-center gap-1.5 pb-1 text-[8px] font-medium uppercase leading-tight tracking-[0.1em] text-text-muted sm:pb-1.5 sm:text-[10px] sm:tracking-[0.16em] lg:mb-2.5 lg:items-center lg:justify-start lg:pb-0 lg:text-[13px] lg:tracking-[0.16em]">
                   <span className="hidden h-px w-5 bg-gradient-to-r from-accent/70 to-transparent lg:inline-block" />
                   {s.label}
                   {/* desktop-only inline arrow */}
@@ -351,26 +350,35 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
                   )}
                 </p>
                 <p
-                  className={`font-bold leading-none tabular-nums text-[1.25rem] sm:text-[1.9rem] lg:text-[3.6rem] xl:text-[4rem] ${s.accent}`}
+                  className={`flex min-w-0 items-start justify-center font-bold leading-none tabular-nums text-[1.25rem] sm:text-[1.9rem] lg:block lg:text-[3.6rem] xl:text-[4rem] ${s.accent}`}
                 >
-                  {s.value}
+                  <CountUp text={s.value} duration={3200} easing="smooth" />
                 </p>
 
-                {s.pair && (
-                  <div className="mt-1.5 flex items-center justify-center gap-1 sm:mt-2 sm:gap-1.5 lg:mt-2.5 lg:justify-start lg:gap-1.5">
-                    <CoinLogo pair={s.pair} size={16} />
-                    <span className="text-[10px] font-medium text-accent sm:text-xs lg:text-sm">
-                      {symbolOf(s.pair)}
-                      <span className="text-text-muted font-normal">USDT</span>
-                    </span>
-                  </div>
-                )}
+                {/* Reserve the same metadata row for every mobile stat. The
+                    first stat has a pair + peak note; without an explicit row
+                    the browser vertically centres the two shorter buttons and
+                    their labels/numbers no longer share a baseline. */}
+                <div className="min-w-0 lg:min-h-0">
+                  {s.pair && (
+                    <div className="flex items-center justify-center gap-1 sm:gap-1.5 lg:mt-2.5 lg:justify-start lg:gap-1.5">
+                      <CoinLogo pair={s.pair} size={16} />
+                      <span className="truncate text-[10px] font-medium text-accent sm:text-xs lg:text-sm">
+                        {symbolOf(s.pair)}
+                        <span className="font-normal text-text-muted">USDT</span>
+                      </span>
+                    </div>
+                  )}
 
-                {s.sub && (
-                  <p className="mt-1 text-[9px] text-text-muted sm:text-[10px] lg:mt-1.5 lg:text-[11px]">
-                    {s.sub}
-                  </p>
-                )}
+                  {s.sub && (
+                    /* 9px on a phone is below what most people read comfortably,
+                       and this line is the call's date — the proof, not a
+                       footnote. */
+                    <p className="mt-1 truncate text-[10.5px] text-text-muted sm:text-[11px] lg:mt-1.5 lg:text-[12px]">
+                      {s.sub}
+                    </p>
+                  )}
+                </div>
               </Wrap>
             );
           })}
@@ -436,9 +444,9 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
                       onClick={() => setPickerOpen(false)}
                       aria-hidden="true"
                     />
-                    <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-ink/12 bg-surface-secondary p-3 shadow-[0_16px_40px_rgb(var(--scrim) / 0.35)]">
+                    <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-ink/12 bg-surface-secondary p-3">
                       <div className="mb-2 flex items-center justify-between">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                           Pick a date range
                         </span>
                         <button

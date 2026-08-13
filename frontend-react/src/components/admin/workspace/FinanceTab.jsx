@@ -169,7 +169,7 @@ const Toast = ({ toast }) => {
  Main
  ════════════════════════════════════════════════════════════════════ */
 
-export const FinanceTab = ({ onRefreshStats }) => {
+export const FinanceTab = ({ onRefreshStats, initialSearch = "" }) => {
   const [stats, setStats] = useState(null);
   const [payments, setPayments] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 1 });
@@ -178,7 +178,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
 
   /* Filters */
   const [statusFilter, setStatusFilter] = useState("");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [exchangeFilter, setExchangeFilter] = useState("");
   const [exchangeOptions, setExchangeOptions] = useState([]);
   const [sourceFilter, setSourceFilter] = useState(""); // '' | 'manual' | 'auto'

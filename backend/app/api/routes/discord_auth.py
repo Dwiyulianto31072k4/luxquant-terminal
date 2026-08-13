@@ -26,7 +26,7 @@ from urllib.parse import urlencode, quote
 from typing import Optional, Tuple
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -40,6 +40,7 @@ from app.services.referral_helpers import (
     apply_referral_to_user,
     track_user_login,
 )
+from app.services.geo_helpers import location_from_request
 from app.services.role_resolver import (
     resolve_role_for_discord,
     is_role_protected,
@@ -136,6 +137,7 @@ async def get_discord_auth_url(referral_code: Optional[str] = None):
 
 @router.get("/discord/callback")
 async def discord_callback(
+    request: Request,
     code: str,
     state: Optional[str] = None,
     db: Session = Depends(get_db),
@@ -190,7 +192,7 @@ async def discord_callback(
         db.commit()
         db.refresh(link_user)
 
-        track_user_login(db, link_user, commit=True)
+        track_user_login(db, link_user, commit=True, **location_from_request(request))
         tokens = create_tokens(link_user.id, link_user.email)
         user_response = UserResponse.model_validate(link_user)
         user_json = quote(json.dumps(user_response.model_dump(mode="json")))
@@ -282,8 +284,8 @@ async def discord_callback(
             )
         db.refresh(user)
 
-    # ─── Track login ───
-    track_user_login(db, user, commit=True)
+    # ─── Track login + geo ───
+    track_user_login(db, user, commit=True, **location_from_request(request))
 
     tokens = create_tokens(user.id, user.email)
     cryptobot_token = create_cryptobot_exchange_token(user)
@@ -296,6 +298,7 @@ async def discord_callback(
         f"?token={tokens['access_token']}"
         f"&refresh_token={tokens['refresh_token']}"
         f"&user={user_json}"
+        f"&is_new={'1' if is_new_user else '0'}"
     )
     if cryptobot_token:
         redirect_url += f"&cryptobot_token={cryptobot_token}"

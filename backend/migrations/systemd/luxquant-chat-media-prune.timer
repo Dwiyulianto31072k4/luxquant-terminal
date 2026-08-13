@@ -1,0 +1,11 @@
+[Unit]
+Description=Run LuxQuant Chat image retention every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00/15:00
+Persistent=true
+AccuracySec=1min
+Unit=luxquant-chat-media-prune.service
+
+[Install]
+WantedBy=timers.target

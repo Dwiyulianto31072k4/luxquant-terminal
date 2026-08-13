@@ -36,6 +36,17 @@ PRICE_CHAT_BY_MODEL = {
     "claude-haiku-4-5": (1.00, 5.00),
     "gemini-3-pro": (2.00, 12.00),
     "gemini-3-flash": (0.50, 3.00),
+    # OpenAI's chat family, for when the editorial writer runs there. Without
+    # these a switched draft would be priced at the xAI fallback and the
+    # itemised invoice would quote a rate we never paid.
+    "gpt-5.2": (1.75, 14.00),
+    "gpt-5.6-sol": (1.75, 14.00),
+    "gpt-5.6-terra": (1.40, 11.20),
+    "gpt-5.6-luna": (0.35, 2.80),
+    "gpt-5.4": (1.75, 14.00),
+    "gpt-5.4-mini": (0.35, 2.80),
+    "gpt-4.1": (2.00, 8.00),
+    "gpt-4.1-mini": (0.40, 1.60),
 }
 
 

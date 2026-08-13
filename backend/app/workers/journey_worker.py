@@ -373,23 +373,44 @@ def run_refresh_mode(
         # already happened. Frequency governs how fresh the number is, not
         # whether it is correct. TP/SL detection is unaffected — that is written
         # by the Telegram scraper, not by this worker.
+        #
+        # The second branch below is what stops a fetch failure being final.
+        # This clause read `coverage_status = 'live'` alone, so a signal whose
+        # candles failed to load was stamped 'unavailable' and never looked at
+        # again — one Binance blip erased it from realized_outcome_pct, MAE/MFE
+        # and everything built on them, with no error and no alarm. 1,866 rows
+        # had collected that way since May 2025 at 80-110/month; a 20-of-20
+        # sample all recovered on a plain retry. Retrying is bounded for free by
+        # the 14-day :cutoff_age_str already applied, so a symbol with no data
+        # anywhere ages out by itself instead of being retried for ever.
+        # 'frozen' and 'sl_truncated' stay out: those are real endings.
         rows = session.execute(text("""
             SELECT j.signal_id
             FROM signal_journey j
             INNER JOIN signals s ON s.signal_id = j.signal_id
-            WHERE j.coverage_status = 'live'
-              AND s.created_at >= :cutoff_age_str
+            WHERE s.created_at >= :cutoff_age_str
               AND (
-                    j.computed_at IS NULL
-                 OR j.last_event_at > j.computed_at
-                 OR j.computed_at < now() - (
-                        CASE
-                          WHEN now() - s.created_at::timestamptz < interval '1 day'
-                               THEN interval '2 hours'
-                          WHEN now() - s.created_at::timestamptz < interval '7 days'
-                               THEN :refresh_window
-                          ELSE interval '24 hours'
-                        END)
+                (
+                  j.coverage_status = 'live'
+                  AND (
+                        j.computed_at IS NULL
+                     OR j.last_event_at > j.computed_at
+                     OR j.computed_at < now() - (
+                            CASE
+                              WHEN now() - s.created_at::timestamptz < interval '1 day'
+                                   THEN interval '2 hours'
+                              WHEN now() - s.created_at::timestamptz < interval '7 days'
+                                   THEN :refresh_window
+                              ELSE interval '24 hours'
+                            END)
+                  )
+                )
+                OR
+                (
+                  j.coverage_status = 'unavailable'
+                  AND (j.computed_at IS NULL
+                       OR j.computed_at < now() - interval '6 hours')
+                )
               )
             ORDER BY j.computed_at ASC NULLS FIRST
         """), {

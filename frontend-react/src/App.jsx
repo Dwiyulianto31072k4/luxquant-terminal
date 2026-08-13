@@ -18,10 +18,14 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
 import TelegramNudgeModal from "./components/TelegramNudgeModal";
+import OpenInvoiceCard from "./components/subscription/OpenInvoiceCard";
 import FreeOnboardingModal from "./components/FreeOnboardingModal";
+import MiniAppStartRoute from "./components/MiniAppStartRoute";
 import AnnouncementModal from "./components/AnnouncementModal";
 import ChatLauncher from "./components/chat/ChatLauncher";
 import { stashPostLoginRedirect } from "./utils/postLoginRedirect";
+import { isPremiumUser as hasPremiumAccess } from "./utils/roles";
+import { LOGIN_REQUIRED, PREMIUM_REQUIRED } from "./utils/routeAccess";
 
 // ════════════════════════════════════════
 // LAZY LOADED PAGES
@@ -49,6 +53,7 @@ const LandingPageV2 = lazy(() => import("./components/landing/v2/LandingPageV2")
 const LoginPage = lazy(() => import("./components/auth/LoginPage"));
 const GoogleCallback = lazy(() => import("./components/auth/GoogleCallback"));
 const DiscordCallback = lazy(() => import("./components/auth/DiscordCallback"));
+const TelegramCallback = lazy(() => import("./components/auth/TelegramCallback"));
 const PricingPage = lazy(() => import("./components/subscription/PricingPage"));
 const PaymentPage = lazy(() => import("./components/subscription/PaymentPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
@@ -89,60 +94,9 @@ const ContentLoader = () => <PageSkeleton />;
 // ════════════════════════════════════════
 // ACCESS CONTROL
 // ════════════════════════════════════════
-const LOGIN_REQUIRED = [
-  "/market-pulse",
-  "/crypto-news",
-  "/signals",
-  "/terminal",
-  "/analytics",
-  "/performance",
-  "/bitcoin",
-  "/markets",
-  "/watchlist",
-  "/tips",
-  "/admin",
-  "/admin/workspace",
-  "/ai-arena",
-  "/ai-arena/v6",
-  "/ai-arena/legacy",
-  "/referral",
-  "/orderbook",
-  "/calendar",
-  "/whale",
-  "/money-flow",
-  "/delistings",
-  "/notifications",
-  "/journal",
-  "/onchain",
-  "/autotrade",
-  "/agent",
-  "/portfolio",
-  "/api-keys",
-];
-
-// Free accounts (login required, not premium) get habit-forming product value:
-// · /signals — browse + full levels on calls older than 7d (backend PUBLIC_AFTER_DAYS)
-// · /watchlist — personal list (API is login-only, no paywall)
-// · /tips, /performance, /market-pulse, /crypto-news, /journal, /notifications
-// Premium keeps the live moat: Terminal, markets depth, Agent, AI Arena, etc.
-const PREMIUM_REQUIRED = [
-  "/terminal",
-  "/bitcoin",
-  "/markets",
-  "/ai-arena",
-  "/ai-arena/v6",
-  "/ai-arena/legacy",
-  "/orderbook",
-  "/calendar",
-  "/whale",
-  "/money-flow",
-  "/delistings",
-  "/onchain",
-  "/autotrade",
-  "/agent",
-  "/portfolio",
-  "/api-keys",
-];
+// The two lists now live in utils/routeAccess.js — enforcement stays here, but
+// the landing page needs to read them to stop offering premium pages to free
+// accounts. Contents are unchanged.
 
 // ════════════════════════════════════════
 // ROUTE GUARDS
@@ -567,15 +521,8 @@ function AppShell({ children }) {
     };
   }, []);
 
-  const isPremiumUser = () =>
-    user &&
-    (user.role === "admin" ||
-      user.role === "co_admin" ||
-      user.role === "founder" ||
-      user.role === "premium" ||
-      user.role === "subscriber" ||
-      user.is_admin_staff === true ||
-      user.is_admin);
+  // Same rule, now shared with the landing page (utils/roles.js).
+  const isPremiumUser = () => hasPremiumAccess(user);
   const isActive = (path) => {
     if (location.pathname === path) return true;
     // Nested research surfaces
@@ -1203,7 +1150,7 @@ function AppShell({ children }) {
               path="/bitcoin"
               onClick={() => handleNav("/bitcoin")}
               label={t("nav.bitcoin")}
-              isPremium={!isPremiumUser()}
+              isFreeBadge
               icon={
                 <path
                   strokeLinecap="round"
@@ -1219,7 +1166,7 @@ function AppShell({ children }) {
               path="/markets"
               onClick={() => handleNav("/markets")}
               label={t("nav.markets")}
-              isPremium={!isPremiumUser()}
+              isFreeBadge
               icon={
                 <>
                   <path
@@ -1532,8 +1479,10 @@ function App() {
         <AuthProvider>
           <ThemeProvider>
             <ErrorBoundary>
+              <MiniAppStartRoute />
               <InAppBrowserBanner />
               <TelegramNudgeModal />
+              <OpenInvoiceCard />
               <FreeOnboardingModal />
               <AnnouncementModal />
               <ChatLauncher />
@@ -1558,6 +1507,14 @@ function App() {
                     element={
                       <Suspense fallback={<PageLoader />}>
                         <GoogleCallback />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/auth/telegram/callback"
+                    element={
+                      <Suspense fallback={<PageLoader />}>
+                        <TelegramCallback />
                       </Suspense>
                     }
                   />
@@ -1666,6 +1623,22 @@ function App() {
                       <AppShell>
                         <PricingPage />
                       </AppShell>
+                    }
+                  />
+                  {/* Same page, rendered inside the settings dialog. /pricing
+                      stays standalone for marketing links; this is the one the
+                      settings rail points at, so choosing a plan never throws
+                      you out of the dialog you were in. */}
+                  <Route
+                    path="/account/subscription"
+                    element={
+                      <RequireAuth>
+                        <AppShell>
+                          <AccountLayout>
+                            <PricingPage />
+                          </AccountLayout>
+                        </AppShell>
+                      </RequireAuth>
                     }
                   />
                   <Route
@@ -1854,9 +1827,7 @@ function App() {
                     element={
                       <RequireAuth>
                         <AppShell>
-                          <PremiumGate>
-                            <BitcoinPage />
-                          </PremiumGate>
+                          <BitcoinPage />
                         </AppShell>
                       </RequireAuth>
                     }
@@ -1866,9 +1837,7 @@ function App() {
                     element={
                       <RequireAuth>
                         <AppShell>
-                          <PremiumGate>
-                            <MarketsPage />
-                          </PremiumGate>
+                          <MarketsPage />
                         </AppShell>
                       </RequireAuth>
                     }

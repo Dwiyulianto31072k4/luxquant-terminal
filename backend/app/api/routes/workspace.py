@@ -15,7 +15,13 @@ from app.api.deps import get_admin_user
 from app.models.user import User
 from app.models.workspace import AdminFollowup, MarketingCampaign, BrandTodo
 from app.models.subscription import Payment
-from app.models.referral import ReferralUse
+from app.models.referral import (
+    ReferralCode,
+    ReferralUse,
+    ReferralReminderEvent,
+    ReferralReminderPreference,
+)
+from app.services.telegram_group import send_dm
 from app.schemas.workspace import (
     FollowupCreate, FollowupUpdate, FollowupResponse,
     CampaignCreate, CampaignUpdate, CampaignResponse,
@@ -25,6 +31,318 @@ from app.schemas.workspace import (
 
 
 router = APIRouter(prefix="/api/v1/workspace", tags=["workspace"])
+
+
+REFERRAL_REMINDER_COOLDOWN_DAYS = 30
+REFERRAL_REMINDER_ACTIVE_DAYS = 30
+REFERRAL_REMINDER_MIN_ACCOUNT_DAYS = 14
+REFERRAL_REMINDER_MAX_180D = 3
+
+
+def _aware(dt):
+    """Normalise legacy naive timestamps before comparing them to UTC."""
+    if dt is None:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _referral_reminder_message(user, code, advocate):
+    username = user.username or "there"
+    link = f"https://luxquant.tw/?ref={code.code}"
+    portal = "https://luxquant.tw/referral"
+    referred = advocate["referred"]
+    commission = advocate["commission"]
+
+    if referred:
+        lead = (
+            f"Your LuxQuant link has already brought in {referred} member"
+            f"{'s' if referred != 1 else ''}"
+        )
+        if commission:
+            lead += f" and earned ${commission:,.2f} in referral credit"
+        lead += "."
+    elif (code.share_count or 0) > 0:
+        lead = "You have shared your LuxQuant link before — it is ready whenever you want to use it again."
+    else:
+        lead = "Your personal LuxQuant referral link is ready, but it has not been shared yet."
+
+    return (
+        f"Hi {username},\n\n{lead}\n\n"
+        "If someone is already asking you about LuxQuant, you can send them this link. "
+        "They receive the referral discount and your reward is tracked automatically after payment.\n\n"
+        f"Your link: {link}\n"
+        f"Referral dashboard: {portal}\n\n"
+        "No pressure — we only send this referral reminder occasionally. "
+        "Reply STOP if you do not want referral reminders."
+    )
+
+
+def _build_referral_ops(db: Session, now: datetime) -> dict:
+    """Build the complete admin referral graph and safe reminder queue."""
+    codes = (
+        db.query(ReferralCode)
+        .filter(ReferralCode.is_active == True)
+        .order_by(ReferralCode.user_id, ReferralCode.created_at.desc())
+        .all()
+    )
+    code_by_owner = {}
+    for code in codes:
+        code_by_owner.setdefault(code.user_id, code)
+
+    uses = db.query(ReferralUse).order_by(ReferralUse.created_at.desc()).all()
+    user_ids = set(code_by_owner)
+    for use in uses:
+        user_ids.add(use.referrer_id)
+        user_ids.add(use.referred_id)
+    users = (
+        {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()}
+        if user_ids else {}
+    )
+
+    referred_ids = [u.referred_id for u in uses]
+    REV = func.coalesce(Payment.final_amount, Payment.amount_usdt)
+    revenue_by_user = {}
+    confirmed_payments_by_user = {}
+    if referred_ids:
+        paid_rows = (
+            db.query(
+                Payment.user_id,
+                func.coalesce(func.sum(REV), 0),
+                func.count(Payment.id),
+            )
+            .filter(
+                Payment.status == "confirmed",
+                Payment.deleted_at.is_(None),
+                Payment.user_id.in_(referred_ids),
+            )
+            .group_by(Payment.user_id)
+            .all()
+        )
+        revenue_by_user = {uid: float(amount or 0) for uid, amount, _count in paid_rows}
+        confirmed_payments_by_user = {uid: int(count or 0) for uid, _amount, count in paid_rows}
+
+    payment_ids = [u.payment_id for u in uses if u.payment_id]
+    payment_by_id = {
+        p.id: p for p in db.query(Payment).filter(Payment.id.in_(payment_ids or [-1])).all()
+    }
+
+    preferences = {
+        p.user_id: p
+        for p in db.query(ReferralReminderPreference).filter(
+            ReferralReminderPreference.user_id.in_(list(code_by_owner) or [-1])
+        ).all()
+    }
+    d180 = now - timedelta(days=180)
+    recent_events = (
+        db.query(ReferralReminderEvent)
+        .filter(ReferralReminderEvent.created_at >= d180)
+        .order_by(ReferralReminderEvent.created_at.desc())
+        .all()
+    )
+    events_by_user = {}
+    for event in recent_events:
+        events_by_user.setdefault(event.user_id, []).append(event)
+
+    advocate_map = {}
+    for owner_id, code in code_by_owner.items():
+        owner = users.get(owner_id)
+        if not owner:
+            continue
+        advocate_map[owner_id] = {
+            "user_id": owner_id,
+            "username": owner.username,
+            "role": owner.role,
+            "code": code.code,
+            "code_id": code.id,
+            "discount_pct": float(code.discount_pct or 0),
+            "commission_pct": float(code.commission_pct or 0),
+            "shares": int(code.share_count or 0),
+            "qr_downloads": int(code.qr_count or 0),
+            "last_shared_at": code.last_shared_at,
+            "referred": 0,
+            "activated": 0,
+            "subscribed": 0,
+            "payments": 0,
+            "revenue": 0.0,
+            "commission": 0.0,
+            "last_referral_at": None,
+            "last_active_at": owner.last_active_at or owner.last_login_at,
+            "telegram_reachable": bool(owner.telegram_id),
+        }
+
+    relationships = []
+    paid_by_code = {}
+    refunded_commission = 0
+    for use in uses:
+        referrer = users.get(use.referrer_id)
+        referred = users.get(use.referred_id)
+        revenue = revenue_by_user.get(use.referred_id, 0.0)
+        confirmed_payments = confirmed_payments_by_user.get(use.referred_id, 0)
+        linked_payment = payment_by_id.get(use.payment_id)
+        payment_state = linked_payment.status if linked_payment else None
+        if confirmed_payments:
+            paid_by_code[use.referral_code_id] = paid_by_code.get(use.referral_code_id, 0) + 1
+        if payment_state == "refunded" and float(use.total_commission_earned or 0) > 0:
+            refunded_commission += 1
+        advocate = advocate_map.get(use.referrer_id)
+        if advocate:
+            advocate["referred"] += 1
+            advocate["activated"] += int(bool(use.first_login_at) or use.status != "pending")
+            advocate["subscribed"] += int(confirmed_payments > 0)
+            advocate["payments"] += confirmed_payments
+            advocate["revenue"] += revenue
+            advocate["commission"] += float(use.total_commission_earned or 0)
+            created = _aware(use.created_at)
+            current_last = _aware(advocate["last_referral_at"])
+            if created and (not current_last or created > current_last):
+                advocate["last_referral_at"] = use.created_at
+
+        relationships.append({
+            "id": use.id,
+            "referrer_id": use.referrer_id,
+            "referrer_username": referrer.username if referrer else f"#{use.referrer_id}",
+            "referred_id": use.referred_id,
+            "referred_username": referred.username if referred else f"#{use.referred_id}",
+            "status": "refunded" if payment_state == "refunded" else use.status,
+            "relationship_status": use.status,
+            "payment_status": payment_state,
+            "joined_at": use.created_at,
+            "activated_at": use.first_login_at,
+            "last_active_at": (referred.last_active_at or referred.last_login_at) if referred else None,
+            "payments": confirmed_payments,
+            "historical_payments": int(use.total_payments or 0),
+            "revenue": revenue,
+            "commission": float(use.total_commission_earned or 0),
+        })
+
+    status_counts = {
+        "eligible": 0, "cooldown": 0, "recently_shared": 0, "inactive": 0,
+        "unreachable": 0, "warming": 0, "capped": 0, "paused": 0,
+    }
+    candidates = []
+    for owner_id, advocate in advocate_map.items():
+        owner = users[owner_id]
+        code = code_by_owner[owner_id]
+        pref = preferences.get(owner_id)
+        sent_events = [e for e in events_by_user.get(owner_id, []) if e.status == "sent"]
+        last_sent = _aware(sent_events[0].sent_at or sent_events[0].created_at) if sent_events else None
+        last_seen = _aware(owner.last_active_at or owner.last_login_at)
+        code_created = _aware(code.created_at) or now
+        last_shared = _aware(code.last_shared_at)
+
+        if pref and pref.opted_out:
+            state, reason = "paused", pref.reason or "Paused by admin / user request"
+        elif not owner.telegram_id:
+            state, reason = "unreachable", "Telegram bot is not linked"
+        elif (now - code_created).days < REFERRAL_REMINDER_MIN_ACCOUNT_DAYS:
+            state, reason = "warming", "Referral code is still in the welcome period"
+        elif not last_seen or last_seen < now - timedelta(days=REFERRAL_REMINDER_ACTIVE_DAYS):
+            state, reason = "inactive", "User has not been active in the last 30 days"
+        elif last_shared and last_shared >= now - timedelta(days=REFERRAL_REMINDER_COOLDOWN_DAYS):
+            state, reason = "recently_shared", "Already shared within the last 30 days"
+        elif last_sent and last_sent >= now - timedelta(days=REFERRAL_REMINDER_COOLDOWN_DAYS):
+            days_left = REFERRAL_REMINDER_COOLDOWN_DAYS - (now - last_sent).days
+            state, reason = "cooldown", f"Reminder cooldown · {days_left}d remaining"
+        elif len(sent_events) >= REFERRAL_REMINDER_MAX_180D:
+            state, reason = "capped", "Reached the 3 reminders / 180 days safety cap"
+        else:
+            state, reason = "eligible", "Engaged, reachable, and outside all cooldowns"
+
+        segment = (
+            "champion" if advocate["referred"] > 0
+            else "restart" if advocate["shares"] > 0
+            else "first_share"
+        )
+        advocate["reminder"] = {
+            "state": state,
+            "reason": reason,
+            "segment": segment,
+            "last_sent_at": last_sent,
+            "sent_180d": len(sent_events),
+            "opted_out": bool(pref and pref.opted_out),
+        }
+        status_counts[state] += 1
+        if state == "eligible":
+            candidates.append(advocate)
+
+    advocates = sorted(
+        advocate_map.values(),
+        key=lambda a: (a["subscribed"], a["referred"], a["shares"], a["revenue"]),
+        reverse=True,
+    )
+    candidates.sort(
+        key=lambda a: (a["referred"] > 0, a["referred"], a["shares"], a["last_active_at"] or now),
+        reverse=True,
+    )
+
+    total_referred = len(uses)
+    total_activated = sum(1 for u in uses if u.first_login_at or u.status != "pending")
+    total_subscribed = sum(1 for u in uses if confirmed_payments_by_user.get(u.referred_id, 0) > 0)
+    code_mismatches = sum(
+        1 for code in codes if int(code.times_used or 0) != paid_by_code.get(code.id, 0)
+    )
+    user_without_use = db.query(func.count(User.id)).filter(
+        User.referred_by.isnot(None),
+        ~db.query(ReferralUse.id).filter(ReferralUse.referred_id == User.id).exists(),
+    ).scalar() or 0
+    referrer_mismatch = (
+        db.query(func.count(ReferralUse.id))
+        .join(User, User.id == ReferralUse.referred_id)
+        .filter(User.referred_by.is_distinct_from(ReferralUse.referrer_id))
+        .scalar() or 0
+    )
+
+    history = []
+    for event in recent_events[:25]:
+        owner = users.get(event.user_id) or db.query(User).filter(User.id == event.user_id).first()
+        history.append({
+            "id": event.id,
+            "user_id": event.user_id,
+            "username": owner.username if owner else f"#{event.user_id}",
+            "segment": event.segment,
+            "channel": event.channel,
+            "status": event.status,
+            "error": event.error,
+            "sent_at": event.sent_at,
+            "created_at": event.created_at,
+        })
+
+    return {
+        "summary": {
+            "advocates": len(advocates),
+            "tracked_shares": sum(a["shares"] for a in advocates),
+            "referred": total_referred,
+            "activated": total_activated,
+            "subscribed": total_subscribed,
+            "activation_rate": (total_activated / total_referred * 100) if total_referred else 0,
+            "paid_rate": (total_subscribed / total_referred * 100) if total_referred else 0,
+            "revenue": sum(a["revenue"] for a in advocates),
+            "commission": sum(a["commission"] for a in advocates),
+        },
+        "advocates": advocates,
+        "relationships": relationships,
+        "reminders": {
+            "policy": {
+                "cooldown_days": REFERRAL_REMINDER_COOLDOWN_DAYS,
+                "active_days": REFERRAL_REMINDER_ACTIVE_DAYS,
+                "min_account_days": REFERRAL_REMINDER_MIN_ACCOUNT_DAYS,
+                "max_per_180d": REFERRAL_REMINDER_MAX_180D,
+                "automatic_send": False,
+            },
+            "counts": status_counts,
+            "candidates": candidates,
+            "history": history,
+        },
+        "data_quality": {
+            "user_without_use": int(user_without_use),
+            "referrer_mismatch": int(referrer_mismatch),
+            "code_use_mismatch": int(code_mismatches),
+            "refunded_commission": int(refunded_commission),
+            "healthy": not (
+                user_without_use or referrer_mismatch or code_mismatches or refunded_commission
+            ),
+        },
+    }
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -206,30 +524,12 @@ def growth_analytics(
         key=lambda x: x["revenue"], reverse=True,
     )
 
-    # ── Referral leaderboard ──
-    total_referred = db.query(func.count(ReferralUse.id)).scalar() or 0
-    ref_rows = (
-        db.query(
-            ReferralUse.referrer_id,
-            func.count(ReferralUse.id),
-            func.coalesce(func.sum(ReferralUse.total_commission_earned), 0),
-            func.coalesce(func.sum(ReferralUse.total_payments), 0),
-        )
-        .group_by(ReferralUse.referrer_id)
-        .order_by(func.count(ReferralUse.id).desc())
-        .limit(10).all()
-    )
-    ref_ids = [r[0] for r in ref_rows]
-    ref_names = dict(db.query(User.id, User.username).filter(User.id.in_(ref_ids)).all()) if ref_ids else {}
-    top_referrers = [
-        {
-            "username": ref_names.get(rid, f"#{rid}"),
-            "referred": int(cnt or 0),
-            "commission": float(comm or 0),
-            "payments": int(pmts or 0),
-        }
-        for rid, cnt, comm, pmts in ref_rows
-    ]
+    # ── Referral operating system ──
+    referral_ops = _build_referral_ops(db, now)
+    # The directory has its own paginated endpoint. Keep the growth payload
+    # lean as the advocate base scales into the thousands.
+    referral_ops["advocate_total"] = len(referral_ops.get("advocates", []))
+    referral_ops.pop("advocates", None)
 
     # ── Health: churn-risk (paying but going quiet) ──
     d14 = now - timedelta(days=14)
@@ -279,10 +579,214 @@ def growth_analytics(
         },
         "attribution": {
             "by_source": by_source,
-            "referral": {"total_referred": total_referred, "top_referrers": top_referrers},
+            "referral": referral_ops,
         },
         "health": {"churn_risk": churn_risk},
         "generated_at": now,
+    }
+
+
+@router.get("/growth/referrals/advocates")
+def list_referral_advocates(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=10, le=50),
+    search: Optional[str] = Query(None, max_length=100),
+    role: str = Query("all"),
+    reminder: str = Query("all"),
+    performance: str = Query("all"),
+    reach: str = Query("all"),
+    sort_by: str = Query("referred"),
+    order: str = Query("desc"),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Paginated, combinable advocate directory for Growth operations."""
+    snapshot = _build_referral_ops(db, datetime.now(timezone.utc))
+    all_items = snapshot["advocates"]
+
+    valid_roles = {"all", "free", "subscriber", "premium"}
+    valid_reminders = {
+        "all", "eligible", "cooldown", "recently_shared", "inactive",
+        "unreachable", "warming", "capped", "paused",
+    }
+    valid_performance = {"all", "has_referrals", "has_paid", "shared", "zero_activity"}
+    valid_reach = {"all", "telegram", "no_telegram"}
+    valid_sorts = {"referred", "paid", "revenue", "reward", "shares", "last_active", "username"}
+    if role not in valid_roles:
+        raise HTTPException(status_code=400, detail="Invalid role filter")
+    if reminder not in valid_reminders:
+        raise HTTPException(status_code=400, detail="Invalid reminder filter")
+    if performance not in valid_performance:
+        raise HTTPException(status_code=400, detail="Invalid performance filter")
+    if reach not in valid_reach:
+        raise HTTPException(status_code=400, detail="Invalid reach filter")
+    if sort_by not in valid_sorts or order not in {"asc", "desc"}:
+        raise HTTPException(status_code=400, detail="Invalid sort")
+
+    role_counts = {}
+    reminder_counts = {}
+    for item in all_items:
+        role_counts[item["role"]] = role_counts.get(item["role"], 0) + 1
+        state = item["reminder"]["state"]
+        reminder_counts[state] = reminder_counts.get(state, 0) + 1
+
+    items = all_items
+    if search:
+        needle = search.strip().casefold()
+        items = [
+            a for a in items
+            if needle in (a["username"] or "").casefold() or needle in a["code"].casefold()
+        ]
+    if role != "all":
+        items = [a for a in items if a["role"] == role]
+    if reminder != "all":
+        items = [a for a in items if a["reminder"]["state"] == reminder]
+    if performance == "has_referrals":
+        items = [a for a in items if a["referred"] > 0]
+    elif performance == "has_paid":
+        items = [a for a in items if a["subscribed"] > 0]
+    elif performance == "shared":
+        items = [a for a in items if a["shares"] > 0]
+    elif performance == "zero_activity":
+        items = [a for a in items if a["shares"] == 0 and a["referred"] == 0]
+    if reach == "telegram":
+        items = [a for a in items if a["telegram_reachable"]]
+    elif reach == "no_telegram":
+        items = [a for a in items if not a["telegram_reachable"]]
+
+    def sort_value(item):
+        if sort_by == "paid":
+            return item["subscribed"]
+        if sort_by == "revenue":
+            return item["revenue"]
+        if sort_by == "reward":
+            return item["commission"]
+        if sort_by == "shares":
+            return item["shares"]
+        if sort_by == "last_active":
+            value = _aware(item["last_active_at"])
+            return value.timestamp() if value else 0
+        if sort_by == "username":
+            return (item["username"] or "").casefold()
+        return item["referred"]
+
+    items = sorted(items, key=sort_value, reverse=(order == "desc"))
+    total = len(items)
+    pages = max((total + page_size - 1) // page_size, 1)
+    page = min(page, pages)
+    offset = (page - 1) * page_size
+
+    return {
+        "items": items[offset:offset + page_size],
+        "total": total,
+        "unfiltered_total": len(all_items),
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
+        "from": offset + 1 if total else 0,
+        "to": min(offset + page_size, total),
+        "facets": {"roles": role_counts, "reminders": reminder_counts},
+    }
+
+
+@router.post("/growth/referral-reminders/{user_id}/send")
+async def send_referral_reminder(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Send one policy-checked Telegram reminder and write a full audit event.
+
+    There is deliberately no bulk or automatic-send endpoint. Each click is a
+    conscious admin approval; cooldown and frequency caps are re-evaluated on
+    the server immediately before delivery.
+    """
+    now = datetime.now(timezone.utc)
+    snapshot = _build_referral_ops(db, now)
+    advocate = next((a for a in snapshot["advocates"] if a["user_id"] == user_id), None)
+    if not advocate:
+        raise HTTPException(status_code=404, detail="Active referral advocate not found")
+    if advocate["reminder"]["state"] != "eligible":
+        raise HTTPException(status_code=409, detail=advocate["reminder"]["reason"])
+
+    user = db.query(User).filter(User.id == user_id).first()
+    code = db.query(ReferralCode).filter(ReferralCode.id == advocate["code_id"]).first()
+    if not user or not code or not user.telegram_id:
+        raise HTTPException(status_code=409, detail="Telegram bot is not linked")
+
+    message = _referral_reminder_message(user, code, advocate)
+    event = ReferralReminderEvent(
+        user_id=user.id,
+        referral_code_id=code.id,
+        segment=advocate["reminder"]["segment"],
+        channel="telegram",
+        status="queued",
+        message=message,
+        created_by=admin.id,
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+
+    try:
+        sent = await send_dm(user.telegram_id, message)
+    except Exception as exc:
+        sent = False
+        event.error = str(exc)[:500]
+
+    if not sent:
+        event.status = "failed"
+        event.error = event.error or "Telegram DM failed; user may not have started the bot"
+        db.commit()
+        return {
+            "ok": False,
+            "event_id": event.id,
+            "reason": "dm_failed",
+            "message": event.error,
+        }
+
+    event.status = "sent"
+    event.sent_at = datetime.now(timezone.utc)
+    user.telegram_bot_started_at = event.sent_at
+    db.commit()
+    return {
+        "ok": True,
+        "event_id": event.id,
+        "sent_at": event.sent_at,
+        "message": f"Referral reminder sent to @{user.username}",
+    }
+
+
+@router.post("/growth/referral-reminders/{user_id}/preference")
+def set_referral_reminder_preference(
+    user_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Pause/resume referral reminders for one advocate."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    opted_out = bool(payload.get("opted_out"))
+    reason = (payload.get("reason") or "").strip()[:500] or None
+    pref = db.query(ReferralReminderPreference).filter(
+        ReferralReminderPreference.user_id == user_id
+    ).first()
+    if not pref:
+        pref = ReferralReminderPreference(user_id=user_id)
+        db.add(pref)
+    pref.opted_out = opted_out
+    pref.reason = reason if opted_out else None
+    pref.updated_by = admin.id
+    pref.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return {
+        "ok": True,
+        "user_id": user_id,
+        "opted_out": opted_out,
+        "message": "Referral reminders paused" if opted_out else "Referral reminders resumed",
     }
 
 

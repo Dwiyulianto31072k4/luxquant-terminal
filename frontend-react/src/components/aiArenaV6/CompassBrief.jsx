@@ -690,7 +690,7 @@ function Modal({ title, children, onClose }) {
       onClick={onClose}
     >
       <div
-        className="max-h-[min(92dvh,100%)] w-full max-w-5xl overflow-hidden rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
+        className="max-h-[min(var(--lq-modal-maxh),100%)] w-full max-w-5xl overflow-hidden rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">

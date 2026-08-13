@@ -11,10 +11,19 @@ export const HERO = {
 };
 
 export const CTA = {
-  // Hero pill — secondary to branding, still clear CTA
-  pill: "Access LuxQuant Terminal",
+  // Hero pill — secondary to branding, still clear CTA.
+  //
+  // Was "Access LuxQuant Terminal". The Terminal is premium, so the most-shown
+  // button on the site named a product the person clicking it could not open —
+  // the same message-match break the free-channel captions were fixed for. The
+  // mobile variant already promised the right thing; desktop now matches it.
+  pill: "Start free — no card",
   pillShort: "Start free",
   openApp: "Open app",
+  // Premium members — they already have the Terminal, don't sell it to them
+  openTerminal: "Open Terminal",
+  // Free account looking at a premium surface — a price, not a locked door
+  seePlans: "See plans & pricing",
   // One primary verb across sticky / gate / free / section CTAs
   primaryGuest: "Create free account",
   primaryAuthed: "Open free features",
@@ -54,8 +63,13 @@ export const CTA = {
   freeChannelBody:
     "Free account = Pulse, News, Performance, watchlist & more in the app. Telegram = public samples. Best results: use both.",
   freeChannelCta: "Join free channel",
-  // Top gainers footer CTA
-  gainersCtaGuest: "Create free account",
+  // Top gainers footer CTA.
+  //
+  // The ask escalates down the page instead of repeating. "Create free account"
+  // was on six buttons from screen 2 to screen 12, identical every time — which
+  // reads to the eye as one object already declined, not six chances. Each
+  // button now says where it actually goes: this one goes to the record.
+  gainersCtaGuest: "See the full record — free",
   gainersCtaAuth: "See full track record",
 };
 

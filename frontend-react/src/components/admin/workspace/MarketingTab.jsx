@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from "react";
 import { workspaceApi } from "../../../services/workspaceApi";
 import { CampaignPanel } from "./CampaignPanel";
 import { XApiSpendPanel } from "./XApiSpendPanel";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 import { ConfirmModal } from "../users/ConfirmModal";
 import {
   PlusIcon,
@@ -300,6 +301,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
 
   const [confirmModal, setConfirmModal] = useState(null);
   const [toast, setToast] = useState(null);
+  const campaignPages = useCollectionPagination(campaigns, 8);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3000);
@@ -411,7 +413,10 @@ export const MarketingTab = ({ onRefreshStats }) => {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              campaignPages.resetPage();
+            }}
             placeholder="Search campaign name or description…"
             className={`w-full pl-9 pr-3 ${fieldCls(!!search)}`}
           />
@@ -419,7 +424,10 @@ export const MarketingTab = ({ onRefreshStats }) => {
 
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            campaignPages.resetPage();
+          }}
           className={`cursor-pointer ${fieldCls(!!statusFilter)}`}
         >
           <option value="">All Statuses</option>
@@ -432,7 +440,10 @@ export const MarketingTab = ({ onRefreshStats }) => {
 
         <select
           value={platformFilter}
-          onChange={(e) => setPlatformFilter(e.target.value)}
+          onChange={(e) => {
+            setPlatformFilter(e.target.value);
+            campaignPages.resetPage();
+          }}
           className={`cursor-pointer ${fieldCls(!!platformFilter)}`}
         >
           <option value="">All Platforms</option>
@@ -501,11 +512,22 @@ export const MarketingTab = ({ onRefreshStats }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {campaigns.map((c) => (
+          {campaignPages.pagedItems.map((c) => (
             <CampaignCard key={c.id} campaign={c} onEdit={handleEdit} onDelete={handleDelete} />
           ))}
         </div>
       )}
+
+      <CollectionPagination
+        page={campaignPages.page}
+        totalPages={campaignPages.totalPages}
+        total={campaignPages.total}
+        pageSize={campaignPages.pageSize}
+        onPageChange={campaignPages.setPage}
+        onPageSizeChange={campaignPages.setPageSize}
+        pageSizeOptions={[8, 16, 32]}
+        itemLabel="campaigns"
+      />
 
       <CampaignPanel
         isOpen={panelOpen}

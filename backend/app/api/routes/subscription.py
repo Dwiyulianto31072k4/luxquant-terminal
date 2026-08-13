@@ -17,13 +17,15 @@ Layer 4 (Referral commission) — on payment confirm:
 Multi-Wallet Rotation:
   - wallet_to picked from receiving_wallets pool per-invoice (privacy)
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import logging
+import os
 
 from app.config import settings
+from app.services.notifier import create_notification, notification_exists
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -49,7 +51,50 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/subscription", tags=["Subscription"])
 
 RECEIVING_WALLET = settings.RECEIVING_WALLET_BSC
-PAYMENT_WINDOW_HOURS = 24
+# 24h killed 187 of 277 invoices. Exchange withdrawal holds to a new address
+# are often 24h on their own, so the old window expired before the money could
+# physically arrive.
+PAYMENT_WINDOW_HOURS = 72
+
+SITE_URL = os.getenv("PUBLIC_SITE_URL", "https://luxquant.tw")
+CHECKOUT_URL = f"{SITE_URL}/payment"
+
+
+def _invoice_dm(plan_label: str, amount, expires_at, window_hours: int) -> str:
+    """The invoice, as a message the customer keeps.
+
+    It deliberately does NOT carry the wallet address. LuxQuant runs a public
+    Telegram channel, which makes the brand trivial to impersonate, and the
+    single most common crypto scam is a lookalike account DMing a payment
+    address. If our own bot also sends addresses, a customer has no way left to
+    tell the two apart — so the rule is absolute and stated in the message
+    itself, where it does double duty as a warning.
+
+    Everything else they need to plan the payment is here; the address lives on
+    the invoice page, behind their login.
+    """
+    when = expires_at.strftime("%d %b %Y, %H:%M UTC") if expires_at else "—"
+    return (
+        f"<b>Invoice created — {plan_label}</b>\n\n"
+        f"Amount: <b>{amount} USDT</b>\n"
+        f"Network: BNB Smart Chain (BEP-20)\n"
+        f"Pay before: <b>{when}</b> ({window_hours}h)\n\n"
+        f"Open your invoice: {CHECKOUT_URL}\n\n"
+        "<i>We never send a wallet address by message. Always take it from the "
+        "invoice page above — anyone messaging you an address is not us.</i>"
+    )
+
+
+async def _send_invoice_dm(telegram_id: int, text: str) -> None:
+    """Best-effort. A failed DM must never affect the invoice itself."""
+    try:
+        from app.services.telegram_group import send_dm
+        await send_dm(telegram_id, text)
+    except Exception as e:
+        logger.warning(f"Invoice DM failed for telegram_id={telegram_id}: {e}")
+# After the window closes we still accept a hash for this long. The chain check
+# is the real gate; the clock only ever decided how long the page stayed open.
+PAYMENT_GRACE_DAYS = 7
 
 
 # ============================================
@@ -72,6 +117,7 @@ def get_plans(db: Session = Depends(get_db)):
 @router.post("/subscribe")
 def create_subscription(
     data: PaymentCreate,
+    background: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -165,6 +211,43 @@ def create_subscription(
         + (f" (diskon referral {discount_amount} USDT)" if discount_amount > 0 else "")
     )
 
+    # ── Give them the invoice to keep ──────────────────────────────
+    # Until now a new invoice existed only on the screen that made it. Someone
+    # who closed the tab had no record of what they owed, by when, or that an
+    # invoice existed at all — and 188 of them lapsed unpaid in silence.
+    src = f"invoice:{payment.id}"
+    try:
+        if not notification_exists(db, type="invoice_created", source_id=src):
+            create_notification(
+                db,
+                type="invoice_created",
+                title=f"Invoice created — {plan.label}",
+                body=(
+                    f"{final_amount} USDT · pay before "
+                    f"{payment.expires_at.strftime('%d %b, %H:%M UTC')}"
+                    if payment.expires_at else f"{final_amount} USDT"
+                ),
+                data={
+                    "payment_id": payment.id,
+                    "amount_usdt": float(final_amount),
+                    "expires_at": payment.expires_at.isoformat() if payment.expires_at else None,
+                    "checkout_url": CHECKOUT_URL,
+                },
+                source_type="payment",
+                source_id=src,
+                user_id=current_user.id,
+            )
+    except Exception as e:
+        logger.warning(f"Invoice notification failed for payment {payment.id}: {e}")
+        db.rollback()
+
+    if current_user.telegram_id:
+        background.add_task(
+            _send_invoice_dm,
+            current_user.telegram_id,
+            _invoice_dm(plan.label, final_amount, payment.expires_at, PAYMENT_WINDOW_HOURS),
+        )
+
     return _invoice_response(payment, plan, msg)
 
 
@@ -188,10 +271,31 @@ async def verify_payment(
     if payment.status == "confirmed":
         raise HTTPException(status_code=400, detail="This payment was already confirmed")
 
-    if payment.status in ("expired", "cancelled"):
+    if payment.status == "cancelled":
         raise HTTPException(
             status_code=400,
-            detail=f"Payment is already {payment.status}. Please create a new invoice."
+            detail="This invoice was cancelled. Please create a new one."
+        )
+
+    # An expired invoice is not a closed case. People pay late — the exchange
+    # held the withdrawal, or they came back the next morning — and they arrive
+    # holding a real hash. Refusing it means keeping money we were sent.
+    if payment.status == "expired":
+        grace_until = (payment.expires_at or payment.created_at) + timedelta(
+            days=PAYMENT_GRACE_DAYS
+        )
+        if datetime.now(timezone.utc) > grace_until:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "This invoice closed more than "
+                    f"{PAYMENT_GRACE_DAYS} days ago. Create a new one, or send your "
+                    "transaction hash to an admin and we will match it by hand."
+                ),
+            )
+        logger.info(
+            "Accepting a late payment on expired invoice #%s (within %s-day grace)",
+            payment.id, PAYMENT_GRACE_DAYS,
         )
 
     tx_hash_clean = data.tx_hash.strip().lower()
@@ -397,6 +501,51 @@ def get_my_subscription(
         return base
 
     return base
+
+
+# ============================================
+# GET /pending — the customer's open invoice
+# ============================================
+
+@router.get("/pending")
+def get_pending_invoice(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """The one open, unexpired invoice this customer has, if any.
+
+    Until now an invoice existed only in the router state of the tab that
+    created it. Reload the page, follow a link, or come back tomorrow and it
+    was gone — PaymentPage bounced to /pricing, where starting again mints a
+    SECOND invoice and cancels the first. An unfinished checkout was therefore
+    unreachable by design, which is a poor thing to build under an 81%
+    checkout loss.
+
+    Same shape as POST /subscribe so the page can consume either without
+    knowing which one it got.
+    """
+    now = datetime.now(timezone.utc)
+    payment = (
+        db.query(Payment)
+        .filter(
+            Payment.user_id == current_user.id,
+            Payment.status == "pending",
+            Payment.deleted_at.is_(None),
+            Payment.expires_at.isnot(None),
+            Payment.expires_at > now,
+        )
+        .order_by(Payment.created_at.desc())
+        .first()
+    )
+    if not payment:
+        return {"invoice": None}
+
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == payment.plan_id).first()
+    if not plan:
+        # An invoice whose plan was deleted cannot be paid or explained.
+        return {"invoice": None}
+
+    return {"invoice": _invoice_response(payment, plan, "")}
 
 
 # ============================================

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { feature } from "topojson-client";
 import countriesTopo from "world-atlas/countries-110m.json";
@@ -8,6 +9,9 @@ import { SignalDetailModal } from "../../../TopPerformers";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { onGuestProofOpen } from "../landingSoftGate";
 import LandingSoftGateSheet from "./shared/LandingSoftGateSheet";
+import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { CTA } from "../landingCopy";
 
 // ════════════════════════════════════════════════════════════════
 // GLOBAL REACH — LuxQuant (v4)
@@ -1914,10 +1918,32 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
     let dpr = 1;
     let raf = 0;
 
-    let yaw = -degToRad(112);
-    let pitch = -0.16;
+    // Bola ini berputar terus, jadi nilai awal saja tidak cukup — lihat
+    // observer di bawah yang mengembalikannya ke Taipei tiap kali bagian ini
+    // masuk layar. yaw = bujur membuat titik itu menghadap penonton:
+    // yawZ = cos(lat)·cos(yaw − lng), maksimum saat yaw = lng.
+    const HOME_YAW = degToRad(121.233); // Taipei (TPE), asal semua arc
+    const HOME_PITCH = 0.3; // Taiwan di lat 25° — naik mendekati tengah
+    let yaw = HOME_YAW;
+    let pitch = HOME_PITCH;
 
     const drag = { x: 0, y: 0 };
+
+    // Setiap kali bagian ini masuk layar, kembalikan bola ke Taipei. Tanpa
+    // ini, putaran lambatnya membuat posisi saat user tiba jadi acak — dan
+    // yang ingin ditunjukkan justru dari mana semua sinyal berangkat.
+    const homeObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            yaw = HOME_YAW;
+            pitch = HOME_PITCH;
+          }
+        }
+      },
+      { threshold: 0.25 }
+    );
+    homeObserver.observe(container);
 
     const getPointerPosition = (event) => {
       const rect = canvas.getBoundingClientRect();
@@ -2419,6 +2445,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
     raf = requestAnimationFrame(draw);
 
     return () => {
+      homeObserver.disconnect();
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
       canvas.removeEventListener("pointerdown", onPointerDown);
@@ -2640,6 +2667,7 @@ function StatAnnotation({ stats }) {
 }
 
 export default function GlobalReach({ gainers = [], stats = null }) {
+  const navigate = useNavigate();
   const [inView, setInView] = useState(false);
   const sentinelRef = useRef(null);
   const { t } = useTranslation();
@@ -2650,6 +2678,16 @@ export default function GlobalReach({ gainers = [], stats = null }) {
 
   // Proof modal — the exact SignalDetailModal recipe TopGainers uses.
   const { isAuthenticated } = useAuth();
+
+  // Closing ask at the very end of the page body. Deliberately the lowest-
+  // friction ask on the page and a deliberate echo of the hero: someone who has
+  // read fourteen screens does not need another argument, and /home is the free
+  // hub the whole page has been describing. TopGainers already owns the ask
+  // that points at the record, so this one does not repeat it.
+  const goClose = () => {
+    trackFunnel("cta_click", { source: "global_reach_close", path: "/" });
+    navigate(isAuthenticated ? "/home" : loginUrl("/home", { source: "global_reach_close" }));
+  };
   const [modalOpen, setModalOpen] = useState(false);
   const [modalItem, setModalItem] = useState(null);
   const [signalDetail, setSignalDetail] = useState(null);
@@ -2761,9 +2799,9 @@ export default function GlobalReach({ gainers = [], stats = null }) {
       <div className="relative z-10 mx-auto max-w-6xl px-4">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-[12px] font-medium tracking-wide text-text-muted">Global reach</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
+          <h2 className="mt-2 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
             Precision intelligence,{" "}
-            <span className="text-accent">worldwide.</span>
+            <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">worldwide.</span>
           </h2>
         </div>
       </div>
@@ -2786,6 +2824,22 @@ export default function GlobalReach({ gainers = [], stats = null }) {
           {inView && <CanvasGlobe gainersRef={gainersRef} onOpenSignal={onOpenSignal} />}
         </div>
         {inView && <StatAnnotation stats={stats} />}
+      </div>
+
+      {/* Closing ask. This is the last section of the page body, and until now
+          the page simply ended — globe, then footer. Someone who has read all
+          fourteen screens is the most convinced visitor the site will ever
+          have, and nothing was asked of them. The globe's own proof markers do
+          open a soft gate, but only if a marker happens to be clicked. */}
+      <div className="relative z-10 mt-14 flex flex-col items-center gap-3 px-4 text-center lg:mt-20">
+        <p className="max-w-md text-[15px] leading-relaxed text-text-muted">
+          <span className="font-semibold text-text-primary">Every call above is on record.</span>{" "}
+          Free account opens Pulse, News and the full track record — no card.
+        </p>
+        <PrimaryButton size="lg" width="fullMobile" onClick={goClose} className="group">
+          {isAuthenticated ? CTA.openApp : CTA.pill}
+          <BtnArrow />
+        </PrimaryButton>
       </div>
 
       <style>{`

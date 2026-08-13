@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { workspaceApi } from "../../../services/workspaceApi";
 import { palette } from "../designSystem";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 const RANGES = [7, 30, 90];
 
@@ -51,6 +52,7 @@ export function AiCostTab() {
   const [error, setError] = useState(null);
   const [aiEnabled, setAiEnabled] = useState(null); // null=loading
   const [toggling, setToggling] = useState(false);
+  const recentPages = useCollectionPagination(recent, 15);
 
   useEffect(() => {
     workspaceApi
@@ -341,7 +343,7 @@ export function AiCostTab() {
                       </td>
                     </tr>
                   ) : (
-                    recent.map((r, i) => (
+                    recentPages.pagedItems.map((r, i) => (
                       <tr
                         key={i}
                         className="border-b border-ink/[0.03] font-mono text-[11px] text-text-primary/75"
@@ -370,6 +372,16 @@ export function AiCostTab() {
                 </tbody>
               </table>
             </div>
+            <CollectionPagination
+              page={recentPages.page}
+              totalPages={recentPages.totalPages}
+              total={recentPages.total}
+              pageSize={recentPages.pageSize}
+              onPageChange={recentPages.setPage}
+              onPageSizeChange={recentPages.setPageSize}
+              pageSizeOptions={[15, 30, 50]}
+              itemLabel="calls"
+            />
           </div>
         </>
       )}

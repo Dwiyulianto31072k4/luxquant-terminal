@@ -107,13 +107,16 @@ const WARN_TAGS = [
 ];
 
 // Anomaly scatter dot — hot pumps glow + grow; decoupled stay cyan; rest muted.
-function AnomDot({ cx, cy, payload, statusMap, onPair }) {
+// Labels default on for hot/decoupled so the desk reads as names, not only dots.
+function AnomDot({ cx, cy, payload, statusMap, onPair, showLabel }) {
   if (cx == null || cy == null || !payload) return null;
   const sc = statusColorOf(statusMap, payload.pair);
   const hot = !!payload.hot;
   const dec = !!payload.dec;
-  const r = hot ? 6.5 : dec ? 5 : 3.5;
+  const r = hot ? 7 : dec ? 5.5 : 3.5;
   const fill = hot ? GOLD : dec ? CYAN : GRAYBAR;
+  const sym = (payload.pair || "").replace(/USDT$/i, "");
+  const labelOn = showLabel && (hot || dec || showLabel === "all");
   return (
     <g style={{ cursor: "pointer" }} onClick={() => payload.pair && onPair?.(payload.pair)}>
       {hot && <circle cx={cx} cy={cy} r={r + 5} fill={GOLD} fillOpacity={0.12} />}
@@ -126,6 +129,20 @@ function AnomDot({ cx, cy, payload, statusMap, onPair }) {
         stroke={sc || (hot ? "rgba(240,216,144,0.7)" : "transparent")}
         strokeWidth={sc ? 2 : hot ? 1 : 0}
       />
+      {labelOn && sym && (
+        <text
+          x={cx + r + 4}
+          y={cy + 3.5}
+          fill={hot ? "rgb(var(--fg))" : dec ? CYAN : "rgb(var(--fg-muted))"}
+          fillOpacity={hot || dec ? 0.92 : 0.7}
+          fontSize={10}
+          fontFamily="JetBrains Mono, ui-monospace, monospace"
+          fontWeight={hot ? 600 : 500}
+          style={{ pointerEvents: "none", userSelect: "none" }}
+        >
+          {sym}
+        </text>
+      )}
     </g>
   );
 }
@@ -301,13 +318,17 @@ export default function SignalsAnalytics() {
   const [loading, setLoading] = useState(!seedRef.current.data);
   const [error, setError] = useState(null);
   const [selectedSignal, setSelectedSignal] = useState(null);
-  // multi-day window: which "days-ago" buckets (0=today … 6=6d ago) are on.
-  // Default = all 7 days. Signals live max 7d, so this is the full range.
-  const [dayBuckets, setDayBuckets] = useState(() => [0, 1, 2, 3, 4, 5, 6]);
-  const toggleDay = (d) =>
-    setDayBuckets((prev) =>
-      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort((a, b) => a - b)
-    );
+  // Window preset: last N calendar days (0=today only … 7=full week).
+  // Replaces the old multi-toggle day chips that overcrowded the toolbar.
+  const [windowDays, setWindowDays] = useState(7);
+  const dayBuckets = useMemo(
+    () => Array.from({ length: Math.min(7, Math.max(1, windowDays)) }, (_, i) => i),
+    [windowDays]
+  );
+  // Anomaly chart-local (does not change global toolbar filters)
+  // layer: all | hot | dec | rest · labels: off | focus | all
+  const [anomLayer, setAnomLayer] = useState("all");
+  const [anomLabels, setAnomLabels] = useState("focus");
   const { map: statusMap } = useSignalStatus() || {}; // pair→status for scatter-dot rings
 
   // persist to localStorage
@@ -494,8 +515,8 @@ export default function SignalsAnalytics() {
     if (selRisks.length) out = out.filter((s) => selRisks.includes(s.risk_norm));
     if (selSectors.length) out = out.filter((s) => selSectors.includes(s.sector || "unclassified"));
     if (f.dec === "1") out = out.filter((s) => s.is_decoupled);
-    // multi-day window — keep signals whose age falls in a selected day bucket
-    if (dayBuckets.length > 0 && dayBuckets.length < 7) {
+    // Window: keep signals whose age falls within the last N days
+    if (windowDays < 7) {
       const set = new Set(dayBuckets);
       const now = Date.now();
       out = out.filter((s) => {
@@ -507,7 +528,7 @@ export default function SignalsAnalytics() {
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, filters, dayBuckets]);
+  }, [items, filters, dayBuckets, windowDays]);
 
   const sectorOptions = useMemo(() => {
     const s = new Set(items.map((i) => i.sector || "unclassified"));
@@ -735,6 +756,15 @@ export default function SignalsAnalytics() {
     const fresh = ageS != null && ageS < 90 && !deriv?.stale;
     return { hotPts, hotN: hotPts.length, decN, restN, ageS, fresh };
   }, [agg.anomPts, deriv?.generated_at, deriv?.stale]);
+
+  // Chart-local layer filter for Price vs volume intensity
+  const anomChartPts = useMemo(() => {
+    const pts = agg.anomPts || [];
+    if (anomLayer === "hot") return pts.filter((p) => p.hot);
+    if (anomLayer === "dec") return pts.filter((p) => p.dec);
+    if (anomLayer === "rest") return pts.filter((p) => !p.hot && !p.dec);
+    return pts;
+  }, [agg.anomPts, anomLayer]);
   // top-10 |movers| → default selection of the vs-BTC chart
   const moversAbs = useMemo(
     () => [...agg.movers].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).slice(0, 10),
@@ -817,136 +847,147 @@ export default function SignalsAnalytics() {
   const derivProps = { view, deriv, pairFc, openPair, openSignalRow, liq };
 
   // ════════════════════════════════════════════════════════════
+  // Layout: filter chrome is OUTSIDE the scroll pane (never overlays cards).
+  // Parent TerminalLayout main is flex-col; we fill height and scroll body only.
   return (
-    <div className="space-y-2.5">
-      {/* ── sticky toolbar (exchange-style: search · status · date · facets) ── */}
-      <div className="lq-below-header sticky z-30 -mx-0.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-ink/[0.05] bg-surface/95 px-0.5 py-1.5 backdrop-blur-md">
-        <div className="relative">
-          <svg
-            className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted/50"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="M20 20l-3-3" strokeLinecap="round" />
-          </svg>
-          <input
-            value={filters.q}
-            onChange={(e) => setF({ q: e.target.value })}
-            placeholder={t("terminal.viz.searchPair")}
-            className="w-32 sm:w-40 bg-ink/[0.03] border border-ink/[0.07] rounded-md pl-7 pr-2.5 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted/45 focus:outline-none focus:border-ink/18 font-mono"
-          />
+    <div className="flex flex-col min-w-0 w-full min-h-0 lg:h-full">
+      {/* ── pinned filter chrome (does not scroll) ── */}
+      <div className="shrink-0 z-20 space-y-1.5 border-b border-ink/[0.07] bg-surface px-1 pb-2.5 pt-0.5">
+        {/* Row 1: search · status · live meta */}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="relative shrink-0">
+            <svg
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted/45"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3-3" strokeLinecap="round" />
+            </svg>
+            <input
+              value={filters.q}
+              onChange={(e) => setF({ q: e.target.value })}
+              placeholder={t("terminal.viz.searchPair")}
+              className="w-[8.5rem] sm:w-44 bg-ink/[0.03] border border-ink/[0.08] rounded-lg pl-8 pr-2.5 py-1.5 text-[12px] text-text-primary placeholder:text-text-muted/45 focus:outline-none focus:border-ink/20 font-mono"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <SegControl
+              className="min-w-max"
+              value={filters.st}
+              onChange={(id) => setF({ st: id })}
+              options={[
+                { id: "all", label: t("terminal.viz.all") },
+                ...STATUS_ORDER.map((s) => ({ id: s, label: STATUS_LABEL[s] || s })),
+              ]}
+            />
+          </div>
+
+          <div className="ml-auto hidden lg:flex shrink-0 items-center gap-3 font-mono text-[10px] text-text-muted/70 pl-2">
+            {agg.btcPrice && (
+              <span className="tabular-nums whitespace-nowrap">
+                BTC{" "}
+                <span className="text-text-primary/85">
+                  ${Number(agg.btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
+                <span className={agg.btcChg >= 0 ? "text-positive" : "text-negative"}>
+                  {" "}
+                  {fmtPct(agg.btcChg)}
+                </span>
+              </span>
+            )}
+            <span className="tabular-nums whitespace-nowrap" title="Signals matching filters">
+              <span className="text-text-primary/85 font-semibold">{view.length}</span> signals
+            </span>
+            {data?.generated_at && (
+              <span
+                className="tabular-nums whitespace-nowrap opacity-80"
+                title="Last data refresh"
+              >
+                {new Date(data.generated_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {deriv?.stale && <span className="text-warning"> · delayed</span>}
+              </span>
+            )}
+          </div>
         </div>
 
-        <SegControl
-          value={filters.st}
-          onChange={(id) => setF({ st: id })}
-          options={[
-            { id: "all", label: t("terminal.viz.all") },
-            ...STATUS_ORDER.map((s) => ({ id: s, label: STATUS_LABEL[s] || s })),
-          ]}
-        />
-
-        {/* Date window — last 7 days */}
-        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-ink/[0.03] border border-ink/[0.06]">
-          <span className="hidden sm:inline px-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/55">
-            Date
-          </span>
-          {[0, 1, 2, 3, 4, 5, 6].map((d) => {
-            const on = dayBuckets.includes(d);
-            const dt = new Date(Date.now() - d * 86400000);
-            const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-            return (
+        {/* Row 2: window · sector · risk · beta · reset */}
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+          <div
+            className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-ink/[0.03] border border-ink/[0.07]"
+            role="group"
+            aria-label="Time window"
+          >
+            <span className="hidden sm:inline px-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/55">
+              Window
+            </span>
+            {[
+              { n: 1, label: "1D" },
+              { n: 3, label: "3D" },
+              { n: 7, label: "7D" },
+            ].map(({ n, label }) => (
               <button
-                key={d}
+                key={n}
                 type="button"
-                onClick={() => toggleDay(d)}
-                title={d === 0 ? "Today" : `${d} day${d > 1 ? "s" : ""} ago`}
-                className={`px-1.5 py-1 rounded-md font-mono text-[8.5px] tracking-wide transition-colors whitespace-nowrap ${
-                  on
-                    ? "bg-ink/[0.1] text-text-primary font-semibold"
-                    : "text-text-muted/55 hover:text-text-primary"
+                onClick={() => setWindowDays(n)}
+                className={`px-2.5 py-1 rounded-md font-mono text-[10px] tracking-wide transition-colors ${
+                  windowDays === n
+                    ? "bg-ink/[0.1] text-text-primary font-semibold shadow-sm"
+                    : "text-text-muted/60 hover:text-text-primary"
                 }`}
               >
                 {label}
               </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setDayBuckets([0, 1, 2, 3, 4, 5, 6])}
-            className={`px-1.5 py-1 rounded-md font-mono text-[8.5px] uppercase ${
-              dayBuckets.length === 7
-                ? "text-accent font-semibold"
-                : "text-text-muted/45 hover:text-text-primary"
-            }`}
-          >
-            7D
-          </button>
-        </div>
+            ))}
+          </div>
 
-        <FilterMulti
-          label={t("terminal.viz.filterSector")}
-          options={sectorOptions}
-          selected={selSectors}
-          onChange={(arr) => setF({ sectors: arr.join(",") })}
-        />
-        <FilterMulti
-          label={t("terminal.viz.filterRisk")}
-          options={["LOW", "NORMAL", "HIGH"]}
-          selected={selRisks}
-          onChange={(arr) => setF({ risks: arr.join(",") })}
-        />
-        <Chip
-          active={filters.dec === "1"}
-          onClick={() => setF({ dec: filters.dec === "1" ? "" : "1" })}
-          title="Low β (beta) — coins that move independently of Bitcoin. Useful when you want a setup that isn't just a bet on BTC's direction."
-        >
-          {t("terminal.viz.decoupled")}
-        </Chip>
-        {hasDrill && (
-          <button
-            type="button"
-            onClick={resetF}
-            className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-negative"
+          <FilterMulti
+            label={t("terminal.viz.filterSector")}
+            options={sectorOptions}
+            selected={selSectors}
+            onChange={(arr) => setF({ sectors: arr.join(",") })}
+          />
+          <FilterMulti
+            label={t("terminal.viz.filterRisk")}
+            options={["LOW", "NORMAL", "HIGH"]}
+            selected={selRisks}
+            onChange={(arr) => setF({ risks: arr.join(",") })}
+          />
+          <Chip
+            active={filters.dec === "1"}
+            onClick={() => setF({ dec: filters.dec === "1" ? "" : "1" })}
+            title="Low beta — coins that move independently of Bitcoin"
           >
-            {t("terminal.viz.reset")}
-          </button>
-        )}
-        <div className="ml-auto hidden md:flex items-center gap-2.5 font-mono text-[9px] text-text-muted/65">
-          {agg.btcPrice && (
-            <span className="tabular-nums">
-              BTC{" "}
-              <span className="text-text-primary/80">
-                ${Number(agg.btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </span>
-              <span className={agg.btcChg >= 0 ? "text-positive" : "text-negative"}>
-                {" "}
-                {fmtPct(agg.btcChg)}
-              </span>
-            </span>
-          )}
-          <span className="tabular-nums" title="How many signals match your current filters">
-            {view.length} signals
-          </span>
-          {data?.generated_at && (
-            <span
-              className="tabular-nums opacity-80"
-              title="When this data was last refreshed. Prices update every few minutes; historical stats refresh more slowly."
+            {t("terminal.viz.decoupled")}
+          </Chip>
+          {(hasDrill || windowDays !== 7) && (
+            <button
+              type="button"
+              onClick={() => {
+                resetF();
+                setWindowDays(7);
+              }}
+              className="ml-0.5 px-2 py-1 rounded-md font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-negative/5 border border-transparent hover:border-negative/20 transition-colors"
             >
-              Updated{" "}
-              {new Date(data.generated_at).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-              {deriv?.stale && <span className="text-warning"> · delayed</span>}
-            </span>
+              {t("terminal.viz.reset")}
+            </button>
           )}
+
+          {/* mobile meta */}
+          <div className="ml-auto flex lg:hidden items-center gap-2 font-mono text-[9px] text-text-muted/65">
+            <span className="tabular-nums">{view.length} sig</span>
+          </div>
         </div>
       </div>
 
+      {/* ── scrollable tab body only ── */}
+      <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden space-y-3 pt-3 pb-20 lg:pb-8 [scrollbar-width:thin] [scrollbar-color:rgb(var(--ink)_/_0.12)_transparent]">
       {/* ── loading / error (only when nothing hydrated) ── */}
       {loading && !data && (
         <div className="rounded-lg bg-surface-raised border border-ink/[0.07] py-24 flex flex-col items-center gap-3">
@@ -1071,9 +1112,9 @@ export default function SignalsAnalytics() {
                   guide="funnel"
                   desc={t("terminal.viz.funnelDesc")}
                   render={(h) => (
-                    <div style={{ height: h }}>
+                    <div style={{ height: h }} className="min-w-0 w-full overflow-hidden">
                       <ResponsiveContainer width="100%" height="100%">
-                        <FunnelChart margin={{ top: 8, right: 90, left: 8, bottom: 8 }}>
+                        <FunnelChart margin={{ top: 8, right: 72, left: 4, bottom: 8 }}>
                           <Tooltip content={<DarkTip />} />
                           <Funnel dataKey="value" data={agg.funnel} isAnimationActive={false}>
                             <LabelList
@@ -1427,109 +1468,247 @@ export default function SignalsAnalytics() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <XCard
-                  title={t("terminal.viz.anomTitle")}
-                  guide="anom"
-                  desc={t("terminal.viz.anomDesc")}
-                  zoom={zAnom}
-                  hint={t("terminal.viz.anomHint")}
-                  render={(h) => (
-                    <div className="flex flex-col" style={{ height: h }}>
-                      <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ScatterChart margin={{ top: 10, right: 14, left: -8, bottom: 4 }}>
-                            <CartesianGrid stroke={GRID} strokeDasharray="3 6" />
-                            <XAxis
-                              type="number"
-                              dataKey="x"
-                              tick={TICK}
-                              axisLine={false}
-                              tickLine={false}
-                              unit="%"
-                              domain={zAnom.domX}
-                              allowDataOverflow
-                              tickFormatter={fmtAxis}
-                            />
-                            <YAxis
-                              type="number"
-                              dataKey="y"
-                              tick={TICK}
-                              axisLine={false}
-                              tickLine={false}
-                              unit="%"
-                              domain={zAnom.domY}
-                              allowDataOverflow
-                              tickFormatter={fmtAxis}
-                            />
-                            <Tooltip
-                              content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />}
-                              cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                            />
-                            <ReferenceLine
-                              x={0}
-                              stroke="rgb(var(--accent) / 0.35)"
-                              strokeDasharray="4 4"
-                            />
-                            {agg.medFlow > 0 && (
-                              <ReferenceLine
-                                y={agg.medFlow * 3}
-                                stroke="rgba(251,146,60,0.55)"
-                                strokeDasharray="4 4"
-                                label={{
-                                  value: "3× flow",
-                                  position: "insideTopRight",
-                                  fill: "rgba(251,146,60,0.7)",
-                                  fontSize: 9,
-                                  fontFamily: "JetBrains Mono",
-                                }}
-                              />
-                            )}
-                            <Scatter
-                              data={agg.anomPts}
-                              shape={(props) => (
-                                <AnomDot {...props} statusMap={statusMap} onPair={openPair} />
-                              )}
-                              isAnimationActive={false}
-                              onClick={(p) => {
-                                const d = p?.payload || p;
-                                if (d?.pair) openPair(d.pair);
-                              }}
-                            />
-                          </ScatterChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-3 pt-1.5 border-t border-ink/[0.04] mt-1">
-                        {[
-                          { c: GOLD, l: t("terminal.viz.legHot"), n: anomMeta.hotN },
-                          { c: CYAN, l: t("terminal.viz.legDec"), n: anomMeta.decN },
-                          { c: GRAYBAR, l: t("terminal.viz.legRest"), n: anomMeta.restN },
-                        ].map((e) => (
+              {/* Price vs volume — full width + large by default (not side-by-side) */}
+              <XCard
+                title={t("terminal.viz.anomTitle")}
+                guide="anom"
+                desc={t("terminal.viz.anomDesc")}
+                zoom={zAnom}
+                hint={t("terminal.viz.anomHint")}
+                height={560}
+                render={(h) => (
+                  <div className="flex flex-col min-w-0" style={{ height: h }}>
+                    {/* Chart-local filters */}
+                    <div className="mb-2 flex flex-wrap items-center gap-1.5 shrink-0">
+                      <span className="mr-0.5 font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted/60">
+                        Layer
+                      </span>
+                      {[
+                        { id: "all", label: "All", n: agg.anomPts.length },
+                        { id: "hot", label: "Hot", n: anomMeta.hotN },
+                        { id: "dec", label: "Decoupled", n: anomMeta.decN },
+                        { id: "rest", label: "Other", n: anomMeta.restN },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setAnomLayer(opt.id)}
+                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-[10px] uppercase tracking-wide transition-colors ${
+                            anomLayer === opt.id
+                              ? "border-ink/18 bg-ink/[0.09] font-semibold text-text-primary"
+                              : "border-ink/[0.07] text-text-muted hover:border-ink/14 hover:text-text-primary"
+                          }`}
+                        >
+                          {opt.label}
+                          <span className="tabular-nums text-text-muted/70">{opt.n}</span>
+                        </button>
+                      ))}
+                      <span className="mx-1 h-3 w-px bg-ink/10" aria-hidden />
+                      <span className="mr-0.5 font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted/60">
+                        Names
+                      </span>
+                      {[
+                        { id: "focus", label: "Hot + Dec" },
+                        { id: "all", label: "All names" },
+                        { id: "off", label: "Off" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setAnomLabels(opt.id)}
+                          className={`rounded-md border px-2 py-1 font-mono text-[10px] uppercase tracking-wide transition-colors ${
+                            anomLabels === opt.id
+                              ? "border-ink/18 bg-ink/[0.09] font-semibold text-text-primary"
+                              : "border-ink/[0.07] text-text-muted hover:border-ink/14 hover:text-text-primary"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                      <span className="ml-auto font-mono text-[10px] tabular-nums text-text-muted">
+                        {anomChartPts.length} shown
+                      </span>
+                    </div>
+
+                    {/* Color key — always above the plot so meaning is visible before reading dots */}
+                    <div className="mb-2.5 flex flex-wrap gap-2 shrink-0 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-2.5 py-2">
+                      {[
+                        {
+                          c: GOLD,
+                          glow: true,
+                          title: "Hot",
+                          body: "Strong 24h up-move + volume intensity above 3× median flow. High activity pumps.",
+                        },
+                        {
+                          c: CYAN,
+                          glow: false,
+                          title: "Decoupled",
+                          body: "Low beta vs BTC — coin is moving on its own, not just following Bitcoin.",
+                        },
+                        {
+                          c: GRAYBAR,
+                          glow: false,
+                          title: "Other",
+                          body: "Normal scatter points in view. Not hot and not flagged decoupled.",
+                        },
+                      ].map((row) => (
+                        <div
+                          key={row.title}
+                          className="flex min-w-[11rem] flex-1 items-start gap-2 rounded-md px-1 py-0.5"
+                        >
                           <span
-                            key={e.l}
-                            className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted"
-                          >
-                            <span
-                              className="w-2 h-2 rounded-full"
-                              style={{
-                                background: e.c,
-                                boxShadow:
-                                  e.c === GOLD ? "0 0 6px rgb(var(--accent) / 0.5)" : undefined,
-                              }}
-                            />
-                            {e.l}
-                            <span className="text-text-primary/45 tabular-nums">{e.n}</span>
-                          </span>
-                        ))}
+                            className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{
+                              background: row.c,
+                              boxShadow: row.glow
+                                ? "0 0 8px rgb(var(--accent) / 0.55)"
+                                : undefined,
+                            }}
+                            aria-hidden
+                          />
+                          <div className="min-w-0">
+                            <div className="font-mono text-[10.5px] font-semibold uppercase tracking-wide text-text-primary">
+                              {row.title}
+                            </div>
+                            <p className="mt-0.5 text-[10.5px] leading-snug text-text-muted">
+                              {row.body}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink/[0.05] pt-1.5 mt-0.5 font-mono text-[9.5px] text-text-muted/80">
+                        <span>
+                          <span className="text-text-primary/70">X</span> = 24h price change %
+                        </span>
+                        <span className="text-ink/15">·</span>
+                        <span>
+                          <span className="text-text-primary/70">Y</span> = volume / market cap %
+                        </span>
+                        <span className="text-ink/15">·</span>
+                        <span>
+                          <span className="text-warning/90">Orange line</span> = 3× median flow
+                        </span>
                       </div>
                     </div>
-                  )}
-                />
 
+                    <div className="flex-1 min-h-0 min-w-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 12, right: 48, left: 0, bottom: 8 }}>
+                          <CartesianGrid stroke={GRID} strokeDasharray="3 6" />
+                          <XAxis
+                            type="number"
+                            dataKey="x"
+                            tick={TICK}
+                            axisLine={false}
+                            tickLine={false}
+                            unit="%"
+                            domain={zAnom.domX}
+                            allowDataOverflow
+                            tickFormatter={fmtAxis}
+                          />
+                          <YAxis
+                            type="number"
+                            dataKey="y"
+                            tick={TICK}
+                            axisLine={false}
+                            tickLine={false}
+                            unit="%"
+                            domain={zAnom.domY}
+                            allowDataOverflow
+                            tickFormatter={fmtAxis}
+                          />
+                          <Tooltip
+                            content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />}
+                            cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
+                          />
+                          <ReferenceLine
+                            x={0}
+                            stroke="rgb(var(--accent) / 0.35)"
+                            strokeDasharray="4 4"
+                          />
+                          {agg.medFlow > 0 && (
+                            <ReferenceLine
+                              y={agg.medFlow * 3}
+                              stroke="rgba(251,146,60,0.55)"
+                              strokeDasharray="4 4"
+                              label={{
+                                value: "3× flow",
+                                position: "insideTopRight",
+                                fill: "rgba(251,146,60,0.7)",
+                                fontSize: 9,
+                                fontFamily: "JetBrains Mono",
+                              }}
+                            />
+                          )}
+                          <Scatter
+                            data={anomChartPts}
+                            shape={(props) => (
+                              <AnomDot
+                                {...props}
+                                statusMap={statusMap}
+                                onPair={openPair}
+                                showLabel={
+                                  anomLabels === "off"
+                                    ? false
+                                    : anomLabels === "all"
+                                      ? "all"
+                                      : true
+                                }
+                              />
+                            )}
+                            isAnimationActive={false}
+                            onClick={(p) => {
+                              const d = p?.payload || p;
+                              if (d?.pair) openPair(d.pair);
+                            }}
+                          />
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center justify-center gap-3 border-t border-ink/[0.04] pt-1.5 shrink-0">
+                      {[
+                        { c: GOLD, l: t("terminal.viz.legHot"), n: anomMeta.hotN, id: "hot" },
+                        { c: CYAN, l: t("terminal.viz.legDec"), n: anomMeta.decN, id: "dec" },
+                        {
+                          c: GRAYBAR,
+                          l: t("terminal.viz.legRest"),
+                          n: anomMeta.restN,
+                          id: "rest",
+                        },
+                      ].map((e) => (
+                        <button
+                          key={e.l}
+                          type="button"
+                          onClick={() => setAnomLayer(anomLayer === e.id ? "all" : e.id)}
+                          className={`inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider transition-colors ${
+                            anomLayer === e.id
+                              ? "bg-ink/[0.08] text-text-primary"
+                              : "text-text-muted hover:text-text-primary"
+                          }`}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{
+                              background: e.c,
+                              boxShadow:
+                                e.c === GOLD ? "0 0 6px rgb(var(--accent) / 0.5)" : undefined,
+                            }}
+                          />
+                          {e.l}
+                          <span className="tabular-nums text-text-primary/45">{e.n}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              />
+
+              <div className="grid grid-cols-1 gap-3">
                 <XCard
                   title={t("terminal.viz.spikeTitle")}
                   guide="spike"
                   desc={t("terminal.viz.spikeDesc")}
+                  height={380}
                   render={() =>
                     session.spikes.length === 0 ? (
                       <div className="py-14 text-center">
@@ -1616,15 +1795,12 @@ export default function SignalsAnalytics() {
                 desc={t("terminal.viz.sectionLiveDesc")}
               />
 
-              {/* Strength metrics only */}
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-                <Kpi
-                  compact
-                  label={t("terminal.viz.kInProfit")}
-                  value={`${liveStats.up + liveStats.down ? Math.round((liveStats.up / (liveStats.up + liveStats.down)) * 100) : 0}%`}
-                  sub={`${liveStats.up} of ${liveStats.up + liveStats.down} above entry`}
-                  tone="text-positive"
-                />
+              {/* Strength metrics only. Three tiles, three columns — the
+                  "In Profit" tile was removed because it measured unrealised
+                  P&L on open calls: a number that moves with the market and
+                  can read as failure purely because price came back, without
+                  a single trade having actually closed. */}
+              <div className="grid grid-cols-2 xl:grid-cols-3 gap-2">
                 <Kpi
                   compact
                   label={t("terminal.viz.kBest")}
@@ -2334,6 +2510,7 @@ export default function SignalsAnalytics() {
           )}
         </>
       )}
+      </div>
 
       {/* ── drill-down: latest call for a coin ── */}
       {selectedSignal && (

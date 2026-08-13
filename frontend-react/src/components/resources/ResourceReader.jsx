@@ -65,8 +65,8 @@ const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
       <div
         className={`relative w-full bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl flex flex-col overflow-hidden ${
           isArticle
-            ? "max-w-3xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)]"
-            : "max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)]"
+            ? "max-w-3xl h-[min(var(--lq-modal-maxh),100%)] max-h-[min(var(--lq-modal-maxh),100%)]"
+            : "max-w-5xl h-[min(var(--lq-modal-maxh),100%)] max-h-[min(var(--lq-modal-maxh),100%)]"
         }`}
         onClick={(e) => e.stopPropagation()}
         style={{ animation: "modalIn .25s ease-out" }}

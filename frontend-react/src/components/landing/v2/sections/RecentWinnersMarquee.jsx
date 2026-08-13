@@ -335,10 +335,10 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
 
       {/* Heading — only overlaps video dissolve when blendWithHero */}
       <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
-        <h2 className="text-2xl sm:text-3xl lg:text-[2.5rem] font-bold leading-[1.1] tracking-tight text-text-primary">
+        <h2 className="text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
           Real calls. Real peaks.
         </h2>
-        <p className="mt-3 text-sm sm:text-[15px] text-text-primary/55 max-w-lg mx-auto leading-relaxed">
+        <p className="mx-auto mt-4 max-w-lg text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
           Every card is a dated LuxQuant call — close level and peak time — so you can audit it on
           any chart.
         </p>
@@ -423,7 +423,12 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
                         ${sym}
                       </span>
                       {(date || ago) && (
-                        <span className="text-[11.5px] font-mono tabular-nums text-text-primary/40">
+                        /* The date is not decoration — it is the receipt. The
+                           whole page argues "you can audit this", and the
+                           timestamp was set at 11.5px and 40% opacity: the
+                           treatment you give a disclaimer you hope nobody
+                           reads. Same role, now legible. */
+                        <span className="text-[12px] font-mono tabular-nums text-text-primary/55">
                           {date}
                           {ago ? ` · ${ago}` : ""}
                         </span>

@@ -1,13 +1,38 @@
 // src/components/auth/LoginPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ensureTelegram } from "../../utils/telegramLoader";
+import TelegramRedirectButton from "./TelegramRedirectButton";
+import { inMiniAppContext, inTelegramWebView } from "../../utils/telegramWebApp";
 import LeftBrandPanel, { AssetCoins } from "./LeftBrandPanel";
 import ReferralBanner from "./ReferralBanner";
 import { stashPostLoginRedirect, consumePostLoginRedirect } from "../../utils/postLoginRedirect";
 import { trackFunnel } from "../../utils/funnelAnalytics";
+import {
+  clearAuthRescueState,
+  getFailedAuthProviders,
+  markFailedAuthProvider,
+  providerFromAuthError,
+} from "../../utils/authRescue";
+
+// Which door to offer next when one fails. Ordered by evidence, not by the
+// layout: Telegram converts 2.2x Google so it is offered back first; Google has
+// the highest measured success rate; Discord is last — 2 attempts in the entire
+// record is too little to send anyone there ahead of the other two.
+const FALLBACK_ORDER = ["telegram", "google", "discord"];
+const PROVIDER_LABEL = { telegram: "Telegram", google: "Google", discord: "Discord" };
+
+// The human door. Same handle the channel's "Ask the team" button uses, so a
+// reader who has seen one recognises the other.
+const ADMIN_URL =
+  import.meta.env?.VITE_TG_URL_ADMIN || "https://t.me/luxquantadmin";
+
+// The backend's redirect codes carry their provider as a prefix
+// (google_token_failed, discord_*). Codes that apply to any door — account
+// _inactive — have none, and are reported without inventing one.
+const OAUTH_ERROR_PROVIDER = (code) => providerFromAuthError(code) || "(unknown)";
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -27,10 +52,72 @@ const LoginPage = () => {
   // Telegram widget readiness — tombol Telegram dikunci sampai script siap,
   // supaya klik pertama tidak pernah jatuh ke error "not-ready".
   const [telegramReady, setTelegramReady] = useState(!!window.Telegram?.Login?.auth);
-  const { loginWithGoogle, loginWithTelegram, loginWithDiscord, error, setError, isAuthenticated } =
+  // The popup never opened for this browser. We cannot know that in
+  // advance — Telegram's in-app browser is indistinguishable from Safari
+  // by user-agent — so we only learn it after the first attempt, and then
+  // offer the flow that does not need a popup at all.
+  // Doors that already failed in this tab. Persisted through refresh and OAuth
+  // redirects, then cleared on success; a new browser session starts clean.
+  const [failedProviders, setFailedProviders] = useState(getFailedAuthProviders);
+  const failedProvidersRef = useRef(failedProviders);
+  // A Telegram attempt that has gone quiet for a while but has NOT been given
+  // up on. telegramLoader waits 90s before it rejects — right for the reject,
+  // because a real sign-in can take that long when someone has to open Telegram,
+  // confirm, and come back. Wrong for the person: in an in-app browser the popup
+  // can never talk back to its opener, so those 90 seconds are spent watching a
+  // spinner that will never resolve. Measured 2026-08-09: 8 of 38 Telegram
+  // attempts ended with neither a success nor an error — that silence is this.
+  //
+  // So: offer the other door early, and do NOT cancel the attempt underneath.
+  // If the popup does come back at 40s it still works; if it never does, they
+  // had a way out at 18 instead of 90.
+  const [telegramSlow, setTelegramSlow] = useState(false);
+  const [telegramWebView, setTelegramWebView] = useState(() => inTelegramWebView());
+  const [popupBlocked, setPopupBlocked] = useState(
+    () => {
+      try {
+        return (
+          sessionStorage.getItem("lq_tg_popup_blocked") === "1" ||
+          inTelegramWebView()
+        );
+      } catch {
+        return inTelegramWebView();
+      }
+    }
+  );
+  const { loginWithGoogle, loginWithTelegram, loginWithMiniApp, loginWithDiscord, error, setError, isAuthenticated } =
     useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const attemptLocks = useRef({});
+
+  // State updates do not disable a button until React renders again. A ref lock
+  // closes that small double-click window and adds a short cooldown after an
+  // immediate provider rejection, preventing retry storms from one visitor.
+  const lockAttempt = useCallback((provider, cooldownMs = 1800) => {
+    const now = Date.now();
+    if ((attemptLocks.current[provider] || 0) > now) return false;
+    attemptLocks.current[provider] = now + cooldownMs;
+    return true;
+  }, []);
+
+  // One place decides what comes next and persists it across OAuth redirects.
+  const noteFailure = useCallback((provider, source = "login") => {
+    const current = failedProvidersRef.current;
+    if (current.includes(provider)) return null;
+    const next = markFailedAuthProvider(provider);
+    failedProvidersRef.current = next;
+    setFailedProviders(next);
+    const offered = FALLBACK_ORDER.find((candidate) => !next.includes(candidate)) || null;
+    if (offered) {
+      trackFunnel("auth_fallback_offered", {
+        provider: offered,
+        source,
+        meta: { after: provider },
+      });
+    }
+    return offered;
+  }, []);
 
   // Capture ?redirect= so OAuth round-trips and Telegram still land correctly.
   useEffect(() => {
@@ -41,14 +128,54 @@ const LoginPage = () => {
       source: params.get("src") || "login",
       path: location.pathname + location.search,
     });
-  }, [location.pathname, location.search]);
+
+    // A failed OAuth round-trip comes back here as ?error=<code> and used to
+    // vanish: the callback component only reports success, so a provider could
+    // sit at zero recorded failures while people were being turned away. A
+    // cancellation is the person's own choice, not a fault, so it is excluded —
+    // counting it would drown the failures that matter.
+    const code = params.get("error");
+    if (code && !code.endsWith("_cancelled")) {
+      const provider = OAUTH_ERROR_PROVIDER(code);
+      trackFunnel("auth_error", {
+        provider,
+        source: "oauth_redirect",
+        meta: { message: code },
+      });
+      if (provider !== "(unknown)") noteFailure(provider, "oauth_redirect");
+      setError(
+        `${PROVIDER_LABEL[provider] || "That provider"} sign-in did not complete. Choose another method below.`
+      );
+      const clean = new URLSearchParams(location.search);
+      clean.delete("error");
+      navigate(
+        { pathname: location.pathname, search: clean.toString() ? `?${clean}` : "" },
+        { replace: true }
+      );
+    }
+  }, [location.pathname, location.search, navigate, noteFailure, setError]);
+
+  // A refresh used to erase the visible rescue prompt even though the provider
+  // failure was retained by the browser. Restore the prompt from session state.
+  useEffect(() => {
+    if (!isAuthenticated && failedProviders.length > 0 && !error) {
+      setError("Sign-in did not complete. Choose another method below.");
+    }
+  }, [error, failedProviders.length, isAuthenticated, setError]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    clearAuthRescueState();
     const dest = consumePostLoginRedirect("/home");
     trackFunnel("post_login_land", { path: dest });
     navigate(dest, { replace: true });
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const onBlocked = () => setPopupBlocked(true);
+    window.addEventListener("lq:tg-popup-blocked", onBlocked);
+    return () => window.removeEventListener("lq:tg-popup-blocked", onBlocked);
+  }, []);
 
   // Preload Telegram widget on mount; unlock the button once ready.
   useEffect(() => {
@@ -65,7 +192,17 @@ const LoginPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!telegramLoading) {
+      setTelegramSlow(false);
+      return undefined;
+    }
+    const t = setTimeout(() => setTelegramSlow(true), 18_000);
+    return () => clearTimeout(t);
+  }, [telegramLoading]);
+
   const handleGoogleLogin = async () => {
+    if (!lockAttempt("google")) return;
     setGoogleLoading(true);
     setError(null);
     trackFunnel("auth_start", { provider: "google", source: "login" });
@@ -73,45 +210,105 @@ const LoginPage = () => {
       await loginWithGoogle();
     } catch (err) {
       if (err.message !== "cancelled") {
-        trackFunnel("auth_error", { provider: "google", meta: { message: err.message } });
+        const message = err?.response?.data?.detail || err?.message || "Google sign-in failed";
+        trackFunnel("auth_error", { provider: "google", meta: { message } });
+        noteFailure("google");
         console.error("Google login error:", err);
       }
     } finally {
+      attemptLocks.current.google = Date.now() + 1200;
       setGoogleLoading(false);
     }
   };
 
   const handleTelegramLogin = async () => {
+    // Telegram's ordinary in-app browser exposes TelegramWebviewProxy but no
+    // signed Mini App initData. It cannot use Mini App auth, and its popup is
+    // unreliable. Keep the official redirect door visible instead of creating
+    // an immediate, unwinnable auth error.
+    if (telegramWebView || inTelegramWebView()) {
+      setTelegramWebView(true);
+      if (!popupBlocked) {
+        trackFunnel("auth_fallback_offered", {
+          provider: "telegram",
+          source: "login_webview",
+          meta: { reason: "telegram_webview" },
+        });
+      }
+      setPopupBlocked(true);
+      return;
+    }
+
+    if (!lockAttempt("telegram")) return;
+
     setTelegramLoading(true);
     setError(null);
     trackFunnel("auth_start", { provider: "telegram", source: "login" });
     try {
-      await loginWithTelegram();
+      // Inside Telegram, the popup flow is the one that fails. Telegram already
+      // signed this person's identity — use it instead of opening a window.
+      if (inMiniAppContext()) {
+        const mini = await loginWithMiniApp();
+        trackFunnel("auth_success", {
+          provider: "telegram",
+          source: "login_miniapp",
+          meta: { is_new: !!mini?.is_new_user },
+        });
+        return;
+      }
+      const tg = await loginWithTelegram();
+      clearAuthRescueState();
       // Navigate happens via isAuthenticated effect (consumePostLoginRedirect).
-      trackFunnel("auth_success", { provider: "telegram", source: "login" });
+      trackFunnel("auth_success", {
+        provider: "telegram",
+        source: "login",
+        meta: { is_new: !!tg?.is_new_user },
+      });
     } catch (err) {
       if (err.message !== "cancelled") {
-        trackFunnel("auth_error", { provider: "telegram", meta: { message: err.message } });
+        const message =
+          err?.response?.data?.detail || err?.reason || err?.message || "Telegram sign-in failed";
+        trackFunnel("auth_error", {
+          provider: "telegram",
+          meta: { message, mode: inMiniAppContext() ? "miniapp_manual" : "popup" },
+        });
+        noteFailure("telegram");
         console.error("Telegram login error:", err);
       }
     } finally {
+      attemptLocks.current.telegram = Date.now() + 1200;
       setTelegramLoading(false);
     }
   };
 
   const handleDiscordLogin = async () => {
+    if (!lockAttempt("discord")) return;
     setDiscordLoading(true);
     setError(null);
     trackFunnel("auth_start", { provider: "discord", source: "login" });
     try {
       await loginWithDiscord();
     } catch (err) {
-      trackFunnel("auth_error", { provider: "discord", meta: { message: err?.message } });
+      const message = err?.response?.data?.detail || err?.message || "Discord sign-in failed";
+      trackFunnel("auth_error", { provider: "discord", meta: { message } });
+      noteFailure("discord");
       console.error("Discord login error:", err);
     } finally {
+      attemptLocks.current.discord = Date.now() + 1200;
       setDiscordLoading(false);
     }
   };
+
+  const fallbackHandlers = {
+    telegram: handleTelegramLogin,
+    google: handleGoogleLogin,
+    discord: handleDiscordLogin,
+  };
+  // Nothing to offer once every door has been tried — at that point another
+  // button is noise, and the contact route in the footer is the real answer.
+  const fallbackOffer = failedProviders.length
+    ? FALLBACK_ORDER.find((p) => !failedProviders.includes(p))
+    : null;
 
   if (isAuthenticated) {
     return (
@@ -232,27 +429,96 @@ const LoginPage = () => {
 
           {error && (
             <div
-              className="mb-4 p-3.5 rounded-xl text-sm flex items-center gap-3"
+              className="mb-4 p-3.5 rounded-xl text-sm"
               style={{
                 background: "rgba(239,68,68,0.08)",
                 border: "1px solid rgba(239,68,68,0.25)",
                 color: "rgb(var(--neg-text))",
               }}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                style={{ flexShrink: 0 }}
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
-              {error}
+              <div className="flex items-center gap-3">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ flexShrink: 0 }}
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+                {error}
+              </div>
+              {/* The door that just failed is still on screen and looks no
+                  different, so the common move is to press it again. Name the
+                  next one instead. */}
+              {/* One failure: name the next door. The one that just failed is
+                  still on screen and looks no different, so the common move is
+                  to press it again. */}
+              {failedProviders.length === 1 && fallbackOffer && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackFunnel("auth_fallback_taken", {
+                      provider: fallbackOffer,
+                      source: "login",
+                    });
+                    fallbackHandlers[fallbackOffer]?.();
+                  }}
+                  className="mt-3 w-full rounded-lg border border-ink/15 bg-surface-raised px-3 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
+                >
+                  Try {PROVIDER_LABEL[fallbackOffer]} instead
+                </button>
+              )}
+
+              {/* Two failures: stop offering doors and offer a person.
+                  Waiting for all THREE to fail would mean almost nobody ever
+                  sees this — Discord is tried once in the entire record — so
+                  the human becomes the main action here and Discord stays
+                  beside it as the last self-serve option.
+                  ~50% of paid subscriptions are set up by the team, so this is
+                  a working path, not a consolation. */}
+              {failedProviders.length >= 2 && (
+                <div className="mt-3 rounded-xl border border-accent/30 bg-accent/[0.06] p-3">
+                  <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
+                    Sign-in has failed twice. Message the team and we will get
+                    you in — we can set the account up from our side.
+                  </p>
+                  <a
+                    href={ADMIN_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() =>
+                      trackFunnel("auth_fallback_taken", {
+                        provider: "team",
+                        source: "login_exhausted",
+                        meta: { failed: failedProviders.join(",") },
+                      })
+                    }
+                    className="block w-full rounded-lg bg-accent px-3 py-2 text-center text-[13px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
+                  >
+                    Message the team
+                  </a>
+                  {fallbackOffer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        trackFunnel("auth_fallback_taken", {
+                          provider: fallbackOffer,
+                          source: "login_last_resort",
+                        });
+                        fallbackHandlers[fallbackOffer]?.();
+                      }}
+                      className="mt-2 w-full text-[11.5px] font-medium text-text-muted underline-offset-2 transition-colors hover:text-text-primary hover:underline"
+                    >
+                      or try {PROVIDER_LABEL[fallbackOffer]}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -261,15 +527,48 @@ const LoginPage = () => {
           {/* ════════ DESKTOP — flat provider list ════════ */}
           <div className="hidden lg:block">
             <div className="space-y-3" onMouseLeave={() => setHoverIdx(null)}>
-              <LoginButton
-                active={(hoverIdx ?? 0) === 0}
-                onHover={() => setHoverIdx(0)}
-                icon={<TelegramIcon />}
-                text={a("continue_telegram")}
-                onClick={handleTelegramLogin}
-                loading={!telegramReady || telegramLoading}
-                loadingText={!telegramReady ? a("preparing") : a("connecting")}
-              />
+              {!telegramWebView && (
+                <LoginButton
+                  active={(hoverIdx ?? 0) === 0}
+                  onHover={() => setHoverIdx(0)}
+                  icon={<TelegramIcon />}
+                  text={a("continue_telegram")}
+                  onClick={handleTelegramLogin}
+                  loading={!telegramReady || telegramLoading}
+                  loadingText={!telegramReady ? a("preparing") : a("connecting")}
+                />
+              )}
+              {popupBlocked && (
+                <div className="rounded-xl border border-accent/30 bg-accent/[0.06] p-3">
+                  <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
+                    {telegramWebView
+                      ? "Continue securely with Telegram below — this browser uses the redirect flow."
+                      : "This browser blocked the Telegram sign-in window. Use the button below instead — it opens Telegram directly."}
+                  </p>
+                  <TelegramRedirectButton className="flex justify-center" />
+                </div>
+              )}
+              {telegramSlow && !popupBlocked && (
+                <div className="rounded-xl border border-ink/12 bg-ink/[0.03] p-3">
+                  <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
+                    Still waiting on Telegram. It may still come through — or you
+                    can sign in with Google now, which does not need a pop-up.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackFunnel("auth_fallback_taken", {
+                        provider: "google",
+                        source: "login_slow",
+                      });
+                      handleGoogleLogin();
+                    }}
+                    className="w-full rounded-lg border border-ink/15 bg-surface-raised px-3 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
+                  >
+                    Continue with Google instead
+                  </button>
+                </div>
+              )}
               <LoginButton
                 active={(hoverIdx ?? 0) === 1}
                 onHover={() => setHoverIdx(1)}
@@ -458,14 +757,49 @@ const LoginPage = () => {
               {a("login_subtitle")}
             </p>
 
-            <PillButton
-              variant="primary"
-              icon={<TelegramIcon />}
-              text={a("continue_telegram")}
-              onClick={handleTelegramLogin}
-              loading={!telegramReady || telegramLoading}
-              loadingText={!telegramReady ? a("preparing") : a("connecting")}
-            />
+            {!telegramWebView && (
+              <PillButton
+                variant="primary"
+                icon={<TelegramIcon />}
+                text={a("continue_telegram")}
+                onClick={handleTelegramLogin}
+                loading={!telegramReady || telegramLoading}
+                loadingText={!telegramReady ? a("preparing") : a("connecting")}
+              />
+            )}
+
+            {popupBlocked && (
+              <div className="rounded-xl border border-accent/30 bg-accent/[0.06] p-3">
+                <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
+                  {telegramWebView
+                    ? "Continue securely with Telegram below — this browser uses the redirect flow."
+                    : "This browser blocked the Telegram sign-in window. Use the button below instead — it opens Telegram directly."}
+                </p>
+                <TelegramRedirectButton className="flex justify-center" />
+              </div>
+            )}
+
+            {telegramSlow && !popupBlocked && (
+              <div className="rounded-xl border border-ink/12 bg-ink/[0.03] p-3">
+                <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
+                  Still waiting on Telegram. It may still come through — or you
+                  can sign in with Google now, which does not need a pop-up.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackFunnel("auth_fallback_taken", {
+                      provider: "google",
+                      source: "login_slow",
+                    });
+                    handleGoogleLogin();
+                  }}
+                  className="w-full rounded-lg border border-ink/15 bg-surface-raised px-3 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
+                >
+                  Continue with Google instead
+                </button>
+              </div>
+            )}
 
             <div className="my-4 flex items-center gap-4">
               <div className="h-px flex-1" style={{ background: "rgb(var(--ink) / 0.12)" }} />
@@ -720,7 +1054,7 @@ const TermsModal = ({ onClose }) => {
       <div
         className="lux-warm-auth-sheet relative w-full max-w-2xl flex flex-col rounded-t-3xl sm:rounded-[1.75rem] overflow-hidden"
         style={{
-          maxHeight: "min(92dvh, 100%)",
+          maxHeight: "min(var(--lq-modal-maxh), 100%)",
           border: "1px solid rgb(var(--ink) / 0.08)",
           animation: "lq-modal-pop 0.3s cubic-bezier(0.16,1,0.3,1)",
         }}

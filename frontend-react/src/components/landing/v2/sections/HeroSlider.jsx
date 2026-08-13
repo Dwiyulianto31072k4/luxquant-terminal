@@ -6,7 +6,17 @@ import { useEffect, useRef, useState } from "react";
 import HeroSlideVideo from "./slides/HeroSlideVideo";
 import HeroSlideAlgo from "./slides/HeroSlideAlgo";
 
-const ROTATE_MS = 11000;
+// Auto-rotation is off. The second slide is a device showcase whose height is
+// driven by the iMac render, not by padding: measured, its CTA sits 291px below
+// the fold and does not move when the viewport shrinks. Fitting it into a
+// 1366x768 laptop needs ~244px back and the most that can be reclaimed is ~218,
+// with the iMac down to 60% — at which point the showcase is no longer a
+// showcase. So rather than gut the slide or keep swapping a visible CTA for an
+// invisible one every 11 seconds, the hero simply stays on the frame that
+// works. Slide 2 is still reachable by dot, swipe and arrow key.
+//
+// Set ROTATE_MS to a number to bring auto-rotation back.
+const ROTATE_MS = null;
 const DESKTOP_SLIDES = [HeroSlideVideo, HeroSlideAlgo];
 
 const prefersReducedMotion = () =>
@@ -55,6 +65,7 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
   };
 
   useEffect(() => {
+    if (!ROTATE_MS) return undefined;
     if (slides.length <= 1 || paused || userLocked || prefersReducedMotion()) return undefined;
 
     const timer = window.setTimeout(() => {
@@ -128,7 +139,11 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
         className={`relative z-10 flex items-start ${
           isVideoSlide
             ? "w-full"
-            : "mx-auto min-h-[620px] w-full max-w-7xl px-4 pb-14 pt-28 sm:px-6 sm:pt-32 lg:min-h-[680px] lg:px-8 lg:pb-16 lg:pt-36 xl:pt-44"
+            : // Same viewport-blind pixels the video slide had. This does not
+              // make slide 2 fit a short laptop — nothing short of shrinking
+              // the devices would — but it stops the padding from making it
+              // worse, and gives back ~50px on the screens where it is tightest.
+              "mx-auto min-h-[620px] w-full max-w-7xl px-4 pb-14 pt-28 sm:px-6 sm:pt-32 lg:min-h-[min(680px,100vh)] lg:px-8 lg:pb-[min(4rem,8vh)] lg:pt-[min(9rem,16vh)] xl:pt-[min(11rem,18vh)]"
         }`}
       >
         <div
@@ -162,9 +177,9 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
                 className={[
                   "rounded-full transition-all duration-300",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/80",
-                  "shadow-[0_2px_10px_rgb(var(--scrim) / 0.35)]",
+                  "",
                   isActive
-                    ? "h-2 w-8 bg-accent shadow-[0_0_14px_rgb(var(--accent) / 0.55)]"
+                    ? "h-2 w-8 bg-accent"
                     : "h-2 w-2 bg-ink/45 hover:bg-ink/75",
                 ].join(" ")}
               />

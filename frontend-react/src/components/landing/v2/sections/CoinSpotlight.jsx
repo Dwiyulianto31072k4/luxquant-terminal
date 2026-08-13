@@ -5,10 +5,17 @@
 // Data: /analytics/edge-lab (coin list) + /signals/journey-insights/{pair}.
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { sharedGet } from "../../../../utils/sharedGet";
 import { ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useAuth } from "../../../../context/AuthContext";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { coinPagePath } from "../../../../utils/coinPage";
 import CoinLogo from "../../../CoinLogo";
 import LockedPct, { isLockedTarget } from "./shared/LockedPct";
+import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
+import { CTA } from "../landingCopy";
 
 const C = {
   gold: "#e7c373",
@@ -42,6 +49,13 @@ const STABLE = new Set([
   "USD1",
   "USDS",
 ]);
+// This section shipped with no link, no button and no navigate — zero exits.
+// It shows exactly the thing that converts best (a coin's own timestamped call
+// history) to the traffic that arrived asking about that coin, and then offered
+// nowhere to go. The public /coins/:slug pages already tell the same story and
+// already rank, so the missing piece was only ever the link. See utils/coinPage
+// for why not every coin gets one.
+
 // top market-cap order (ex-stablecoins) — these lead the chip rail
 const TOP_MCAP = [
   "BTC",
@@ -74,8 +88,8 @@ function Spinner() {
 
 function StatTile({ label, value, accent, sub }) {
   return (
-    <div className="group rounded-xl border border-ink/[0.06] bg-surface-raised p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/12 hover:shadow-[0_10px_26px_rgb(var(--scrim) / 0.35)]">
-      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
+    <div className="group rounded-xl lq-card p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/12 hover:">
+      <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">{label}</p>
       <p
         className="mt-1.5 text-xl font-bold tabular-nums transition-transform duration-300 group-hover:scale-[1.03] group-hover:origin-left lg:text-2xl"
         style={{ color: accent || "#fff" }}
@@ -88,6 +102,8 @@ function StatTile({ label, value, accent, sub }) {
 }
 
 export default function CoinSpotlight() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [coins, setCoins] = useState([]); // [{pair, sector, median_peak, win_rate, count}]
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState("BTCUSDT");
@@ -98,7 +114,7 @@ export default function CoinSpotlight() {
   // coin list (cached server-side) → chips + search source
   useEffect(() => {
     let alive = true;
-    sharedGet("/api/v1/analytics/edge-lab?days=90&sector=all")
+    sharedGet("/api/v1/analytics/edge-lab?days=0&sector=all")
       .then((j) => {
         if (!alive || !j) return;
         const lb = (j.coin_leaderboard || []).filter((c) => !STABLE.has(sym(c.pair)));
@@ -184,6 +200,24 @@ export default function CoinSpotlight() {
   const entry = ok ? detail.entry_behavior || {} : {};
   const risk = ok ? detail.risk_profile || {} : {};
   const coinMeta = coins.find((c) => c.pair === sel);
+  const coinPath = coinPagePath(sel);
+
+  // Two exits, two different jobs. The link beside this button already goes to
+  // the coin's public page, so pointing the button there too would be one ask
+  // asked twice — and its label said "Create free account" while it went to a
+  // page needing no account at all.
+  //
+  // The button now goes where an account is the point: /signals, which a free
+  // account can browse (full levels on calls older than 7d — live levels stay
+  // premium, so the label does not promise them).
+  const goSignup = () => {
+    trackFunnel("cta_click", {
+      source: "coin_spotlight",
+      path: "/",
+      meta: { pair: sel },
+    });
+    navigate(isAuthenticated ? "/signals" : loginUrl("/signals", { source: "coin_spotlight" }));
+  };
 
   return (
     <section
@@ -192,30 +226,26 @@ export default function CoinSpotlight() {
     >
       {/* header */}
       <div className="mb-8 text-center lg:mb-10">
-        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
-          <span className="h-px w-7 bg-gradient-to-r from-transparent to-accent/60" />
-          Per-Coin Track Record
-          <span className="h-px w-7 bg-gradient-to-l from-transparent to-accent/60" />
-        </span>
-        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
+        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">Per-coin track record</p>
+        <h2 className="mt-5 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
           Track any coin{" "}
           <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
             we've called.
           </span>
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
+        <p className="mx-auto mt-4 max-w-xl text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
           Pick a coin — or search any pair — to see its full, timestamped call history.
         </p>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-ink/[0.07] bg-surface-raised shadow-[0_8px_28px_rgb(var(--scrim) / 0.35)]">
+      <div className="relative overflow-hidden rounded-2xl lq-card">
         <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-ink/45 to-transparent" />
         {/* ── chip rail + search ── */}
         <div className="flex flex-col gap-3 border-b border-ink/[0.06] p-4 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
             <div
               ref={railRef}
-              className="flex gap-2 overflow-x-auto pb-1 pr-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="flex gap-2 overflow-x-auto px-0.5 py-1.5 pr-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {coins.slice(0, 40).map((c) => {
                 const on = c.pair === sel;
@@ -225,8 +255,8 @@ export default function CoinSpotlight() {
                     onClick={() => setSel(c.pair)}
                     className={`flex flex-shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 transition-all duration-200 hover:-translate-y-0.5 ${
                       on
-                        ? "border-ink/18 bg-accent/12 shadow-[0_4px_14px_rgb(var(--accent) / 0.2)]"
-                        : "border-ink/10 bg-ink/[0.02] hover:border-ink/25 hover:bg-ink/[0.05]"
+                        ? "lq-chip-on"
+                        : "lq-chip"
                     }`}
                   >
                     <CoinLogo pair={c.pair} size={20} />
@@ -244,7 +274,7 @@ export default function CoinSpotlight() {
             <button
               onClick={() => railRef.current?.scrollBy({ left: 260, behavior: "smooth" })}
               aria-label="Scroll coins"
-              className="absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-ink/15 bg-surface-secondary text-text-muted shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)] transition-all hover:scale-105 hover:border-ink/18 hover:text-text-primary"
+              className="absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-ink/15 bg-surface-secondary text-text-muted transition-all hover:scale-105 hover:border-ink/18 hover:text-text-primary"
             >
               <svg
                 className="h-4 w-4"
@@ -290,7 +320,7 @@ export default function CoinSpotlight() {
 
             {/* live preview dropdown (handles similar names) */}
             {query && (
-              <div className="absolute right-0 top-full z-30 mt-1.5 max-h-72 w-60 overflow-y-auto rounded-xl border border-ink/12 bg-surface-raised p-1 shadow-[0_16px_40px_rgb(var(--scrim) / 0.35)]">
+              <div className="absolute right-0 top-full z-30 mt-1.5 max-h-72 w-60 overflow-y-auto rounded-xl border border-ink/12 bg-surface-raised p-1">
                 {filtered.length ? (
                   filtered.slice(0, 14).map((c) => (
                     <button
@@ -306,6 +336,8 @@ export default function CoinSpotlight() {
                         {sym(c.pair)}
                         <span className="ml-1 font-mono text-[9px] text-text-muted">USDT</span>
                       </span>
+                      {/* Sepanjang waktu — sumber yang SAMA dengan kartu di bawahnya
+                          (edge-lab?days=0), jadi angkanya tidak mungkin berbeda lagi. */}
                       {c.win_rate != null && (
                         <span
                           className="ml-auto font-mono text-[10px]"
@@ -351,7 +383,7 @@ export default function CoinSpotlight() {
                     {sym(sel)}
                     <span className="ml-1 font-mono text-[11px] text-text-muted">USDT</span>
                     {coinMeta?.sector && (
-                      <span className="ml-2 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+                      <span className="ml-2 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                         {coinMeta.sector}
                       </span>
                     )}
@@ -390,8 +422,8 @@ export default function CoinSpotlight() {
               {/* donut + time-to-TP */}
               <div className="mt-3 grid gap-3 lg:grid-cols-2">
                 {/* outcome donut */}
-                <div className="group rounded-xl border border-ink/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/10 hover:shadow-[0_12px_30px_rgb(var(--scrim) / 0.35)]">
-                  <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                <div className="group rounded-xl lq-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/10 hover:">
+                  <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                     Outcome distribution
                   </p>
                   <div className="flex items-center gap-5">
@@ -474,8 +506,8 @@ export default function CoinSpotlight() {
                 </div>
 
                 {/* time to each TP */}
-                <div className="group rounded-xl border border-ink/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/10 hover:shadow-[0_12px_30px_rgb(var(--scrim) / 0.35)]">
-                  <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                <div className="group rounded-xl lq-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/10 hover:">
+                  <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                     Time to each TP
                   </p>
                   <div className="space-y-2.5">
@@ -521,6 +553,33 @@ export default function CoinSpotlight() {
             </>
           )}
         </div>
+      </div>
+
+      {/* ── exits ──
+          A real <a href> on the left, not a navigate(): the /coins pages are
+          public and already rank, so this is also an internal link a crawler
+          can follow. Shown only when that coin actually has a page. */}
+      <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <PrimaryButton size="lg" width="fullMobile" onClick={goSignup} className="group">
+          {isAuthenticated ? "Open the call feed" : "Browse every call — free"}
+          <BtnArrow />
+        </PrimaryButton>
+        {coinPath && (
+          <Link
+            to={coinPath}
+            onClick={() =>
+              trackFunnel("cta_click", {
+                source: "coin_spotlight_page",
+                path: "/",
+                meta: { pair: sel },
+              })
+            }
+            className="lq-btn-secondary inline-flex h-[43px] items-center justify-center gap-2 whitespace-nowrap rounded-[8px] px-5 text-[16px] font-medium text-text-primary/85 transition-all duration-200 hover:text-text-primary"
+          >
+            Full {sym(sel)} page
+            <span aria-hidden="true">→</span>
+          </Link>
+        )}
       </div>
     </section>
   );

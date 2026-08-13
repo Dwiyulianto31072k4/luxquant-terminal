@@ -12,7 +12,8 @@ Endpoints:
   GET /api/v1/market-pulse/coin/{pair} — Per-coin detail
 """
 
-from fastapi import APIRouter, Query, HTTPException
+import os
+from fastapi import APIRouter, Query, HTTPException, Header
 from typing import Optional, List
 from datetime import datetime, timedelta
 from sqlalchemy import text
@@ -397,3 +398,101 @@ def get_coin_detail(pair: str):
     
     finally:
         db.close()
+
+# ============================================================
+# FLOW SCREENER — ticks 5m + multi-TF change (ingested from proxy)
+# ============================================================
+# Populated by luxquant-proxy worker (separate Binance IP quota).
+# Redis key: lq:pulse:flow:metrics
+
+FLOW_CACHE_KEY = "lq:pulse:flow:metrics"
+FLOW_INGEST_SECRET = os.getenv("FLOW_INGEST_SECRET", "lq-flow-proxy-v1-change-me")
+
+
+@router.get("/flow")
+def get_pulse_flow(limit: int = Query(300, ge=1, le=400)):
+    """Hot-flow screener: ticks_5m, chg_5m, chg_1h, chg_24h, last price.
+
+    Covers pulse-active pairs + volume fill (ingested from luxquant-proxy).
+    """
+    data = cache_get(FLOW_CACHE_KEY)
+    if not data:
+        stale = cache_get(f"{FLOW_CACHE_KEY}:stale")
+        if stale:
+            items = (stale.get("items") or [])[:limit]
+            return {
+                **{k: v for k, v in stale.items() if k != "items"},
+                "items": items,
+                "count": len(items),
+                "total": len(stale.get("items") or []),
+                "stale": True,
+            }
+        return {"items": [], "count": 0, "total": 0, "updated_at": None, "stale": True}
+
+    items = data.get("items") or []
+    sliced = items[:limit]
+    return {
+        "items": sliced,
+        "count": len(sliced),
+        "total": len(items),
+        "updated_at": data.get("updated_at"),
+        "source": data.get("source", "binance_futures"),
+        "pulse_covered": data.get("pulse_covered"),
+        "stale": False,
+    }
+
+
+@router.post("/flow/ingest")
+def ingest_pulse_flow(
+    payload: dict,
+    x_flow_token: Optional[str] = Header(None, alias="X-Flow-Token"),
+):
+    """Internal: proxy worker posts flow metrics. Auth via X-Flow-Token header."""
+    secret = os.getenv("FLOW_INGEST_SECRET", FLOW_INGEST_SECRET)
+    if not x_flow_token or x_flow_token != secret:
+        raise HTTPException(status_code=401, detail="Invalid flow token")
+
+    items = payload.get("items")
+    if not isinstance(items, list):
+        raise HTTPException(status_code=400, detail="items must be a list")
+
+    # Hard cap — reject absurd payloads
+    items = items[:400]
+    cleaned = []
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        pair = str(raw.get("pair") or "").upper().strip()
+        if not pair.endswith("USDT"):
+            continue
+        try:
+            cleaned.append({
+                "pair": pair,
+                "base": pair.replace("USDT", ""),
+                "price": float(raw["price"]) if raw.get("price") is not None else None,
+                "ticks_5m": int(raw["ticks_5m"]) if raw.get("ticks_5m") is not None else None,
+                "chg_5m": round(float(raw["chg_5m"]), 3) if raw.get("chg_5m") is not None else None,
+                "chg_1h": round(float(raw["chg_1h"]), 3) if raw.get("chg_1h") is not None else None,
+                "chg_24h": round(float(raw["chg_24h"]), 3) if raw.get("chg_24h") is not None else None,
+                "quote_volume_24h": float(raw["quote_volume_24h"]) if raw.get("quote_volume_24h") is not None else None,
+                "trades_24h": int(raw["trades_24h"]) if raw.get("trades_24h") is not None else None,
+                "in_pulse": bool(raw.get("in_pulse")),
+            })
+        except (TypeError, ValueError):
+            continue
+
+    # Default sort: hottest ticks first
+    cleaned.sort(key=lambda x: (x.get("ticks_5m") or 0), reverse=True)
+    pulse_covered = sum(1 for x in cleaned if x.get("in_pulse"))
+
+    doc = {
+        "items": cleaned,
+        "count": len(cleaned),
+        "total": len(cleaned),
+        "pulse_covered": pulse_covered,
+        "updated_at": datetime.utcnow().isoformat() + "Z",
+        "source": payload.get("source") or "binance_futures",
+    }
+    # Fresh 120s (worker ~30s); stale copy auto via cache_set
+    cache_set(FLOW_CACHE_KEY, doc, ttl=120)
+    return {"ok": True, "count": len(cleaned), "pulse_covered": pulse_covered}

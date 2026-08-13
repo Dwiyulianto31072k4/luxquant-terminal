@@ -101,7 +101,16 @@ def fetch_signal_for_journey(session: Session, signal_id: str) -> Optional[Signa
         return None
 
     try:
-        direction = derive_direction(float(row["entry"]), float(row["target1"]))
+        # Every level, so a TP1 that rounds onto the entry can fall through to the
+        # stop and the far targets instead of aborting the whole journey record.
+        direction = derive_direction(
+            float(row["entry"]),
+            float(row["target1"]),
+            target2=row.get("target2"),
+            target3=row.get("target3"),
+            target4=row.get("target4"),
+            stop1=row.get("stop1"),
+        )
     except ValueError as e:
         log.warning(f"Signal {signal_id} cannot derive direction: {e}")
         return None

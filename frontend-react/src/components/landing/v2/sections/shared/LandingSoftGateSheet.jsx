@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { loginUrl } from "../../../../../utils/postLoginRedirect";
+import { coinPagePath } from "../../../../../utils/coinPage";
 import { trackFunnel } from "../../../../../utils/funnelAnalytics";
 import { emitSoftGateClose, emitSoftGateOpen } from "../../landingSoftGate";
 import { CTA } from "../../landingCopy";
@@ -37,25 +38,37 @@ export default function LandingSoftGateSheet({
   const coin = symbolOf(coinPair);
   const gain = gainPct ?? meta?.gain_pct ?? null;
 
+  // This sheet knows exactly which call the person was reading — the headline
+  // above literally names the coin. Sending them to /home afterwards threw that
+  // away; the coin's own page (or the track record, when that coin has no page)
+  // continues the sentence the gate started.
+  const dest = coinPagePath(coinPair) || "/performance";
+
   const goLogin = () => {
     trackFunnel("soft_gate_login_click", {
       source,
       path: "/",
       meta: meta || (coinPair ? { pair: coinPair } : null),
     });
-    navigate(loginUrl("/home", { source }));
+    navigate(loginUrl(dest, { source }));
   };
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100050] flex items-end justify-center bg-scrim/35 p-3 sm:items-end sm:p-6"
+      // `lp-v2` is not decoration here. The landing's button, card and glow
+      // finishes are all scoped `.lp-v2 .lq-btn-primary { … }`, and this sheet
+      // portals into document.body — outside that scope. Without the class the
+      // primary button loses its entire gold fill and renders dark-on-dark:
+      // invisible, which is exactly how it shipped.
+      className="lp-v2 lq-modal-safe fixed inset-0 z-[100050] flex items-end justify-center bg-scrim/35 p-3 sm:items-end sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="lq-soft-gate-title"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-ink/10 bg-surface p-5 shadow-2xl sm:p-6"
+        className="w-full max-w-md overflow-y-auto rounded-2xl border border-ink/10 bg-surface p-5 sm:p-6"
+        style={{ maxHeight: "min(100%, var(--lq-modal-maxh))" }}
         onClick={(e) => e.stopPropagation()}
       >
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">

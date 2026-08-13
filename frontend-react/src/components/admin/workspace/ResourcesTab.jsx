@@ -10,6 +10,7 @@ import { resourcesApi, coverUrl, youtubeThumb } from "../../../services/resource
 import ResourceEditor from "../../resources/ResourceEditor";
 import { palette, tint, motion } from "../designSystem";
 import { useDialog } from "../../../hooks/useDialog";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 const TYPE_META = {
   article: { label: "Research", color: "rgb(var(--fg-muted))" },
@@ -118,6 +119,7 @@ export const ResourcesTab = () => {
     }
     return list;
   }, [items, filter, search]);
+  const resourcePages = useCollectionPagination(filtered, 10);
 
   const handleSaved = () => {
     setEditing(null);
@@ -195,7 +197,10 @@ export const ResourcesTab = () => {
           </span>
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              resourcePages.resetPage();
+            }}
             placeholder="Search resources…"
             className="w-full rounded-xl border border-ink/[0.08] bg-surface-raised py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder-ink/30 focus:border-ink/15 focus:outline-none"
           />
@@ -204,7 +209,10 @@ export const ResourcesTab = () => {
           {FILTERS.map((f) => (
             <button
               key={f.id}
-              onClick={() => setFilter(f.id)}
+              onClick={() => {
+                setFilter(f.id);
+                resourcePages.resetPage();
+              }}
               className={`rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
                 filter === f.id
                   ? "border-accent/30 bg-accent/15 text-accent"
@@ -263,7 +271,7 @@ export const ResourcesTab = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((r) => {
+                resourcePages.pagedItems.map((r) => {
                   const tm = TYPE_META[r.type] || TYPE_META.article;
                   const cover = cardCover(r);
                   return (
@@ -379,6 +387,16 @@ export const ResourcesTab = () => {
           </table>
         </div>
       </div>
+
+      <CollectionPagination
+        page={resourcePages.page}
+        totalPages={resourcePages.totalPages}
+        total={resourcePages.total}
+        pageSize={resourcePages.pageSize}
+        onPageChange={resourcePages.setPage}
+        onPageSizeChange={resourcePages.setPageSize}
+        itemLabel="resources"
+      />
 
       {editing && (
         <ResourceEditor

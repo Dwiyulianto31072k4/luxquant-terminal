@@ -74,6 +74,13 @@ class User(Base):
     referred_by = Column(Integer, nullable=True)
     referral_code_used = Column(String(20), nullable=True)
 
+    # ─── Acquisition (first-touch UTM / referrer — never overwrite) ───
+    acq_source = Column(String(40), nullable=True, index=True)
+    acq_medium = Column(String(40), nullable=True)
+    acq_campaign = Column(String(60), nullable=True, index=True)
+    acq_content = Column(String(60), nullable=True)
+    acq_path = Column(String(200), nullable=True)
+
     # ─── Referral v2: Credit balance ───
     referral_credit_usdt = Column(Numeric(10, 2), default=0, nullable=False)
     lifetime_credit_earned = Column(Numeric(10, 2), default=0, nullable=False)
@@ -84,6 +91,22 @@ class User(Base):
     login_count = Column(Integer, default=0, nullable=False)
     country_code = Column(String(2), nullable=True)
     currency_code = Column(String(3), default="USD", nullable=True)
+
+    # Auto geo from edge IP (Cloudflare CF-IPCountry). Independent of profile
+    # country_code when the user later overrides display/currency prefs.
+    geo_country = Column(String(2), nullable=True, index=True)       # last seen
+    geo_country_first = Column(String(2), nullable=True, index=True)  # first touch
+    geo_region = Column(String(100), nullable=True)
+    geo_city = Column(String(100), nullable=True)
+    geo_timezone = Column(String(64), nullable=True)
+    # Raw IP addresses are deliberately never persisted. Prefix is masked to
+    # /24 (IPv4) or /48 (IPv6); hash is keyed for same-network investigation.
+    geo_ip_prefix = Column(String(64), nullable=True)
+    geo_ip_first_prefix = Column(String(64), nullable=True)
+    geo_ip_hash = Column(String(64), nullable=True, index=True)
+    geo_ip_first_hash = Column(String(64), nullable=True)
+    geo_last_seen_at = Column(DateTime(timezone=True), nullable=True)
+    geo_first_seen_at = Column(DateTime(timezone=True), nullable=True)
 
     # ─── UI preferences (per-user, remembered client settings) ───
     # Flexible key-value bag, mis. {"chart_indicators": true}. Dipakai

@@ -27,6 +27,11 @@ import { CalendarDotIcon, TimerIcon } from "../CategoryIcons";
  * cardFill = solid bank-card style gradient (Visa-like full-bleed color).
  * Researched from each product UI / brand kit.
  */
+/* ALWAYS-DARK CARD SURFACES.
+ * Every value below is painted onto a fixed dark brand gradient, so it must be
+ * a fixed value too. var(--ink) / var(--scrim) flip to dark navy on the bright
+ * theme and would put dark text on a dark card. Use literal rgba() here.
+ */
 export const EXCHANGE_BRANDS = {
   binance: {
     key: "binance",
@@ -37,13 +42,13 @@ export const EXCHANGE_BRANDS = {
     cardFill: "linear-gradient(145deg, #0B0E11 0%, #1E2329 55%, #2A2110 100%)",
     cardOrb: "radial-gradient(circle at 100% 0%, rgba(240,185,11,0.35) 0%, transparent 55%)",
     surface: "#0B0E11",
-    surfaceRaised: "rgb(var(--scrim) / 0.35)",
-    surfaceInset: "rgb(var(--scrim) / 0.28)",
+    surfaceRaised: "rgba(0,0,0,0.35)",
+    surfaceInset: "rgba(0,0,0,0.28)",
     border: "rgba(240,185,11,0.35)",
     borderAccent: "#F0B90B",
     text: "#EAECEF",
     textMuted: "rgba(234,236,239,0.65)",
-    chipBg: "rgb(var(--scrim) / 0.35)",
+    chipBg: "rgba(0,0,0,0.35)",
     chipBorder: "rgba(240,185,11,0.35)",
     logoBg: "#0B0E11",
     logoFg: "#F0B90B",
@@ -56,16 +61,16 @@ export const EXCHANGE_BRANDS = {
     accent: "#7EC8F7",
     // Official Indodax blue family — solid credit-card style
     cardFill: "linear-gradient(135deg, #0A5FA8 0%, #1E9CF0 48%, #0D7BC8 100%)",
-    cardOrb: "radial-gradient(circle at 100% 0%, rgb(var(--ink) / 0.22) 0%, transparent 50%)",
+    cardOrb: "radial-gradient(circle at 100% 0%, rgba(255,255,255,0.22) 0%, transparent 50%)",
     surface: "#0A5FA8",
-    surfaceRaised: "rgb(var(--ink) / 0.18)",
-    surfaceInset: "rgb(var(--ink) / 0.16)",
-    border: "rgb(var(--ink) / 0.22)",
-    borderAccent: "rgb(var(--ink) / 0.35)",
+    surfaceRaised: "rgba(255,255,255,0.18)",
+    surfaceInset: "rgba(255,255,255,0.16)",
+    border: "rgba(255,255,255,0.22)",
+    borderAccent: "rgba(255,255,255,0.35)",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.78)",
-    chipBg: "rgb(var(--ink) / 0.18)",
-    chipBorder: "rgb(var(--ink) / 0.22)",
+    textMuted: "rgba(255,255,255,0.78)",
+    chipBg: "rgba(255,255,255,0.18)",
+    chipBorder: "rgba(255,255,255,0.22)",
     logoBg: "#FFFFFF",
     logoFg: "#1E9CF0",
     logoSrc: "/exchanges/indodax.png",
@@ -75,16 +80,16 @@ export const EXCHANGE_BRANDS = {
     name: "Bybit",
     primary: "#F7A600",
     accent: "#FFB11A",
-    cardFill: "linear-gradient(145deg, rgb(var(--surface)) 0%, #1A1408 55%, #2A1A00 100%)",
+    cardFill: "linear-gradient(145deg, #0D0D0D 0%, #1A1408 55%, #2A1A00 100%)",
     cardOrb: "radial-gradient(circle at 100% 0%, rgba(247,166,0,0.35) 0%, transparent 55%)",
-    surface: "rgb(var(--surface))",
-    surfaceRaised: "rgb(var(--scrim) / 0.35)",
-    surfaceInset: "rgb(var(--scrim) / 0.28)",
+    surface: "#0D0D0D",
+    surfaceRaised: "rgba(0,0,0,0.35)",
+    surfaceInset: "rgba(0,0,0,0.28)",
     border: "rgba(247,166,0,0.35)",
     borderAccent: "#F7A600",
     text: "#F5F5F5",
     textMuted: "rgba(245,245,245,0.65)",
-    chipBg: "rgb(var(--scrim) / 0.35)",
+    chipBg: "rgba(0,0,0,0.35)",
     chipBorder: "rgba(247,166,0,0.35)",
     logoBg: "#0D0D0D",
     logoFg: "#F7A600",
@@ -96,16 +101,16 @@ export const EXCHANGE_BRANDS = {
     primary: "#FFFFFF",
     accent: "#CCCCCC",
     cardFill: "linear-gradient(145deg, #000000 0%, #121212 60%, #1A1A1A 100%)",
-    cardOrb: "radial-gradient(circle at 100% 0%, rgb(var(--ink) / 0.12) 0%, transparent 50%)",
+    cardOrb: "radial-gradient(circle at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 50%)",
     surface: "#000000",
-    surfaceRaised: "rgb(var(--ink) / 0.06)",
-    surfaceInset: "rgb(var(--ink) / 0.04)",
-    border: "rgb(var(--ink) / 0.18)",
-    borderAccent: "rgb(var(--ink) / 0.35)",
+    surfaceRaised: "rgba(255,255,255,0.06)",
+    surfaceInset: "rgba(255,255,255,0.04)",
+    border: "rgba(255,255,255,0.18)",
+    borderAccent: "rgba(255,255,255,0.35)",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.65)",
-    chipBg: "rgb(var(--ink) / 0.08)",
-    chipBorder: "rgb(var(--ink) / 0.16)",
+    textMuted: "rgba(255,255,255,0.65)",
+    chipBg: "rgba(255,255,255,0.08)",
+    chipBorder: "rgba(255,255,255,0.16)",
     logoBg: "#000000",
     logoFg: "#FFFFFF",
     logoSrc: "/exchanges/okx.png",
@@ -117,16 +122,16 @@ export const EXCHANGE_BRANDS = {
     accent: "#6B9BFF",
     // Ocean Blue brand refresh
     cardFill: "linear-gradient(135deg, #0A2A7A 0%, #1463FF 50%, #0B4AD4 100%)",
-    cardOrb: "radial-gradient(circle at 100% 0%, rgb(var(--ink) / 0.2) 0%, transparent 50%)",
+    cardOrb: "radial-gradient(circle at 100% 0%, rgba(255,255,255,0.2) 0%, transparent 50%)",
     surface: "#0A2A7A",
-    surfaceRaised: "rgb(var(--ink) / 0.18)",
-    surfaceInset: "rgb(var(--ink) / 0.16)",
-    border: "rgb(var(--ink) / 0.22)",
-    borderAccent: "rgb(var(--ink) / 0.35)",
+    surfaceRaised: "rgba(255,255,255,0.18)",
+    surfaceInset: "rgba(255,255,255,0.16)",
+    border: "rgba(255,255,255,0.22)",
+    borderAccent: "rgba(255,255,255,0.35)",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.78)",
-    chipBg: "rgb(var(--ink) / 0.18)",
-    chipBorder: "rgb(var(--ink) / 0.22)",
+    textMuted: "rgba(255,255,255,0.78)",
+    chipBg: "rgba(255,255,255,0.18)",
+    chipBorder: "rgba(255,255,255,0.22)",
     logoBg: "#FFFFFF",
     logoFg: "#1463FF",
     logoSrc: "/exchanges/mexc.png",
@@ -140,14 +145,14 @@ export const EXCHANGE_BRANDS = {
     cardFill: "linear-gradient(135deg, #063D32 0%, #0B6B54 40%, #0E8F6E 70%, #1560C4 100%)",
     cardOrb: "radial-gradient(circle at 100% 0%, rgba(23,230,161,0.35) 0%, transparent 50%)",
     surface: "#063D32",
-    surfaceRaised: "rgb(var(--scrim) / 0.2)",
-    surfaceInset: "rgb(var(--ink) / 0.16)",
+    surfaceRaised: "rgba(0,0,0,0.2)",
+    surfaceInset: "rgba(255,255,255,0.16)",
     border: "rgba(23,230,161,0.35)",
     borderAccent: "#17E6A1",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.78)",
-    chipBg: "rgb(var(--scrim) / 0.2)",
-    chipBorder: "rgb(var(--ink) / 0.2)",
+    textMuted: "rgba(255,255,255,0.78)",
+    chipBg: "rgba(0,0,0,0.2)",
+    chipBorder: "rgba(255,255,255,0.2)",
     logoBg: "#FFFFFF",
     logoFg: "#2354E6",
     logoSrc: "/exchanges/gate.png",
@@ -160,14 +165,14 @@ export const EXCHANGE_BRANDS = {
     cardFill: "linear-gradient(135deg, #063D32 0%, #0B6B54 40%, #0E8F6E 70%, #1560C4 100%)",
     cardOrb: "radial-gradient(circle at 100% 0%, rgba(23,230,161,0.35) 0%, transparent 50%)",
     surface: "#063D32",
-    surfaceRaised: "rgb(var(--scrim) / 0.2)",
-    surfaceInset: "rgb(var(--ink) / 0.16)",
+    surfaceRaised: "rgba(0,0,0,0.2)",
+    surfaceInset: "rgba(255,255,255,0.16)",
     border: "rgba(23,230,161,0.35)",
     borderAccent: "#17E6A1",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.78)",
-    chipBg: "rgb(var(--scrim) / 0.2)",
-    chipBorder: "rgb(var(--ink) / 0.2)",
+    textMuted: "rgba(255,255,255,0.78)",
+    chipBg: "rgba(0,0,0,0.2)",
+    chipBorder: "rgba(255,255,255,0.2)",
     logoBg: "#FFFFFF",
     logoFg: "#2354E6",
     logoSrc: "/exchanges/gate.png",
@@ -180,14 +185,14 @@ export const EXCHANGE_BRANDS = {
     cardFill: "linear-gradient(135deg, #0A3D32 0%, #148F75 55%, #0D6B58 100%)",
     cardOrb: "radial-gradient(circle at 100% 0%, rgba(45,212,176,0.3) 0%, transparent 50%)",
     surface: "#0A3D32",
-    surfaceRaised: "rgb(var(--ink) / 0.18)",
-    surfaceInset: "rgb(var(--ink) / 0.16)",
+    surfaceRaised: "rgba(255,255,255,0.18)",
+    surfaceInset: "rgba(255,255,255,0.16)",
     border: "rgba(45,212,176,0.35)",
     borderAccent: "#23AF91",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.78)",
-    chipBg: "rgb(var(--ink) / 0.18)",
-    chipBorder: "rgb(var(--ink) / 0.2)",
+    textMuted: "rgba(255,255,255,0.78)",
+    chipBg: "rgba(255,255,255,0.18)",
+    chipBorder: "rgba(255,255,255,0.2)",
     logoBg: "#0A1210",
     logoFg: "#23AF91",
     logoSrc: "/exchanges/kucoin.png",
@@ -200,13 +205,13 @@ export const EXCHANGE_BRANDS = {
     cardFill: "linear-gradient(135deg, #042A33 0%, #065A66 50%, #0A3D4A 100%)",
     cardOrb: "radial-gradient(circle at 100% 0%, rgba(0,240,255,0.3) 0%, transparent 50%)",
     surface: "#042A33",
-    surfaceRaised: "rgb(var(--scrim) / 0.2)",
-    surfaceInset: "rgb(var(--ink) / 0.16)",
+    surfaceRaised: "rgba(0,0,0,0.2)",
+    surfaceInset: "rgba(255,255,255,0.16)",
     border: "rgba(0,240,255,0.35)",
     borderAccent: "#00F0FF",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.78)",
-    chipBg: "rgb(var(--scrim) / 0.2)",
+    textMuted: "rgba(255,255,255,0.78)",
+    chipBg: "rgba(0,0,0,0.2)",
     chipBorder: "rgba(0,240,255,0.3)",
     logoBg: "#070C12",
     logoFg: "#00F0FF",
@@ -220,14 +225,14 @@ export const EXCHANGE_BRANDS = {
     cardFill: "linear-gradient(135deg, #0A3D2A 0%, #15965E 55%, #0D6B45 100%)",
     cardOrb: "radial-gradient(circle at 100% 0%, rgba(61,212,154,0.3) 0%, transparent 50%)",
     surface: "#0A3D2A",
-    surfaceRaised: "rgb(var(--ink) / 0.18)",
-    surfaceInset: "rgb(var(--ink) / 0.16)",
+    surfaceRaised: "rgba(255,255,255,0.18)",
+    surfaceInset: "rgba(255,255,255,0.16)",
     border: "rgba(61,212,154,0.35)",
     borderAccent: "#2EBD85",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.78)",
-    chipBg: "rgb(var(--ink) / 0.18)",
-    chipBorder: "rgb(var(--ink) / 0.2)",
+    textMuted: "rgba(255,255,255,0.78)",
+    chipBg: "rgba(255,255,255,0.18)",
+    chipBorder: "rgba(255,255,255,0.2)",
     logoBg: "#0A1210",
     logoFg: "#2EBD85",
     logoSrc: "/exchanges/htx.png",
@@ -240,14 +245,14 @@ export const EXCHANGE_BRANDS = {
     cardFill: "linear-gradient(135deg, #0A3D2A 0%, #15965E 55%, #0D6B45 100%)",
     cardOrb: "radial-gradient(circle at 100% 0%, rgba(61,212,154,0.3) 0%, transparent 50%)",
     surface: "#0A3D2A",
-    surfaceRaised: "rgb(var(--ink) / 0.18)",
-    surfaceInset: "rgb(var(--ink) / 0.16)",
+    surfaceRaised: "rgba(255,255,255,0.18)",
+    surfaceInset: "rgba(255,255,255,0.16)",
     border: "rgba(61,212,154,0.35)",
     borderAccent: "#2EBD85",
     text: "#FFFFFF",
-    textMuted: "rgb(var(--ink) / 0.78)",
-    chipBg: "rgb(var(--ink) / 0.18)",
-    chipBorder: "rgb(var(--ink) / 0.2)",
+    textMuted: "rgba(255,255,255,0.78)",
+    chipBg: "rgba(255,255,255,0.18)",
+    chipBorder: "rgba(255,255,255,0.2)",
     logoBg: "#0A1210",
     logoFg: "#2EBD85",
     logoSrc: "/exchanges/htx.png",
@@ -262,13 +267,13 @@ const FALLBACK_BRAND = {
   cardFill: "linear-gradient(145deg, #12090d 0%, #1a0d12 55%, #2a1a10 100%)",
   cardOrb: "radial-gradient(circle at 100% 0%, rgb(var(--accent) / 0.3) 0%, transparent 50%)",
   surface: "#12090d",
-  surfaceRaised: "rgb(var(--scrim) / 0.25)",
-  surfaceInset: "rgb(var(--scrim) / 0.2)",
+  surfaceRaised: "rgba(0,0,0,0.25)",
+  surfaceInset: "rgba(0,0,0,0.2)",
   border: "rgb(var(--accent) / 0.35)",
   borderAccent: "rgb(var(--accent))",
   text: "rgb(var(--fg))",
   textMuted: "rgba(245,240,232,0.7)",
-  chipBg: "rgb(var(--scrim) / 0.25)",
+  chipBg: "rgba(0,0,0,0.25)",
   chipBorder: "rgb(var(--accent) / 0.3)",
   logoBg: "rgb(var(--accent))",
   logoFg: "#1a0d12",
@@ -480,16 +485,20 @@ export const ExchangeBadge = ({ exchange, dense = false }) => {
   if (!exchange) return null;
   const brand = resolveExchangeBrand(exchange);
   const logoSize = dense ? 14 : 16;
-  const labelColor = brand.primary === "#FFFFFF" ? brand.text : brand.primary;
   return (
     <span
       className={`inline-flex items-center gap-1.5 font-semibold rounded-md ${
         dense ? "text-[9px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
       }`}
+      /* A table row is a THEME surface, not a brand card, so this chip follows
+         the theme. It used to wear brand.surfaceRaised (the dark card fill)
+         with brand.primary as text -- a dark chip on a white row, captioned in
+         Binance yellow or Bybit orange, neither of which is readable on light.
+         The logo carries the brand; the text just has to be legible. */
       style={{
-        background: brand.surfaceRaised,
-        color: labelColor,
-        border: `1px solid ${brand.border}`,
+        background: "rgb(var(--surface-secondary))",
+        color: "rgb(var(--fg-secondary))",
+        border: "1px solid rgb(var(--line))",
       }}
       title={`Received into ${brand.name}`}
     >
@@ -524,7 +533,7 @@ export const ExchangePaymentHero = ({ payment }) => {
       style={{
         background: brand.cardFill || brand.surface,
         border: `1px solid ${brand.border}`,
-        boxShadow: `0 14px 40px rgb(var(--scrim) / 0.35), 0 0 0 1px ${brand.border}`,
+        boxShadow: `0 14px 40px rgba(0,0,0,0.35), 0 0 0 1px ${brand.border}`,
         minHeight: 220,
       }}
     >
@@ -554,8 +563,9 @@ export const ExchangePaymentHero = ({ payment }) => {
             <div
               className="rounded-xl p-0.5 shrink-0"
               style={{
-                background: "rgb(var(--ink) / 0.95)",
-                boxShadow: "0 4px 14px rgb(var(--scrim) / 0.25)",
+                // On the dark card, so fixed: --ink is dark navy on bright.
+                background: "rgba(255,255,255,0.95)",
+                boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
               }}
             >
               <ExchangeLogo exchange={payment.wallet_to_exchange} size={42} />
@@ -602,7 +612,7 @@ export const ExchangePaymentHero = ({ payment }) => {
                 className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono"
                 style={{
                   background: "#7f1d1d",
-                  color: "rgb(var(--neg-text))",
+                  color: "#fecaca", // --neg-text is a dark red on bright
                   border: "1px solid #991b1b",
                 }}
               >
@@ -639,7 +649,7 @@ export const ExchangePaymentHero = ({ payment }) => {
               style={{
                 color: brand.text,
                 letterSpacing: "-0.03em",
-                textShadow: "0 2px 12px rgb(var(--scrim) / 0.2)",
+                textShadow: "0 2px 12px rgba(0,0,0,0.2)",
               }}
             >
               {formatUSDT(payment.final_amount)}

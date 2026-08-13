@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <circle cx="64" cy="64" r="64" fill="#0052FF"/>
+  <!-- incomplete white ring (gap on the left) + horizontal bar — Coinbase Base brand mark -->
+  <path d="M48 64c0-8.837 7.163-16 16-16s16 7.163 16 16-7.163 16-16 16c-3.2 0-6.17-.94-8.66-2.55" stroke="#fff" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <rect x="36" y="57" width="40" height="14" rx="3" fill="#fff"/>
+</svg>

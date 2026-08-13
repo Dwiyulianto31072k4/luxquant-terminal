@@ -814,7 +814,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-[88vh] bg-surface-raised border-t border-ink/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
+      <div className="relative w-full max-w-5xl max-h-[min(var(--lq-modal-maxh),100%)] h-[min(var(--lq-modal-maxh),100%)] sm:h-[88vh] bg-surface-raised border-t border-ink/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>

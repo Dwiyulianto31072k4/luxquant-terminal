@@ -1232,3 +1232,108 @@ export const ServerIcon = ({ size = 14, ...props }) => (
     <circle cx="7" cy="16.5" r="1.15" fill="currentColor" />
   </Svg>
 );
+
+/** FunnelIcon — acquisition stages narrowing toward conversion. */
+export const FunnelIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <path d="M3 5h18l-7 8v5.2l-4 1.8v-7z" fill="currentColor" opacity={BODY} />
+    <path d="M3 5h18l-7 8v5.2l-4 1.8v-7L3 5z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+    <path d="M7 8h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </Svg>
+);
+
+/** MegaphoneIcon — paid and owned campaign distribution. */
+export const MegaphoneIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <path d="M4 10v4h4l8 4V6L8 10H4z" fill="currentColor" opacity={BODY} />
+    <path d="M4 10v4h4l8 4V6l-8 4H4zM8 14l1.5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M19 9.5a4 4 0 010 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </Svg>
+);
+
+/** RocketIcon — growth experiments and compounding distribution. */
+export const RocketIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <path d="M13 4.2c2.1-1.5 5-1.2 6.8-1-0.1 2.1-0.4 4.9-2 6.9l-5.2 6.3-5-5L13 4.2z" fill="currentColor" opacity={BODY} />
+    <path d="M13 4.2c2.1-1.5 5-1.2 6.8-1-0.1 2.1-0.4 4.9-2 6.9l-5.2 6.3-5-5L13 4.2zM8.7 7.8l-3.9.8-1.6 3.2 4.4-.4M16.2 15.3l-.8 3.9-3.2 1.6.4-4.4" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="15.5" cy="7.5" r="1.8" fill="currentColor" />
+  </Svg>
+);
+
+/** SocialOrbitIcon — cross-channel social publishing. */
+export const SocialOrbitIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <circle cx="12" cy="12" r="3" fill="currentColor" />
+    <ellipse cx="12" cy="12" rx="9" ry="4.5" stroke="currentColor" strokeWidth="1.6" opacity="0.7" />
+    <ellipse cx="12" cy="12" rx="4.5" ry="9" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
+    <circle cx="19.2" cy="9.4" r="1.6" fill="currentColor" />
+  </Svg>
+);
+
+/** CardStackIcon — generated signal-card queue. */
+export const CardStackIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <rect x="5" y="6" width="15" height="12" rx="2.5" fill="currentColor" opacity={BODY} />
+    <rect x="5" y="6" width="15" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M8 3.5h9a2 2 0 012 2M3 9v7a2 2 0 002 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <path d="M8.5 14l2.4-2.4 2 1.9 2.8-3 1.8 1.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+/** AnnouncementIcon — high-priority in-product notice. */
+export const AnnouncementIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <path d="M5 7.5h10l4-3v15l-4-3H5a2 2 0 01-2-2v-5a2 2 0 012-2z" fill="currentColor" opacity={BODY} />
+    <path d="M5 7.5h10l4-3v15l-4-3H5a2 2 0 01-2-2v-5a2 2 0 012-2zM7 16.5l1.2 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="14.2" cy="12" r="1.4" fill="currentColor" />
+  </Svg>
+);
+
+/** BookOpenIcon — research library and operator resources. */
+export const BookOpenIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <path d="M3.5 5.5A9.5 9.5 0 0112 7.7v12a9.5 9.5 0 00-8.5-2.2v-12zM20.5 5.5A9.5 9.5 0 0012 7.7v12a9.5 9.5 0 018.5-2.2v-12z" fill="currentColor" opacity={BODY} />
+    <path d="M3.5 5.5A9.5 9.5 0 0112 7.7v12a9.5 9.5 0 00-8.5-2.2v-12zM20.5 5.5A9.5 9.5 0 0012 7.7v12a9.5 9.5 0 018.5-2.2v-12z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+  </Svg>
+);
+
+/** BotIcon — execution agent and automation health. */
+export const BotIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <rect x="4" y="7" width="16" height="12" rx="4" fill="currentColor" opacity={BODY} />
+    <rect x="4" y="7" width="16" height="12" rx="4" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M12 7V3.5M8 22v-3M16 22v-3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <circle cx="12" cy="3" r="1.5" fill="currentColor" />
+    <circle cx="9" cy="12.5" r="1.4" fill="currentColor" />
+    <circle cx="15" cy="12.5" r="1.4" fill="currentColor" />
+  </Svg>
+);
+
+/** KeyIcon — API credentials and access control. */
+export const KeyIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <circle cx="8" cy="12" r="5" fill="currentColor" opacity={BODY} />
+    <circle cx="8" cy="12" r="5" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M12 12h9M17 12v3M20 12v2" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+    <circle cx="8" cy="12" r="1.5" fill="currentColor" />
+  </Svg>
+);
+
+/** SplitCoinIcon — tracked revenue split and partner share. */
+export const SplitCoinIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <circle cx="12" cy="12" r="9" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M12 4.5v15M8.5 8.5h5a2 2 0 010 4h-3a2 2 0 000 4h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </Svg>
+);
+
+/** CpuChipIcon — metered AI infrastructure and model spend. */
+export const CpuChipIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <rect x="6" y="6" width="12" height="12" rx="3" fill="currentColor" opacity={BODY} />
+    <rect x="6" y="6" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M9 2.5v3M15 2.5v3M9 18.5v3M15 18.5v3M2.5 9h3M2.5 15h3M18.5 9h3M18.5 15h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <path d="M9.5 14.5l5-5M10 9.5h.01M14 14.5h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </Svg>
+);

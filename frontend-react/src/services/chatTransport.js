@@ -38,11 +38,13 @@ export function createTransport({ fetchSince, onBatch, onError }) {
     try {
       const data = await fetchSince(getCursor());
       if (!running) return;
-      const messages = data?.messages || [];
+      const messages = [...(data?.messages || []), ...(data?.message_updates || [])];
       if (messages.length) {
-        onBatch(messages, { last_seq: data.last_seq, status: data.status });
+        // Forward all cursors as metadata. Keeping only status/last_seq made
+        // the live "Seen" receipt impossible to update after initial load.
+        onBatch(messages, data);
       } else if (data?.status) {
-        onBatch([], { last_seq: data.last_seq, status: data.status });
+        onBatch([], data);
       }
     } catch (e) {
       if (onError) onError(e);

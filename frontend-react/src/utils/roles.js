@@ -50,6 +50,20 @@ export function isAdminViewOnly(user) {
   return VIEW_ONLY_STAFF_ROLES.includes(user.role);
 }
 
+/**
+ * Has paid product access (premium routes, live levels, Terminal, Agent).
+ *
+ * Lived inside App.jsx as a local closure, which is why nothing outside the
+ * app shell could tell a paying VIP from a free account — the whole landing
+ * page pitched "create a free account" to people who already pay for it.
+ * Staff are included: they need the product to support it.
+ */
+export function isPremiumUser(user) {
+  if (!user) return false;
+  if (user.is_admin === true || user.is_admin_staff === true) return true;
+  return ["admin", "co_admin", "founder", "premium", "subscriber"].includes(user.role);
+}
+
 /** True if role is any staff role (admin / co_admin / founder). */
 export function isStaffRole(role) {
   return STAFF_ROLES.includes(role);

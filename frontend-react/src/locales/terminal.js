@@ -316,7 +316,7 @@ export const terminalEn = {
     signals: "signals",
     searchPair: "Search…",
     all: "All",
-    decoupled: "Low β",
+    decoupled: "Low beta",
     intelOnly: "Has setup",
     reset: "Clear",
     loading: "Loading…",

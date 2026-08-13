@@ -85,6 +85,7 @@ export const fmtDate = (d) => {
 };
 
 export const classifyCoin = (c) => {
+  if (!c) return "neutral";
   const f = c.anomaly_flags || [],
     ft = f.map((x) => x.type),
     hd = f.some((x) => x.severity === "danger"),
@@ -102,6 +103,215 @@ export const classifyCoin = (c) => {
   if (c.win_rate < 65 && c.closed_trades >= 5) return "avoid";
   return hp ? "worth_it" : "neutral";
 };
+
+// ── Leave-one-out / as-of-entry verdict ─────────────────────────────
+// Pair-level coin-intel includes every closed trade. Showing Avoid/Worth
+// on a *resolved* row using that aggregate leaks the row's own outcome
+// into the label (e.g. this SL → "Avoid" on the same row). Best practice:
+// open rows → full pair prior history; closed rows → reverse this outcome
+// then re-classify (leave-one-out / as-of-entry).
+
+const MIN_CLOSED_RELIABLE = 5;
+const WIN_OUTCOMES = new Set(["tp1", "tp2", "tp3", "tp4"]);
+
+/** Map signal status → coin-intel outcome bucket, or null if still open. */
+export function resolveOutcomeFromStatus(status) {
+  if (!status) return null;
+  const s = String(status).toLowerCase();
+  if (s === "open" || s === "active") return null;
+  if (s === "closed_win") return "tp4";
+  if (s === "closed_loss") return "sl";
+  if (s === "sl1" || s === "sl2") return "sl";
+  if (s === "tp1" || s === "tp2" || s === "tp3" || s === "tp4" || s === "sl") return s;
+  return null;
+}
+
+function isWinOutcome(o) {
+  return o && o !== "sl" && WIN_OUTCOMES.has(o);
+}
+
+/** Newest-first recent outcomes → current streak (same semantics as worker). */
+function streakFromRecent(recent) {
+  if (!recent?.length) return { type: null, length: 0 };
+  const firstWin = isWinOutcome(recent[0]);
+  let length = 0;
+  for (const o of recent) {
+    if (isWinOutcome(o) === firstWin) length += 1;
+    else break;
+  }
+  return { type: firstWin ? "win" : "loss", length };
+}
+
+/**
+ * Flags that flip with a single trade's outcome — recompute after LOO.
+ * Keep flow / recovery / corr / entry-quality flags (hard to reverse client-side
+ * and rarely created by one row alone).
+ */
+const LOO_RECOMPUTE_TYPES = new Set([
+  "sl_magnet",
+  "chronic_underperformer",
+  "losing_streak",
+  "hot_streak",
+  "volatile_danger",
+  "stable_winner",
+  "wr_decline",
+  "wr_surprise",
+  "tp4_king",
+  "low_sample",
+  "tp1_trap",
+]);
+
+function rebuildLooFlags(coin, { wr, sr, closed, wins, dist, streak }) {
+  const kept = (coin.anomaly_flags || []).filter((f) => !LOO_RECOMPUTE_TYPES.has(f.type));
+  const flags = [...kept];
+
+  if (closed > 0 && closed < MIN_CLOSED_RELIABLE) {
+    flags.push({ type: "low_sample", severity: "info", tag: "Low sample" });
+  }
+  if (closed >= MIN_CLOSED_RELIABLE && sr >= 60) {
+    flags.push({ type: "sl_magnet", severity: "danger", tag: "SL magnet" });
+  }
+
+  // Chronic underperformer needs platform avg (not on payload). Keep only if
+  // LOO WR did not improve past the pre-LOO WR (i.e. this row wasn't the SL
+  // that was dragging the pair — or we removed a win and it stayed bad).
+  const hadChronic = (coin.anomaly_flags || []).some((f) => f.type === "chronic_underperformer");
+  if (hadChronic && closed >= MIN_CLOSED_RELIABLE && wr <= (coin.win_rate ?? 0) + 0.05) {
+    flags.push({
+      type: "chronic_underperformer",
+      severity: "danger",
+      tag: "Chronic underperformer",
+    });
+  }
+
+  if (streak?.type === "loss" && streak.length >= 3) {
+    flags.push({
+      type: "losing_streak",
+      severity: "danger",
+      tag: `${streak.length}-call loss streak`,
+    });
+  }
+  if (streak?.type === "win" && streak.length >= 3) {
+    flags.push({
+      type: "hot_streak",
+      severity: "positive",
+      tag: `${streak.length}-call win streak`,
+    });
+  }
+
+  if (wins >= 3 && dist.tp1 / wins >= 0.7) {
+    flags.push({ type: "tp1_trap", severity: "warning", tag: "TP1 trap" });
+  }
+  if (closed >= MIN_CLOSED_RELIABLE && dist.tp4 / closed >= 0.3) {
+    flags.push({ type: "tp4_king", severity: "positive", tag: "TP4 king" });
+  }
+
+  const vol = coin.volatility || {};
+  if (vol.profile === "volatile" && wr < 70) {
+    flags.push({
+      type: "volatile_danger",
+      severity: "danger",
+      tag: "High volatility, low WR",
+    });
+  }
+  if (vol.profile === "stable" && wr >= 85) {
+    flags.push({ type: "stable_winner", severity: "positive", tag: "Stable & reliable" });
+  }
+
+  const wr30 = coin.win_rate_30d;
+  if (wr30 != null && closed >= MIN_CLOSED_RELIABLE) {
+    if (wr30 - wr >= 20) {
+      flags.push({ type: "wr_surprise", severity: "positive", tag: "WR improving" });
+    }
+    if (wr - wr30 >= 20) {
+      flags.push({ type: "wr_decline", severity: "warning", tag: "WR declining" });
+    }
+  }
+
+  return flags;
+}
+
+/**
+ * Reverse one resolved outcome from pair coin-intel (leave-one-out snapshot).
+ * Used only for row-level Avoid/Worth — not for the coin detail modal.
+ */
+export function leaveOneOutCoin(coin, outcome) {
+  if (!coin || !outcome) return coin;
+
+  const dist = {
+    tp1: coin.outcome_dist?.tp1 ?? 0,
+    tp2: coin.outcome_dist?.tp2 ?? 0,
+    tp3: coin.outcome_dist?.tp3 ?? 0,
+    tp4: coin.outcome_dist?.tp4 ?? 0,
+    sl: coin.outcome_dist?.sl ?? 0,
+  };
+
+  if (dist[outcome] != null && dist[outcome] > 0) {
+    dist[outcome] -= 1;
+  }
+
+  const closed = Math.max(0, (coin.closed_trades || 0) - 1);
+  const wins = dist.tp1 + dist.tp2 + dist.tp3 + dist.tp4;
+  const sl = dist.sl;
+  const wr = closed > 0 ? Math.round((wins / closed) * 1000) / 10 : 0;
+  const sr = closed > 0 ? Math.round((sl / closed) * 1000) / 10 : 0;
+
+  // Drop one matching outcome from newest-first recent list (prefer head =
+  // this is usually the latest closed on the pair; else first match).
+  let recent = Array.isArray(coin.recent_outcomes) ? [...coin.recent_outcomes] : [];
+  const ri = recent.indexOf(outcome);
+  if (ri >= 0) recent.splice(ri, 1);
+
+  const streak = streakFromRecent(recent);
+  const flags = rebuildLooFlags(coin, { wr, sr, closed, wins, dist, streak });
+
+  return {
+    ...coin,
+    closed_trades: closed,
+    win_rate: wr,
+    sl_rate: sr,
+    outcome_dist: dist,
+    recent_outcomes: recent,
+    current_streak: streak,
+    anomaly_flags: flags,
+    _loo: true,
+    _loo_outcome: outcome,
+  };
+}
+
+/**
+ * Per-signal verdict (anti-leak):
+ * - open / unresolved → classifyCoin(pair)  // prior history only
+ * - closed            → classifyCoin(leaveOneOut(pair, this outcome))
+ *
+ * @returns {"avoid"|"worth_it"|"neutral"|null}
+ */
+export function classifySignalVerdict(coin, signal) {
+  if (!coin) return null;
+  const outcome = resolveOutcomeFromStatus(signal?.status);
+  if (!outcome) return classifyCoin(coin);
+  return classifyCoin(leaveOneOutCoin(coin, outcome));
+}
+
+/**
+ * Row helper: verdict + coin snapshot for display.
+ * Modal still opens full pair intel; badge uses LOO when closed.
+ */
+export function getSignalVerdictInfo(coin, signal) {
+  if (!coin) return null;
+  const outcome = resolveOutcomeFromStatus(signal?.status);
+  if (!outcome) {
+    return { verdict: classifyCoin(coin), coin, asOfEntry: false };
+  }
+  const loo = leaveOneOutCoin(coin, outcome);
+  return {
+    verdict: classifyCoin(loo),
+    coin: loo,
+    fullCoin: coin,
+    asOfEntry: true,
+    excludedOutcome: outcome,
+  };
+}
 
 // ═══════════════════════════════════════════
 // MICRO COMPONENTS

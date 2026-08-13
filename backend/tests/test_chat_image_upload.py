@@ -12,7 +12,10 @@ from fastapi import HTTPException
 
 from app.api.routes.chat import MAX_IMAGE_BYTES, validate_chat_image
 
-OK = b"\x89PNG\r\n\x1a\n"
+PNG = b"\x89PNG\r\n\x1a\n"
+JPG = b"\xff\xd8\xff\xe0"
+GIF = b"GIF89a"
+WEBP = b"RIFF\x04\x00\x00\x00WEBP"
 
 
 def _rejects(filename, blob):
@@ -22,36 +25,44 @@ def _rejects(filename, blob):
 
 
 def test_the_ordinary_formats_are_accepted():
-    for name in ("shot.png", "photo.jpg", "photo.jpeg", "pic.webp", "clip.gif"):
-        assert validate_chat_image(name, OK) == "." + name.split(".")[-1]
+    for name, blob in (
+        ("shot.png", PNG), ("photo.jpg", JPG), ("photo.jpeg", JPG),
+        ("pic.webp", WEBP), ("clip.gif", GIF),
+    ):
+        assert validate_chat_image(name, blob) == "." + name.split(".")[-1]
 
 
 def test_the_extension_is_matched_case_insensitively():
     """Phone cameras hand back .JPG, and rejecting those would look like a bug."""
-    assert validate_chat_image("IMG_0042.JPG", OK) == ".jpg"
+    assert validate_chat_image("IMG_0042.JPG", JPG) == ".jpg"
 
 
 def test_svg_is_refused():
     """The dangerous one: SVG can carry script, and we serve it from our own
     origin, so an accepted upload would be stored XSS."""
-    assert _rejects("payload.svg", OK) == 400
+    assert _rejects("payload.svg", PNG) == 400
 
 
 def test_non_images_are_refused():
     for name in ("shell.php", "run.html", "notes.pdf", "archive.zip"):
-        assert _rejects(name, OK) == 400
+        assert _rejects(name, PNG) == 400
 
 
 def test_a_missing_or_extensionless_name_is_refused():
-    assert _rejects(None, OK) == 400
-    assert _rejects("screenshot", OK) == 400
+    assert _rejects(None, PNG) == 400
+    assert _rejects("screenshot", PNG) == 400
 
 
 def test_a_double_extension_is_judged_on_the_last_one():
     """'evil.php.png' is stored as a png and served as a png — accepted.
     'evil.png.php' is not an image and must not be."""
-    assert validate_chat_image("evil.php.png", OK) == ".png"
-    assert _rejects("evil.png.php", OK) == 400
+    assert validate_chat_image("evil.php.png", PNG) == ".png"
+    assert _rejects("evil.png.php", PNG) == 400
+
+
+def test_extension_must_match_file_signature():
+    assert _rejects("disguised.png", b"<html><script>alert(1)</script>") == 400
+    assert _rejects("wrong.jpg", PNG) == 400
 
 
 def test_an_oversize_file_is_refused():
@@ -61,7 +72,7 @@ def test_an_oversize_file_is_refused():
 def test_a_file_exactly_at_the_cap_is_accepted():
     """The handler reads MAX+1 bytes, so the boundary has to be right or every
     8 MB upload fails."""
-    assert validate_chat_image("big.png", b"x" * MAX_IMAGE_BYTES) == ".png"
+    assert validate_chat_image("big.png", PNG + b"x" * (MAX_IMAGE_BYTES - len(PNG))) == ".png"
 
 
 def test_an_empty_file_is_refused():

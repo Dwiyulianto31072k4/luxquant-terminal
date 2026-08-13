@@ -155,6 +155,13 @@ class JournalStatsResponse(BaseModel):
     win_rate_by_strategy: Dict[str, Any] = {}
     win_rate_by_emotion: Dict[str, Any] = {}
     pnl_by_day: Dict[str, float] = {}
+    # Research P1 metrics
+    profit_factor: Optional[float] = None
+    expectancy: Optional[float] = None
+    current_streak: int = 0
+    current_streak_type: Optional[str] = None  # win | loss
+    mistake_stats: Dict[str, Any] = {}
+    lux_vs_my: Dict[str, Any] = {}
 
 
 class AIInsightResponse(BaseModel):

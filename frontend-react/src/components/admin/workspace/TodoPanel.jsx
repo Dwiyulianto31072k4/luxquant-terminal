@@ -90,7 +90,7 @@ const TagsInput = ({ tags, onChange }) => {
   return (
     <div
       className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg p-2"
-      style={{ background: "rgb(var(--scrim) / 0.3)", border: "1px solid rgb(var(--ink) / 0.1)" }}
+      style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgb(var(--ink) / 0.1)" }}
     >
       {tags.map((t) => (
         <span
@@ -211,7 +211,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
             maxLength={200}
             className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
             }}
           />
@@ -225,7 +225,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
             placeholder="Detail, context, acceptance criteria…"
             className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
             }}
           />
@@ -286,7 +286,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
             onChange={(e) => setDueDate(e.target.value)}
             className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
               colorScheme: "dark",
             }}

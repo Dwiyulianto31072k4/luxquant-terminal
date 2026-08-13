@@ -1,744 +1,655 @@
-// src/components/landing/v2/sections/Architecture.jsx
-// ════════════════════════════════════════════════════════════════
-// How it works — clear pipeline that builds trust.
-// LIVE DATA → SANITIZE → QUANT ENGINE → TERMINAL
-//
-// Design: Autopilot-style hierarchy (one story, open surfaces, less chrome).
-// Desktop keeps the animated gold wire network; mobile is a readable
-// vertical narrative with why-each-step-matters copy.
-// ════════════════════════════════════════════════════════════════
+import { createContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../../context/AuthContext";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
-import { useState, useLayoutEffect, useRef } from "react";
+const SOURCES = [
+  { label: "Price & volume", meta: "Multi-exchange OHLCV", icon: "pulse" },
+  { label: "Order book", meta: "Liquidity & imbalance", icon: "book" },
+  { label: "Derivatives", meta: "Funding · OI · liquidations", icon: "bars" },
+  { label: "On-chain flows", meta: "Whales & exchange netflows", icon: "chain" },
+  { label: "Volatility", meta: "ATR · ranges · compression", icon: "wave" },
+  { label: "Market breadth", meta: "Dominance & correlation", icon: "grid" },
+];
 
-/* ── solid gold glyphs ── */
-const ICONS = {
-  ohlc: (
-    <g fill="url(#lqGold)">
-      <rect x="5.2" y="3.5" width="1" height="17" rx="0.5" />
-      <rect x="3.4" y="7.5" width="4.6" height="8.5" rx="1.3" />
-      <rect x="15.8" y="2.8" width="1" height="18.4" rx="0.5" />
-      <rect x="14" y="6.5" width="4.6" height="9.5" rx="1.3" />
-    </g>
-  ),
-  depth: (
-    <g fill="url(#lqGold)">
-      <rect x="3" y="3.5" width="12" height="2.7" rx="1.35" />
-      <rect x="3" y="8.8" width="18" height="2.7" rx="1.35" />
-      <rect x="3" y="14.1" width="9" height="2.7" rx="1.35" />
-      <rect x="3" y="19.4" width="15" height="2.7" rx="1.35" />
-    </g>
-  ),
-  deriv: (
-    <g fill="url(#lqGold)">
-      <rect x="4" y="7.5" width="11" height="11" rx="2.6" opacity="0.4" />
-      <rect x="9" y="4.5" width="11" height="11" rx="2.6" />
-    </g>
-  ),
-  chain: (
-    <>
-      <g stroke="url(#lqGold)" strokeWidth="1.9" fill="none" strokeLinecap="round">
-        <path d="M8 6h8M7.6 8.4l3 7.2M16.4 8.4l-3 7.2" />
-      </g>
-      <g fill="url(#lqGold)">
-        <circle cx="6" cy="6" r="2.7" />
-        <circle cx="18" cy="6" r="2.7" />
-        <circle cx="12" cy="18" r="2.9" />
-      </g>
-    </>
-  ),
-  volatility: <path fill="url(#lqGold)" d="M3 21V15l4-5 3.2 4L14 6l4 7 3-3v11z" />,
-  dominance: (
-    <>
-      <circle cx="12" cy="12" r="8.2" fill="url(#lqGold)" opacity="0.3" />
-      <path fill="url(#lqGold)" d="M12 3.8a8.2 8.2 0 017.72 5.4L12 12z" />
-      <circle cx="12" cy="12" r="3.4" fill="rgb(var(--surface-raised))" />
-    </>
-  ),
-  sanitizer: (
-    <>
-      <path
-        fill="url(#lqGold)"
-        d="M3.4 4.4h17.2a1 1 0 01.78 1.63L14.6 13.7v4.8a1 1 0 01-1.45.9l-2.9-1.45a1 1 0 01-.55-.9V13.7L2.62 6.03a1 1 0 01.78-1.63z"
-        opacity="0.9"
-      />
-      <circle cx="18.6" cy="17.2" r="3.2" fill="url(#lqGold)" />
-      <path
-        d="M17.2 17.2l1 1 1.9-2.2"
-        stroke="rgb(var(--surface-raised))"
-        strokeWidth="1.5"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </>
-  ),
-  core: (
-    <>
-      <path fill="url(#lqGold)" opacity="0.22" d="M12 1.8l8.7 5v10.4L12 22.2 3.3 17.2V6.8z" />
-      <path fill="url(#lqGold)" d="M12 6l5.1 2.95v5.9L12 17.8l-5.1-2.95v-5.9z" />
-      <circle cx="12" cy="12" r="2.2" fill="rgb(var(--surface-raised))" />
-      <circle cx="12" cy="12" r="1" fill="url(#lqGold)" />
-    </>
-  ),
-  mSignals: (
-    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-    </g>
-  ),
-  mAi: (
-    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="6" />
-      <path d="M15.5 15.5L21 21" />
-      <path d="M11 8.5v5M8.5 11h5" strokeOpacity="0.55" />
-    </g>
-  ),
-  mFlow: (
-    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 8c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
-      <path d="M3 14c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
-    </g>
-  ),
-  mBell: (
-    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3a5 5 0 00-5 5c0 4.5-2 6-2 6h14s-2-1.5-2-6a5 5 0 00-5-5z" />
-      <path d="M10 19a2 2 0 004 0" />
-    </g>
-  ),
-  mAgent: (
-    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3.5" y="7" width="11.5" height="9.5" rx="2.5" />
-      <path d="M9.25 7V4.5" />
-      <circle cx="9.25" cy="3.4" r="0.85" />
-      <circle cx="7" cy="11.3" r="1" />
-      <circle cx="11.5" cy="11.3" r="1" />
-      <path d="M3.5 11H2.2M15 11h1.3" />
-      <circle cx="17.8" cy="17.3" r="2.1" />
-    </g>
-  ),
-  mPerf: (
-    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 3v18h18" />
-      <path d="M7 14l4-4 4 4 6-6" />
-      <path d="M17 8h4v4" />
-    </g>
-  ),
-};
+const OUTPUTS = [
+  { label: "Algo calls", meta: "Entry · TP · SL", icon: "signal" },
+  { label: "AI research", meta: "Regime intelligence", icon: "spark" },
+  { label: "Money flow", meta: "Capital rotation", icon: "flow" },
+  { label: "On-chain alerts", meta: "Whale moves", icon: "bell" },
+  { label: "Agent", meta: "Trade assistance", icon: "agent" },
+  { label: "Track record", meta: "Public & timestamped", icon: "check" },
+];
 
-function Icon({ name, className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      {ICONS[name]}
-    </svg>
-  );
+const DESKTOP_W = 1120;
+const DESKTOP_H = 690;
+const MOBILE_W = 380;
+const MOBILE_H = 800;
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const BuildContext = createContext(false);
+
+function useFitScale(ref, designWidth) {
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const fit = () => setScale(Math.min(1, el.clientWidth / designWidth));
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    window.addEventListener("resize", fit);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [designWidth, ref]);
+  return scale;
 }
 
-function IconChip({ name, size = "h-10 w-10", ic = "h-[18px] w-[18px]" }) {
-  return (
-    <span
-      className={`flex ${size} flex-shrink-0 items-center justify-center rounded-2xl bg-ink/[0.04]`}
-    >
-      <Icon name={name} className={ic} />
-    </span>
-  );
+function useBuildOnSight(ref) {
+  const [built, setBuilt] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    if (reduce || typeof IntersectionObserver === "undefined") {
+      setBuilt(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setBuilt(entry.isIntersecting),
+      { rootMargin: "-8% 0px -8% 0px", threshold: 0.08 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return built;
 }
 
-const INPUTS = [
-  { icon: "ohlc", title: "Price & Volume", desc: "OHLCV · all timeframes" },
-  { icon: "depth", title: "Order Book Depth", desc: "Bid / ask liquidity" },
-  { icon: "deriv", title: "Derivatives", desc: "Funding · OI · liquidations" },
-  { icon: "chain", title: "On-Chain Flows", desc: "Whale transfers & netflows" },
-  { icon: "volatility", title: "Volatility", desc: "ATR & Bollinger" },
-  { icon: "dominance", title: "Market Breadth", desc: "BTC dominance & correlation" },
-];
-
-const FEATURES = [
-  { icon: "mSignals", t: "Algo Calls", s: "Entry, TP & SL on every call" },
-  { icon: "mAi", t: "AI Research", s: "BTC Compass regime reads" },
-  { icon: "mFlow", t: "Money Flow", s: "Where capital is rotating" },
-  { icon: "mBell", t: "On-Chain Alerts", s: "Whale moves, in real time" },
-  { icon: "mAgent", t: "Agent", s: "Executes & manages your trades" },
-  { icon: "mPerf", t: "Verified Performance", s: "Full, timestamped track record" },
-];
-
-// Trust narrative — what each stage does (plain language, no jargon dump).
-const STAGES = [
-  {
-    n: "01",
-    id: "data",
-    icon: "ohlc",
-    title: "Live market data",
-    lead: "We never invent prices.",
-    body: "Multi-source feeds in real time — so every decision starts from what the market actually is.",
-  },
-  {
-    n: "02",
-    id: "sanitize",
-    icon: "sanitizer",
-    title: "Data sanitizer",
-    lead: "Noise never reaches the model.",
-    body: "Outliers, stale ticks, and exchange glitches filtered before scoring.",
-  },
-  {
-    n: "03",
-    id: "engine",
-    icon: "core",
-    title: "Predictive alpha",
-    lead: "Only setups that clear the rules ship.",
-    body: "Scored 24/7 against risk geometry — entry, targets, stop. No override after the fact.",
-  },
-  {
-    n: "04",
-    id: "terminal",
-    icon: "mSignals",
-    title: "Your terminal",
-    lead: "Act on it. Audit every call.",
-    body: "Every call lands with entry, TP & SL you can check — plus research and a public track record.",
-  },
-];
-
-const TRUST_PILLS = [
-  { k: "24/7", v: "engine, always on" },
-  { k: "Timestamped", v: "every call on record" },
-  { k: "Risk-defined", v: "entry · TP · SL" },
-  { k: "Auditable", v: "public track record" },
-];
-
-const hideOnError = (e) => {
-  e.currentTarget.style.display = "none";
-};
-
-const SURFACE = "rounded-[1.5rem] border border-ink/[0.06] bg-surface-raised/80";
-
-/* ════════════════════ DESKTOP ════════════════════ */
-
-function InputCard({ item }) {
+function Plane({ width, height, children }) {
+  const hostRef = useRef(null);
+  const scale = useFitScale(hostRef, width);
+  const built = useBuildOnSight(hostRef);
   return (
-    <div
-      className={`group relative flex items-center gap-3 px-3.5 py-3 transition-colors duration-200 hover:bg-ink/[0.02] ${SURFACE}`}
-    >
-      <IconChip name={item.icon} size="h-10 w-10" ic="h-[18px] w-[18px]" />
-      <div className="min-w-0">
-        <h4 className="text-[13px] font-semibold tracking-tight text-text-primary">{item.title}</h4>
-        <p className="mt-0.5 text-[12px] leading-tight text-text-muted">{item.desc}</p>
+    <div ref={hostRef} className="relative w-full" style={{ height: height * scale }}>
+      <div
+        className={`arch-plane absolute top-0 overflow-visible ${
+          built ? "is-built" : ""
+        }`}
+        style={{
+          width,
+          height,
+          left: "50%",
+          marginLeft: -width / 2,
+          transform: `scale(${scale})`,
+          transformOrigin: "top center",
+        }}
+      >
+        <div className="arch-grid absolute inset-0" aria-hidden="true" />
+        <div className="arch-aurora arch-aurora-a" aria-hidden="true" />
+        <div className="arch-aurora arch-aurora-b" aria-hidden="true" />
+        <BuildContext.Provider value={built}>{children}</BuildContext.Provider>
       </div>
-      <span
-        data-wire="in"
-        aria-hidden="true"
-        className="absolute -right-[5px] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-accent/80"
-      />
     </div>
   );
 }
 
-function StageNode({ icon, title, subtitle, blurb, dataWire, accent = false }) {
-  return (
-    <div
-      data-wire={dataWire}
-      className={`relative flex min-h-[240px] w-full flex-col items-center justify-center px-5 py-8 text-center ${SURFACE} ${
-        accent ? "ring-1 ring-accent/25" : ""
-      }`}
-    >
-      <IconChip name={icon} size="h-14 w-14" ic="h-7 w-7" />
-      <h3 className="mt-5 text-[15px] font-semibold tracking-tight text-text-primary">{title}</h3>
-      <p className="mt-1 text-[12px] text-text-muted">{subtitle}</p>
-      {blurb && (
-        <p className="mt-4 max-w-[200px] text-[12.5px] leading-relaxed text-text-primary/55">
-          {blurb}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function TerminalPanel() {
-  return (
-    <div className={`w-full p-6 ${SURFACE}`}>
-      <div className="flex items-center gap-2.5 pb-4">
-        <img src="/logo.png" alt="" className="h-6 w-6 rounded-md" onError={hideOnError} />
-        <div>
-          <p className="text-[14px] font-semibold tracking-tight text-text-primary">
-            LuxQuant Terminal
-          </p>
-          <p className="text-[12px] text-text-muted">Where the call becomes action</p>
-        </div>
-      </div>
-      <div className="divide-y divide-ink/[0.05]">
-        {FEATURES.map((f) => (
-          <div key={f.t} data-wire="out" className="flex items-center gap-3 py-3">
-            <IconChip name={f.icon} size="h-9 w-9" ic="h-[16px] w-[16px]" />
-            <div className="min-w-0">
-              <p className="text-[13.5px] font-medium text-text-primary">{f.t}</p>
-              <p className="truncate text-[12px] text-text-muted">{f.s}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="mt-4 border-t border-ink/[0.06] pt-4 text-[12px] text-text-muted">
-        Plus Markets, Portfolio, Journal, News &amp; Calendar
-      </p>
-    </div>
-  );
-}
-
-/* ════════════════════ ANIMATED GOLD LAYER ════════════════════ */
-
-function EdgeArt({ side }) {
-  const gid = `archEdgeGlow-${side}`;
-  const sid = `archEdgeStream-${side}`;
-  const TRACES = [
-    { d: "M-10 80H112l23 22h115l38 40h118", dim: true },
-    { d: "M-20 110h92l42 43h82l42 44h144", delay: 0.0 },
-    { d: "M-20 160h74l24 25h96l35 36h155", dim: true },
-    { d: "M-10 246h115l32 33h58l42 42h138", delay: 0.9 },
-    { d: "M-18 325h69l42 43h90l24 25h161", dim: true },
-    { d: "M-13 518h86l33-34h78l39-40h151", delay: 1.8 },
-    { d: "M-14 604h111l28-27h62l33-32h148", dim: true },
-    { d: "M-15 690h96l38-38h92l25-26h131", delay: 2.6 },
-  ];
-  return (
-    <div
-      aria-hidden="true"
-      className={`pointer-events-none absolute top-[20%] bottom-[10%] z-0 hidden w-[min(13vw,230px)] opacity-[0.28] [mask-image:linear-gradient(to_right,#000_42%,transparent)] lg:block ${
-        side === "left" ? "-left-2" : "-right-2 -scale-x-100"
-      }`}
-    >
-      <svg viewBox="0 0 380 800" preserveAspectRatio="none" className="h-full w-full">
-        <defs>
-          <filter id={gid} x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="3" result="b" />
-            <feMerge>
-              <feMergeNode in="b" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <linearGradient id={sid} x1="0" x2="1">
-            <stop offset="0" stopColor="#f7cf76" stopOpacity="0" />
-            <stop offset="0.5" stopColor="#ffe9b0" stopOpacity="1" />
-            <stop offset="1" stopColor="#e6a43d" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <g fill="none" strokeWidth="1.05">
-          {TRACES.map((t, i) => (
-            <path
-              key={`b${i}`}
-              stroke={t.dim ? "rgba(232,181,72,0.16)" : "rgba(232,181,72,0.30)"}
-              d={t.d}
-            />
-          ))}
-        </g>
-        <g fill="none" strokeWidth="2.4" strokeLinecap="round" filter={`url(#${gid})`}>
-          {TRACES.filter((t) => !t.dim).map((t, i) => (
-            <path
-              key={`s${i}`}
-              stroke={`url(#${sid})`}
-              d={t.d}
-              strokeDasharray="14 230"
-              style={{
-                animation: "archEdgeFlow 3.4s linear infinite",
-                animationDelay: `${t.delay}s`,
-              }}
-            />
-          ))}
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function PipelineWires({ geo }) {
-  if (!geo) return null;
-  const { W, H, ins, outs, san, eng } = geo;
-  const n = ins.length || 1;
-  const entryY = (i) => san.top + (san.bot - san.top) * (n === 1 ? 0.5 : i / (n - 1));
-  const inPath = (p, i) => {
-    const ex = san.l.x;
-    const ey = entryY(i);
-    const c1 = p.x + (ex - p.x) * 0.55;
-    const c2 = ex - (ex - p.x) * 0.45;
-    return `M${p.x} ${p.y} C ${c1} ${p.y} ${c2} ${ey} ${ex} ${ey}`;
+function Glyph({ type }) {
+  const common = {
+    className: `arch-glyph arch-glyph-${type}`,
+    width: 17,
+    height: 17,
+    viewBox: "0 0 20 20",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.55,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
   };
-  const outPath = (p) => {
-    const sx = eng.r.x;
-    const sy = eng.r.y;
-    const c1 = sx + (p.x - sx) * 0.45;
-    const c2 = p.x - (p.x - sx) * 0.55;
-    return `M${sx} ${sy} C ${c1} ${sy} ${c2} ${p.y} ${p.x} ${p.y}`;
-  };
-  const beam = `M${san.r.x} ${san.r.y} L ${eng.l.x} ${eng.l.y}`;
-  const Wire = ({
-    d,
-    w = 1.4,
-    sw = 2.8,
-    dash = "9 150",
-    dur = 2.8,
-    delay = 0,
-    base = "rgba(239,187,84,0.32)",
-  }) => (
-    <g>
-      <path d={d} fill="none" stroke={base} strokeWidth={w} strokeLinecap="round" />
-      <path
-        d={d}
-        fill="none"
-        stroke="url(#archStream)"
-        strokeWidth={sw}
-        strokeLinecap="round"
-        strokeDasharray={dash}
-        filter="url(#archGlow)"
-        style={{ animation: `archDash ${dur}s linear infinite`, animationDelay: `${delay}s` }}
-      />
-    </g>
+  switch (type) {
+    case "pulse":
+      return <svg {...common}>
+        <path className="arch-glyph-main" d="M2 9.5h2.5L6.4 4l3 9.2 2.3-6.1 1.8 2.4H18" />
+        <path className="arch-glyph-bars" d="M3.5 17v-2M6.8 17v-3.2M10 17v-2M13.2 17v-4M16.5 17v-2.7" />
+      </svg>;
+    case "book":
+      return <svg {...common}>
+        <path className="arch-glyph-book-left" d="M3 4h5.5c1 0 1.5.5 1.5 1.4V17c0-1-.7-1.6-1.7-1.6H3z" />
+        <path className="arch-glyph-book-right" d="M17 4h-5.5c-1 0-1.5.5-1.5 1.4V17c0-1 .7-1.6 1.7-1.6H17z" />
+      </svg>;
+    case "bars":
+      return <svg {...common}>
+        <path className="arch-bar arch-bar-1" d="M4 15V9" />
+        <path className="arch-bar arch-bar-2" d="M8 15V5" />
+        <path className="arch-bar arch-bar-3" d="M12 15v-3" />
+        <path className="arch-bar arch-bar-4" d="M16 15V7" />
+      </svg>;
+    case "chain":
+      return <svg {...common}>
+        <path d="M7.7 12.3 6 14a3 3 0 0 1-4.2-4.2l2.3-2.3A3 3 0 0 1 8.3 7M12.3 7.7 14 6a3 3 0 1 1 4.2 4.2l-2.3 2.3a3 3 0 0 1-4.2.5M6.8 10h6.4" />
+        <circle className="arch-glyph-packet" cx="7" cy="10" r="1.15" fill="currentColor" stroke="none" />
+      </svg>;
+    case "wave":
+      return <svg {...common}><path d="M2 11c2.2 0 2.2-5 4.4-5s2.2 8 4.4 8 2.2-6 4.4-6c1.1 0 1.7 1 2.8 2" /></svg>;
+    case "grid":
+      return <svg {...common}><rect x="3" y="3" width="5" height="5" rx="1" /><rect x="12" y="3" width="5" height="5" rx="1" /><rect x="3" y="12" width="5" height="5" rx="1" /><rect x="12" y="12" width="5" height="5" rx="1" /></svg>;
+    case "signal":
+      return <svg {...common}><path d="M3 15V9M7 15V6M11 15v-4M15 15V3M2 17h16" /></svg>;
+    case "spark":
+      return <svg {...common}><path d="m10 2 1.3 4.2L16 8l-4.7 1.8L10 14l-1.3-4.2L4 8l4.7-1.8zM16 13l.6 1.8 1.9.7-1.9.7L16 18l-.6-1.8-1.9-.7 1.9-.7z" /></svg>;
+    case "flow":
+      return <svg {...common}><path d="M3 5h8M8 2l3 3-3 3M17 15H9M12 12l-3 3 3 3" /></svg>;
+    case "bell":
+      return <svg {...common}><path d="M5 14h10l-1.3-2V8a3.7 3.7 0 0 0-7.4 0v4zM8.5 16.5h3" /></svg>;
+    case "agent":
+      return <svg {...common}><rect x="3" y="5" width="14" height="11" rx="3" /><path d="M10 2v3M7 10h.01M13 10h.01M7 13h6" /></svg>;
+    default:
+      return <svg {...common}><path d="m4 10 4 4 8-8" /><circle cx="10" cy="10" r="8" /></svg>;
+  }
+}
+
+function GlassNode({ item, x, y, w, h, delay = 0, compact = false, output = false }) {
+  return (
+    <div
+      className={`arch-node arch-node-${item.icon} absolute flex items-center ${compact ? "gap-2 px-3" : "gap-3 px-4"} ${
+        output ? "arch-output" : ""
+      }`}
+      style={{ left: x, top: y, width: w, height: h, "--delay": `${delay}ms` }}
+    >
+      <span className="arch-node-icon"><Glyph type={item.icon} /></span>
+      <span className="min-w-0">
+        <span className={`block truncate font-semibold text-text-primary ${compact ? "text-[11px]" : "text-[12px]"}`}>
+          {item.label}
+        </span>
+        {!compact && <span className="mt-0.5 block truncate text-[9.5px] text-text-muted">{item.meta}</span>}
+      </span>
+      <span className="arch-health" aria-hidden="true" />
+    </div>
   );
+}
+
+function SystemNode({ x, y, w, h, delay, eyebrow, title, note, tone = "glass", children }) {
+  return (
+    <div
+      className={`arch-system-node arch-system-${tone} absolute flex flex-col justify-center`}
+      style={{ left: x, top: y, width: w, height: h, "--delay": `${delay}ms` }}
+    >
+      {children}
+      {eyebrow && <span className="arch-eyebrow">{eyebrow}</span>}
+      <span className="arch-system-title">{title}</span>
+      {note && <span className="arch-system-note">{note}</span>}
+    </div>
+  );
+}
+
+function FlowRoutes({ routes, width, height, prefix }) {
   return (
     <svg
-      className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-0 z-[2] h-full w-full overflow-visible"
+      viewBox={`0 0 ${width} ${height}`}
+      fill="none"
       aria-hidden="true"
     >
-      <defs>
-        <linearGradient id="archStream" x1="0" x2="1">
-          <stop offset="0" stopColor="#f7cf76" stopOpacity="0" />
-          <stop offset="0.5" stopColor="#ffe4a0" stopOpacity="1" />
-          <stop offset="1" stopColor="#e6a43d" stopOpacity="0" />
-        </linearGradient>
-        <filter id="archGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2.4" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      {ins.map((p, i) => (
-        <Wire
-          key={`in${i}`}
-          d={inPath(p, i)}
-          sw={3}
-          dash="10 150"
-          dur={2.6}
-          delay={i * 0.18}
-          base="rgba(239,187,84,0.36)"
-        />
-      ))}
-      <Wire d={beam} w={1.6} sw={3.2} dash="10 110" dur={2.4} base="rgba(239,187,84,0.42)" />
-      {outs.map((p, i) => (
-        <Wire key={`out${i}`} d={outPath(p)} dur={2.8} delay={i * 0.16} />
+      {routes.map((route, index) => (
+        <g
+          key={`${prefix}-${index}`}
+          style={{
+            "--route-start": `${route.start || 0}s`,
+            "--route-duration": `${route.duration || 1.2}s`,
+            "--route-arrive": `${(route.start || 0) + (route.duration || 1.2)}s`,
+            "--flow-start": `${route.flowStart || route.start || 0}s`,
+            "--flow-duration": `${route.ambientDuration || (route.major ? 4.4 : 5.8)}s`,
+            "--ambient-start": `${route.ambientAt || 8.2 + (route.delay || index * 0.11)}s`,
+          }}
+        >
+          <path
+            className="arch-route"
+            d={route.d}
+            pathLength="1"
+          />
+          <path className="arch-route-sequence-aura" d={route.d} pathLength="1" />
+          <path className="arch-route-sequence-tail" d={route.d} pathLength="1" />
+          <path className="arch-route-sequence-tip" d={route.d} pathLength="1" />
+          <path className="arch-route-flow-glow" d={route.d} pathLength="1" />
+          <path className="arch-route-flow-tail" d={route.d} pathLength="1" />
+          <path className="arch-route-flow-core" d={route.d} pathLength="1" />
+        </g>
       ))}
     </svg>
   );
 }
 
-function useArchGeometry(wrapRef) {
-  const [geo, setGeo] = useState(null);
-  useLayoutEffect(() => {
-    const wrap = wrapRef.current;
-    if (!wrap) return undefined;
-    const measure = () => {
-      const cr = wrap.getBoundingClientRect();
-      if (!cr.width) return;
-      const pt = (el, fx, fy) => {
-        const r = el.getBoundingClientRect();
-        return { x: r.left - cr.left + r.width * fx, y: r.top - cr.top + r.height * fy };
-      };
-      const inEls = [...wrap.querySelectorAll('[data-wire="in"]')];
-      const outEls = [...wrap.querySelectorAll('[data-wire="out"]')];
-      const sanEl = wrap.querySelector('[data-wire="sanitizer"]');
-      const engEl = wrap.querySelector('[data-wire="engine"]');
-      if (!sanEl || !engEl || !inEls.length || !outEls.length) return;
-      const sr = sanEl.getBoundingClientRect();
-      setGeo({
-        W: cr.width,
-        H: cr.height,
-        ins: inEls.map((el) => pt(el, 0.5, 0.5)),
-        outs: outEls.map((el) => pt(el, 0, 0.5)),
-        san: {
-          l: pt(sanEl, 0, 0.5),
-          r: pt(sanEl, 1, 0.5),
-          top: sr.top - cr.top + sr.height * 0.16,
-          bot: sr.top - cr.top + sr.height * 0.84,
-        },
-        eng: { l: pt(engEl, 0, 0.5), r: pt(engEl, 1, 0.5) },
-      });
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(wrap);
-    window.addEventListener("resize", measure);
-    const t = setTimeout(measure, 350);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", measure);
-      clearTimeout(t);
-    };
-  }, [wrapRef]);
-  return geo;
-}
+const INPUT_X = [75, 238, 401, 564, 727, 890];
+const OUTPUT_X = INPUT_X;
+const INPUT_CENTERS = INPUT_X.map((x) => x + 77.5);
+const DESKTOP_ROUTES = [
+  /* One continuous route per source, all terminating at the exact same
+     centre junction.  This mirrors the mobile topology and avoids the tiny
+     branch-to-bus gap that a separately drawn shared rail introduced. */
+  ...INPUT_CENTERS.map((center, i) => ({
+    d: center < 560
+      ? `M${center} 122 V142 Q${center} 156 ${center + 14} 156 H546 Q560 156 560 170 V184`
+      : `M${center} 122 V142 Q${center} 156 ${center - 14} 156 H574 Q560 156 560 170 V184`,
+    start: 0.58 + i * 0.08,
+    duration: 1.6 - i * 0.08,
+    ambientDuration: 3.15 + i * 0.14,
+    delay: i * 0.46,
+  })),
+  { d: "M560 242 V264 Q560 276 548 276 H544", major: true, start: 2.48, duration: 0.68 },
+  /* Side cards connect at their true geometric boundary and vertical centre.
+     The previous paths stopped 2px short, then turned down, which created a
+     visible hanging seam on both sides at desktop scale. */
+  { d: "M420 347 H340", start: 3.36, duration: 0.66 },
+  { d: "M700 347 H780", start: 3.42, duration: 0.66 },
+  { d: "M560 418 V444 Q560 456 548 456 H544", major: true, start: 4.22, duration: 0.7 },
+  /* Delivery fans out from the same centre line.  Each destination owns one
+     uninterrupted path, so there is no bus-to-branch seam at either edge. */
+  ...INPUT_CENTERS.map((center, i) => ({
+    d: center < 560
+      ? `M560 514 V598 Q560 614 544 614 H${center + 14} Q${center} 614 ${center} 628 V632`
+      : `M560 514 V598 Q560 614 576 614 H${center - 14} Q${center} 614 ${center} 628 V632`,
+    start: 5.06 + i * 0.04,
+    duration: 1.28 - i * 0.04,
+    ambientDuration: 3.7 + i * 0.15,
+    delay: 1.1 + i * 0.43,
+  })),
+];
 
-/* ── mobile accordion: clean when closed, visual + detail when opened ── */
-function StepVisual({ stageId }) {
-  if (stageId === "data") {
-    return (
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {INPUTS.map((inp) => (
-          <span
-            key={inp.title}
-            className="inline-flex items-center gap-1.5 rounded-full bg-ink/[0.04] px-2.5 py-1 text-[11.5px] text-text-primary/80"
-          >
-            <Icon name={inp.icon} className="h-3.5 w-3.5" />
-            {inp.title}
-          </span>
-        ))}
-      </div>
-    );
-  }
-  if (stageId === "sanitize") {
-    return (
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {["Outliers", "Stale ticks", "Exchange glitches"].map((t) => (
-          <span
-            key={t}
-            className="rounded-full border border-ink/[0.08] px-2.5 py-1 text-[11.5px] text-text-muted"
-          >
-            {t} · filtered
-          </span>
-        ))}
-      </div>
-    );
-  }
-  if (stageId === "engine") {
-    return (
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {[
-          { k: "Entry", v: "Defined" },
-          { k: "TP", v: "1–4" },
-          { k: "SL", v: "Hard" },
-        ].map((x) => (
-          <div
-            key={x.k}
-            className="rounded-xl bg-ink/[0.04] px-2 py-2.5 text-center"
-          >
-            <p className="text-[10px] uppercase tracking-wide text-text-muted">{x.k}</p>
-            <p className="mt-0.5 text-[13px] font-semibold text-accent">{x.v}</p>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (stageId === "terminal") {
-    return (
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {FEATURES.slice(0, 4).map((f) => (
-          <span
-            key={f.t}
-            className="inline-flex items-center gap-1.5 rounded-full bg-ink/[0.04] px-2.5 py-1 text-[11.5px] text-text-primary/80"
-          >
-            <Icon name={f.icon} className="h-3.5 w-3.5" />
-            {f.t}
-          </span>
-        ))}
-        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11.5px] text-text-muted">
-          + more
-        </span>
-      </div>
-    );
-  }
-  return null;
-}
-
-function MobileStory() {
-  // First open by default so the section feels alive without clutter.
-  const [openId, setOpenId] = useState("data");
-
+function DesktopDiagram() {
   return (
-    <div className="mx-auto max-w-md space-y-2 lg:hidden">
-      <p className="mb-1 text-center text-[12px] text-text-muted">Tap a step to expand</p>
-      {STAGES.map((s) => {
-        const open = openId === s.id;
-        return (
-          <div
-            key={s.id}
-            className={`overflow-hidden rounded-2xl border transition-colors ${
-              open
-                ? "border-accent/25 bg-surface-raised/90"
-                : "border-ink/[0.06] bg-transparent"
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => setOpenId(open ? null : s.id)}
-              aria-expanded={open}
-              className="flex w-full items-start gap-3 px-3.5 py-3.5 text-left"
-            >
-              <span
-                className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold tabular-nums ${
-                  open ? "bg-accent/15 text-accent" : "bg-ink/[0.05] text-accent/90"
-                }`}
-              >
-                {s.n}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
-                    {s.title}
-                  </h3>
-                  <svg
-                    className={`h-4 w-4 flex-shrink-0 text-text-muted transition-transform duration-200 ${
-                      open ? "rotate-180" : ""
-                    }`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-                  </svg>
-                </div>
-                <p className="mt-0.5 text-[13px] leading-snug text-text-muted">{s.lead}</p>
-              </div>
-            </button>
+    <Plane width={DESKTOP_W} height={DESKTOP_H}>
+      <FlowRoutes routes={DESKTOP_ROUTES} width={DESKTOP_W} height={DESKTOP_H} prefix="desktop" />
 
-            {open && (
-              <div className="border-t border-ink/[0.06] px-3.5 pb-4 pt-3">
-                <div className="flex items-center gap-3">
-                  <IconChip name={s.icon} size="h-11 w-11" ic="h-5 w-5" />
-                  <p className="text-[13.5px] leading-relaxed text-text-primary/75">{s.body}</p>
-                </div>
-                <StepVisual stageId={s.id} />
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+      <div className="arch-zone arch-stage absolute left-[50px] top-[42px] h-[108px] w-[1020px]" style={{ "--delay": "80ms" }}>
+        <span className="arch-zone-label">01 · MARKET INPUTS</span>
+      </div>
+      {SOURCES.map((item, index) => (
+        <GlassNode key={item.label} item={item} x={INPUT_X[index]} y={72} w={155} h={50} delay={220 + index * 95} />
+      ))}
+
+      <SystemNode
+        x={445} y={184} w={230} h={58} delay={2280}
+        eyebrow="02 · NORMALIZATION LAYER" title="Market data sanitizer" note="Freshness · quality · consistency"
+      />
+
+      <SystemNode
+        x={105} y={309} w={235} h={76} delay={4050}
+        eyebrow="POLICY ENGINE" title="Risk geometry" note="Entry · profit targets · exit level"
+      />
+      <SystemNode
+        x={780} y={309} w={235} h={76} delay={4130}
+        eyebrow="EVIDENCE LAYER" title="Public track record" note="Timestamped · preserved · auditable"
+      />
+
+      <SystemNode x={420} y={276} w={280} h={142} delay={3200} tone="core" title="Predictive intelligence core">
+        <div className="arch-core-top">
+          <span className="arch-core-mark"><img src="/logo.png" alt="LuxQuant" /></span>
+          <span className="arch-core-status"><i /> ALWAYS ON</span>
+        </div>
+        <span className="arch-core-kicker">03 · DECISION ENGINE</span>
+      </SystemNode>
+
+      <SystemNode
+        x={455} y={456} w={210} h={58} delay={4960} tone="terminal"
+        eyebrow="DELIVERY LAYER" title="Your LuxQuant terminal" note="One decision surface"
+      />
+
+      <div className="arch-zone arch-stage absolute left-[50px] top-[566px] h-[124px] w-[1020px]" style={{ "--delay": "6380ms" }}>
+        <span className="arch-zone-label">04 · ACTIONABLE OUTPUTS</span>
+      </div>
+      {OUTPUTS.map((item, index) => (
+        <GlassNode key={item.label} item={item} x={OUTPUT_X[index]} y={632} w={155} h={46} delay={6700 + index * 70} output />
+      ))}
+    </Plane>
+  );
+}
+
+const MOBILE_ROUTES = [
+  { d: "M104 102 H176 Q190 102 190 116 V198 Q190 210 202 210", start: 0.55, duration: 0.82 },
+  { d: "M276 102 H204 Q190 102 190 116 V198 Q190 210 202 210", start: 0.62, duration: 0.82 },
+  { d: "M104 141 H176 Q190 141 190 155 V198 Q190 210 202 210", start: 0.69, duration: 0.76 },
+  { d: "M276 141 H204 Q190 141 190 155 V198 Q190 210 202 210", start: 0.76, duration: 0.76 },
+  { d: "M104 180 H176 Q190 180 190 194 V198 Q190 210 202 210", start: 0.83, duration: 0.7 },
+  { d: "M276 180 H204 Q190 180 190 194 V198 Q190 210 202 210", start: 0.9, duration: 0.7 },
+  { d: "M190 264 V288 Q190 300 178 300", major: true, start: 2.3, duration: 0.62 },
+  { d: "M190 432 V444 Q190 456 178 456 H99 Q87 456 87 468", start: 3.35, duration: 0.72 },
+  { d: "M190 432 V444 Q190 456 202 456 H281 Q293 456 293 468", start: 3.42, duration: 0.72 },
+  { d: "M190 512 V540 Q190 552 202 552", major: true, start: 4.15, duration: 0.68 },
+  { d: "M190 606 V620 Q190 632 202 632", major: true, start: 5.05, duration: 0.68 },
+  { d: "M190 632 V650 Q190 660 178 660 H104 V668", start: 5.82, duration: 0.72 },
+  { d: "M190 632 V650 Q190 660 202 660 H276 V668", start: 5.9, duration: 0.72 },
+  { d: "M190 632 V690 Q190 700 178 700 H104 V708", start: 5.98, duration: 0.78 },
+  { d: "M190 632 V690 Q190 700 202 700 H276 V708", start: 6.06, duration: 0.78 },
+  { d: "M190 632 V730 Q190 740 178 740 H104 V748", start: 6.14, duration: 0.84 },
+  { d: "M190 632 V730 Q190 740 202 740 H276 V748", start: 6.22, duration: 0.84 },
+];
+
+function MobileDiagram() {
+  return (
+    <Plane width={MOBILE_W} height={MOBILE_H}>
+      <FlowRoutes routes={MOBILE_ROUTES} width={MOBILE_W} height={MOBILE_H} prefix="mobile" />
+
+      <div className="arch-zone arch-stage absolute left-[10px] top-[42px] h-[148px] w-[360px]" style={{ "--delay": "80ms" }}>
+        <span className="arch-zone-label">01 · MARKET INPUTS</span>
+      </div>
+      {SOURCES.map((item, index) => (
+        <GlassNode
+          key={item.label} item={item} compact
+          x={index % 2 === 0 ? 25 : 197}
+          y={70 + Math.floor(index / 2) * 39}
+          w={158} h={32} delay={180 + index * 95}
+        />
+      ))}
+
+      <SystemNode
+        x={85} y={210} w={210} h={54} delay={1650}
+        eyebrow="02 · NORMALIZATION" title="Market data sanitizer" note="Fresh · consistent · clean"
+      />
+
+      <SystemNode x={60} y={300} w={260} h={132} delay={2990} tone="core" title="Predictive intelligence">
+        <div className="arch-core-top">
+          <span className="arch-core-mark"><img src="/logo.png" alt="LuxQuant" /></span>
+          <span className="arch-core-status"><i /> ALWAYS ON</span>
+        </div>
+        <span className="arch-core-kicker">03 · DECISION ENGINE</span>
+      </SystemNode>
+
+      <SystemNode x={14} y={458} w={170} h={54} delay={4100} eyebrow="RISK POLICY" title="Entry · TP · exit" />
+      <SystemNode x={196} y={458} w={170} h={54} delay={4180} eyebrow="EVIDENCE" title="Public record" />
+
+      <SystemNode
+        x={90} y={552} w={200} h={54} delay={4890} tone="terminal"
+        eyebrow="DELIVERY" title="Your LuxQuant terminal" note="One decision surface"
+      />
+
+      <div className="arch-zone arch-stage absolute left-[10px] top-[632px] h-[158px] w-[360px]" style={{ "--delay": "5760ms" }}>
+        <span className="arch-zone-label">04 · ACTIONABLE OUTPUTS</span>
+      </div>
+      {OUTPUTS.map((item, index) => (
+        <GlassNode
+          key={item.label} item={item} compact output
+          x={index % 2 === 0 ? 25 : 197}
+          y={668 + Math.floor(index / 2) * 40}
+          w={158} h={34} delay={6560 + index * 105}
+        />
+      ))}
+    </Plane>
   );
 }
 
 export default function Architecture() {
-  const pipeRef = useRef(null);
-  const geo = useArchGeometry(pipeRef);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  const goVerify = () => {
+    trackFunnel("cta_click", { source: "how_it_works", path: "/" });
+    if (isAuthenticated) {
+      navigate("/performance");
+      return;
+    }
+    navigate(loginUrl("/performance", { source: "how_it_works" }));
+  };
 
   return (
     <section
       id="how-it-works"
-      className="relative z-10 mx-auto w-full max-w-7xl px-4 py-16 sm:py-20 lg:px-8 lg:py-32"
+      data-lq-self=""
+      className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-28 overflow-hidden px-4 py-16 lg:px-8 lg:py-24"
     >
-      <svg width="0" height="0" className="absolute" aria-hidden="true">
-        <defs>
-          <linearGradient id="lqGold" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#f0dca0" />
-            <stop offset="0.5" stopColor="#d9b968" />
-            <stop offset="1" stopColor="#b8893c" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[460px] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-[100%] bg-accent/[0.03] blur-[120px]"
-      />
-
-      <EdgeArt side="left" />
-      <EdgeArt side="right" />
-
-      {/* Hero — compact on mobile, full on desktop */}
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
-          How it works
-        </p>
-        <h2 className="mt-3 text-[1.85rem] font-semibold leading-[1.12] tracking-tight text-text-primary sm:mt-4 sm:text-5xl lg:text-[3.4rem]">
-          From live data to a call{" "}
-          <span className="text-accent">you can audit.</span>
-        </h2>
-        {/* Short line on mobile; full copy from sm up */}
-        <p className="mx-auto mt-3 max-w-xl text-[14px] leading-snug text-text-muted sm:mt-5 sm:text-lg sm:leading-relaxed">
-          <span className="sm:hidden">Data in → risk-defined call out. Every level timestamped.</span>
-          <span className="hidden sm:inline">
-            Four steps. No black box. Market data in, risk-defined calls out — every level
-            timestamped so you can verify what happened.
+      <div className="mx-auto max-w-4xl text-center">
+        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">How LuxQuant thinks</p>
+        <h2 className="mt-7 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
+          From market noise to a decision{" "}
+          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
+            you can verify.
           </span>
+        </h2>
+        <p className="mx-auto mt-5 max-w-2xl text-[14px] font-medium leading-[1.7] text-text-muted sm:text-[17px] lg:text-[19px]">
+          A live intelligence network turns fragmented market data into risk-defined calls—then preserves every published decision on the public record.
         </p>
       </div>
 
-      {/* Trust pills — desktop only (too noisy on phone) */}
-      <div className="mx-auto mt-12 hidden max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 lg:flex">
-        {TRUST_PILLS.map((p) => (
-          <div key={p.k} className="flex items-baseline gap-1.5 text-[13px]">
-            <span className="font-semibold text-text-primary">{p.k}</span>
-            <span className="text-text-muted">{p.v}</span>
-          </div>
-        ))}
+      <div className="mx-auto mt-11 hidden w-full max-w-[1120px] lg:block">
+        <DesktopDiagram />
+      </div>
+      <div className="mx-auto mt-9 w-full max-w-[430px] lg:hidden">
+        <MobileDiagram />
       </div>
 
-      {/* DESKTOP pipeline */}
-      <div className="relative mx-auto mt-16 hidden w-full max-w-[1320px] lg:mt-20 lg:block">
-        <div
-          ref={pipeRef}
-          className="relative grid items-center gap-5 xl:gap-7"
-          style={{
-            gridTemplateColumns:
-              "minmax(260px,300px) minmax(160px,190px) minmax(200px,240px) minmax(320px,1fr)",
-          }}
-        >
-          <PipelineWires geo={geo} />
-          <div className="relative z-10 flex flex-col gap-2.5">
-            <p className="mb-1 ml-1 text-[12px] font-medium text-text-muted">Live market data</p>
-            {INPUTS.map((i) => (
-              <InputCard key={i.title} item={i} />
-            ))}
-          </div>
-          <div className="relative z-10">
-            <StageNode
-              icon="sanitizer"
-              title="Data sanitizer"
-              subtitle="Clean inputs only"
-              blurb="Filters noise before the model scores a setup."
-              dataWire="sanitizer"
-            />
-          </div>
-          <div className="relative z-10">
-            <StageNode
-              icon="core"
-              title="Predictive alpha"
-              subtitle="Quant engine · 24/7"
-              blurb="Only risk-cleared setups become public calls."
-              dataWire="engine"
-              accent
-            />
-          </div>
-          <div className="relative z-10">
-            <TerminalPanel />
-          </div>
-        </div>
+      <p className="mx-auto mt-7 max-w-3xl text-center text-[13px] font-medium leading-[1.7] text-text-muted sm:text-[14.5px] lg:mt-8">
+        Observe the whole market, filter stale data, and define entry, targets, and exit before publication—then deliver the call and preserve its proof.
+      </p>
 
-        {/* Desktop caption under pipeline — reinforces understanding */}
-        <div className="mt-12 grid grid-cols-4 gap-6 border-t border-ink/[0.06] pt-10">
-          {STAGES.map((s) => (
-            <div key={s.id}>
-              <p className="text-[11px] font-semibold tabular-nums tracking-wide text-accent">
-                {s.n}
-              </p>
-              <p className="mt-2 text-[14px] font-semibold tracking-tight text-text-primary">
-                {s.title}
-              </p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">{s.lead}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* MOBILE — tight 4-step list only */}
-      <div className="mt-10 sm:mt-12 lg:hidden">
-        <MobileStory />
+      <div className="mt-5 flex flex-col items-center gap-2.5 lg:mt-6">
+        <PrimaryButton size="md" width="fullMobile" onClick={goVerify} className="group">
+          {isAuthenticated ? "See the full record" : "Verify the track record"}
+          <BtnArrow />
+        </PrimaryButton>
+        <p className="text-center text-[10.5px] leading-relaxed text-text-muted">
+          Every call preserved. No selective screenshots.
+        </p>
       </div>
 
       <style>{`
- @keyframes archDash { to { stroke-dashoffset: -160; } }
- @keyframes archEdgeFlow { from { stroke-dashoffset: 244; } to { stroke-dashoffset: -244; } }
- @media (prefers-reduced-motion: reduce) {
- [style*="archDash"], [style*="archEdgeFlow"] { animation: none !important; }
- }
- `}</style>
+        .arch-plane {
+          isolation: isolate;
+          background: transparent;
+          --arch-zone: #161719;
+          --arch-zone-border: #302f2c;
+          --arch-node: #242527;
+          --arch-node-hover: #2b2925;
+          --arch-node-border: #3a3936;
+          --arch-system: #292a2c;
+          --arch-system-border: #464641;
+          --arch-core: #342d23;
+          --arch-core-border: #806526;
+          --arch-gold: #d7a916;
+          --arch-gold-hi: #f0c84a;
+          --arch-route: #4b4f54;
+        }
+        .arch-grid {
+          opacity: .14;
+          background-image: radial-gradient(circle, rgba(189, 153, 55, .17) .65px, transparent .75px);
+          background-size: 18px 18px;
+          mask-image: radial-gradient(ellipse 78% 76% at 50% 48%, #000 24%, transparent 84%);
+          -webkit-mask-image: radial-gradient(ellipse 78% 76% at 50% 48%, #000 24%, transparent 84%);
+        }
+        .arch-aurora { display: none; }
+        .arch-zone {
+          z-index: 1;
+          border: 1px solid var(--arch-zone-border);
+          border-radius: 18px;
+          background: var(--arch-zone);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+        }
+        .arch-stage {
+          opacity: 0;
+          transform: translateY(8px) scale(.985);
+          transition: opacity 520ms ${EASE} var(--delay), transform 520ms ${EASE} var(--delay);
+        }
+        .is-built .arch-stage { opacity: 1; transform: none; }
+        .arch-zone-label {
+          position: absolute; left: 16px; top: 10px;
+          color: #e3b63b; font-size: 8px; font-weight: 720; letter-spacing: .18em;
+        }
+        .arch-node, .arch-system-node {
+          z-index: 5;
+          border: 1px solid var(--arch-node-border);
+          border-radius: 11px;
+          background: var(--arch-node);
+          opacity: 0; transform: translateY(9px) scale(.975);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+          transition: opacity 580ms ${EASE} var(--delay), transform 580ms ${EASE} var(--delay), border-color 220ms ease, background 220ms ease;
+        }
+        .is-built .arch-node, .is-built .arch-system-node { opacity: 1; transform: none; }
+        .arch-node:hover { border-color: #67572d; background: var(--arch-node-hover); }
+        .arch-node-icon {
+          position: relative; display: grid; flex: 0 0 auto; place-items: center; width: 27px; height: 27px; overflow: hidden; border-radius: 7px;
+          color: #171304; background: var(--arch-gold); border: 1px solid var(--arch-gold-hi);
+        }
+        .arch-glyph { overflow: visible; transform-box: fill-box; transform-origin: center; }
+        .arch-glyph path, .arch-glyph rect, .arch-glyph circle {
+          transform-box: fill-box; transform-origin: center;
+        }
+        /* Each data family keeps the original pictogram but makes the data
+           behaviour legible at a glance: tick + volume, book pressure,
+           changing derivatives bars, packet flow, volatility and breadth. */
+        .is-built .arch-node-pulse .arch-glyph-main { animation: archPriceWave 2.7s ease-in-out infinite; }
+        .is-built .arch-node-pulse .arch-glyph-bars { animation: archVolumeBars 1.45s steps(4, end) infinite; }
+        .is-built .arch-node-book .arch-glyph-book-left { animation: archBookBid 2.4s ease-in-out infinite; }
+        .is-built .arch-node-book .arch-glyph-book-right { animation: archBookAsk 2.4s ease-in-out infinite; }
+        .is-built .arch-node-bars .arch-bar-1 { animation: archBarPulse 1.8s ease-in-out -.2s infinite; }
+        .is-built .arch-node-bars .arch-bar-2 { animation: archBarPulse 1.8s ease-in-out -.9s infinite; }
+        .is-built .arch-node-bars .arch-bar-3 { animation: archBarPulse 1.8s ease-in-out -1.3s infinite; }
+        .is-built .arch-node-bars .arch-bar-4 { animation: archBarPulse 1.8s ease-in-out -.55s infinite; }
+        .is-built .arch-node-chain .arch-glyph-packet { animation: archPacket 1.9s cubic-bezier(.4,0,.2,1) infinite; }
+        .is-built .arch-node-wave .arch-glyph { animation: archVolatility 2.1s ease-in-out infinite; }
+        .is-built .arch-node-grid .arch-glyph rect:nth-of-type(1) { animation: archBreadth 2.4s ease-in-out 0s infinite; }
+        .is-built .arch-node-grid .arch-glyph rect:nth-of-type(2) { animation: archBreadth 2.4s ease-in-out .3s infinite; }
+        .is-built .arch-node-grid .arch-glyph rect:nth-of-type(3) { animation: archBreadth 2.4s ease-in-out .6s infinite; }
+        .is-built .arch-node-grid .arch-glyph rect:nth-of-type(4) { animation: archBreadth 2.4s ease-in-out .9s infinite; }
+        .is-built .arch-node-signal .arch-glyph { animation: archSignal 2s ease-in-out infinite; }
+        .is-built .arch-node-spark .arch-glyph { animation: archSpark 3.4s ease-in-out infinite; }
+        .is-built .arch-node-flow .arch-glyph { animation: archCapitalFlow 2.2s ease-in-out infinite; }
+        .is-built .arch-node-bell .arch-glyph { animation: archBell 3.1s cubic-bezier(.36,.07,.19,.97) infinite; }
+        .is-built .arch-node-agent .arch-glyph { animation: archAgent 2.6s ease-in-out infinite; }
+        .is-built .arch-node-check .arch-glyph { animation: archProof 2.8s ease-in-out infinite; }
+        .arch-output { background: #242527; border-color: #3a3936; }
+        .arch-output .arch-node-icon { color: #171304; background: var(--arch-gold); }
+        .arch-health { position: absolute; right: 8px; top: 8px; width: 4px; height: 4px; border-radius: 99px; background: var(--arch-gold-hi); animation: archHealth 2.8s ease-in-out infinite; }
+        .arch-node:nth-of-type(3n) .arch-health { animation-delay: -1.4s; }
+        .arch-system-node { padding: 0 18px; background: var(--arch-system); border-color: var(--arch-system-border); }
+        .arch-eyebrow { color: #e3b63b; font-size: 8px; line-height: 1; font-weight: 720; letter-spacing: .16em; }
+        .arch-system-title { margin-top: 7px; color: #f6f8fc; font-size: 13px; line-height: 1.05; font-weight: 650; letter-spacing: -.01em; }
+        .arch-system-note { margin-top: 6px; color: #9a9ca1; font-size: 9.5px; line-height: 1; }
+        .arch-system-core {
+          overflow: hidden; padding: 22px 24px;
+          border-color: var(--arch-core-border);
+          background: var(--arch-core);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
+        }
+        .arch-system-core::before {
+          content: none;
+        }
+        .arch-system-core::after {
+          content: none;
+        }
+        .arch-core-top, .arch-core-kicker, .arch-system-core .arch-system-title { position: relative; z-index: 2; }
+        .arch-core-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .arch-core-mark { display: grid; place-items: center; width: 37px; height: 37px; border-radius: 9px; background: #181714; border: 1px solid #6d5722; }
+        .arch-core-mark img { width: 29px; height: 29px; border-radius: 6px; object-fit: cover; }
+        .arch-core-status { display: flex; align-items: center; gap: 6px; color: #d6d0c1; font-size: 8px; font-weight: 700; letter-spacing: .14em; }
+        .arch-core-status i { width: 5px; height: 5px; border-radius: 99px; background: var(--arch-gold-hi); animation: archHealth 2s ease-in-out infinite; }
+        .arch-core-kicker { display: block; color: #e3b63b; font-size: 8px; line-height: 1; font-weight: 700; letter-spacing: .19em; }
+        .arch-system-core .arch-system-title { margin-top: 9px; color: #ffffff; font-size: 19px; line-height: 1.1; font-weight: 700; letter-spacing: -.025em; }
+        .arch-system-terminal { border-color: var(--arch-gold-hi); background: var(--arch-gold); box-shadow: 0 14px 34px rgba(213, 164, 23, .12); }
+        .arch-system-terminal .arch-eyebrow { color: #473705; }
+        .arch-system-terminal .arch-system-title { color: #171304; }
+        .arch-system-terminal .arch-system-note { color: #594609; }
+        .arch-route {
+          stroke: var(--arch-route);
+          stroke-width: .9;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          opacity: 0;
+          transition: opacity 260ms ease var(--route-start);
+        }
+        .is-built .arch-route { opacity: .78; }
+        .arch-route-sequence-aura,
+        .arch-route-sequence-tail,
+        .arch-route-sequence-tip,
+        .arch-route-flow-glow,
+        .arch-route-flow-tail,
+        .arch-route-flow-core {
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-dashoffset: 1;
+          opacity: 0;
+        }
+        .arch-route-sequence-aura,
+        .arch-route-flow-glow {
+          --flow-alpha: .12;
+          stroke: #e7b72d;
+          stroke-width: 8;
+          stroke-dasharray: .18 .82;
+          filter: blur(2.8px) drop-shadow(0 0 6px rgba(231, 183, 45, .46));
+        }
+        .arch-route-sequence-tail,
+        .arch-route-flow-tail {
+          --flow-alpha: .62;
+          stroke: #c08c18;
+          stroke-width: 2.5;
+          stroke-dasharray: .14 .86;
+          filter: drop-shadow(0 0 3px rgba(210, 157, 29, .52));
+        }
+        .arch-route-sequence-tip,
+        .arch-route-flow-core {
+          --flow-alpha: 1;
+          stroke: #fff7db;
+          stroke-width: 1.45;
+          stroke-dasharray: .026 .974;
+          filter: drop-shadow(0 0 2px #fff0b7) drop-shadow(0 0 5px rgba(240, 200, 74, .9));
+        }
+        .is-built .arch-route-sequence-aura {
+          animation: archRouteSequenceAura var(--route-duration) cubic-bezier(.35,.02,.22,1) var(--route-start) 1 both;
+        }
+        .is-built .arch-route-sequence-tail {
+          animation: archRouteSequenceTail var(--route-duration) cubic-bezier(.35,.02,.22,1) var(--route-start) 1 both;
+        }
+        .is-built .arch-route-sequence-tip {
+          animation: archRouteSequenceTip var(--route-duration) cubic-bezier(.35,.02,.22,1) var(--route-start) 1 both;
+        }
+        .is-built .arch-route-flow-glow,
+        .is-built .arch-route-flow-tail,
+        .is-built .arch-route-flow-core {
+          animation: archRouteFlow var(--flow-duration) linear var(--ambient-start) infinite;
+        }
+        .arch-live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 99px; background: rgb(var(--accent)); animation: archHealth 2.4s ease-in-out infinite; }
+        @keyframes archRouteSequenceAura {
+          0% { opacity: 0; stroke-dashoffset: 1; }
+          7%, 88% { opacity: .12; }
+          100% { opacity: 0; stroke-dashoffset: -.18; }
+        }
+        @keyframes archRouteSequenceTail {
+          0% { opacity: 0; stroke-dashoffset: 1; }
+          7%, 88% { opacity: .62; }
+          100% { opacity: 0; stroke-dashoffset: -.14; }
+        }
+        @keyframes archRouteSequenceTip {
+          0% { opacity: 0; stroke-dashoffset: 1; }
+          7%, 88% { opacity: 1; }
+          100% { opacity: 0; stroke-dashoffset: -.026; }
+        }
+        @keyframes archRouteFlow {
+          0% { opacity: 0; stroke-dashoffset: 1; }
+          6%, 88% { opacity: var(--flow-alpha); }
+          100% { opacity: 0; stroke-dashoffset: -.16; }
+        }
+        @keyframes archHealth { 0%, 100% { opacity: .42; transform: scale(.82); } 50% { opacity: 1; transform: scale(1); } }
+        @keyframes archPriceWave { 0%,100% { transform: translateX(-.8px); } 50% { transform: translateX(.8px) scaleY(1.08); } }
+        @keyframes archVolumeBars { 0%,100% { transform: scaleY(.58); opacity: .62; } 50% { transform: scaleY(1); opacity: 1; } }
+        @keyframes archBookBid { 0%,100% { transform: scaleX(.92); } 50% { transform: scaleX(1.08); } }
+        @keyframes archBookAsk { 0%,100% { transform: scaleX(1.08); } 50% { transform: scaleX(.92); } }
+        @keyframes archBarPulse { 0%,100% { transform: scaleY(.58); } 50% { transform: scaleY(1.08); } }
+        @keyframes archPacket { 0% { transform: translateX(-4px); opacity: 0; } 28%,72% { opacity: 1; } 100% { transform: translateX(7px); opacity: 0; } }
+        @keyframes archVolatility { 0%,100% { transform: scaleY(.72) translateX(-.6px); } 50% { transform: scaleY(1.16) translateX(.6px); } }
+        @keyframes archBreadth { 0%,100% { opacity: .48; transform: scale(.78); } 40% { opacity: 1; transform: scale(1); } }
+        @keyframes archSignal { 0%,100% { transform: scaleY(.72); } 50% { transform: scaleY(1.06); } }
+        @keyframes archSpark { 0%,78%,100% { transform: rotate(0) scale(1); } 88% { transform: rotate(15deg) scale(1.16); } }
+        @keyframes archCapitalFlow { 0%,100% { transform: translateX(-1px); } 50% { transform: translateX(1px); } }
+        @keyframes archBell { 0%,84%,100% { transform: rotate(0); } 88% { transform: rotate(-8deg); } 92% { transform: rotate(8deg); } 96% { transform: rotate(-4deg); } }
+        @keyframes archAgent { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+        @keyframes archProof { 0%,100% { opacity: .72; transform: scale(.94); } 45% { opacity: 1; transform: scale(1.04); } }
+        @media (prefers-reduced-motion: reduce) {
+          .arch-route-sequence-aura, .arch-route-sequence-tail, .arch-route-sequence-tip,
+          .arch-route-flow-glow, .arch-route-flow-tail, .arch-route-flow-core { display: none !important; }
+          .arch-health, .arch-live-dot, .arch-core-status i, .arch-glyph, .arch-glyph * { animation: none !important; }
+          .arch-node, .arch-system-node, .arch-route, .arch-stage { transition-duration: 1ms !important; transition-delay: 0ms !important; }
+        }
+      `}</style>
     </section>
   );
 }

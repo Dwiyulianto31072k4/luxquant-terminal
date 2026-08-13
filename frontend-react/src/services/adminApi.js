@@ -5,6 +5,28 @@ export const adminApi = {
   // ════════════════════════════════════════
   // Agent monitoring (read-only view of the cryptobot database)
   // ════════════════════════════════════════
+  // ════════════════════════════════════════
+  // Entitlement audit — access earned upstream, never claimed here
+  // ════════════════════════════════════════
+  getEntitlements: async () => {
+    const response = await api.get("/api/v1/admin/entitlements");
+    return response.data;
+  },
+
+  // `paid` and `note` are independent: omit one and the server leaves it alone.
+  setEntitlementMark: async ({ platform, platform_id, handle, paid, note }) => {
+    const body = { platform, platform_id, handle };
+    if (paid !== undefined) body.paid = paid;
+    if (note !== undefined) body.note = note;
+    const response = await api.post("/api/v1/admin/entitlements/paid", body);
+    return response.data;
+  },
+
+  refreshEntitlements: async () => {
+    const response = await api.post("/api/v1/admin/entitlements/refresh");
+    return response.data;
+  },
+
   getAutoTradeOverview: async () => {
     const response = await api.get("/api/v1/admin/autotrade/overview");
     return response.data;
@@ -153,6 +175,14 @@ export const adminApi = {
   // Generate one-time VIP group invite link (admin-initiated)
   generateVipInvite: async (userId) => {
     const response = await api.post(`/api/v1/admin/users/${userId}/vip-invite`);
+    return response.data;
+  },
+
+  // Remove a user from the VIP group. Ban-then-unban server-side, so this is a
+  // soft removal — a later vip-invite still works. Returns
+  // { ok, already_out, message, telegram_status }.
+  kickVip: async (userId) => {
+    const response = await api.post(`/api/v1/admin/users/${userId}/vip-kick`);
     return response.data;
   },
 

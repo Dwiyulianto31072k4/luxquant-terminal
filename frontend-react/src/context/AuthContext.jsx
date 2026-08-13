@@ -1,9 +1,18 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { authApi } from "../services/authApi";
 import { clearAutotradeAuth, syncCryptobotAuth } from "../services/autotradeApi";
 import { getStoredRef, clearStoredRef } from "../utils/referralStorage";
 import { openTelegramAuth } from "../utils/telegramLoader";
+import { getStoredAcq } from "../utils/acqAttribution";
+import { trackFunnel } from "../utils/funnelAnalytics";
+import { clearAuthRescueState } from "../utils/authRescue";
+import {
+  miniAppInitData,
+  ensureMiniAppSdk,
+  markMiniAppReady,
+  initDataPreferSdk,
+} from "../utils/telegramWebApp";
 import { LoadingScreen } from "../components/ui/Loaders";
 
 const AuthContext = createContext(null);
@@ -14,6 +23,21 @@ export const useAuth = () => {
     throw new Error("useAuth must be used within AuthProvider");
   }
   return context;
+};
+
+// Why Telegram sign-in failed, in the words the person needs. Keyed by the
+// reason telegramLoader rejects with; see utils/telegramLoader.js.
+const TG_AUTH_FAILURES = {
+  // The browser refused the popup. Retrying does nothing — LoginPage picks up
+  // the same signal and offers the redirect flow instead.
+  "popup-unreachable":
+    "Your browser blocked the Telegram window. Use the sign-in link below, or allow pop-ups for this site.",
+  // Genuinely not loaded yet: the widget script had not finished when the
+  // button was pressed.
+  "not-ready": "Telegram is still loading. Please try again in a moment.",
+  "telegram-load-timeout":
+    "Telegram could not be reached. Check your connection, or sign in with Google instead.",
+  default: "Telegram sign-in did not complete. Please try again, or use Google instead.",
 };
 
 export const AuthProvider = ({ children }) => {
@@ -37,6 +61,42 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       const token = localStorage.getItem("access_token");
       if (!token) {
+        // Inside Telegram there is nobody to ask for a login: Telegram already
+        // signed who this is. Sign them in before showing a sign-in screen they
+        // do not need — and which, in this very browser, is the one that keeps
+        // failing.
+        const initData = miniAppInitData();
+        if (initData) {
+          ensureMiniAppSdk().then(markMiniAppReady);
+          try {
+            const referralCode = getStoredRef();
+            const acq = getStoredAcq();
+            const result = await authApi.telegramWebAppLogin(initData, referralCode, acq);
+            localStorage.setItem("access_token", result.access_token);
+            localStorage.setItem("refresh_token", result.refresh_token);
+            if (result.cryptobot_token) {
+              await syncCryptobotAuth(result.cryptobot_token);
+            }
+            if (referralCode) clearStoredRef();
+            // is_new separates a signup from a sign-in. Mini App boot looks
+            // like a session restore but genuinely creates the account on a
+            // first open, so the flag has to come from the server, not the mode.
+            trackFunnel("auth_success", {
+              provider: "telegram",
+              source: "miniapp",
+              meta: { mode: "miniapp_boot", is_new: !!result.is_new_user },
+            });
+            clearAuthRescueState();
+            if (!cancelled) {
+              setUser(result.user);
+              setLoading(false);
+            }
+            return;
+          } catch {
+            // Fall through to the normal logged-out state — a Mini App that
+            // cannot authenticate is still a usable public site.
+          }
+        }
         setLoading(false);
         return;
       }
@@ -142,15 +202,21 @@ export const AuthProvider = ({ children }) => {
       telegramUser = await openTelegramAuth(); // popup kebuka sinkron di sini
     } catch (err) {
       if (err.message === "cancelled") throw err; // user batal — diam
-      const message = "Telegram is still loading. Please try again in a moment.";
+      // Each reason needs different advice. "Still loading, try again" is
+      // actively wrong for a blocked popup — waiting cannot unblock it, so the
+      // instruction sends people into an unwinnable retry loop.
+      const message = TG_AUTH_FAILURES[err.message] || TG_AUTH_FAILURES.default;
       setError(message);
-      throw new Error(message);
+      const wrapped = new Error(message);
+      wrapped.reason = err.message; // so callers report the cause, not the copy
+      throw wrapped;
     }
 
     try {
-      // ─── Layer 6: forward stored referral code ───
+      // ─── Layer 6: forward stored referral code + first-touch acq ───
       const referralCode = getStoredRef();
-      const result = await authApi.telegramLogin(telegramUser, referralCode);
+      const acq = getStoredAcq();
+      const result = await authApi.telegramLogin(telegramUser, referralCode, acq);
 
       localStorage.setItem("access_token", result.access_token);
       localStorage.setItem("refresh_token", result.refresh_token);
@@ -160,11 +226,46 @@ export const AuthProvider = ({ children }) => {
 
       // Clear pending ref after successful login
       if (referralCode) clearStoredRef();
+      // Claim again in case body acq was ignored (idempotent)
+      if (acq) authApi.claimAcq(acq).catch(() => {});
 
       setUser(result.user);
+      clearAuthRescueState();
       return result;
     } catch (err) {
       const message = err.response?.data?.detail || "Telegram sign-in failed. Please try again.";
+      setError(message);
+      throw err;
+    }
+  }, []);
+
+  // Signing out inside a Mini App used to strand people: the login screen it
+  // fell back to offers "Continue with Telegram", which is the popup flow —
+  // the one thing that cannot work in Telegram's own browser. Telegram still
+  // has the signed identity, so ask it again rather than opening a window.
+  const loginWithMiniApp = useCallback(async () => {
+    setError(null);
+    const initData = await initDataPreferSdk();
+    if (!initData) {
+      const message = "Telegram sign-in is unavailable here.";
+      setError(message);
+      throw new Error(message);
+    }
+    try {
+      const referralCode = getStoredRef();
+      const acq = getStoredAcq();
+      const result = await authApi.telegramWebAppLogin(initData, referralCode, acq);
+      localStorage.setItem("access_token", result.access_token);
+      localStorage.setItem("refresh_token", result.refresh_token);
+      if (result.cryptobot_token) {
+        await syncCryptobotAuth(result.cryptobot_token);
+      }
+      if (referralCode) clearStoredRef();
+      setUser(result.user);
+      clearAuthRescueState();
+      return result;
+    } catch (err) {
+      const message = err.response?.data?.detail || "Telegram sign-in failed.";
       setError(message);
       throw err;
     }
@@ -192,6 +293,66 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // ─── Refresh VIP Status (periodic) ───
+  // ─── Re-read the session from the server ───────────────────────
+  //
+  // PaymentPage has always called this on a confirmed payment — and it has
+  // always been `undefined`, because the provider never exposed it. Both
+  // branches of `if (refreshUser)` were dead, so the role in memory stayed
+  // `free` until a full page reload re-ran /auth/me. That is the whole of
+  // "I paid but still can't get in; I refreshed and then it worked".
+  //
+  // `next` is the already-fresh user some endpoints hand back (the payment
+  // verify response carries one), which saves a round-trip at the exact moment
+  // the customer is watching.
+  const refreshUser = useCallback(async (next) => {
+    if (next && typeof next === "object") {
+      setUser(next);
+      return next;
+    }
+    try {
+      const fresh = await authApi.getMe();
+      setUser(fresh);
+      setAuthUnreachable(false);
+      return fresh;
+    } catch (err) {
+      // A transient failure must not log anyone out — that is the rule the
+      // mount-time check already follows. Only a genuine 401 is authority.
+      if (err?.response?.status === 401) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        setUser(null);
+      }
+      return null;
+    }
+  }, []);
+
+  // ─── Pick up entitlement changes made elsewhere ────────────────
+  //
+  // A self-serve payment updates the session directly. A payment an operator
+  // confirms by hand does not: that customer is sitting on a stale role with
+  // no way to know, which is the other half of the same complaint. Re-reading
+  // on tab focus closes it within a second of them looking back at the app,
+  // and costs one request — throttled, so flicking between tabs cannot turn
+  // into a poll.
+  const lastSyncRef = useRef(0);
+  useEffect(() => {
+    if (!user) return undefined;
+    const MIN_GAP_MS = 30000;
+    const sync = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastSyncRef.current < MIN_GAP_MS) return;
+      lastSyncRef.current = now;
+      refreshUser();
+    };
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, [user, refreshUser]);
+
   const refreshVipStatus = useCallback(async () => {
     try {
       const result = await authApi.refreshVipStatus();
@@ -246,8 +407,10 @@ export const AuthProvider = ({ children }) => {
     logout,
     loginWithGoogle,
     loginWithTelegram,
+    loginWithMiniApp,
     loginWithDiscord,
     refreshVipStatus,
+    refreshUser,
     setUser,
     setError,
   };

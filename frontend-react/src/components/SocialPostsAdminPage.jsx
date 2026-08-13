@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import api from "../services/authApi";
 import { useDialog } from "../hooks/useDialog";
+import { CollectionPagination, useCollectionPagination } from "./admin/CollectionPagination";
 
 const IG_AVATAR = "/logo.png";
 const IG_HANDLE = "luxquant.tw";
@@ -2507,6 +2508,7 @@ const SocialPostsAdminPage = () => {
   const [cost, setCost] = useState(null);
   const [genJob, setGenJob] = useState(null);
   const prevJobStatus = useRef(null);
+  const postPages = useCollectionPagination(posts, 18);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -2635,7 +2637,7 @@ const SocialPostsAdminPage = () => {
   const isGenRunning = genJob?.status === "running";
 
   return (
-    <div className="w-full px-4 sm:px-6 py-6">
+    <div className="w-full">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
@@ -2673,7 +2675,10 @@ const SocialPostsAdminPage = () => {
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.key || "all"}
-            onClick={() => setStatus(tab.key)}
+            onClick={() => {
+              setStatus(tab.key);
+              postPages.resetPage();
+            }}
             className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors border ${
               status === tab.key
                 ? "bg-ink/[0.08] text-text-primary border-ink/15"
@@ -2705,11 +2710,22 @@ const SocialPostsAdminPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-          {posts.map((post) => (
+          {postPages.pagedItems.map((post) => (
             <ImageCard key={post.id} post={post} onOpen={setSelected} />
           ))}
         </div>
       )}
+
+      <CollectionPagination
+        page={postPages.page}
+        totalPages={postPages.totalPages}
+        total={postPages.total}
+        pageSize={postPages.pageSize}
+        onPageChange={postPages.setPage}
+        onPageSizeChange={postPages.setPageSize}
+        pageSizeOptions={[18, 36, 60]}
+        itemLabel="posts"
+      />
 
       <PostModal
         post={selected}

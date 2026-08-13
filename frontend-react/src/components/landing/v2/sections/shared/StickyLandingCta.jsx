@@ -38,10 +38,11 @@ export default function StickyLandingCta() {
   useEffect(() => {
     if (!visible || softGateOpen || isAuthenticated || shownTracked.current) return;
     shownTracked.current = true;
-    trackFunnel("cta_click", {
-      source: "sticky_mobile_shown",
+    // cta_shown, not cta_click: this fires when the bar becomes visible, and
+    // counting it as a click made the funnel's own denominator its numerator.
+    trackFunnel("cta_shown", {
+      source: "sticky_mobile",
       path: "/",
-      meta: { impression: true },
     });
   }, [visible, softGateOpen, isAuthenticated]);
 
@@ -54,7 +55,7 @@ export default function StickyLandingCta() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
-      <div className="mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-ink/10 bg-surface/95 p-2.5 shadow-[0_-8px_32px_rgb(var(--scrim)/0.35)] backdrop-blur-xl">
+      <div className="mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-ink/10 bg-surface/95 p-2.5 backdrop-blur-xl">
         <div className="min-w-0 flex-1 pl-1">
           <p className="truncate text-[13px] font-semibold text-text-primary">
             {CTA.stickyTitle}

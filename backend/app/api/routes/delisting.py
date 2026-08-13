@@ -59,8 +59,11 @@ def _all_prices():
 
 @router.get("")
 async def list_delistings(
-    exchange: Optional[str] = Query(None, description="filter: binance|bybit|okx"),
-    limit: int = Query(60, le=200),
+    exchange: Optional[str] = Query(
+        None,
+        description="filter: binance|bybit|okx|bitget|kucoin|gate|mexc|htx|coinbase|bingx|upbit",
+    ),
+    limit: int = Query(200, le=500),
     _: bool = Depends(require_subscription),
     db: Session = Depends(get_db),
 ):

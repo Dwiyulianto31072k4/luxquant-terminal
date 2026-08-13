@@ -21,7 +21,7 @@ export const palette = {
     50: "#f5ead0",
     100: "#e8d3a0",
     200: "#dcbc70",
-    300: "rgb(var(--accent))",
+    300: "rgb(var(--accent-text))",
     400: "#b88f3f",
     500: "rgb(var(--accent))",
     600: "#5e470e",
@@ -51,11 +51,13 @@ export const palette = {
   //    (warning/attention) · green (success) · red (danger). Everything else
   //    (orange near-dupes, cool blues/purples/teals) collapses into it so the
   //    UI reads as a single system instead of a rainbow of unrelated chips.
-  green: { 300: "#86efac", 400: "#34d399", 500: "#10b981", 700: "#065f46" },
-  red: { 300: "#fca5a5", 400: "#f87171", 500: "#ef4444", 700: "#991b1b" },
-  amber: { 300: "#fcd34d", 400: "#fbbf24", 500: "#f59e0b", 700: "#92400e" },
+  // 400 is the shade components use for TEXT, so it follows --pos-text /
+  // --neg-text / --accent-text: identical on the dark desks, legible on bright.
+  green: { 300: "#86efac", 400: "rgb(var(--pos-text))", 500: "#10b981", 700: "#065f46" },
+  red: { 300: "rgb(var(--neg-text))", 400: "rgb(var(--neg-text))", 500: "#ef4444", 700: "#991b1b" },
+  amber: { 300: "#fcd34d", 400: "rgb(var(--accent-text))", 500: "#f59e0b", 700: "#92400e" },
   // Orange merged into amber — one warning hue, no clash next to gold.
-  orange: { 300: "#fcd34d", 400: "#fbbf24", 500: "#f59e0b", 700: "#92400e" },
+  orange: { 300: "#fcd34d", 400: "rgb(var(--accent-text))", 500: "#f59e0b", 700: "#92400e" },
   // Cool decorative hues retired to a theme-aware neutral (readable on all desks).
   blue: {
     300: "rgb(var(--fg-muted))",

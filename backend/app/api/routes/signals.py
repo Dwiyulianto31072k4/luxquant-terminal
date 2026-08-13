@@ -73,29 +73,41 @@ def _user_is_active_subscriber(user: Optional[User]) -> bool:
 # Partial running statuses (open, tp1, tp2, tp3) are NOT public.
 # ============================================
 
-def _status_is_publicly_viewable(status: Optional[str]) -> bool:
-    """
-    Strict policy: only signals that have reached final outcome are public.
-    - closed_win / tp4 = fully won, all targets hit
-    - closed_loss / sl = fully lost, stop hit
+# Only a call that ran all the way to its final target is public proof.
+# Losses used to be public too, on a "full transparency" reading — but the
+# aggregate win rate on the page is still computed over the whole closed book,
+# losses included, so the honest number survives without giving away the book
+# itself.
+PUBLIC_ONLY_FULLY_WON = frozenset({'closed_win', 'tp4'})
 
-    Anything else (open, tp1, tp2, tp3) is still actionable and protected.
+# The three finished calls shown above the free list. Written when bulk-7d
+# picks them, read by the detail endpoint so those specific signals open with
+# the same Deep analysis a subscriber sees — the section is only persuasive if
+# it survives being checked.
+SHOWCASE_IDS_KEY = "lq:signals:showcase-ids"
+
+
+def _status_is_publicly_viewable(status: Optional[str]) -> bool:
+    """A signal is public only once it has fully won.
+
+    Everything else stays paid: still-open and partially-taken calls (tp1/tp2/
+    tp3) are actionable, and stopped-out calls are part of the book subscribers
+    pay to see.
     """
     if not status:
         return False
-    s = status.lower()
-    return s in ('closed_win', 'tp4', 'closed_loss', 'sl')
+    return status.lower() in PUBLIC_ONLY_FULLY_WON
 
 
-# Track-record window. The business model is time-based, not status-based:
-# a call older than this is free to open in full (it's the public proof), while
-# anything newer stays behind the paywall regardless of whether it closed —
-# the exclusivity subscribers pay for. Mirrors signal_journey.PUBLIC_AFTER_DAYS.
+# Kept because the API still reports `is_recent` and signal_journey mirrors it,
+# but age NO LONGER unlocks anything. It used to: any call older than 7 days
+# opened in full even while still running, which alone accounted for 17,568
+# signals being readable by anyone. Status is now the only gate.
 PUBLIC_AFTER_DAYS = 7
 
 
 def _is_recent_signal(created_at) -> bool:
-    """True if the signal is younger than PUBLIC_AFTER_DAYS (still paywalled)."""
+    """Age flag, reported to clients. No longer part of the paywall decision."""
     if not created_at:
         return False  # unknown age → treat as old (fail open to track record)
     dt = created_at
@@ -624,7 +636,9 @@ def get_signals_bulk_7d(
                 bc.is_decoupled, bc.is_extended,                   -- r[24], r[25]
                 (bc.interpretation->>'alignment_score')::int,      -- r[26]
                 bc.interpretation->>'risk_level',                  -- r[27]
-                tg.important_tags                                  -- r[28]
+                tg.important_tags,                                 -- r[28]
+                -- Appended, never inserted: the rows below are read by index.
+                s.peak_price                                       -- r[29]
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
@@ -641,7 +655,13 @@ def get_signals_bulk_7d(
         """), {"date_from": date_7d}).fetchall()
  
         items = []
+        hidden = 0
         for r in rows:
+            # A locked call is absent, not censored: a redacted row still leaks
+            # that the call exists, on which pair, and when.
+            if not is_subscriber and not _status_is_publicly_viewable(r[16]):
+                hidden += 1
+                continue
             if is_subscriber:
                 # Full data — subscriber/admin
                 items.append({
@@ -661,39 +681,115 @@ def get_signals_bulk_7d(
                     "btc_align_score": r[26],
                     "btc_risk": r[27],
                     "important_tags": list(r[28]) if r[28] else [],
+                    "close_price": float(r[29]) if r[29] is not None else None,
                     "is_redacted": False,
                 })
             else:
-                # REDACTED — non-subscriber. Pilihan A: signal dalam 7 hari
-                # masih "panas" → sembunyikan semua angka actionable + link telegram.
-                # Yang tetap tampil: pair, status, created_at, risk_level, market_cap
-                # (cukup buat teaser + soft-paywall di frontend).
+                # Public row: a finished win. It reached the loop at all only
+                # because _status_is_publicly_viewable passed, so every level
+                # below is history — the receipt for a call that already paid,
+                # not a level anyone can still trade.
                 items.append({
                     "signal_id": r[0],
-                    "channel_id": None,           # redacted (jangan bocorkan sumber)
-                    "call_message_id": None,      # redacted
-                    "message_link": None,         # redacted (link telegram)
+                    # Source stays hidden. Not a number: publishing it sends
+                    # people to the Telegram channel instead of the product.
+                    "channel_id": None,
+                    "call_message_id": None,
+                    "message_link": None,
                     "pair": r[4],
-                    "entry": None,                # redacted
-                    "target1": None, "target2": None, "target3": None, "target4": None,  # redacted
-                    "stop1": None, "stop2": None, # redacted
+                    "entry": r[5],
+                    "target1": r[6], "target2": r[7], "target3": r[8], "target4": r[9],
+                    "stop1": r[10], "stop2": r[11],
                     "risk_level": r[12],
                     "volume_rank_num": r[13], "volume_rank_den": r[14],
                     "created_at": r[15], "status": r[16], "market_cap": r[17],
                     "last_update_at": str(r[18]) if r[18] else None,
                     "last_update_type": r[19],
-                    "entry_chart_url": None,      # redacted
-                    "latest_chart_url": None,     # redacted
-                    "btc_beta": None, "btc_corr": None,
-                    "btc_decoupled": False, "btc_extended": False,
-                    "btc_align_score": None, "btc_risk": None,
+                    "entry_chart_url": chart_path_to_url(r[20]),
+                    "latest_chart_url": chart_path_to_url(r[21]),
+                    "btc_beta": float(r[22]) if r[22] is not None else None,
+                    "btc_corr": float(r[23]) if r[23] is not None else None,
+                    "btc_decoupled": bool(r[24]) if r[24] is not None else False,
+                    "btc_extended": bool(r[25]) if r[25] is not None else False,
+                    "btc_align_score": r[26],
+                    "btc_risk": r[27],
                     "important_tags": list(r[28]) if r[28] else [],
-                    "is_redacted": True,
+                    # Where this call actually finished. Only reaches the client
+                    # for fully-won rows, which are the only ones a free account
+                    # receives at all — a finished high is proof, not a level.
+                    "close_price": (
+                        float(r[29]) if r[29] is not None
+                        else (float(r[9]) if r[9] is not None else None)
+                    ),
+                    # Nothing is hidden on this row any more except the source,
+                    # so calling it redacted would make the client draw locks
+                    # over numbers it can see.
+                    "is_redacted": False,
+                    # What the client uses to know this is a finished receipt
+                    # rather than a live call it is allowed to act on.
+                    "is_public_win": True,
                 })
  
+        # The showcase above the free list: three finished calls shown with the
+        # desk's own figures. Chosen here, not on the client, because the coin
+        # objects have to travel with them — /coin-intel is subscriber-only.
+        vip_sample = None
+        if not is_subscriber and items:
+            best_by_pair = {}
+            for it in items:
+                try:
+                    e = float(it.get("entry") or 0)
+                    c = float(it.get("close_price") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if e <= 0 or c <= 0:
+                    continue
+                prev = best_by_pair.get(it["pair"])
+                # One row per coin, keeping the earliest call on it.
+                if not prev or str(it["created_at"]) < str(prev["it"]["created_at"]):
+                    best_by_pair[it["pair"]] = {"it": it, "gain": (c - e) / e * 100}
+            top = sorted(best_by_pair.values(), key=lambda x: -x["gain"])[:3]
+            if top:
+                intel = {}
+                try:
+                    # coin-intel holds a 120s TTL, so a plain read is empty
+                    # most of the time and the showcase loses its figures
+                    # silently. Fall back to the stale copy, then to computing
+                    # it: a coin's lifetime record barely moves, and a slightly
+                    # old number beats an empty column.
+                    ci = cache_get("lq:signals:coin-intel")
+                    if not ci:
+                        stale, _ = cache_get_with_stale("lq:signals:coin-intel")
+                        ci = stale
+                    if not ci:
+                        from app.services.coin_intel_worker import compute_coin_intel
+                        ci = compute_coin_intel(db)
+                        cache_set("lq:signals:coin-intel", ci, ttl=120)
+                    ci = ci or {}
+                    by_pair = {
+                        c["pair"]: c
+                        for c in [*(ci.get("top_coins") or []), *(ci.get("rest_coins") or [])]
+                        if isinstance(c, dict) and c.get("pair")
+                    }
+                    for x in top:
+                        coin = by_pair.get(x["it"]["pair"])
+                        if coin:
+                            intel[x["it"]["pair"]] = coin
+                except Exception:
+                    logger.exception("sample intel lookup failed")
+                ids = [x["it"]["signal_id"] for x in top]
+                vip_sample = {"signal_ids": ids, "intel": intel}
+                # Outlives the 30s payload cache so a detail request that
+                # arrives between refreshes still recognises these three.
+                cache_set(SHOWCASE_IDS_KEY, [str(i) for i in ids], ttl=900)
+
         result = {
             "items": items,
             "total": len(items),
+            "vip_sample": vip_sample,
+            # How many calls this account cannot see. The only honest way to
+            # advertise what is behind the wall without opening it.
+            "hidden_count": hidden,
             "date_from": date_7d,
             "is_subscriber": is_subscriber,
         }
@@ -1092,15 +1188,15 @@ async def get_top_performers(
     if date_from and date_to:
         actual_from = date_from
         actual_to = date_to
-        cache_key = f"lq:signals:top-performers:v9:custom:{date_from}:{date_to}:{limit}"
+        cache_key = f"lq:signals:top-performers:v10:custom:{date_from}:{date_to}:{limit}"
     elif date_from:
         actual_from = date_from
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:v9:from:{date_from}:{limit}"
+        cache_key = f"lq:signals:top-performers:v10:from:{date_from}:{limit}"
     else:
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
         actual_to = None
-        cache_key = f"lq:signals:top-performers:v9:{days}:{limit}"
+        cache_key = f"lq:signals:top-performers:v10:{days}:{limit}"
 
     cached = cache_get(cache_key)
     if cached:
@@ -1164,14 +1260,22 @@ async def get_top_performers(
         pair_agg AS (
             SELECT
                 pair,
-                (ARRAY_AGG(signal_time ORDER BY gain_ratio DESC NULLS LAST))[1] as first_signal_time,
-                (ARRAY_AGG(signal_id ORDER BY gain_ratio DESC NULLS LAST))[1] as first_signal_id,
-                (ARRAY_AGG(entry ORDER BY gain_ratio DESC NULLS LAST))[1] as first_entry,
-                (ARRAY_AGG(peak_price ORDER BY gain_ratio DESC NULLS LAST))[1] as best_peak_price,
-                (ARRAY_AGG(peak_at ORDER BY gain_ratio DESC NULLS LAST))[1] as best_peak_at,
-                (ARRAY_AGG(signal_id ORDER BY gain_ratio DESC NULLS LAST))[1] as best_peak_signal_id,
+                -- "first" now means FIRST. These were ordered by gain_ratio, so a
+                -- pair called six times reported the gain from whichever re-entry
+                -- happened to be cheapest — a number nobody following from the
+                -- start could have had. Measured from the earliest call instead.
+                (ARRAY_AGG(signal_time ORDER BY signal_time ASC))[1] as first_signal_time,
+                (ARRAY_AGG(signal_id   ORDER BY signal_time ASC))[1] as first_signal_id,
+                (ARRAY_AGG(entry       ORDER BY signal_time ASC))[1] as first_entry,
+                (ARRAY_AGG(signal_id   ORDER BY signal_time DESC))[1] as last_signal_id,
+                -- The high-water mark across every call on the pair, and the call
+                -- that printed it — that one owns the charts worth showing.
+                (ARRAY_AGG(peak_price ORDER BY peak_price DESC NULLS LAST))[1] as best_peak_price,
+                (ARRAY_AGG(peak_at    ORDER BY peak_price DESC NULLS LAST))[1] as best_peak_at,
+                (ARRAY_AGG(signal_id  ORDER BY peak_price DESC NULLS LAST))[1] as best_peak_signal_id,
                 COUNT(DISTINCT signal_id) as signal_count,
-                ARRAY_AGG(DISTINCT signal_id ORDER BY signal_id) as all_signal_ids
+                -- Chronological, so a caller can take the first call and the last.
+                ARRAY_AGG(signal_id ORDER BY signal_time ASC) as all_signal_ids
             FROM signal_gains
             GROUP BY pair
         )
@@ -1192,7 +1296,13 @@ async def get_top_performers(
             sig.target1,
             sig.target2,
             sig.target3,
-            sig.target4
+            sig.target4,
+            pa.first_signal_id,
+            pa.last_signal_id,
+            -- The peak call's OWN entry. gain_pct is measured from the first
+            -- call, but realized_pct below is a TP gain on this call and must be
+            -- measured against this call's entry or the two numbers disagree.
+            sig.entry as best_signal_entry
         FROM pair_agg pa
         JOIN signals sig ON sig.signal_id = pa.best_peak_signal_id
         WHERE pa.best_peak_price > pa.first_entry
@@ -1307,21 +1417,28 @@ async def get_top_performers(
                     r[15] if len(r) > 15 else None,
                     r[16] if len(r) > 16 else None,
                 ]
+                # The targets belong to the peak call, so the TP gain is measured
+                # against that call's entry — not gain_pct's first-call entry.
+                best_entry = float(r[19]) if len(r) > 19 and r[19] else entry_val
                 realized_pct = None
-                if latest_path and entry_val > 0:
+                if latest_path and best_entry > 0:
                     m = _re.search(r'_tp(\d)_', str(latest_path))
                     if m:
                         idx = int(m.group(1)) - 1
                         if 0 <= idx < 4 and targets[idx]:
                             try:
                                 realized_pct = round(
-                                    (float(targets[idx]) - entry_val) / entry_val * 100, 2
+                                    (float(targets[idx]) - best_entry) / best_entry * 100, 2
                                 )
                             except Exception:
                                 realized_pct = None
                 d["latest_chart_url"] = chart_path_to_url(latest_path)
                 d["pnl_leverage"] = int(lev) if lev else None
                 d["realized_pct"] = realized_pct
+                # Chronological ends of the run, so a caller can show the call
+                # that opened it beside the one that closed it.
+                d["first_signal_id"] = r[17] if len(r) > 17 else None
+                d["last_signal_id"] = r[18] if len(r) > 18 else None
 
             return d
 
@@ -1600,11 +1717,8 @@ def get_signal_detail_v2(
     #   · older than 7 days           → shown even if still open (attract; stale)
     #   · active AND recent           → redacted, but rich: charts + peak + date
     #                                    shown, only the numeric levels blurred.
-    if (
-        not is_subscriber
-        and not _status_is_publicly_viewable(signal.status)
-        and _is_recent_signal(signal.created_at)
-    ):
+    # Age deliberately absent: a call that has not fully won stays paid forever.
+    if not is_subscriber and not _status_is_publicly_viewable(signal.status):
         return _build_redacted_detail_response(
             signal, market_cap, risk_reasons, updates, peak_price, peak_pct,
             entry_chart_path, latest_chart_path,
@@ -1612,8 +1726,18 @@ def get_signal_detail_v2(
     
     # Full response (closed signal OR subscriber)
     enrichment_data = None
-    # Only attach enrichment for subscribers (Deep Analysis is paid)
-    if is_subscriber:
+    # Deep Analysis is paid, with one deliberate exception: the three finished
+    # calls on display above the free list. The showcase says it is exactly
+    # what a subscriber sees, and a missing panel would make that a lie the
+    # first time anyone clicked through.
+    is_showcase = False
+    if not is_subscriber:
+        try:
+            is_showcase = str(signal_id) in set(cache_get(SHOWCASE_IDS_KEY) or [])
+        except Exception:
+            is_showcase = False
+
+    if is_subscriber or is_showcase:
         try:
             enr = db.execute(text("""
                 SELECT confidence_score, rating, regime, score_breakdown, weights_used,
@@ -1722,7 +1846,6 @@ def get_signal_detail(
     if (
         not is_subscriber
         and not _status_is_publicly_viewable(derived_status)
-        and _is_recent_signal(signal.created_at)
     ):
         return {
             "signal_id": signal.signal_id, "channel_id": signal.channel_id,

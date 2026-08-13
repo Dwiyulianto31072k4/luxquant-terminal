@@ -253,6 +253,14 @@ const PricingPage = () => {
         lifetime: true,
       },
       {
+        id: "called",
+        label: t("pricing.compare_called"),
+        free: false,
+        monthly: true,
+        yearly: true,
+        lifetime: true,
+      },
+      {
         id: "autotrade",
         label: t("pricing.compare_autotrade"),
         free: false,

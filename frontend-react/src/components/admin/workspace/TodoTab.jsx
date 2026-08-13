@@ -12,7 +12,6 @@ import { ConfirmModal } from "../users/ConfirmModal";
 import {
   PlusIcon,
   SearchIcon,
-  AlertTriangleIcon,
   CheckCircleIcon,
   EditIcon,
   TrashIcon,
@@ -21,6 +20,7 @@ import {
   SparklesIcon,
 } from "../Icons";
 import { IconBadge } from "../primitives";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
 
@@ -301,6 +301,7 @@ export const TodoTab = ({ onRefreshStats }) => {
 
   const [confirmModal, setConfirmModal] = useState(null);
   const [toast, setToast] = useState(null);
+  const todoPages = useCollectionPagination(todos, 12);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3000);
@@ -458,7 +459,10 @@ export const TodoTab = ({ onRefreshStats }) => {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              todoPages.resetPage();
+            }}
             placeholder="Search title or description…"
             className={`w-full pl-9 pr-3 ${fieldCls(!!search)}`}
           />
@@ -466,7 +470,10 @@ export const TodoTab = ({ onRefreshStats }) => {
 
         <select
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+          onChange={(e) => {
+            setCategoryFilter(e.target.value);
+            todoPages.resetPage();
+          }}
           className={`cursor-pointer ${fieldCls(!!categoryFilter)}`}
         >
           <option value="">All Categories</option>
@@ -480,7 +487,10 @@ export const TodoTab = ({ onRefreshStats }) => {
 
         <select
           value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
+          onChange={(e) => {
+            setPriorityFilter(e.target.value);
+            todoPages.resetPage();
+          }}
           className={`cursor-pointer ${fieldCls(!!priorityFilter)}`}
         >
           <option value="">All Priorities</option>
@@ -569,7 +579,7 @@ export const TodoTab = ({ onRefreshStats }) => {
         </>
       ) : (
         <div className="space-y-2.5">
-          {todos.map((t) => (
+          {todoPages.pagedItems.map((t) => (
             <TodoCard
               key={t.id}
               todo={t}
@@ -579,6 +589,19 @@ export const TodoTab = ({ onRefreshStats }) => {
             />
           ))}
         </div>
+      )}
+
+      {view === "list" && (
+        <CollectionPagination
+          page={todoPages.page}
+          totalPages={todoPages.totalPages}
+          total={todoPages.total}
+          pageSize={todoPages.pageSize}
+          onPageChange={todoPages.setPage}
+          onPageSizeChange={todoPages.setPageSize}
+          pageSizeOptions={[12, 24, 48]}
+          itemLabel="tasks"
+        />
       )}
 
       <TodoPanel

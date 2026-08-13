@@ -163,6 +163,21 @@ export const BackendHealthPanel = () => {
   const slow = d.slow || {};
   const db = d.db || {};
   const redis = d.redis || {};
+  const host = d.host || {};
+  const mem = host.mem || {};
+  const swap = host.swap || null;
+  const disk = (host.disks || [])[0] || {};
+  const hostLoad = host.load || {};
+  const bigDirs = host.big_dirs || [];
+
+  // Reuse the panel's own gauge() rather than inventing a second set of
+  // thresholds — one panel with two colour standards is worse than either.
+  const memColor = mem.pct != null ? gauge(mem.pct) : palette.green[400];
+  const diskColor = disk.pct != null ? gauge(disk.pct) : palette.green[400];
+  // Load is expressed PER CORE before colouring: 1.5 is idle on 8 cores and a
+  // queue on 2, so the raw figure cannot share a threshold with percentages.
+  const loadColor =
+    hostLoad.per_core_1m != null ? gauge(hostLoad.per_core_1m * 100) : palette.green[400];
   const toColor =
     to.count_1h > 0 ? palette.red[400] : to.count_24h > 0 ? palette.amber[400] : palette.green[400];
   const dbColor = db.error ? palette.red[400] : gauge(db.pct || 0);
@@ -316,6 +331,61 @@ export const BackendHealthPanel = () => {
               )}
             </>
           )}
+        </Tile>
+
+        {/* ── HOST: the VPS itself, not the app running on it ── */}
+        <Tile color={memColor} Icon={ZapIcon} label="Host RAM">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[22px] font-bold tabular-nums" style={{ color: memColor }}>
+              {mem.pct != null ? `${mem.pct}%` : "–"}
+            </span>
+            <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+              {mem.used_mb != null ? `${mem.used_mb} / ${mem.total_mb} MB` : ""}
+            </span>
+          </div>
+          {mem.pct != null ? <Bar pct={mem.pct} color={memColor} /> : null}
+          <div className="text-[10px] mt-1" style={{ color: "rgb(var(--fg-muted))" }}>
+            {/* MemAvailable, not "free" — free excludes reclaimable cache and
+                makes a healthy box look permanently full. */}
+            {mem.available_mb != null ? `${mem.available_mb} MB available` : ""}
+            {swap && swap.used_mb > 0 ? ` · swap ${swap.used_mb}/${swap.total_mb} MB` : ""}
+          </div>
+        </Tile>
+
+        <Tile color={diskColor} Icon={AlertTriangleIcon} label="Disk">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[22px] font-bold tabular-nums" style={{ color: diskColor }}>
+              {disk.free_gb != null ? `${disk.free_gb}` : "–"}
+            </span>
+            <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+              GB free{disk.total_gb ? ` / ${disk.total_gb} (${disk.pct}% used)` : ""}
+            </span>
+          </div>
+          {disk.pct != null ? <Bar pct={disk.pct} color={diskColor} /> : null}
+          {bigDirs.length > 0 && (
+            <div className="text-[10px] mt-1 leading-relaxed" style={{ color: "rgb(var(--fg-muted))" }}>
+              {bigDirs.slice(0, 3).map((x) => `${x.path.split("/").pop()} ${x.gb}G`).join(" · ")}
+            </div>
+          )}
+        </Tile>
+
+        <Tile color={loadColor} Icon={ZapIcon} label="CPU Load">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[22px] font-bold tabular-nums" style={{ color: loadColor }}>
+              {hostLoad.per_core_1m != null ? hostLoad.per_core_1m : "–"}
+            </span>
+            <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+              per core{hostLoad.cpus ? ` · ${hostLoad.cpus} cpu` : ""}
+            </span>
+          </div>
+          <div className="text-[10px] mt-1" style={{ color: "rgb(var(--fg-muted))" }}>
+            {hostLoad["1m"] != null ? `${hostLoad["1m"]} / ${hostLoad["5m"]} / ${hostLoad["15m"]} (1m·5m·15m)` : ""}
+          </div>
+          {host.uptime_seconds ? (
+            <div className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+              host up {Math.floor(host.uptime_seconds / 86400)}d
+            </div>
+          ) : null}
         </Tile>
       </div>
 

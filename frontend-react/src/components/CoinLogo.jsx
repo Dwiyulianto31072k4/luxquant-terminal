@@ -98,7 +98,10 @@ const TICKER_ALIASES = { RAYSOL: "RAY" };
  * Only list a symbol here after looking at both images. A guess swaps one wrong
  * logo for another.
  */
-const SOURCE_PREFERENCE = { HYPE: "okx" };
+// WLD: LCW menyajikan kepala serigala untuk `wld.png` — token lain yang
+// bertiker sama. OKX menyajikan mark Worldcoin yang benar. Kedua gambar
+// sudah dibuka dan dibandingkan sebelum baris ini ditambahkan.
+const SOURCE_PREFERENCE = { HYPE: "okx", WLD: "okx" };
 
 const getLogoSources = (symbol) => {
   const stripped = stripMultiplier(symbol);
@@ -487,7 +490,9 @@ const CoinLogo = ({ pair, size = 40, className = "" }) => {
         style={{
           width: size,
           height: size,
-          objectFit: "cover",
+          // `cover` memangkas tepi logo agar mengisi kotak — terlihat jelas
+          // pada BNB. Logo punya bentuknya sendiri; muat seluruhnya.
+          objectFit: "contain",
           backgroundColor: "rgb(var(--surface-hover))",
         }}
         title={tip}

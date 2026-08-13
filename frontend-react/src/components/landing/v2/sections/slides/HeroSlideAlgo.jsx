@@ -43,7 +43,7 @@ function IMacMockup({ src, alt, className = "" }) {
   return (
     <div className={`relative ${className}`}>
       {/* Black glass front — top + sides all black; only the chin is silver */}
-      <div className="relative overflow-hidden rounded-[13px] bg-black shadow-[0_44px_92px_rgb(var(--scrim) / 0.35),0_0_70px_rgb(var(--accent) / 0.12)] ring-1 ring-ink/[0.07] lg:rounded-[16px]">
+      <div className="relative overflow-hidden rounded-[13px] bg-black ring-1 ring-ink/[0.07] lg:rounded-[16px]">
         {/* thin black bezel around the screen */}
         <div className="p-[7px] sm:p-[8px] lg:p-[11px]">
           <div className="relative aspect-[16/10] overflow-hidden rounded-[2px] bg-black ring-1 ring-ink/[0.05] lg:rounded-[3px]">
@@ -112,7 +112,7 @@ function PhoneMockup({ src, alt, className = "" }) {
   return (
     <div className={`relative ${className}`}>
       {/* Silver aluminium side rail — ultra thin */}
-      <div className="rounded-[0.95rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] shadow-[0_24px_56px_rgb(var(--scrim) / 0.85),0_0_34px_rgb(var(--accent) / 0.12)] sm:rounded-[1.15rem] lg:rounded-[1.5rem] lg:p-[1.5px]">
+      <div className="rounded-[0.95rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] sm:rounded-[1.15rem] lg:rounded-[1.5rem] lg:p-[1.5px]">
         {/* Thin black display bezel */}
         <div className="overflow-hidden rounded-[0.9rem] bg-black p-[1.5px] sm:rounded-[1.1rem] lg:rounded-[1.44rem] lg:p-[2px]">
           {/* Screen — height follows the screenshot's own ratio (no crop),
@@ -167,7 +167,7 @@ export default function HeroSlideAlgo() {
     <div className="flex w-full flex-col items-center text-center">
       {/* Headline — white + gold accent (matches other sections) */}
       <h1
-        className="font-display font-bold leading-[1.08] tracking-[-0.03em] text-text-primary text-[1.95rem] sm:text-[2.65rem] lg:text-[3.1rem] xl:text-[3.5rem]"
+        className="font-extrabold leading-[1.25] text-text-primary text-[32px] sm:text-[38px] lg:text-[48px]"
         style={{ textShadow: "0 2px 30px rgb(var(--scrim) / 0.35)" }}
       >
         Algo calls,{" "}

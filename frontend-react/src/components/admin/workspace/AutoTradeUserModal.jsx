@@ -322,7 +322,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
       onClick={onClose}
     >
       <div
-        className="lq-sheet isolate flex max-h-[min(92dvh,100%)] w-full max-w-6xl flex-col overflow-hidden rounded-t-3xl border border-ink/[0.08] shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl"
+        className="lq-sheet isolate flex max-h-[min(var(--lq-modal-maxh),100%)] w-full max-w-6xl flex-col overflow-hidden rounded-t-3xl border border-ink/[0.08] shadow-2xl sm:max-h-[var(--lq-modal-maxh)] sm:rounded-2xl"
         // Explicit and opaque: the utility class resolved translucent here, which
         // let the table underneath bleed through the numbers.
         style={{ backgroundColor: "rgb(var(--surface))" }}

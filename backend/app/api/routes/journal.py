@@ -3,7 +3,10 @@
 LuxQuant Terminal - Trade Journal Routes
 =========================================
 Full CRUD + Signal Prefill + Stats + AI Insights + Excel Export
-Free for all authenticated users (no subscription check).
+
+Journal CRUD is free for any authenticated user.
+Linking / prefilling from LuxQuant signals requires an active subscription
+(or staff) — same gate as Signals / Delistings.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -18,7 +21,7 @@ import httpx
 
 from app.core.database import get_db
 from app.core.redis import cache_get, cache_set
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_subscription
 from app.models.user import User
 from app.models.journal import TradeJournal
 from app.schemas.journal import (
@@ -75,17 +78,45 @@ def derive_status(pnl_usd: Optional[float]) -> str:
     return "breakeven"
 
 
+def _user_can_link_signals(user: User) -> bool:
+    """Active subscriber/premium or staff may link LuxQuant signals."""
+    if getattr(user, "is_admin_staff", False) or getattr(user, "is_admin", False):
+        return True
+    if user.role in ("premium", "subscriber"):
+        exp = getattr(user, "subscription_expires_at", None)
+        if exp is None:
+            return True
+        try:
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            return exp > datetime.now(timezone.utc)
+        except Exception:
+            return False
+    return False
+
+
+def _require_signal_link_access(user: User) -> None:
+    if not _user_can_link_signals(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="An active subscription is required to link LuxQuant signals",
+        )
+
+
 # ════════════════════════════════════════════
-# 1. PREFILL FROM SIGNAL
+# 1. PREFILL FROM SIGNAL  (subscriber+)
 # ════════════════════════════════════════════
 
 @router.get("/prefill/{signal_id}", response_model=JournalPrefillResponse)
 def prefill_from_signal(
     signal_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_subscription),
     db: Session = Depends(get_db),
 ):
-    """Auto-fill journal data from an existing LuxQuant signal."""
+    """Auto-fill journal data from an existing LuxQuant signal.
+
+    Subscription required — free users must not read signal entry/SL/TP via journal.
+    """
     row = db.execute(
         text("""
             SELECT s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
@@ -156,11 +187,12 @@ async def create_journal(
     rr = calc_rr(data.actual_entry, data.actual_exit, data.planned_sl, data.direction)
     st = derive_status(pnl["pnl_usd"]) if data.actual_exit else "open"
 
-    # Build context snapshot if signal linked
+    # Build context snapshot if signal linked (subscriber-only — no free leak)
     context = {}
     if data.signal_id:
-        prefill = await prefill_from_signal(data.signal_id, current_user, db)
-        context = prefill.context_snapshot
+        _require_signal_link_access(current_user)
+        prefill = prefill_from_signal(data.signal_id, current_user, db)
+        context = prefill.context_snapshot or {}
 
     journal = TradeJournal(
         user_id=current_user.id,
@@ -372,24 +404,42 @@ def get_journal_stats(
     mistake_counts = Counter(all_mistakes)
     most_common_mistake = mistake_counts.most_common(1)[0][0] if mistake_counts else None
 
-    # Win rate by strategy
+    # Win rate + PnL by strategy (research: setup expectancy)
     wr_by_strat = {}
     strat_counter = {}
     for e in closed:
-        for tag in (e.strategy_tags or []):
+        tags = e.strategy_tags or ["(untagged)"]
+        for tag in tags:
             if tag not in strat_counter:
-                strat_counter[tag] = {"wins": 0, "total": 0}
-            strat_counter[tag]["total"] += 1
+                strat_counter[tag] = {
+                    "wins": 0, "losses": 0, "total": 0, "pnl": 0.0, "r_sum": 0.0, "r_n": 0,
+                }
+            c = strat_counter[tag]
+            c["total"] += 1
+            c["pnl"] += e.pnl_usd or 0
             if e.status == "closed_win":
-                strat_counter[tag]["wins"] += 1
+                c["wins"] += 1
+            elif e.status == "closed_loss":
+                c["losses"] += 1
+            if e.rr_ratio is not None:
+                c["r_sum"] += e.rr_ratio
+                c["r_n"] += 1
     for tag, c in strat_counter.items():
         wr_by_strat[tag] = {
             "win_rate": round(c["wins"] / c["total"] * 100, 1) if c["total"] else 0,
             "total": c["total"],
+            "wins": c["wins"],
+            "losses": c["losses"],
+            "pnl": round(c["pnl"], 2),
+            "avg_r": round(c["r_sum"] / c["r_n"], 2) if c["r_n"] else None,
+            "expectancy": round(c["pnl"] / c["total"], 2) if c["total"] else 0,
         }
 
-    # Most profitable strategy
-    best_strat = max(wr_by_strat, key=lambda k: wr_by_strat[k]["win_rate"]) if wr_by_strat else None
+    # Most profitable strategy by total PnL (not just WR)
+    best_strat = (
+        max(wr_by_strat, key=lambda k: wr_by_strat[k].get("pnl", 0))
+        if wr_by_strat else None
+    )
 
     # Win rate by emotion (mood)
     wr_by_emotion = {}
@@ -397,15 +447,59 @@ def get_journal_stats(
         mood = (e.emotions or {}).get("mood")
         if mood:
             if mood not in wr_by_emotion:
-                wr_by_emotion[mood] = {"wins": 0, "total": 0}
+                wr_by_emotion[mood] = {"wins": 0, "losses": 0, "total": 0, "pnl": 0.0}
             wr_by_emotion[mood]["total"] += 1
+            wr_by_emotion[mood]["pnl"] += e.pnl_usd or 0
             if e.status == "closed_win":
                 wr_by_emotion[mood]["wins"] += 1
+            elif e.status == "closed_loss":
+                wr_by_emotion[mood]["losses"] += 1
     for mood, c in wr_by_emotion.items():
         wr_by_emotion[mood] = {
             "win_rate": round(c["wins"] / c["total"] * 100, 1) if c["total"] else 0,
             "total": c["total"],
+            "wins": c["wins"],
+            "losses": c["losses"],
+            "pnl": round(c["pnl"], 2),
         }
+
+    # Mistake cost (research: process tags → edge)
+    mistake_stats = {}
+    for e in closed:
+        for m in (e.mistakes or []):
+            if m not in mistake_stats:
+                mistake_stats[m] = {"count": 0, "pnl": 0.0, "losses": 0}
+            mistake_stats[m]["count"] += 1
+            mistake_stats[m]["pnl"] += e.pnl_usd or 0
+            if e.status == "closed_loss":
+                mistake_stats[m]["losses"] += 1
+    for m, c in mistake_stats.items():
+        c["pnl"] = round(c["pnl"], 2)
+        c["avg_pnl"] = round(c["pnl"] / c["count"], 2) if c["count"] else 0
+
+    # LuxQuant vs My Trades comparison
+    def _bucket(group):
+        g_closed = [e for e in group if e.status != "open"]
+        g_wins = [e for e in g_closed if e.status == "closed_win"]
+        g_pnl = sum(e.pnl_usd or 0 for e in g_closed)
+        g_rr = [e.rr_ratio for e in g_closed if e.rr_ratio is not None]
+        return {
+            "total": len(group),
+            "closed": len(g_closed),
+            "wins": len(g_wins),
+            "losses": len([e for e in g_closed if e.status == "closed_loss"]),
+            "win_rate": round(len(g_wins) / len(g_closed) * 100, 1) if g_closed else 0,
+            "pnl": round(g_pnl, 2),
+            "avg_pnl": round(g_pnl / len(g_closed), 2) if g_closed else 0,
+            "avg_rr": round(sum(g_rr) / len(g_rr), 2) if g_rr else None,
+        }
+
+    lux_entries = [
+        e for e in entries
+        if e.signal_id or ("LuxQuant Signal" in (e.strategy_tags or []))
+    ]
+    my_entries = [e for e in entries if e not in lux_entries]
+    lux_vs_my = {"luxquant": _bucket(lux_entries), "my": _bucket(my_entries)}
 
     # PnL by day of week
     pnl_by_day = {}
@@ -415,20 +509,34 @@ def get_journal_stats(
             day = day_names[e.entry_at.weekday()]
             pnl_by_day[day] = round(pnl_by_day.get(day, 0) + (e.pnl_usd or 0), 2)
 
-    # Streaks
+    # Streaks + current streak
     longest_win = longest_loss = cur_win = cur_loss = 0
+    current_streak = 0
+    current_streak_type = None  # "win" | "loss"
     for e in closed:
         if e.status == "closed_win":
             cur_win += 1
             cur_loss = 0
             longest_win = max(longest_win, cur_win)
+            current_streak = cur_win
+            current_streak_type = "win"
         elif e.status == "closed_loss":
             cur_loss += 1
             cur_win = 0
             longest_loss = max(longest_loss, cur_loss)
+            current_streak = cur_loss
+            current_streak_type = "loss"
         else:
             cur_win = 0
             cur_loss = 0
+            current_streak = 0
+            current_streak_type = None
+
+    # Profit factor + expectancy (research core metrics)
+    gross_win = sum(e.pnl_usd or 0 for e in wins)
+    gross_loss = abs(sum(e.pnl_usd or 0 for e in losses))
+    profit_factor = round(gross_win / gross_loss, 2) if gross_loss > 0 else None
+    expectancy = round(total_pnl / len(closed), 2) if closed else 0
 
     return JournalStatsResponse(
         total_trades=len(entries),
@@ -457,6 +565,12 @@ def get_journal_stats(
         win_rate_by_strategy=wr_by_strat,
         win_rate_by_emotion=wr_by_emotion,
         pnl_by_day=pnl_by_day,
+        profit_factor=profit_factor,
+        expectancy=expectancy,
+        current_streak=current_streak,
+        current_streak_type=current_streak_type,
+        mistake_stats=mistake_stats,
+        lux_vs_my=lux_vs_my,
     )
 
 

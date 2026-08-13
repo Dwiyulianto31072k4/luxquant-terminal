@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import re
 from typing import Iterable, Optional
+from urllib.parse import urlparse
 
 from sqlalchemy import text
 
@@ -61,6 +62,26 @@ def classify(title: str, description: str = "", raw_text: str = "") -> str:
     return "crypto"
 
 
+def host_of(url: str) -> Optional[str]:
+    """Bare hostname of an article URL, or None.
+
+    RSS rows used to leave `domain` NULL, which the feed cards worked around by
+    re-deriving the host per row — but the Sources panel filters on `domain IS
+    NOT NULL`, so every RSS publisher was invisible there. Storing the host at
+    insert time is the fix; the panel's own COALESCE covers rows already stored.
+    """
+    if not url:
+        return None
+    try:
+        netloc = urlparse(url).netloc.lower()
+    except Exception:
+        return None
+    netloc = netloc.split("@")[-1].split(":")[0]  # drop credentials and port
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    return netloc or None
+
+
 def _synthetic_msg_id(url: str) -> int:
     """Stable positive int4 from a URL. Uses md5 (not builtin hash(), which is
     randomized per process) so the (source_channel, source_msg_id) unique
@@ -89,11 +110,13 @@ def persist_rss_items(
     stmt = text("""
         INSERT INTO crypto_news (
             source_channel, source_msg_id, source_type, content_type,
-            category, title, description, url, image_url, published_at, raw_text
+            category, title, description, url, domain, image_url,
+            published_at, raw_text
         )
         VALUES (
             :source_channel, :source_msg_id, 'rss', 'article',
-            :category, :title, :description, :url, :image_url, :published_at, :raw_text
+            :category, :title, :description, :url, :domain, :image_url,
+            :published_at, :raw_text
         )
         ON CONFLICT DO NOTHING
     """)
@@ -112,6 +135,7 @@ def persist_rss_items(
             "title": title,
             "description": desc,
             "url": url,
+            "domain": host_of(url),
             "image_url": it.get("image"),
             "published_at": it.get("published") or it.get("pubDate"),
             "raw_text": desc,

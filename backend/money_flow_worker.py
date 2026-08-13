@@ -26,6 +26,7 @@ import os
 import sys
 import json
 import logging
+import time
 from datetime import datetime, timezone, timedelta
 
 import httpx
@@ -91,8 +92,60 @@ def _num(v):
 # ============================================================
 # FETCH — CoinGecko
 # ============================================================
+
+# Retry budget. CoinGecko is a free public API and occasionally answers 5xx or
+# 429 for a few seconds; measured here, 1 run in 40 died that way (2026-08-08,
+# a 504 on /global). There was no retry at all, so a blip that lasts seconds
+# cost a whole 4-hour snapshot AND left the service sitting failed in the admin
+# until the next timer — an alarm for something already over.
+#
+# Only retried for errors that are plausibly transient. A 404 or a 401 will not
+# fix itself, and retrying those just delays a real failure by half a minute.
+_RETRY_STATUS = {429, 500, 502, 503, 504}
+_RETRY_ATTEMPTS = 3
+_RETRY_BACKOFF = (2, 6)  # seconds before attempt 2 and 3
+
+
+def _get_retry(client, url, **kw):
+    """GET with bounded retries on transient upstream failures.
+
+    Raises the last error if every attempt fails, so a genuine outage still
+    surfaces as a failed run rather than silently writing a partial snapshot.
+    """
+    last = None
+    for attempt in range(1, _RETRY_ATTEMPTS + 1):
+        try:
+            res = client.get(url, **kw)
+            if res.status_code in _RETRY_STATUS and attempt < _RETRY_ATTEMPTS:
+                last = httpx.HTTPStatusError(
+                    f"{res.status_code} from {url}", request=res.request, response=res
+                )
+                log.warning(
+                    "coingecko %s -> %s (attempt %d/%d), retrying in %ds",
+                    url, res.status_code, attempt, _RETRY_ATTEMPTS,
+                    _RETRY_BACKOFF[attempt - 1],
+                )
+                time.sleep(_RETRY_BACKOFF[attempt - 1])
+                continue
+            res.raise_for_status()
+            if attempt > 1:
+                log.info("coingecko %s recovered on attempt %d", url, attempt)
+            return res
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            last = e
+            if attempt >= _RETRY_ATTEMPTS:
+                break
+            log.warning(
+                "coingecko %s %s (attempt %d/%d), retrying in %ds",
+                url, type(e).__name__, attempt, _RETRY_ATTEMPTS,
+                _RETRY_BACKOFF[attempt - 1],
+            )
+            time.sleep(_RETRY_BACKOFF[attempt - 1])
+    raise last if last else RuntimeError(f"GET failed: {url}")
+
 def fetch_categories(client) -> list:
-    res = client.get(
+    res = _get_retry(
+        client,
         f"{COINGECKO_API}/coins/categories",
         params={"order": "market_cap_change_24h_desc"},
         headers=CG_HEADERS,
@@ -116,7 +169,8 @@ def fetch_categories(client) -> list:
 
 def fetch_coins(client) -> list:
     """Top N coins dengan delta 1h/24h/7d/30d."""
-    res = client.get(
+    res = _get_retry(
+        client,
         f"{COINGECKO_API}/coins/markets",
         params={
             "vs_currency": "usd",
@@ -145,7 +199,7 @@ def fetch_coins(client) -> list:
 
 
 def fetch_global(client) -> dict:
-    res = client.get(f"{COINGECKO_API}/global", headers=CG_HEADERS)
+    res = _get_retry(client, f"{COINGECKO_API}/global", headers=CG_HEADERS)
     res.raise_for_status()
     g = res.json().get("data", {})
     pct = g.get("market_cap_percentage", {})

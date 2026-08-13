@@ -1,0 +1,13 @@
+[Unit]
+Description=LuxQuant Chat image retention sweep (24 hours)
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=-/root/luxquant-terminal/backend/.env
+Environment=PYTHONPATH=/root/luxquant-terminal/backend
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python /root/luxquant-terminal/backend/scripts/prune_chat_media.py
+TimeoutStartSec=120
+

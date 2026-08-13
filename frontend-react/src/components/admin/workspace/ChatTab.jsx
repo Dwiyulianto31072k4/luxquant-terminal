@@ -10,9 +10,15 @@ import { useDialog } from "../../../hooks/useDialog";
 import { adminApi } from "../../../services/adminApi";
 import { adminChatApi } from "../../../services/adminChatApi";
 import { NEUTRAL } from "../designSystem";
-import { Surface, Badge, EmptyState, LoadingState, SearchInput, Spinner } from "../primitives";
+import { Surface, Avatar, Badge, EmptyState, LoadingState, SearchInput, Spinner } from "../primitives";
 import { SearchIcon, TelegramIcon } from "../Icons";
 import Modal from "../../ui/Modal";
+import {
+  ChatImageLightbox,
+  ChatImageSendModal,
+  ChatMessageBody,
+  isChatImage,
+} from "../../chat/ChatMessageContent";
 
 // Conversations refresh faster than the workspace shell's 60s: a stale support
 // list is a slow reply, which is the one metric this feature lives on.
@@ -82,50 +88,46 @@ const ConversationRow = ({ row, active, onClick }) => {
   return (
     <button
       onClick={onClick}
-      className={`w-full border-b border-ink/[0.06] px-3 py-3 text-left transition-colors ${
+      className={`flex w-full items-start gap-3 border-b border-ink/[0.06] px-3 py-3 text-left transition-colors ${
         active ? "bg-surface-secondary/60" : "hover:bg-ink/[0.03]"
       }`}
     >
-      <div className="mb-1 flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-xs font-semibold text-text-primary">
-          {row.username || `#${row.user_id}`}
-        </span>
-        <span className="shrink-0 font-mono text-[10px] text-text-muted">
-          {fmtAgo(row.last_message_at)}
-        </span>
-        {adminUnread > 0 && (
-          <span className="flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-loss px-1 font-mono text-[9px] font-bold text-white">
-            {adminUnread > 99 ? "99+" : adminUnread}
+      <Avatar src={row.avatar_url} name={row.username || `#${row.user_id}`} size="md" />
+      <div className="min-w-0 flex-1">
+        <div className="mb-0.5 flex items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-primary">
+            {row.username || `#${row.user_id}`}
           </span>
-        )}
-      </div>
-      <div className="mb-1 flex flex-wrap items-center gap-1.5">
-        <Badge variant="role" value={row.role} size="xs">
-          {row.role}
-        </Badge>
-        <span
-          className={`rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide ${state.cls}`}
-        >
-          {state.label}
-        </span>
-        {row.user_active_unread ? (
-          <span
-            className="rounded border border-accent/30 bg-accent/10 px-1.5 py-0.5 font-mono text-[9px] text-accent"
-            title="User was active on the site after your reply but has not opened chat"
-          >
-            Was online
+          <span className={`shrink-0 font-mono text-[10px] ${adminUnread > 0 ? "font-semibold text-accent" : "text-text-muted"}`}>
+            {fmtAgo(row.last_message_at)}
           </span>
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="min-w-0 flex-1 truncate text-[11px] text-text-muted">
+            {row.last_sender === "admin" && <span className="text-text-muted/70">You: </span>}
+            {row.last_body || <span className="italic text-text-muted/60">No messages yet</span>}
+          </p>
+          {adminUnread > 0 && (
+            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent px-1.5 font-mono text-[9px] font-bold text-accent-fg">
+              {adminUnread > 99 ? "99+" : adminUnread}
+            </span>
+          )}
+        </div>
+        <div className="mt-1 flex min-w-0 items-center gap-1.5 overflow-hidden">
+          <Badge variant="role" value={row.role} size="xs">{row.role}</Badge>
+          <span className={`truncate rounded border px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-wide ${state.cls}`}>
+            {state.label}
+          </span>
+          {row.user_active_unread ? (
+            <span className="truncate rounded border border-accent/30 bg-accent/10 px-1.5 py-0.5 font-mono text-[8px] text-accent">Was online</span>
+          ) : null}
+        </div>
+        {row.awaiting_read && row.user_unread > 0 ? (
+          <p className="mt-0.5 font-mono text-[9px] text-text-muted/70">
+            {row.user_unread} unread by user · last active {fmtAgo(row.last_active_at)}
+          </p>
         ) : null}
       </div>
-      <p className="truncate text-[11px] text-text-muted">
-        {row.last_sender === "admin" && <span className="text-text-muted/70">You: </span>}
-        {row.last_body || <span className="italic text-text-muted/60">No messages yet</span>}
-      </p>
-      {row.awaiting_read && row.user_unread > 0 ? (
-        <p className="mt-0.5 font-mono text-[9px] text-text-muted/70">
-          {row.user_unread} unread by user · last active {fmtAgo(row.last_active_at)}
-        </p>
-      ) : null}
     </button>
   );
 };
@@ -134,8 +136,8 @@ const ConversationRow = ({ row, active, onClick }) => {
 const UserContextStrip = ({ row }) => {
   const state = READ_STATE_META[row.read_state] || null;
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-ink/[0.07] bg-surface-secondary/30 px-4 py-2.5">
-      <div className="flex items-center gap-2.5">
+    <div className="custom-scrollbar hidden flex-nowrap items-center gap-x-4 gap-y-1.5 overflow-x-auto border-b border-ink/[0.07] bg-surface-secondary/30 px-4 py-2.5 sm:flex-wrap sm:overflow-visible xl:flex">
+      <div className="flex shrink-0 items-center gap-2.5">
         <span className="text-sm font-semibold text-text-primary">
           {row.username || `#${row.user_id}`}
         </span>
@@ -157,7 +159,7 @@ const UserContextStrip = ({ row }) => {
           value={row.user_unread > 0 ? `${row.user_unread} unread` : "caught up"}
         />
       ) : null}
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         <TelegramIcon size={12} colored={!!row.telegram_id} />
         <span className="font-mono text-[10px] text-text-muted">
           {row.telegram_username
@@ -172,7 +174,7 @@ const UserContextStrip = ({ row }) => {
 };
 
 const Meta = ({ label, value }) => (
-  <div className="flex items-baseline gap-1.5">
+  <div className="flex shrink-0 items-baseline gap-1.5">
     <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
       {label}
     </span>
@@ -535,6 +537,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
 // ── Tab ─────────────────────────────────────────────────────────────
 export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   const [items, setItems] = useState([]);
+  const [listTotal, setListTotal] = useState(0);
+  const [inboxLimit, setInboxLimit] = useState(60);
   const [loadingList, setLoadingList] = useState(true);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -548,8 +552,16 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   const [err, setErr] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [hasMoreBefore, setHasMoreBefore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [pendingImage, setPendingImage] = useState(null);
+  const [mediaSending, setMediaSending] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const scrollRef = useRef(null);
+  const preserveScrollRef = useRef(null);
   const cursorRef = useRef(0);
   const replyFileRef = useRef(null);
   // Full-screen reading mode. The panes are pinned to 640px so the workspace
@@ -570,14 +582,19 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
       const data = await adminChatApi.listConversations({
         ...f.params,
         search: search.trim() || null,
-        limit: 100,
+        limit: inboxLimit,
       });
       setItems(data.items || []);
+      setListTotal(Number(data.total) || 0);
     } catch {
       setItems([]);
     } finally {
       setLoadingList(false);
     }
+  }, [filter, search, inboxLimit]);
+
+  useEffect(() => {
+    setInboxLimit(60);
   }, [filter, search]);
 
   useEffect(() => {
@@ -593,6 +610,9 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   // ── thread ────────────────────────────────────────────────────────
   const openConversation = useCallback(async (row) => {
     setSelected(row);
+    setDeleteTarget(null);
+    setPendingImage(null);
+    setLightboxImage(null);
     selectedIdRef.current = row.id;
     setMessages([]);
     setUserLastReadSeq(Number(row.user_last_read_seq) || 0);
@@ -605,7 +625,8 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
       // must not paint over the one they're looking at now.
       if (selectedIdRef.current !== row.id) return;
       setMessages(data.messages || []);
-      cursorRef.current = data.last_seq || 0;
+      cursorRef.current = Math.max(0, ...(data.messages || []).map((m) => Number(m.seq) || 0));
+      setHasMoreBefore(!!data.has_more_before);
       setUserLastReadSeq(Number(data.user_last_read_seq) || 0);
       if (data.last_seq) {
         await adminChatApi.markRead(row.id, data.last_seq);
@@ -629,11 +650,12 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
         if (data.user_last_read_seq != null) {
           setUserLastReadSeq((prev) => Math.max(prev, Number(data.user_last_read_seq) || 0));
         }
-        const batch = data.messages || [];
+        const batch = [...(data.messages || []), ...(data.message_updates || [])];
         if (!batch.length) return;
         setMessages((prev) => {
-          const seen = new Set(prev.map((m) => m.seq));
-          return [...prev, ...batch.filter((m) => !seen.has(m.seq))];
+          const bySeq = new Map(prev.map((m) => [m.seq, m]));
+          batch.forEach((m) => bySeq.set(m.seq, { ...(bySeq.get(m.seq) || {}), ...m }));
+          return [...bySeq.values()].sort((a, b) => a.seq - b.seq);
         });
         cursorRef.current = Math.max(cursorRef.current, ...batch.map((m) => m.seq));
         await adminChatApi.markRead(selected.id, cursorRef.current);
@@ -646,8 +668,44 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   }, [selected, onRefreshUnread]);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const node = scrollRef.current;
+    if (!node) return;
+    if (preserveScrollRef.current) {
+      const { height, top } = preserveScrollRef.current;
+      preserveScrollRef.current = null;
+      requestAnimationFrame(() => {
+        node.scrollTop = top + (node.scrollHeight - height);
+      });
+      return;
+    }
+    node.scrollTop = node.scrollHeight;
   }, [messages]);
+
+  const loadOlder = async () => {
+    if (!selected || loadingOlder || !hasMoreBefore) return;
+    const firstSeq = Math.min(...messages.map((m) => Number(m.seq)).filter(Number.isFinite));
+    if (!Number.isFinite(firstSeq)) return;
+    const node = scrollRef.current;
+    if (node) preserveScrollRef.current = { height: node.scrollHeight, top: node.scrollTop };
+    setLoadingOlder(true);
+    setErr("");
+    try {
+      const data = await adminChatApi.getMessages(selected.id, 0, 100, firstSeq);
+      const batch = data.messages || [];
+      if (selectedIdRef.current !== selected.id) return;
+      setMessages((prev) => {
+        const bySeq = new Map([...batch, ...prev].map((m) => [m.seq, m]));
+        return [...bySeq.values()].sort((a, b) => a.seq - b.seq);
+      });
+      setHasMoreBefore(!!data.has_more_before);
+      if (!batch.length) preserveScrollRef.current = null;
+    } catch (e) {
+      preserveScrollRef.current = null;
+      setErr(e?.response?.data?.detail || "Couldn't load older messages.");
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   const sendReply = async (bodyOverride = null, kind = "text") => {
     // An override is a string or it is nothing. Checked by type rather than
@@ -683,6 +741,39 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
       await sendReply(url, "image");
     } catch (e) {
       setErr(e?.response?.data?.detail || "Couldn't send that image.");
+      throw e;
+    }
+  };
+
+  const sendPendingImage = async () => {
+    if (!pendingImage || mediaSending) return;
+    setMediaSending(true);
+    try {
+      await sendImage(pendingImage);
+      setPendingImage(null);
+    } catch {
+      // Keep the preview open; sendImage owns the visible error message.
+    } finally {
+      setMediaSending(false);
+    }
+  };
+
+  const deleteMessage = async () => {
+    if (!selected || !deleteTarget || deleting) return;
+    setDeleting(true);
+    setErr("");
+    try {
+      const data = await adminChatApi.deleteMessage(selected.id, deleteTarget.id);
+      setMessages((prev) =>
+        prev.map((message) => (message.id === deleteTarget.id ? data.message : message))
+      );
+      if (isChatImage(deleteTarget) && lightboxImage === deleteTarget.body) setLightboxImage(null);
+      setDeleteTarget(null);
+      loadList();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Couldn't delete that message.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -744,6 +835,72 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
 
   return (
     <>
+    <style>{`
+      @media (max-width: 767px) {
+        body.lq-admin-chat-active .bottom-nav { display: none !important; }
+        .admin-chat-workspace {
+          height: calc(100dvh - var(--lq-header-h)) !important;
+          min-height: 0 !important;
+          overflow: hidden !important;
+          padding-bottom: 0 !important;
+        }
+        .admin-chat-workspace .admin-workspace-content {
+          width: calc(100% + 2rem) !important;
+          margin-left: -1rem !important;
+          margin-right: -1rem !important;
+          padding-bottom: 0 !important;
+          overflow: hidden !important;
+        }
+        .admin-chat-workspace .admin-workspace-content,
+        .admin-chat-workspace .admin-workspace-view,
+        .admin-chat-shell { min-height: 0 !important; height: 100% !important; }
+        .admin-chat-shell {
+          width: 100% !important;
+          margin: 0 !important;
+          gap: 0 !important;
+        }
+        .admin-chat-pane {
+          height: 100% !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          border-left: 0 !important;
+          border-right: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
+        .admin-chat-messages {
+          background-color: rgb(var(--surface-secondary) / .55) !important;
+          background-image:
+            radial-gradient(circle at 12px 12px, rgb(var(--ink) / .025) 1px, transparent 1px),
+            radial-gradient(circle at 32px 32px, rgb(var(--ink) / .018) 1px, transparent 1px);
+          background-size: 44px 44px;
+        }
+      }
+    `}</style>
+    <ChatImageLightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
+    <ChatImageSendModal
+      file={pendingImage}
+      sending={mediaSending}
+      onCancel={() => setPendingImage(null)}
+      onSend={sendPendingImage}
+    />
+    <Modal
+      isOpen={!!deleteTarget}
+      onClose={() => !deleting && setDeleteTarget(null)}
+      title="Delete this message?"
+      subtitle="The sequence and read receipts stay intact"
+      size="sm"
+      footer={
+        <div className="flex w-full justify-end gap-2">
+          <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting} className="px-3 py-2 text-xs text-text-muted hover:text-text-primary">Cancel</button>
+          <button type="button" onClick={deleteMessage} disabled={deleting} className="rounded-lg bg-loss px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{deleting ? "Deleting…" : "Delete message"}</button>
+        </div>
+      }
+    >
+      <p className="line-clamp-4 text-xs leading-relaxed text-text-muted">
+        {isChatImage(deleteTarget) ? "The image file and its message will be removed." : deleteTarget?.body}
+      </p>
+    </Modal>
     <Modal
       isOpen={confirmReadAll}
       onClose={() => setConfirmReadAll(false)}
@@ -797,7 +954,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
       {...(expanded
         ? { role: "dialog", "aria-modal": "true", "aria-label": "Chat, expanded", tabIndex: -1 }
         : {})}
-      className={`grid gap-4 lg:grid-cols-[320px_1fr] ${
+      className={`admin-chat-shell grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] ${
         expanded
           ? "lq-below-header fixed inset-0 z-[9998] grid-rows-[minmax(0,1fr)] bg-surface p-3 sm:p-4"
           : ""
@@ -809,8 +966,13 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
           scroll past every conversation to reach the reply box. On a phone this
           switches instead: list, or thread — never both. */}
       <Surface
-        className={`${expanded ? "h-full min-h-0" : "h-[640px]"} flex-col overflow-hidden lg:flex ${
-          selected ? "hidden lg:flex" : "flex"
+        padding="p-0"
+        className={`${
+          expanded
+            ? "h-full min-h-0"
+            : "h-full min-h-0 max-h-none sm:h-[calc(100dvh-10rem)] sm:min-h-[500px] sm:max-h-[960px] xl:h-[calc(100dvh-12.5rem)]"
+        } admin-chat-pane flex-col overflow-hidden xl:flex ${
+          selected ? "hidden xl:flex" : "flex"
         }`}
       >
         <div className="space-y-2.5 border-b border-ink/[0.07] p-3">
@@ -828,7 +990,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
             placeholder="Search username or email…"
             Icon={SearchIcon}
           />
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="no-scrollbar flex flex-nowrap items-center gap-1.5 overflow-x-auto">
             {FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -875,23 +1037,40 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
               tone={NEUTRAL}
             />
           ) : (
-            items.map((row) => (
-              <ConversationRow
-                key={row.id}
-                row={row}
-                active={selected?.id === row.id}
-                onClick={() => openConversation(row)}
-              />
-            ))
+            <>
+              {items.map((row) => (
+                <ConversationRow
+                  key={row.id}
+                  row={row}
+                  active={selected?.id === row.id}
+                  onClick={() => openConversation(row)}
+                />
+              ))}
+              {items.length < listTotal && (
+                <div className="p-3">
+                  <button
+                    type="button"
+                    onClick={() => setInboxLimit((value) => Math.min(value + 60, 200))}
+                    disabled={inboxLimit >= 200}
+                    className="w-full rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-text-muted transition-colors hover:bg-ink/[0.03] hover:text-text-primary disabled:opacity-40"
+                  >
+                    {inboxLimit >= 200 ? `${listTotal - items.length} more — refine search` : `Load more · ${items.length} of ${listTotal}`}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </Surface>
 
       {/* ── Right: thread ── */}
       <Surface
+        padding="p-0"
         className={`${
-          expanded ? "h-full min-h-0" : "h-[min(78dvh,640px)] lg:h-[640px]"
-        } flex-col overflow-hidden lg:flex ${selected ? "flex" : "hidden lg:flex"}`}
+          expanded
+            ? "h-full min-h-0"
+            : "h-full min-h-0 max-h-none sm:h-[calc(100dvh-10rem)] sm:min-h-[500px] sm:max-h-[960px] xl:h-[calc(100dvh-12.5rem)]"
+        } admin-chat-pane flex-col overflow-hidden xl:flex ${selected ? "flex" : "hidden xl:flex"}`}
       >
         {!selected ? (
           <EmptyState
@@ -904,30 +1083,26 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
           <>
             {/* Phone-only way back to the list. Without it, switching panes is a
                 trap: the inbox is gone and nothing on screen returns to it. */}
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              className="flex shrink-0 items-center gap-1.5 border-b border-ink/[0.07] px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted transition-colors hover:text-text-primary lg:hidden"
-            >
-              <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
-                <path
-                  d="M12 15l-5-5 5-5"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              All conversations
-            </button>
+            <div className="flex shrink-0 items-center gap-2 border-b border-ink/[0.07] bg-surface-raised px-2 py-2 xl:hidden">
+              <button type="button" onClick={() => setSelected(null)} aria-label="Back to conversations" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-muted hover:bg-ink/5 hover:text-text-primary">
+                <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5"><path d="M12.5 15.5 7 10l5.5-5.5M7.5 10H17" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+              <Avatar src={selected.avatar_url} name={selected.username || `#${selected.user_id}`} size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold text-text-primary">{selected.username || `#${selected.user_id}`}</p>
+                <p className="truncate text-[10px] text-text-muted">{selected.user_active_unread ? "online recently" : `last active ${fmtAgo(selected.last_active_at)}`} · {planLabel(selected)}</p>
+              </div>
+              {canWrite && <button type="button" onClick={markUnread} title="Mark unread" aria-label="Mark unread" className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted hover:bg-ink/5 hover:text-text-primary"><svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><path d="M3 5.5h14v9H3zM3.5 6l6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /></svg></button>}
+              {canWrite && <button type="button" onClick={toggleClosed} title={selected.status === "closed" ? "Reopen" : "Close thread"} aria-label={selected.status === "closed" ? "Reopen" : "Close thread"} className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted hover:bg-ink/5 hover:text-text-primary"><svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><path d="M4 5.5h12v11H4zM3 3.5h14v3H3zM8 9h4" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /></svg></button>}
+            </div>
 
             <UserContextStrip row={selected} />
 
-            <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-2">
+            <div className="custom-scrollbar hidden shrink-0 items-center gap-2.5 overflow-x-auto border-b border-ink/[0.07] px-4 py-2 xl:flex">
               <Badge variant="status" value={selected.status} size="xs">
                 {selected.status}
               </Badge>
-              <div className="ml-auto flex items-center gap-3">
+              <div className="ml-auto flex shrink-0 items-center gap-3">
                 {canWrite && (
                   <button
                     onClick={markUnread}
@@ -966,10 +1141,22 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
 
             <div
               ref={scrollRef}
-              className={`custom-scrollbar flex-1 space-y-2.5 overflow-y-auto bg-surface-secondary/20 px-4 py-4 ${
+              className={`admin-chat-messages custom-scrollbar flex-1 space-y-2.5 overflow-y-auto bg-surface-secondary/20 px-3 py-3 sm:px-4 sm:py-4 ${
                 expanded ? "[&>*]:mx-auto [&>*]:w-full [&>*]:max-w-3xl" : ""
               }`}
             >
+              {!loadingThread && hasMoreBefore && (
+                <div className="flex justify-center pb-1">
+                  <button
+                    type="button"
+                    onClick={loadOlder}
+                    disabled={loadingOlder}
+                    className="rounded-full border border-ink/[0.08] bg-surface-raised px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted shadow-sm transition-colors hover:text-text-primary disabled:opacity-50"
+                  >
+                    {loadingOlder ? "Loading…" : "Load older messages"}
+                  </button>
+                </div>
+              )}
               {loadingThread ? (
                 <LoadingState label="Loading messages…" />
               ) : messages.length === 0 ? (
@@ -980,10 +1167,10 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                     key={m.id}
                     className={`flex ${m.sender === "user" ? "justify-start" : "justify-end"}`}
                   >
-                    <div className="max-w-[70%]">
+                    <div className="group relative max-w-[86%] sm:max-w-[78%]">
                       <div
-                        className={`break-words rounded-xl text-xs leading-relaxed ${
-                          m.kind === "image" ? "overflow-hidden p-1" : "whitespace-pre-wrap px-3.5 py-2.5"
+                        className={`break-words rounded-[14px] text-xs leading-relaxed shadow-sm ${
+                          isChatImage(m) ? "overflow-hidden p-1" : "px-3.5 py-2.5"
                         } ${
                           m.sender === "user"
                             ? "border border-ink/[0.08] bg-surface-raised text-text-primary"
@@ -992,19 +1179,25 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                               : "border border-ink/[0.08] bg-accent/15 font-medium text-text-primary"
                         }`}
                       >
-                        {m.kind === "image" && typeof m.body === "string" && m.body.startsWith("/") ? (
-                          <a href={m.body} target="_blank" rel="noreferrer" className="block">
-                            <img
-                              src={m.body}
-                              alt="Sent image"
-                              loading="lazy"
-                              className="h-auto max-h-[300px] w-auto max-w-[220px] rounded-lg"
-                            />
-                          </a>
-                        ) : (
-                          m.body
-                        )}
+                        <ChatMessageBody
+                          message={m}
+                          onOpenImage={setLightboxImage}
+                          imageClassName="max-h-[min(52dvh,460px)] max-w-[min(72vw,420px)]"
+                        />
                       </div>
+                      {canWrite && m.sender !== "system" && !m.deleted && !m.expired && !["deleted", "expired_image"].includes(m.kind) && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(m)}
+                          className={`absolute -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-ink/[0.08] bg-surface-raised text-text-muted opacity-100 shadow-sm transition-all hover:text-loss sm:opacity-0 sm:group-hover:opacity-100 ${
+                            m.sender === "user" ? "-right-8" : "-left-8"
+                          }`}
+                          aria-label="Delete message"
+                          title="Delete message"
+                        >
+                          <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5"><path d="M4.5 5.5h11m-7.5 0V4h4v1.5m-6 0 .7 10h6.6l.7-10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                      )}
                       <div
                         className={`mt-0.5 flex items-center gap-1.5 px-1 ${
                           m.sender === "user" ? "justify-start" : "justify-end"
@@ -1035,7 +1228,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
             </div>
 
             <div
-              className={`border-t border-ink/[0.07] bg-surface-raised p-3 ${
+              className={`border-t border-ink/[0.07] bg-surface-raised p-2.5 sm:p-3 ${
                 expanded ? "[&>*]:mx-auto [&>*]:w-full [&>*]:max-w-3xl" : ""
               }`}
             >
@@ -1051,19 +1244,19 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                   <input
                     ref={replyFileRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     className="hidden"
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       // Reset first so picking the same file twice still fires.
                       e.target.value = "";
-                      if (f) sendImage(f);
+                      if (f) setPendingImage(f);
                     }}
                   />
                   <button
                     type="button"
                     onClick={() => replyFileRef.current?.click()}
-                    disabled={sending}
+                    disabled={sending || mediaSending}
                     title="Send an image"
                     aria-label="Send an image"
                     className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.08] text-text-muted transition-colors hover:bg-ink/5 hover:text-text-primary disabled:opacity-30"
@@ -1073,9 +1266,13 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                     </svg>
                   </button>
                   <textarea
-                    rows={2}
+                    rows={1}
                     value={reply}
-                    onChange={(e) => setReply(e.target.value)}
+                    onChange={(e) => {
+                      setReply(e.target.value);
+                      e.target.style.height = "auto";
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -1083,7 +1280,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                       }
                     }}
                     placeholder="Write a reply…  (Enter to send, Shift+Enter for a new line)"
-                    className={`${inputCls} max-h-32 flex-1 resize-none`}
+                    className={`${inputCls} min-h-10 max-h-32 flex-1 resize-none py-2.5`}
                   />
                   <button
                     // Wrapped, not passed by reference: React hands the click
@@ -1093,9 +1290,16 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                     // only the button was dead, and only where people tap it.
                     onClick={() => sendReply()}
                     disabled={sending || !reply.trim()}
-                    className="lq-cta-md h-10 px-4 text-xs disabled:opacity-30"
+                    className="lq-cta-md flex h-10 min-w-10 items-center justify-center px-3 text-xs disabled:opacity-30 sm:min-w-[72px] sm:px-4"
                   >
-                    {sending ? <Spinner size={13} /> : "Send"}
+                    {sending ? (
+                      <Spinner size={13} />
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 sm:hidden"><path d="M3.5 10 16 4.5l-3.5 11-2.1-4-6.9-1.5Zm6.9 1.5L16 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        <span className="hidden sm:inline">Send</span>
+                      </>
+                    )}
                   </button>
                 </div>
               )}

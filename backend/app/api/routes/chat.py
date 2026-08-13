@@ -29,6 +29,7 @@ from app.core.database import get_db
 from app.core.redis import get_redis
 from app.models.user import User
 from app.services import chat_service
+from app.services.chat_media import CHAT_IMAGES_DIR, delete_chat_image
 from app.services.chat_service import ChatSchemaMissing
 
 logger = logging.getLogger(__name__)
@@ -123,6 +124,9 @@ def get_conversation(
         "admin_last_read_seq": conv["admin_last_read_seq"],
         "user_last_read_seq": conv["user_last_read_seq"],
         "messages": messages,
+        "has_more_before": bool(messages) and chat_service.has_messages_before(
+            db, conv["id"], messages[0]["seq"],
+        ),
         "welcome_message": settings.get("welcome_message"),
         "away_enabled": away,
         # Gated here rather than in the client: an API should not hand out copy
@@ -134,6 +138,7 @@ def get_conversation(
 @router.get("/messages")
 def list_messages(
     after: int = Query(0, ge=0, description="Return messages with seq greater than this"),
+    before: Optional[int] = Query(None, ge=1, description="Return older messages before this seq"),
     limit: int = Query(chat_service.DEFAULT_PAGE, ge=1, le=500),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -141,9 +146,13 @@ def list_messages(
     """Poll for the tail. `after` is a per-conversation seq, never a row id —
     ids can commit out of order and silently skip a message.
     """
+    if before is not None and after:
+        raise HTTPException(status_code=400, detail="Use either after or before, not both")
     try:
         conv = chat_service.get_or_create_conversation(db, user.id)
-        messages = chat_service.list_messages(db, conv["id"], after_seq=after, limit=limit)
+        messages = chat_service.list_messages(
+            db, conv["id"], after_seq=after, before_seq=before, limit=limit,
+        )
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
 
@@ -156,7 +165,13 @@ def list_messages(
 
     return {
         "messages": messages,
+        "message_updates": chat_service.list_message_tombstones(
+            db, conv["id"],
+        ) if after else [],
         "last_seq": conv["last_seq"],
+        "has_more_before": bool(messages) and chat_service.has_messages_before(
+            db, conv["id"], messages[0]["seq"],
+        ),
         "status": conv["status"],
         "admin_last_read_seq": conv.get("admin_last_read_seq", 0),
         "user_last_read_seq": conv.get("user_last_read_seq", 0),
@@ -206,6 +221,35 @@ def send_message(
     return {"message": msg, "auto_reply": away, "conversation_id": conv["id"]}
 
 
+@router.delete("/messages/{message_id}")
+def delete_message(
+    message_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Let a user delete only a message they sent themselves."""
+    try:
+        conv = chat_service.get_or_create_conversation(db, user.id)
+        result = chat_service.delete_message(
+            db,
+            conversation_id=conv["id"],
+            message_id=message_id,
+            deleted_by_user_id=user.id,
+            admin=False,
+        )
+    except ChatSchemaMissing as e:
+        raise _schema_guard(e)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    image_removed = False
+    if result["deleted_kind"] == "image":
+        image_removed = delete_chat_image(result["deleted_body"])
+    return {"ok": True, "message": result["message"], "image_removed": image_removed}
+
+
 @router.post("/read")
 def mark_read(
     payload: ReadIn,
@@ -223,7 +267,6 @@ def mark_read(
 # --- image messages ----------------------------------------------
 # Stored outside the repo so a deploy never wipes what people sent, matching how
 # announcement and news images are already handled.
-CHAT_IMAGES_DIR = os.environ.get("CHAT_IMAGES_DIR", "/opt/luxquant/chat-images")
 ALLOWED_IMG = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 # Unlike the admin upload endpoints this one is open to every logged-in user, so
 # it needs a ceiling. A phone photo sits comfortably under this; a video renamed
@@ -234,9 +277,7 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 def validate_chat_image(filename: Optional[str], blob: bytes) -> str:
     """Return the stored extension, or raise. Pure so the rules can be tested.
 
-    Extension-only: the bytes are never trusted to say what they are, and are
-    never executed — they are written under a random name and served by
-    StaticFiles, which types the response from this same extension. SVG is
+    Both extension and magic bytes must describe the same raster type. SVG is
     absent on purpose; it can carry script and would run on our own origin.
     """
     ext = os.path.splitext(filename or "")[1].lower()
@@ -246,6 +287,19 @@ def validate_chat_image(filename: Optional[str], blob: bytes) -> str:
         raise HTTPException(413, "Image is larger than 8 MB")
     if not blob:
         raise HTTPException(400, "That file is empty")
+
+    detected = None
+    if blob.startswith(b"\x89PNG\r\n\x1a\n"):
+        detected = ".png"
+    elif blob.startswith(b"\xff\xd8\xff"):
+        detected = ".jpg"
+    elif blob.startswith((b"GIF87a", b"GIF89a")):
+        detected = ".gif"
+    elif len(blob) >= 12 and blob[:4] == b"RIFF" and blob[8:12] == b"WEBP":
+        detected = ".webp"
+    normalized_ext = ".jpg" if ext == ".jpeg" else ext
+    if detected != normalized_ext:
+        raise HTTPException(400, "The file contents do not match its image type")
     return ext
 
 

@@ -168,6 +168,17 @@
   --ink: 255 255 255;
   --scrim: 0 0 0;
   --ink-inv: 11 14 17;
+  /* Action-button tones. Fixed dark fills read as "solid" on a dark canvas;
+     see the bright block for why they cannot stay constants. */
+  --act-success-bg: #065f46;
+  --act-success-fg: #d1fae5;
+  --act-success-icon: #047857;
+  --act-danger-bg: #7f1d1d;
+  --act-danger-fg: #fee2e2;
+  --act-danger-icon: #991b1b;
+  --act-warn-bg: #9a3412;
+  --act-warn-fg: #ffedd5;
+  --act-warn-icon: #c2410c;
 }
 
 [data-theme="dark"] {
@@ -194,6 +205,17 @@
   --ink: 255 255 255;
   --scrim: 0 0 0;
   --ink-inv: 11 14 17;
+  /* Action-button tones. Fixed dark fills read as "solid" on a dark canvas;
+     see the bright block for why they cannot stay constants. */
+  --act-success-bg: #065f46;
+  --act-success-fg: #d1fae5;
+  --act-success-icon: #047857;
+  --act-danger-bg: #7f1d1d;
+  --act-danger-fg: #fee2e2;
+  --act-danger-icon: #991b1b;
+  --act-warn-bg: #9a3412;
+  --act-warn-fg: #ffedd5;
+  --act-warn-icon: #c2410c;
 }
 
 [data-theme="bright"] {
@@ -229,6 +251,17 @@
   --ink: 15 23 42;
   --scrim: 15 23 42;
   --ink-inv: 255 255 255;
+  /* Inverted for light: pale tint of the hue, dark text on top. A dark-maroon
+     slab on a white page reads as an error state, not a button. */
+  --act-success-bg: #d1fae5;
+  --act-success-fg: #065f46;
+  --act-success-icon: #a7f3d0;
+  --act-danger-bg: #fee2e2;
+  --act-danger-fg: #991b1b;
+  --act-danger-icon: #fecaca;
+  --act-warn-bg: #ffedd5;
+  --act-warn-fg: #9a3412;
+  --act-warn-icon: #fed7aa;
 }
 
 /* Legacy compatibility — existing var(--bg-primary), var(--positive) etc.
@@ -278,6 +311,32 @@
   --bg-secondary: rgb(var(--surface-secondary));
 }
 
+/* ── Chart series ──────────────────────────────────────────────────────
+   Categorical slots for multi-series charts. NOT the auth providers' brand
+   colours: Google #4285F4, Telegram #229ED9 and Discord #5865F2 are three
+   blues, indistinguishable side by side for everyone and hopeless under
+   colour-vision deficiency. Brand identity is carried by the logo beside the
+   label instead; the fill only has to separate.
+
+   Both columns are validated (OKLab, adjacent pairs): worst CVD ΔE 9.2 light /
+   9.4 dark against a ≥8 target, worst normal-vision ΔE 27.6 / 26.5 against a
+   ≥15 floor. Dark steps are the default because Luxquant and Dark are dark
+   desks; Bright gets the light steps. Aqua sits under 3:1 on the light surface,
+   so every chart using it must carry visible labels — legend and tooltip, not
+   colour alone. */
+:root {
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-muted: #6f6f68;
+}
+[data-theme="bright"] {
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-muted: #9a9a94;
+}
+
 /* Bright desk chrome — solid header bar (no transparent float) */
 /* ── Modals clear the header without leaving a bald strip ────────────────────
    The header paints above overlays, so a sheet pinned to inset:0 ran its top
@@ -305,28 +364,39 @@
    orientation, font scale and notch instead of trusting two magic numbers. */
 :root {
   --lq-header-h: 57px;
-  /* Zero on purpose. A 10px gap here used to read as a bald strip: the scrim
-     behind it is blurred, but blurred white page on a bright theme is still
-     white, so the eye sees a hole between the bar and the sheet rather than a
-     gap. Flush against the header is what makes the blur look attached to it. */
-  --lq-modal-gap: 0px;
+  /* Breathing room under the app header. Flush (0) made sheets look jammed
+     into the chrome; a real gap reads cleaner and leaves room to scroll the
+     panel instead of cropping it under the bar. Scrim stays full-bleed. */
+  /* Mobile needs a clear air gap under the sticky header — 0 looked jammed. */
+  --lq-modal-gap: 16px;
   --lq-modal-top: calc(var(--lq-header-h) + var(--lq-modal-gap));
+  /* Mobile sheets are surfaces, not floating cards: their own footer owns the
+     safe-area padding, while the sheet itself must paint through the final
+     viewport pixel. A frame-level gap exposed the page underneath. */
+  --lq-modal-bottom: 0px;
   /* One scrim recipe for the whole app. Before this the codebase held five
      different blurs (4/6/8/10/12px) and six different dims (62%…95%), so two
      sheets opened back to back looked like two products. */
   --lq-scrim-blur: 10px;
   --lq-scrim-alpha: 0.72;
-  /* Tallest a dialog may be and still clear the header on both edges. */
-  --lq-modal-maxh: calc(100dvh - var(--lq-modal-top) - 12px);
+  /* Tallest a dialog may be and still clear header + bottom gap. */
+  --lq-modal-maxh: calc(100dvh - var(--lq-modal-top) - var(--lq-modal-bottom));
+}
+@media (min-width: 640px) {
+  :root {
+    --lq-modal-gap: 16px;
+    --lq-modal-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
 }
 @media (min-width: 1024px) {
   :root {
     --lq-header-h: 65px;
+    --lq-modal-gap: 20px;
   }
 }
 @supports not (height: 100dvh) {
   :root {
-    --lq-modal-maxh: calc(100vh - var(--lq-modal-top) - 12px);
+    --lq-modal-maxh: calc(100vh - var(--lq-modal-top) - var(--lq-modal-bottom));
   }
 }
 
@@ -341,7 +411,16 @@ body > .fixed.inset-0 {
    The extra element selector settles the tie without !important, so a
    component can still override with an even more specific rule. */
 body .lq-modal-safe {
-  padding-top: var(--lq-modal-top);
+  /* Longhands only — never set `padding` shorthand, so Tailwind p-0 / p-4
+     cannot wipe header clearance by resetting all four sides at once. */
+  padding-top: var(--lq-modal-top) !important;
+  padding-bottom: var(--lq-modal-bottom) !important;
+  box-sizing: border-box;
+  /* Prefer scrolling the frame over letting a tall card run under the header. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Everything else that anchors itself to the top of the viewport and would
@@ -376,14 +455,23 @@ body .lq-toast-safe {
 }
 
 /* Clearance alone is not enough. A centred card taller than the space left
-   under the header overflows its frame evenly in both directions, which puts
-   its own top edge straight back behind the bar — the overlap the padding
-   exists to prevent. Most cards cap themselves at 90–94dvh, which is a few
-   pixels over on a short viewport, so it showed as a header-height crop rather
-   than an obvious break. Bound them to the box they are actually laid out in.
-   The scrim is not a flex item here (it is fixed), so this never touches it. */
-body .lq-modal-safe > * {
-  max-height: 100%;
+   under the header overflows its frame and either crops under the bar or
+   looks jammed flush against it. Cap every direct child to the safe viewport
+   budget (--lq-modal-maxh) AND the padded frame (100%), whichever is smaller.
+   Cards should scroll internally rather than grow into the chrome.
+
+   The scrim is excluded by name, and that exclusion is load-bearing. Being
+   `position: fixed` does NOT exempt it — `max-height` applies to fixed boxes
+   like any other, and the scrim is a direct child of this same root. It only
+   looked exempt back when this rule capped at a plain `100%`, because 100% of
+   a viewport-sized containing block IS the viewport, so the cap was a no-op.
+   Capping to --lq-modal-maxh instead made it real: the backdrop stopped
+   (header clearance + bottom clearance) short of the bottom of the screen and
+   left a band that was neither dimmed nor blurred — raw page on desktop, the
+   bare bottom nav on a phone. The card is what has to clear the chrome; the
+   scrim must stay full-bleed. */
+body .lq-modal-safe > *:not(.lq-scrim) {
+  max-height: min(100%, var(--lq-modal-maxh));
 }
 
 /* The scrim recipe, in two pieces.
@@ -1149,12 +1237,27 @@ body::-webkit-scrollbar,
 }
 
 /* ==========================================
+ Open Sauce One — SIL Open Font License 1.1
+ https://github.com/marcologous/Open-Sauce-Fonts  (see /fonts/OpenSauceOne-OFL.txt)
+ Self-hosted woff2, landing page only (.lp-v2). Five weights, no italics:
+ the landing uses 400/500/600/700/800 and nothing else.
+ ========================================== */
+@font-face{font-family:"Open Sauce One";src:url("/fonts/OpenSauceOne-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Open Sauce One";src:url("/fonts/OpenSauceOne-Medium.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:"Open Sauce One";src:url("/fonts/OpenSauceOne-SemiBold.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"Open Sauce One";src:url("/fonts/OpenSauceOne-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Open Sauce One";src:url("/fonts/OpenSauceOne-ExtraBold.woff2") format("woff2");font-weight:800;font-style:normal;font-display:swap}
+
+/* ==========================================
  Landing V2 Typography
  ========================================== */
 .lp-v2,
 .lp-v2 * {
+  /* Was "Poppins" — which was never actually loaded (the Google Fonts link in
+     index.html carries Playfair Display, Plus Jakarta Sans and JetBrains Mono,
+     not Poppins), so the landing had been falling back to system-ui all along. */
   font-family:
-    "Poppins",
+    "Open Sauce One",
     system-ui,
     -apple-system,
     sans-serif !important;
@@ -1166,10 +1269,17 @@ body::-webkit-scrollbar,
   text-rendering: optimizeLegibility;
 }
 
-.lp-v2 h1,
+/* Matching the reference exactly: its h1 sits at letter-spacing normal and
+   only the section headings are tightened (-1.2px at 48px = -0.025em). The old
+   blanket rule applied -0.02em to h1 as well, and being a plain CSS rule it
+   also outranked the Tailwind tracking utilities on every heading. */
+.lp-v2 h1 {
+  letter-spacing: normal;
+}
+
 .lp-v2 h2,
 .lp-v2 h3 {
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 /* ── Selection mode (Signals compare) ──────────────────────────────
@@ -1310,4 +1420,899 @@ textarea:focus-visible {
     radial-gradient(rgb(var(--ink) / 0.02) 1px, transparent 1px);
   background-size: 22px 22px, 22px 22px;
   background-position: 0 0, 11px 11px;
+}
+
+/* ── Locked-value glow (landing only) ─────────────────────────────
+   A rotating conic ring, borrowed in technique from konten.com and
+   re-coloured to LuxQuant's own accent.
+
+   Why this exists: the Risk-adjusted edge block deliberately shows nothing
+   readable — the R values leak the whole ladder if drawn (see RrLadder). That
+   left the loudest element on the panel carrying the least information, and
+   six blurred cells in one view read as "failed to load" rather than "locked".
+   A moving ring says "this is the valuable part" without revealing a number,
+   which is exactly what a teaser needs.
+
+   The `@property` registration is load-bearing, not decoration: an unregistered
+   custom property is a string to the browser, and strings do not interpolate.
+   Without it the angle jumps from 0 to 360 and nothing appears to move.
+
+   Structure: the glow element is a 1px-padded wrapper whose padding IS the
+   ring; its child paints an opaque fill over the middle. No pseudo-elements,
+   no masks. */
+@property --lq-glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes lq-glow-spin {
+  to {
+    --lq-glow-angle: 360deg;
+  }
+}
+
+.lp-v2 .lq-glow {
+  position: relative;
+  padding: 1px;
+  border-radius: 15px;
+  /* The flat colour under the gradient is what the "off" 220° of the sweep
+     shows. Without it the ring disappears entirely for two-thirds of every
+     rotation and the card looks like it is flickering. */
+  background:
+    conic-gradient(
+      from var(--lq-glow-angle),
+      transparent 0deg,
+      rgb(var(--accent-light) / 0.85) 45deg,
+      rgb(var(--accent)) 85deg,
+      transparent 140deg,
+      transparent 360deg
+    ),
+    rgb(var(--accent) / 0.16);
+  animation: lq-glow-spin 6s linear infinite;
+}
+
+.lp-v2 .lq-glow > * {
+  border-radius: 14px;
+  /* Depth from a two-stop gradient and nothing else — no drop shadow. Two
+     values apart is enough to read as raised on a dark surface. */
+  background: linear-gradient(
+    180deg,
+    rgb(var(--surface-raised)),
+    rgb(var(--surface))
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-v2 .lq-glow {
+    animation: none;
+  }
+}
+
+/* ── Risk / reward map (landing only) ─────────────────────────────
+   This is an ordered relationship, not a progress bar: the public UI knows
+   that Stop = -1R and that TP1–TP4 are sequential, but receives none of the
+   target values. Solid surfaces communicate deliberate locking; blur and
+   indeterminate progress semantics would imply either leaked data or loading.
+
+   Motion runs once as the section enters: downside establishes first, the
+   reward rail draws from Entry, then milestones settle in sequence. It tells
+   the reading order without making the user wait or running forever. */
+@keyframes lq-rr-shimmer {
+  from { background-position: -140% 0; }
+  to { background-position: 240% 0; }
+}
+
+.lp-v2 .lq-rr-stop-fill,
+.lp-v2 .lq-rr-reward-fill {
+  transform: scaleX(0);
+}
+
+.lp-v2 .lq-rr-stop-fill {
+  transform-origin: right;
+  transition: transform 560ms cubic-bezier(0.4, 0, 0.2, 1) 180ms;
+  background: linear-gradient(90deg, #8f2637, #ff516c);
+  box-shadow: 0 0 12px rgb(255 81 108 / 0.28);
+}
+
+.lp-v2 .lq-rr-reward-fill {
+  transition: transform 900ms cubic-bezier(0.25, 1, 0.5, 1) 360ms;
+  background: #9b7817;
+}
+
+/* ══ Risk-adjusted edge v3 ════════════════════════════════════════════
+   Dua kolom: kiri ceritanya (satu grafik ambang batas), kanan mekanikanya.
+   Angka duduk DI sumbunya, bukan di baris terpisah — itu konvensi grafik
+   ambang batas, dan alasannya praktis: mata tidak perlu menyambungkan tiga
+   blok yang sebenarnya satu pernyataan. */
+
+.lp-v2 .lq-edge {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .lp-v2 .lq-edge {
+    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  }
+  .lp-v2 .lq-edge-side {
+    border-top: 0;
+    border-left: 1px solid rgb(var(--ink) / 0.06);
+  }
+}
+
+.lp-v2 .lq-edge-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 26px 24px;
+}
+
+@media (min-width: 640px) {
+  .lp-v2 .lq-edge-main { padding: 32px 30px; }
+}
+
+.lp-v2 .lq-edge-eyebrow {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: rgb(var(--fg));
+}
+
+/* ── Grafik ambang batas ── */
+.lp-v2 .lq-edge-plot { margin-top: 26px; }
+
+.lp-v2 .lq-edge-heads {
+  position: relative;
+  height: 74px;
+}
+
+/* Tiap kepala angka berdiri TEPAT di atas posisinya pada sumbu. */
+.lp-v2 .lq-edge-head {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.lp-v2 .lq-edge-head-num {
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg));
+}
+
+.lp-v2 .lq-edge-head--live .lq-edge-head-num { font-size: 42px; }
+.lp-v2 .lq-edge-num--live { color: rgb(var(--accent)); }
+
+.lp-v2 .lq-edge-head-cap {
+  margin-top: 5px;
+  font-size: 13px;
+  color: rgb(var(--fg-muted));
+}
+
+.lp-v2 .lq-edge-axis {
+  position: relative;
+  height: 18px;
+  border-radius: 99px;
+  background: rgb(var(--ink) / 0.06);
+  overflow: hidden;
+}
+
+.lp-v2 .lq-edge-seg-need,
+.lp-v2 .lq-edge-seg-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 900ms cubic-bezier(.25, 1, .5, 1);
+}
+
+.lp-v2 .lq-edge-seg-need {
+  left: 0;
+  border-radius: 99px 0 0 99px;
+  background: rgb(var(--ink) / 0.16);
+  transition-delay: 150ms;
+}
+
+.lp-v2 .lq-edge-seg-edge {
+  border-radius: 0 99px 99px 0;
+  background: rgb(var(--accent));
+  transition-delay: 500ms;
+}
+
+.lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-edge-seg-need,
+.lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-edge-seg-edge {
+  transform: scaleX(1);
+}
+
+.lp-v2 .lq-edge-gate {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1px;
+  background: rgb(var(--surface-secondary));
+  box-shadow: 0 0 0 1px rgb(var(--fg) / 0.4);
+  z-index: 2;
+}
+
+.lp-v2 .lq-edge-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg) / 0.35);
+}
+
+.lp-v2 .lq-edge-claim {
+  margin-top: 20px;
+  max-width: 46ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgb(var(--fg-muted));
+}
+
+.lp-v2 .lq-edge-claim strong { color: rgb(var(--fg)); font-weight: 500; }
+
+/* Rincian "dari mana angkanya" — tertutup secara bawaan supaya tidak
+   membebani pembaca yang sudah percaya, tapi ada untuk yang tidak. */
+.lp-v2 .lq-edge-why { margin-top: 16px; max-width: 46ch; }
+
+.lp-v2 .lq-edge-why > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(var(--fg) / 0.72);
+  border-bottom: 1px dashed rgb(var(--ink) / 0.28);
+  padding-bottom: 2px;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+
+.lp-v2 .lq-edge-why > summary::-webkit-details-marker { display: none; }
+.lp-v2 .lq-edge-why > summary::marker { content: ""; }
+
+.lp-v2 .lq-edge-why > summary::after {
+  content: "＋";
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.lp-v2 .lq-edge-why[open] > summary::after { content: "−"; }
+
+.lp-v2 .lq-edge-why > summary:hover {
+  color: rgb(var(--fg));
+  border-color: rgb(var(--ink) / 0.45);
+}
+
+.lp-v2 .lq-edge-why-body {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--ink) / 0.06);
+  background: rgb(var(--surface));
+}
+
+.lp-v2 .lq-edge-why-body p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgb(var(--fg-muted));
+}
+
+.lp-v2 .lq-edge-why-body p + p { margin-top: 10px; }
+.lp-v2 .lq-edge-why-body strong { color: rgb(var(--fg)); font-weight: 500; }
+
+.lp-v2 .lq-edge-formula {
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg)) !important;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgb(var(--ink) / 0.05);
+}
+
+/* ── Kolom kanan ── */
+.lp-v2 .lq-edge-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 24px;
+  border-top: 1px solid rgb(var(--ink) / 0.06);
+}
+
+@media (min-width: 640px) {
+  .lp-v2 .lq-edge-side { padding: 32px 30px; }
+}
+
+.lp-v2 .lq-edge-rowhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lp-v2 .lq-edge-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgb(var(--fg));
+}
+
+/* Downside jadi satu baris — sebelumnya kartu setinggi 100px untuk satu angka. */
+.lp-v2 .lq-edge-stopline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--neg) / 0.22);
+  background: rgb(var(--neg) / 0.06);
+}
+
+.lp-v2 .lq-edge-stoptag {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(var(--neg-text));
+}
+
+.lp-v2 .lq-edge-stopval {
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg));
+}
+
+.lp-v2 .lq-edge-cap {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+}
+
+.lp-v2 .lq-edge-rail {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--ink) / 0.05);
+  background: rgb(var(--surface-raised));
+}
+
+.lp-v2 .lq-edge-entry {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(var(--fg-muted));
+}
+
+.lp-v2 .lq-edge-targets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Chip sempit dan naik bertingkat — bentuknya yang menyampaikan urutan.
+   Kenaikan seragam, tanpa skala: tidak ada nilai R yang bocor. */
+.lp-v2 .lq-edge-tp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 6px;
+  border-radius: 10px;
+  border: 1px solid rgb(var(--ink) / 0.06);
+  background: rgb(var(--surface));
+  color: rgb(var(--fg-muted));
+}
+
+.lp-v2 .lq-edge-tpname { font-size: 14px; font-weight: 500; color: rgb(var(--fg)); }
+
+.lp-v2 .lq-edge-tp:nth-child(1) { transform: translateY(12px); }
+.lp-v2 .lq-edge-tp:nth-child(2) { transform: translateY(8px); }
+.lp-v2 .lq-edge-tp:nth-child(3) { transform: translateY(4px); }
+.lp-v2 .lq-edge-tp:nth-child(4) { transform: translateY(0); }
+
+.lp-v2 .lq-edge-locked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  margin-top: 4px;
+}
+
+.lp-v2 .lq-edge-lockedstat {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.lp-v2 .lq-edge-dots {
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  color: rgb(var(--fg) / 0.3);
+  user-select: none;
+}
+
+@media (max-width: 520px) {
+  .lp-v2 .lq-edge-tp:nth-child(n) { transform: none; }
+  .lp-v2 .lq-edge-head-num { font-size: 26px; }
+  .lp-v2 .lq-edge-head--live .lq-edge-head-num { font-size: 34px; }
+}
+
+.lp-v2 .lq-risk-suite {
+  border: 1px solid rgb(var(--ink) / 0.06);
+  border-radius: 24px;
+  background: rgb(var(--surface-secondary));
+}
+
+.lp-v2 .lq-rr-map,
+.lp-v2 .lq-risk-aside {
+  border-color: rgb(var(--ink) / 0.05);
+  border-radius: 20px;
+  background: rgb(var(--surface-raised));
+}
+
+/* Referensi memberi kartunya ruang: padding bawah 32px pada kartu 572px.
+   Punya kita sebelumnya 16px dan terasa sesak. */
+.lp-v2 .lq-rr-map,
+.lp-v2 .lq-risk-aside {
+  padding: 22px 20px;
+}
+
+@media (min-width: 640px) {
+  .lp-v2 .lq-rr-map,
+  .lp-v2 .lq-risk-aside {
+    padding: 26px 24px;
+  }
+}
+
+.lp-v2 .lq-private-badge {
+  border: 1px solid rgb(var(--ink) / 0.1);
+  background: rgb(var(--ink) / 0.04);
+  color: rgb(var(--fg-muted));
+}
+
+.lp-v2 .lq-risk-aside {
+  border: 1px solid rgb(var(--ink) / 0.08);
+}
+
+/* Shared solid card language for the risk ladder and its locked metrics.
+   Same surface, border and radius; colour is reserved for semantic content. */
+.lp-v2 .lq-risk-card {
+  position: relative;
+  border: 1px solid rgb(var(--ink) / 0.06);
+  background: rgb(var(--surface-secondary));
+}
+
+.lp-v2 .lq-rr-stop {
+  border-color: rgb(var(--neg) / 0.28);
+  background: rgb(var(--neg) / 0.07);
+}
+
+.lp-v2 .lq-rr-stop-track { background: rgb(var(--ink) / 0.08); }
+
+.lp-v2 .lq-rr-reward-panel {
+  border-color: rgb(var(--ink) / 0.08);
+  background: rgb(var(--surface-secondary));
+}
+
+.lp-v2 .lq-rr-rail-base { background: rgb(var(--ink) / 0.1); }
+
+.lp-v2 .lq-rr-rail-shimmer {
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent 0%, transparent 35%, rgb(255 255 255 / 0.04) 42%, #ffe9a3 48%, #d9a817 53%, transparent 62%, transparent 100%);
+  background-size: 230% 100%;
+  opacity: 0;
+  filter: blur(.2px) drop-shadow(0 0 7px rgb(220 170 35 / 0.35));
+}
+
+.lp-v2 .lq-rr-target-face {
+  border: 1px solid rgb(var(--ink) / 0.07);
+  border-radius: 14px;
+  min-height: 96px;
+  background: rgb(var(--surface-secondary));
+  transition: border-color 220ms ease, background 220ms ease, transform 220ms ease;
+}
+
+.lp-v2 .lq-rr-target-face:hover {
+  border-color: rgb(var(--ink) / 0.16);
+  background: rgb(var(--surface-hover));
+  transform: translateY(-2px);
+}
+
+.lp-v2 .lq-rr-target-lock {
+  border: 1px solid rgb(var(--ink) / 0.1);
+  background: rgb(var(--ink) / 0.05);
+}
+
+.lp-v2 .lq-stat-card {
+  overflow: hidden;
+  border-radius: 18px;
+  min-height: 158px;
+  transition: border-color 220ms ease, background 220ms ease, transform 220ms ease;
+}
+
+.lp-v2 .lq-stat-card > div {
+  padding: 22px 20px;
+}
+
+.lp-v2 .lq-stat-card:hover {
+  border-color: rgb(var(--ink) / 0.16);
+  background: rgb(var(--surface-hover));
+  transform: translateY(-2px);
+}
+
+.lp-v2 .lq-rr-entry-dot {
+  opacity: 0.35;
+  transform: scale(0.65);
+  transition:
+    opacity 300ms ease-out 260ms,
+    transform 400ms cubic-bezier(0.25, 1, 0.5, 1) 260ms;
+}
+
+.lp-v2 .lq-rr-target {
+  opacity: 0;
+  transform: translateY(9px);
+  transition:
+    opacity 360ms ease-out var(--rr-delay),
+    transform 460ms cubic-bezier(0.25, 1, 0.5, 1) var(--rr-delay);
+}
+
+.lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-rr-stop-fill,
+.lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-rr-reward-fill {
+  transform: scaleX(1);
+}
+
+.lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-rr-entry-dot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-rr-target {
+  opacity: 1;
+  transform: none;
+}
+
+.lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-rr-rail-shimmer {
+  opacity: 1;
+  animation: lq-rr-shimmer 4.8s linear 1.35s infinite;
+}
+
+/* ── Win-rate analytics reveal ───────────────────────────────────
+   Recharts mounts before an off-screen section is seen, so its built-in line
+   animation can finish invisibly. The local viewport observer drives both the
+   chart animation and this solid curtain. The curtain retreats from left to
+   right; its thin warm edge makes the direction legible without a glow cloud. */
+.lp-v2 .lq-wr-suite {
+  border: 1px solid rgb(var(--ink) / 0.06);
+  border-radius: 24px;
+  background: rgb(var(--surface-secondary));
+}
+
+.lp-v2 .lq-wr-metrics > span {
+  border: 1px solid rgb(var(--ink) / 0.06);
+  border-radius: 11px;
+  background: rgb(var(--surface-secondary));
+  padding: 9px 14px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 520ms ease, transform 680ms cubic-bezier(.25,1,.5,1);
+}
+
+.lp-v2 .lq-wr-metrics > span:nth-child(2) { transition-delay: 90ms; }
+.lp-v2 .lq-wr-metrics > span:nth-child(3) { transition-delay: 180ms; }
+.lp-v2 .lq-wr-section[data-lq-local-in="true"] .lq-wr-metrics > span {
+  opacity: 1;
+  transform: none;
+}
+
+.lp-v2 .lq-wr-chart-stage {
+  border: 1px solid rgb(var(--ink) / 0.07);
+  background: rgb(var(--surface));
+  padding: 8px 4px 4px;
+}
+
+.lp-v2 .lq-wr-curtain {
+  background: #0f1012;
+  transform: scaleX(1);
+  transform-origin: right center;
+  transition: transform 1900ms cubic-bezier(.25,1,.5,1) 180ms;
+}
+
+.lp-v2 .lq-wr-curtain::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: #d8aa22;
+  box-shadow: 0 0 12px rgb(216 170 34 / .55);
+}
+
+.lp-v2 .lq-wr-section[data-lq-local-in="true"] .lq-wr-curtain {
+  transform: scaleX(0);
+}
+
+.lp-v2 .lq-wr-tip,
+.lp-v2 .lq-wr-analysis {
+  border: 1px solid rgb(var(--ink) / 0.05);
+  background: rgb(var(--surface-raised));
+}
+
+@media (max-width: 639px) {
+  /* Mobile menahan skala lamanya dan membatalkan pembesaran di atas.
+     Dinaikkan proporsional, bukan disamakan dengan desktop. */
+  .lp-v2 .lq-risk-suite { padding: 14px; }
+  .lp-v2 .lq-stat-card { min-height: 140px; }
+  .lp-v2 .lq-stat-card > div { padding: 18px 16px; }
+  .lp-v2 .lq-rr-map,
+  .lp-v2 .lq-risk-aside { padding: 18px 16px; }
+  .lp-v2 .lq-wr-suite { padding: 16px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-v2 .lq-rr-stop-fill,
+  .lp-v2 .lq-rr-reward-fill,
+  .lp-v2 .lq-rr-entry-dot,
+  .lp-v2 .lq-rr-target {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .lp-v2 .lq-rr-rail-shimmer {
+    opacity: 0;
+    animation: none;
+  }
+
+  .lp-v2 .lq-stat-card::before,
+  .lp-v2 .lq-wr-curtain,
+  .lp-v2 .lq-wr-metrics > span {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ── Lit button surfaces (landing only) ───────────────────────────
+   Finish borrowed from konten.com, re-coloured to LuxQuant's accent.
+
+   The trick is that the light source sits OUTSIDE the button: the radial
+   gradient is centred 11% ABOVE the top edge, so the face is brightest along
+   the top and falls away downward, the way a real object under a ceiling light
+   behaves. The two inset shadows then act as a bevel — a highlight where the
+   light lands, a shade where it does not.
+
+   Both shadows are `inset` on purpose. Nothing here is elevated off the page;
+   every drop shadow was removed in the earlier pass and none come back. */
+.lp-v2 .lq-btn-primary {
+  /* Four stops, not two. The first version ran accent-light -> accent, which
+     on this palette is #FCD535 -> #F0B90B: both bright yellow, barely a step
+     apart, so the face read as flat fill with a bevel drawn on it. The
+     reference spans #FDBA74 -> #EA580C — a large drop in value, and that drop
+     is the whole illusion. This spans a near-white gold down to accent-dark,
+     which had been sitting unused in the palette. */
+  background: radial-gradient(
+    63% 56% at 22% -11%,
+    #fff2bd 0%,
+    rgb(var(--accent-light)) 30%,
+    rgb(var(--accent)) 62%,
+    rgb(var(--accent-dark)) 100%
+  );
+  box-shadow:
+    inset 0 4px 8px rgb(255 255 255 / 0.18),
+    inset 0 -4px 6px rgb(var(--scrim) / 0.16);
+}
+
+.lp-v2 .lq-btn-primary:hover {
+  /* Lift the whole face rather than swapping the colour — the gradient is what
+     carries the shape, and replacing it with a flat hover colour flattens it. */
+  filter: brightness(1.07);
+}
+
+.lp-v2 .lq-btn-secondary {
+  /* Same idea one notch down: light the top-left corner rather than running a
+     flat vertical ramp, so primary and secondary read as the same material
+     under the same lamp. */
+  background: radial-gradient(
+    80% 70% at 22% -14%,
+    rgb(var(--ink) / 0.09) 0%,
+    rgb(var(--surface-raised)) 45%,
+    rgb(var(--surface)) 100%
+  );
+  border: 1px solid rgb(var(--ink) / 0.1);
+  box-shadow:
+    inset 0 2px 2px rgb(255 255 255 / 0.06),
+    inset 0 -3px 4px rgb(var(--scrim) / 0.25);
+}
+
+.lp-v2 .lq-btn-secondary:hover {
+  border-color: rgb(var(--ink) / 0.18);
+  filter: brightness(1.12);
+}
+
+/* ── Card surfaces ───────────────────────────────────────────────
+   Same principle one level up: depth from a two-stop gradient and a hairline,
+   never from a drop shadow. Applied to the landing's panels so the gold glow
+   they used to sit under stops competing with the accent itself — on the
+   reference, the accent colour appears 14 times on an 8,000px page, and it
+   reads expensive precisely because it is rare. */
+.lp-v2 .lq-card {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--surface-raised)) 0%,
+    rgb(var(--surface)) 100%
+  );
+  border: 1px solid rgb(var(--ink) / 0.08);
+  box-shadow: none;
+}
+
+/* ── Diagram atmosphere (landing only) ───────────────────────────
+   The finish from konten.com's hero, rebuilt rather than lifted: their dotted
+   field is a raster tile (texture.png, 600x600) and an asset of theirs, so the
+   equivalent is drawn here with a repeating radial.
+
+   Dots and the cursor spotlight share ONE ::before as two stacked background
+   layers. They cannot have a pseudo-element each — an element only has one
+   ::before, and the first attempt at this silently lost the dot field because
+   the spotlight rule was written later and simply won.
+
+   The spotlight sits at a constant low alpha instead of fading in on hover:
+   opacity on a shared layer would take the dots with it. */
+.lp-v2 .lq-dotfield::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      260px at var(--lq-mx, 50%) var(--lq-my, 40%),
+      rgb(var(--accent-light) / 0.10) 0%,
+      rgb(var(--accent) / 0.045) 40%,
+      transparent 72%
+    ),
+    radial-gradient(rgb(var(--ink) / 0.13) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px;
+  /* Fade the field at the edges so it reads as atmosphere, not as a texture
+     that stops dead at the section boundary. */
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 30%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 30%, transparent 78%);
+}
+
+/* One broad bloom so the middle of the diagram looks lit from behind.
+   Width is a flat value: `min(760px, 90%)` resolved against the wrong
+   containing block and collapsed the layer to 29px. */
+.lp-v2 .lq-bloom::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  /* Viewport units, not a percentage: the percentage resolved against a
+     containing block that measured ~32px and collapsed the bloom to 29px. */
+  width: min(760px, 90vw);
+  height: 620px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--accent) / 0.13) 0%,
+    rgb(var(--accent) / 0.04) 45%,
+    transparent 100%
+  );
+}
+
+/* ── Chips (landing only) ────────────────────────────────────────
+   Coin rail, module tabs, range toggles. Same bevel as the buttons so the
+   whole surface family is lit from one direction, but at a fraction of the
+   contrast — a chip is a filter, not a call to action, and giving it the same
+   weight as "Create free account" would flatten the hierarchy the buttons
+   were just rebuilt to carry. */
+.lp-v2 .lq-chip {
+  background: linear-gradient(180deg, rgb(var(--ink) / 0.055) 0%, rgb(var(--ink) / 0.02) 100%);
+  border: 1px solid rgb(var(--ink) / 0.09);
+  box-shadow:
+    inset 0 1px 1px rgb(255 255 255 / 0.05),
+    inset 0 -2px 3px rgb(var(--scrim) / 0.22);
+}
+
+.lp-v2 .lq-chip:hover {
+  border-color: rgb(var(--ink) / 0.18);
+  filter: brightness(1.25);
+}
+
+/* Selected chip borrows the primary's light source at low intensity, so "on"
+   reads as the same material lit harder rather than as a different component. */
+.lp-v2 .lq-chip-on {
+  background: radial-gradient(
+    63% 56% at 22% -11%,
+    rgb(var(--accent) / 0.28) 0%,
+    rgb(var(--accent) / 0.12) 100%
+  );
+  border: 1px solid rgb(var(--accent) / 0.35);
+  box-shadow:
+    inset 0 1px 2px rgb(255 255 255 / 0.12),
+    inset 0 -2px 4px rgb(var(--scrim) / 0.2);
+}
+
+/* ── Section choreography (landing only) ──────────────────────────
+   Driven by LandingPageV2, which stamps `data-lq-reveal` on every section it
+   claims and flips `data-lq-in` as sections come and go. The rule it follows
+   is reveal-early / reset-late: `data-lq-in` only returns to "false" once a
+   section has left the viewport entirely, so nothing ever fades out while it
+   is still on screen.
+
+   Easing is `cubic-bezier(0.25, 1, 0.5, 1)` throughout — ease-out-quart, read
+   off stripe.com's own reveal system. It leaves fast and lands soft, which is
+   what stops a 26px rise feeling like a slide. */
+.lp-v2 [data-lq-reveal] {
+  opacity: 0;
+  transform: translateY(34px);
+  transition:
+    opacity 860ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 860ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.lp-v2 [data-lq-reveal][data-lq-in="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Anything marked `lq-rise` travels further and lands later than the section
+   carrying it, which is what separates a foreground object from its panel.
+   Used by the phone in the free-tier card. */
+.lp-v2 [data-lq-reveal] .lq-rise {
+  opacity: 0;
+  transform: translateY(112px);
+  transition:
+    opacity 1400ms cubic-bezier(0.25, 1, 0.5, 1) 250ms,
+    transform 2800ms cubic-bezier(0.4, 0, 0.2, 1) 250ms;
+}
+
+.lp-v2 [data-lq-reveal][data-lq-in="true"] .lq-rise {
+  opacity: 1;
+  transform: none;
+}
+
+/* Depth behind the phone is LIGHT, not shadow. The panel is already dark, so
+   a drop shadow reads as nothing at all; a warm bloom behind the device is
+   what makes it sit in front of the card rather than printed on it. It fades
+   in after the phone has arrived, so the glow follows the object. */
+.lp-v2 .lq-phone-glow {
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--accent) / 0.22) 0%,
+    rgb(var(--accent) / 0.11) 38%,
+    rgb(var(--accent) / 0.03) 66%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 1800ms cubic-bezier(0.25, 1, 0.5, 1) 1450ms;
+}
+
+.lp-v2 [data-lq-reveal][data-lq-in="true"] .lq-phone-glow {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-v2 [data-lq-reveal],
+  .lp-v2 [data-lq-reveal] .lq-rise,
+  .lp-v2 .lq-phone-glow {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }

@@ -83,10 +83,15 @@ export function parseFilters(searchParams) {
 }
 
 // ── Predikat filter (faithful port dari SignalsPage.filtered) ───────
-// ctx: { coinIntel, verdictByPair }
+// ctx: { coinIntel, verdictByPair, getVerdictForSignal }
+// Prefer getVerdictForSignal (leave-one-out / as-of-entry) over pair-only map.
 export function applySignalFilters(signals, f, ctx = {}) {
-  const { coinIntel = {}, verdictByPair = {} } = ctx;
+  const { coinIntel = {}, verdictByPair = {}, getVerdictForSignal } = ctx;
   let out = [...(signals || [])];
+  const signalVerdict = (s) => {
+    if (typeof getVerdictForSignal === "function") return getVerdictForSignal(s);
+    return verdictByPair[s.pair];
+  };
 
   if (f.searchPair) out = out.filter((s) => pairMatchesQuery(s.pair, f.searchPair));
 
@@ -145,7 +150,7 @@ export function applySignalFilters(signals, f, ctx = {}) {
 
   if (f.corrDecoupled) out = out.filter((s) => s.btc_decoupled === true);
   if (f.corrHighAlign) out = out.filter((s) => (s.btc_align_score ?? -1) >= 70);
-  if (f.verdictFilter !== "all") out = out.filter((s) => verdictByPair[s.pair] === f.verdictFilter);
+  if (f.verdictFilter !== "all") out = out.filter((s) => signalVerdict(s) === f.verdictFilter);
 
   if (f.selectedTags?.length > 0) {
     out = out.filter((s) => {

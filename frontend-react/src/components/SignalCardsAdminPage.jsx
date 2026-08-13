@@ -3,6 +3,7 @@
 // + humanized caption run on the VPS (card_poster.py); this is the control surface.
 import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../services/authApi";
+import { CollectionPagination, useCollectionPagination } from "./admin/CollectionPagination";
 
 function fmtLeft(ms) {
   if (ms < 0) ms = 0;
@@ -101,6 +102,7 @@ export default function SignalCardsAdminPage() {
   const [copied, setCopied] = useState(null);
   const [now, setNow] = useState(Date.now());
   const firedRef = useRef(null);
+  const draftPages = useCollectionPagination(drafts, 12);
 
   const loadCfg = useCallback(async () => {
     try {
@@ -388,7 +390,10 @@ export default function SignalCardsAdminPage() {
           <button
             key={s}
             type="button"
-            onClick={() => setFilter(s)}
+            onClick={() => {
+              setFilter(s);
+              draftPages.resetPage();
+            }}
             className={`cursor-pointer rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
               filter === s
                 ? "border-accent/30 bg-accent/15 text-accent"
@@ -414,7 +419,7 @@ export default function SignalCardsAdminPage() {
             No drafts yet — press “Generate draft”.
           </div>
         )}
-        {drafts.map((d) => (
+        {draftPages.pagedItems.map((d) => (
           <div
             key={d.id}
             className="rounded-xl border border-ink/[0.08] bg-surface-raised p-3"
@@ -511,6 +516,16 @@ export default function SignalCardsAdminPage() {
           </div>
         ))}
       </div>
+      <CollectionPagination
+        page={draftPages.page}
+        totalPages={draftPages.totalPages}
+        total={draftPages.total}
+        pageSize={draftPages.pageSize}
+        onPageChange={draftPages.setPage}
+        onPageSizeChange={draftPages.setPageSize}
+        pageSizeOptions={[12, 24, 48]}
+        itemLabel="signal cards"
+      />
     </div>
   );
 }

@@ -25,6 +25,7 @@ import {
 } from "../Icons";
 import SystemMap from "./SystemMap";
 import BackendHealthPanel from "./BackendHealthPanel";
+import { CollectionPagination } from "../CollectionPagination";
 
 const CARDS_PER_PAGE = 12;
 const HEALTH_ORDER = { down: 0, warn: 1, unknown: 2, ok: 3, idle: 4 };
@@ -222,7 +223,7 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
         <pre
           className="mt-2.5 ml-[18px] p-2 rounded text-[10px] leading-relaxed overflow-x-auto whitespace-pre-wrap"
           style={{
-            background: "rgb(var(--scrim) / 0.35)",
+            background: "rgb(var(--surface-secondary))",
             border: `1px solid ${tint(palette.red[400], 0.2)}`,
             color: "rgb(var(--fg-secondary))",
             maxHeight: 140,
@@ -479,37 +480,14 @@ export const SystemTab = () => {
             </div>
           ))}
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 mt-6">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 rounded-md text-[12px] disabled:opacity-40"
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${tint(palette.warm[100], 0.14)}`,
-                  color: "rgb(var(--fg-secondary))",
-                }}
-              >
-                ← Prev
-              </button>
-              <span className="text-[12px]" style={{ color: "rgb(var(--fg-muted))" }}>
-                Page <b style={{ color: palette.gold[300] }}>{page}</b> / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 rounded-md text-[12px] disabled:opacity-40"
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${tint(palette.warm[100], 0.14)}`,
-                  color: "rgb(var(--fg-secondary))",
-                }}
-              >
-                Next →
-              </button>
-            </div>
-          )}
+          <CollectionPagination
+            page={page}
+            totalPages={totalPages}
+            total={sortedAll.length}
+            pageSize={CARDS_PER_PAGE}
+            onPageChange={setPage}
+            itemLabel="services"
+          />
 
           {!loading && data && (data.services || []).length === 0 && (
             <div className="text-center py-16 text-sm" style={{ color: "rgb(var(--fg-muted))" }}>

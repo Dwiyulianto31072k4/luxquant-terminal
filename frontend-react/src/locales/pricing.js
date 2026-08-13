@@ -16,7 +16,7 @@ export const pricingEn = {
   hero_title_line1: "Choose how you work",
   hero_title_line2: "with the market.",
   hero_subtitle:
-    "Start free. Upgrade for live signals, Agent, on-chain context, and research — one terminal, transparent pricing.",
+    "Start free with Markets, Bitcoin, and Pulse. Upgrade for live signals, Called movers, Agent, on-chain context, and research — one terminal, transparent pricing.",
 
   // Plan labels
   monthly: "Monthly",
@@ -39,7 +39,7 @@ export const pricingEn = {
   feat_signals: "Trading signals",
   feat_analytics: "Analytics and charts",
   feat_performance: "Performance tracking",
-  feat_market: "Market data",
+  feat_market: "Called movers on Pulse",
   feat_support: "Priority support",
   feat_basic_support: "Standard support",
   feat_lifetime: "Lifetime product updates",
@@ -48,12 +48,12 @@ export const pricingEn = {
   feat_ai: "AI research",
 
   free_name: "Free",
-  free_desc: "Core market views",
+  free_desc: "Markets, Bitcoin & Pulse",
   free_price: "0",
   free_cta: "Continue free",
-  free_feat_1: "Core market views",
-  free_feat_2: "Public performance",
-  free_feat_3: "Limited research",
+  free_feat_1: "Markets, Bitcoin & Pulse",
+  free_feat_2: "News and public performance",
+  free_feat_3: "Journal",
   free_feat_4: "Product updates",
 
   select_plan: "Get started",
@@ -76,6 +76,7 @@ export const pricingEn = {
     "Monthly, Annual, and Lifetime unlock the same product. Support and update terms differ.",
   compare_feature: "Capability",
   compare_signals: "Algorithmic signals",
+  compare_called: "Called overlay on Pulse",
   compare_autotrade: "Agent",
   compare_analytics: "Analytics and charts",
   compare_onchain: "On-chain intelligence",
@@ -102,7 +103,7 @@ export const pricingEn = {
   faq_subtitle: "",
   faq_q1: "Is there a free plan?",
   faq_a1:
-    "Yes. Free includes core market views and public performance. Paid plans unlock live signals, Agent, on-chain intelligence, and AI research.",
+    "Yes. Free includes Markets, Bitcoin, Pulse, News, and public performance. Paid plans unlock live signals, the Called overlay on Pulse, Agent, on-chain intelligence, and AI research.",
   faq_q2: "What do paid plans include?",
   faq_a2:
     "All paid plans include the full product. The difference is billing: monthly, annual, or lifetime.",
@@ -146,7 +147,7 @@ export const pricingZh = {
   hero_title_line1: "选择你与市场",
   hero_title_line2: "协作的方式。",
   hero_subtitle:
-    "免费开始。需要实时信号、Agent、链上上下文与研究时再升级 — 一个终端，定价清晰。",
+    "免费使用 Markets、Bitcoin 与 Pulse。升级可解锁实时信号、Called 叠加、Agent、链上上下文与研究 — 一个终端，定价清晰。",
 
   monthly: "月度",
   yearly: "年度",
@@ -168,7 +169,7 @@ export const pricingZh = {
   feat_signals: "交易信号",
   feat_analytics: "分析与图表",
   feat_performance: "绩效跟踪",
-  feat_market: "市场数据",
+  feat_market: "Pulse 上的 Called 叠加",
   feat_support: "优先支持",
   feat_basic_support: "标准支持",
   feat_lifetime: "终身产品更新",
@@ -177,12 +178,12 @@ export const pricingZh = {
   feat_ai: "AI 研究",
 
   free_name: "免费",
-  free_desc: "核心市场视图",
+  free_desc: "Markets、Bitcoin 与 Pulse",
   free_price: "0",
   free_cta: "继续免费使用",
-  free_feat_1: "核心市场视图",
-  free_feat_2: "公开绩效",
-  free_feat_3: "有限研究",
+  free_feat_1: "Markets、Bitcoin 与 Pulse",
+  free_feat_2: "新闻与公开绩效",
+  free_feat_3: "交易日志",
   free_feat_4: "产品更新",
 
   select_plan: "开始",
@@ -204,6 +205,7 @@ export const pricingZh = {
   compare_note: "月付、年付与终身解锁相同产品。支持与更新条款不同。",
   compare_feature: "能力",
   compare_signals: "算法信号",
+  compare_called: "Pulse 上的 Called 叠加",
   compare_autotrade: "Agent",
   compare_analytics: "分析与图表",
   compare_onchain: "链上情报",
@@ -230,7 +232,7 @@ export const pricingZh = {
   faq_subtitle: "",
   faq_q1: "有免费方案吗？",
   faq_a1:
-    "有。免费版包含核心市场视图与公开绩效。付费方案解锁实时信号、Agent、链上情报与 AI 研究。",
+    "有。免费版包含 Markets、Bitcoin、Pulse、新闻与公开绩效。付费方案解锁实时信号、Pulse 上的 Called 叠加、Agent、链上情报与 AI 研究。",
   faq_q2: "付费方案包含什么？",
   faq_a2: "所有付费方案均含完整产品。区别仅在计费：月付、年付或终身。",
   faq_q3: "如何支付？",

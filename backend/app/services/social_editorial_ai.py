@@ -321,6 +321,82 @@ def assemble_caption(
     return "\n\n".join(p for p in parts if p)
 
 
+# ── Which model writes the pack ─────────────────────────────────────────────
+# The editorial call was hardwired to xAI. Two reasons that had to change: xAI
+# has retired grok-4, which is what we were still calling, and the only public
+# benchmark that measures this exact job — AtelierEval, which scores models as
+# text-to-image PROMPTERS rather than as writers — does not include Grok at all.
+# It ranks Gemini 3 highest with a skilled brief (65.5) and GPT-5.2 a close
+# second (63.7) but far steadier when the brief is thin (63.3 vs Gemini's 59.2),
+# which is the operating condition here: some drafts carry the editor's art
+# direction, most do not.
+#
+# Default stays xAI so nothing moves until someone chooses. Set
+# SOCIAL_EDITORIAL_PROVIDER=openai and SOCIAL_EDITORIAL_MODEL=gpt-5.2 to switch.
+EDITORIAL_PROVIDER = os.environ.get("SOCIAL_EDITORIAL_PROVIDER", "xai").strip().lower()
+EDITORIAL_MODEL = os.environ.get("SOCIAL_EDITORIAL_MODEL", "").strip()
+OPENAI_API_BASE = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
+
+def editorial_model() -> str:
+    """The model id that will actually run, for pricing and for the record."""
+    if EDITORIAL_MODEL:
+        return EDITORIAL_MODEL
+    return "gpt-5.2" if EDITORIAL_PROVIDER == "openai" else XAI_CHAT_MODEL
+
+
+def _parse_pack(content: str) -> dict:
+    try:
+        return json.loads(content)
+    except Exception:
+        match = re.search(r"\{.*\}", content, flags=re.S)
+        if not match:
+            raise
+        return json.loads(match.group(0))
+
+
+def _openai_chat(api_key: str, messages: list[dict[str, str]], temperature: float):
+    model = editorial_model()
+    payload = {
+        "model": model,
+        "messages": messages,
+        "response_format": {"type": "json_object"},
+    }
+    # Several of the newer OpenAI models accept only the default temperature and
+    # reject the parameter outright rather than clamping it. Send it, and drop it
+    # on that specific complaint instead of losing the whole draft to a 400.
+    payload["temperature"] = temperature
+    for attempt in (1, 2):
+        resp = requests.post(
+            f"{OPENAI_API_BASE.rstrip('/')}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=XAI_TIMEOUT,
+        )
+        if resp.status_code == 400 and attempt == 1 and "temperature" in resp.text.lower():
+            logger.info("openai rejected temperature for %s — retrying at its default", model)
+            payload.pop("temperature", None)
+            continue
+        resp.raise_for_status()
+        break
+    data = resp.json()
+    usage = data.get("usage") or {}
+    return _parse_pack(data["choices"][0]["message"]["content"]), usage
+
+
+def _editorial_chat(messages: list[dict[str, str]], temperature: float = XAI_CHAT_TEMPERATURE):
+    """Dispatch to whichever provider is configured. Same contract either way."""
+    if EDITORIAL_PROVIDER == "openai":
+        key = os.environ.get("OPENAI_API_KEY", "").strip()
+        if not key:
+            raise RuntimeError("SOCIAL_EDITORIAL_PROVIDER=openai but OPENAI_API_KEY is unset")
+        return _openai_chat(key, messages, temperature)
+    key = os.environ.get("XAI_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("XAI_API_KEY is unset")
+    return _xai_chat(key, messages, temperature)
+
+
 def _xai_chat(api_key: str, messages: list[dict[str, str]], temperature: float = XAI_CHAT_TEMPERATURE):
     payload = {
         "model": XAI_CHAT_MODEL,
@@ -471,9 +547,10 @@ def build_editorial_pack(
 
     Keys on success: headline, image_prompt, caption, hashtags (list), source_note.
     """
-    key = api_key or os.environ.get("XAI_API_KEY", "").strip()
+    _needed = "OPENAI_API_KEY" if EDITORIAL_PROVIDER == "openai" else "XAI_API_KEY"
+    key = api_key or os.environ.get(_needed, "").strip()
     if not key:
-        logger.info("social_editorial_ai: XAI_API_KEY not set, skipping AI pack")
+        logger.info("social_editorial_ai: %s not set, skipping AI pack", _needed)
         return None
 
     context = _build_context(news, article_text, tavily)
@@ -605,7 +682,7 @@ def build_editorial_pack(
     )
 
     try:
-        pack, usage = _xai_chat(key, [
+        pack, usage = _editorial_chat([
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ])
@@ -730,7 +807,7 @@ def build_editorial_pack(
     pack["_usage"] = {
         "prompt_tokens": int((usage or {}).get("prompt_tokens") or 0),
         "completion_tokens": int((usage or {}).get("completion_tokens") or 0),
-        "chat_model": XAI_CHAT_MODEL,
+        "chat_model": editorial_model(),
     }
 
     return pack

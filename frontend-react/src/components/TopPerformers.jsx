@@ -1222,7 +1222,7 @@ export const SignalDetailModal = ({
     >
       <div className="lq-scrim" onClick={handleClose} aria-hidden="true" />
       <div
-        className={`relative flex h-[min(94dvh,100%)] max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-[1.35rem] border border-ink/[0.07] bg-surface-raised shadow-[0_24px_80px_-20px_rgb(var(--scrim)/0.55)] lg:max-w-[1080px] sm:h-auto sm:max-h-[min(92dvh,880px)] sm:rounded-2xl ${
+        className={`relative flex h-[min(var(--lq-modal-maxh),100%)] max-h-[var(--lq-modal-maxh)] w-full max-w-5xl flex-col overflow-hidden rounded-t-[1.35rem] border border-ink/[0.07] bg-surface-raised shadow-[0_24px_80px_-20px_rgb(var(--scrim)/0.55)] lg:max-w-[1080px] sm:h-auto sm:max-h-[min(var(--lq-modal-maxh),880px)] sm:rounded-2xl ${
           isClosing
             ? "animate-[smSheetDn_.22s_ease-in_forwards] sm:animate-[smCO_.2s_ease-in_forwards]"
             : "animate-[smSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:animate-[smCI_.28s_cubic-bezier(.16,1,.3,1)]"
@@ -1722,7 +1722,7 @@ export const SignalDetailModal = ({
           <img
             src={lightboxImg}
             alt=""
-            className="max-h-[95vh] max-w-full rounded-xl object-contain"
+            className="max-h-[min(var(--lq-modal-maxh),100%)] max-w-full rounded-xl object-contain"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

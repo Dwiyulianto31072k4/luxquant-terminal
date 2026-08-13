@@ -9,6 +9,16 @@ const RING_MAX = 80;
 const ALLOWED = new Set([
   "landing_view",
   "cta_click",
+  // Impressions. The backend has allowed these since the funnel was built, but
+  // this list never did, so `trackFunnel` dropped them before the request was
+  // ever made — StickyLandingCta has been firing cta_shown into a void.
+  //
+  // Without them the top of the funnel has no denominator: 81% of landing
+  // sessions click nothing, and there is no way to tell someone who never saw
+  // a CTA from someone who saw it and was not convinced. Those need opposite
+  // fixes, so the gap has to close before anything is changed on the page.
+  "cta_shown",
+  "cta_dismiss",
   "soft_gate_shown",
   "soft_gate_login_click",
   "auth_page_view",
@@ -16,6 +26,11 @@ const ALLOWED = new Set([
   "auth_success",
   "auth_error",
   "post_login_land",
+  "acq_land",
+  "auth_popup_blocked",
+  "auth_abandoned",
+  "auth_fallback_offered",
+  "auth_fallback_taken",
 ]);
 
 function sessionId() {

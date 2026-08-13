@@ -45,10 +45,12 @@ export const adminChatApi = {
     return response.data;
   },
 
-  getMessages: async (conversationId, after = 0, limit = 200) => {
+  getMessages: async (conversationId, after = 0, limit = 200, before = null) => {
+    const params = { after, limit };
+    if (before) params.before = before;
     const response = await api.get(
       `/api/v1/admin/chat/conversations/${conversationId}/messages`,
-      { params: { after, limit } }
+      { params }
     );
     return response.data;
   },
@@ -57,6 +59,13 @@ export const adminChatApi = {
     const response = await api.post(
       `/api/v1/admin/chat/conversations/${conversationId}/messages`,
       { body, kind, client_msg_id: clientMsgId }
+    );
+    return response.data;
+  },
+
+  deleteMessage: async (conversationId, messageId) => {
+    const response = await api.delete(
+      `/api/v1/admin/chat/conversations/${conversationId}/messages/${messageId}`
     );
     return response.data;
   },

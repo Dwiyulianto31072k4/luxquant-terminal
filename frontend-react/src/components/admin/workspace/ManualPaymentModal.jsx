@@ -102,7 +102,7 @@ const TextInput = ({ value, onChange, placeholder, mono, disabled, autoFocus }) 
     disabled={disabled}
     autoFocus={autoFocus}
     className={`w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${mono ? "font-mono tabular-nums" : ""}`}
-    style={{ background: "rgb(var(--scrim) / 0.3)", border: "1px solid rgb(var(--ink) / 0.1)" }}
+    style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgb(var(--ink) / 0.1)" }}
   />
 );
 
@@ -400,7 +400,7 @@ const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
             max={new Date().toISOString().slice(0, 10)}
             className="w-full rounded-md px-2.5 py-1.5 font-mono text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--line) / 0.25)",
               colorScheme: "dark",
             }}
@@ -611,7 +611,7 @@ const UserStep = ({
                       placeholder="Search username, email, or telegram…"
                       className="w-full rounded-md py-2 pl-9 pr-3 text-xs text-text-primary focus:outline-none"
                       style={{
-                        background: "rgb(var(--scrim) / 0.3)",
+                        background: "rgb(var(--surface-secondary))",
                         border: "1px solid rgb(var(--ink) / 0.1)",
                       }}
                     />
@@ -625,7 +625,7 @@ const UserStep = ({
                     <div
                       className="max-h-56 overflow-y-auto rounded-lg"
                       style={{
-                        background: "rgb(var(--scrim) / 0.2)",
+                        background: "rgb(var(--surface-secondary))",
                         border: "1px solid rgb(var(--ink) / 0.05)",
                       }}
                     >
@@ -853,7 +853,7 @@ const NoteStep = ({ locked, note, setNote }) => {
             placeholder="User contacted on Telegram, paid directly to wallet before invoice was generated…"
             className="w-full resize-none rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
             }}
           />
@@ -980,7 +980,7 @@ const OffchainStep = ({
           onChange={(e) => setPaymentDateOverride(e.target.value)}
           className="w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1"
           style={{
-            background: "rgb(var(--scrim) / 0.3)",
+            background: "rgb(var(--surface-secondary))",
             border: "1px solid rgb(var(--ink) / 0.1)",
           }}
         />

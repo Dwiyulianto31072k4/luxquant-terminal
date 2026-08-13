@@ -82,7 +82,7 @@ const AnnouncementModal = () => {
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
+        className="relative w-full max-w-sm max-h-[min(var(--lq-modal-maxh),100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
         style={{
           border: "1px solid rgb(var(--ink) / 0.1)",
           boxShadow: "0 -20px 60px rgb(var(--scrim) / 0.35)",

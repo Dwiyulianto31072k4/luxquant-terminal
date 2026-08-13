@@ -12,11 +12,11 @@ so the user can go straight there. Feature map:
 - **Signals** — the live signal terminal (the algorithm's trading calls).
 - **AutoTrade** — automatically execute those signals on your Binance account.
 - **AI Research** — the BTC Compass AI market read (direction, confidence, projection).
-- **Bitcoin** — BTC data: price, dominance, Fear & Greed, RSI, network, on-chain.
-- **Markets** — whole-market overview: heatmap, trending, sectors, derivatives, ETF flows.
+- **Bitcoin** — BTC data: price, dominance, Fear & Greed, RSI, network, on-chain. Free with a login.
+- **Markets** — whole-market overview: heatmap, trending, sectors, derivatives, ETF flows. Free with a login.
 - **Money Flow** — where capital is rotating: sectors, coin buy/sell flow, whales.
 - **On-Chain** — live blockchain alerts (whale transfers, smart money, liquidations).
-- **Pulse** — real-time coin activity, volume spikes, and flash moves.
+- **Pulse** — real-time coin activity, volume spikes, and flash moves. The Called overlay (which movers also have a live LuxQuant plan) is VIP.
 - **News** — categorized crypto news.
 - **Performance Hub** — the signals' historical track record and analytics.
 - **Journal** — a personal trade journal.

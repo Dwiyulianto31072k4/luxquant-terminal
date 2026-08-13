@@ -475,6 +475,7 @@ export const IconBtn = ({ onClick, title, children }) => (
 // Dropdown multi-select — exchange filter style (Sector / Risk)
 export function FilterMulti({ label, options, selected, onChange }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
   const toggle = (v) =>
     onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
   const summary =
@@ -483,23 +484,36 @@ export function FilterMulti({ label, options, selected, onChange }) {
       : selected.length <= 2
         ? selected.join(", ")
         : `${selected.length} selected`;
+
+  // Close on outside click without a full-screen fixed overlay (that ate clicks
+  // and fought sticky toolbars).
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0" ref={rootRef}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 px-2 py-1 rounded-md border transition-colors ${
+        aria-expanded={open}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors ${
           selected.length
-            ? "bg-ink/[0.06] border-ink/15 text-text-primary"
-            : "bg-ink/[0.02] border-ink/[0.07] text-text-muted hover:border-ink/12 hover:text-text-primary"
+            ? "bg-ink/[0.07] border-ink/16 text-text-primary"
+            : "bg-ink/[0.02] border-ink/[0.08] text-text-muted hover:border-ink/14 hover:text-text-primary"
         }`}
       >
-        <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted/80">
+        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/75">
           {label}
         </span>
-        <span className="font-mono text-[10px] max-w-[7rem] truncate">{summary}</span>
+        <span className="font-mono text-[11px] max-w-[6.5rem] truncate font-medium">{summary}</span>
         <svg
-          className={`w-2.5 h-2.5 opacity-60 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`w-2.5 h-2.5 opacity-55 transition-transform ${open ? "rotate-180" : ""}`}
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -509,36 +523,33 @@ export function FilterMulti({ label, options, selected, onChange }) {
         </svg>
       </button>
       {open && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="absolute z-40 mt-1 left-0 min-w-[176px] max-h-64 overflow-y-auto rounded-lg bg-surface border border-ink/[0.1] shadow-2xl shadow-black/50 p-1.5">
-            {selected.length > 0 && (
-              <button
-                type="button"
-                onClick={() => onChange([])}
-                className="w-full text-left px-2 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-ink/[0.04]"
-              >
-                Clear
-              </button>
-            )}
-            {options.map((o) => (
-              <label
-                key={o}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-ink/[0.04] cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.includes(o)}
-                  onChange={() => toggle(o)}
-                  className="accent-[rgb(var(--accent))] w-3 h-3"
-                />
-                <span className="font-mono text-[11px] text-text-primary/85 capitalize">
-                  {String(o).replace(/_/g, " ")}
-                </span>
-              </label>
-            ))}
-          </div>
-        </>
+        <div className="absolute z-50 mt-1.5 left-0 min-w-[11.5rem] max-h-64 overflow-y-auto rounded-xl bg-surface-raised border border-ink/[0.1] shadow-xl shadow-black/20 p-1.5">
+          {selected.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-ink/[0.04]"
+            >
+              Clear
+            </button>
+          )}
+          {options.map((o) => (
+            <label
+              key={o}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-ink/[0.04] cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(o)}
+                onChange={() => toggle(o)}
+                className="accent-[rgb(var(--accent))] w-3.5 h-3.5"
+              />
+              <span className="font-mono text-[12px] text-text-primary/90 capitalize">
+                {String(o).replace(/_/g, " ")}
+              </span>
+            </label>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -709,7 +720,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
           onClick={() => setBig(false)}
         >
           <div
-            className="lq-sheet relative flex h-[min(92dvh,100%)] w-full max-w-[1480px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface shadow-[0_-20px_60px_rgb(var(--scrim)/0.5)] sm:h-[min(94vh,960px)] sm:rounded-2xl sm:shadow-2xl sm:shadow-black/70"
+            className="lq-sheet relative flex h-[min(var(--lq-modal-maxh),100%)] w-full max-w-[1480px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface shadow-[0_-20px_60px_rgb(var(--scrim)/0.5)] sm:h-[min(var(--lq-modal-maxh),960px)] sm:rounded-2xl sm:shadow-2xl sm:shadow-black/70"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Phone-only grab handle: this arrives from the bottom edge here,

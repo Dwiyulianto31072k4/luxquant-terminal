@@ -291,7 +291,7 @@ const Lightbox = ({ src, pair, onClose }) => {
     >
       {/* Close button */}
       <button
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-ink/10 hover:bg-ink/20 flex items-center justify-center text-text-primary transition-colors z-10"
+        className="lq-toast-safe absolute right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-ink/10 text-text-primary transition-colors hover:bg-ink/20"
         onClick={onClose}
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -311,7 +311,7 @@ const Lightbox = ({ src, pair, onClose }) => {
       <img
         src={src}
         alt={`${pair} chart fullscreen`}
-        className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+        className="max-h-[min(var(--lq-modal-maxh),100%)] max-w-full rounded-lg object-contain shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
     </div>

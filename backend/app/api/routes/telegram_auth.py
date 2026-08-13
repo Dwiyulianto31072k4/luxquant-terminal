@@ -22,14 +22,18 @@ import time
 import os
 import re
 import secrets
+import json
 import logging
+import urllib.parse
 from datetime import datetime, timezone
+from typing import Optional
 
 import httpx
 
 _TG_PROXY = os.getenv("TELEGRAM_PROXY") or None
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
 
 from app.core.database import get_db
 from app.core.avatar_storage import is_uploaded_avatar
@@ -37,6 +41,7 @@ from app.core.security import create_cryptobot_exchange_token, create_tokens
 from app.models.user import User
 from app.models.legacy_member import LegacyMember
 from app.schemas.user import (
+    AcqPayload,
     TelegramLogin,
     UserResponse,
     TokenResponse,
@@ -46,6 +51,8 @@ from app.services.referral_helpers import (
     apply_referral_to_user,
     track_user_login,
 )
+from app.services.acq_helpers import apply_acq_to_user
+from app.services.geo_helpers import location_from_request
 from app.services.role_resolver import (
     resolve_role_for_telegram,
     is_role_protected,
@@ -75,7 +82,11 @@ INVITE_LINK_TTL = int(os.getenv("VIP_INVITE_LINK_TTL", "3600"))
 # ====================================================================
 
 @router.post("/telegram", response_model=TokenResponse)
-async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
+async def telegram_login(
+    data: TelegramLogin,
+    request: Request,
+    db: Session = Depends(get_db),
+):
     """Login/Register via Telegram Login Widget."""
 
     # Verify hash
@@ -92,6 +103,28 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
             detail="Telegram authentication has expired, please try again"
         )
 
+    # Everything past authentication is shared with the Mini App entry point
+    # (/telegram/webapp). It is the same account: same VIP resolution, same
+    # legacy claim, same referral and first-touch acquisition. Two copies of
+    # this would drift, and the drift would be silent — one door granting a
+    # role the other does not.
+    return await _issue_telegram_session(data, request, db)
+
+
+
+
+async def _issue_telegram_session(
+    data: TelegramLogin,
+    request: Request,
+    db: Session,
+) -> TokenResponse:
+    """Find-or-create the account and issue tokens. AUTHENTICATION IS THE
+    CALLER'S JOB — by the time this runs, the caller must already have proved
+    the payload came from Telegram (widget HMAC, or Mini App initData).
+
+    `data.hash` is deliberately not read here; the two entry points sign with
+    different schemes and neither signature means anything at this point.
+    """
     # Cek VIP membership (sedang ada di group atau ga)
     is_vip_member = await _check_vip_membership(data.id)
     # Cek legacy snapshot (member lama pre-webapp -> lifetime)
@@ -191,8 +224,15 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
             )
         db.refresh(user)
 
-    # --- Track login ---
-    track_user_login(db, user, commit=True)
+    # --- First-touch acquisition (UTM) — new users, or empty acq on existing ---
+    if getattr(data, "acq", None) is not None:
+        apply_acq_to_user(
+            db, user, data.acq.model_dump() if hasattr(data.acq, "model_dump") else data.acq,
+            commit=True,
+        )
+
+    # --- Track login + geo ---
+    track_user_login(db, user, commit=True, **location_from_request(request))
 
     tokens = create_tokens(user.id, user.email)
 
@@ -200,8 +240,151 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
         user=UserResponse.model_validate(user),
-        cryptobot_token=create_cryptobot_exchange_token(user)
+        cryptobot_token=create_cryptobot_exchange_token(user),
+        is_new_user=is_new_user,
     )
+
+
+# ====================================================================
+# 1b. Telegram Mini App login (initData)
+# ====================================================================
+
+class TelegramWebAppLogin(BaseModel):
+    """Raw initData string exactly as Telegram handed it to the page."""
+    init_data: str = Field(..., max_length=4096)
+    referral_code: Optional[str] = None
+    acq: Optional[AcqPayload] = None
+
+
+def _verify_webapp_init_data(init_data: str, max_age: int = 86400):
+    """Validate Telegram Mini App initData. Returns the parsed dict, or None.
+
+    NOTE the secret differs from the Login Widget. Widget:
+        secret = sha256(bot_token)
+    Mini App:
+        secret = HMAC_SHA256(key=b"WebAppData", msg=bot_token)
+    Using the widget recipe here rejects every genuine login, and the failure
+    looks exactly like a forged one — so it is worth being explicit.
+
+    Values are taken from parse_qsl, which url-decodes once. The check string is
+    built from those decoded values (Telegram signs the decoded form), and
+    `user` stays the raw JSON string it arrives as — re-serialising it would
+    change the bytes and break the hash.
+    """
+    try:
+        pairs = urllib.parse.parse_qsl(init_data, strict_parsing=True, keep_blank_values=True)
+    except Exception:
+        return None
+
+    fields = dict(pairs)
+    received = fields.pop("hash", None)
+    if not received:
+        return None
+
+    check_string = "\n".join(f"{k}={v}" for k, v in sorted(fields.items()))
+    secret = hmac.new(b"WebAppData", TELEGRAM_BOT_TOKEN.encode(), hashlib.sha256).digest()
+    computed = hmac.new(secret, check_string.encode(), hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(computed, received):
+        logger.warning(
+            "webapp initData hash mismatch: signed_fields=%s", sorted(fields.keys())
+        )
+        return None
+
+    # Freshness. Without this, one captured initData string logs someone in
+    # forever.
+    try:
+        auth_date = int(fields.get("auth_date", "0"))
+    except (TypeError, ValueError):
+        return None
+    if auth_date <= 0 or (time.time() - auth_date) > max_age:
+        logger.warning("webapp initData expired: auth_date=%s", auth_date)
+        return None
+
+    return fields
+
+
+@router.post("/telegram/webapp", response_model=TokenResponse)
+async def telegram_webapp_login(
+    payload: TelegramWebAppLogin,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Sign in from inside Telegram, with no OAuth round trip.
+
+    Why this exists: the Login Widget opens a popup and waits for it to talk
+    back. Inside an in-app browser that conversation can simply never happen —
+    measured 2026-08-07, 38 auth_start produced only 10 requests that reached
+    this service. A Mini App is already inside Telegram, so Telegram hands us a
+    signed identity directly and there is no popup to lose.
+    """
+    fields = _verify_webapp_init_data(payload.init_data)
+    if fields is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired Telegram data",
+        )
+
+    try:
+        tg_user = json.loads(fields.get("user") or "{}")
+    except Exception:
+        tg_user = {}
+    if not tg_user.get("id"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Telegram data has no user",
+        )
+
+    # Attribution that arrives already authenticated.
+    #
+    # UTM cannot survive a t.me link — Telegram forwards no query string and
+    # nginx never sees one, which is why the channel buttons carry none. The
+    # Mini App has `startapp`, delivered inside the SIGNED initData as
+    # start_param, so it reaches us tamper-evident rather than as a parameter
+    # anyone could edit. Shape is "<event>_<coin>_<key>", written by
+    # caption_builder._startapp.
+    acq = payload.acq
+    start_param = (fields.get("start_param") or "").strip()
+    if acq is None and start_param:
+        # Match a KNOWN event prefix, longest first. Splitting on the first
+        # underscore breaks on `closed_win`, which contains one: the campaign
+        # came out as "closed" and the content kept a stray "win_" in front of
+        # the button key. Harmless today only because the full-sweep button
+        # still uses the web branch, where utm_campaign arrives whole — it
+        # would corrupt attribution the moment that button moved.
+        _EVENTS = ("closed_loss", "closed_win", "tp1", "tp2", "tp3", "tp4", "post")
+        low = start_param.lower()
+        campaign = next(
+            (e for e in sorted(_EVENTS, key=len, reverse=True)
+             if low == e or low.startswith(e + "_")),
+            None,
+        )
+        if campaign:
+            content = start_param[len(campaign) + 1:] or None
+        else:
+            bits = start_param.split("_")
+            campaign = bits[0] if bits else None
+            content = "_".join(bits[1:]) or None
+        acq = AcqPayload(
+            source="telegram",
+            medium="miniapp",
+            campaign=campaign,
+            content=content,
+        )
+
+    data = TelegramLogin(
+        id=int(tg_user["id"]),
+        first_name=tg_user.get("first_name") or "Telegram",
+        last_name=tg_user.get("last_name"),
+        username=tg_user.get("username"),
+        photo_url=tg_user.get("photo_url"),
+        auth_date=int(fields["auth_date"]),
+        # Already authenticated above; the shared path never reads this.
+        hash="webapp",
+        referral_code=payload.referral_code,
+        acq=acq,
+    )
+    return await _issue_telegram_session(data, request, db)
 
 
 # ====================================================================
@@ -347,17 +530,35 @@ async def join_vip_group(
             detail="Link your Telegram account before joining the VIP group."
         )
 
-    # 3. Kalau sudah di group, ga perlu link baru
-    already_in = await _check_vip_membership(current_user.telegram_id)
-    if already_in:
+    # 3. Membership check — if previously kicked, unban so the invite can work.
+    #    Telegram keeps "kicked" until unban; without this the invite opens but
+    #    join fails with no useful UI feedback on the web side.
+    from app.services.telegram_group import (
+        get_member_status,
+        VIP_GROUP_CHAT_ID as _VIP_CHAT,
+        _post as tg_post,
+    )
+
+    member_status = await get_member_status(current_user.telegram_id)
+    if member_status in ("creator", "administrator", "member", "restricted"):
         if not current_user.telegram_in_group:
             current_user.telegram_in_group = True
             db.commit()
         return {
             "already_member": True,
             "invite_link": None,
-            "message": "You're already a member of the VIP group."
+            "message": "You're already a member of the VIP group.",
         }
+
+    if member_status == "kicked":
+        await tg_post(
+            "unbanChatMember",
+            {
+                "chat_id": _VIP_CHAT,
+                "user_id": current_user.telegram_id,
+                "only_if_banned": True,
+            },
+        )
 
     # 4. Generate invite link sekali-pakai
     invite_link = await create_one_time_invite_link(
@@ -367,14 +568,14 @@ async def join_vip_group(
     if not invite_link:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Couldn't create an invite link, please try again shortly."
+            detail="Couldn't create an invite link, please try again shortly.",
         )
 
     return {
         "already_member": False,
         "invite_link": invite_link,
         "expires_in": INVITE_LINK_TTL,
-        "message": "Single-use link. Click to join the VIP group."
+        "message": "Single-use link. Click to join the VIP group.",
     }
 
 
@@ -387,9 +588,19 @@ def _verify_telegram_hash(data: TelegramLogin) -> bool:
     Verify data authenticity via HMAC-SHA256.
     https://core.telegram.org/widgets/login#checking-authorization
 
-    PENTING: referral_code BUKAN data dari Telegram, exclude dari hash check.
+    PENTING: hanya field yang BENAR-BENAR dikirim Telegram boleh masuk
+    check_string. `referral_code` dan `acq` sama-sama kita sendiri yang
+    tempelkan ke body — dan `acq` sempat terlewat di sini.
+
+    Akibatnya spesifik dan mahal: `acq` diambil dari localStorage (first-touch),
+    jadi ia terkirim untuk siapa pun yang PERNAH mendarat lewat link ber-UTM.
+    Karena AcqPayload sebuah objek, repr dict-nya ikut ter-hash dan hash-nya
+    dijamin meleset -> 401. Pengunjung tanpa UTM tetap lolos, jadi jumlah
+    signup Telegram harian terlihat normal sementara yang ditolak justru
+    pengunjung dari kanal pemasaran. Terukur pada 2026-08-07: Telegram
+    38 auth_start -> 5 sukses (13%), Google 33 -> 26 (79%).
     """
-    check_dict = data.model_dump(exclude={'hash', 'referral_code'})
+    check_dict = data.model_dump(exclude={'hash', 'referral_code', 'acq'})
     check_dict = {k: v for k, v in check_dict.items() if v is not None}
     check_string = '\n'.join(
         f"{k}={v}" for k, v in sorted(check_dict.items())
@@ -402,7 +613,18 @@ def _verify_telegram_hash(data: TelegramLogin) -> bool:
         hashlib.sha256
     ).hexdigest()
 
-    return computed_hash == data.hash
+    ok = hmac.compare_digest(computed_hash, data.hash or "")
+    if not ok:
+        # Sebelumnya gagal tanpa jejak apa pun: 401 sampai ke klien sementara
+        # journald sunyi, jadi tidak ada cara mendiagnosis dari sisi server.
+        # Nama field saja — jangan pernah hash/token.
+        logger.warning(
+            "telegram hash mismatch: tg_id=%s auth_date=%s signed_fields=%s",
+            getattr(data, "id", "?"),
+            getattr(data, "auth_date", "?"),
+            sorted(check_dict.keys()),
+        )
+    return ok
 
 
 def _check_legacy_member(db: Session, telegram_user_id: int) -> bool:

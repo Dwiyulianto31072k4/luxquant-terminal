@@ -58,6 +58,60 @@ export default function LandingPageV2() {
     setHeroIsVideo(Boolean(meta?.isVideoSlide));
   }, []);
 
+  // ── Scroll choreography ───────────────────────────────────────
+  // Every section arrives with a short rise, and goes back to its hidden
+  // state once it has left the screen completely — so scrolling back up
+  // replays it instead of showing a page that has already finished moving.
+  //
+  // Reveal early, reset late: a section is shown as soon as it approaches,
+  // and is only reset at ratio 0. Resetting any sooner would fade content
+  // out while it is still being read.
+  //
+  // This lives here rather than in nine section files because it needs no
+  // knowledge of any of them; sections that run their own choreography opt
+  // out with `data-lq-self` (the How-it-works diagram does).
+  useEffect(() => {
+    const main = document.getElementById("main");
+    if (!main) return undefined;
+
+    const still =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (still || typeof IntersectionObserver === "undefined") return undefined;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          e.target.dataset.lqIn = e.isIntersecting || e.intersectionRatio > 0 ? "true" : "false";
+        });
+      },
+      { rootMargin: "0px 0px -10% 0px", threshold: [0, 0.05] },
+    );
+
+    const claim = () => {
+      main.querySelectorAll(":scope > section").forEach((el) => {
+        if ("lqReveal" in el.dataset || el.hasAttribute("data-lq-self")) return;
+        // Seed from geometry first. The observer's first record lands on a
+        // later frame, and without this a section already on screen flashes
+        // hidden for that frame.
+        const r = el.getBoundingClientRect();
+        el.dataset.lqIn = r.top < window.innerHeight * 0.92 && r.bottom > 0 ? "true" : "false";
+        el.dataset.lqReveal = "";
+        io.observe(el);
+      });
+    };
+    claim();
+
+    // GlobalReach is a lazy chunk, so it joins the DOM long after this runs.
+    const mo = new MutationObserver(claim);
+    mo.observe(main, { childList: true });
+
+    return () => {
+      io.disconnect();
+      mo.disconnect();
+    };
+  }, []);
+
   return (
     <div className="lp-v2 min-h-screen bg-bg-primary text-text-primary relative overflow-x-hidden">
       <Seo

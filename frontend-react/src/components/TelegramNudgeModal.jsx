@@ -22,6 +22,9 @@ import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import api from "../services/authApi";
 import { useDialog } from "../hooks/useDialog";
+// Same buttons the exchange modals use, so a primary action looks the
+// same everywhere in the product.
+import { GoldButton, GhostButton } from "./autotrade/AutoTradeUI";
 
 const INITIAL_DELAY_MS = 5000;
 const LS_KEY = "lq_tg_nudge_v1";
@@ -263,7 +266,7 @@ const TelegramNudgeModal = () => {
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl bg-surface-raised"
+        className="relative w-full max-w-sm max-h-[min(var(--lq-modal-maxh),100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl bg-surface-raised"
         style={{
           border: "1px solid rgb(var(--ink) / 0.1)",
           boxShadow: "0 -20px 60px rgb(var(--scrim) / 0.35)",
@@ -291,9 +294,16 @@ const TelegramNudgeModal = () => {
 
         <div className="min-h-0 flex-1 overflow-y-auto p-6 pt-4">
           {/* icon */}
+          {/* Eyebrow + mark, the same opening the exchange modals use. */}
+          <p className="mb-3 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-accent">
+            {t("nudge.eyebrow", "Notifications")}
+          </p>
           <div
-            className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-            style={{ background: "rgba(0,136,204,0.08)", border: "1px solid rgba(0,136,204,0.25)" }}
+            className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg"
+            style={{
+              background: "rgb(var(--tg) / 0.08)",
+              border: "1px solid rgb(var(--tg) / 0.25)",
+            }}
           >
             <TelegramIcon className="w-6 h-6 text-brand-telegram" />
           </div>
@@ -332,7 +342,7 @@ const TelegramNudgeModal = () => {
 
         {/* sticky CTA footer — never covered */}
         <div
-          className="shrink-0 border-t border-ink/[0.06] px-6 pt-3 flex flex-col gap-2"
+          className="shrink-0 border-t border-ink/[0.06] px-6 pt-4"
           style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
         >
           {(joinError || joinOk) && (
@@ -357,59 +367,41 @@ const TelegramNudgeModal = () => {
             </div>
           )}
 
-          {isLink ? (
-            <a
-              href="/profile"
-              onClick={dismiss}
-              className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold text-center transition-all"
-              style={{
-                background: "linear-gradient(135deg, #0088cc, #006699)",
-                color: "rgb(var(--fg))",
-                border: "1px solid rgba(0,136,204,0.3)",
-              }}
-            >
-              {t("nudge.link_cta", "Link Telegram")}
-            </a>
-          ) : manualLink ? (
-            <a
-              href={manualLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold transition-all"
-              style={{
-                background: "linear-gradient(135deg, #0088cc, #006699)",
-                color: "rgb(var(--fg))",
-                border: "1px solid rgba(0,136,204,0.3)",
-              }}
-            >
-              {t("nudge.open_invite", "Open invite in Telegram")}
-            </a>
-          ) : (
-            <button
-              type="button"
-              onClick={handleJoin}
-              disabled={loading}
-              className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold transition-all disabled:opacity-50 flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, #0088cc, #006699)",
-                color: "rgb(var(--fg))",
-                border: "1px solid rgba(0,136,204,0.3)",
-              }}
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-ink/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                t("nudge.join_cta", "Join VIP Group")
-              )}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={dismiss}
-            className="w-full py-2 rounded-md font-mono text-[10px] uppercase tracking-wider text-text-muted/50 hover:text-text-muted/80 transition-colors"
-          >
-            {t("nudge.later", "Maybe later")}
-          </button>
+          <div className="flex gap-3">
+            <GhostButton onClick={dismiss} className="flex-1">
+              {t("nudge.later", "Maybe later")}
+            </GhostButton>
+
+            {isLink ? (
+              <a
+                href="/profile"
+                onClick={dismiss}
+                className="flex-1 rounded-lg bg-accent px-4 py-2.5 text-center font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-fg transition-opacity hover:opacity-90"
+              >
+                {t("nudge.link_cta", "Link Telegram")}
+              </a>
+            ) : manualLink ? (
+              <a
+                href={manualLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center rounded-lg bg-accent px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-fg transition-opacity hover:opacity-90"
+              >
+                {t("nudge.open_invite", "Open invite in Telegram")}
+              </a>
+            ) : (
+              <GoldButton onClick={handleJoin} disabled={loading} className="flex-1">
+                {loading ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-accent-fg/30 border-t-accent-fg" />
+                    {t("nudge.joining", "Joining…")}
+                  </span>
+                ) : (
+                  t("nudge.join_cta", "Join VIP Group")
+                )}
+              </GoldButton>
+            )}
+          </div>
         </div>
       </div>
     </div>

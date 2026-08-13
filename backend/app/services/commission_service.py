@@ -26,6 +26,7 @@ from app.models.referral import ReferralCode, ReferralUse, REFERRAL_STATUS_CANCE
 from app.models.credit import (
     CreditLedger,
     LEDGER_TYPE_EARN,
+    LEDGER_TYPE_ADJUST,
 )
 
 logger = logging.getLogger(__name__)
@@ -229,4 +230,102 @@ def process_commission_for_payment(
         "referrer_lifetime_earned": float(new_lifetime),
         "referral_use_id": use.id,
         "ledger_id": ledger.id,
+    }
+
+
+def reverse_commission_for_refund(payment: Payment, db: Session) -> Optional[dict]:
+    """Reverse a referral commission when its confirmed payment is refunded.
+
+    Idempotency is anchored to an ``adjust`` ledger row for the same payment.
+    The balance is allowed to become negative when the reward has already been
+    spent: hiding that liability would make the ledger and cashout controls lie.
+    Caller owns the transaction and commit.
+    """
+    earn = db.query(CreditLedger).filter(
+        CreditLedger.ref_payment_id == payment.id,
+        CreditLedger.type == LEDGER_TYPE_EARN,
+    ).first()
+    if not earn:
+        return None
+
+    reversal = db.query(CreditLedger).filter(
+        CreditLedger.ref_payment_id == payment.id,
+        CreditLedger.type == LEDGER_TYPE_ADJUST,
+        CreditLedger.note.like("Commission reversal for refunded payment%"),
+    ).first()
+    if reversal:
+        return None
+
+    use = db.query(ReferralUse).filter(ReferralUse.id == earn.ref_use_id).first()
+    referrer = db.query(User).filter(User.id == earn.user_id).first()
+    if not use or not referrer:
+        logger.error(
+            "Cannot reverse commission for payment #%s: referral use or referrer missing",
+            payment.id,
+        )
+        return None
+
+    amount = abs(Decimal(str(earn.amount or 0)))
+    if amount <= Decimal("0"):
+        return None
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    remaining_payments = db.query(Payment).filter(
+        Payment.user_id == use.referred_id,
+        Payment.status == "confirmed",
+        Payment.deleted_at.is_(None),
+        Payment.id != payment.id,
+    ).all()
+
+    new_balance = Decimal(str(referrer.referral_credit_usdt or 0)) - amount
+    referrer.referral_credit_usdt = new_balance
+    referrer.lifetime_credit_earned = max(
+        Decimal("0"), Decimal(str(referrer.lifetime_credit_earned or 0)) - amount
+    )
+
+    use.total_commission_earned = max(
+        Decimal("0"), Decimal(str(use.total_commission_earned or 0)) - amount
+    )
+    use.commission_amount = max(
+        Decimal("0"), Decimal(str(use.commission_amount or 0)) - amount
+    )
+    use.total_payments = len(remaining_payments)
+    if remaining_payments:
+        use.status = "subscribed"
+        use.last_payment_at = max(
+            (p.verified_at or p.created_at for p in remaining_payments if p.verified_at or p.created_at),
+            default=None,
+        )
+    else:
+        use.status = "active" if use.first_login_at else "pending"
+        use.last_payment_at = None
+        code = db.query(ReferralCode).filter(ReferralCode.id == use.referral_code_id).first()
+        if code and (code.times_used or 0) > 0:
+            code.times_used -= 1
+
+    db.add(CreditLedger(
+        user_id=referrer.id,
+        amount=-amount,
+        type=LEDGER_TYPE_ADJUST,
+        ref_payment_id=payment.id,
+        ref_use_id=use.id,
+        balance_after=new_balance,
+        note=f"Commission reversal for refunded payment #{payment.id}",
+        created_at=now,
+    ))
+    db.flush()
+
+    logger.info(
+        "Commission reversed: payment #%s, referrer user_id=%s, amount=-%s, balance=%s",
+        payment.id,
+        referrer.id,
+        amount,
+        new_balance,
+    )
+    return {
+        "referrer_id": referrer.id,
+        "amount": float(amount),
+        "balance_after": float(new_balance),
+        "referral_use_id": use.id,
     }

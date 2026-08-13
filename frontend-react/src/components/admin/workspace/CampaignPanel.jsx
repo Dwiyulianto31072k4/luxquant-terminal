@@ -81,7 +81,7 @@ const STATUSES = [
 
 const inputCls = "w-full rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none";
 const inputStyle = {
-  background: "rgb(var(--scrim) / 0.3)",
+  background: "rgb(var(--surface-secondary))",
   border: "1px solid rgb(var(--ink) / 0.08)",
 };
 
@@ -297,7 +297,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             maxLength={200}
             className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
             }}
           />
@@ -311,7 +311,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             placeholder="Goal, target audience, or strategy summary…"
             className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none"
             style={{
-              background: "rgb(var(--scrim) / 0.3)",
+              background: "rgb(var(--surface-secondary))",
               border: "1px solid rgb(var(--ink) / 0.1)",
             }}
           />
@@ -359,7 +359,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               placeholder="0.00"
               className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none"
               style={{
-                background: "rgb(var(--scrim) / 0.3)",
+                background: "rgb(var(--surface-secondary))",
                 border: "1px solid rgb(var(--ink) / 0.1)",
               }}
             />
@@ -374,7 +374,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               placeholder="0.00"
               className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none"
               style={{
-                background: "rgb(var(--scrim) / 0.3)",
+                background: "rgb(var(--surface-secondary))",
                 border: "1px solid rgb(var(--ink) / 0.1)",
               }}
             />
@@ -399,7 +399,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               onChange={(e) => setStartDate(e.target.value)}
               className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none"
               style={{
-                background: "rgb(var(--scrim) / 0.3)",
+                background: "rgb(var(--surface-secondary))",
                 border: "1px solid rgb(var(--ink) / 0.1)",
                 colorScheme: "dark",
               }}
@@ -413,7 +413,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               onChange={(e) => setEndDate(e.target.value)}
               className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none"
               style={{
-                background: "rgb(var(--scrim) / 0.3)",
+                background: "rgb(var(--surface-secondary))",
                 border: "1px solid rgb(var(--ink) / 0.1)",
                 colorScheme: "dark",
               }}

@@ -48,6 +48,21 @@ const MEDIA_MASK = {
 
 const MOBILE_QUERY = "(max-width: 639px)";
 
+// From lg up the hero is capped to the viewport instead of a fixed pixel
+// height, and its very large top/bottom padding scales with the screen.
+//
+// The old values knew nothing about the viewport: `lg:min-h-[780px]` with
+// `lg:pt-[13rem]` meant that on a 1366x768 laptop — real viewport ~657px after
+// browser chrome, the most common laptop screen there is — the hero still
+// demanded 780px and pushed the primary CTA past the fold. Measured before the
+// change: pill at 652–710px, so cut off by 53px at 657 and entirely invisible
+// at 1280x720. Tall screens are unaffected; the min() keeps the tuned values
+// whenever there is room for them.
+//
+// Mobile is deliberately untouched — the CTA already sits at y=524 of 812.
+// `vh` rather than `svh` because this applies at lg+ only, where the two agree
+// and vh has no browser-support cliff.
+
 export default function HeroSlideVideo() {
   const [hideHeadline, setHideHeadline] = useState(false);
   // Which clip to mount. Deciding in JS rather than with `sm:hidden` on two
@@ -72,7 +87,7 @@ export default function HeroSlideVideo() {
   }, [isMobile]);
 
   return (
-    <div className="relative w-full min-h-[640px] sm:min-h-[710px] lg:min-h-[780px] xl:min-h-[820px]">
+    <div className="relative w-full min-h-[640px] sm:min-h-[710px] lg:min-h-[min(780px,100vh)] xl:min-h-[min(820px,100vh)]">
       {/* ── MEDIA LAYER (masked → transparent into page canvas) ── */}
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -141,7 +156,7 @@ export default function HeroSlideVideo() {
       </div>
 
       {/* ── CONTENT (not masked — stays readable as media dissolves) ── */}
-      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-4 pb-16 pt-[6.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-20 sm:pt-[11rem] lg:min-h-[780px] lg:px-10 lg:pb-24 lg:pt-[13rem] xl:min-h-[820px] xl:pb-28 xl:pt-[14.5rem]">
+      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-4 pb-16 pt-[6.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-20 sm:pt-[11rem] lg:min-h-[min(780px,100vh)] lg:px-10 lg:pb-[min(6rem,11vh)] lg:pt-[min(13rem,24vh)] xl:min-h-[min(820px,100vh)] xl:pb-[min(7rem,12vh)] xl:pt-[min(14.5rem,26vh)]">
         <div
           className={`relative flex w-full flex-col items-center transition-all duration-700 ease-out ${
             hideHeadline
@@ -161,7 +176,7 @@ export default function HeroSlideVideo() {
           />
 
           <h1
-            className="relative z-10 max-w-6xl font-bold leading-[1.05] tracking-[-0.03em] text-[2.15rem] sm:leading-[1.06] sm:text-[3.1rem] md:text-[3.75rem] lg:text-[4.5rem] xl:text-[5rem]"
+            className="relative z-10 max-w-6xl font-extrabold leading-[1.25] text-[32px] sm:text-[38px] md:text-[42px] lg:text-[48px]"
             style={{
               textShadow: "0 2px 30px rgb(var(--scrim) / 0.35), 0 1px 4px rgb(var(--scrim) / 0.3)",
             }}

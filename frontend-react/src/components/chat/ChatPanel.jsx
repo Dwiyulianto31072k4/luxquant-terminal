@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDialog } from "../../hooks/useDialog";
 import { useChatThread } from "./useChatThread";
+import Modal from "../ui/Modal";
+import {
+  ChatImageLightbox,
+  ChatImageSendModal,
+  ChatMessageBody,
+  isChatImage,
+} from "./ChatMessageContent";
 
 /**
  * Support chat panel — a direct line to the LuxQuant team.
@@ -50,22 +57,26 @@ function withDayBreaks(messages) {
   return out;
 }
 
-/** An image message stores the URL in body; everything else is text. */
-const isImage = (m) => m.kind === "image" && typeof m.body === "string" && m.body.startsWith("/");
-
 export default function ChatPanel({ onClose }) {
   const { t } = useTranslation();
   const panelRef = useRef(null);
   const scrollRef = useRef(null);
+  const preserveScrollRef = useRef(null);
   const fileRef = useRef(null);
   const [input, setInput] = useState("");
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [pendingImage, setPendingImage] = useState(null);
+  const [mediaSending, setMediaSending] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useDialog({ isOpen: true, onClose, ref: panelRef });
 
   const {
     messages, status, welcome, awayMessage,
     loading, sending, error, loaded, adminLastReadSeq,
-    load, send, sendImage, retry,
+    hasMoreBefore, loadingOlder,
+    load, send, sendImage, loadOlder, deleteMessage, retry,
   } = useChatThread({ active: true });
 
   useEffect(() => {
@@ -74,7 +85,17 @@ export default function ChatPanel({ onClose }) {
 
   // Stick to the bottom as the thread grows.
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const node = scrollRef.current;
+    if (!node) return;
+    if (preserveScrollRef.current) {
+      const { height, top } = preserveScrollRef.current;
+      preserveScrollRef.current = null;
+      requestAnimationFrame(() => {
+        node.scrollTop = top + (node.scrollHeight - height);
+      });
+      return;
+    }
+    node.scrollTop = node.scrollHeight;
   }, [messages, loading]);
 
   const closed = status === "closed";
@@ -88,8 +109,64 @@ export default function ChatPanel({ onClose }) {
 
   const rows = withDayBreaks(messages);
 
+  const loadPrevious = async () => {
+    const node = scrollRef.current;
+    if (node) preserveScrollRef.current = { height: node.scrollHeight, top: node.scrollTop };
+    const count = await loadOlder();
+    if (!count) preserveScrollRef.current = null;
+  };
+
+  const sendPendingImage = async () => {
+    if (!pendingImage || mediaSending) return;
+    setMediaSending(true);
+    try {
+      await sendImage(pendingImage);
+      setPendingImage(null);
+    } catch {
+      // The hook owns the user-facing error; keep the preview open for retry.
+    } finally {
+      setMediaSending(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteMessage(deleteTarget.id);
+      setDeleteTarget(null);
+      if (isChatImage(deleteTarget) && lightboxImage === deleteTarget.body) setLightboxImage(null);
+    } catch {
+      // Error is rendered by the hook; keep confirmation open so it can retry.
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <>
+      <ChatImageLightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
+      <ChatImageSendModal
+        file={pendingImage}
+        sending={mediaSending}
+        onCancel={() => setPendingImage(null)}
+        onSend={sendPendingImage}
+      />
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        title="Delete this message?"
+        subtitle="It will be replaced by a deleted-message marker"
+        size="sm"
+        footer={
+          <div className="flex w-full justify-end gap-2">
+            <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting} className="px-3 py-2 text-xs text-text-muted hover:text-text-primary">Cancel</button>
+            <button type="button" onClick={confirmDelete} disabled={deleting} className="rounded-lg bg-loss px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{deleting ? "Deleting…" : "Delete"}</button>
+          </div>
+        }
+      >
+        <p className="line-clamp-3 text-xs leading-relaxed text-text-muted">{isChatImage(deleteTarget) ? "This image will be removed." : deleteTarget?.body}</p>
+      </Modal>
       <div
         className="lq-chat-scrim hidden sm:block fixed inset-0 z-[9998] bg-scrim/30 backdrop-blur-[2px]"
         onClick={onClose}
@@ -101,15 +178,11 @@ export default function ChatPanel({ onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label={t("chat.title") || "Chat with us"}
-        className="lq-sheet fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/12 bg-surface-raised shadow-[0_-8px_40px_rgb(var(--scrim)_/_0.35)] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[560px] sm:w-[400px] sm:max-w-[92vw] sm:rounded-2xl sm:shadow-[0_25px_60px_rgb(var(--scrim)_/_0.35)]"
+        className="lq-sheet fixed inset-0 z-[9999] flex h-[100dvh] w-full flex-col overflow-hidden border-0 bg-surface-raised shadow-[0_-8px_40px_rgb(var(--scrim)_/_0.35)] sm:inset-x-auto sm:inset-y-auto sm:bottom-6 sm:right-6 sm:h-[min(720px,calc(100dvh-3rem))] sm:w-[440px] sm:max-w-[92vw] sm:rounded-2xl sm:border sm:border-ink/12 sm:shadow-[0_25px_60px_rgb(var(--scrim)_/_0.35)]"
       >
         {/* Phone-only grab handle. The panel was already pinned to the bottom
             edge but arrived without motion or affordance, so it read as a screen
             that had always been there rather than a sheet that just opened. */}
-        <div className="flex shrink-0 justify-center pt-2 pb-0.5 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-ink/25" />
-        </div>
-
         {/* Header */}
         <div className="flex items-center justify-between border-b border-ink/10 bg-surface-raised px-4 py-3">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -150,6 +223,18 @@ export default function ChatPanel({ onClose }) {
           ref={scrollRef}
           className="lq-chat-thread custom-scrollbar flex-1 overflow-y-auto px-3 py-3"
         >
+          {loaded && hasMoreBefore && (
+            <div className="flex justify-center pb-2">
+              <button
+                type="button"
+                onClick={loadPrevious}
+                disabled={loadingOlder}
+                className="rounded-full border border-ink/10 bg-surface-raised px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted shadow-sm transition-colors hover:text-text-primary disabled:opacity-50"
+              >
+                {loadingOlder ? "Loading…" : "Load older messages"}
+              </button>
+            </div>
+          )}
           {loading && !loaded && (
             <p className="py-8 text-center text-[12px] text-text-muted">
               {t("chat.loading") || "Loading…"}
@@ -181,7 +266,7 @@ export default function ChatPanel({ onClose }) {
                 }`}
               >
                 <div
-                  className={`relative max-w-[80%] shadow-sm ${
+                  className={`group relative max-w-[80%] shadow-sm ${
                     m.sender === "system"
                       ? "rounded-lg bg-ink/[0.04] italic"
                       : m.sender === "user"
@@ -193,33 +278,21 @@ export default function ChatPanel({ onClose }) {
                             m._last ? "rounded-2xl rounded-bl-sm" : "rounded-2xl"
                           }`
                   } ${m.pending ? "opacity-60" : ""} ${m.failed ? "ring-1 ring-neg/40" : ""} ${
-                    isImage(m) ? "overflow-hidden p-1" : "px-3 py-2"
+                    isChatImage(m) ? "overflow-hidden p-1" : "px-3 py-2"
                   }`}
                 >
-                  {isImage(m) ? (
-                    // Opens full size in a tab rather than a custom lightbox:
-                    // the browser already zooms, rotates and saves better than
-                    // anything worth writing here.
-                    <a href={m.body} target="_blank" rel="noreferrer" className="block">
-                      <img
-                        src={m.body}
-                        alt={t("chat.image")}
-                        loading="lazy"
-                        className="h-auto max-h-[360px] w-auto max-w-[260px] rounded-xl"
-                      />
-                    </a>
-                  ) : (
-                    <span className="whitespace-pre-wrap break-words text-[13px] leading-relaxed">
-                      {m.body}
-                    </span>
-                  )}
+                  <ChatMessageBody
+                    message={m}
+                    onOpenImage={setLightboxImage}
+                    imageClassName="max-h-[360px] max-w-[260px]"
+                  />
 
                   {/* Meta rides inside the bubble, bottom-right, the way every
                       messenger does it — floated so short lines wrap around it
                       instead of leaving a hole. */}
                   <span
                     className={`pointer-events-none select-none whitespace-nowrap text-[9px] ${
-                      isImage(m)
+                      isChatImage(m)
                         ? "absolute bottom-2 right-2 rounded-md bg-black/45 px-1.5 py-0.5 text-white"
                         : `float-right ml-2 mt-1 ${
                             m.sender === "user" ? "text-accent-fg/65" : "text-text-muted/70"
@@ -230,7 +303,7 @@ export default function ChatPanel({ onClose }) {
                     {m.sender === "user" && !m.pending && !m.failed && m.seq != null && (
                       <span
                         className={`ml-1 ${
-                          isImage(m)
+                          isChatImage(m)
                             ? "text-white"
                             : adminLastReadSeq >= m.seq
                               ? "text-sky-500"
@@ -255,6 +328,17 @@ export default function ChatPanel({ onClose }) {
                       {t("chat.retry") || "retry"}
                     </button>
                   )}
+                  {m.sender === "user" && !m.pending && !m.failed && !m.deleted && !m.expired && !["deleted", "expired_image"].includes(m.kind) && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(m)}
+                      className={`absolute -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-ink/10 bg-surface-raised text-text-muted shadow-sm transition-all hover:text-loss sm:opacity-0 sm:group-hover:opacity-100 ${m.sender === "user" ? "-left-7" : "-right-7"}`}
+                      aria-label="Delete message"
+                      title="Delete message"
+                    >
+                      <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3"><path d="M4.5 5.5h11m-7.5 0V4h4v1.5m-6 0 .7 10h6.6l.7-10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -262,7 +346,7 @@ export default function ChatPanel({ onClose }) {
         </div>
 
         {/* Composer */}
-        <div className="border-t border-ink/10 bg-surface-raised p-3 pb-24 sm:pb-3">
+        <div className="border-t border-ink/10 bg-surface-raised p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {error && (
             <p className="mb-2 px-1 text-[11px] text-neg-text">{error}</p>
           )}
@@ -275,13 +359,13 @@ export default function ChatPanel({ onClose }) {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   // Reset first: picking the same file twice must still fire.
                   e.target.value = "";
-                  if (f) sendImage(f);
+                  if (f) setPendingImage(f);
                 }}
               />
               <button

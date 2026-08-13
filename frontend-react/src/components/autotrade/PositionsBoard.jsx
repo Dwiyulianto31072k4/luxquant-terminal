@@ -480,7 +480,7 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
       onClick={onClose}
     >
       <div
-        className="w-full max-w-5xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-ink/[0.09] sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
+        className="w-full max-w-5xl max-h-[min(var(--lq-modal-maxh),100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-ink/[0.09] sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div
@@ -795,7 +795,7 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-xl border-t border-[#F6465D]/30 sm:border bg-surface-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
+        className="w-full max-w-lg max-h-[min(var(--lq-modal-maxh),100%)] overflow-y-auto rounded-t-3xl sm:rounded-xl border-t border-[#F6465D]/30 sm:border bg-surface-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex justify-center -mt-1 mb-3 sm:hidden" aria-hidden="true">

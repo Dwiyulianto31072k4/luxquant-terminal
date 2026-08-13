@@ -10,10 +10,17 @@ export const chatApi = {
   },
 
   // `after` is a per-conversation seq, never a row id.
-  getMessages: async (after = 0, limit = 200) => {
+  getMessages: async (after = 0, limit = 200, before = null) => {
+    const params = { after, limit };
+    if (before) params.before = before;
     const response = await api.get("/api/v1/chat/messages", {
-      params: { after, limit },
+      params,
     });
+    return response.data;
+  },
+
+  deleteMessage: async (messageId) => {
+    const response = await api.delete(`/api/v1/chat/messages/${messageId}`);
     return response.data;
   },
 

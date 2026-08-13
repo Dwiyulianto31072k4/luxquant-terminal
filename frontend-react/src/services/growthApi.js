@@ -67,4 +67,15 @@ export const growthApi = {
     });
     return response.data;
   },
+
+  // Signups over time on a range of its own — separate from getConversion so
+  // swinging the chart out to a year does not refetch the whole tab or move
+  // every other number on it. Buckets (day/week/month) are picked server-side
+  // from the span.
+  getSignupsSeries: async (days = 30) => {
+    const response = await api.get("/api/v1/workspace/growth/signups-series", {
+      params: { days },
+    });
+    return response.data;
+  },
 };

@@ -1,0 +1,16 @@
+[Unit]
+Description=LuxQuant Signal Brain — Daily Reflection (BTCUSDT Obsidian vault)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+Environment="PYTHONUNBUFFERED=1"
+Environment="SIGNAL_BRAIN_DIR=/root/luxquant-signal-brain"
+Environment="SIGNAL_BRAIN_PAIR=BTCUSDT"
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.services.signal_reflection
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300

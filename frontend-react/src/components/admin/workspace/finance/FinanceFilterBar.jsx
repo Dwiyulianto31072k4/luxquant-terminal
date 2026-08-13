@@ -32,7 +32,7 @@ const SOURCE_OPTIONS = [
   { value: "manual", label: "Manual records only" },
 ];
 
-const fieldBg = "rgb(var(--scrim) / 0.28)";
+const fieldBg = "rgb(var(--surface-secondary))";
 const fieldBorder = "rgb(var(--ink) / 0.06)";
 const fieldBorderActive = "rgb(var(--accent) / 0.35)";
 

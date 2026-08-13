@@ -82,7 +82,7 @@ function SheetShell({ onClose, children, footer, ariaLabel }) {
           style block) and the height is capped to the space that exists. */}
       <div
         className="ss-sheet absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-[440px] flex-col rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] animate-[ssSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-ink/12 sm:bg-surface-raised sm:shadow-2xl sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)]"
-        style={{ maxHeight: "min(90dvh, 640px, var(--lq-modal-maxh))" }}
+        style={{ maxHeight: "min(640px, var(--lq-modal-maxh))" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}

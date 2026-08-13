@@ -17,6 +17,7 @@ import { SidePanel } from "./SidePanel";
 import { financeApi } from "../../../services/financeApi";
 import {
   TrendingUpIcon,
+  DollarIcon,
   AlertTriangleIcon,
   CheckCircleIcon,
   CloseIcon,
@@ -34,11 +35,10 @@ import { ExchangePaymentHero, ExchangeLogo, brandColor } from "./finance/exchang
 const PANEL = {
   card: "rgb(var(--surface-raised))",
   inset: "rgb(var(--surface-raised))",
-  raised: "#100c08",
   border: "rgb(var(--ink) / 0.08)",
   borderSoft: "rgb(var(--ink) / 0.06)",
   hairline: "linear-gradient(to right, transparent, rgb(var(--accent) / 0.45), transparent)",
-  label: "rgb(var(--ink) / 0.42)",
+  label: "rgb(var(--fg-muted))",
   muted: "rgb(var(--fg-muted))",
   text: "rgb(var(--fg))",
 };
@@ -155,28 +155,33 @@ const ExchangeRow = ({ exchangeName, walletLabel }) => {
 const TONE = {
   // Filled solid — not translucent “raw glass”
   success: {
-    color: "#d1fae5",
-    bg: "#065f46",
-    border: "#047857",
-    iconBg: "#047857",
+    color: "var(--act-success-fg)",
+    bg: "var(--act-success-bg)",
+    border: "rgb(var(--pos) / 0.55)",
+    iconBg: "var(--act-success-icon)",
   },
   danger: {
-    color: "rgb(var(--neg-text))",
-    bg: "#7f1d1d",
-    border: "#991b1b",
-    iconBg: "#991b1b",
+    color: "var(--act-danger-fg)",
+    bg: "var(--act-danger-bg)",
+    border: "rgb(var(--neg) / 0.55)",
+    iconBg: "var(--act-danger-icon)",
   },
   warn: {
-    color: "#ffedd5",
-    bg: "#9a3412",
-    border: "#c2410c",
-    iconBg: "#c2410c",
+    color: "var(--act-warn-fg)",
+    bg: "var(--act-warn-bg)",
+    border: "rgb(var(--warn) / 0.55)",
+    iconBg: "var(--act-warn-icon)",
   },
   muted: {
-    color: "rgb(var(--ink) / 0.72)",
+    // iconBg was "#120f0c" — a hardcoded near-black. On the dark theme it
+    // melted into the button; on bright the button is white, so the chip
+    // rendered as a solid black square with a dark icon inside it, i.e. an
+    // unreadable blob. Anything painted on a themed surface has to come from
+    // the same tokens as that surface.
+    color: "rgb(var(--fg))",
     bg: "rgb(var(--surface-raised))",
     border: "rgb(var(--ink) / 0.12)",
-    iconBg: "#120f0c",
+    iconBg: "rgb(var(--ink) / 0.08)",
   },
   gold: {
     color: "rgb(var(--accent-fg))",
@@ -207,7 +212,10 @@ const ActionBtn = ({ Icon, label, tone = "gold", onClick, disabled, busy, classN
       {busy ? (
         <span
           className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
-          style={{ borderColor: `${t.color}40`, borderTopColor: t.color }}
+          style={{
+            borderColor: `color-mix(in srgb, ${t.color} 25%, transparent)`,
+            borderTopColor: t.color,
+          }}
         />
       ) : (
         <span
@@ -579,7 +587,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
       onClose={onClose}
       title={p ? `Payment #${p.id}` : "Payment Detail"}
       subtitle={p?.user ? `@${p.user.username}` : ""}
-      Icon={TrendingUpIcon}
+      Icon={DollarIcon}
       width="lg"
     >
       {loading && !payment ? (
@@ -612,9 +620,9 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
             <div
               className="text-[11.5px] px-3 py-2.5 rounded-xl flex items-start gap-2"
               style={{
-                background: "#7f1d1d",
-                color: "rgb(var(--neg-text))",
-                border: "1px solid #991b1b",
+                background: "var(--act-danger-bg)",
+                color: "var(--act-danger-fg)",
+                border: "1px solid var(--act-danger-icon)",
               }}
             >
               <AlertTriangleIcon size={13} className="shrink-0 mt-0.5" />
@@ -924,7 +932,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
                 <pre
                   className="rounded-lg p-2.5 text-[10px] font-mono overflow-x-auto max-h-60 overflow-y-auto"
                   style={{
-                    background: "rgb(var(--scrim) / 0.35)",
+                    background: "rgb(var(--surface-secondary))",
                     color: "rgb(var(--fg-secondary))",
                     border: "1px solid rgb(var(--ink) / 0.06)",
                   }}
@@ -941,7 +949,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
               <pre
                 className="rounded-lg p-3 text-[10.5px] font-mono whitespace-pre-wrap leading-relaxed"
                 style={{
-                  background: "rgb(var(--scrim) / 0.3)",
+                  background: "rgb(var(--surface-secondary))",
                   color: "rgb(var(--fg-secondary))",
                   border: "1px solid rgb(var(--ink) / 0.06)",
                   maxHeight: 220,

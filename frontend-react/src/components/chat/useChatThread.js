@@ -34,7 +34,11 @@ export function mergeMessages(prev, incoming) {
       next[optimisticAt] = msg;
       continue;
     }
-    if (next.some((m) => m.seq != null && m.seq === msg.seq)) continue;
+    const existingAt = msg.seq != null ? next.findIndex((m) => m.seq === msg.seq) : -1;
+    if (existingAt !== -1) {
+      next[existingAt] = { ...next[existingAt], ...msg };
+      continue;
+    }
     next.push(msg);
   }
 
@@ -59,6 +63,8 @@ export function useChatThread({ active }) {
   const [loaded, setLoaded] = useState(false);
   // Admin's read cursor — drives "Seen" under the user's own bubbles.
   const [adminLastReadSeq, setAdminLastReadSeq] = useState(0);
+  const [hasMoreBefore, setHasMoreBefore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   // Cursor lives in a ref as well as state: the transport reads it on every
   // tick and must see the newest value, not one captured in a stale closure.
@@ -90,7 +96,8 @@ export function useChatThread({ active }) {
       // Server already gates this on away being active, and on office hours.
       setAwayMessage(data.away_message || null);
       setMessages(data.messages || []);
-      cursorRef.current = data.last_seq || 0;
+      cursorRef.current = Math.max(0, ...(data.messages || []).map((m) => Number(m.seq) || 0));
+      setHasMoreBefore(!!data.has_more_before);
       setAdminLastReadSeq(Number(data.admin_last_read_seq) || 0);
       setLoaded(true);
     } catch (e) {
@@ -99,6 +106,26 @@ export function useChatThread({ active }) {
       setLoading(false);
     }
   }, []);
+
+  const loadOlder = useCallback(async () => {
+    const firstSeq = Math.min(
+      ...messages.filter((m) => m.seq != null).map((m) => Number(m.seq))
+    );
+    if (!Number.isFinite(firstSeq) || !hasMoreBefore || loadingOlder) return 0;
+    setLoadingOlder(true);
+    try {
+      const data = await chatApi.getMessages(0, 100, firstSeq);
+      const batch = data.messages || [];
+      setMessages((prev) => mergeMessages(prev, batch));
+      setHasMoreBefore(!!data.has_more_before);
+      return batch.length;
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Couldn't load older messages.");
+      return 0;
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [hasMoreBefore, loadingOlder, messages]);
 
   // ── send: optimistic, idempotent ──────────────────────────────────
   const send = useCallback(
@@ -149,10 +176,23 @@ export function useChatThread({ active }) {
       const msg = messages.find((m) => m.client_msg_id === clientMsgId && m.failed);
       if (!msg) return;
       setMessages((prev) => prev.filter((m) => m.client_msg_id !== clientMsgId));
-      send(msg.body);
+      send(msg.body, msg.kind || "text");
     },
     [messages, send]
   );
+
+  const deleteMessage = useCallback(async (messageId) => {
+    if (!messageId) return;
+    setError(null);
+    try {
+      const data = await chatApi.deleteMessage(messageId);
+      setMessages((prev) => mergeMessages(prev, [data.message]));
+      return data;
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Couldn't delete that message.");
+      throw e;
+    }
+  }, []);
 
   // ── transport lifecycle: only while the panel is open ─────────────
   useEffect(() => {
@@ -202,6 +242,7 @@ export function useChatThread({ active }) {
         await send(url, "image");
       } catch (e) {
         setError(e?.response?.data?.detail || "Couldn't send that image.");
+        throw e;
       }
     },
     [send, sending]
@@ -218,9 +259,13 @@ export function useChatThread({ active }) {
     error,
     loaded,
     adminLastReadSeq,
+    hasMoreBefore,
+    loadingOlder,
     load,
     send,
     sendImage,
+    loadOlder,
+    deleteMessage,
     retry,
   };
 }

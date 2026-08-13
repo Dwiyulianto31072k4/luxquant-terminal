@@ -27,7 +27,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import create_engine, text
 
-from app.api.deps import require_subscription
+from app.api.deps import require_subscription, get_current_user_optional
+from app.core.redis import cache_get
 from app.models.user import User
 
 logger = logging.getLogger("enrichment-v3-api")
@@ -123,15 +124,37 @@ def fetch_enrichment_history(signal_id: str, limit: int = 100) -> list:
 # ENDPOINTS
 # ============================================================
 
+# Written by the signals bulk endpoint when it picks the three finished calls
+# displayed above the free list.
+SHOWCASE_IDS_KEY = "lq:signals:showcase-ids"
+
+
 @router.get("/{signal_id}")
 def get_enrichment_v3(
     signal_id: str,
-    current_user: User = Depends(require_subscription),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Get v3 enrichment data for a signal.
     Returns entry_snapshot (frozen) + live_snapshot (latest) + metadata.
+
+    Subscriber-only, with one deliberate exception: the three finished calls on
+    display above the free list. That section claims to be exactly what a
+    subscriber sees, and Deep analysis is the part a sceptic opens first — a
+    403 there renders an empty legacy panel and reads as a bluff.
     """
+    entitled = bool(current_user is not None and current_user.has_active_access)
+    if not entitled:
+        try:
+            showcase = set(cache_get(SHOWCASE_IDS_KEY) or [])
+        except Exception:
+            showcase = set()
+        if str(signal_id) not in showcase:
+            raise HTTPException(
+                status_code=403,
+                detail="Deep analysis is available to subscribers.",
+            )
+
     signal = fetch_signal_basic(signal_id)
     if not signal:
         raise HTTPException(status_code=404, detail="Signal not found")

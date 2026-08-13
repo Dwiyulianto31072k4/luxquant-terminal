@@ -75,6 +75,20 @@ const relativeTime = (dateStr) => {
   return `${Math.floor(days / 365)} years ago`;
 };
 
+const countryName = (code) => {
+  if (!code) return "—";
+  try {
+    return `${code} · ${new Intl.DisplayNames(["en"], { type: "region" }).of(code)}`;
+  } catch {
+    return code;
+  }
+};
+
+const detectedLocation = (user) =>
+  [user.geo_city, user.geo_region, countryName(user.geo_country || user.country_code)]
+    .filter((value, index, list) => value && value !== "—" && list.indexOf(value) === index)
+    .join(" · ") || "—";
+
 const STATUS_BADGE = {
   confirmed: "border-profit/25 bg-profit/10 text-profit",
   pending: "border-accent/25 bg-accent/10 text-accent",
@@ -118,6 +132,7 @@ const StatTile = ({ label, value, accentClass }) => (
       {label}
     </p>
     <p
+      title={value == null ? undefined : String(value)}
       className={`truncate text-[13px] font-medium tabular-nums tracking-tight ${
         accentClass || "text-text-primary"
       }`}
@@ -709,6 +724,23 @@ const AccountTimeline = ({ data }) => {
   const { user, payments } = data;
   const events = [];
 
+  if (user.created_at && user.acq_source) {
+    const acquisition = [
+      user.acq_source,
+      user.acq_medium,
+      user.acq_campaign,
+      user.acq_content,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    events.push({
+      ts: user.created_at,
+      icon: SparklesIcon,
+      toneClass: "border-accent/25 bg-accent/10 text-accent",
+      label: `First-touch attribution claimed · ${acquisition}`,
+    });
+  }
+
   if (user.created_at)
     events.push({
       ts: user.created_at,
@@ -921,7 +953,45 @@ const OverviewTab = ({
           <StatTile label="First Login" value={formatDate(user.first_login_at)} />
           <StatTile label="Last Login" value={relativeTime(user.last_login_at)} />
           <StatTile label="Login Count" value={user.login_count || 0} />
-          <StatTile label="Country" value={user.country_code || "—"} />
+          <StatTile label="Profile Country" value={countryName(user.country_code)} />
+        </div>
+      </Section>
+
+      <Section title="Detected Location · IP" Icon={ClockIcon}>
+        <div className="grid grid-cols-2 gap-2">
+          <StatTile label="Current location" value={detectedLocation(user)} />
+          <StatTile label="First country" value={countryName(user.geo_country_first)} />
+          <StatTile label="Current IP network" value={user.geo_ip_prefix || "—"} />
+          <StatTile label="First IP network" value={user.geo_ip_first_prefix || "—"} />
+          <StatTile label="Location checked" value={relativeTime(user.geo_last_seen_at)} />
+          <StatTile label="Timezone" value={user.geo_timezone || "—"} />
+        </div>
+        <p className="mt-2 rounded-xl border border-ink/[0.07] bg-ink/[0.02] px-3 py-2 text-[10px] leading-relaxed text-text-muted">
+          Detected server-side from the trusted edge. IP is privacy-masked to /24 for IPv4 or /48 for IPv6; the raw address is never stored.
+        </p>
+      </Section>
+
+      <Section title="Acquisition · First Touch" Icon={SparklesIcon}>
+        <div className="grid grid-cols-2 gap-2">
+          <StatTile
+            label="Source"
+            value={user.acq_source || "Unattributed"}
+            accentClass={user.acq_source ? "text-accent" : "text-text-muted"}
+          />
+          <StatTile label="Medium" value={user.acq_medium || "—"} />
+          <StatTile label="Campaign" value={user.acq_campaign || "—"} />
+          <StatTile label="Content" value={user.acq_content || "—"} />
+        </div>
+        <div className="mt-2 rounded-xl border border-ink/[0.08] bg-ink/[0.02] px-3 py-2.5">
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-text-muted">
+            Entry path
+          </p>
+          <p className="mt-1 break-all font-mono text-[11px] text-text-primary/80">
+            {user.acq_path || "—"}
+          </p>
+          <p className="mt-1.5 text-[10px] leading-snug text-text-muted">
+            First-touch attribution is claimed once and is not overwritten by later visits.
+          </p>
         </div>
       </Section>
 
@@ -1657,7 +1727,7 @@ export const UserDetailDrawer = ({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full max-w-3xl animate-in flex-col overflow-hidden rounded-t-3xl border border-ink/[0.08] bg-surface-raised shadow-[0_24px_48px_-12px_rgb(var(--scrim)/0.4)] duration-200 fade-in slide-in-from-bottom-4 sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:zoom-in-95"
+        className="flex h-[min(var(--lq-modal-maxh),100%)] max-h-[min(var(--lq-modal-maxh),100%)] w-full max-w-3xl animate-in flex-col overflow-hidden rounded-t-3xl border border-ink/[0.08] bg-surface-raised shadow-[0_24px_48px_-12px_rgb(var(--scrim)/0.4)] duration-200 fade-in slide-in-from-bottom-4 sm:h-auto sm:max-h-[var(--lq-modal-maxh)] sm:rounded-2xl sm:zoom-in-95"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">

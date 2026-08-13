@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE chat_messages
+    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS deleted_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+
+COMMIT;

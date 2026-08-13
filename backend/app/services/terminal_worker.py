@@ -31,6 +31,7 @@ full coverage every ~4 sweeps. Well inside Binance IP weight limits.
 Registered from cache_worker.start_cache_workers().
 """
 import asyncio
+import math
 import time
 import traceback
 from collections import deque
@@ -498,7 +499,20 @@ async def _sweep():
                     _note_ban(r, 600 if r.status_code == 418 else 120)
                     break
                 if r.status_code == 200 and r.json():
-                    slow[key] = round(float(r.json()[0].get(field) or 0), 3)
+                    # Binance sends these ratios as STRINGS, and returns
+                    # "Infinity" when one side of the book is empty. float()
+                    # accepts it, round() keeps it, and it lands in the blob —
+                    # where a single inf makes the whole /terminal/derivatives
+                    # response impossible to encode as JSON, blanking the
+                    # terminal for every user at once.
+                    # Measured 2026-08-09: HFTUSDT.top_lsr = inf, 1 field out
+                    # of 480 pairs, 91 of 92 requests returning 500.
+                    raw = r.json()[0].get(field)
+                    try:
+                        val = float(raw) if raw is not None else 0.0
+                    except (TypeError, ValueError):
+                        val = 0.0
+                    slow[key] = round(val, 3) if math.isfinite(val) else None
             except Exception:
                 pass
             await asyncio.sleep(0.35)  # ≤ ~3 req/s on the strict futures/data pool

@@ -124,7 +124,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-ink/[0.08] sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
+        className="w-full max-w-4xl max-h-[min(var(--lq-modal-maxh),100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-ink/[0.08] sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div

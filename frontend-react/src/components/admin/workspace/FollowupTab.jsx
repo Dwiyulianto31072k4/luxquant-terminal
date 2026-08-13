@@ -6,6 +6,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from "react";
+import CrmSegments from "./CrmSegments";
 import { workspaceApi } from "../../../services/workspaceApi";
 import { FollowupPanel } from "./FollowupPanel";
 import { ConfirmModal } from "../users/ConfirmModal";
@@ -21,6 +22,7 @@ import {
   CloseIcon,
 } from "../Icons";
 import { IconBadge } from "../primitives";
+import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
 
@@ -364,6 +366,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
 
   const [confirmModal, setConfirmModal] = useState(null);
   const [toast, setToast] = useState(null);
+  const followupPages = useCollectionPagination(followups, 10);
 
   useEffect(() => {
     if (!toast) return;
@@ -504,6 +507,8 @@ export const FollowupTab = ({ onRefreshStats }) => {
 
       <FollowupHeader onCreate={handleCreate} onGenerate={handleGenerate} generating={generating} />
 
+      <CrmSegments onToast={showToast} />
+
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <StatCard
           label="Open"
@@ -550,7 +555,10 @@ export const FollowupTab = ({ onRefreshStats }) => {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              followupPages.resetPage();
+            }}
             placeholder="Search title or note…"
             className={`w-full pl-9 pr-3 ${fieldCls(!!search)}`}
           />
@@ -558,7 +566,10 @@ export const FollowupTab = ({ onRefreshStats }) => {
 
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            followupPages.resetPage();
+          }}
           className={`cursor-pointer ${fieldCls(statusFilter !== "open")}`}
         >
           <option value="open">Open (Pending + In Progress)</option>
@@ -572,7 +583,10 @@ export const FollowupTab = ({ onRefreshStats }) => {
 
         <select
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+          onChange={(e) => {
+            setCategoryFilter(e.target.value);
+            followupPages.resetPage();
+          }}
           className={`cursor-pointer ${fieldCls(!!categoryFilter)}`}
         >
           <option value="">All Categories</option>
@@ -585,7 +599,10 @@ export const FollowupTab = ({ onRefreshStats }) => {
 
         <select
           value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
+          onChange={(e) => {
+            setPriorityFilter(e.target.value);
+            followupPages.resetPage();
+          }}
           className={`cursor-pointer ${fieldCls(!!priorityFilter)}`}
         >
           <option value="">All Priorities</option>
@@ -656,7 +673,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         </div>
       ) : (
         <div className="space-y-2.5">
-          {followups.map((f) => (
+          {followupPages.pagedItems.map((f) => (
             <FollowupCard
               key={f.id}
               followup={f}
@@ -667,6 +684,16 @@ export const FollowupTab = ({ onRefreshStats }) => {
           ))}
         </div>
       )}
+
+      <CollectionPagination
+        page={followupPages.page}
+        totalPages={followupPages.totalPages}
+        total={followupPages.total}
+        pageSize={followupPages.pageSize}
+        onPageChange={followupPages.setPage}
+        onPageSizeChange={followupPages.setPageSize}
+        itemLabel="follow-ups"
+      />
 
       <FollowupPanel
         isOpen={panelOpen}

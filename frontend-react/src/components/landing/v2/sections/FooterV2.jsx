@@ -5,11 +5,14 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { isPremiumUser } from "../../../../utils/roles";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { CTA } from "../landingCopy";
 
 export default function FooterV2({ onNav }) {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isPremium = isPremiumUser(user);
 
   const goFeature = (path) => {
     if (isAuthenticated) {
@@ -20,13 +23,28 @@ export default function FooterV2({ onNav }) {
     navigate(loginUrl(path, { source: "footer_feature" }));
   };
 
+  // Same defect the section CTA had: a link labelled "Open terminal" that sent
+  // everyone to /home, while /terminal is premium-gated — so it was a promise
+  // for a paying member and a dead end for everyone else.
+  const terminalLabel = isPremium
+    ? CTA.openTerminal
+    : isAuthenticated
+      ? CTA.seePlans
+      : CTA.primaryGuest;
+
   const openTerminal = () => {
+    if (isPremium) {
+      trackFunnel("cta_click", { source: "footer_terminal:open", path: "/" });
+      navigate("/terminal");
+      return;
+    }
     if (isAuthenticated) {
-      navigate("/home");
+      trackFunnel("cta_click", { source: "footer_terminal:plans", path: "/" });
+      navigate("/pricing");
       return;
     }
     trackFunnel("cta_click", { source: "footer_terminal", path: "/" });
-    navigate(loginUrl("/home", { source: "footer_terminal" }));
+    navigate(loginUrl("/pricing", { source: "footer_terminal" }));
   };
 
   const COLUMNS = [
@@ -60,7 +78,7 @@ export default function FooterV2({ onNav }) {
         { label: "Learn", type: "public", to: "/learn" },
         { label: "Status", type: "public", to: "/status" },
         { label: "Referral", type: "feature", to: "/referral" },
-        { label: "Open terminal", type: "terminal" },
+        { label: terminalLabel, type: "terminal" },
       ],
     },
   ];

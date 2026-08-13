@@ -117,3 +117,47 @@ class ReferralPayout(Base):
 
     def __repr__(self):
         return f"<ReferralPayout {self.id} user={self.user_id} status={self.status}>"
+
+
+class ReferralReminderPreference(Base):
+    """Admin-managed safety switch for referral outreach.
+
+    Kept separate from ``users`` so rolling this feature out never locks or
+    rewrites the hot authentication table.
+    """
+
+    __tablename__ = "referral_reminder_preferences"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    opted_out = Column(Boolean, nullable=False, default=False, server_default="false")
+    reason = Column(Text, nullable=True)
+    updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    user = relationship("User", foreign_keys=[user_id])
+
+
+class ReferralReminderEvent(Base):
+    """Immutable-ish audit trail for every referral reminder attempt."""
+
+    __tablename__ = "referral_reminder_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    referral_code_id = Column(
+        Integer, ForeignKey("referral_codes.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    segment = Column(String(30), nullable=False)
+    channel = Column(String(20), nullable=False, default="telegram")
+    status = Column(String(20), nullable=False, default="queued", index=True)
+    message = Column(Text, nullable=False)
+    error = Column(Text, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    sent_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = relationship("User", foreign_keys=[user_id])
+    referral_code = relationship("ReferralCode", foreign_keys=[referral_code_id])
+    creator = relationship("User", foreign_keys=[created_by])

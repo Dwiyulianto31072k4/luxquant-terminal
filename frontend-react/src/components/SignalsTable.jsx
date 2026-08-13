@@ -5,7 +5,7 @@ import CoinLogo from "./CoinLogo";
 import StarButton from "./StarButton";
 import { useAuth } from "../context/AuthContext";
 import { watchlistApi } from "../services/watchlistApi";
-import { classifyCoin, CoinDetailModal } from "./coinIntelShared";
+import { classifyCoin, getSignalVerdictInfo, CoinDetailModal } from "./coinIntelShared";
 import { InfoTip } from "./GuideInfo";
 import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
@@ -33,7 +33,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 // COLUMN REGISTRY — toggleable columns (Star + Pair always shown)
 // To add a new column later (e.g. BTC Correlation / Win Streak):
 // 1) add an entry here, 2) add its <SortableHeader> + <td> in the table,
-// both wrapped in {visibleCols.<key> && (...)}.
+// both wrapped in {effectiveCols.<key> && (...)}.
 // ================================================================
 const SIGNAL_COLUMNS = [
   { key: "current_price", label: "Price" },
@@ -44,6 +44,7 @@ const SIGNAL_COLUMNS = [
   { key: "market_cap", label: "MCap" },
   { key: "volume", label: "Vol 24h" },
   { key: "track_record", label: "Track Record" },
+  { key: "edge_score", label: "Edge" },
   { key: "btc_corr", label: "BTC Corr" },
   { key: "verdict", label: "Verdict" },
   { key: "status", label: "Status" },
@@ -51,6 +52,17 @@ const SIGNAL_COLUMNS = [
 ];
 
 const COLS_STORAGE_KEY = "lq:signals:visible-cols";
+
+// What a free account sees. Deliberately short: these rows are receipts, and a
+// receipt needs the price paid, the price reached, and enough liquidity context
+// to believe it — not the desk's scoring apparatus.
+const FREE_VISIBLE_COLS = ["entry", "max_target", "current_price", "volume"];
+
+const freeVisibleCols = () =>
+  SIGNAL_COLUMNS.reduce((acc, c) => {
+    acc[c.key] = FREE_VISIBLE_COLS.includes(c.key);
+    return acc;
+  }, {});
 
 const defaultVisibleCols = () =>
   SIGNAL_COLUMNS.reduce((acc, c) => {
@@ -371,17 +383,28 @@ const SignalsTable = ({
   loading,
   page,
   totalPages,
+  totalSignals,
   onPageChange,
   sortBy,
   sortOrder,
+  sorts = null,
   onSort,
   onRowClick,
   onPricesUpdate,
+  isSubscriber = true,
+  onSubscribe,
+  onOpenProof,
+  hideColumnsMenu = false,
+  countLabel = null,
+  rowHint = null,
+  hiddenCount = 0,
   allPairs,
   coinIntel = {},
   verdictByPair = {},
   currentFlow = null,
   tagWrMap = {},
+  runnerTagSet = null,
+  edgeScoreMap = {},
   signalTags = {},
   onWatchlistChange = null,
 }) => {
@@ -418,6 +441,9 @@ const SignalsTable = ({
 
   // ── Column visibility (desktop table) ──
   const [visibleCols, setVisibleCols] = useState(loadVisibleCols);
+  // Not persisted and not toggleable: this is the wall, not a preference. A
+  // subscriber's own saved choice is left untouched underneath.
+  const effectiveCols = isSubscriber ? visibleCols : freeVisibleCols();
 
   // ── Mobile card fields (separate prefs from desktop columns) ──
   const [mobileFields, setMobileFields] = useState(loadMobileFields);
@@ -481,7 +507,8 @@ const SignalsTable = ({
     }
   };
 
-  // Total <th>/<td> count = Compare + Star + Pair + visible toggleable + Share.
+  // Total <th>/<td> count = Compare + Star + Pair + visible toggleable + Share
+  // (+ Subscribe for a free account, which adds one more column).
   // Used for the loading skeleton + empty-state colSpan so they stay aligned.
   const visibleColCount = useMemo(
     () => 4 + SIGNAL_COLUMNS.filter((c) => visibleCols[c.key]).length,
@@ -729,13 +756,26 @@ const SignalsTable = ({
     s >= 70 ? "text-profit" : s >= 50 ? "text-accent" : "text-negative";
   const fmtSigned = (n, d = 2) => (n == null ? "—" : (n >= 0 ? "+" : "") + Number(n).toFixed(d));
 
-  // Verdict (worth_it / avoid / neutral) for a pair, plus its coin-intel object
-  // (needed to open the deep-analysis modal). Returns null when no intel exists.
-  const getVerdict = (pair) => {
+  // Per-signal verdict (leave-one-out when closed). Modal opens full pair intel.
+  const getVerdict = (signalOrPair) => {
+    const signal =
+      signalOrPair && typeof signalOrPair === "object" ? signalOrPair : null;
+    const pair = signal ? signal.pair : signalOrPair;
     const coin = coinIntel?.[pair];
     if (!coin) return null;
+    if (signal) {
+      const info = getSignalVerdictInfo(coin, signal);
+      if (!info) return null;
+      return {
+        verdict: info.verdict,
+        // Badge / LOO metrics for the cell; modal always uses full pair coin.
+        coin: info.coin,
+        fullCoin: info.fullCoin || coin,
+        asOfEntry: !!info.asOfEntry,
+      };
+    }
     const v = verdictByPair?.[pair] || classifyCoin(coin);
-    return { verdict: v, coin };
+    return { verdict: v, coin, fullCoin: coin, asOfEntry: false };
   };
 
   // Highest-WR tag a signal carries (for the descriptive tag badge).
@@ -751,6 +791,54 @@ const SignalsTable = ({
     }
     return best;
   };
+  // Runner badge if signal carries any high-runner tag (90d fuller TP / peak).
+  const getRunnerHint = (signalId) => {
+    if (!runnerTagSet || runnerTagSet.size === 0) return null;
+    const tags = signalTags?.[signalId];
+    if (!tags?.length) return null;
+    let best = null;
+    for (const tg of tags) {
+      if (!runnerTagSet.has(tg)) continue;
+      const meta = tagWrMap?.[tg];
+      const full = meta?.full_tp_rate ?? 0;
+      const peak = meta?.median_peak_wins ?? meta?.median_peak ?? 0;
+      if (!best || full > (best.full || 0)) {
+        best = { tag: tg, full, peak, tp4: meta?.tp4_rate };
+      }
+    }
+    return best;
+  };
+
+  const getEdge = (signalId) => edgeScoreMap?.[signalId] || null;
+  const edgeToneCls = (score) => {
+    if (score == null) return "text-text-muted";
+    if (score >= 68) return "text-accent font-semibold";
+    if (score >= 62) return "text-positive font-semibold";
+    if (score >= 55) return "text-text-primary";
+    return "text-text-muted";
+  };
+  const edgeTitle = (e) => {
+    if (!e || e.score == null) return "";
+    // Prefer precomputed plainWhy / full tooltip from edgeScore utils
+    try {
+      // lazy import style: fields already on object when available
+      const plain = e.plainWhy;
+      const lines = [`Edge ${Number(e.score).toFixed(1)}`];
+      if (plain) lines.push(plain);
+      else if (e.reason) lines.push(e.reason);
+      if (e.bestTag) lines.push(`Best tag: ${e.bestTag}${e.bestTagWr != null ? ` ${e.bestTagWr}%` : ""}`);
+      if (e.caution?.length) lines.push(`Caution: ${e.caution.join(", ")}`);
+      if (e.excludedOutcome) {
+        lines.push("As of entry · this call’s outcome excluded (no look-ahead)");
+      } else {
+        lines.push("As of entry · resolved history before / excluding this open call");
+      }
+      lines.push("Not a guarantee");
+      return lines.join("\n");
+    } catch {
+      return e.reason || `Edge ${e.score}`;
+    }
+  };
   const fmtTag = (tg) => tg.replace(/_H1$/, "").replace(/_/g, " ");
 
   // Index of the first row (in current page) that has a non-neutral verdict —
@@ -758,7 +846,7 @@ const SignalsTable = ({
   const firstVerdictIdx = useMemo(() => {
     if (!signals) return -1;
     return signals.findIndex((s) => {
-      const v = getVerdict(s.pair);
+      const v = getVerdict(s);
       return v && v.verdict !== "neutral";
     });
   }, [signals, coinIntel, verdictByPair]);
@@ -768,12 +856,12 @@ const SignalsTable = ({
   // to appear each visit). Cleans up on unmount / dependency change.
   useEffect(() => {
     if (loading) return;
-    if (!visibleCols.verdict) return;
+    if (!effectiveCols.verdict) return;
     if (firstVerdictIdx < 0) return;
     setShowVerdictHint(true);
     const tid = setTimeout(() => setShowVerdictHint(false), 5000);
     return () => clearTimeout(tid);
-  }, [loading, visibleCols.verdict, firstVerdictIdx]);
+  }, [loading, effectiveCols.verdict, firstVerdictIdx]);
 
   const formatPrice = (price) => {
     if (!price && price !== 0) return "-";
@@ -919,8 +1007,23 @@ const SignalsTable = ({
     return formatDateTimeShort(dt);
   };
 
+  // Multi-sort chain (primary = sorts[0] or sortBy). Shift/⌘/Ctrl+click adds levels.
+  const sortChain = Array.isArray(sorts) && sorts.length
+    ? sorts
+    : [{ field: sortBy, order: sortOrder || "desc" }];
+  const sortRank = (field) => {
+    const i = sortChain.findIndex((s) => s.field === field);
+    return i >= 0 ? i + 1 : 0;
+  };
+  const sortDir = (field) => {
+    const s = sortChain.find((x) => x.field === field);
+    return s?.order || sortOrder || "desc";
+  };
+
   const SortableHeader = ({ field, label, align = "left" }) => {
-    const isActive = sortBy === field;
+    const rank = sortRank(field);
+    const isActive = rank > 0;
+    const dir = sortDir(field);
     const textAlign =
       align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
     const justify =
@@ -930,9 +1033,19 @@ const SignalsTable = ({
         className={`cursor-pointer select-none px-3 py-2.5 transition-colors ${textAlign} ${
           isActive ? "text-text-primary" : "text-text-muted hover:text-text-secondary"
         }`}
-        onClick={() => onSort && onSort(field)}
+        title={
+          isActive
+            ? `Sort level ${rank} · click toggle · Shift+click add/cycle`
+            : "Click to sort · Shift+click to add as secondary"
+        }
+        onClick={(e) => onSort && onSort(field, e)}
       >
         <span className={`group inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium ${justify}`}>
+          {rank > 0 && sortChain.length > 1 && (
+            <span className="inline-flex h-3.5 min-w-[14px] items-center justify-center rounded bg-accent/15 px-0.5 font-mono text-[8px] tabular-nums text-accent">
+              {rank}
+            </span>
+          )}
           <span>{label}</span>
           <span
             className={`text-[8px] leading-none transition-opacity ${
@@ -940,7 +1053,7 @@ const SignalsTable = ({
             }`}
             aria-hidden="true"
           >
-            {isActive && sortOrder === "asc" ? "▲" : "▼"}
+            {isActive && dir === "asc" ? "▲" : "▼"}
           </span>
         </span>
       </th>
@@ -1015,10 +1128,11 @@ const SignalsTable = ({
     const open = !!expandedCards[signal.signal_id];
     const toggle = () =>
       setExpandedCards((p) => ({ ...p, [signal.signal_id]: !p[signal.signal_id] }));
-    const v = getVerdict(signal.pair);
+    const v = getVerdict(signal);
     const wr = getWinRate(signal.pair);
     const streak = getStreak(signal.pair);
     const topTag = getTopTag(signal.signal_id);
+    const runner = getRunnerHint(signal.signal_id);
     const btc = getBtc(signal);
     const maxTarget = getMaxTarget(signal);
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
@@ -1046,6 +1160,33 @@ const SignalsTable = ({
                   {getCoinName(signal.pair)}
                   <span className="text-text-muted">/USDT</span>
                 </span>
+                {runner ? (
+                  <span
+                    title={[
+                      "Historically fuller targets / higher peak",
+                      runner.full != null ? `${Number(runner.full).toFixed(0)}% TP3+` : null,
+                      runner.peak != null ? `med peak +${Number(runner.peak).toFixed(0)}%` : null,
+                      runner.tag ? fmtTag(runner.tag) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    className="rounded-md border border-accent/25 bg-accent/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-accent"
+                  >
+                    Runner
+                  </span>
+                ) : null}
+                {(() => {
+                  const e = getEdge(signal.signal_id);
+                  if (!e || e.score == null) return null;
+                  return (
+                    <span
+                      title={edgeTitle(e)}
+                      className={`rounded-md border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[9px] tabular-nums ${edgeToneCls(e.score)}`}
+                    >
+                      E{Number(e.score).toFixed(0)}
+                    </span>
+                  );
+                })()}
                 {getStatusBadge(signal.status)}
                 {showRisk ? (
                   <span
@@ -1322,7 +1463,7 @@ const SignalsTable = ({
                 {v && v.verdict !== "neutral" ? (
                   <button
                     type="button"
-                    onClick={() => setSelectedCoinIntel(v.coin)}
+                    onClick={() => setSelectedCoinIntel(v.fullCoin || v.coin)}
                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${v.verdict === "avoid" ? "bg-negative/12 text-loss" : "bg-profit/12 text-profit"}`}
                   >
                     {v.verdict === "avoid" ? "Avoid" : "Worth"} detail
@@ -1442,10 +1583,10 @@ const SignalsTable = ({
         <div className="mb-2.5 flex items-center justify-between gap-2 px-0.5">
           <div className="min-w-0">
             <p className="text-[12.5px] font-medium text-text-primary">Signals</p>
-            {!loading && signals?.length > 0 ? (
+            {!loading && (totalSignals > 0 || signals?.length > 0) ? (
               <p className="font-mono text-[10px] tabular-nums text-text-muted">
-                {signals.length}
-                {totalPages > 1 ? ` · p${page}/${totalPages}` : ""}
+                {totalSignals != null ? totalSignals : signals.length} total
+                {totalPages > 1 ? ` · page ${page}/${totalPages}` : ""}
               </p>
             ) : null}
           </div>
@@ -1519,10 +1660,16 @@ const SignalsTable = ({
           <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <span className="text-[12.5px] font-medium text-text-primary">Signals</span>
-              {!loading && signals?.length > 0 ? (
+              {/* A count describes a result set. On the showcase it reads as
+                  the whole inventory, so that table passes a label instead. */}
+              {countLabel ? (
+                <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[10px] text-text-muted">
+                  {countLabel}
+                </span>
+              ) : !loading && (totalSignals > 0 || signals?.length > 0) ? (
                 <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
-                  {signals.length}
-                  {totalPages > 1 ? ` · p${page}/${totalPages}` : ""}
+                  {totalSignals != null ? totalSignals : signals.length} total
+                  {totalPages > 1 ? ` · page ${page}/${totalPages}` : ""}
                 </span>
               ) : null}
               {pricesLoading ? (
@@ -1532,8 +1679,58 @@ const SignalsTable = ({
                 </span>
               ) : null}
             </div>
-            <ColumnsMenu visibleCols={visibleCols} onToggle={toggleCol} onReset={resetCols} />
+            {/* Hidden for a free account: the column set is fixed there, so a
+                toggle that changes nothing is worse than no toggle. */}
+            {isSubscriber && !hideColumnsMenu && (
+              <ColumnsMenu visibleCols={visibleCols} onToggle={toggleCol} onReset={resetCols} />
+            )}
           </div>
+
+          {/* The wall, stated as a number rather than a claim. It is live, it
+              moves on its own, and it says the true thing: what is missing is
+              not detail, it is everything currently running. */}
+          {!isSubscriber && hiddenCount > 0 && (
+            <div
+              className="flex flex-col gap-3 border-b border-ink/[0.06] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+              style={{ background: "rgb(var(--accent) / 0.06)" }}
+            >
+              <div className="min-w-0">
+                <p
+                  className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+                  style={{ color: "rgb(var(--accent-text))" }}
+                >
+                  Free view · a sample of the desk
+                </p>
+                <p className="text-[13px] font-semibold text-text-primary">
+                  These are recent calls that have reached their target — finished,
+                  timestamped, and yours to verify.{" "}
+                  <span style={{ color: "rgb(var(--accent-text))" }}>
+                    The ones still running are on the subscribers&rsquo; side.
+                  </span>
+                </p>
+                <p className="mt-1 text-[11.5px] leading-relaxed text-text-muted">
+                  We leave the finished ones open so anyone can check our work against a
+                  chart. Subscribers follow the same calls{" "}
+                  <span className="font-medium text-text-primary">
+                    from the entry, while they are still moving
+                  </span>{" "}
+                  — with the win rate, edge score, BTC alignment, risk and verdict this
+                  view leaves out.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onSubscribe}
+                className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
+                style={{
+                  background: "rgb(var(--accent))",
+                  color: "rgb(var(--accent-fg))",
+                }}
+              >
+                See what&rsquo;s running
+              </button>
+            </div>
+          )}
 
           <style>{`
  .sig-t td, .sig-t th { transition: padding .18s ease; vertical-align: middle; }
@@ -1597,28 +1794,32 @@ const SignalsTable = ({
                     <span className="sr-only">Watchlist</span>
                   </th>
                   <SortableHeader field="pair" label="Pair" />
-                  {visibleCols.current_price && (
-                    <SortableHeader field="current_price" label="Price" align="right" />
+                  {effectiveCols.current_price && (
+                    <SortableHeader
+                      field="current_price"
+                      label={isSubscriber ? "Price" : "Closed"}
+                      align="right"
+                    />
                   )}
-                  {visibleCols.entry && (
+                  {effectiveCols.entry && (
                     <SortableHeader field="entry" label="Entry" align="right" />
                   )}
-                  {visibleCols.max_target && (
+                  {effectiveCols.max_target && (
                     <SortableHeader field="max_target" label="Target" align="right" />
                   )}
-                  {visibleCols.stop_loss && (
+                  {effectiveCols.stop_loss && (
                     <SortableHeader field="stop_loss" label="Stop" align="right" />
                   )}
-                  {visibleCols.risk_level && (
+                  {effectiveCols.risk_level && (
                     <SortableHeader field="risk_level" label="Risk" align="center" />
                   )}
-                  {visibleCols.market_cap && (
+                  {effectiveCols.market_cap && (
                     <SortableHeader field="market_cap" label="MCap" align="right" />
                   )}
-                  {visibleCols.volume && (
+                  {effectiveCols.volume && (
                     <SortableHeader field="volume" label="Vol 24h" align="right" />
                   )}
-                  {visibleCols.track_record && (
+                  {effectiveCols.track_record && (
                     <th className="select-none px-3 py-2.5 text-center">
                       <span className="inline-flex items-center justify-center gap-1.5 text-[11px] font-medium">
                         <InfoTip
@@ -1628,45 +1829,70 @@ const SignalsTable = ({
                         />
                         <button
                           type="button"
-                          onClick={() => onSort && onSort("win_rate")}
-                          className={`inline-flex items-center gap-0.5 transition-colors ${sortBy === "win_rate" ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
+                          title={
+                            sortRank("win_rate")
+                              ? `Sort level ${sortRank("win_rate")} · Shift+click to stack`
+                              : "Click sort · Shift+click add"
+                          }
+                          onClick={(e) => onSort && onSort("win_rate", e)}
+                          className={`inline-flex items-center gap-0.5 transition-colors ${sortRank("win_rate") ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
                         >
+                          {sortRank("win_rate") > 0 && sortChain.length > 1 && (
+                            <span className="font-mono text-[8px] tabular-nums text-accent">
+                              {sortRank("win_rate")}
+                            </span>
+                          )}
                           WR
                           <span
-                            className={`text-[8px] leading-none ${sortBy === "win_rate" ? "text-accent opacity-100" : "opacity-0"}`}
+                            className={`text-[8px] leading-none ${sortRank("win_rate") ? "text-accent opacity-100" : "opacity-0"}`}
                           >
-                            {sortBy === "win_rate" && sortOrder === "asc" ? "▲" : "▼"}
+                            {sortRank("win_rate") && sortDir("win_rate") === "asc" ? "▲" : "▼"}
                           </span>
                         </button>
                         <span className="text-text-muted/40">/</span>
                         <button
                           type="button"
-                          onClick={() => onSort && onSort("win_streak")}
-                          className={`inline-flex items-center gap-0.5 transition-colors ${sortBy === "win_streak" ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
+                          title={
+                            sortRank("win_streak")
+                              ? `Sort level ${sortRank("win_streak")} · Shift+click to stack`
+                              : "Click sort · Shift+click add"
+                          }
+                          onClick={(e) => onSort && onSort("win_streak", e)}
+                          className={`inline-flex items-center gap-0.5 transition-colors ${sortRank("win_streak") ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
                         >
+                          {sortRank("win_streak") > 0 && sortChain.length > 1 && (
+                            <span className="font-mono text-[8px] tabular-nums text-accent">
+                              {sortRank("win_streak")}
+                            </span>
+                          )}
                           Streak
                           <span
-                            className={`text-[8px] leading-none ${sortBy === "win_streak" ? "text-accent opacity-100" : "opacity-0"}`}
+                            className={`text-[8px] leading-none ${sortRank("win_streak") ? "text-accent opacity-100" : "opacity-0"}`}
                           >
-                            {sortBy === "win_streak" && sortOrder === "asc" ? "▲" : "▼"}
+                            {sortRank("win_streak") && sortDir("win_streak") === "asc" ? "▲" : "▼"}
                           </span>
                         </button>
                       </span>
                     </th>
                   )}
-                  {visibleCols.btc_corr && (
+                  {effectiveCols.edge_score && (
+                    <SortableHeader field="edge_score" label="Edge" align="center" />
+                  )}
+                  {effectiveCols.btc_corr && (
                     <SortableHeader field="btc_corr" label="BTC Corr" align="center" />
                   )}
-                  {visibleCols.verdict && (
+                  {effectiveCols.verdict && (
                     <SortableHeader field="verdict" label="Verdict" align="center" />
                   )}
-                  {visibleCols.status && (
+                  {effectiveCols.status && (
                     <SortableHeader field="status" label="Status" align="center" />
                   )}
-                  {visibleCols.created_at && (
+                  {effectiveCols.created_at && (
                     <SortableHeader field="created_at" label="Called" align="right" />
                   )}
                   <th className="w-10 px-2" />
+                  {rowHint && <th className="w-20 px-2" />}
+                  {!isSubscriber && <th className="w-28 px-2" />}
                 </tr>
               </thead>
               <tbody>
@@ -1745,13 +1971,71 @@ const SignalsTable = ({
                                 {getCoinName(signal.pair)}
                                 <span className="text-text-muted">/USDT</span>
                               </p>
+                              {(() => {
+                                const runner = getRunnerHint(signal.signal_id);
+                                if (!runner) return null;
+                                return (
+                                  <span
+                                    title={[
+                                      "Historically fuller targets / higher peak",
+                                      runner.full != null
+                                        ? `${Number(runner.full).toFixed(0)}% TP3+`
+                                        : null,
+                                      runner.peak != null
+                                        ? `med peak +${Number(runner.peak).toFixed(0)}%`
+                                        : null,
+                                      runner.tag ? fmtTag(runner.tag) : null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                    className="mt-0.5 inline-flex rounded-md border border-accent/25 bg-accent/10 px-1 py-px font-mono text-[9px] font-semibold uppercase tracking-wider text-accent"
+                                  >
+                                    Runner
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
                         </td>
 
-                        {visibleCols.current_price && (
+                        {effectiveCols.current_price && (
                           <td className="text-right">
-                            {pricesLoading && !currentPrice ? (
+                            {(() => {
+                              // Free view: never show a number lower than where
+                              // the call actually finished, or a win that has
+                              // since retraced would render as a loss.
+                              const closedDisplayPrice =
+                                !isSubscriber && signal.close_price != null
+                                  ? Math.max(
+                                      Number(signal.close_price),
+                                      Number(currentPrice) || 0
+                                    )
+                                  : null;
+                              if (closedDisplayPrice != null) {
+                                // The price alone means nothing to a stranger.
+                                // What sells is the distance it travelled from
+                                // the entry, which we can now show because a
+                                // finished win carries its entry.
+                                const e = Number(signal.entry);
+                                const gain =
+                                  e > 0 ? ((closedDisplayPrice - e) / e) * 100 : null;
+                                return (
+                                  <span className="inline-flex items-baseline justify-end gap-1.5 whitespace-nowrap font-mono tabular-nums">
+                                    <span className="text-[13px] font-medium text-profit">
+                                      {formatPrice(closedDisplayPrice)}
+                                    </span>
+                                    {gain != null && (
+                                      <span className="text-[11px] font-semibold text-profit">
+                                        +{gain.toFixed(1)}%
+                                      </span>
+                                    )}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                            {!isSubscriber && signal.close_price != null ? null : pricesLoading &&
+                              !currentPrice ? (
                               <div className="ml-auto h-3 w-16 animate-pulse rounded bg-ink/[0.05]" />
                             ) : currentPrice ? (
                               /* Yahoo/Google Finance: price then relative change in parentheses */
@@ -1774,7 +2058,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.entry && (
+                        {effectiveCols.entry && (
                           <td className="text-right">
                             <span className="whitespace-nowrap font-mono text-[13px] tabular-nums text-text-secondary">
                               {formatPrice(signal.entry)}
@@ -1782,7 +2066,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.max_target && (
+                        {effectiveCols.max_target && (
                           <td className="text-right">
                             {maxTarget ? (
                               <span className="inline-flex items-baseline justify-end gap-1 whitespace-nowrap font-mono tabular-nums">
@@ -1804,7 +2088,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.stop_loss && (
+                        {effectiveCols.stop_loss && (
                           <td className="text-right">
                             {signal.stop1 ? (
                               <span className="inline-flex items-baseline justify-end gap-1 whitespace-nowrap font-mono tabular-nums">
@@ -1826,7 +2110,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.risk_level && (
+                        {effectiveCols.risk_level && (
                           <td className="text-center">
                             {(() => {
                               const rl = getRiskLabel(signal.risk_level);
@@ -1841,7 +2125,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.market_cap && (
+                        {effectiveCols.market_cap && (
                           <td className="text-right">
                             {signal.market_cap ? (
                               <span className="font-mono text-[13px] tabular-nums text-text-secondary">
@@ -1853,7 +2137,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.volume && (
+                        {effectiveCols.volume && (
                           <td className="text-right">
                             {currentVol ? (
                               <span className="font-mono text-[13px] tabular-nums text-text-secondary">
@@ -1872,7 +2156,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.track_record && (
+                        {effectiveCols.track_record && (
                           <td className="text-center">
                             {(() => {
                               const wr = getWinRate(signal.pair);
@@ -1914,7 +2198,55 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.btc_corr && (
+                        {/* Header order is edge_score then btc_corr — the body
+                            used to be the other way round, which put rho/beta
+                            under "Edge" and the edge score under "BTC Corr". */}
+                        {effectiveCols.edge_score && (
+                          <td className="text-center">
+                            {(() => {
+                              const e = getEdge(signal.signal_id);
+                              if (!e || e.score == null)
+                                return <span className="text-xs text-text-muted">—</span>;
+                              const plain = e.plainWhy;
+                              const conf = e.confidence;
+                              return (
+                                <span
+                                  title={edgeTitle(e)}
+                                  className="inline-flex max-w-[9rem] flex-col items-center gap-0.5"
+                                >
+                                  <span className="inline-flex items-center gap-0.5">
+                                    <span
+                                      className={`inline-flex items-center rounded-md border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[11px] tabular-nums ${edgeToneCls(e.score)}`}
+                                    >
+                                      {Number(e.score).toFixed(1)}
+                                    </span>
+                                    {conf && (
+                                      <span
+                                        className={`font-mono text-[8px] uppercase tracking-wide ${
+                                          conf === "high"
+                                            ? "text-positive"
+                                            : conf === "medium"
+                                              ? "text-text-muted"
+                                              : "text-text-muted/70"
+                                        }`}
+                                        title={`Confidence: ${conf}`}
+                                      >
+                                        {conf === "high" ? "H" : conf === "medium" ? "M" : "L"}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {plain && (
+                                    <span className="line-clamp-1 max-w-full truncate text-[9px] leading-tight text-text-muted">
+                                      {plain}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                        )}
+
+                        {effectiveCols.btc_corr && (
                           <td className="text-center">
                             {(() => {
                               const b = getBtc(signal);
@@ -1948,27 +2280,32 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.verdict && (
+                        {effectiveCols.verdict && (
                           <td
                             className="relative text-center"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {(() => {
-                              const v = getVerdict(signal.pair);
+                              const v = getVerdict(signal);
                               if (!v || v.verdict === "neutral")
                                 return <span className="text-xs text-text-muted">—</span>;
                               const isAvoid = v.verdict === "avoid";
-                              const score = v.coin.risk_score ?? null;
+                              // risk_score stays pair-level (not re-scored LOO)
+                              const score = (v.fullCoin || v.coin).risk_score ?? null;
                               const showHint = showVerdictHint && idx === firstVerdictIdx;
+                              const modalCoin = v.fullCoin || v.coin;
+                              const title = v.asOfEntry
+                                ? "As of entry · excludes this call’s outcome (no look-ahead)"
+                                : "View deep analysis";
                               return (
                                 <div className="relative inline-block">
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setShowVerdictHint(false);
-                                      setSelectedCoinIntel(v.coin);
+                                      setSelectedCoinIntel(modalCoin);
                                     }}
-                                    title="View deep analysis"
+                                    title={title}
                                     className={`group/vd inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-all hover:brightness-110 ${
                                       isAvoid
                                         ? "bg-negative/12 text-loss"
@@ -2023,8 +2360,9 @@ const SignalsTable = ({
                                           </button>
                                         </div>
                                         <p className="mb-2 text-[11px] leading-relaxed text-text-secondary">
-                                          Full assessment based on win-rate history, streaks &amp;
-                                          more.
+                                          {v.asOfEntry
+                                            ? "As-of-entry verdict: this call’s outcome is excluded so the label is not look-ahead."
+                                            : "Prior pair history (win rate, streaks, flags) — not a guarantee."}
                                         </p>
                                         <div className="grid grid-cols-2 gap-1.5 border-t border-ink/[0.06] pt-2">
                                           <div>
@@ -2066,7 +2404,7 @@ const SignalsTable = ({
                                               Avg TP
                                             </p>
                                             <p className="font-mono text-[12px] tabular-nums text-text-primary">
-                                              {v.coin.avg_outcome ?? "—"}
+                                              {modalCoin.avg_outcome ?? "—"}
                                             </p>
                                           </div>
                                         </div>
@@ -2074,7 +2412,7 @@ const SignalsTable = ({
                                           type="button"
                                           onClick={() => {
                                             setShowVerdictHint(false);
-                                            setSelectedCoinIntel(v.coin);
+                                            setSelectedCoinIntel(modalCoin);
                                           }}
                                           className="mt-2.5 w-full rounded-lg bg-accent py-1.5 text-[11px] font-medium text-accent-fg transition-colors hover:bg-accent/90"
                                         >
@@ -2089,7 +2427,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.status && (
+                        {effectiveCols.status && (
                           <td className="text-center">
                             <span
                               className="inline-flex whitespace-nowrap"
@@ -2104,7 +2442,7 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.created_at && (
+                        {effectiveCols.created_at && (
                           <td className="text-right">
                             <span className="whitespace-nowrap font-mono text-[12px] tabular-nums text-text-secondary">
                               {(() => {
@@ -2143,6 +2481,40 @@ const SignalsTable = ({
                               : Ic.share("w-3.5 h-3.5")}
                           </button>
                         </td>
+
+                        {/* Nothing on the row said it opens anything. */}
+                        {rowHint && (
+                          <td className="w-20 px-2 text-right">
+                            <span
+                              className="whitespace-nowrap text-[11px] font-medium"
+                              style={{ color: "rgb(var(--accent-text))" }}
+                            >
+                              {rowHint} &rarr;
+                            </span>
+                          </td>
+                        )}
+
+                        {/* The row is where the want happens: a coin that won,
+                            next to a dash where its entry should be. */}
+                        {!isSubscriber && (
+                          <td
+                            className="w-28 px-2 text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => (onOpenProof || onRowClick)?.(signal)}
+                              title="Open this trade — the chart at the call, and where it went"
+                              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all hover:brightness-110"
+                              style={{
+                                background: "rgb(var(--accent))",
+                                color: "rgb(var(--accent-fg))",
+                              }}
+                            >
+                              See proof &rarr;
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })

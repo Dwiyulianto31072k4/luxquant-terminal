@@ -21,7 +21,7 @@ import json
 import httpx
 from urllib.parse import urlencode, quote
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from google.oauth2 import id_token as google_id_token
@@ -33,6 +33,7 @@ from app.core.security import create_cryptobot_exchange_token, create_tokens, de
 from app.models.user import User
 from app.schemas.user import (
     GoogleLogin,
+    AcqPayload,
     TokenRefresh,
     UserResponse,
     TokenResponse,
@@ -44,6 +45,8 @@ from app.services.referral_helpers import (
     track_user_login,
 )
 from app.services.role_resolver import resolve_role_for_google
+from app.services.acq_helpers import apply_acq_to_user
+from app.services.geo_helpers import location_from_request, apply_request_geo_to_user
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +69,11 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "https://luxquant.tw")
 # ════════════════════════════════════════════════════════════════════
 
 @router.post("/google", response_model=TokenResponse)
-def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
+def google_login(
+    data: GoogleLogin,
+    request: Request,
+    db: Session = Depends(get_db),
+):
     """
     Login/Register dengan Google OAuth.
     Optional: referral_code dari ?ref di URL atau localStorage.
@@ -165,8 +172,17 @@ def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
             )
         db.refresh(user)
 
-    # ─── Track login ───
-    track_user_login(db, user, commit=True)
+    # ─── First-touch acquisition (UTM) ───
+    if getattr(data, "acq", None) is not None:
+        apply_acq_to_user(
+            db,
+            user,
+            data.acq.model_dump() if hasattr(data.acq, "model_dump") else data.acq,
+            commit=True,
+        )
+
+    # ─── Track login + geo (CF-IPCountry) ───
+    track_user_login(db, user, commit=True, **location_from_request(request))
 
     tokens = create_tokens(user.id, user.email)
 
@@ -174,7 +190,8 @@ def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
         user=UserResponse.model_validate(user),
-        cryptobot_token=create_cryptobot_exchange_token(user)
+        cryptobot_token=create_cryptobot_exchange_token(user),
+        is_new_user=is_new_user,
     )
 
 
@@ -252,9 +269,48 @@ def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
-    """Get current logged in user info"""
+async def get_me(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get current logged in user info.
+
+    Also refreshes geo_country from CF-IPCountry so returning users (and those
+    who never re-login) still get a location without filling a profile form.
+    """
+    try:
+        apply_request_geo_to_user(db, current_user, request, commit=True)
+    except Exception:
+        logger.exception("geo refresh on /me failed user=%s", current_user.id)
     return UserResponse.model_validate(current_user)
+
+
+@router.post("/me/acq")
+async def claim_acquisition(
+    body: AcqPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Attach first-touch UTM/referrer to the current user (once only).
+
+    Called after OAuth redirect flows (Google/Discord) where acq cannot ride
+    the auth body. Safe to call on every login — no-op if already set.
+    """
+    wrote = apply_acq_to_user(
+        db,
+        current_user,
+        body.model_dump() if hasattr(body, "model_dump") else body,
+        commit=True,
+    )
+    return {
+        "ok": True,
+        "written": wrote,
+        "acq_source": getattr(current_user, "acq_source", None),
+        "acq_medium": getattr(current_user, "acq_medium", None),
+        "acq_campaign": getattr(current_user, "acq_campaign", None),
+        "acq_content": getattr(current_user, "acq_content", None),
+    }
 
 
 @router.get("/me/cryptobot-token")
@@ -320,6 +376,7 @@ async def get_google_auth_url(referral_code: str = None):
 
 @router.get("/google/callback")
 async def google_callback(
+    request: Request,
     code: str = None,
     state: str = None,
     error: str = None,
@@ -423,7 +480,7 @@ async def google_callback(
             )
         db.refresh(user)
 
-    track_user_login(db, user, commit=True)
+    track_user_login(db, user, commit=True, **location_from_request(request))
 
     tokens = create_tokens(user.id, user.email)
     cryptobot_token = create_cryptobot_exchange_token(user)
@@ -436,6 +493,10 @@ async def google_callback(
         f"?token={tokens['access_token']}"
         f"&refresh_token={tokens['refresh_token']}"
         f"&user={user_json}"
+        # The callback is a redirect, not a JSON body, so the new-account flag
+        # rides in the query string. This is the busiest door on the site --
+        # most tracked sign-ins arrive through it.
+        f"&is_new={'1' if is_new_user else '0'}"
     )
     if cryptobot_token:
         redirect_url += f"&cryptobot_token={cryptobot_token}"

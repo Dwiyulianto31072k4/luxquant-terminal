@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { classifyCoin } from "./coinIntelShared";
+import { classifyCoin, classifySignalVerdict } from "./coinIntelShared";
 import CoinLogo from "./CoinLogo";
 import {
   ResponsiveContainer,
@@ -264,17 +264,32 @@ export default function SignalTerminalPage() {
   // (live-price polling is defined below, after `filteredSignals`, so it fetches
   // prices ONLY for the pairs currently in view — not all 7-day signals.)
 
-  // verdict per pair
+  // Pair-level map (recipes / chips). Filters use per-signal LOO.
   const verdictByPair = useMemo(() => {
     const map = {};
     for (const pair in coinIntel) map[pair] = classifyCoin(coinIntel[pair]);
     return map;
   }, [coinIntel]);
 
-  // filtered signals — SAME logic as Potential Trades
+  const getVerdictForSignal = useCallback(
+    (signal) => {
+      if (!signal?.pair) return null;
+      const coin = coinIntel?.[signal.pair];
+      if (!coin) return null;
+      return classifySignalVerdict(coin, signal);
+    },
+    [coinIntel]
+  );
+
+  // filtered signals — SAME logic as Potential Trades (LOO verdict)
   const filteredSignals = useMemo(
-    () => applySignalFilters(signals, filters, { coinIntel, verdictByPair }),
-    [signals, filters, coinIntel, verdictByPair]
+    () =>
+      applySignalFilters(signals, filters, {
+        coinIntel,
+        verdictByPair,
+        getVerdictForSignal,
+      }),
+    [signals, filters, coinIntel, verdictByPair, getVerdictForSignal]
   );
 
   // Live prices — ONLY for the pairs currently in view (filtered), refreshed
@@ -352,13 +367,13 @@ export default function SignalTerminalPage() {
         btc_align: s.btc_align_score ?? null,
         decoupled: !!s.btc_decoupled,
         max_target: maxTargetPct(s),
-        verdict: verdictByPair[s.pair] || "neutral",
+        verdict: getVerdictForSignal(s) || "neutral",
         entry,
         price: livePrice,
         _sig: s,
       };
     });
-  }, [filteredSignals, flowCoins, coinIntel, prices, verdictByPair]);
+  }, [filteredSignals, flowCoins, coinIntel, prices, getVerdictForSignal]);
 
   const hasFilters = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
 

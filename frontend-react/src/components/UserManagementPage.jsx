@@ -16,6 +16,7 @@ import { isAdminFull, isAdminStaff, isAdminViewOnly, isStaffRole } from "../util
 import { UsersStatGrid } from "./admin/users/UsersStatGrid";
 import { ContactReachPanel } from "./admin/users/ContactReachPanel";
 import { AutoTradeHealthPanel } from "./admin/users/AutoTradeHealthPanel";
+import { UnclaimedEntitlementsPanel } from "./admin/users/UnclaimedEntitlementsPanel";
 import { ExpiringSoonPanel } from "./admin/users/ExpiringSoonPanel";
 import { UsersSearchBar } from "./admin/users/UsersSearchBar";
 import { UsersTable } from "./admin/users/UsersTable";
@@ -544,6 +545,11 @@ const UserManagementPage = () => {
       />
 
       <AutoTradeHealthPanel onInspectUser={(id) => id && setDrawerUserId(id)} />
+
+      {/* Access granted upstream (Discord Premium+, legacy Telegram VIP) but
+          never claimed. These people are not in `users`, so no directory filter
+          can reach them — hence its own panel rather than a table segment. */}
+      <UnclaimedEntitlementsPanel />
 
       {/* ── Zone 3: Directory workspace ── */}
       <div className="space-y-3 pt-1">

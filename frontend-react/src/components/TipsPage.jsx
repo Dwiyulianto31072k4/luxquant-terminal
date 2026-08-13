@@ -512,7 +512,7 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] sm:h-full sm:max-h-[90vh] bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl sm:shadow-black/50 flex flex-col overflow-hidden"
+        className="relative w-full max-w-5xl h-[min(var(--lq-modal-maxh),100%)] max-h-[min(var(--lq-modal-maxh),100%)] sm:h-full sm:max-h-[var(--lq-modal-maxh)] bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl sm:shadow-black/50 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         style={{ animation: "modalIn .25s ease-out" }}
       >
@@ -707,7 +707,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
       onClick={onClose}
     >
       <div
-        className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border max-w-lg w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
+        className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border max-w-lg w-full max-h-[min(var(--lq-modal-maxh),100%)] overflow-y-auto shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">

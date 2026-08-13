@@ -1,9 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ensureTelegram } from "../../../../../utils/telegramLoader";
 import { useAuth } from "../../../../../context/AuthContext";
 import { loginUrl, stashPostLoginRedirect, consumePostLoginRedirect } from "../../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../../utils/funnelAnalytics";
+import {
+  clearAuthRescueState,
+  markFailedAuthProvider,
+} from "../../../../../utils/authRescue";
 import { CTA } from "../../landingCopy";
 import { PrimaryButton } from "./LandingButtons";
 
@@ -46,6 +50,13 @@ function DiscordIcon() {
   );
 }
 
+// One impression per source per page load. The hero slider gives its slide
+// wrapper a changing `key`, so every 11-second auto-rotate unmounts and
+// remounts this pill — a component-level ref reset with it and fired a fresh
+// impression each time. An idle desktop tab was reporting a new "seen" every
+// 11s, which would have made "did they see a CTA?" answer yes for everyone.
+const seenSources = new Set();
+
 export default function HeroSignupPill({
   text = CTA.pill,
   shortText = CTA.pillShort,
@@ -55,6 +66,7 @@ export default function HeroSignupPill({
 }) {
   const navigate = useNavigate();
   const { isAuthenticated, loginWithGoogle, loginWithTelegram, loginWithDiscord } = useAuth();
+  const rootRef = useRef(null);
 
   // The Telegram widget has to be present before the first tap or the click
   // reports "still loading" — which on this page would just look broken.
@@ -62,6 +74,47 @@ export default function HeroSignupPill({
     if (isAuthenticated) return;
     ensureTelegram().catch(() => {});
   }, [isAuthenticated]);
+
+  // This is the biggest CTA on the site — 39% of every landing click comes from
+  // this pill — and until recently only the mobile sticky bar reported being
+  // seen, so desktop had no impression signal at all.
+  //
+  // It is what turns "81% of landing sessions click nothing" from a number
+  // into a diagnosis: seen-and-ignored is a copy problem, never-seen is a
+  // layout problem, and the two have opposite fixes. Which is exactly why it
+  // fires on VISIBILITY, not on mount: one of these pills lives inside the
+  // Terminal section's "More" panel, which is mounted at opacity 0 from first
+  // paint. On mount it reported an impression for a button nobody could see,
+  // and "never saw it" is the answer the layout fix depends on.
+  useEffect(() => {
+    if (isAuthenticated || seenSources.has(source)) return undefined;
+    const el = rootRef.current;
+
+    const fire = () => {
+      if (seenSources.has(source)) return;
+      seenSources.add(source);
+      trackFunnel("cta_shown", { source, path: "/" });
+    };
+
+    if (!el || typeof IntersectionObserver === "undefined") {
+      fire();
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Half of the pill in view — the same bar the sticky bar's scroll
+        // threshold approximates, so the two sources stay comparable.
+        if (entries.some((e) => e.isIntersecting)) {
+          fire();
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isAuthenticated, source]);
 
   // One-tap OAuth from the hero (not /login page) + funnel + post-login redirect.
   const goGoogle = () => {
@@ -72,7 +125,15 @@ export default function HeroSignupPill({
     stashPostLoginRedirect(redirect);
     trackFunnel("cta_click", { source: `${source}:google`, path: "/" });
     trackFunnel("auth_start", { provider: "google", source });
-    loginWithGoogle().catch(() => navigate(loginUrl(redirect, { source: `${source}:google` })));
+    loginWithGoogle().catch((err) => {
+      markFailedAuthProvider("google");
+      trackFunnel("auth_error", {
+        provider: "google",
+        source,
+        meta: { message: err?.response?.data?.detail || err?.message || "Google sign-in failed" },
+      });
+      navigate(loginUrl(redirect, { source: `${source}:google` }));
+    });
   };
 
   const goTelegram = () => {
@@ -84,8 +145,13 @@ export default function HeroSignupPill({
     trackFunnel("cta_click", { source: `${source}:telegram`, path: "/" });
     trackFunnel("auth_start", { provider: "telegram", source });
     loginWithTelegram()
-      .then(() => {
-        trackFunnel("auth_success", { provider: "telegram", source });
+      .then((result) => {
+        clearAuthRescueState();
+        trackFunnel("auth_success", {
+          provider: "telegram",
+          source,
+          meta: { is_new: !!result?.is_new_user },
+        });
         const dest = consumePostLoginRedirect(redirect);
         trackFunnel("post_login_land", { path: dest, provider: "telegram" });
         navigate(dest);
@@ -93,7 +159,18 @@ export default function HeroSignupPill({
       .catch((err) => {
         // "cancelled" is the user closing the popup — nothing to say about it.
         if (err?.message !== "cancelled") {
-          trackFunnel("auth_error", { provider: "telegram", source });
+          markFailedAuthProvider("telegram");
+          trackFunnel("auth_error", {
+            provider: "telegram",
+            source,
+            meta: {
+              message:
+                err?.response?.data?.detail ||
+                err?.reason ||
+                err?.message ||
+                "Telegram sign-in failed",
+            },
+          });
           navigate(loginUrl(redirect, { source: `${source}:telegram` }));
         }
       });
@@ -107,7 +184,15 @@ export default function HeroSignupPill({
     stashPostLoginRedirect(redirect);
     trackFunnel("cta_click", { source: `${source}:discord`, path: "/" });
     trackFunnel("auth_start", { provider: "discord", source });
-    loginWithDiscord().catch(() => navigate(loginUrl(redirect, { source: `${source}:discord` })));
+    loginWithDiscord().catch((err) => {
+      markFailedAuthProvider("discord");
+      trackFunnel("auth_error", {
+        provider: "discord",
+        source,
+        meta: { message: err?.response?.data?.detail || err?.message || "Discord sign-in failed" },
+      });
+      navigate(loginUrl(redirect, { source: `${source}:discord` }));
+    });
   };
 
   const goPlatform = (cta = "signup") => {
@@ -137,9 +222,10 @@ export default function HeroSignupPill({
 
   return (
     <div
+      ref={rootRef}
       className={[
         "mx-auto flex w-full max-w-[400px] items-center gap-1.5 rounded-full border border-ink/20",
-        "bg-ink/[0.96] p-1.5 shadow-[0_10px_24px_rgb(var(--scrim)_/_0.24)] backdrop-blur-md",
+        "bg-ink/[0.96] p-1.5 backdrop-blur-md",
         "sm:max-w-[440px] sm:gap-2",
         className,
       ].join(" ")}
@@ -148,7 +234,7 @@ export default function HeroSignupPill({
       <button
         type="button"
         onClick={() => goPlatform("text")}
-        className="flex h-11 min-w-0 flex-1 items-center truncate rounded-full px-3.5 text-left text-[13px] font-medium text-accent-fg/80 outline-none transition-colors hover:text-accent-fg sm:px-4 sm:text-[14px]"
+        className="flex h-11 min-w-0 flex-1 items-center truncate rounded-full px-3.5 text-left text-[14px] font-semibold text-accent-fg/80 outline-none transition-colors hover:text-accent-fg sm:px-4"
         title={text}
       >
         <span className="truncate sm:hidden">{shortText}</span>

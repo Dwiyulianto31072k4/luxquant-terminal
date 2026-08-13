@@ -2,19 +2,15 @@
 //
 // LuxQuant — Management System (admin workspace shell).
 // ──────────────────────────────────────────────────────────────────────
-// Full-bleed workspace (edge-to-edge, same rhythm as the Delistings /
-// Terminal pages — no centered "card in a card"):
-// • Logo-less title block: "LUXQUANT" eyebrow + "Management System" H1
-// (gold-gradient accent on "System"), thin gold accent rail.
-// • Horizontal underline tab-bar (Delistings-style) groups every view.
-// Scrolls horizontally on small screens; active tab gets a gold rail.
-// • Right of the header: live "Pulse" urgency chips.
+// Terminal-style operating shell: grouped vertical navigation on desktop,
+// collapsible icon rail, isolated navigation/content scroll, and a compact
+// mobile tab strip. The URL hash remains the source of truth for deep links.
 //
 // State:
 // • Active tab persisted via URL hash (e.g. /admin/workspace#finance)
 // • Stats polled every 60s for live badge counters
 //
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { workspaceApi } from "../services/workspaceApi";
 import { adminChatApi } from "../services/adminChatApi";
@@ -45,8 +41,8 @@ import SignalCardsAdminPage from "./SignalCardsAdminPage";
 
 // Design system
 import { palette, tint, motion, NEUTRAL } from "./admin/designSystem";
-import { PageHeader } from "./ui/PageHeader";
 import { RouteErrorBoundary } from "./ErrorBoundary";
+import "./admin/AdminWorkspacePage.css";
 
 // Icons
 import {
@@ -61,213 +57,228 @@ import {
   CheckCircleIcon,
   UsersRingIcon,
   ArrowTargetIcon,
-  BroadcastConeIcon,
-  BarsChartIcon,
   CheckSquareIcon,
   ActivityIcon,
   ServerIcon,
   DollarIcon,
+  MessageCircleIcon,
+  WalletIcon,
+  FunnelIcon,
+  MegaphoneIcon,
+  RocketIcon,
+  SocialOrbitIcon,
+  CardStackIcon,
+  AnnouncementIcon,
+  BookOpenIcon,
+  BotIcon,
+  KeyIcon,
+  SplitCoinIcon,
+  CpuChipIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "./admin/Icons";
 
 // ════════════════════════════════════════════════════════════════════
 // Tab definition
 // ════════════════════════════════════════════════════════════════════
 
-// Inline library/content icon for the Resources tab.
-const LibraryIcon = ({ size = 14, style, ...props }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={style}
-    {...props}
-  >
-    <path d="M4 5v14a1 1 0 001 1h3V4H5a1 1 0 00-1 1z" />
-    <path d="M8 4h4v16H8z" />
-    <path d="M12.5 5.2l3.9-1 3.2 12.4-3.9 1z" />
-  </svg>
-);
-
-// Inline speech-bubble icon for the Chat tab.
-const ChatBubbleIcon = ({ size = 14, style, ...props }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={style}
-    {...props}
-  >
-    <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
-  </svg>
-);
-
-// Decorative accent for tabs/icons is neutral — colour only for urgency badges.
 const TABS = [
   {
     id: "users",
     label: "Users",
     description: "Members, roles, and access",
     Icon: UsersRingIcon,
-    accent: NEUTRAL,
+    group: "people",
   },
   {
     id: "conversion",
     label: "Conversion",
     description: "Login funnel & acquisition quality",
-    Icon: TargetIcon,
-    accent: NEUTRAL,
+    Icon: FunnelIcon,
+    group: "people",
   },
   {
     id: "chat",
     label: "Chat",
     description: "Live conversations with users",
-    Icon: ChatBubbleIcon,
-    accent: NEUTRAL,
+    Icon: MessageCircleIcon,
+    group: "people",
   },
   {
     id: "followups",
     label: "Follow-ups",
     description: "Reminders & support queue",
     Icon: ArrowTargetIcon,
-    accent: NEUTRAL,
+    group: "people",
   },
   {
     id: "marketing",
     label: "Marketing",
     description: "Campaigns & budget tracking",
-    Icon: BroadcastConeIcon,
-    accent: NEUTRAL,
+    Icon: MegaphoneIcon,
+    group: "growth",
   },
   {
     id: "finance",
     label: "Finance",
     description: "Revenue & payment ops",
-    Icon: BarsChartIcon,
-    accent: NEUTRAL,
+    Icon: WalletIcon,
+    group: "operations",
   },
   {
     id: "autotrade",
     label: "Agent",
     description: "Bot health, errors & open positions",
-    Icon: TrendingUpIcon,
-    accent: NEUTRAL,
+    Icon: BotIcon,
+    group: "operations",
   },
   {
     id: "growth",
     label: "Growth",
     description: "Revenue, retention & attribution",
-    Icon: TrendingUpIcon,
-    accent: NEUTRAL,
+    Icon: RocketIcon,
+    group: "growth",
   },
   {
     id: "todos",
     label: "TODOs",
     description: "Internal task board",
     Icon: CheckSquareIcon,
-    accent: NEUTRAL,
+    group: "operations",
   },
   {
     id: "activity",
     label: "Activity",
     description: "Engagement & growth analytics",
     Icon: ActivityIcon,
-    accent: NEUTRAL,
+    group: "people",
   },
   {
     id: "apikeys",
     label: "API",
     description: "Developer keys & abuse flags",
-    Icon: ShieldIcon,
-    accent: NEUTRAL,
+    Icon: KeyIcon,
+    group: "platform",
   },
   {
     id: "announcements",
     label: "Announcements",
     description: "In-app modal messages",
-    Icon: BroadcastConeIcon,
-    accent: NEUTRAL,
+    Icon: AnnouncementIcon,
+    group: "growth",
   },
   {
     id: "socialposts",
     label: "Social Posts",
     description: "AI-generated post drafts",
-    Icon: BroadcastConeIcon,
-    accent: NEUTRAL,
+    Icon: SocialOrbitIcon,
+    group: "growth",
   },
   {
     id: "signalcards",
     label: "Signal Cards",
     description: "Automated card scheduler & drafts",
-    Icon: BroadcastConeIcon,
-    accent: NEUTRAL,
+    Icon: CardStackIcon,
+    group: "growth",
   },
   {
     id: "resources",
     label: "Resources",
     description: "Research, guides, videos & links",
-    Icon: LibraryIcon,
-    accent: NEUTRAL,
+    Icon: BookOpenIcon,
+    group: "growth",
   },
   {
     id: "system",
     label: "System",
     description: "VPS service health & control",
     Icon: ServerIcon,
-    accent: NEUTRAL,
+    group: "platform",
   },
   {
     id: "status",
     label: "Status",
     description: "Public status page & incidents",
     Icon: BellIcon,
-    accent: NEUTRAL,
+    group: "platform",
   },
   {
     id: "profitshare",
     label: "Profit Share",
     description: "Revenue split recap & export",
-    Icon: DollarIcon,
-    accent: NEUTRAL,
+    Icon: SplitCoinIcon,
+    group: "operations",
   },
   {
     id: "aicost",
     label: "AI Cost",
     description: "AI usage & spend tracking",
-    Icon: ZapIcon,
-    accent: NEUTRAL,
+    Icon: CpuChipIcon,
+    group: "platform",
   },
+];
+
+const TAB_GROUPS = [
+  { id: "people", label: "People & CRM" },
+  { id: "growth", label: "Growth & Content" },
+  { id: "operations", label: "Revenue & Ops" },
+  { id: "platform", label: "Platform & Control" },
 ];
 
 const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
 
 // ════════════════════════════════════════════════════════════════════
-// BrandHeader — logo-less title block
+// Compact workspace chrome — same navigation language as Terminal.
 // ════════════════════════════════════════════════════════════════════
 
-const BrandHeader = () => (
-  <PageHeader
-    className="min-w-0"
-    eyebrow="LuxQuant"
-    title="Management System"
-    subtitle="Unified operations workspace"
-  />
-);
+const WorkspaceTitle = ({ activeTab, collapsed, onToggle }) => {
+  const tab = TAB_BY_ID[activeTab] || TABS[0];
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.025] text-text-muted transition hover:border-ink/[0.16] hover:bg-ink/[0.05] hover:text-text-primary lg:flex"
+        title={`${collapsed ? "Expand" : "Collapse"} management navigation ([)`}
+        aria-label={`${collapsed ? "Expand" : "Collapse"} management navigation`}
+      >
+        {collapsed ? (
+          <ChevronRightIcon size={17} />
+        ) : (
+          <ChevronLeftIcon size={17} />
+        )}
+      </button>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/[0.08] text-accent">
+          <tab.Icon size={18} />
+        </div>
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2 text-[13px] font-semibold tracking-tight text-text-primary sm:text-[14px]">
+            <span className="hidden sm:inline">Management System</span>
+            <span className="hidden text-text-muted/50 sm:inline">/</span>
+            <span className="truncate">{tab.label}</span>
+          </div>
+          <p className="mt-0.5 truncate text-[10.5px] text-text-muted">
+            {tab.description}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ════════════════════════════════════════════════════════════════════
 // UrgencyChip + PulseStrip
 // ════════════════════════════════════════════════════════════════════
 
-const UrgencyChip = ({ label, value, accent, Icon, onClick, pulse = false }) => (
+const UrgencyChip = ({
+  label,
+  value,
+  accent,
+  Icon,
+  onClick,
+  pulse = false,
+}) => (
   <button
     onClick={onClick}
     disabled={!onClick}
@@ -447,48 +458,161 @@ const BadgePill = ({ count, accent, active }) => (
 );
 
 // ════════════════════════════════════════════════════════════════════
-// TabBar — horizontal underline tabs (Delistings/Terminal language)
+// Grouped sidebar — sticky desktop rail with its own scroll context.
 // ════════════════════════════════════════════════════════════════════
 
-const TabBar = ({ activeTab, badges, onSelect }) => (
-  <div className="mb-5 border-b border-ink/[0.08]">
-    <div
-      className="no-scrollbar flex items-center gap-0.5 overflow-x-auto sm:gap-1"
+const WorkspaceSidebar = ({ activeTab, badges, collapsed, onSelect }) => (
+  <aside
+    className={`relative hidden min-h-0 shrink-0 border-r border-ink/[0.07] lg:flex lg:flex-col ${
+      collapsed ? "w-[62px]" : "w-[214px] xl:w-[226px]"
+    }`}
+    style={{ transition: "width 180ms cubic-bezier(.4,0,.2,1)" }}
+    aria-label="Management navigation"
+  >
+    <nav
+      className={`admin-nav-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-5 pt-1 ${
+        collapsed ? "px-2" : "pr-3"
+      }`}
       role="tablist"
-      aria-label="Admin workspace sections"
+      aria-orientation="vertical"
     >
-      {TABS.map((t) => {
-        const on = t.id === activeTab;
-        const badge = badges[t.id];
+      {TAB_GROUPS.map((group, groupIndex) => (
+        <div key={group.id} className={groupIndex === 0 ? "" : "mt-4"}>
+          {collapsed ? (
+            groupIndex > 0 && (
+              <div
+                className="mx-2 mb-3 h-px bg-ink/[0.08]"
+                aria-hidden="true"
+              />
+            )
+          ) : (
+            <p className="mb-1.5 px-3 font-mono text-[8.5px] font-semibold uppercase tracking-[0.18em] text-text-muted/60">
+              {group.label}
+            </p>
+          )}
+
+          <div className="space-y-0.5">
+            {TABS.filter((tab) => tab.group === group.id).map((tab) => {
+              const on = tab.id === activeTab;
+              const badge = badges[tab.id];
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  aria-label={tab.label}
+                  title={
+                    collapsed
+                      ? `${tab.label} — ${tab.description}`
+                      : tab.description
+                  }
+                  onClick={() => onSelect(tab.id)}
+                  className={`group relative flex h-10 w-full items-center rounded-lg transition-colors ${
+                    collapsed ? "justify-center px-0" : "gap-2.5 px-2.5"
+                  } ${
+                    on
+                      ? "bg-ink/[0.07] text-text-primary"
+                      : "text-text-muted hover:bg-ink/[0.035] hover:text-text-primary"
+                  }`}
+                >
+                  {on && (
+                    <span
+                      className={`absolute bottom-2 top-2 w-[3px] rounded-full bg-accent ${
+                        collapsed ? "-left-2" : "left-0"
+                      }`}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span
+                    className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition ${
+                      on
+                        ? "border-accent/25 bg-accent/[0.1] text-accent"
+                        : "border-ink/[0.06] bg-ink/[0.025] text-text-muted group-hover:border-ink/[0.12] group-hover:bg-ink/[0.05] group-hover:text-text-primary"
+                    }`}
+                  >
+                    <tab.Icon size={16} />
+                    {collapsed && badge != null && badge > 0 && (
+                      <span
+                        className="absolute -right-1 -top-1 h-2.5 min-w-2.5 rounded-full border-2 px-0.5 text-[0px]"
+                        style={{
+                          background: "rgb(var(--neg))",
+                          borderColor: "rgb(var(--surface))",
+                        }}
+                      />
+                    )}
+                  </span>
+                  {!collapsed && (
+                    <>
+                      <span
+                        className={`min-w-0 flex-1 truncate text-left text-[12px] ${on ? "font-semibold" : "font-medium"}`}
+                      >
+                        {tab.label}
+                      </span>
+                      {badge != null && badge > 0 && (
+                        <BadgePill
+                          count={badge}
+                          accent={palette.red[400]}
+                          active={on}
+                        />
+                      )}
+                    </>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+
+    {!collapsed && (
+      <div className="shrink-0 border-t border-ink/[0.07] py-3 pr-3">
+        <div className="rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2.5">
+          <p className="font-mono text-[8px] uppercase tracking-[0.16em] text-text-muted/60">
+            Workspace
+          </p>
+          <p className="mt-1 text-[10.5px] leading-relaxed text-text-muted">
+            Press{" "}
+            <kbd className="rounded border border-ink/10 bg-ink/[0.04] px-1 font-mono text-[9px]">
+              [
+            </kbd>{" "}
+            to collapse navigation.
+          </p>
+        </div>
+      </div>
+    )}
+  </aside>
+);
+
+const MobileTabBar = ({ activeTab, badges, onSelect }) => (
+  <div className="no-scrollbar shrink-0 overflow-x-auto border-b border-ink/[0.07] py-2 lg:hidden">
+    <div
+      className="flex min-w-max items-center gap-1"
+      role="tablist"
+      aria-label="Management sections"
+    >
+      {TABS.map((tab) => {
+        const on = activeTab === tab.id;
+        const badge = badges[tab.id];
         return (
           <button
-            key={t.id}
+            key={tab.id}
             type="button"
             role="tab"
             aria-selected={on}
-            onClick={() => onSelect(t.id)}
-            className={`relative -mb-px whitespace-nowrap border-b-2 px-2.5 pb-3 pt-1.5 transition-colors sm:px-3 ${
+            onClick={() => onSelect(tab.id)}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold transition ${
               on
-                ? "border-accent text-text-primary"
-                : "border-transparent text-text-muted hover:border-ink/12 hover:text-text-primary/90"
+                ? "border-accent/25 bg-accent/[0.1] text-text-primary"
+                : "border-transparent text-text-muted hover:border-ink/[0.08] hover:bg-ink/[0.03]"
             }`}
           >
-            <span className="inline-flex items-center gap-1.5 sm:gap-2">
-              <t.Icon
-                size={14}
-                style={{ color: on ? "rgb(var(--accent))" : "rgb(var(--ink) / 0.38)" }}
-              />
-              <span
-                className={`text-[12px] tracking-tight sm:text-[13px] ${
-                  on ? "font-semibold" : "font-medium"
-                }`}
-              >
-                {t.label}
-              </span>
-              {badge != null && badge > 0 && (
-                <BadgePill count={badge} accent={palette.red[400]} active={on} />
-              )}
-            </span>
+            <tab.Icon size={14} className={on ? "text-accent" : ""} />
+            {tab.label}
+            {badge != null && badge > 0 && (
+              <BadgePill count={badge} accent={palette.red[400]} active={on} />
+            )}
           </button>
         );
       })}
@@ -515,13 +639,18 @@ const AccessGuard = () => (
             border: `1px solid ${tint(palette.red[400], 0.2)}`,
           }}
         >
-          <ShieldIcon size={36} style={{ color: palette.red[400], opacity: 0.8 }} />
+          <ShieldIcon
+            size={36}
+            style={{ color: palette.red[400], opacity: 0.8 }}
+          />
         </div>
       </div>
-      <h2 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">Restricted Area</h2>
+      <h2 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">
+        Restricted Area
+      </h2>
       <p className="text-xs" style={{ color: "rgb(var(--fg-muted))" }}>
-        LuxQuant Management System is reserved for admin, co-admin, and founder. If you believe this
-        is an error, reach out to your team lead.
+        LuxQuant Management System is reserved for admin, co-admin, and founder.
+        If you believe this is an error, reach out to your team lead.
       </p>
     </div>
   </div>
@@ -533,21 +662,56 @@ const AccessGuard = () => (
 
 const AdminWorkspacePage = () => {
   const { user: currentUser } = useAuth();
+  const contentRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [financeStats, setFinanceStats] = useState(null);
   const [servicesSummary, setServicesSummary] = useState(null);
   const [chatUnread, setChatUnread] = useState(0);
+  const [navCollapsed, setNavCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("lq_admin_workspace_nav_collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
 
-  const initialTab = (() => {
-    const hash = window.location.hash.replace("#", "");
-    return TAB_BY_ID[hash] ? hash : "users";
-  })();
-  const [activeTab, setActiveTab] = useState(initialTab);
-
-  const changeTab = (id) => {
-    setActiveTab(id);
-    window.location.hash = id;
+  // "#finance" selects a tab; "#finance?q=alice" also hands it a filter.
+  const parseHash = () => {
+    const raw = window.location.hash.replace(/^#/, "");
+    const [id, qs] = raw.split("?");
+    let q = "";
+    try {
+      q = new URLSearchParams(qs || "").get("q") || "";
+    } catch {
+      q = "";
+    }
+    return { id: TAB_BY_ID[id] ? id : null, q };
   };
+
+  const initial = parseHash();
+  const [activeTab, setActiveTab] = useState(initial.id || "users");
+  const [tabQuery, setTabQuery] = useState(initial.q);
+
+  const changeTab = (id, q = "") => {
+    setActiveTab(id);
+    setTabQuery(q);
+    window.location.hash = q ? `${id}?q=${encodeURIComponent(q)}` : id;
+  };
+
+  const toggleNavigation = useCallback(() => {
+    setNavCollapsed((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem(
+          "lq_admin_workspace_nav_collapsed",
+          next ? "1" : "0",
+        );
+      } catch {
+        /* localStorage can be unavailable in hardened browsers */
+      }
+      return next;
+    });
+  }, []);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -608,12 +772,46 @@ const AdminWorkspacePage = () => {
 
   useEffect(() => {
     const handler = () => {
-      const hash = window.location.hash.replace("#", "");
-      if (TAB_BY_ID[hash]) setActiveTab(hash);
+      const { id, q } = parseHash();
+      if (id) {
+        setActiveTab(id);
+        setTabQuery(q);
+      }
     };
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
   }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      const target = event.target;
+      if (
+        event.key !== "[" ||
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      )
+        return;
+      event.preventDefault();
+      toggleNavigation();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [toggleNavigation]);
+
+  useEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }, [activeTab]);
+
+  // Chat is an immersive mobile workspace. The global product bottom-nav is
+  // useful while browsing, but inside a live conversation it steals exactly
+  // the composer-sized strip WhatsApp keeps for the thread. Scope the class to
+  // this tab and always clean it up when navigating away/unmounting.
+  useEffect(() => {
+    const className = "lq-admin-chat-active";
+    document.body.classList.toggle(className, activeTab === "chat");
+    return () => document.body.classList.remove(className);
+  }, [activeTab]);
 
   const badges = useMemo(
     () => ({
@@ -622,7 +820,8 @@ const AdminWorkspacePage = () => {
       followups: stats?.followups_overdue || null,
       marketing: null,
       // Prefer stale payments; fall back to payment-gap backlog
-      finance: financeStats?.stale_count || financeStats?.payment_gap_pending || null,
+      finance:
+        financeStats?.stale_count || financeStats?.payment_gap_pending || null,
       growth: null,
       todos: stats?.todos_urgent || null,
       activity: null,
@@ -630,7 +829,7 @@ const AdminWorkspacePage = () => {
       announcements: null,
       system: servicesSummary?.down || null,
     }),
-    [stats, financeStats, servicesSummary, chatUnread]
+    [stats, financeStats, servicesSummary, chatUnread],
   );
 
   if (!isAdminStaff(currentUser)) return <AccessGuard />;
@@ -638,13 +837,16 @@ const AdminWorkspacePage = () => {
   const viewOnly = isAdminViewOnly(currentUser);
 
   return (
-    <div className="w-full px-4 py-6 lg:px-8">
-      {/* ─── Header row (matches Terminal / Home page-top rhythm) ─── */}
-      <div className="mb-2 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <BrandHeader />
-        <div className="lg:max-w-md lg:pb-1">
-          <p className="mb-2 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted lg:text-right">
-            Pulse
+    <div className={`flex w-full min-w-0 flex-col px-4 py-4 lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden lg:px-6 lg:py-3 ${activeTab === "chat" ? "admin-chat-workspace" : ""}`}>
+      <header className="flex shrink-0 flex-col gap-3 border-b border-ink/[0.07] pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <WorkspaceTitle
+          activeTab={activeTab}
+          collapsed={navCollapsed}
+          onToggle={toggleNavigation}
+        />
+        <div className="min-w-0 sm:max-w-[58%] lg:max-w-[52%]">
+          <p className="mb-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-text-muted/60 sm:text-right">
+            Live pulse
           </p>
           <PulseStrip
             stats={stats}
@@ -653,62 +855,90 @@ const AdminWorkspacePage = () => {
             onJumpTo={changeTab}
           />
         </div>
+      </header>
+
+      <MobileTabBar
+        activeTab={activeTab}
+        badges={badges}
+        onSelect={changeTab}
+      />
+
+      <div className="flex min-h-0 min-w-0 flex-1 pt-3 lg:gap-4">
+        <WorkspaceSidebar
+          activeTab={activeTab}
+          badges={badges}
+          collapsed={navCollapsed}
+          onSelect={changeTab}
+        />
+
+        <main
+          ref={contentRef}
+          className={`admin-workspace-content min-w-0 flex-1 ${activeTab === "chat" ? "overflow-hidden" : ""} lg:overflow-y-auto lg:overscroll-contain`}
+        >
+          <div
+            key={activeTab}
+            className={`admin-workspace-view ${activeTab === "users" ? "pb-24" : activeTab === "chat" ? "h-full px-0 pb-0 lg:pr-2" : "px-0 pb-24 lg:pr-2"}`}
+          >
+            {viewOnly && (
+              <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-ink/[0.1] bg-ink/[0.03] px-3.5 py-2.5">
+                <ShieldIcon
+                  size={14}
+                  className="mt-0.5 shrink-0 text-text-muted"
+                  style={{ color: NEUTRAL }}
+                />
+                <div>
+                  <p className="text-[12px] font-semibold text-text-primary/90">
+                    View-only mode (
+                    {currentUser?.role === "founder" ? "Founder" : "Co-Admin"})
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-text-muted">
+                    You can browse all management tabs. Create, edit, delete,
+                    grant, and send actions are blocked by the server.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <RouteErrorBoundary>
+              {activeTab === "users" && <UserManagementPage />}
+              {activeTab === "conversion" && <ConversionTab />}
+              {activeTab === "chat" && (
+                <ChatTab
+                  canWrite={!viewOnly}
+                  onRefreshUnread={fetchChatUnread}
+                />
+              )}
+              {activeTab === "followups" && (
+                <FollowupTab onRefreshStats={fetchStats} />
+              )}
+              {activeTab === "marketing" && (
+                <MarketingTab onRefreshStats={fetchStats} />
+              )}
+              {activeTab === "finance" && (
+                <FinanceTab
+                  key={tabQuery}
+                  initialSearch={tabQuery}
+                  onRefreshStats={fetchFinanceStats}
+                />
+              )}
+              {activeTab === "growth" && <GrowthTab />}
+              {activeTab === "todos" && <TodoTab onRefreshStats={fetchStats} />}
+              {activeTab === "activity" && <ActivityTab />}
+              {activeTab === "autotrade" && <AutoTradeOpsTab />}
+              {activeTab === "apikeys" && <ApiKeysTab />}
+              {activeTab === "announcements" && <AnnouncementsTab />}
+              {activeTab === "socialposts" && <SocialPostsAdminPage />}
+              {activeTab === "signalcards" && <SignalCardsAdminPage />}
+              {activeTab === "resources" && <ResourcesTab />}
+              {activeTab === "system" && <SystemTab />}
+              {activeTab === "status" && <StatusTab />}
+              {activeTab === "profitshare" && <ProfitSharingTab />}
+              {activeTab === "aicost" && <AiCostTab />}
+            </RouteErrorBoundary>
+          </div>
+        </main>
       </div>
 
-      {viewOnly && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-ink/[0.1] bg-ink/[0.03] px-3.5 py-2.5">
-          <ShieldIcon
-            size={14}
-            className="mt-0.5 shrink-0 text-text-muted"
-            style={{ color: NEUTRAL }}
-          />
-          <div>
-            <p className="text-[12px] font-semibold text-text-primary/90">
-              View-only mode ({currentUser?.role === "founder" ? "Founder" : "Co-Admin"})
-            </p>
-            <p className="mt-0.5 text-[11px] text-text-muted">
-              You can browse all management tabs. Create, edit, delete, grant, and send actions are
-              blocked by the server.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="mb-5 mt-5">
-        <TabBar activeTab={activeTab} badges={badges} onSelect={changeTab} />
-      </div>
-
-      {/* ─── Active tab content (isolated crash domain) ─── */}
-      <RouteErrorBoundary>
-        {activeTab === "users" && (
-          <div className="-mx-4 lg:-mx-8">
-            <UserManagementPage />
-          </div>
-        )}
-        {activeTab === "conversion" && <ConversionTab />}
-        {activeTab === "chat" && (
-          <ChatTab canWrite={!viewOnly} onRefreshUnread={fetchChatUnread} />
-        )}
-        {activeTab === "followups" && <FollowupTab onRefreshStats={fetchStats} />}
-        {activeTab === "marketing" && <MarketingTab onRefreshStats={fetchStats} />}
-        {activeTab === "finance" && <FinanceTab onRefreshStats={fetchFinanceStats} />}
-        {activeTab === "growth" && <GrowthTab />}
-        {activeTab === "todos" && <TodoTab onRefreshStats={fetchStats} />}
-        {activeTab === "activity" && <ActivityTab />}
-        {activeTab === "autotrade" && <AutoTradeOpsTab />}
-        {activeTab === "apikeys" && <ApiKeysTab />}
-        {activeTab === "announcements" && <AnnouncementsTab />}
-        {activeTab === "socialposts" && <SocialPostsAdminPage />}
-        {activeTab === "signalcards" && <SignalCardsAdminPage />}
-        {activeTab === "resources" && <ResourcesTab />}
-        {activeTab === "system" && <SystemTab />}
-        {activeTab === "status" && <StatusTab />}
-        {activeTab === "profitshare" && <ProfitSharingTab />}
-        {activeTab === "aicost" && <AiCostTab />}
-      </RouteErrorBoundary>
-
-      {/* Outside the tab switch on purpose: someone waiting for an answer is
-          worth surfacing wherever the operator happens to be looking. */}
       <AwaitingReplyNudge
         onOpenChat={() => {
           changeTab("chat");

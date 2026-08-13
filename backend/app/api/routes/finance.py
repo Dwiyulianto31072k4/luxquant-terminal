@@ -24,6 +24,7 @@ from app.models.user import User
 from app.models.subscription import Payment, SubscriptionPlan
 from app.models.wallet import ReceivingWallet
 from app.services.bscscan import fetch_tx_details
+from app.services.commission_service import reverse_commission_for_refund
 
 
 logger = logging.getLogger(__name__)
@@ -1067,12 +1068,21 @@ def refund_payment(payment_id: int, data: PaymentActionPayload = PaymentActionPa
         if hasattr(user, 'subscription_expires_at'):
             user.subscription_expires_at = None
 
+    # Keep referral economics truthful: a refunded payment must not remain a
+    # paid conversion or leave spendable commission behind. Idempotency lives
+    # in the credit ledger, so retrying the request cannot reverse twice.
+    commission_reversal = reverse_commission_for_refund(p, db)
+
     db.commit()
     db.refresh(p)
 
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
     wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
-    return {"success": True, "message": f"Payment #{p.id} flagged as refunded. Manual USDT refund required.", "payment": _serialize_row(p, user, plan, wallet_map=wallet_map)}
+    reversal_note = (
+        f" Referral commission ${commission_reversal['amount']:.2f} was reversed."
+        if commission_reversal else ""
+    )
+    return {"success": True, "message": f"Payment #{p.id} flagged as refunded. Manual USDT refund required.{reversal_note}", "payment": _serialize_row(p, user, plan, wallet_map=wallet_map)}
 
 
 @router.post("/payments/{payment_id}/note")

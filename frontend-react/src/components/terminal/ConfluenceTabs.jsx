@@ -31,7 +31,6 @@ import {
   SectionBand,
   Kpi,
   Chip,
-  ScrollArea,
   StatusTag,
 } from "./vizShared";
 
@@ -271,7 +270,7 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, _
           onOpen ? onOpen(s) : onPair(s.pair);
         }
       }}
-      className="group relative cursor-pointer text-left rounded-xl bg-ink/[0.02] border border-ink/[0.06] hover:border-ink/[0.12] hover:bg-ink/[0.035] focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent transition-all overflow-hidden flex flex-col"
+      className="group relative cursor-pointer text-left rounded-xl bg-ink/[0.02] border border-ink/[0.06] hover:border-ink/[0.12] hover:bg-ink/[0.035] focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent transition-all overflow-hidden flex flex-col w-full min-w-0 max-w-full"
     >
       {/* header — pair · direction · PnL · status */}
       <div className="px-3.5 pt-3.5 flex items-center gap-2.5">
@@ -614,7 +613,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
   const cleanN = Math.max(0, view.filter((s) => s.v3?.tags?.length).length - stats.warned);
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3 min-w-0 w-full">
       <SectionBand
         title={t("terminal.viz.tabConfluence")}
         guide="confluence"
@@ -705,25 +704,24 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
           {t("terminal.viz.confEmpty")}
         </div>
       ) : (
-        <ScrollArea max={720}>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
-            {rankedCards.slice(0, 90).map((s) => (
-              <SignalCard
-                key={s.signal_id}
-                s={s}
-                t={t}
-                onPair={openPair}
-                onOpen={openSignalRow}
-                live={{ fc: pairFc[s.pair], spike: deriv?.pairs?.[s.pair]?.spike_15m }}
-                ps={psPairs[s.pair]}
-                prefs={prefs}
-                pinned={pins.includes(s.signal_id)}
-                onPin={togglePin}
-                flow={{ liq: liqMap[s.pair], tf: flowMap[baseSym(s.pair)] }}
-              />
-            ))}
-          </div>
-        </ScrollArea>
+        /* Page scroll (not nested max-height) so cards never clip on the right */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 w-full min-w-0">
+          {rankedCards.slice(0, 90).map((s) => (
+            <SignalCard
+              key={s.signal_id}
+              s={s}
+              t={t}
+              onPair={openPair}
+              onOpen={openSignalRow}
+              live={{ fc: pairFc[s.pair], spike: deriv?.pairs?.[s.pair]?.spike_15m }}
+              ps={psPairs[s.pair]}
+              prefs={prefs}
+              pinned={pins.includes(s.signal_id)}
+              onPin={togglePin}
+              flow={{ liq: liqMap[s.pair], tf: flowMap[baseSym(s.pair)] }}
+            />
+          ))}
+        </div>
       )}
 
       {/* Side-by-side comparison of the pinned setups */}
