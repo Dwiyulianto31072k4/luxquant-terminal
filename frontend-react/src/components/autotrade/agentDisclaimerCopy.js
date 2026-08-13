@@ -2,7 +2,7 @@
 // posted to the log, printed on the PDF, and stored for admin. Bump VERSION
 // whenever wording changes so old PDFs stay historically accurate.
 
-export const ASSISTANT_FORM_VERSION = "2026-08-13.1";
+export const ASSISTANT_FORM_VERSION = "2026-08-13.2";
 export const LIVE_FORM_VERSION = "2026-08-13.1";
 
 export const ASSISTANT_FORM = {
@@ -11,31 +11,35 @@ export const ASSISTANT_FORM = {
   title: "Agent is an assistant, not a money machine",
   sections: [
     {
-      title: "Why this exists",
-      body: "Users asked for it. Some cannot watch every LuxQuant call. LuxQuant built Agent as a helper. It is not commercialized as a profit product. There is no Agent package, no performance fee, and no promise that turning it on will make money.",
+      title: "This exists because users asked — a lot",
+      body: "Agent is not a product we invented to sell. It is a request we kept getting: from people at work, people in another timezone, people who sleep through a session, people in India who cannot finish Binance KYC, people in Canada who trade Bitget, people who said “can it just follow my own size and stop when I am not at the desk.” We built it because that queue of messages did not stop. If you never asked for this, you do not have to use it.",
+    },
+    {
+      title: "We do not commercialize it",
+      body: "There is no Agent package, no performance fee, no “autotrade add-on”, no promise that turning it on will make you money. LuxQuant’s product is the terminal and the research. Agent is a courtesy helper for members who already use those and asked for execution help. Using Agent does not make a losing trade our fault.",
     },
     {
       title: "What it actually does",
-      body: "When on, Agent watches incoming signals and, if they match the rules you saved, it can place an order on your exchange account. Funds never leave that exchange. Withdraw permission is never requested.",
+      body: "When you turn it on, Agent watches incoming signals and, if they match the rules you saved, it can place an order on your Binance, Bitget, or BingX account. Funds never leave that exchange. Withdraw permission is never requested. It will also skip trades — risk cap, daily loss limit, cooldown, invalid key, symbol not listed, you paused it. A skip is not a bug. A fill is not a gift.",
     },
     {
       title: "What it is not",
-      body: "Not a fund manager, copy-trade leader, or financial advice. Not set-and-forget. Not 100% controlled by Agent. Not a guarantee of profit. Not a substitute for you supervising it.",
+      body: "Not a fund manager. Not a copy-trade leader. Not financial advice. Not set-and-forget. Not 100% controlled by Agent — you choose on/off, size, leverage, spot vs futures, dry-run vs live. Not a guarantee of profit. Plenty of correct process still loses: slippage, wicks, news, leverage, a stop that is simply hit. If you cannot check it, it should be off or in dry-run.",
     },
     {
       title: "You still have to drive",
-      body: "Pause before news if you do not want to be in the market. Keep dry-run on until you have watched it simulate. Turn LIVE off when you cannot open the app. Open positions keep their exchange TP/SL after you pause — check those too.",
+      body: "Pause it before high-impact news if you do not want to be in the market. Lower size when you are unsure. Keep dry-run on until you have watched it simulate. Turn LIVE off when you travel or cannot open the app. Open positions keep their exchange take-profit and stop-loss after you pause — check those too. If a trade is red, the honest question is whether you left it live, at that size, on that market.",
     },
     {
-      title: "Losses",
-      body: "Futures can liquidate. Spot can drop through a stop. Software, networks, and venues fail. Only use money you can lose.",
+      title: "Losses, including large ones",
+      body: "Futures can liquidate. Spot can drop through a stop. A signal can be late. The exchange can reject a protective order. Software, networks, and venues fail. Only use money you can lose. If that sentence feels uncomfortable, do not connect keys.",
     },
   ],
   checks: [
     {
       id: "demand",
       label:
-        "I understand Agent exists because users asked for help — it is not a commercial trading product, a signal subscription upsell, or a managed account.",
+        "I understand Agent was built because many users requested it. It is not a commercial trading product, a paid autotrade package, or a managed account.",
     },
     {
       id: "assistant",
