@@ -6,8 +6,8 @@ import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 import { EXCHANGE_LIST, VenueLogo } from "../../../autotrade/exchangeVenues";
 
-/* Centered Stripe plus. Tape → sanitize → hub → terminal → venues.
-   Every pill has a glyph. Geometry is validated below. */
+/* Stripe plus, one story:
+   tape in → sanitize → engine. Products drop out. Exchange is the dest. */
 
 const SYSTEMS = [
   { id: "price", label: "Price", icon: "price" },
@@ -32,9 +32,9 @@ const SCENES = [
 ];
 
 const DW = 1000;
-const DH = 420;
+const DH = 400;
 const MW = 380;
-const MH = 680;
+const MH = 560;
 const PH = 34;
 
 function box(x, y, w, h) {
@@ -61,40 +61,37 @@ function assertLayout(name, g) {
     const mid = (g.O[0].x + g.O[g.O.length - 1].r) / 2;
     near(mid, g.hub.cx, `${name} outputs not centered on hub`);
   }
-  if (g.terminal.x < g.hub.r) err.push(`${name} terminal must sit right of hub`);
-  if (g.logos.x < g.terminal.r) err.push(`${name} venues must sit after terminal`);
+  if (g.logos.x < g.hub.r) err.push(`${name} exchange dest must sit right of hub`);
   if (err.length) throw new Error(err.join(" | "));
 }
 
-/* Desktop — hub dead-center, like Stripe */
+/* Desktop — tape in, products out, exchange is the dest */
 const D = (() => {
-  const hub = box((DW - 80) / 2, 176, 80, 80);
+  const hub = box((DW - 80) / 2, 164, 80, 80);
   const tw = 118;
   const tg = 8;
   const tSpan = 5 * tw + 4 * tg;
   const t0 = (DW - tSpan) / 2;
   const T = [0, 1, 2, 3, 4].map((i) => box(t0 + i * (tw + tg), 16, tw, PH));
   const tray = box(t0 - 8, 8, tSpan + 16, 50);
-  const sanitize = box(hub.cx - 54, 116, 108, PH);
-  const terminal = box(hub.r + 28, hub.cy - PH / 2, 108, PH);
-  const logos = box(terminal.r + 24, hub.cy - 40, 128, 80);
+  const sanitize = box(hub.cx - 54, 108, 108, PH);
+  const logos = box(hub.r + 36, hub.cy - 40, 128, 80);
 
   const ow = 122;
   const og = 12;
   const oSpan = 4 * ow + 3 * og;
   const o0 = (DW - oSpan) / 2;
-  const O = [0, 1, 2, 3].map((i) => box(o0 + i * (ow + og), 364, ow, PH));
-  const neck = hub.b + 20;
+  const O = [0, 1, 2, 3].map((i) => box(o0 + i * (ow + og), 332, ow, PH));
+  const neck = hub.b + 16;
 
   const routes = [
     ...T.map((t) => elbow(t, sanitize, "v")),
     `M${sanitize.cx} ${sanitize.b} V${hub.y}`,
-    elbow(hub, terminal, "h"),
-    elbow(terminal, logos, "h"),
+    elbow(hub, logos, "h"),
     ...O.map((o) => `M${hub.cx} ${hub.b} V${neck} H${o.cx} V${o.y}`),
   ];
 
-  const g = { T, tray, sanitize, hub, terminal, logos, O, routes };
+  const g = { T, tray, sanitize, hub, logos, O, routes };
   assertLayout("desktop", g);
   return g;
 })();
@@ -109,27 +106,22 @@ const M = (() => {
     box(106, 96, tw, PH),
   ];
   const sanitize = box(120, 154, 140, PH);
-  const hub = box(150, 214, 80, 80);
-  const terminal = box(106, 324, 168, PH);
-  const logos = box(126, 382, 128, 80);
+  const hub = box(150, 210, 80, 80);
   const O = [
-    box(16, 500, 168, PH),
-    box(196, 500, 168, PH),
-    box(16, 544, 168, PH),
-    box(196, 544, 168, PH),
+    box(16, 318, 168, PH),
+    box(196, 318, 168, PH),
+    box(16, 362, 168, PH),
+    box(196, 362, 168, PH),
   ];
+  const logos = box(126, 430, 128, 80);
+  const neck = hub.b + 14;
   const routes = [
     ...T.map((t) => `M${t.cx} ${t.b} V${(t.b + sanitize.y) / 2} H${sanitize.cx} V${sanitize.y}`),
     `M${sanitize.cx} ${sanitize.b} V${hub.y}`,
-    `M${hub.cx} ${hub.b} V${terminal.y}`,
-    `M${terminal.cx} ${terminal.b} V${logos.y}`,
-    ...O.map((o) => `M${logos.cx} ${logos.b} V${(logos.b + o.y) / 2} H${o.cx} V${o.y}`),
+    ...O.map((o) => `M${hub.cx} ${hub.b} V${neck} H${o.cx} V${o.y}`),
+    `M${hub.cx} ${O[2].b} V${logos.y}`,
   ];
-  const g = { T, sanitize, hub, terminal, logos, O, routes };
-  if (g.terminal.x > g.hub.r) {
-    /* mobile stacks under the hub; skip desktop-only asserts */
-  }
-  return g;
+  return { T, sanitize, hub, logos, O, routes };
 })();
 
 function Glyph({ type }) {
@@ -326,13 +318,6 @@ function Hub({ node }) {
 
 function Diagram({ g, width, height, scene, init, running }) {
   const active = SCENES[scene];
-  const lit = [
-    ...SYSTEMS.map((s) => init || active.systems.includes(s.id)),
-    true,
-    true,
-    true,
-    ...OUTPUTS.map((o) => init || active.outputs.includes(o.id)),
-  ];
   return (
     <Plane width={width} height={height}>
       <Lines
@@ -340,7 +325,6 @@ function Diagram({ g, width, height, scene, init, running }) {
         width={width}
         height={height}
         running={running}
-        lit={lit}
         uid={`lq${width}`}
       />
       {g.tray ? <div className="lq-tray" style={{ left: g.tray.x, top: g.tray.y, width: g.tray.w, height: g.tray.h }} /> : null}
@@ -356,7 +340,6 @@ function Diagram({ g, width, height, scene, init, running }) {
       ))}
       <Pill node={g.sanitize} icon="filter">Sanitize</Pill>
       <Hub node={g.hub} />
-      <Pill node={g.terminal} icon="desk">Terminal</Pill>
       <DestVenues node={g.logos} />
       {g.O.map((n, i) => (
         <Slot
@@ -488,18 +471,17 @@ export default function Architecture() {
         }
         .lq-slot {
           display: flex; align-items: center; justify-content: center;
-          border: 1px dashed var(--idle); border-radius: 6px;
-          transition: border-color .5s cubic-bezier(.4,0,.2,1);
+          border-radius: 6px;
         }
         .lq-slot span {
           display: flex; align-items: center; justify-content: center; gap: 6px;
           width: 100%; height: 100%; border-radius: 6px;
-          background: transparent; color: rgb(var(--accent) / 0.7);
+          background: var(--pill); color: var(--ink);
           font-size: 12px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
-          transition: background .45s cubic-bezier(.4,0,.2,1), color .45s cubic-bezier(.4,0,.2,1);
+          opacity: .48;
+          transition: opacity .45s cubic-bezier(.4,0,.2,1);
         }
-        .lq-slot.is-on { border-color: transparent; }
-        .lq-slot.is-on span, .lq-slot.is-init span { background: var(--pill); color: var(--ink); }
+        .lq-slot.is-on span, .lq-slot.is-init span { opacity: 1; }
         .lq-slot.is-init span { transition-duration: 0ms; }
         .lq-hub {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
