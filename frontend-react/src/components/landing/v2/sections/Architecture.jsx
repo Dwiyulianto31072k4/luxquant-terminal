@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
@@ -30,14 +30,13 @@ const SCENES = [
   { systems: ["price", "onchain", "vol", "derivs"], outputs: ["ai", "flow", "agent"] },
 ];
 
-const LOGO = (f) => `/exchanges/${f}`;
-const LOGO_CELLS = [
-  [LOGO("binance.png"), LOGO("okx.png")],
-  [LOGO("okx.png"), LOGO("bybit.png?v=2")],
-  [LOGO("bybit.png?v=2"), LOGO("gate.png")],
-  [LOGO("gate.png"), LOGO("bitget.png")],
-  [LOGO("bitget.png"), LOGO("bingx.png?v=2")],
-  [LOGO("bingx.png?v=2"), LOGO("binance.png")],
+const VENUES = [
+  { src: "/exchanges/binance.png", name: "Binance" },
+  { src: "/exchanges/okx.png", name: "OKX" },
+  { src: "/exchanges/bybit.png?v=2", name: "Bybit" },
+  { src: "/exchanges/gate.png", name: "Gate" },
+  { src: "/exchanges/bitget.png", name: "Bitget" },
+  { src: "/exchanges/bingx.png?v=2", name: "BingX" },
 ];
 
 const DW = 1000;
@@ -86,8 +85,7 @@ const D = (() => {
   const tray = box(t0 - 8, 8, tSpan + 16, 50);
   const sanitize = box(hub.cx - 54, 116, 108, PH);
   const terminal = box(hub.r + 28, hub.cy - PH / 2, 108, PH);
-  const venues = box(terminal.r + 20, hub.cy - PH / 2, 92, PH);
-  const logos = box(venues.r + 16, hub.cy - 44, 152, 88);
+  const logos = box(terminal.r + 24, hub.cy - 40, 128, 80);
 
   const ow = 122;
   const og = 12;
@@ -100,12 +98,11 @@ const D = (() => {
     ...T.map((t) => elbow(t, sanitize, "v")),
     `M${sanitize.cx} ${sanitize.b} V${hub.y}`,
     elbow(hub, terminal, "h"),
-    elbow(terminal, venues, "h"),
-    elbow(venues, logos, "h"),
+    elbow(terminal, logos, "h"),
     ...O.map((o) => `M${hub.cx} ${hub.b} V${neck} H${o.cx} V${o.y}`),
   ];
 
-  const g = { T, tray, sanitize, hub, terminal, venues, logos, O, routes };
+  const g = { T, tray, sanitize, hub, terminal, logos, O, routes };
   assertLayout("desktop", g);
   return g;
 })();
@@ -121,9 +118,8 @@ const M = (() => {
   ];
   const sanitize = box(120, 154, 140, PH);
   const hub = box(150, 214, 80, 80);
-  const terminal = box(16, 324, 168, PH);
-  const venues = box(196, 324, 168, PH);
-  const logos = box(114, 380, 152, 88);
+  const terminal = box(106, 324, 168, PH);
+  const logos = box(126, 382, 128, 80);
   const O = [
     box(16, 500, 168, PH),
     box(196, 500, 168, PH),
@@ -133,13 +129,11 @@ const M = (() => {
   const routes = [
     ...T.map((t) => `M${t.cx} ${t.b} V${(t.b + sanitize.y) / 2} H${sanitize.cx} V${sanitize.y}`),
     `M${sanitize.cx} ${sanitize.b} V${hub.y}`,
-    `M${hub.cx} ${hub.b} V${(hub.b + terminal.y) / 2} H${terminal.cx} V${terminal.y}`,
-    `M${hub.cx} ${hub.b} V${(hub.b + venues.y) / 2} H${venues.cx} V${venues.y}`,
-    `M${terminal.cx} ${terminal.b} V${logos.cy} H${logos.x}`,
-    `M${venues.cx} ${venues.b} V${logos.cy} H${logos.r}`,
+    `M${hub.cx} ${hub.b} V${terminal.y}`,
+    `M${terminal.cx} ${terminal.b} V${logos.y}`,
     ...O.map((o) => `M${logos.cx} ${logos.b} V${(logos.b + o.y) / 2} H${o.cx} V${o.y}`),
   ];
-  const g = { T, sanitize, hub, terminal, venues, logos, O, routes };
+  const g = { T, sanitize, hub, terminal, logos, O, routes };
   if (g.terminal.x > g.hub.r) {
     /* mobile stacks under the hub; skip desktop-only asserts */
   }
@@ -305,58 +299,13 @@ function Slot({ node, label, icon, on, init }) {
   );
 }
 
-function FlipLogo({ items, scene, delay, running }) {
-  const wrap = useRef(null);
-  const flips = useRef(0);
-  const prev = useRef(-1);
-  const timer = useRef(null);
-  const [front, setFront] = useState(0);
-  const [back, setBack] = useState(1);
-
-  const onEnd = useCallback(
-    (e) => {
-      if (e.propertyName !== "transform") return;
-      const next = (scene + 1) % items.length;
-      if (scene % 2 === 0) setBack(next);
-      else setFront(next);
-    },
-    [scene, items.length],
-  );
-
-  useEffect(() => {
-    if (!running || scene === prev.current) return undefined;
-    prev.current = scene;
-    const n = flips.current;
-    if (n !== 0) {
-      timer.current = setTimeout(() => {
-        if (wrap.current) wrap.current.style.transform = `rotateX(${180 * n}deg)`;
-      }, delay);
-    }
-    flips.current += 1;
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [scene, delay, running]);
-
-  const a = items[front];
-  const b = items[back];
+function DestVenues({ node }) {
   return (
-    <div className="lq-app">
-      <div ref={wrap} className="lq-app-flip" onTransitionEnd={onEnd}>
-        <div className="lq-app-face is-front">
-          {a ? <img src={a} alt="" /> : <i />}
-        </div>
-        <div className="lq-app-face is-back">{b ? <img src={b} alt="" /> : <i />}</div>
-      </div>
-    </div>
-  );
-}
-
-function LogoCluster({ node, scene, running }) {
-  return (
-    <div className="lq-apps" style={{ left: node.x, top: node.y, width: node.w, height: node.h }}>
-      {LOGO_CELLS.map((items, i) => (
-        <FlipLogo key={i} items={items} scene={scene} delay={i * 70} running={running} />
+    <div className="lq-dest" style={{ left: node.x, top: node.y, width: node.w, height: node.h }} aria-label="Your exchange">
+      {VENUES.map((v) => (
+        <span key={v.name} title={v.name}>
+          <img src={v.src} alt={v.name} />
+        </span>
       ))}
     </div>
   );
@@ -390,8 +339,7 @@ function Diagram({ g, width, height, scene, init, running }) {
       <Pill node={g.sanitize} icon="filter">Sanitize</Pill>
       <Hub node={g.hub} />
       <Pill node={g.terminal} icon="desk">Terminal</Pill>
-      <Pill node={g.venues} icon="exchange">Venues</Pill>
-      <LogoCluster node={g.logos} scene={scene} running={running} />
+      <DestVenues node={g.logos} />
       {g.O.map((n, i) => (
         <Slot
           key={OUTPUTS[i].id}
@@ -497,7 +445,7 @@ export default function Architecture() {
         }
         .lq-flow { stroke: var(--line); stroke-width: 1.25; stroke-dasharray: 2 3; stroke-linecap: round; stroke-linejoin: round; fill: none; }
         .lq-tray { position: absolute; z-index: 1; border-radius: 8px; background: rgb(var(--surface) / 0.28); }
-        .lq-pill, .lq-slot, .lq-hub, .lq-apps {
+        .lq-pill, .lq-slot, .lq-hub, .lq-dest {
           position: absolute; z-index: 4; box-sizing: border-box;
         }
         .lq-pill {
@@ -527,16 +475,22 @@ export default function Architecture() {
         }
         .lq-hub img { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
         .lq-hub span { margin-top: 4px; color: #171304; font-size: 9px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
-        .lq-apps {
-          display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
-          gap: 6px; padding: 8px; border-radius: 10px;
-          background: rgb(var(--surface) / 0.7); border: 1px solid rgb(var(--ink) / 0.06);
+        .lq-dest {
+          display: flex;
+          flex-wrap: wrap;
+          align-content: center;
+          justify-content: center;
+          gap: 8px;
         }
-        .lq-app { position: relative; border: 1px dashed var(--idle); border-radius: 99px; perspective: 240px; min-height: 0; }
-        .lq-app-flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 2s cubic-bezier(.9,0,.1,1); }
-        .lq-app-face { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; border-radius: 99px; background: rgb(var(--surface)); backface-visibility: hidden; }
-        .lq-app-face.is-back { transform: rotateX(180deg); }
-        .lq-app-face img { width: 100%; height: 100%; object-fit: cover; }
+        .lq-dest span {
+          display: grid; place-items: center;
+          width: 36px; height: 36px;
+          border-radius: 99px;
+          background: #fff;
+          box-shadow: 0 0 0 1px rgb(var(--ink) / 0.1);
+          overflow: hidden;
+        }
+        .lq-dest img { width: 68%; height: 68%; object-fit: contain; }
         .lq-ico { flex: 0 0 auto; }
         .lq-ico path, .lq-ico rect, .lq-ico circle { transform-box: fill-box; transform-origin: center; }
         .lq-ico-price .lq-g-main { animation: lqWave 2.6s ease-in-out infinite; }
@@ -548,7 +502,7 @@ export default function Architecture() {
         @keyframes lqBookR { 0%,100% { transform: scaleX(1.08); } 50% { transform: scaleX(.9); } }
         @keyframes lqVol { 0%,100% { transform: scaleY(.7); } 50% { transform: scaleY(1.12); } }
         @media (prefers-reduced-motion: reduce) {
-          .lq-slot span, .lq-app-flip, .lq-ico path, .lq-ico rect { transition: none !important; animation: none !important; }
+          .lq-slot span, .lq-ico path, .lq-ico rect { transition: none !important; animation: none !important; }
         }
       `}</style>
     </section>
