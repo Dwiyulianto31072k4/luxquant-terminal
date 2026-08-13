@@ -5,21 +5,22 @@ import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
-/* Exclusive web3 desk — Hyperliquid / Lighter / Ethena school.
-   The product chrome IS the explainer. No mind-map, no plus, no spokes. */
+/* Family / ether.fi / Linear school: three editorial acts.
+   Density tells the story — loud tape, one quiet call, then the venue.
+   Not a diagram. Not a fake terminal. */
 
 const TAPE = [
-  { id: "price", label: "Price", meta: "Multi-venue", icon: "price" },
-  { id: "volume", label: "Volume", meta: "Spot + perps", icon: "volume" },
-  { id: "book", label: "Order book", meta: "Depth", icon: "book" },
-  { id: "funding", label: "Funding", meta: "Perps", icon: "funding" },
-  { id: "liqs", label: "Liquidations", meta: "Heat", icon: "liqs" },
-  { id: "onchain", label: "On-chain", meta: "Flows", icon: "chain" },
-  { id: "vol", label: "Volatility", meta: "Range", icon: "wave" },
-  { id: "breadth", label: "Breadth", meta: "Market", icon: "grid" },
+  { id: "price", label: "Price", icon: "price" },
+  { id: "volume", label: "Volume", icon: "volume" },
+  { id: "book", label: "Order book", icon: "book" },
+  { id: "funding", label: "Funding", icon: "funding" },
+  { id: "liqs", label: "Liquidations", icon: "liqs" },
+  { id: "onchain", label: "On-chain", icon: "chain" },
+  { id: "vol", label: "Volatility", icon: "wave" },
+  { id: "breadth", label: "Breadth", icon: "grid" },
 ];
 
-const SETUPS = [
+const CALLS = [
   { pair: "BTCUSDT", side: "Long", line: "Breadth and book agree." },
   { pair: "ETHUSDT", side: "Short", line: "Funding and heat line up." },
   { pair: "SOLUSDT", side: "Long", line: "Tape is one-sided." },
@@ -34,18 +35,11 @@ const VENUES = [
   { src: "/exchanges/bingx.png?v=2", name: "BingX" },
 ];
 
-const MOTES = [
-  { id: "m1", d: "M 28 16 C 46 16 54 30 74 34", dur: "3.4s", delay: "0s" },
-  { id: "m2", d: "M 28 38 C 48 34 52 48 74 50", dur: "4.1s", delay: "0.8s" },
-  { id: "m3", d: "M 28 58 C 46 62 54 60 74 64", dur: "3.7s", delay: "1.5s" },
-  { id: "m4", d: "M 28 80 C 48 74 52 76 74 78", dur: "4.6s", delay: "0.4s" },
-];
-
 function Glyph({ type }) {
   const c = {
     className: `lq-glyph lq-glyph-${type}`,
-    width: 16,
-    height: 16,
+    width: 15,
+    height: 15,
     viewBox: "0 0 20 20",
     fill: "none",
     stroke: "currentColor",
@@ -105,39 +99,26 @@ function Glyph({ type }) {
   }
 }
 
-function utcClock(date) {
-  const hh = String(date.getUTCHours()).padStart(2, "0");
-  const mm = String(date.getUTCMinutes()).padStart(2, "0");
-  const ss = String(date.getUTCSeconds()).padStart(2, "0");
-  return `${hh}:${mm}:${ss}`;
-}
-
 export default function Architecture() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [now, setNow] = useState(() => new Date());
-  const [setupIdx, setSetupIdx] = useState(0);
-  const [ticketOn, setTicketOn] = useState(true);
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(tick);
-  }, []);
+  const [idx, setIdx] = useState(0);
+  const [on, setOn] = useState(true);
 
   useEffect(() => {
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     if (reduce) return undefined;
-    const cycle = setInterval(() => {
-      setTicketOn(false);
+    const t = setInterval(() => {
+      setOn(false);
       window.setTimeout(() => {
-        setSetupIdx((i) => (i + 1) % SETUPS.length);
-        setTicketOn(true);
-      }, 280);
-    }, 7500);
-    return () => clearInterval(cycle);
+        setIdx((i) => (i + 1) % CALLS.length);
+        setOn(true);
+      }, 260);
+    }, 8000);
+    return () => clearInterval(t);
   }, []);
 
-  const setup = SETUPS[setupIdx];
+  const call = CALLS[idx];
 
   const goVerify = () => {
     trackFunnel("cta_click", { source: "how_it_works", path: "/" });
@@ -159,318 +140,201 @@ export default function Architecture() {
           The desk reads the tape.
           <span className="mt-2 block text-text-muted">You take the setup to your exchange.</span>
         </h2>
-      </div>
 
-      <div className="mx-auto mt-10 max-w-[1120px] px-4 lg:mt-14 lg:px-8">
-        <div className="lq-chrome">
-          <div className="lq-bar">
-            <img src="/logo.png" alt="" width="18" height="18" />
-            <strong>LuxQuant</strong>
-            <span className="lq-dot" />
-            <em>Desk</em>
-            <span className="lq-spacer" />
-            <time dateTime={now.toISOString()} className="lq-clock">
-              {utcClock(now)}
-              <abbr title="Coordinated Universal Time"> UTC</abbr>
-            </time>
-            <span className="lq-livepill">
-              <i />
-              Live
-            </span>
-          </div>
-
-          <div className="lq-body">
-            <aside className="lq-tape" aria-label="Market tape">
-              <p className="lq-kicker">Tape</p>
-              <div className="lq-scan" aria-hidden="true" />
-              <ul>
-                {TAPE.map((row) => (
-                  <li key={row.id}>
+        <div className="lq-acts">
+          <article className="lq-act">
+            <div className="lq-copy">
+              <h3>The market is loud.</h3>
+              <p>Eight live feeds. Always on.</p>
+            </div>
+            <div className="lq-stage" aria-label="Market tape">
+              <ul className="lq-chips">
+                {TAPE.map((row, i) => (
+                  <li key={row.id} style={{ animationDelay: `${i * 0.18}s` }}>
                     <Glyph type={row.icon} />
-                    <span className="lq-tape-name">{row.label}</span>
-                    <span className="lq-tape-meta">{row.meta}</span>
-                    <i className="lq-pip" />
+                    {row.label}
+                    <i />
                   </li>
                 ))}
               </ul>
-            </aside>
+            </div>
+          </article>
 
-            <article className={`lq-ticket ${ticketOn ? "is-on" : ""}`} aria-live="polite">
-              <p className="lq-kicker">Setup</p>
-              <header className="lq-ticket-head">
-                <h3>{setup.pair}</h3>
-                <span className={`lq-side lq-side-${setup.side.toLowerCase()}`}>{setup.side}</span>
-              </header>
-              <p className="lq-thesis">{setup.line}</p>
-              <dl className="lq-fields">
-                <div>
-                  <dt>Size</dt>
-                  <dd>You decide</dd>
-                </div>
-                <div>
-                  <dt>Invalidation</dt>
-                  <dd>Yours</dd>
-                </div>
-              </dl>
-              <div className="lq-exec">
-                <p>Take it to your exchange</p>
-                <div className="lq-venues" aria-label="Venues">
-                  {VENUES.map((v) => (
-                    <img key={v.name} src={v.src} alt={v.name} title={v.name} />
-                  ))}
-                </div>
+          <article className="lq-act lq-act-flip">
+            <div className="lq-stage">
+              <div className={`lq-note ${on ? "is-on" : ""}`} aria-live="polite">
+                <span className={`lq-side lq-side-${call.side.toLowerCase()}`}>{call.side}</span>
+                <strong>{call.pair}</strong>
+                <em>{call.line}</em>
+                <span className="lq-note-foot">You decide size</span>
               </div>
-            </article>
-          </div>
+            </div>
+            <div className="lq-copy">
+              <h3>One written call.</h3>
+              <p>Size and invalidation stay yours.</p>
+            </div>
+          </article>
 
-          <svg className="lq-motes" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            {MOTES.map((m) => (
-              <g key={m.id}>
-                <path id={m.id} d={m.d} fill="none" />
-                <circle r="0.7" fill="#f0c84a">
-                  <animateMotion dur={m.dur} begin={m.delay} repeatCount="indefinite">
-                    <mpath href={`#${m.id}`} />
-                  </animateMotion>
-                </circle>
-              </g>
-            ))}
-          </svg>
+          <article className="lq-act">
+            <div className="lq-copy">
+              <h3>You take it there.</h3>
+              <p>You place it. We don&apos;t.</p>
+            </div>
+            <div className="lq-stage" aria-label="Venues">
+              <ul className="lq-seals">
+                {VENUES.map((v) => (
+                  <li key={v.name}>
+                    <img src={v.src} alt="" />
+                    <span>{v.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <div className="mt-12 flex justify-center">
+          <PrimaryButton size="md" width="fullMobile" onClick={goVerify} className="group">
+            {isAuthenticated ? "See the full record" : "Verify the track record"}
+            <BtnArrow />
+          </PrimaryButton>
         </div>
       </div>
 
-      <p className="mx-auto mt-5 max-w-[1120px] px-4 text-center text-[13px] leading-relaxed text-text-muted lg:px-8">
-        Eight live feeds in. One written call out. You place it.
-      </p>
-
-      <div className="mt-8 flex justify-center px-4">
-        <PrimaryButton size="md" width="fullMobile" onClick={goVerify} className="group">
-          {isAuthenticated ? "See the full record" : "Verify the track record"}
-          <BtnArrow />
-        </PrimaryButton>
-      </div>
-
       <style>{`
-        .lq-chrome {
-          position: relative;
-          overflow: hidden;
-          border: 1px solid rgb(var(--ink) / 0.1);
-          border-radius: 22px;
-          background: rgb(var(--surface-raised) / 0.92);
-          box-shadow:
-            inset 0 1px 0 rgb(var(--ink) / 0.04),
-            0 28px 70px -36px rgba(0,0,0,.22);
-        }
-        .lq-bar {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          height: 46px;
-          padding: 0 16px;
-          border-bottom: 1px solid rgb(var(--ink) / 0.08);
-        }
-        .lq-bar img {
-          width: 18px; height: 18px;
-          border-radius: 5px;
-          object-fit: cover;
-        }
-        .lq-bar strong {
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: -.02em;
-          color: rgb(var(--ink) / 0.92);
-        }
-        .lq-dot {
-          width: 3px; height: 3px; border-radius: 99px;
-          background: rgb(var(--ink) / 0.28);
-        }
-        .lq-bar em {
-          font-style: normal;
-          font-size: 13px;
-          font-weight: 500;
-          color: rgb(var(--ink) / 0.42);
-        }
-        .lq-spacer { flex: 1; }
-        .lq-clock {
-          font-variant-numeric: tabular-nums;
-          font-size: 11.5px;
-          font-weight: 600;
-          letter-spacing: .04em;
-          color: rgb(var(--ink) / 0.46);
-        }
-        .lq-clock abbr { text-decoration: none; letter-spacing: .08em; }
-        .lq-livepill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          height: 22px;
-          padding: 0 8px 0 7px;
-          border-radius: 99px;
-          background: rgb(var(--accent) / 0.16);
-          color: rgb(var(--accent));
-          font-size: 10px;
-          font-weight: 750;
-          letter-spacing: .16em;
-          text-transform: uppercase;
-        }
-        .lq-livepill i {
-          width: 6px; height: 6px; border-radius: 99px;
-          background: rgb(var(--accent));
-          box-shadow: 0 0 8px rgb(var(--accent) / .85);
-          animation: lqPulse 1.8s ease-in-out infinite;
-        }
-        .lq-body {
+        .lq-acts {
           display: flex;
           flex-direction: column;
+          gap: 52px;
+          margin-top: 48px;
         }
-        .lq-kicker {
-          margin: 0 0 12px;
-          font-size: 10px;
-          font-weight: 750;
-          letter-spacing: .2em;
-          text-transform: uppercase;
-          color: rgb(var(--accent));
+        .lq-act {
+          display: grid;
+          gap: 22px;
         }
-        .lq-tape {
-          position: relative;
-          padding: 18px 16px 14px;
-          border-bottom: 1px solid rgb(var(--ink) / 0.08);
+        .lq-copy h3 {
+          margin: 0;
+          font-size: 22px;
+          font-weight: 650;
+          letter-spacing: -.03em;
+          color: rgb(var(--ink) / 0.94);
         }
-        .lq-tape ul, .lq-tape li { list-style: none; margin: 0; padding: 0; }
-        .lq-tape ul {
+        .lq-copy p {
+          margin: 8px 0 0;
+          max-width: 28ch;
+          font-size: 15.5px;
+          line-height: 1.5;
+          color: rgb(var(--ink) / 0.48);
+        }
+        .lq-chips {
+          list-style: none;
+          margin: 0;
+          padding: 0;
           display: flex;
+          flex-wrap: wrap;
           gap: 8px;
-          overflow-x: auto;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
         }
-        .lq-tape ul::-webkit-scrollbar { display: none; }
-        .lq-tape li {
-          flex: 0 0 auto;
-          display: flex;
+        .lq-chips li {
+          display: inline-flex;
           align-items: center;
-          gap: 8px;
-          height: 36px;
+          gap: 7px;
+          height: 34px;
           padding: 0 10px 0 8px;
           border: 1px solid rgb(var(--ink) / 0.08);
-          border-radius: 10px;
-          background: rgb(var(--surface) / 0.35);
+          border-radius: 999px;
+          background: rgb(var(--surface-raised) / 0.7);
           font-size: 12.5px;
           font-weight: 600;
-          color: rgb(var(--ink) / 0.88);
-          animation: lqRow 7.5s ease-in-out infinite;
+          color: rgb(var(--ink) / 0.84);
+          animation: lqFloat 3.6s ease-in-out infinite;
         }
-        .lq-tape li:nth-child(2) { animation-delay: .75s; }
-        .lq-tape li:nth-child(3) { animation-delay: 1.5s; }
-        .lq-tape li:nth-child(4) { animation-delay: 2.25s; }
-        .lq-tape li:nth-child(5) { animation-delay: 3s; }
-        .lq-tape li:nth-child(6) { animation-delay: 3.75s; }
-        .lq-tape li:nth-child(7) { animation-delay: 4.5s; }
-        .lq-tape li:nth-child(8) { animation-delay: 5.25s; }
-        .lq-tape-meta {
-          display: none;
-          font-size: 11px;
-          font-weight: 500;
-          color: rgb(var(--ink) / 0.38);
-        }
-        .lq-pip {
+        .lq-chips li i {
           width: 5px; height: 5px; border-radius: 99px;
           background: rgb(var(--accent));
-          box-shadow: 0 0 7px rgb(var(--accent) / .75);
-          animation: lqPulse 1.8s ease-in-out infinite;
+          box-shadow: 0 0 7px rgb(var(--accent) / .7);
         }
-        .lq-scan { display: none; }
-        .lq-ticket {
-          position: relative;
-          padding: 20px 18px 18px;
+        .lq-note {
+          width: 100%;
+          max-width: 340px;
+          padding: 26px 26px 22px;
+          border: 1px solid rgb(var(--ink) / 0.1);
+          border-radius: 20px;
           background:
-            radial-gradient(ellipse 70% 50% at 78% 28%, rgb(var(--accent) / 0.1), transparent 70%);
+            linear-gradient(180deg, rgb(var(--accent) / 0.07), transparent 42%),
+            rgb(var(--surface-raised) / 0.92);
+          box-shadow: 0 18px 50px -32px rgba(0,0,0,.28);
           opacity: 0;
-          transform: translateY(6px);
-          transition: opacity .35s ease, transform .35s ease;
+          transform: translateY(8px);
+          transition: opacity .3s ease, transform .3s ease;
         }
-        .lq-ticket.is-on { opacity: 1; transform: none; }
-        .lq-ticket-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
+        .lq-note.is-on { opacity: 1; transform: none; }
+        .lq-side {
+          display: inline-flex;
+          height: 22px;
+          padding: 0 8px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 750;
+          letter-spacing: .14em;
+          text-transform: uppercase;
         }
-        .lq-ticket-head h3 {
-          margin: 0;
+        .lq-side-long { background: #d4a017; color: #171304; }
+        .lq-side-short {
+          border: 1px solid rgb(var(--accent) / .55);
+          color: rgb(var(--accent));
+        }
+        .lq-note strong {
+          display: block;
+          margin-top: 14px;
           font-size: 28px;
           font-weight: 750;
           letter-spacing: -.04em;
           color: rgb(var(--ink) / 0.94);
         }
-        .lq-side {
-          display: inline-flex;
-          align-items: center;
-          height: 26px;
-          padding: 0 10px;
-          border-radius: 7px;
-          font-size: 11px;
-          font-weight: 750;
-          letter-spacing: .14em;
-          text-transform: uppercase;
-        }
-        .lq-side-long {
-          background: #d4a017;
-          color: #171304;
-        }
-        .lq-side-short {
-          background: transparent;
-          color: rgb(var(--accent));
-          border: 1px solid rgb(var(--accent) / 0.55);
-        }
-        .lq-thesis {
-          margin: 14px 0 0;
-          max-width: 28ch;
-          font-size: 16px;
-          line-height: 1.4;
-          font-weight: 550;
-          letter-spacing: -.02em;
-          color: rgb(var(--ink) / 0.72);
-        }
-        .lq-fields {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin: 22px 0 0;
-        }
-        .lq-fields dt {
-          font-size: 10px;
-          font-weight: 750;
-          letter-spacing: .16em;
-          text-transform: uppercase;
-          color: rgb(var(--ink) / 0.36);
-        }
-        .lq-fields dd {
-          margin: 5px 0 0;
+        .lq-note em {
+          display: block;
+          margin-top: 8px;
+          font-style: normal;
           font-size: 15px;
-          font-weight: 650;
-          letter-spacing: -.02em;
-          color: rgb(var(--ink) / 0.88);
+          line-height: 1.45;
+          color: rgb(var(--ink) / 0.58);
         }
-        .lq-exec {
+        .lq-note-foot {
+          display: block;
           margin-top: 22px;
-          padding-top: 16px;
+          padding-top: 14px;
           border-top: 1px solid rgb(var(--ink) / 0.08);
-        }
-        .lq-exec p {
-          margin: 0 0 10px;
           font-size: 12px;
           font-weight: 600;
-          color: rgb(var(--ink) / 0.48);
+          color: rgb(var(--ink) / 0.4);
         }
-        .lq-venues { display: flex; gap: 8px; }
-        .lq-venues img {
-          width: 26px; height: 26px;
+        .lq-seals {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px 10px;
+          max-width: 360px;
+        }
+        .lq-seals li {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+        }
+        .lq-seals img {
+          width: 44px; height: 44px;
           border-radius: 99px;
           object-fit: cover;
           border: 1px solid rgb(var(--ink) / 0.1);
           background: rgb(var(--surface));
         }
-        .lq-motes { display: none; }
+        .lq-seals span {
+          font-size: 11px;
+          font-weight: 600;
+          color: rgb(var(--ink) / 0.5);
+        }
         .lq-glyph { color: rgb(var(--accent)); flex: 0 0 auto; }
         .lq-glyph path, .lq-glyph rect, .lq-glyph circle {
           transform-box: fill-box;
@@ -491,61 +355,28 @@ export default function Architecture() {
         .lq-glyph-grid .lq-g-s3 { animation: lqSq 2.4s ease-in-out .6s infinite; }
         .lq-glyph-grid .lq-g-s4 { animation: lqSq 2.4s ease-in-out .9s infinite; }
 
-        @media (min-width: 900px) {
-          .lq-bar { padding: 0 22px; }
-          .lq-body {
-            display: grid;
-            grid-template-columns: 38% 1fr;
-            min-height: 460px;
+        @media (min-width: 860px) {
+          .lq-acts { gap: 72px; margin-top: 64px; }
+          .lq-act {
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 48px;
+            min-height: 200px;
           }
-          .lq-tape {
-            padding: 22px 8px 18px 22px;
-            border-bottom: 0;
-            border-right: 1px solid rgb(var(--ink) / 0.08);
-          }
-          .lq-tape ul {
-            display: block;
-            overflow: visible;
-          }
-          .lq-tape li {
-            display: grid;
-            grid-template-columns: 18px 1fr auto 8px;
-            width: 100%;
-            height: 44px;
-            padding: 0 10px 0 6px;
-            border: 0;
-            border-radius: 10px;
-            background: transparent;
-            font-size: 14px;
-          }
-          .lq-tape-meta { display: inline; }
-          .lq-scan {
-            display: block;
-            position: absolute;
-            left: 12px; right: 10px;
-            height: 40px;
-            border-radius: 10px;
-            background: linear-gradient(180deg, transparent, rgb(var(--accent) / .1), transparent);
-            pointer-events: none;
-            animation: lqScan 7.5s ease-in-out infinite;
-          }
-          .lq-ticket { padding: 28px 32px 26px 34px; }
-          .lq-ticket-head h3 { font-size: 40px; }
-          .lq-thesis { font-size: 18px; margin-top: 18px; }
-          .lq-fields { margin-top: 32px; max-width: 360px; }
-          .lq-exec { margin-top: 36px; }
-          .lq-motes {
-            display: block;
-            position: absolute;
-            inset: 46px 0 0;
-            width: 100%;
-            height: calc(100% - 46px);
-            pointer-events: none;
-            opacity: .7;
-          }
+          .lq-act-flip .lq-copy { order: 2; }
+          .lq-act-flip .lq-stage { order: 1; }
+          .lq-copy h3 { font-size: 28px; }
+          .lq-copy p { font-size: 16.5px; }
+          .lq-note { max-width: 360px; padding: 30px 30px 24px; }
+          .lq-note strong { font-size: 34px; }
+          .lq-seals { max-width: 400px; gap: 18px 12px; }
+          .lq-seals img { width: 52px; height: 52px; }
         }
 
-        @keyframes lqPulse { 0%,100% { opacity: .45; transform: scale(.82); } 50% { opacity: 1; transform: scale(1); } }
+        @keyframes lqFloat {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
         @keyframes lqWave { 0%,100% { transform: translateX(-.5px); } 50% { transform: translateX(.5px) scaleY(1.08); } }
         @keyframes lqBar { 0%,100% { transform: scaleY(.55); } 50% { transform: scaleY(1.08); } }
         @keyframes lqBookL { 0%,100% { transform: scaleX(.9); } 50% { transform: scaleX(1.08); } }
@@ -554,22 +385,10 @@ export default function Architecture() {
         @keyframes lqPkt { 0% { transform: translateX(-4px); opacity: 0; } 30%,70% { opacity: 1; } 100% { transform: translateX(6px); opacity: 0; } }
         @keyframes lqVol { 0%,100% { transform: scaleY(.7); } 50% { transform: scaleY(1.12); } }
         @keyframes lqSq { 0%,100% { opacity: .4; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
-        @keyframes lqRow {
-          0%, 10%, 100% { background: transparent; }
-          5% { background: rgb(var(--accent) / .08); }
-        }
-        @keyframes lqScan {
-          0% { top: 44px; opacity: 0; }
-          8% { opacity: 1; }
-          92% { opacity: 1; }
-          100% { top: calc(100% - 52px); opacity: 0; }
-        }
 
         @media (prefers-reduced-motion: reduce) {
-          .lq-livepill i, .lq-pip, .lq-scan, .lq-tape li,
-          .lq-glyph path, .lq-glyph rect, .lq-glyph circle { animation: none !important; }
-          .lq-motes { display: none !important; }
-          .lq-ticket { opacity: 1; transform: none; }
+          .lq-chips li, .lq-glyph path, .lq-glyph rect, .lq-glyph circle { animation: none !important; }
+          .lq-note { opacity: 1; transform: none; }
         }
       `}</style>
     </section>
