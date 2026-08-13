@@ -1,30 +1,40 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
-/* Stripe craft + infra stack.
-   Ingest → sanitize → engine → written call → your exchange.
-   Gold pills, packet traces, dotted field. Solid gold hub. No plus. */
+/* Infrastructure map — smart-grid school.
+   Three domains, circular nodes, a data bus, a process loop,
+   venues as the last rail. Not a plus. Not a fake terminal. */
 
-const FEEDS = [
+const MARKET = [
   { id: "price", label: "Price", icon: "price" },
   { id: "volume", label: "Volume", icon: "volume" },
-  { id: "book", label: "Book", icon: "book" },
+  { id: "book", label: "Order book", icon: "book" },
   { id: "funding", label: "Funding", icon: "funding" },
-  { id: "liqs", label: "Liqs", icon: "liqs" },
+  { id: "liqs", label: "Liquidations", icon: "liqs" },
   { id: "onchain", label: "On-chain", icon: "chain" },
-  { id: "vol", label: "Range", icon: "wave" },
-  { id: "breadth", label: "Breadth", icon: "grid" },
 ];
 
-const SCENES = [
-  { feeds: FEEDS.map((f) => f.id), pair: "BTCUSDT", side: "Long" },
-  { feeds: ["price", "book", "vol", "breadth"], pair: "ETHUSDT", side: "Short" },
-  { feeds: ["funding", "liqs", "onchain", "volume"], pair: "SOLUSDT", side: "Long" },
-  { feeds: ["price", "book", "funding", "onchain", "vol"], pair: "BTCUSDT", side: "Long" },
+const ENGINE = [
+  { id: "sanitize", label: "Sanitize", icon: "filter" },
+  { id: "core", label: "LuxQuant", icon: "core" },
+  { id: "setup", label: "Trade setup", icon: "signal" },
+];
+
+const DESK = [
+  { id: "terminal", label: "Terminal", icon: "desk" },
+  { id: "size", label: "You size it", icon: "hand" },
+  { id: "record", label: "Record", icon: "check" },
+];
+
+const PROCESS = [
+  { id: "ingest", label: "Ingest" },
+  { id: "analyze", label: "Analyze" },
+  { id: "write", label: "Write" },
+  { id: "place", label: "Place" },
 ];
 
 const VENUES = [
@@ -36,26 +46,15 @@ const VENUES = [
   { src: "/exchanges/bingx.png?v=2", name: "BingX" },
 ];
 
-const TRACES = [
-  "M 50 4 C 50 36 400 36 400 76",
-  "M 150 4 C 150 34 400 40 400 76",
-  "M 250 4 C 250 32 400 44 400 76",
-  "M 350 4 C 350 28 400 48 400 76",
-  "M 450 4 C 450 28 400 48 400 76",
-  "M 550 4 C 550 32 400 44 400 76",
-  "M 650 4 C 650 34 400 40 400 76",
-  "M 750 4 C 750 36 400 36 400 76",
-];
-
 function Glyph({ type }) {
   const c = {
-    className: `lq-glyph lq-glyph-${type}`,
-    width: 13,
-    height: 13,
+    className: `lq-g lq-g-${type}`,
+    width: 20,
+    height: 20,
     viewBox: "0 0 20 20",
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: 1.7,
+    strokeWidth: 1.55,
     strokeLinecap: "round",
     strokeLinejoin: "round",
     "aria-hidden": true,
@@ -94,80 +93,72 @@ function Glyph({ type }) {
           <path d="M7.6 12.4 6 14A3 3 0 1 1 1.8 9.8l2.2-2.2A3 3 0 0 1 8.2 7M12.4 7.6 14 6a3 3 0 1 1 4.2 4.2l-2.2 2.2a3 3 0 0 1-4.2.4M7 10h6" />
         </svg>
       );
-    case "wave":
-      return <svg {...c}><path className="lq-g-main" d="M2 11c2.2 0 2.2-5 4.4-5s2.2 8 4.4 8 2.2-6 4.4-6c1.2 0 1.8 1 2.8 2" /></svg>;
-    case "grid":
+    case "filter":
+      return <svg {...c}><path d="M3 4h14l-5.2 6.4V16l-3.6 2v-7.6z" /></svg>;
+    case "core":
       return (
         <svg {...c}>
-          <rect className="lq-g-s1" x="3" y="3" width="5" height="5" rx="1" />
-          <rect className="lq-g-s2" x="12" y="3" width="5" height="5" rx="1" />
-          <rect className="lq-g-s3" x="3" y="12" width="5" height="5" rx="1" />
-          <rect className="lq-g-s4" x="12" y="12" width="5" height="5" rx="1" />
+          <path d="M10 2.4 17.2 6.6v6.8L10 17.6 2.8 13.4V6.6z" />
+          <circle cx="10" cy="10" r="2.2" />
         </svg>
       );
+    case "signal":
+      return <svg {...c}><path d="M7.5 17 3 12.5m0 0L7.5 8M3 12.5h10.5m0-9L17.5 8m0 0L13 12.5M17.5 8H7" /></svg>;
+    case "desk":
+      return (
+        <svg {...c}>
+          <rect x="2" y="4" width="16" height="10" rx="1.6" />
+          <path d="M7 17h6M10 14v3" />
+        </svg>
+      );
+    case "hand":
+      return <svg {...c}><path d="M7 11V6.5a1.4 1.4 0 0 1 2.8 0V11M9.8 10V5.6a1.4 1.4 0 0 1 2.8 0V11M12.6 10V7.2a1.4 1.4 0 1 1 2.8 0V12c0 3-1.6 5-5.2 5.4A4.4 4.4 0 0 1 5 13.2V9.2A1.4 1.4 0 0 1 7.8 9" /></svg>;
+    case "check":
+      return <svg {...c}><path className="lq-g-pulse" d="m4 10 4 4 8-8" /></svg>;
+    case "market":
+      return <svg {...c}><path d="M3 15h14M5 15V8l5-4 5 4v7" /></svg>;
+    case "engine":
+      return <svg {...c}><circle cx="10" cy="10" r="6" /><path d="M10 6.5v7M7 10h6" /></svg>;
+    case "yours":
+      return <svg {...c}><circle cx="10" cy="7" r="2.4" /><path d="M4.5 16c.8-3 2.8-4.4 5.5-4.4S14.7 13 15.5 16" /></svg>;
     default:
-      return null;
+      return <svg {...c}><circle cx="10" cy="10" r="6" /></svg>;
   }
 }
 
-function Pill({ label, icon, on, always }) {
+function Node({ tone, icon, label, hero }) {
   return (
-    <div className={`lq-pill${on || always ? " is-on" : ""}${always ? " is-hold" : ""}`}>
-      <span>
-        {icon ? <Glyph type={icon} /> : null}
-        {label}
+    <div className={`lq-node lq-n-${tone}${hero ? " is-hero" : ""}`}>
+      <span className="lq-orb">
+        {hero ? <img src="/logo.png" alt="" /> : <Glyph type={icon} />}
       </span>
+      <span className="lq-lab">{label}</span>
     </div>
   );
 }
 
-function Drop() {
+function Tab({ tone, icon, title }) {
   return (
-    <svg className="lq-drop" viewBox="0 0 20 36" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M10 0v36" />
-      <circle r="2.2" fill="#d4a017">
-        <animateMotion dur="1.6s" repeatCount="indefinite" path="M10 0v36" />
-      </circle>
-    </svg>
+    <div className={`lq-tab lq-t-${tone}`}>
+      <span className="lq-orb">
+        <Glyph type={icon} />
+      </span>
+      <strong>{title}</strong>
+    </div>
   );
-}
-
-function useInView(ref) {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    if (reduce) {
-      setOn(true);
-      return undefined;
-    }
-    const io = new IntersectionObserver(([e]) => setOn(e.isIntersecting), { threshold: 0.18 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [ref]);
-  return on;
 }
 
 export default function Architecture() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const stage = useRef(null);
-  const visible = useInView(stage);
-  const [scene, setScene] = useState(0);
-  const [ready, setReady] = useState(false);
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
-    if (!visible) return undefined;
-    setReady(true);
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     if (reduce) return undefined;
-    const t = setInterval(() => setScene((s) => (s + 1) % SCENES.length), 4000);
+    const t = setInterval(() => setStep((s) => (s + 1) % PROCESS.length), 2400);
     return () => clearInterval(t);
-  }, [visible]);
-
-  const now = SCENES[scene];
-  const feedOn = (id) => ready && now.feeds.includes(id);
+  }, []);
 
   const goVerify = () => {
     trackFunnel("cta_click", { source: "how_it_works", path: "/" });
@@ -184,241 +175,381 @@ export default function Architecture() {
       data-lq-self=""
       className="relative z-10 w-full scroll-mt-32 overflow-hidden py-16 lg:py-24"
     >
-      <div className="mx-auto max-w-[1120px] px-4 lg:px-8">
+      <div className="mx-auto max-w-[1180px] px-4 lg:px-8">
         <h2 className="max-w-3xl text-[28px] font-semibold leading-[1.25] tracking-[-0.03em] text-text-primary sm:text-[36px] lg:text-[44px]">
-          Market data in. A written call out.
-          <span className="mt-2 block text-text-muted">You take it to your exchange.</span>
+          The market. The engine. Your exchange.
+          <span className="mt-2 block text-text-muted">Data in. A written call out. You place it.</span>
         </h2>
-      </div>
 
-      <div ref={stage} className="lq-pipe mx-auto mt-10 max-w-[1000px] px-4 lg:mt-14 lg:px-6">
-        <div className="lq-pipe-dots" aria-hidden="true" />
-
-        <div className="lq-ingest" aria-label="Market feeds">
-          {FEEDS.map((f) => (
-            <Pill key={f.id} label={f.label} icon={f.icon} on={feedOn(f.id)} />
-          ))}
-        </div>
-
-        <svg className="lq-fan" viewBox="0 0 800 80" fill="none" aria-hidden="true">
-          {TRACES.map((d) => (
-            <path key={d} d={d} className="lq-fan-idle" />
-          ))}
-          {TRACES.map((d, i) => (
-            <circle key={`p${i}`} r="2.1" fill="#d4a017" opacity={visible ? 1 : 0}>
-              <animateMotion dur={`${1.8 + (i % 3) * 0.25}s`} begin={`${i * 0.18}s`} repeatCount="indefinite" path={d} />
-            </circle>
-          ))}
-        </svg>
-
-        <Pill label="Sanitize" always />
-
-        <Drop />
-
-        <div className="lq-engine" aria-hidden="true">
-          <img src="/logo.png" alt="" />
-          <span>LuxQuant</span>
-        </div>
-
-        <Drop />
-
-        <div className="lq-setup-wrap" aria-live="polite">
-          <div className="lq-pill is-on is-hold">
-            <span>
-              {now.pair}
-              <i />
-              {now.side}
-            </span>
+        <div className="lq-map">
+          <div className="lq-map-head">
+            <Tab tone="cyan" icon="market" title="Market tape" />
+            <Tab tone="gold" icon="engine" title="LuxQuant engine" />
+            <Tab tone="cyan" icon="yours" title="Your desk" />
+            <p className="lq-proc-kicker">Process</p>
           </div>
+
+          <div className="lq-map-grid">
+            <section className="lq-zone lq-z-cyan" aria-label="Market tape">
+              <div className="lq-zone-nodes lq-zone-market">
+                {MARKET.map((n) => (
+                  <Node key={n.id} tone="cyan" icon={n.icon} label={n.label} />
+                ))}
+              </div>
+            </section>
+
+            <section className="lq-zone lq-z-gold" aria-label="LuxQuant engine">
+              <div className="lq-zone-nodes lq-zone-engine">
+                {ENGINE.map((n) => (
+                  <Node key={n.id} tone="gold" icon={n.icon} label={n.label} hero={n.id === "core"} />
+                ))}
+              </div>
+            </section>
+
+            <section className="lq-zone lq-z-cyan" aria-label="Your desk">
+              <div className="lq-zone-nodes lq-zone-desk">
+                {DESK.map((n) => (
+                  <Node key={n.id} tone="cyan" icon={n.icon} label={n.label} />
+                ))}
+              </div>
+            </section>
+
+            <ol className="lq-proc" aria-label="Process">
+              {PROCESS.map((p, i) => (
+                <li key={p.id} className={`${i % 2 ? "is-gold" : "is-cyan"}${step === i ? " is-on" : ""}`}>
+                  {p.label}
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="lq-bus" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </div>
+
+          <section className="lq-rail" aria-label="Your exchange">
+            <p>Your exchange</p>
+            <ul>
+              {VENUES.map((v) => (
+                <li key={v.name}>
+                  <img src={v.src} alt="" />
+                  <span>{v.name}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <p className="lq-legend">
+            <span><i className="is-dash" /> Data</span>
+            <span><i className="is-solid" /> Call</span>
+          </p>
         </div>
 
-        <Drop />
-
-        <ul className="lq-venues" aria-label="Venues">
-          {VENUES.map((v) => (
-            <li key={v.name}>
-              <img src={v.src} alt={v.name} title={v.name} />
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <p className="mx-auto mt-6 max-w-[640px] px-4 text-center text-[13px] leading-relaxed text-text-muted">
-        Eight live feeds. One engine. You place it.
-      </p>
-
-      <div className="mt-8 flex justify-center px-4">
-        <PrimaryButton size="md" width="fullMobile" onClick={goVerify} className="group">
-          {isAuthenticated ? "See the full record" : "Verify the track record"}
-          <BtnArrow />
-        </PrimaryButton>
+        <div className="mt-10 flex justify-center">
+          <PrimaryButton size="md" width="fullMobile" onClick={goVerify} className="group">
+            {isAuthenticated ? "See the full record" : "Verify the track record"}
+            <BtnArrow />
+          </PrimaryButton>
+        </div>
       </div>
 
       <style>{`
-        .lq-pipe {
-          --pill: #d4a017;
-          --ink-on: #171304;
-          --ease: cubic-bezier(.4, 0, .2, 1);
+        .lq-map {
+          --navy: #071526;
+          --navy-2: #0a1d34;
+          --line: #16324f;
+          --cyan: #2ad4d0;
+          --gold: #f0b90b;
+          --paper: #f3f7fb;
+          --mute: #8ea3bb;
           position: relative;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 28px 16px 26px;
-          border: 1px solid rgb(var(--ink) / 0.08);
-          border-radius: 20px;
-          background: rgb(var(--surface-raised) / 0.45);
+          margin-top: 36px;
+          padding: 22px 16px 16px;
+          border-radius: 22px;
+          background:
+            radial-gradient(ellipse 80% 50% at 0% 0%, rgba(42,212,208,.08), transparent 50%),
+            radial-gradient(ellipse 60% 40% at 100% 0%, rgba(240,185,11,.07), transparent 46%),
+            var(--navy);
+          color: var(--paper);
           overflow: hidden;
         }
-        .lq-pipe-dots {
-          position: absolute;
-          inset: -40px 0;
-          background-image: url("data:image/svg+xml;utf8,<svg width='10' height='10' xmlns='http://www.w3.org/2000/svg'><rect width='2' height='2' fill='%238a6a28'/></svg>");
-          background-size: 10px 10px;
-          opacity: .38;
-          -webkit-mask-image: linear-gradient(180deg, transparent, #737373 28%, #737373 72%, transparent);
-          mask-image: linear-gradient(180deg, transparent, #737373 28%, #737373 72%, transparent);
-          pointer-events: none;
-        }
-        .lq-ingest {
-          position: relative;
-          z-index: 1;
+        .lq-map-head {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 8px;
-          width: min(100%, 720px);
+          grid-template-columns: 1fr;
+          gap: 10px;
         }
-        .lq-pill {
+        .lq-tab {
           position: relative;
-          z-index: 1;
           display: flex;
           align-items: center;
-          justify-content: center;
-          height: 32px;
-          border: 1px dashed rgb(var(--accent) / 0.28);
-          border-radius: 6px;
-          transition: border-color .45s var(--ease);
+          gap: 10px;
+          min-height: 44px;
+          padding: 6px 14px 6px 8px;
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          background: var(--navy-2);
         }
-        .lq-pill > span {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          width: 100%;
-          height: 32px;
-          padding: 0 10px;
-          border-radius: 6px;
-          background: var(--pill);
-          color: var(--ink-on);
-          font-size: 12px;
+        .lq-tab::before {
+          content: "";
+          position: absolute;
+          left: -3px; top: 8px; bottom: 8px;
+          width: 4px;
+          border-radius: 4px;
+        }
+        .lq-tab::after {
+          content: "";
+          position: absolute;
+          left: 22px; bottom: -9px;
+          border: 7px solid transparent;
+        }
+        .lq-t-cyan::before { background: var(--cyan); }
+        .lq-t-gold::before { background: var(--gold); }
+        .lq-t-cyan::after { border-top-color: var(--cyan); }
+        .lq-t-gold::after { border-top-color: var(--gold); }
+        .lq-tab strong {
+          font-size: 13px;
           font-weight: 700;
-          letter-spacing: -.01em;
-          white-space: nowrap;
-          opacity: 0;
-          transform: scale(.78);
-          transition: opacity .45s var(--ease), transform .45s var(--ease);
-          box-shadow: 0 14px 21px -14px rgb(var(--scrim) / 0.28);
+          letter-spacing: -.02em;
         }
-        .lq-pill.is-on { border-color: transparent; }
-        .lq-pill.is-on > span { opacity: 1; transform: none; }
-        .lq-pill.is-hold { width: auto; min-width: 132px; }
-        .lq-pill i {
-          width: 3px; height: 3px; border-radius: 99px;
-          background: var(--ink-on);
-          opacity: .45;
-        }
-        .lq-fan {
+        .lq-tab .lq-orb { width: 28px; height: 28px; }
+        .lq-tab .lq-orb svg { width: 14px; height: 14px; }
+        .lq-t-cyan .lq-orb { background: var(--cyan); color: #062427; }
+        .lq-t-gold .lq-orb { background: var(--gold); color: #171304; }
+        .lq-proc-kicker {
           display: none;
-          width: min(100%, 720px);
-          height: 72px;
-          margin: 2px 0 6px;
+          margin: 0;
+          font-size: 11px;
+          font-weight: 750;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+          color: var(--mute);
         }
-        .lq-fan-idle {
-          stroke: rgb(var(--accent) / 0.28);
-          stroke-dasharray: 2 3;
-          stroke-width: 1.1;
+        .lq-map-grid {
+          display: grid;
+          gap: 12px;
+          margin-top: 18px;
         }
-        .lq-drop {
-          display: block;
-          width: 12px;
-          height: 28px;
-          color: rgb(var(--accent) / 0.35);
-        }
-        .lq-drop path {
-          stroke: currentColor;
-          stroke-dasharray: 2 3;
-          stroke-width: 1.2;
-        }
-        .lq-engine {
+        .lq-zone {
           position: relative;
-          z-index: 1;
+          min-height: 168px;
+          padding: 16px 12px;
+          border-radius: 12px;
+          background: rgba(7, 21, 38, .35);
+        }
+        .lq-z-cyan { border: 1px solid rgba(42,212,208,.45); }
+        .lq-z-gold { border: 1px solid rgba(240,185,11,.55); }
+        .lq-zone-nodes {
+          display: grid;
+          gap: 14px 10px;
+        }
+        .lq-zone-market { grid-template-columns: 1fr 1fr; }
+        .lq-zone-engine { grid-template-columns: 1fr; justify-items: center; }
+        .lq-zone-desk { grid-template-columns: 1fr; }
+        .lq-node {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
+        .lq-orb {
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+          width: 42px; height: 42px;
+          border-radius: 99px;
+          box-shadow: 0 8px 18px -10px rgba(0,0,0,.55);
+        }
+        .lq-n-cyan .lq-orb { background: var(--cyan); color: #062427; }
+        .lq-n-gold .lq-orb { background: var(--gold); color: #171304; }
+        .lq-node.is-hero .lq-orb {
+          width: 58px; height: 58px;
+          box-shadow: 0 0 0 4px rgba(240,185,11,.18), 0 12px 24px -12px rgba(240,185,11,.7);
+        }
+        .lq-node.is-hero img {
+          width: 28px; height: 28px;
+          border-radius: 8px;
+          object-fit: cover;
+        }
+        .lq-lab {
+          font-size: 12px;
+          font-weight: 650;
+          letter-spacing: -.01em;
+          color: var(--paper);
+        }
+        .lq-proc {
+          list-style: none;
+          margin: 4px 0 0;
+          padding: 0;
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+        }
+        .lq-proc li {
+          display: grid;
+          place-items: center;
+          height: 64px;
+          padding: 6px;
+          border-radius: 99px;
+          font-size: 10.5px;
+          font-weight: 750;
+          letter-spacing: -.01em;
+          text-align: center;
+          line-height: 1.15;
+          opacity: .72;
+          transition: transform .35s ease, box-shadow .35s ease, opacity .35s ease;
+        }
+        .lq-proc li.is-cyan { background: var(--cyan); color: #062427; }
+        .lq-proc li.is-gold { background: var(--gold); color: #171304; }
+        .lq-proc li.is-on {
+          opacity: 1;
+          transform: scale(1.06);
+          box-shadow: 0 10px 22px -10px rgba(0,0,0,.55);
+        }
+        .lq-bus { display: none; }
+        .lq-rail {
+          margin-top: 12px;
+          padding: 14px 12px 12px;
+          border: 1px solid rgba(240,185,11,.55);
+          border-radius: 12px;
+        }
+        .lq-rail p {
+          margin: 0 0 10px;
+          font-size: 11px;
+          font-weight: 750;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+          color: var(--gold);
+        }
+        .lq-rail ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px 8px;
+        }
+        .lq-rail li {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          width: 88px;
-          height: 88px;
-          border-radius: 14px;
-          background: #d4a017;
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.38),
-            0 20px 36px -18px rgba(212,160,23,.55);
+          gap: 6px;
         }
-        .lq-engine img {
-          width: 28px; height: 28px;
-          border-radius: 7px;
-          object-fit: cover;
-        }
-        .lq-engine span {
-          margin-top: 6px;
-          font-size: 9px;
-          font-weight: 750;
-          letter-spacing: .12em;
-          text-transform: uppercase;
-          color: #171304;
-        }
-        .lq-setup-wrap { position: relative; z-index: 1; }
-        .lq-venues {
-          position: relative;
-          z-index: 1;
-          list-style: none;
-          margin: 2px 0 0;
-          padding: 0;
-          display: flex;
-          gap: 10px;
-        }
-        .lq-venues img {
-          width: 28px; height: 28px;
+        .lq-rail img {
+          width: 36px; height: 36px;
           border-radius: 99px;
           object-fit: cover;
-          border: 1px solid rgb(var(--ink) / 0.1);
-          background: rgb(var(--surface));
+          border: 2px solid var(--gold);
+          background: #fff;
         }
-        .lq-glyph { color: var(--ink-on); flex: 0 0 auto; }
-        .lq-glyph path, .lq-glyph rect {
+        .lq-rail span {
+          font-size: 10.5px;
+          font-weight: 650;
+          color: var(--mute);
+        }
+        .lq-legend {
+          display: flex;
+          gap: 18px;
+          margin: 12px 2px 0;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--mute);
+        }
+        .lq-legend span { display: inline-flex; align-items: center; gap: 8px; }
+        .lq-legend i {
+          display: block;
+          width: 22px; height: 0;
+          border-top: 2px solid var(--cyan);
+        }
+        .lq-legend i.is-dash { border-top-style: dashed; }
+        .lq-legend i.is-solid { border-top-color: var(--gold); border-top-style: solid; }
+        .lq-g path, .lq-g rect, .lq-g circle {
           transform-box: fill-box;
           transform-origin: center;
         }
-        .lq-glyph-price .lq-g-main { animation: lqWave 2.6s ease-in-out infinite; }
-        .lq-glyph-volume .lq-g-b1 { animation: lqBar 1.6s ease-in-out -.1s infinite; }
-        .lq-glyph-volume .lq-g-b2 { animation: lqBar 1.6s ease-in-out -.5s infinite; }
-        .lq-glyph-volume .lq-g-b3 { animation: lqBar 1.6s ease-in-out -.9s infinite; }
-        .lq-glyph-volume .lq-g-b4 { animation: lqBar 1.6s ease-in-out -.3s infinite; }
-        .lq-glyph-book .lq-g-bl { animation: lqBookL 2.4s ease-in-out infinite; }
-        .lq-glyph-book .lq-g-br { animation: lqBookR 2.4s ease-in-out infinite; }
-        .lq-glyph-liqs .lq-g-drop { animation: lqFall 1.6s ease-in-out infinite; }
-        .lq-glyph-wave .lq-g-main { animation: lqVol 2.1s ease-in-out infinite; }
-        .lq-glyph-grid .lq-g-s1 { animation: lqSq 2.4s ease-in-out 0s infinite; }
-        .lq-glyph-grid .lq-g-s2 { animation: lqSq 2.4s ease-in-out .3s infinite; }
-        .lq-glyph-grid .lq-g-s3 { animation: lqSq 2.4s ease-in-out .6s infinite; }
-        .lq-glyph-grid .lq-g-s4 { animation: lqSq 2.4s ease-in-out .9s infinite; }
+        .lq-g-price .lq-g-main { animation: lqWave 2.6s ease-in-out infinite; }
+        .lq-g-volume .lq-g-b1 { animation: lqBar 1.6s ease-in-out -.1s infinite; }
+        .lq-g-volume .lq-g-b2 { animation: lqBar 1.6s ease-in-out -.5s infinite; }
+        .lq-g-volume .lq-g-b3 { animation: lqBar 1.6s ease-in-out -.9s infinite; }
+        .lq-g-volume .lq-g-b4 { animation: lqBar 1.6s ease-in-out -.3s infinite; }
+        .lq-g-book .lq-g-bl { animation: lqBookL 2.4s ease-in-out infinite; }
+        .lq-g-book .lq-g-br { animation: lqBookR 2.4s ease-in-out infinite; }
+        .lq-g-liqs .lq-g-drop { animation: lqFall 1.6s ease-in-out infinite; }
+        .lq-g-check .lq-g-pulse { animation: lqPulse 2s ease-in-out infinite; }
+        .lq-n-cyan .lq-orb { animation: lqGlowC 3.2s ease-in-out infinite; }
+        .lq-n-gold .lq-orb { animation: lqGlowG 3.2s ease-in-out infinite; }
 
-        @media (min-width: 760px) {
-          .lq-pipe { padding: 36px 28px 30px; }
-          .lq-fan { display: block; }
-          .lq-drop { height: 34px; }
-          .lq-engine { width: 96px; height: 96px; border-radius: 16px; }
-          .lq-venues img { width: 32px; height: 32px; }
-          .lq-pill > span { font-size: 13px; }
+        @media (min-width: 980px) {
+          .lq-map { padding: 28px 22px 18px 22px; }
+          .lq-map-head, .lq-map-grid {
+            grid-template-columns: 1fr 1fr 1fr 132px;
+            gap: 16px;
+            align-items: end;
+          }
+          .lq-map-grid { align-items: stretch; margin-top: 22px; min-height: 320px; }
+          .lq-proc-kicker { display: block; text-align: center; padding-bottom: 4px; }
+          .lq-zone { min-height: 320px; padding: 22px 16px; }
+          .lq-zone-engine {
+            height: 100%;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            align-content: center;
+            justify-items: center;
+            gap: 28px 18px;
+          }
+          .lq-zone-engine .lq-node:nth-child(2) {
+            grid-column: 1 / -1;
+          }
+          .lq-zone-desk {
+            height: 100%;
+            align-content: center;
+            gap: 22px;
+          }
+          .lq-zone-market {
+            height: 100%;
+            align-content: center;
+            gap: 20px 14px;
+          }
+          .lq-zone-market .lq-node:nth-child(6) { transform: scale(1.06); }
+          .lq-proc {
+            grid-template-columns: 1fr;
+            align-content: center;
+            gap: 10px;
+            margin: 0;
+          }
+          .lq-proc li { height: 68px; font-size: 11.5px; }
+          .lq-rail {
+            margin-top: 16px;
+            margin-right: 148px;
+            padding: 16px 18px 14px;
+          }
+          .lq-rail ul {
+            grid-template-columns: repeat(6, 1fr);
+          }
+          .lq-rail img { width: 40px; height: 40px; }
+          .lq-bus {
+            display: block;
+            position: absolute;
+            left: 38px;
+            right: 170px;
+            top: 58%;
+            height: 0;
+            border-top: 1.5px dashed rgba(42,212,208,.45);
+            pointer-events: none;
+          }
+          .lq-bus i {
+            position: absolute;
+            top: -4px;
+            width: 8px; height: 8px;
+            border-radius: 99px;
+            background: var(--gold);
+            box-shadow: 0 0 10px rgba(240,185,11,.8);
+            animation: lqPkt 4.8s linear infinite;
+          }
+          .lq-bus i:nth-child(2) { animation-delay: 1.6s; }
+          .lq-bus i:nth-child(3) { animation-delay: 3.2s; }
+          .lq-legend { margin-left: 6px; }
         }
 
         @keyframes lqWave { 0%,100% { transform: translateX(-.4px); } 50% { transform: translateX(.4px) scaleY(1.08); } }
@@ -426,13 +557,13 @@ export default function Architecture() {
         @keyframes lqBookL { 0%,100% { transform: scaleX(.9); } 50% { transform: scaleX(1.08); } }
         @keyframes lqBookR { 0%,100% { transform: scaleX(1.08); } 50% { transform: scaleX(.9); } }
         @keyframes lqFall { 0% { transform: translateY(-2px); opacity: .4; } 60%,100% { transform: none; opacity: 1; } }
-        @keyframes lqVol { 0%,100% { transform: scaleY(.7); } 50% { transform: scaleY(1.12); } }
-        @keyframes lqSq { 0%,100% { opacity: .45; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
+        @keyframes lqPulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+        @keyframes lqGlowC { 0%,100% { box-shadow: 0 8px 18px -10px rgba(0,0,0,.55); } 50% { box-shadow: 0 0 0 4px rgba(42,212,208,.16), 0 8px 18px -10px rgba(0,0,0,.55); } }
+        @keyframes lqGlowG { 0%,100% { box-shadow: 0 8px 18px -10px rgba(0,0,0,.55); } 50% { box-shadow: 0 0 0 4px rgba(240,185,11,.16), 0 8px 18px -10px rgba(0,0,0,.55); } }
+        @keyframes lqPkt { from { left: 0; } to { left: 100%; } }
 
         @media (prefers-reduced-motion: reduce) {
-          .lq-pill > span { transition: none !important; }
-          .lq-fan circle, .lq-drop circle,
-          .lq-glyph path, .lq-glyph rect { animation: none !important; }
+          .lq-g path, .lq-g rect, .lq-g circle, .lq-orb, .lq-bus i, .lq-proc li { animation: none !important; }
         }
       `}</style>
     </section>
