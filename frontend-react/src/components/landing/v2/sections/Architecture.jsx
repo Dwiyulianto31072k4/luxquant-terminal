@@ -253,7 +253,7 @@ function Plane({ width, height, children }) {
   );
 }
 
-function Lines({ routes, width, height }) {
+function Lines({ routes, width, height, running, lit, uid }) {
   return (
     <svg
       className="pointer-events-none absolute inset-0 z-[1]"
@@ -261,9 +261,23 @@ function Lines({ routes, width, height }) {
       fill="none"
       aria-hidden="true"
     >
-      {routes.map((d, i) => (
-        <path key={i} d={d} className="lq-flow" />
-      ))}
+      {routes.map((d, i) => {
+        const on = !lit || lit[i] !== false;
+        const id = `${uid}-r${i}`;
+        return (
+          <g key={i} className={on ? "lq-flow-wrap" : "lq-flow-wrap is-dim"}>
+            <path id={id} d={d} className="lq-flow" />
+            <path d={d} className="lq-flow-run" />
+            {running && on ? (
+              <circle r="2.3" className="lq-pkt">
+                <animateMotion dur={`${1.7 + (i % 4) * 0.28}s`} begin={`${(i * 0.18) % 1.2}s`} repeatCount="indefinite">
+                  <mpath href={`#${id}`} />
+                </animateMotion>
+              </circle>
+            ) : null}
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -312,9 +326,23 @@ function Hub({ node }) {
 
 function Diagram({ g, width, height, scene, init, running }) {
   const active = SCENES[scene];
+  const lit = [
+    ...SYSTEMS.map((s) => init || active.systems.includes(s.id)),
+    true,
+    true,
+    true,
+    ...OUTPUTS.map((o) => init || active.outputs.includes(o.id)),
+  ];
   return (
     <Plane width={width} height={height}>
-      <Lines routes={g.routes} width={width} height={height} />
+      <Lines
+        routes={g.routes}
+        width={width}
+        height={height}
+        running={running}
+        lit={lit}
+        uid={`lq${width}`}
+      />
       {g.tray ? <div className="lq-tray" style={{ left: g.tray.x, top: g.tray.y, width: g.tray.w, height: g.tray.h }} /> : null}
       {g.T.map((n, i) => (
         <Slot
@@ -434,6 +462,21 @@ export default function Architecture() {
           mask-image: linear-gradient(180deg, transparent, #737373 22%, #737373 78%, transparent);
         }
         .lq-flow { stroke: var(--line); stroke-width: 1.25; stroke-dasharray: 2 3; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .lq-flow-run {
+          fill: none;
+          stroke: #f0c84a;
+          stroke-width: 1.45;
+          stroke-linecap: round;
+          stroke-dasharray: 10 18;
+          animation: lqDash 1.15s linear infinite;
+        }
+        .lq-pkt {
+          fill: #f0c84a;
+          filter: drop-shadow(0 0 5px rgba(240,185,11,.9));
+        }
+        .lq-flow-wrap.is-dim { opacity: .28; }
+        .lq-flow-wrap.is-dim .lq-flow-run, .lq-flow-wrap.is-dim .lq-pkt { opacity: 0; }
+        @keyframes lqDash { to { stroke-dashoffset: -28; } }
         .lq-tray { position: absolute; z-index: 1; border-radius: 8px; background: rgb(var(--surface) / 0.28); }
         .lq-pill, .lq-slot, .lq-hub, .lq-dest {
           position: absolute; z-index: 4; box-sizing: border-box;
@@ -483,7 +526,8 @@ export default function Architecture() {
         @keyframes lqBookR { 0%,100% { transform: scaleX(1.08); } 50% { transform: scaleX(.9); } }
         @keyframes lqVol { 0%,100% { transform: scaleY(.7); } 50% { transform: scaleY(1.12); } }
         @media (prefers-reduced-motion: reduce) {
-          .lq-slot span, .lq-ico path, .lq-ico rect { transition: none !important; animation: none !important; }
+          .lq-slot span, .lq-ico path, .lq-ico rect, .lq-flow-run { transition: none !important; animation: none !important; }
+          .lq-pkt { display: none !important; }
         }
       `}</style>
     </section>
