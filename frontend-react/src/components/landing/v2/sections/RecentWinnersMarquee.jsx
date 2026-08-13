@@ -340,7 +340,7 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
         </h2>
         <p className="mx-auto mt-4 max-w-lg text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
           Every card is a dated LuxQuant call — close level and peak time — so you can audit it on
-          any chart.
+          any chart. A peak is not the same as realized P&amp;L.
         </p>
       </div>
 

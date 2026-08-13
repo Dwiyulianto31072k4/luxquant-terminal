@@ -410,7 +410,7 @@ const MoreMenuDropdown = ({
           path: "/autotrade",
           icon: Icon.autotrade,
           label: "Agent",
-          desc: "Agentic trading — executes for you 24/7",
+          desc: "Optional assistance under your limits — dry-run first",
         },
         {
           path: "/orderbook",

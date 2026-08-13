@@ -111,63 +111,8 @@ const TickerBar = () => {
 // TESTIMONIALS CAROUSEL — Web3 style
 // 5 dummy mix personas, auto-scroll + drag + arrows
 // ════════════════════════════════════════
-const TESTIMONIALS = [
-  {
-    id: "0xLQ_001",
-    name: "Rizky Hidayat",
-    handle: "@rizkytrades",
-    role: "Day Trader",
-    location: "Jakarta",
-    flag: "🇮🇩",
-    text: "80%+ win rate, consistent for six months straight. The TP1–TP4 matrix gives me clear exits — no more guessing. Best signal terminal I've used for scalping.",
-    signalsTraded: 1247,
-    avgWinRate: 82.3,
-  },
-  {
-    id: "0xLQ_002",
-    name: "Marcus Chen",
-    handle: "@marcustaipei",
-    role: "Swing Trader",
-    location: "Taipei",
-    flag: "🇹🇼",
-    text: "AI Researcher mengubah game gue total. Setiap pagi tinggal cek verdict, baca thesis-nya, eksekusi. Saved me 4-5 jam riset manual per hari. Sharpe ratio gue naik 1.8x quarter ini.",
-    signalsTraded: 432,
-    avgWinRate: 78.9,
-  },
-  {
-    id: "0xLQ_003",
-    name: "Priya Sharma",
-    handle: "@priyaqcap",
-    role: "Portfolio Manager",
-    location: "Singapore",
-    flag: "🇸🇬",
-    text: "Managing a $2M+ multi-strategy book. Whale alerts + macro calendar + on-chain intel = institutional-grade edge. It used to take three separate platforms. Now it's all in one terminal.",
-    signalsTraded: 891,
-    avgWinRate: 84.5,
-  },
-  {
-    id: "0xLQ_004",
-    name: "Hiroshi Tanaka",
-    handle: "@hiroonchain",
-    role: "On-Chain Analyst",
-    location: "Tokyo",
-    flag: "🇯🇵",
-    text: "Whale Surveillance feature is unmatched. Real-time tracking of large transfers across exchanges helps me front-run mass liquidations. Caught 3 perfect short setups last month alone.",
-    signalsTraded: 256,
-    avgWinRate: 76.2,
-  },
-  {
-    id: "0xLQ_005",
-    name: "Daniel Kim",
-    handle: "@dankimquant",
-    role: "Quant Researcher",
-    location: "Seoul",
-    flag: "🇰🇷",
-    text: "Order book heatmap + funding rate monitor = my secret weapon. Backtested LuxQuant signals against my own models — outperformed by 14% on risk-adjusted basis. Now I just follow the algo.",
-    signalsTraded: 678,
-    avgWinRate: 85.1,
-  },
-];
+// Retired — do not invent social proof. The live landing is v2.
+const TESTIMONIALS = [];
 
 // Verified gold checkmark icon
 const VerifiedBadge = () => (
@@ -195,7 +140,7 @@ const TestimonialsCarousel = () => {
 
   // Auto-scroll every 6 seconds (paused on hover/drag)
   useEffect(() => {
-    if (isPaused || isDragging) return;
+    if (!TESTIMONIALS.length || isPaused || isDragging) return;
     const iv = setInterval(() => {
       setActiveIdx((prev) => (prev + 1) % TESTIMONIALS.length);
     }, 6000);
@@ -227,6 +172,8 @@ const TestimonialsCarousel = () => {
     setIsDragging(false);
     dragDeltaRef.current = 0;
   };
+
+  if (!TESTIMONIALS.length) return null;
 
   return (
     <section
@@ -432,19 +379,19 @@ const TestimonialsCarousel = () => {
 const FAQ_DATA = [
   {
     q: "Is it suitable for beginners?",
-    a: "Absolutely! Our signals provide comprehensive details including exact entry points, multiple profit targets (TP1-TP4), and strict stop-loss (SL) levels.",
+    a: "The plan is written for you — entry, TP1–TP4, and a stop. That does not make this beginner-safe. Size small and start on the free record.",
   },
   {
     q: "What is the recommended starting capital?",
-    a: "While there is no strict minimum, we recommend starting with at least $100 - $500 for proper risk management.",
+    a: "There is no required minimum. Size so a full stop-out is money you can lose. If a stopped-out call would hurt, you are too large.",
   },
   {
-    q: "What happens if the algorithm makes a wrong prediction (Loss)?",
-    a: "Trading always carries risk. That's why every single signal includes a strict Stop-Loss (SL) level to protect your capital.",
+    q: "What happens if a call hits stop-loss?",
+    a: "Losses are part of trading. Every signal includes a strict stop so the downside is known before you enter. Stopped-out trades stay on the public record.",
   },
   {
-    q: "Do I need to monitor the screen 24/7?",
-    a: "Not at all. Our system operates 24/7 and sends real-time push notifications directly to your Telegram or Dashboard.",
+    q: "Do I need to watch charts 24/7?",
+    a: "No. Calls ship with levels already defined, and alerts can go to Telegram and the terminal. If Agent is LIVE, pause it when you cannot check it.",
   },
 ];
 

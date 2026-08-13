@@ -2,7 +2,7 @@
 // posted to the log, printed on the PDF, and stored for admin. Bump VERSION
 // whenever wording changes so old PDFs stay historically accurate.
 
-export const ASSISTANT_FORM_VERSION = "2026-08-13.3";
+export const ASSISTANT_FORM_VERSION = "2026-08-13.4";
 export const LIVE_FORM_VERSION = "2026-08-13.1";
 
 export const ASSISTANT_FORM = {
@@ -20,7 +20,7 @@ export const ASSISTANT_FORM = {
     },
     {
       title: "What it actually does",
-      body: "When you turn it on, Agent watches incoming signals and, if they match the rules you saved, it can place an order on your Binance, Bitget, or BingX account. Funds never leave that exchange. Withdraw permission is never requested. It will also skip trades — risk cap, daily loss limit, cooldown, invalid key, symbol not listed, you paused it. A skip is not a bug. A fill is not a gift.",
+      body: "When you turn it on, Agent watches incoming signals and, if they match the rules you saved, it can place an order on the venue you connected — Binance, Bitget, BingX, OKX, Bybit, or Gate. Funds never leave that exchange. One venue at a time. Withdraw permission is never requested. It will also skip trades — risk cap, daily loss limit, cooldown, invalid key, symbol not listed, you paused it. A skip is not a bug. A fill is not a gift.",
     },
     {
       title: "What it is not",

@@ -372,21 +372,21 @@ const RegisterPage = () => {
             style={{ color: "rgb(var(--fg-muted))", fontSize: 11 }}
           >
             {a("register_terms")}{" "}
-            <a
-              href="#"
+            <Link
+              to="/terms"
               className="underline hover:opacity-80 transition-opacity"
               style={{ color: "rgb(var(--fg-secondary))" }}
             >
               {a("terms")}
-            </a>{" "}
+            </Link>{" "}
             {a("and")}{" "}
-            <a
-              href="#"
+            <Link
+              to="/privacy"
               className="underline hover:opacity-80 transition-opacity"
               style={{ color: "rgb(var(--fg-secondary))" }}
             >
               {a("privacy")}
-            </a>
+            </Link>
           </p>
         </div>
       </div>

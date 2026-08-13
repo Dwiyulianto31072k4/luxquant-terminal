@@ -12,7 +12,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { isPremiumUser } from "../../../../utils/roles";
-import { CTA } from "../landingCopy";
+import { CTA, DEST } from "../landingCopy";
 import PhoneMockup from "./shared/PhoneMockup";
 import { PrimaryButton, SecondaryLink } from "./shared/LandingButtons";
 
@@ -31,11 +31,11 @@ export default function FreeTierV2() {
       return;
     }
     if (isAuthenticated) {
-      navigate("/home");
+      navigate(DEST.free);
       return;
     }
     trackFunnel("cta_click", { source: "free_tier_account", path: "/" });
-    navigate(loginUrl("/home", { source: "free_tier_account" }));
+    navigate(loginUrl(DEST.free, { source: "free_tier_account" }));
   };
 
   return (

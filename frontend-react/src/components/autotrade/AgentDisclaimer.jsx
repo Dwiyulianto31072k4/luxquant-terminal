@@ -95,8 +95,8 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
               </h3>
               <ul className="list-disc space-y-1.5 pl-5 text-[13.5px] leading-7 text-text-secondary">
                 <li>The desk is open while they are at work, asleep, or in another timezone.</li>
-                <li>Some regions cannot complete Binance KYC, so they asked for BingX.</li>
-                <li>Others already trade Bitget and wanted the same rules they set here.</li>
+                <li>Some regions cannot complete one venue&apos;s KYC, so they asked for another desk.</li>
+                <li>Others already trade Bitget, OKX, or Bybit and wanted the same rules they set here.</li>
                 <li>
                   The recurring ask: apply my size and stop when I cannot sit on the exchange.
                 </li>

@@ -16,6 +16,7 @@ import {
   markFailedAuthProvider,
   providerFromAuthError,
 } from "../../utils/authRescue";
+import { LEGAL_UPDATED, PRIVACY_SECTIONS, TERMS_SECTIONS } from "../../content/legal";
 
 // Which door to offer next when one fails. Ordered by evidence, not by the
 // layout: Telegram converts 2.2x Google so it is offered back first; Google has
@@ -40,7 +41,7 @@ const LoginPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [telegramLoading, setTelegramLoading] = useState(false);
   const [discordLoading, setDiscordLoading] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
+  const [legalDoc, setLegalDoc] = useState(null);
   // Which login button is "active" (white). Default = first (Telegram); follows
   // hover. Reset to null on leaving the group → falls back to the first.
   const [hoverIdx, setHoverIdx] = useState(null);
@@ -710,7 +711,7 @@ const LoginPage = () => {
               By continuing, you agree to our{" "}
               <button
                 type="button"
-                onClick={() => setShowTerms(true)}
+                onClick={() => setLegalDoc("terms")}
                 className="underline underline-offset-2 font-medium"
                 style={{
                   color: "rgb(var(--fg-secondary))",
@@ -726,7 +727,7 @@ const LoginPage = () => {
               and{" "}
               <button
                 type="button"
-                onClick={() => setShowTerms(true)}
+                onClick={() => setLegalDoc("privacy")}
                 className="underline underline-offset-2 font-medium"
                 style={{
                   color: "rgb(var(--fg-secondary))",
@@ -844,7 +845,7 @@ const LoginPage = () => {
               {a("login_terms")}{" "}
               <button
                 type="button"
-                onClick={() => setShowTerms(true)}
+                onClick={() => setLegalDoc("terms")}
                 className="underline underline-offset-2"
                 style={{
                   color: "rgb(var(--fg-secondary))",
@@ -862,7 +863,7 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+        {legalDoc && <TermsModal kind={legalDoc} onClose={() => setLegalDoc(null)} />}
 
         {/* MOBILE — More options sheet */}
         {showMore && (
@@ -973,63 +974,14 @@ const PillButton = ({
   );
 };
 
-/* ── Terms & Conditions Modal ── */
-const TERMS_SECTIONS = [
-  {
-    title: "1. Acceptance of Terms",
-    body: 'By accessing or using LuxQuant Terminal ("the Platform"), you agree to be bound by these Terms & Conditions. If you do not agree with any part of these terms, you must not use the Platform. We may update these terms from time to time; continued use of the Platform after changes constitutes acceptance of the revised terms.',
-  },
-  {
-    title: "2. Nature of the Service",
-    body: "LuxQuant Terminal is a data and analytics platform. We surface market data, algorithmic signals, on-chain metrics, and AI-generated analysis for informational purposes. The Platform informs — it does not decide for you. Nothing on the Platform constitutes financial, investment, legal, or tax advice, and no content should be interpreted as a recommendation to buy, sell, or hold any digital asset.",
-  },
-  {
-    title: "3. Risk Disclosure",
-    body: "Trading cryptocurrency involves substantial risk and may result in the loss of part or all of your capital. Digital asset markets are highly volatile and operate 24/7. Past performance of any signal, strategy, or analysis is not indicative of future results. You are solely responsible for your own trading decisions and should never trade with funds you cannot afford to lose. Consider consulting a licensed financial advisor before making investment decisions.",
-  },
-  {
-    title: "4. Eligibility",
-    body: "You must be at least 18 years old and legally permitted to use cryptocurrency-related services in your jurisdiction. You are responsible for ensuring that your use of the Platform complies with all laws and regulations applicable to you. The Platform is not directed at any jurisdiction where its use would be unlawful.",
-  },
-  {
-    title: "5. Accounts & Security",
-    body: "You sign in through third-party identity providers (Google, Telegram, or Discord). You are responsible for maintaining the security of those accounts. You must notify us promptly of any unauthorized access. We reserve the right to suspend or terminate accounts that violate these terms or that we reasonably believe are compromised.",
-  },
-  {
-    title: "6. Subscriptions & Payments",
-    body: "Certain features require a paid subscription. Subscription fees, billing periods, and included features are described at the point of purchase. Fees are non-refundable except where required by law. We may modify pricing or features with reasonable notice; changes apply from your next billing cycle. Access tied to community membership (e.g., VIP groups) may be re-verified periodically.",
-  },
-  {
-    title: "7. Automated Trading Features",
-    body: "If you enable automated trading, you do so entirely at your own risk. You connect your own exchange API keys, which are encrypted at rest, and you retain full control and responsibility over your exchange account, position sizing, and risk parameters. Automated execution can be affected by exchange outages, network latency, slippage, and market conditions beyond our control. We are not liable for losses arising from automated trade execution.",
-  },
-  {
-    title: "8. Data & Privacy",
-    body: "We collect only the information necessary to operate the Platform: your authentication profile (email, username, avatar), subscription status, and usage data. Exchange API keys are stored encrypted and are never shared with third parties. We do not sell your personal data. You may request deletion of your account and associated data by contacting support.",
-  },
-  {
-    title: "9. Acceptable Use",
-    body: "You agree not to: (a) redistribute, resell, or publicly share signals, data, or analysis from the Platform without written permission; (b) reverse-engineer, scrape, or abuse the Platform or its APIs; (c) use the Platform for unlawful activity, including market manipulation; (d) share your account access with others. Violation may result in immediate termination without refund.",
-  },
-  {
-    title: "10. Intellectual Property",
-    body: "All content, branding, algorithms, software, and design on the Platform are the property of LuxQuant or its licensors and are protected by applicable intellectual property laws. Your subscription grants you a limited, non-exclusive, non-transferable license for personal use only.",
-  },
-  {
-    title: "11. Limitation of Liability",
-    body: 'To the maximum extent permitted by law, LuxQuant and its operators shall not be liable for any direct, indirect, incidental, consequential, or exemplary damages — including trading losses, lost profits, or data loss — arising from your use of, or inability to use, the Platform. The Platform is provided "as is" and "as available" without warranties of any kind, including accuracy, completeness, or uninterrupted availability of data and signals.',
-  },
-  {
-    title: "12. Termination",
-    body: "You may stop using the Platform at any time. We may suspend or terminate your access if you breach these terms, with or without notice. Sections relating to risk, intellectual property, and limitation of liability survive termination.",
-  },
-  {
-    title: "13. Contact",
-    body: "For questions about these Terms & Conditions, account issues, or data requests, contact us through the official LuxQuant Telegram channel or the support contact listed on the Platform.",
-  },
-];
-
-const TermsModal = ({ onClose }) => {
+/* ── Terms / Privacy modal — copy lives in content/legal.js ── */
+const TermsModal = ({ onClose, kind = "terms" }) => {
+  const isPrivacy = kind === "privacy";
+  const title = isPrivacy ? "Privacy Policy" : "Terms & Conditions";
+  const subtitle = isPrivacy
+    ? "How we collect, use, and store account data"
+    : "Please read these terms carefully before using LuxQuant Terminal";
+  const sections = isPrivacy ? PRIVACY_SECTIONS : TERMS_SECTIONS;
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -1082,10 +1034,10 @@ const TermsModal = ({ onClose }) => {
               className="text-xl sm:text-2xl font-bold text-text-primary mb-1.5"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
-              Terms & Conditions
+              {title}
             </h2>
             <p className="text-sm" style={{ color: "rgb(var(--fg-muted))" }}>
-              Please read these terms carefully before using LuxQuant Terminal
+              {subtitle}
             </p>
           </div>
           <button
@@ -1130,9 +1082,9 @@ const TermsModal = ({ onClose }) => {
             className="mb-6 text-xs uppercase font-semibold"
             style={{ color: "rgb(var(--accent-text))", letterSpacing: "0.18em" }}
           >
-            Last updated · June 2026
+            Last updated · {LEGAL_UPDATED}
           </p>
-          {TERMS_SECTIONS.map((s) => (
+          {sections.map((s) => (
             <div key={s.title} className="mb-6">
               <h3
                 className="text-sm font-semibold text-text-primary mb-2"

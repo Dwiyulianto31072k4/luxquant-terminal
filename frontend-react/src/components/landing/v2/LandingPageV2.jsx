@@ -19,6 +19,7 @@ import Seo from "../../Seo";
 import { saveRefFromURL } from "../../../utils/referralStorage";
 import { trackFunnel } from "../../../utils/funnelAnalytics";
 import { landingFaqJsonLd } from "../../../content/faq";
+import { SEO } from "./landingCopy";
 import useLandingData from "./useLandingData";
 import HeaderV2 from "./sections/HeaderV2";
 import HeroSlider from "./sections/HeroSlider";
@@ -115,10 +116,10 @@ export default function LandingPageV2() {
   return (
     <div className="lp-v2 min-h-screen bg-bg-primary text-text-primary relative overflow-x-hidden">
       <Seo
-        title="LuxQuant Terminal — Algo-Backed Crypto Calls"
-        description="Algo-backed crypto calls with transparent, timestamped entries, targets and stops you can audit — plus free market tools. Premium unlocks live levels and the full terminal."
+        title={SEO.title}
+        description={SEO.description}
         path="/"
-        keywords="luxquant, algo-backed crypto calls, transparent track record, crypto terminal, market pulse"
+        keywords={SEO.keywords}
         jsonLd={[
           {
             "@context": "https://schema.org",
@@ -126,8 +127,7 @@ export default function LandingPageV2() {
             "@id": "https://luxquant.tw/#organization",
             name: "LuxQuant",
             url: "https://luxquant.tw/",
-            description:
-              "Quantitative crypto market intelligence — algorithmic signals, on-chain intelligence, risk scoring, and AI research.",
+            description: SEO.description,
             foundingDate: "2023",
             logo: {
               "@type": "ImageObject",

@@ -601,7 +601,7 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
     <div className="lq-risk-suite lq-edge">
       {/* ── KIRI: ceritanya, sebagai SATU grafik ambang batas ── */}
       <div className="lq-edge-main">
-        <p className="lq-edge-eyebrow">Why it makes money</p>
+        <p className="lq-edge-eyebrow">Where the historical edge sits</p>
 
         {ready ? (
           <div className="lq-edge-plot">
@@ -616,7 +616,7 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
                 <span className="lq-edge-head-num lq-edge-num--live">
                   <CountUp value={actual} active={visible} suffix="%" />
                 </span>
-                <span className="lq-edge-head-cap">we actually win</span>
+                <span className="lq-edge-head-cap">on the public record</span>
               </div>
             </div>
 
@@ -640,9 +640,10 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
             </div>
 
             <p className="lq-edge-claim">
-              Only <strong>{breakeven.toFixed(1)}%</strong> of calls need to win just to cover
-              the losers. <strong>{actual.toFixed(1)}%</strong> actually do — that{" "}
-              <strong>{(actual - breakeven).toFixed(1)}-point gap</strong> is the profit
+              Only <strong>{breakeven.toFixed(1)}%</strong> of calls need to reach a target
+              just to cover the losers. <strong>{actual.toFixed(1)}%</strong> did — that{" "}
+              <strong>{(actual - breakeven).toFixed(1)}-point gap</strong> is the historical
+              edge, not a forecast for the next trade
               {calls != null ? `, across ${calls.toLocaleString("en-US")} calls` : ""}.
             </p>
 
@@ -1132,14 +1133,14 @@ export default function Performance({ data }) {
           Verified track record
         </p>
         <h2 className="mt-4 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-          Win rate is{" "}
           <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
             {stats ? `${winRate.toFixed(1)}%` : "—"}
           </span>
-          <span className="text-text-primary/90"> all time.</span>
+          <span className="text-text-primary/90"> of closed calls reached a target.</span>
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
-          Every call on record since day one — no hidden trades, no cherry-picking.
+          Every resolved call on record since day one — no hidden trades, no cherry-picking.
+          Reached a target means TP1 before the stop.
           {stats ? (
             <>
               {" "}

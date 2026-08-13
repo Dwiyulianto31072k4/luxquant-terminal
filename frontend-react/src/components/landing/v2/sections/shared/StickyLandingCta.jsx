@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../../context/AuthContext";
 import { loginUrl } from "../../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../../utils/funnelAnalytics";
-import { CTA } from "../../landingCopy";
+import { CTA, DEST } from "../../landingCopy";
 import { PrimaryButton } from "./LandingButtons";
 
 export default function StickyLandingCta() {
@@ -50,7 +50,7 @@ export default function StickyLandingCta() {
 
   const go = () => {
     trackFunnel("cta_click", { source: "sticky_mobile", path: "/" });
-    navigate(loginUrl("/home", { source: "sticky_mobile" }));
+    navigate(loginUrl(DEST.record, { source: "sticky_mobile" }));
   };
 
   return (
