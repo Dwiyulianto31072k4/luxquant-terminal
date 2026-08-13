@@ -1,12 +1,13 @@
 # Agent — Bitget & BingX (Cryptobot spec)
 
-Live execution today is **Binance only**. Users have asked, in order:
+Live execution: **Binance** and **Bitget** (USDT-M futures). Users have asked, in order:
 
 1. **Bitget** (Canada / global futures users)
 2. **BingX** (India — Binance is hard or blocked)
 
-This spec is for the Cryptobot engine. LuxQuant already collects a waitlist
-at `POST /api/v1/agent/exchange-waitlist` and shows Coming cards on `/agent`.
+Bitget is wired on Cryptobot (`PUT /me/exchange-accounts/bitget`) and the
+Agent connect modal. BingX remains a waitlist at
+`POST /api/v1/agent/exchange-waitlist`.
 
 ## Product rules (same as Binance)
 

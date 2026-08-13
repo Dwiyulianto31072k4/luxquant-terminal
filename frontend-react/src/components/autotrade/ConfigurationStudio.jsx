@@ -8,7 +8,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from "react";
-import { updateBinanceStrategyConfig } from "../../services/autotradeApi";
+import { updateStrategyConfig } from "../../services/autotradeApi";
 import { FIELD_GUIDE, ENGINE_RULES, MIN_LIVE_ENTRY_USDT } from "./autotradeFieldGuide";
 import LiveRiskAckModal from "./LiveRiskAckModal";
 import { useUiPrefs } from "../../hooks/useUiPrefs";
@@ -314,10 +314,14 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
     }
   }, [config, dirty, saving]);
 
+  const venue = config?.exchange || "binance";
+  const venueName = venue === "bitget" ? "Bitget" : "Binance";
+  const bitgetOnly = venue === "bitget";
+
   const statusText = useMemo(() => {
-    if (!hasConnectedAccount) return "Connect Binance keys to start trading.";
-    return "Configure how future Binance entries are sized, protected and limited.";
-  }, [hasConnectedAccount]);
+    if (!hasConnectedAccount) return `Connect ${venueName} keys to start trading.`;
+    return `Configure how future ${venueName} entries are sized, protected and limited.`;
+  }, [hasConnectedAccount, venueName]);
 
   const patch = (changes) => {
     setDirty(true);
@@ -385,7 +389,12 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
     }
     setSaving(true);
     try {
-      const response = await updateBinanceStrategyConfig(toPayload(draft));
+      const payload = toPayload(draft);
+      if (bitgetOnly) {
+        payload.spot_enabled = false;
+        payload.futures_enabled = true;
+      }
+      const response = await updateStrategyConfig(venue, payload);
       if (response?.config) {
         setDraft(toDraft(response.config));
       }
@@ -443,7 +452,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
 
       {!hasConnectedAccount ? (
         <Notice tone="warn">
-          The strategy can be configured now, but a saved Binance account is required before the
+          The strategy can be configured now, but a saved {venueName} account is required before the
           engine can place trades.
         </Notice>
       ) : null}
@@ -464,17 +473,23 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
           <WithGuide guide={FIELD_GUIDE.spot_enabled}>
             <Toggle
               label="Spot trading"
-              hint="Execute spot orders for supported signals."
-              checked={draft.spot_enabled}
+              hint={
+                bitgetOnly
+                  ? "Bitget v1 is USDT-M futures only."
+                  : "Execute spot orders for supported signals."
+              }
+              checked={bitgetOnly ? false : draft.spot_enabled}
               onChange={(value) => patch({ spot_enabled: value })}
+              disabled={bitgetOnly}
             />
           </WithGuide>
           <WithGuide guide={FIELD_GUIDE.futures_enabled}>
             <Toggle
               label="Futures trading"
               hint="Execute leveraged futures orders."
-              checked={draft.futures_enabled}
+              checked={bitgetOnly ? true : draft.futures_enabled}
               onChange={(value) => patch({ futures_enabled: value })}
+              disabled={bitgetOnly}
             />
           </WithGuide>
         </div>

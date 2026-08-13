@@ -30,8 +30,7 @@ import {
   getTradeHistory,
   getSignals,
   getStrategyConfigs,
-  setBinanceStrategyActive,
-  updateBinanceStrategyConfig,
+  setStrategyActive,
 } from "../services/autotradeApi";
 import { authApi } from "../services/authApi";
 
@@ -45,7 +44,7 @@ import PnLSummary from "./autotrade/PnLSummary";
 import TradeHistoryCalendar from "./autotrade/TradeHistoryCalendar";
 import AutoTradeHelpModal from "./autotrade/AutoTradeHelpModal";
 import AssistantWidget from "./assistant/AssistantWidget";
-import { BinanceIcon, TelegramIcon, SettingsIcon } from "./autotrade/BrandIcons";
+import { BinanceIcon, BitgetIcon, TelegramIcon, SettingsIcon } from "./autotrade/BrandIcons";
 import {
   Card,
   SectionHeader,
@@ -66,6 +65,31 @@ const TABS = [
   { id: "signals", label: "Signals" },
   { id: "settings", label: "Settings" },
 ];
+
+const VENUE_META = {
+  binance: { name: "Binance", Icon: BinanceIcon },
+  bitget: { name: "Bitget", Icon: BitgetIcon },
+};
+
+function venueMeta(exchange) {
+  return VENUE_META[exchange] || { name: exchange ? String(exchange) : "Exchange", Icon: BinanceIcon };
+}
+
+function pickStrategyConfig(items = [], accounts = []) {
+  if (!items.length) return null;
+  const active = items.find((item) => item.is_active);
+  if (active) return active;
+  const valid = new Set(
+    accounts.filter((account) => account.key_status === "valid").map((account) => account.exchange)
+  );
+  const matched = items.filter((item) => valid.has(item.exchange));
+  return (
+    matched.find((item) => item.exchange === "bitget") ||
+    matched[0] ||
+    items.find((item) => item.exchange === "bitget") ||
+    items[0]
+  );
+}
 
 // ════════════════════════════════════════════════════════════════
 // MobileSectionPicker — tap-activated dropdown (mobile only).
@@ -232,8 +256,11 @@ function AutoTradeControlCenter({
   const active = Boolean(config?.is_active);
   const globalLive = Boolean(health.live_orders_enabled);
   const isDryRun = config?.dry_run !== false;
+  const venue = config?.exchange || "binance";
+  const venueName = venueMeta(venue).name;
+  const VenueIcon = venueMeta(venue).Icon;
   const accountValid = exchangeAccounts.some(
-    (account) => account.exchange === "binance" && account.key_status === "valid"
+    (account) => account.exchange === venue && account.key_status === "valid"
   );
   const marketLabel = [config.spot_enabled ? "Spot" : "", config.futures_enabled ? "Futures" : ""]
     .filter(Boolean)
@@ -250,7 +277,7 @@ function AutoTradeControlCenter({
   if (active && isDryRun) {
     state = {
       eyebrow: "DRY RUN",
-      title: "Simulation mode — no real Binance orders",
+      title: `Simulation mode — no real ${venueName} orders`,
       description:
         "The bot will follow signals and log activity, but will not place live orders. Turn off Dry run in Settings for live trading.",
       tone: "info",
@@ -259,7 +286,7 @@ function AutoTradeControlCenter({
   } else if (active && globalLive && !isDryRun) {
     state = {
       eyebrow: "LIVE TRADING",
-      title: "Agent can place real Binance orders",
+      title: `Agent can place real ${venueName} orders`,
       description: "Risk limits and your saved strategy are enforced before every live entry.",
       tone: "good",
       panel: "border-[#0ECB81]/30 bg-[#0ECB81]/[0.06]",
@@ -279,7 +306,7 @@ function AutoTradeControlCenter({
     setWorking(true);
     setActionError("");
     try {
-      await setBinanceStrategyActive(!active);
+      await setStrategyActive(venue, !active);
       await onChanged?.();
     } catch (err) {
       setActionError(err.message || "Failed to change Agent status");
@@ -330,7 +357,7 @@ function AutoTradeControlCenter({
                 : "border-ink/[0.1] bg-surface-secondary text-text-secondary"
             }`}
           >
-            <BinanceIcon className="h-5 w-5" />
+            <VenueIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -362,7 +389,7 @@ function AutoTradeControlCenter({
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-ink/[0.07] px-4 py-2.5 lg:px-5">
         <button type="button" onClick={onManageAccount} className="text-left">
           <StatusDot tone={accountValid ? "good" : "bad"}>
-            Binance {accountValid ? "connected" : "needs attention"}
+            {venueName} {accountValid ? "connected" : "needs attention"}
           </StatusDot>
         </button>
         <StatusDot tone={active ? "good" : "neutral"}>
@@ -399,7 +426,12 @@ function AutoTradeOverview({
   config,
   onOpenSettings,
 }) {
-  const binance = exchangeAccounts.find((account) => account.exchange === "binance");
+  const primary =
+    exchangeAccounts.find((account) => account.exchange === config?.exchange) ||
+    exchangeAccounts.find((account) => account.key_status === "valid") ||
+    exchangeAccounts[0];
+  const primaryMeta = venueMeta(primary?.exchange || config?.exchange || "binance");
+  const PrimaryIcon = primaryMeta.Icon;
   const telegram = alertStatus?.telegram || {};
   const alertsEnabled = alertStatus?.preferences?.enabled !== false;
 
@@ -411,14 +443,14 @@ function AutoTradeOverview({
         <Card hover className="border-accent/20">
           <div className="flex items-start justify-between gap-4">
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-accent/10 text-accent">
-              <BinanceIcon className="h-6 w-6" />
+              <PrimaryIcon className="h-6 w-6" />
             </span>
-            <StatusBadge tone={binance?.key_status === "valid" ? "good" : "warn"}>
-              {binance?.key_status === "valid" ? "Connected" : "Check required"}
+            <StatusBadge tone={primary?.key_status === "valid" ? "good" : "warn"}>
+              {primary?.key_status === "valid" ? "Connected" : "Check required"}
             </StatusBadge>
           </div>
           <h3 className="mt-4 text-base font-semibold text-text-primary">
-            {binance?.label || "Binance account"}
+            {primary?.label || `${primaryMeta.name} account`}
           </h3>
           <p className="mt-1 text-xs leading-5 text-text-muted">
             API credentials, permissions and account validation.
@@ -501,7 +533,15 @@ function LoadingState() {
   );
 }
 
-function SetupCard({ title, body, actionLabel, onAction, disabled = false }) {
+function SetupCard({
+  title,
+  body,
+  actionLabel,
+  onAction,
+  disabled = false,
+  secondaryLabel,
+  onSecondary,
+}) {
   return (
     <Card className="border-ink/10 bg-accent/12">
       <div className="max-w-2xl space-y-3">
@@ -510,10 +550,15 @@ function SetupCard({ title, body, actionLabel, onAction, disabled = false }) {
         </p>
         <h2 className="text-2xl font-semibold tracking-tight text-text-primary">{title}</h2>
         <p className="text-sm leading-6 text-text-muted">{body}</p>
-        <div className="pt-1">
+        <div className="flex flex-wrap gap-3 pt-1">
           <GoldButton onClick={onAction} disabled={disabled}>
             {actionLabel}
           </GoldButton>
+          {secondaryLabel ? (
+            <GhostButton onClick={onSecondary} disabled={disabled}>
+              {secondaryLabel}
+            </GhostButton>
+          ) : null}
         </div>
       </div>
     </Card>
@@ -527,6 +572,7 @@ export default function AutoTradePage() {
   const [error, setError] = useState("");
   const [authActionLoading, setAuthActionLoading] = useState(false);
   const [showConnect, setShowConnect] = useState(false);
+  const [connectExchange, setConnectExchange] = useState("binance");
   const [showHelp, setShowHelp] = useState(false);
   const [health, setHealth] = useState(null);
   const [meData, setMeData] = useState(null);
@@ -657,7 +703,7 @@ export default function AutoTradePage() {
 
       setPortfolio(portfolioResponse);
       setTradeHistory(tradeHistoryResponse || { items: [], summary: {} });
-      setStrategyConfig(strategyResponse?.items?.[0] || null);
+      setStrategyConfig(pickStrategyConfig(strategyResponse?.items || [], connectedAccounts));
       setExecutions(executionsResponse?.items || []);
       setActivityLogs(activityLogsResponse?.items || []);
       setAlertStatus(alertResult.data);
@@ -714,15 +760,9 @@ export default function AutoTradePage() {
     };
   }, [hasAutotradeToken]);
 
-  useEffect(() => {
-    if (!loading && hasAutotradeToken && !hasExchangeAccount) {
-      setShowConnect(true);
-    }
-  }, [hasAutotradeToken, hasExchangeAccount, loading]);
-
   const summaryText = useMemo(() => {
     if (!hasAutotradeToken) return "Cryptobot access required";
-    if (!hasExchangeAccount) return "Connect your Binance account to unlock Agent";
+    if (!hasExchangeAccount) return "Connect Binance or Bitget to unlock Agent";
     const totalAccounts = exchangeAccounts.length;
     const totalExecutions = liveExecutions.length;
     return `${totalAccounts} exchange${totalAccounts === 1 ? "" : "s"} connected · ${totalExecutions} execution job${totalExecutions === 1 ? "" : "s"}`;
@@ -745,6 +785,11 @@ export default function AutoTradePage() {
   const openSettings = (section = "strategy") => {
     setSettingsSection(section);
     setTab("settings");
+  };
+
+  const openConnect = (exchange = "binance") => {
+    setConnectExchange(exchange);
+    setShowConnect(true);
   };
 
   return (
@@ -805,10 +850,12 @@ export default function AutoTradePage() {
         <LoadingState />
       ) : !hasExchangeAccount ? (
         <SetupCard
-          title="Connect Binance before using Agent"
-          body="Your Agent access is ready, but exchange credentials are required first. After your Binance keys are saved and validated, portfolio, configuration, positions and execution history unlock."
+          title="Connect an exchange before using Agent"
+          body="Your Agent access is ready, but exchange credentials are required first. Save and validate Binance or Bitget keys to unlock portfolio, configuration, positions and execution history. Agent v1 runs one venue at a time."
           actionLabel="Connect Binance"
-          onAction={() => setShowConnect(true)}
+          onAction={() => openConnect("binance")}
+          secondaryLabel="Connect Bitget"
+          onSecondary={() => openConnect("bitget")}
         />
       ) : (
         <>
@@ -854,7 +901,7 @@ export default function AutoTradePage() {
                     health={health}
                     exchangeAccounts={exchangeAccounts}
                     portfolio={portfolio}
-                    onConnect={() => setShowConnect(true)}
+                    onConnect={openConnect}
                     alertStatus={alertStatus}
                     alertStatusError={alertStatusError}
                     onAlertUpdated={(updated) => {
@@ -886,6 +933,7 @@ export default function AutoTradePage() {
 
       <ExchangeConnectModal
         isOpen={showConnect && hasAutotradeToken}
+        exchange={connectExchange}
         onClose={() => setShowConnect(false)}
         onSuccess={load}
       />

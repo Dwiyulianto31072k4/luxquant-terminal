@@ -1,38 +1,59 @@
 // src/components/autotrade/ExchangeConnectModal.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — Agent · Connect Binance modal
+// LuxQuant — Agent · Connect exchange modal
 // Two-pane premium layout: left = guidance (permissions + IP + safety),
-// right = key form. Stacks to one column on mobile, scroll-safe with
-// navbar/tab-bar clearance. Logic/props unchanged.
-//
-// FIX (mobile "messy top" bug): the modal previously rendered as a
-// regular child inside the page tree. If any ancestor (app shell /
-// layout / sticky header) creates its own stacking context, a fixed
-// z-[100000] element is only stacked *within that context* — not
-// above the whole document. That let the real app navbar show through
-// undimmed above the modal card. Rendering through a portal straight
-// into document.body guarantees the backdrop always sits above every
-// other element, including the navbar, on every device.
+// right = key form. Venue tabs: Binance (key/secret) and Bitget
+// (key/secret/passphrase). Stacks on mobile; rendered through a portal.
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { checkBinanceKeys, saveBinanceKeys } from "../../services/autotradeApi";
+import { checkExchangeKeys, saveExchangeKeys } from "../../services/autotradeApi";
 import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
-import { BinanceIcon } from "./BrandIcons";
+import { BinanceIcon, BitgetIcon } from "./BrandIcons";
 
-const INITIAL_FORM = { label: "", api_key: "", api_secret: "" };
-
-// Agent execution server. Whitelist this on the Binance API key when the
-// key is IP-restricted, otherwise Binance rejects every spot/futures order.
 const AUTOTRADE_SERVER_IP = "187.127.135.84";
 
-const PERMISSIONS = [
-  { label: "Enable Reading", state: "yes" },
-  { label: "Enable Futures", state: "yes" },
-  { label: "Enable Spot & Margin Trading", state: "optional" },
-  { label: "Enable Withdrawals", state: "no" },
-];
+const VENUES = {
+  binance: {
+    id: "binance",
+    name: "Binance",
+    Icon: BinanceIcon,
+    needsPassphrase: false,
+    placeholderLabel: "My Binance Account",
+    keyPlaceholder: "Paste your Binance API key",
+    secretPlaceholder: "Paste your Binance API secret",
+    fundsStay: "Funds stay on Binance — withdrawal access is never requested.",
+    ipHint:
+      "To enable spot & futures trading on an IP-restricted key, add the Agent server IP below to your Binance API key. Without it, Binance rejects every order.",
+    permissions: [
+      { label: "Enable Reading", state: "yes" },
+      { label: "Enable Futures", state: "yes" },
+      { label: "Enable Spot & Margin Trading", state: "optional" },
+      { label: "Enable Withdrawals", state: "no" },
+    ],
+  },
+  bitget: {
+    id: "bitget",
+    name: "Bitget",
+    Icon: BitgetIcon,
+    needsPassphrase: true,
+    placeholderLabel: "My Bitget Account",
+    keyPlaceholder: "Paste your Bitget API key",
+    secretPlaceholder: "Paste your Bitget API secret",
+    fundsStay: "Funds stay on Bitget — withdrawal access is never requested.",
+    ipHint:
+      "If the Bitget key is IP-restricted, whitelist the Agent server IP below. Also turn off passphrase encryption when you create the key — paste the passphrase you typed, not a hashed copy.",
+    permissions: [
+      { label: "Read", state: "yes" },
+      { label: "Futures / Contract trading", state: "yes" },
+      { label: "Spot trading", state: "optional" },
+      { label: "Withdraw", state: "no" },
+    ],
+  },
+};
+
+const INITIAL_FORM = { label: "", api_key: "", api_secret: "", passphrase: "" };
 
 function PermIcon({ state }) {
   if (state === "no") {
@@ -108,19 +129,24 @@ function SecretField({ label, value, onChange, placeholder }) {
   );
 }
 
-export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
+export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, exchange = "binance" }) {
+  const [venueId, setVenueId] = useState(exchange === "bitget" ? "bitget" : "binance");
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
+  const venue = VENUES[venueId] || VENUES.binance;
+  const VenueIcon = venue.Icon;
+
   useEffect(() => {
     if (!isOpen) return;
+    setVenueId(exchange === "bitget" ? "bitget" : "binance");
     setForm(INITIAL_FORM);
     setSaving(false);
     setError("");
     setResult(null);
-  }, [isOpen]);
+  }, [isOpen, exchange]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -131,8 +157,6 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
 
-  // Lock background scroll while the modal is open so the page behind it
-  // (navbar included) can't visibly scroll/shift under the backdrop.
   useEffect(() => {
     if (!isOpen) return undefined;
     const { overflow } = document.body.style;
@@ -144,25 +168,30 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
 
   if (!isOpen) return null;
 
-  const canSubmit = form.api_key.trim() && form.api_secret.trim();
+  const canSubmit =
+    form.api_key.trim() &&
+    form.api_secret.trim() &&
+    (!venue.needsPassphrase || form.passphrase.trim());
 
   const handleSubmit = async () => {
     setSaving(true);
     setError("");
     setResult(null);
     try {
-      await saveBinanceKeys({
+      const payload = {
         api_key: form.api_key.trim(),
         api_secret: form.api_secret.trim(),
         label: form.label.trim() || undefined,
-      });
-      const check = await checkBinanceKeys();
+      };
+      if (venue.needsPassphrase) payload.passphrase = form.passphrase.trim();
+      await saveExchangeKeys(venue.id, payload);
+      const check = await checkExchangeKeys(venue.id);
       setResult(check);
       if (!check.valid) {
         const hints = Array.isArray(check.hints) ? check.hints.filter(Boolean) : [];
         const serverIp = check.server_ip || AUTOTRADE_SERVER_IP;
         const detail =
-          check.message || hints.join(" ") || "Saved keys, but Binance validation failed.";
+          check.message || hints.join(" ") || `Saved keys, but ${venue.name} validation failed.`;
         throw new Error(
           `${detail}${
             detail.toLowerCase().includes("ip")
@@ -174,7 +203,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
       onSuccess?.();
       setTimeout(() => onClose(), 900);
     } catch (err) {
-      setError(err.message || "Failed to save Binance credentials");
+      setError(err.message || `Failed to save ${venue.name} credentials`);
     } finally {
       setSaving(false);
     }
@@ -210,22 +239,47 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
             </button>
 
             <div className="grid lg:grid-cols-[0.95fr_1.05fr]">
-              {/* LEFT: guidance */}
               <div className="border-b border-ink/[0.08] bg-surface-secondary/50 p-6 lg:border-b-0 lg:border-r lg:p-8">
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
                   Exchange
                 </p>
                 <div className="mt-3 flex items-center gap-3 pr-10">
                   <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-accent/12 text-accent ring-1 ring-accent/20">
-                    <BinanceIcon className="h-6 w-6" />
+                    <VenueIcon className="h-6 w-6" />
                   </span>
                   <h2 className="text-[22px] font-semibold tracking-tight text-text-primary">
-                    Connect Binance
+                    Connect {venue.name}
                   </h2>
                 </div>
-                <p className="mt-2.5 text-[13px] leading-6 text-text-secondary">
-                  Link your account with API keys. Funds stay on Binance — withdrawal access is
-                  never requested.
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {Object.values(VENUES).map((item) => {
+                    const TabIcon = item.Icon;
+                    const on = item.id === venue.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setVenueId(item.id);
+                          setError("");
+                          setResult(null);
+                          setForm(INITIAL_FORM);
+                        }}
+                        className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+                          on
+                            ? "border-accent/40 bg-accent/10 text-text-primary"
+                            : "border-ink/[0.08] bg-surface-raised text-text-muted hover:text-text-primary"
+                        }`}
+                      >
+                        <TabIcon className="h-4 w-4" />
+                        {item.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2.5 text-[13px] leading-6 text-text-secondary">{venue.fundsStay}</p>
+                <p className="mt-1 text-[12px] leading-5 text-text-muted">
+                  Agent v1 runs one venue at a time. Starting this strategy pauses the other.
                 </p>
 
                 <div className="mt-7">
@@ -233,7 +287,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                     Required permissions
                   </p>
                   <ul className="mt-3 space-y-2.5">
-                    {PERMISSIONS.map((perm) => (
+                    {venue.permissions.map((perm) => (
                       <li key={perm.label} className="flex items-start gap-2.5">
                         <PermIcon state={perm.state} />
                         <span
@@ -258,11 +312,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                   <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                     IP access restriction
                   </p>
-                  <p className="mt-2 text-xs leading-5 text-text-secondary">
-                    To enable spot &amp; futures trading on an IP-restricted key, add the Agent
-                    server IP below to your Binance API key. Without it, Binance rejects every
-                    order.
-                  </p>
+                  <p className="mt-2 text-xs leading-5 text-text-secondary">{venue.ipHint}</p>
                   <ServerIpBlock />
                   <p className="mt-3 text-xs leading-5 text-text-muted">
                     Keys are encrypted at rest and never leave the Agent backend.
@@ -270,7 +320,6 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                 </div>
               </div>
 
-              {/* RIGHT: form */}
               <div className="p-6 lg:p-8">
                 <div className="space-y-5">
                   <div className="space-y-2">
@@ -283,7 +332,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                           label: event.target.value,
                         }))
                       }
-                      placeholder="My Binance Account"
+                      placeholder={venue.placeholderLabel}
                       className="w-full rounded-lg border border-ink/[0.12] bg-surface-secondary px-3.5 py-2.5 text-sm font-medium text-text-primary placeholder:text-text-muted/40 transition-colors focus:border-ink/25 focus:outline-none focus:ring-2 focus:ring-ink/[0.06]"
                     />
                   </div>
@@ -291,21 +340,29 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                   <SecretField
                     label="API key"
                     value={form.api_key}
-                    placeholder="Paste your Binance API key"
+                    placeholder={venue.keyPlaceholder}
                     onChange={(value) => setForm((current) => ({ ...current, api_key: value }))}
                   />
                   <SecretField
                     label="API secret"
                     value={form.api_secret}
-                    placeholder="Paste your Binance API secret"
+                    placeholder={venue.secretPlaceholder}
                     onChange={(value) => setForm((current) => ({ ...current, api_secret: value }))}
                   />
+                  {venue.needsPassphrase ? (
+                    <SecretField
+                      label="Passphrase"
+                      value={form.passphrase}
+                      placeholder="The passphrase you set when creating the Bitget key"
+                      onChange={(value) => setForm((current) => ({ ...current, passphrase: value }))}
+                    />
+                  ) : null}
 
                   {result ? (
                     <Notice tone={result.valid ? "success" : "error"}>
                       {result.valid
-                        ? "Binance keys validated successfully."
-                        : "Keys saved, but Binance rejected validation. Check permissions and IP whitelist."}
+                        ? `${venue.name} keys validated successfully.`
+                        : `Keys saved, but ${venue.name} rejected validation. Check permissions, passphrase, and IP whitelist.`}
                     </Notice>
                   ) : null}
                   {error ? <Notice tone="error">{error}</Notice> : null}

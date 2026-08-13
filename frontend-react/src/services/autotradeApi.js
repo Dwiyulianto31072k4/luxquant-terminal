@@ -182,16 +182,20 @@ export const getHealth = () => request("/health");
 export const getMe = () => request("/me");
 
 // Exchange Accounts
-export const saveBinanceKeys = (payload) =>
-  request("/me/exchange-accounts/binance", {
+export const saveExchangeKeys = (exchange, payload) =>
+  request(`/me/exchange-accounts/${encodeURIComponent(exchange)}`, {
     method: "PUT",
     body: payload,
   });
 
-export const checkBinanceKeys = () =>
-  request("/me/exchange-accounts/binance/check", {
+export const checkExchangeKeys = (exchange) =>
+  request(`/me/exchange-accounts/${encodeURIComponent(exchange)}/check`, {
     method: "POST",
   });
+
+export const saveBinanceKeys = (payload) => saveExchangeKeys("binance", payload);
+
+export const checkBinanceKeys = () => checkExchangeKeys("binance");
 
 // Portfolio
 export const getPortfolio = () => request("/me/portfolio");
@@ -222,17 +226,21 @@ export const getActivityLogs = (limit = 100) =>
 // Strategy Configs
 export const getStrategyConfigs = () => request("/me/strategy-configs");
 
-export const updateBinanceStrategyConfig = (payload) =>
-  request("/me/strategy-configs/binance", {
+export const updateStrategyConfig = (exchange, payload) =>
+  request(`/me/strategy-configs/${encodeURIComponent(exchange || "binance")}`, {
     method: "PUT",
     body: payload,
   });
 
-export const setBinanceStrategyActive = (active) =>
-  request("/me/strategy-configs/binance/active", {
+export const setStrategyActive = (exchange, active) =>
+  request(`/me/strategy-configs/${encodeURIComponent(exchange || "binance")}/active`, {
     method: "PUT",
     body: { active },
   });
+
+export const updateBinanceStrategyConfig = (payload) => updateStrategyConfig("binance", payload);
+
+export const setBinanceStrategyActive = (active) => setStrategyActive("binance", active);
 
 // Signals
 export const getSignals = () => request("/signals");

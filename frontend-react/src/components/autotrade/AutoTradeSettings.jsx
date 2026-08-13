@@ -14,7 +14,7 @@ const SECTIONS = [
   {
     id: "connections",
     label: "Connections",
-    description: "Binance API credentials and account health",
+    description: "Exchange API credentials and account health",
     icon: BinanceIcon,
   },
   {
