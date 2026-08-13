@@ -70,6 +70,18 @@ export const adminApi = {
     return response.data;
   },
 
+  getUserAgentAcks: async (userId) => {
+    const response = await api.get(`/api/v1/admin/users/${userId}/agent-acks`);
+    return response.data;
+  },
+
+  downloadUserAgentAckPdf: async (userId, ackId) => {
+    const response = await api.get(`/api/v1/admin/users/${userId}/agent-acks/${ackId}/pdf`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
   // Switches this user's bot off (or back on). Touches nothing else: the
   // subscription, the signal feed and any open position are left alone, and
   // open positions keep their take-profit and stop-loss.

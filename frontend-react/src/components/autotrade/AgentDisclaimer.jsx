@@ -3,30 +3,11 @@
 // sell this as a money product. They still have to drive.
 
 import { useState } from "react";
-import { Card, GoldButton, GhostButton } from "./AutoTradeUI";
+import { submitAgentDisclaimerAck } from "../../services/authApi";
+import { ASSISTANT_FORM, buildAckPayload } from "./agentDisclaimerCopy";
+import { Card, GoldButton, GhostButton, Notice } from "./AutoTradeUI";
 
-const CHECKS = [
-  {
-    id: "demand",
-    label:
-      "I understand Agent exists because users asked for help — it is not a commercial trading product, a signal subscription upsell, or a managed account.",
-  },
-  {
-    id: "assistant",
-    label:
-      "I understand Agent is only an assistant. It follows rules I set. It does not think, does not guarantee profit, and will lose money in some market conditions.",
-  },
-  {
-    id: "control",
-    label:
-      "I stay in control: I decide when it is on or off, the size, leverage, markets, dry-run vs live, and I will pause it when I cannot supervise (news, travel, sleep, doubt).",
-  },
-  {
-    id: "loss",
-    label:
-      "If I lose money — including all margin on a trade — that outcome is mine. I will not treat a losing trade as LuxQuant's fault or as a broken promise.",
-  },
-];
+const CHECKS = ASSISTANT_FORM.checks;
 
 function Section({ title, children }) {
   return (
@@ -39,7 +20,22 @@ function Section({ title, children }) {
 
 export default function AgentDisclaimer({ onAccept, compact = false, onCollapse }) {
   const [checked, setChecked] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const ready = CHECKS.every((item) => checked[item.id]);
+
+  const accept = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await submitAgentDisclaimerAck(buildAckPayload(ASSISTANT_FORM, checked));
+      await onAccept?.();
+    } catch (err) {
+      setError(err?.response?.data?.detail || err.message || "Could not save the signed form");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Card className="border-ink/[0.1] bg-surface-raised">
@@ -131,7 +127,7 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
 
         <div className="space-y-2.5 border-t border-ink/[0.08] pt-5">
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-            Confirm you read this
+            Confirm you read this — saved with time, IP, and form version
           </p>
           <ul className="space-y-2">
             {CHECKS.map((item) => {
@@ -153,9 +149,11 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
           </ul>
         </div>
 
+        {error ? <Notice tone="error">{error}</Notice> : null}
+
         <div className="flex flex-wrap items-center gap-3">
-          <GoldButton onClick={onAccept} disabled={!ready}>
-            I understand — continue
+          <GoldButton onClick={accept} disabled={!ready || saving}>
+            {saving ? "Saving signed form…" : "I understand — continue"}
           </GoldButton>
           {compact && onCollapse ? (
             <GhostButton onClick={onCollapse}>Close</GhostButton>

@@ -227,4 +227,21 @@ export async function joinExchangeWaitlist(exchange) {
   return response.data;
 }
 
+export async function submitAgentDisclaimerAck(payload) {
+  const response = await api.post("/api/v1/agent/disclaimer-acks", payload);
+  return response.data;
+}
+
+export async function getMyAgentDisclaimerAcks() {
+  const response = await api.get("/api/v1/agent/disclaimer-acks");
+  return response.data;
+}
+
+export async function downloadMyAgentAckPdf(ackId) {
+  const response = await api.get(`/api/v1/agent/disclaimer-acks/${ackId}/pdf`, {
+    responseType: "blob",
+  });
+  return response.data;
+}
+
 export default api;

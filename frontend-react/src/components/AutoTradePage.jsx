@@ -32,7 +32,7 @@ import {
   getStrategyConfigs,
   setStrategyActive,
 } from "../services/autotradeApi";
-import { authApi } from "../services/authApi";
+import { authApi, getMyAgentDisclaimerAcks } from "../services/authApi";
 
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
@@ -599,6 +599,8 @@ export default function AutoTradePage() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [hasAutotradeToken, setHasAutotradeToken] = useState(Boolean(getStoredAutotradeToken()));
   const [rereadDisclaimer, setRereadDisclaimer] = useState(false);
+  const [hasSignedAssistantForm, setHasSignedAssistantForm] = useState(false);
+  const [acksReady, setAcksReady] = useState(false);
   const { prefs, setPref, ready: prefsReady } = useUiPrefs({
     agent_assistant_ack: false,
     agent_live_ack: false,
@@ -759,6 +761,24 @@ export default function AutoTradePage() {
     load();
   }, [hasAutotradeToken]);
 
+  useEffect(() => {
+    let alive = true;
+    getMyAgentDisclaimerAcks()
+      .then((data) => {
+        if (!alive) return;
+        const items = data?.items || [];
+        setHasSignedAssistantForm(items.some((row) => row.kind === "assistant"));
+        setAcksReady(true);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setAcksReady(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // Poll portfolio/activity, but back off hard while Binance circuit is open
   // so we do not extend IP bans with 30s hammering.
   useEffect(() => {
@@ -862,14 +882,15 @@ export default function AutoTradePage() {
 
       {error ? <Notice tone="error">{error}</Notice> : null}
 
-      {!prefsReady ? (
+      {!prefsReady || !acksReady ? (
         <LoadingState />
-      ) : !prefs.agent_assistant_ack || rereadDisclaimer ? (
+      ) : !prefs.agent_assistant_ack || !hasSignedAssistantForm || rereadDisclaimer ? (
         <AgentDisclaimer
-          compact={rereadDisclaimer}
+          compact={rereadDisclaimer && hasSignedAssistantForm}
           onCollapse={() => setRereadDisclaimer(false)}
           onAccept={() => {
             setPref("agent_assistant_ack", true);
+            setHasSignedAssistantForm(true);
             setRereadDisclaimer(false);
           }}
         />

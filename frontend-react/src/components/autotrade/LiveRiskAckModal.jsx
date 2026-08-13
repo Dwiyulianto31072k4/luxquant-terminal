@@ -5,26 +5,11 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { submitAgentDisclaimerAck } from "../../services/authApi";
+import { LIVE_FORM, buildAckPayload } from "./agentDisclaimerCopy";
 import { GoldButton, GhostButton } from "./AutoTradeUI";
 
-const ITEMS = [
-  {
-    id: "own",
-    label: "I choose the size, leverage, markets, and when the assistant is on. LuxQuant does not manage my money.",
-  },
-  {
-    id: "loss",
-    label: "I can lose money, including all margin on a trade. Nothing here guarantees profit.",
-  },
-  {
-    id: "watch",
-    label: "I will pause LIVE when I cannot supervise it. Agent is not a set-and-forget money machine.",
-  },
-  {
-    id: "self",
-    label: "Matching signals may place real exchange orders. Those outcomes are mine, win or lose.",
-  },
-];
+const ITEMS = LIVE_FORM.checks;
 
 export default function LiveRiskAckModal({
   open,
@@ -33,10 +18,14 @@ export default function LiveRiskAckModal({
   onConfirm,
 }) {
   const [checked, setChecked] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!open) return undefined;
     setChecked({});
+    setSaving(false);
+    setError("");
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e) => {
@@ -106,9 +95,32 @@ export default function LiveRiskAckModal({
         )}
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <GhostButton onClick={onCancel}>Cancel</GhostButton>
-          <GoldButton onClick={onConfirm} disabled={!ready}>
-            I understand — go live
+          {error ? (
+            <p className="w-full text-[12px] leading-5 text-negative">{error}</p>
+          ) : (
+            <p className="w-full text-[11px] leading-5 text-text-muted">
+              This confirmation is logged with time and IP, and can be printed as PDF in admin.
+            </p>
+          )}
+          <GhostButton onClick={onCancel} disabled={saving}>
+            Cancel
+          </GhostButton>
+          <GoldButton
+            onClick={async () => {
+              setSaving(true);
+              setError("");
+              try {
+                await submitAgentDisclaimerAck(buildAckPayload(LIVE_FORM, firstTime ? checked : Object.fromEntries(ITEMS.map((i) => [i.id, true]))));
+                await onConfirm?.();
+              } catch (err) {
+                setError(err?.response?.data?.detail || err.message || "Could not save the signed form");
+              } finally {
+                setSaving(false);
+              }
+            }}
+            disabled={!ready || saving}
+          >
+            {saving ? "Saving…" : "I understand — go live"}
           </GoldButton>
         </div>
       </div>

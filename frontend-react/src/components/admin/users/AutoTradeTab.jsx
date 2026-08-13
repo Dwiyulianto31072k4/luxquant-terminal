@@ -65,45 +65,132 @@ function Section({ title, count, children }) {
   );
 }
 
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const AutoTradeTab = ({ userId }) => {
   const [data, setData] = useState(null);
+  const [acks, setAcks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
-    adminApi
-      .getAutoTradeUser(userId)
-      .then((d) => !cancelled && setData(d))
-      .catch((e) => !cancelled && setError(e?.message || "Could not load Agent data"))
+    Promise.all([
+      adminApi.getAutoTradeUser(userId).catch((e) => ({ _error: e })),
+      adminApi.getUserAgentAcks(userId).catch(() => ({ items: [] })),
+    ])
+      .then(([trade, ackData]) => {
+        if (cancelled) return;
+        if (trade?._error) setError(trade._error?.message || "Could not load Agent data");
+        else setData(trade);
+        setAcks(ackData?.items || []);
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
   }, [userId]);
 
+  const downloadPdf = async (ack) => {
+    setPdfBusy(ack.id);
+    try {
+      const blob = await adminApi.downloadUserAgentAckPdf(userId, ack.id);
+      downloadBlob(blob, `luxquant-agent-${ack.kind}-${ack.id}.pdf`);
+    } catch (err) {
+      alert(err?.message || "Could not download PDF");
+    } finally {
+      setPdfBusy(null);
+    }
+  };
+
   if (loading) return <p className="text-sm text-neutral-500">Loading Agent data…</p>;
-  if (error) return <p className="text-sm text-[#F6465D]">{error}</p>;
-  if (data?.available === false)
+
+  const ackSection = (
+    <Section title="Signed acknowledgements" count={acks.length}>
+      {acks.length === 0 ? (
+        <p className="text-[12px] text-neutral-500">
+          No signed Agent form yet. The assistant disclaimer and LIVE confirmation are stored
+          here with time, IP, and a printable PDF.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {acks.map((ack) => (
+            <div
+              key={ack.id}
+              className="flex flex-col gap-1 rounded-lg border border-black/[0.06] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="text-[12px] font-medium text-neutral-800">
+                  {ack.kind === "live" ? "Live trading" : "Assistant disclaimer"}
+                  <span className="ml-2 font-mono text-[10px] text-neutral-400">
+                    v{ack.version} · #{ack.id}
+                  </span>
+                </p>
+                <p className="mt-0.5 font-mono text-[11px] text-neutral-500">
+                  {fmt(ack.accepted_at)}
+                  {ack.ip ? ` · IP ${ack.ip}` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => downloadPdf(ack)}
+                disabled={pdfBusy === ack.id}
+                className="self-start rounded-md border border-black/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-600 hover:bg-black/[0.03] disabled:opacity-50"
+              >
+                {pdfBusy === ack.id ? "Preparing…" : "Download PDF"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+
+  if (error && !data) {
     return (
-      <p className="text-sm text-neutral-500">
-        The Agent database is not reachable from here.
-      </p>
+      <div className="space-y-3">
+        {ackSection}
+        <p className="text-sm text-[#F6465D]">{error}</p>
+      </div>
     );
-  if (!data?.linked)
+  }
+  if (data?.available === false) {
     return (
-      <p className="text-sm text-neutral-500">
-        This user has never connected an exchange account to Agent.
-      </p>
+      <div className="space-y-3">
+        {ackSection}
+        <p className="text-sm text-neutral-500">The Agent database is not reachable from here.</p>
+      </div>
     );
+  }
+  if (!data?.linked) {
+    return (
+      <div className="space-y-3">
+        {ackSection}
+        <p className="text-sm text-neutral-500">
+          This user has never connected an exchange account to Agent.
+        </p>
+      </div>
+    );
+  }
 
   const s = data.summary;
   const style = STATUS_STYLE[s.status] || STATUS_STYLE.unlinked;
 
   return (
     <div className="space-y-3">
+      {ackSection}
       <div
         className="rounded-xl px-4 py-3"
         style={{ background: style.bg, border: `1px solid ${style.fg}33` }}
