@@ -24,8 +24,12 @@ export function BitgetIcon({ className = "h-6 w-6" }) {
 
 export function BingxIcon({ className = "h-6 w-6" }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
-      <path d="M5 5h6.2l3.4 5.2L18.2 5H21l-5.1 7L21 19h-2.8l-3.6-5.4L11.2 19H5l5.2-7L5 5Zm2.4 1.8 3.5 5.2-3.5 5.2h1.7l3.5-5.2-3.5-5.2H7.4Z" />
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect width="24" height="24" rx="12" fill="#2B54FC" />
+      <path
+        fill="#fff"
+        d="M6.1 5h3.6L12 10.4 14.3 5h3.6L13.5 12l4.4 7h-3.6L12 13.6 9.7 19H6.1l4.4-7L6.1 5Z"
+      />
     </svg>
   );
 }
