@@ -2,7 +2,7 @@
 // Bitget + BingX are live (USDT-M futures). One venue at a time.
 
 import { Card, StatusBadge, GoldButton } from "./AutoTradeUI";
-import { BitgetIcon, BingxIcon } from "./BrandIcons";
+import { VenueLogo } from "./exchangeVenues";
 
 export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
   return (
@@ -21,7 +21,7 @@ export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
         <Card>
           <div className="flex items-start justify-between gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-md border border-ink/[0.08] bg-surface-secondary text-text-primary">
-              <BitgetIcon className="h-5 w-5" />
+              <VenueLogo venue="bitget" className="h-7 w-7" />
             </span>
             <StatusBadge tone="good">Live</StatusBadge>
           </div>
@@ -37,7 +37,7 @@ export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
         <Card>
           <div className="flex items-start justify-between gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-md border border-ink/[0.08] bg-surface-secondary text-text-primary">
-              <BingxIcon className="h-5 w-5" />
+              <VenueLogo venue="bingx" className="h-7 w-7" />
             </span>
             <StatusBadge tone="good">Live</StatusBadge>
           </div>

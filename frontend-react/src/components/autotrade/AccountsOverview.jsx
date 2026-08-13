@@ -14,15 +14,9 @@ import {
   GoldButton,
   fmtDateTime,
 } from "./AutoTradeUI";
-import { BinanceIcon, BitgetIcon, BingxIcon } from "./BrandIcons";
 import ExchangeRoadmap from "./ExchangeRoadmap";
 import ExchangePicker from "./ExchangePicker";
-
-const VENUE_ICONS = {
-  binance: BinanceIcon,
-  bitget: BitgetIcon,
-  bingx: BingxIcon,
-};
+import { VenueLogo } from "./exchangeVenues";
 
 function venueName(exchange) {
   if (exchange === "bitget") return "Bitget";
@@ -50,7 +44,6 @@ export default function AccountsOverview({
   const primary =
     exchangeAccounts.find((account) => account.key_status === "valid") || exchangeAccounts[0];
   const primaryExchange = primary?.exchange || portfolio?.exchange || "binance";
-  const PrimaryIcon = VENUE_ICONS[primaryExchange] || BinanceIcon;
   const primaryLabel = venueName(primaryExchange);
 
   // Wallet-context hint: keys valid but the relevant wallet reads zero.
@@ -64,8 +57,8 @@ export default function AccountsOverview({
       <Card>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
-              <PrimaryIcon className="h-7 w-7" />
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.06] bg-white p-1">
+              <VenueLogo venue={primaryExchange} className="h-full w-full" />
             </span>
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
@@ -122,14 +115,13 @@ export default function AccountsOverview({
         <div className="space-y-3">
           {exchangeAccounts.map((account) => {
             const tone = keyStatusTone(account.key_status);
-            const Icon = VENUE_ICONS[account.exchange] || BinanceIcon;
             return (
               <Card key={`${account.exchange}-${account.label || "default"}`} hover>
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10 text-accent">
-                        <Icon className="h-5 w-5" />
+                      <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md border border-ink/[0.06] bg-white p-0.5">
+                        <VenueLogo venue={account.exchange} className="h-full w-full" />
                       </span>
                       <span className="text-sm font-semibold text-text-primary">
                         {account.label || `Primary ${venueName(account.exchange)} account`}

@@ -7,6 +7,7 @@ export const EXCHANGE_VENUES = {
     id: "binance",
     name: "Binance",
     Icon: BinanceIcon,
+    logo: "/exchanges/binance.png",
     accent: "#F0B90B",
     markets: "Spot + USDT-M futures",
     blurb: "The original desk. Isolated futures by default.",
@@ -26,6 +27,7 @@ export const EXCHANGE_VENUES = {
     id: "bitget",
     name: "Bitget",
     Icon: BitgetIcon,
+    logo: "/exchanges/bitget.png",
     accent: "#00E8B5",
     markets: "Spot + USDT-M futures",
     blurb: "Needs key, secret, and the passphrase you set on the key.",
@@ -45,6 +47,7 @@ export const EXCHANGE_VENUES = {
     id: "bingx",
     name: "BingX",
     Icon: BingxIcon,
+    logo: "/exchanges/bingx.png",
     accent: "#2B6CFF",
     markets: "Spot + USDT-M perpetual",
     blurb: "Key and secret only. Same risk rules as the other venues.",
@@ -63,3 +66,19 @@ export const EXCHANGE_VENUES = {
 };
 
 export const EXCHANGE_LIST = Object.values(EXCHANGE_VENUES);
+
+export function VenueLogo({ venue, className = "h-8 w-8" }) {
+  const meta = typeof venue === "string" ? EXCHANGE_VENUES[venue] : venue;
+  if (!meta?.logo) {
+    const Fallback = meta?.Icon;
+    return Fallback ? <Fallback className={className} /> : null;
+  }
+  return (
+    <img
+      src={meta.logo}
+      alt=""
+      className={`${className} object-contain`}
+      draggable={false}
+    />
+  );
+}

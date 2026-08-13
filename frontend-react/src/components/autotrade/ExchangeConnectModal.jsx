@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { checkExchangeKeys, saveExchangeKeys } from "../../services/autotradeApi";
 import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
-import { AUTOTRADE_SERVER_IP, EXCHANGE_LIST, EXCHANGE_VENUES } from "./exchangeVenues";
+import { AUTOTRADE_SERVER_IP, EXCHANGE_LIST, EXCHANGE_VENUES, VenueLogo } from "./exchangeVenues";
 
 const INITIAL_FORM = { label: "", api_key: "", api_secret: "", passphrase: "" };
 
@@ -74,7 +74,6 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
   const [result, setResult] = useState(null);
 
   const venue = EXCHANGE_VENUES[venueId] || EXCHANGE_VENUES.binance;
-  const VenueIcon = venue.Icon;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -164,11 +163,8 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
 
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-ink/[0.07] px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <span
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-              style={{ background: `${venue.accent}18`, color: venue.accent }}
-            >
-              <VenueIcon className="h-5 w-5" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-ink/[0.06] bg-white p-1">
+              <VenueLogo venue={venue} className="h-full w-full" />
             </span>
             <div className="min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-text-primary">
@@ -195,7 +191,6 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
             <div className="space-y-4 p-5 sm:p-6">
               <div className="flex gap-1.5">
                 {EXCHANGE_LIST.map((item) => {
-                  const TabIcon = item.Icon;
                   const on = item.id === venue.id;
                   return (
                     <button
@@ -208,7 +203,9 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
                           : "bg-surface-secondary text-text-muted hover:text-text-primary"
                       }`}
                     >
-                      <TabIcon className="h-3.5 w-3.5" />
+                      <span className="flex h-4 w-4 overflow-hidden rounded-sm bg-white">
+                        <VenueLogo venue={item} className="h-full w-full" />
+                      </span>
                       {item.name}
                     </button>
                   );

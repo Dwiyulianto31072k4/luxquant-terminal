@@ -46,7 +46,8 @@ import PnLSummary from "./autotrade/PnLSummary";
 import TradeHistoryCalendar from "./autotrade/TradeHistoryCalendar";
 import AutoTradeHelpModal from "./autotrade/AutoTradeHelpModal";
 import AssistantWidget from "./assistant/AssistantWidget";
-import { BinanceIcon, BitgetIcon, BingxIcon, TelegramIcon, SettingsIcon } from "./autotrade/BrandIcons";
+import { TelegramIcon, SettingsIcon } from "./autotrade/BrandIcons";
+import { EXCHANGE_VENUES, VenueLogo } from "./autotrade/exchangeVenues";
 import {
   Card,
   SectionHeader,
@@ -68,14 +69,8 @@ const TABS = [
   { id: "settings", label: "Settings" },
 ];
 
-const VENUE_META = {
-  binance: { name: "Binance", Icon: BinanceIcon },
-  bitget: { name: "Bitget", Icon: BitgetIcon },
-  bingx: { name: "BingX", Icon: BingxIcon },
-};
-
 function venueMeta(exchange) {
-  return VENUE_META[exchange] || { name: exchange ? String(exchange) : "Exchange", Icon: BinanceIcon };
+  return EXCHANGE_VENUES[exchange] || { name: exchange ? String(exchange) : "Exchange" };
 }
 
 function pickStrategyConfig(items = [], accounts = []) {
@@ -263,7 +258,6 @@ function AutoTradeControlCenter({
   const isDryRun = config?.dry_run !== false;
   const venue = config?.exchange || "binance";
   const venueName = venueMeta(venue).name;
-  const VenueIcon = venueMeta(venue).Icon;
   const accountValid = exchangeAccounts.some(
     (account) => account.exchange === venue && account.key_status === "valid"
   );
@@ -354,16 +348,8 @@ function AutoTradeControlCenter({
       {/* Control row — status + primary action in one compact bar */}
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between lg:px-5">
         <div className="flex min-w-0 items-center gap-3">
-          <span
-            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border ${
-              active
-                ? state.tone === "good"
-                  ? "border-[#0ECB81]/35 bg-[#0ECB81]/12 text-profit"
-                  : "border-[#5B8DEF]/35 bg-[#5B8DEF]/12 text-[#5B8DEF]"
-                : "border-ink/[0.1] bg-surface-secondary text-text-secondary"
-            }`}
-          >
-            <VenueIcon className="h-5 w-5" />
+          <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink/[0.08] bg-white p-1">
+            <VenueLogo venue={venue} className="h-full w-full" />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -437,7 +423,6 @@ function AutoTradeOverview({
     exchangeAccounts.find((account) => account.key_status === "valid") ||
     exchangeAccounts[0];
   const primaryMeta = venueMeta(primary?.exchange || config?.exchange || "binance");
-  const PrimaryIcon = primaryMeta.Icon;
   const telegram = alertStatus?.telegram || {};
   const alertsEnabled = alertStatus?.preferences?.enabled !== false;
 
@@ -448,8 +433,8 @@ function AutoTradeOverview({
       <div className="grid gap-4 lg:grid-cols-3">
         <Card hover className="border-accent/20">
           <div className="flex items-start justify-between gap-4">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-accent/10 text-accent">
-              <PrimaryIcon className="h-6 w-6" />
+            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-ink/[0.06] bg-white p-1">
+              <VenueLogo venue={primaryMeta} className="h-full w-full" />
             </span>
             <StatusBadge tone={primary?.key_status === "valid" ? "good" : "warn"}>
               {primary?.key_status === "valid" ? "Connected" : "Check required"}

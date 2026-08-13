@@ -1,6 +1,6 @@
 // Post-disclaimer venue pick. Three desks, one venue at a time.
 
-import { EXCHANGE_LIST } from "./exchangeVenues";
+import { EXCHANGE_LIST, VenueLogo } from "./exchangeVenues";
 
 export default function ExchangePicker({ onPick }) {
   return (
@@ -21,7 +21,6 @@ export default function ExchangePicker({ onPick }) {
 
       <div className="grid gap-3 md:grid-cols-3">
         {EXCHANGE_LIST.map((venue) => {
-          const Icon = venue.Icon;
           return (
             <button
               key={venue.id}
@@ -29,11 +28,8 @@ export default function ExchangePicker({ onPick }) {
               onClick={() => onPick(venue.id)}
               className="group flex flex-col rounded-xl border border-ink/[0.08] bg-surface-raised p-5 text-left transition-colors hover:border-ink/20 hover:bg-surface-secondary/40"
             >
-              <span
-                className="flex h-11 w-11 items-center justify-center rounded-xl"
-                style={{ background: `${venue.accent}18`, color: venue.accent }}
-              >
-                <Icon className="h-6 w-6" />
+              <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-ink/[0.06] bg-white p-1.5">
+                <VenueLogo venue={venue} className="h-full w-full" />
               </span>
               <span className="mt-4 text-[17px] font-semibold text-text-primary">{venue.name}</span>
               <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
