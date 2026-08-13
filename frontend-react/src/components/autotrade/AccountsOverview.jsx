@@ -57,9 +57,7 @@ export default function AccountsOverview({
       <Card>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.06] bg-white p-1">
-              <VenueLogo venue={primaryExchange} className="h-full w-full" />
-            </span>
+            <VenueLogo venue={primaryExchange} className="h-12 w-12" />
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
                 Exchange Connection
@@ -120,9 +118,7 @@ export default function AccountsOverview({
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md border border-ink/[0.06] bg-white p-0.5">
-                        <VenueLogo venue={account.exchange} className="h-full w-full" />
-                      </span>
+                      <VenueLogo venue={account.exchange} className="h-8 w-8" />
                       <span className="text-sm font-semibold text-text-primary">
                         {account.label || `Primary ${venueName(account.exchange)} account`}
                       </span>

@@ -348,9 +348,7 @@ function AutoTradeControlCenter({
       {/* Control row — status + primary action in one compact bar */}
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between lg:px-5">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink/[0.08] bg-white p-1">
-            <VenueLogo venue={venue} className="h-full w-full" />
-          </span>
+          <VenueLogo venue={venue} className="h-9 w-9" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
@@ -433,9 +431,7 @@ function AutoTradeOverview({
       <div className="grid gap-4 lg:grid-cols-3">
         <Card hover className="border-accent/20">
           <div className="flex items-start justify-between gap-4">
-            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-ink/[0.06] bg-white p-1">
-              <VenueLogo venue={primaryMeta} className="h-full w-full" />
-            </span>
+            <VenueLogo venue={primaryMeta} className="h-10 w-10" />
             <StatusBadge tone={primary?.key_status === "valid" ? "good" : "warn"}>
               {primary?.key_status === "valid" ? "Connected" : "Check required"}
             </StatusBadge>

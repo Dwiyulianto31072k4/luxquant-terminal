@@ -69,16 +69,23 @@ export const EXCHANGE_LIST = Object.values(EXCHANGE_VENUES);
 
 export function VenueLogo({ venue, className = "h-8 w-8" }) {
   const meta = typeof venue === "string" ? EXCHANGE_VENUES[venue] : venue;
-  if (!meta?.logo) {
-    const Fallback = meta?.Icon;
-    return Fallback ? <Fallback className={className} /> : null;
-  }
+  if (!meta) return null;
+  const Fallback = meta.Icon;
   return (
-    <img
-      src={meta.logo}
-      alt=""
-      className={`${className} object-contain`}
-      draggable={false}
-    />
+    <span
+      className={`relative inline-block shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-ink/[0.08] ${className}`}
+      aria-hidden
+    >
+      {meta.logo ? (
+        <img
+          src={meta.logo}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      ) : Fallback ? (
+        <Fallback className="h-full w-full" />
+      ) : null}
+    </span>
   );
 }

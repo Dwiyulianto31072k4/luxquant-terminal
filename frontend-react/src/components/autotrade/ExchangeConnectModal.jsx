@@ -163,9 +163,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
 
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-ink/[0.07] px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-ink/[0.06] bg-white p-1">
-              <VenueLogo venue={venue} className="h-full w-full" />
-            </span>
+            <VenueLogo venue={venue} className="h-10 w-10" />
             <div className="min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-text-primary">
                 Connect {venue.name}
@@ -203,9 +201,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
                           : "bg-surface-secondary text-text-muted hover:text-text-primary"
                       }`}
                     >
-                      <span className="flex h-4 w-4 overflow-hidden rounded-sm bg-white">
-                        <VenueLogo venue={item} className="h-full w-full" />
-                      </span>
+                      <VenueLogo venue={item} className="h-4 w-4" />
                       {item.name}
                     </button>
                   );

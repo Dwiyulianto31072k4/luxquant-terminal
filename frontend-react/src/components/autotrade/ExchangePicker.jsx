@@ -28,9 +28,7 @@ export default function ExchangePicker({ onPick }) {
               onClick={() => onPick(venue.id)}
               className="group flex flex-col rounded-xl border border-ink/[0.08] bg-surface-raised p-5 text-left transition-colors hover:border-ink/20 hover:bg-surface-secondary/40"
             >
-              <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-ink/[0.06] bg-white p-1.5">
-                <VenueLogo venue={venue} className="h-full w-full" />
-              </span>
+              <VenueLogo venue={venue} className="h-12 w-12" />
               <span className="mt-4 text-[17px] font-semibold text-text-primary">{venue.name}</span>
               <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
                 {venue.markets}

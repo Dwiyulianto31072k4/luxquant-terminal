@@ -20,9 +20,7 @@ export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <Card>
           <div className="flex items-start justify-between gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-ink/[0.08] bg-surface-secondary text-text-primary">
-              <VenueLogo venue="bitget" className="h-7 w-7" />
-            </span>
+            <VenueLogo venue="bitget" className="h-10 w-10" />
             <StatusBadge tone="good">Live</StatusBadge>
           </div>
           <h3 className="mt-3 text-base font-semibold text-text-primary">Bitget</h3>
@@ -36,9 +34,7 @@ export default function ExchangeRoadmap({ onConnectBitget, onConnectBingx }) {
 
         <Card>
           <div className="flex items-start justify-between gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-ink/[0.08] bg-surface-secondary text-text-primary">
-              <VenueLogo venue="bingx" className="h-7 w-7" />
-            </span>
+            <VenueLogo venue="bingx" className="h-10 w-10" />
             <StatusBadge tone="good">Live</StatusBadge>
           </div>
           <h3 className="mt-3 text-base font-semibold text-text-primary">BingX</h3>
