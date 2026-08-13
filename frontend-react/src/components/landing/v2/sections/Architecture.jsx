@@ -25,19 +25,19 @@ const OUTPUTS = [
 
 const SCENES = [
   { systems: ["price", "book", "derivs", "onchain", "vol"], outputs: ["calls", "ai", "flow", "agent"] },
-  { systems: ["book", "vol"], outputs: [] },
-  { systems: ["book", "derivs", "onchain"], outputs: ["calls", "agent"] },
-  { systems: ["price", "onchain", "vol"], outputs: ["ai", "flow", "agent"] },
+  { systems: ["price", "book", "vol"], outputs: ["calls", "agent"] },
+  { systems: ["book", "derivs", "onchain"], outputs: ["calls", "ai", "flow"] },
+  { systems: ["price", "onchain", "vol", "derivs"], outputs: ["ai", "flow", "agent"] },
 ];
 
 const LOGO = (f) => `/exchanges/${f}`;
 const LOGO_CELLS = [
-  [null, LOGO("binance.png"), null, LOGO("okx.png")],
-  [LOGO("bybit.png?v=2"), LOGO("okx.png"), LOGO("gate.png"), LOGO("mexc.png")],
-  [LOGO("bitget.png"), LOGO("bingx.png?v=2"), LOGO("kucoin.png"), LOGO("htx.png")],
-  [null, LOGO("coinbase.png"), null, null],
-  [LOGO("gate.png"), LOGO("binance.png"), LOGO("bybit.png?v=2"), LOGO("okx.png")],
-  [LOGO("bingx.png?v=2"), LOGO("bitget.png"), LOGO("upbit.png"), LOGO("cryptocom.png")],
+  [LOGO("binance.png"), LOGO("okx.png")],
+  [LOGO("okx.png"), LOGO("bybit.png?v=2")],
+  [LOGO("bybit.png?v=2"), LOGO("gate.png")],
+  [LOGO("gate.png"), LOGO("bitget.png")],
+  [LOGO("bitget.png"), LOGO("bingx.png?v=2")],
+  [LOGO("bingx.png?v=2"), LOGO("binance.png")],
 ];
 
 const DW = 1000;
@@ -61,41 +61,38 @@ function elbow(from, to, via) {
   return `M${from.r} ${from.cy} H${mid} V${to.cy} H${to.x}`;
 }
 
-/* Desktop — one plus, every endpoint is a box edge */
+/* Desktop — tape in, engine, call out, exchange last */
 const D = (() => {
-  const tw = 100;
+  const tw = 116;
   const tg = 8;
   const t0 = (DW - (5 * tw + 4 * tg)) / 2;
   const T = [0, 1, 2, 3, 4].map((i) => box(t0 + i * (tw + tg), 16, tw, PH));
   const tray = box(t0 - 8, 8, 5 * tw + 4 * tg + 16, 48);
 
-  const sanitize = box(338, 122, 92, PH);
-  const signals = box(570, 122, 92, PH);
-  const hub = box(460, 176, 80, 80);
-  const venues = box(248, 200, 88, PH);
-  const record = box(664, 200, 108, PH);
-  const logos = box(48, 164, 152, 104);
-  const dest = box(900, 196, 40, 40);
-  const terminal = box(454, 286, 92, PH);
+  const hub = box(210, 176, 80, 80);
+  const sanitize = box(204, 118, 92, PH);
+  const terminal = box(330, 200, 96, PH);
+  const record = box(454, 200, 112, PH);
+  const venues = box(594, 200, 88, PH);
+  const logos = box(710, 168, 168, 96);
 
-  const ow = 108;
-  const og = 14;
+  const ow = 116;
+  const og = 12;
   const o0 = (DW - (4 * ow + 3 * og)) / 2;
   const O = [0, 1, 2, 3].map((i) => box(o0 + i * (ow + og), 366, ow, PH));
 
-  const neck = terminal.b + 18;
+  const neck = hub.b + 22;
   const routes = [
-    elbow(T[1], sanitize, "v"),
-    elbow(T[3], signals, "v"),
-    elbow(logos, venues, "h"),
-    elbow(venues, hub, "h"),
-    elbow(hub, record, "h"),
-    elbow(record, dest, "h"),
-    `M${hub.cx} ${hub.b} V${terminal.y}`,
-    ...O.map((o) => `M${terminal.cx} ${terminal.b} V${neck} H${o.cx} V${o.y}`),
+    ...T.map((t) => elbow(t, sanitize, "v")),
+    `M${sanitize.cx} ${sanitize.b} V${hub.y}`,
+    elbow(hub, terminal, "h"),
+    elbow(terminal, record, "h"),
+    elbow(record, venues, "h"),
+    elbow(venues, logos, "h"),
+    ...O.map((o) => `M${hub.cx} ${hub.b} V${neck} H${o.cx} V${o.y}`),
   ];
 
-  return { T, tray, sanitize, signals, hub, venues, record, logos, dest, terminal, O, routes };
+  return { T, tray, sanitize, hub, terminal, record, venues, logos, O, routes };
 })();
 
 const M = (() => {
@@ -107,35 +104,29 @@ const M = (() => {
     box(196, 56, tw, PH),
     box(106, 96, tw, PH),
   ];
-  const sanitize = box(36, 156, 140, PH);
-  const signals = box(204, 156, 140, PH);
-  const hub = box(150, 220, 80, 80);
-  const venues = box(16, 244, 100, PH);
-  const record = box(264, 244, 100, PH);
-  const logos = box(114, 324, 152, 88);
-  const terminal = box(144, 436, 92, PH);
+  const sanitize = box(120, 156, 140, PH);
+  const hub = box(150, 214, 80, 80);
+  const terminal = box(16, 330, 168, PH);
+  const record = box(196, 330, 168, PH);
+  const venues = box(114, 386, 152, PH);
+  const logos = box(114, 434, 152, 88);
   const O = [
-    box(16, 500, 168, PH),
-    box(196, 500, 168, PH),
-    box(16, 544, 168, PH),
-    box(196, 544, 168, PH),
+    box(16, 548, 168, PH),
+    box(196, 548, 168, PH),
+    box(16, 592, 168, PH),
+    box(196, 592, 168, PH),
   ];
   const routes = [
-    `M${T[0].cx} ${T[0].b} V${sanitize.y}`,
-    `M${T[1].cx} ${T[1].b} V${signals.y}`,
-    `M${T[4].cx} ${T[4].b} V${(T[4].b + sanitize.y) / 2} H${sanitize.cx} V${sanitize.y}`,
-    `M${sanitize.r} ${sanitize.cy} H${hub.x}`,
-    `M${signals.x} ${signals.cy} H${hub.r}`,
-    `M${venues.r} ${venues.cy} H${hub.x}`,
-    `M${hub.r} ${hub.cy} H${record.x}`,
-    `M${hub.cx} ${hub.b} V${logos.y}`,
-    `M${logos.cx} ${logos.b} V${terminal.y}`,
-    `M${terminal.cx} ${terminal.b} V${(terminal.b + O[0].y) / 2} H${O[0].cx} V${O[0].y}`,
-    `M${terminal.cx} ${terminal.b} V${(terminal.b + O[1].y) / 2} H${O[1].cx} V${O[1].y}`,
-    `M${terminal.cx} ${terminal.b} V${(terminal.b + O[2].y) / 2} H${O[2].cx} V${O[2].y}`,
-    `M${terminal.cx} ${terminal.b} V${(terminal.b + O[3].y) / 2} H${O[3].cx} V${O[3].y}`,
+    ...T.map((t) => `M${t.cx} ${t.b} V${(t.b + sanitize.y) / 2} H${sanitize.cx} V${sanitize.y}`),
+    `M${sanitize.cx} ${sanitize.b} V${hub.y}`,
+    `M${hub.cx} ${hub.b} V${(hub.b + terminal.y) / 2} H${terminal.cx} V${terminal.y}`,
+    `M${hub.cx} ${hub.b} V${(hub.b + record.y) / 2} H${record.cx} V${record.y}`,
+    `M${terminal.cx} ${terminal.b} V${venues.cy} H${venues.x}`,
+    `M${record.cx} ${record.b} V${venues.cy} H${venues.r}`,
+    `M${venues.cx} ${venues.b} V${logos.y}`,
+    ...O.map((o) => `M${logos.cx} ${logos.b} V${(logos.b + o.y) / 2} H${o.cx} V${o.y}`),
   ];
-  return { T, sanitize, signals, hub, venues, record, logos, terminal, O, routes };
+  return { T, sanitize, hub, terminal, record, venues, logos, O, routes };
 })();
 
 function useFitScale(ref, designWidth) {
@@ -301,19 +292,6 @@ function Hub({ node }) {
   );
 }
 
-function Dest({ node }) {
-  return (
-    <div className="lq-dest" style={{ left: node.x, top: node.y, width: node.w, height: node.h }}>
-      <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <rect x="1.5" y="1.5" width="8" height="8" rx="1.6" fill="#F0B90B" />
-        <rect x="12.5" y="1.5" width="8" height="8" rx="1.6" fill="#C9A227" />
-        <rect x="1.5" y="12.5" width="8" height="8" rx="1.6" fill="#8A6A22" />
-        <rect x="12.5" y="12.5" width="8" height="8" rx="1.6" fill="#1B1E2E" />
-      </svg>
-    </div>
-  );
-}
-
 function Diagram({ g, width, height, scene, init, running }) {
   const active = SCENES[scene];
   return (
@@ -330,13 +308,11 @@ function Diagram({ g, width, height, scene, init, running }) {
         />
       ))}
       <Pill node={g.sanitize}>Sanitize</Pill>
-      <Pill node={g.signals}>Signals</Pill>
-      <LogoCluster node={g.logos} scene={scene} running={running} />
-      <Pill node={g.venues}>Venues</Pill>
       <Hub node={g.hub} />
-      <Pill node={g.record}>Track record</Pill>
-      {g.dest ? <Dest node={g.dest} /> : null}
       <Pill node={g.terminal}>Terminal</Pill>
+      <Pill node={g.record}>Track record</Pill>
+      <Pill node={g.venues}>Venues</Pill>
+      <LogoCluster node={g.logos} scene={scene} running={running} />
       {g.O.map((n, i) => (
         <Slot
           key={OUTPUTS[i].id}
@@ -419,8 +395,7 @@ export default function Architecture() {
 
       <div className="mx-auto mt-10 flex max-w-[1120px] flex-col items-center gap-2.5 px-4 lg:mt-12 lg:px-8">
         <p className="max-w-3xl text-center text-[13px] font-medium leading-[1.7] text-text-muted sm:text-[14.5px]">
-          Observe the whole market, filter stale data, and define entry, targets, and exit
-          before publication—then deliver the call and preserve its proof.
+          The tape comes in. The engine writes the call. You take it to your exchange.
         </p>
         <PrimaryButton size="md" width="fullMobile" onClick={goVerify} className="group">
           {isAuthenticated ? "See the full record" : "Verify the track record"}
@@ -458,19 +433,20 @@ export default function Architecture() {
         .lq-slot span {
           display: flex; align-items: center; justify-content: center;
           width: 100%; height: 100%; border-radius: 6px;
-          background: var(--pill); color: var(--ink);
+          background: transparent; color: rgb(var(--accent) / 0.62);
           font-size: 12px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
-          opacity: 0; transform: scale(.78);
-          transition: opacity .45s cubic-bezier(.4,0,.2,1), transform .45s cubic-bezier(.4,0,.2,1);
+          transition: background .45s cubic-bezier(.4,0,.2,1), color .45s cubic-bezier(.4,0,.2,1);
         }
         .lq-slot.is-on { border-color: transparent; }
-        .lq-slot.is-on span, .lq-slot.is-init span { opacity: 1; transform: none; }
+        .lq-slot.is-on span, .lq-slot.is-init span {
+          background: var(--pill); color: var(--ink);
+        }
         .lq-slot.is-init span { transition-duration: 0ms; }
         .lq-hub {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
           border-radius: 10px;
-          background: linear-gradient(288deg, #3a2a0c -7%, #d4a017 106%);
-          box-shadow: 0 16px 28px -16px rgb(var(--scrim) / 0.45);
+          background: #d4a017;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 16px 28px -16px rgb(var(--scrim) / 0.45);
         }
         .lq-hub img { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
         .lq-hub span { margin-top: 4px; color: #fbf3da; font-size: 9px; font-weight: 750; letter-spacing: -.04em; }
@@ -483,7 +459,7 @@ export default function Architecture() {
         .lq-app-flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 2s cubic-bezier(.9,0,.1,1); }
         .lq-app-face { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; border-radius: 6px; background: rgb(var(--surface)); backface-visibility: hidden; }
         .lq-app-face.is-back { transform: rotateX(180deg); }
-        .lq-app-face img { width: 100%; height: 100%; object-fit: cover; }
+        .lq-app-face img { width: 100%; height: 100%; object-fit: cover; border-radius: 99px; }
         .lq-dest {
           display: grid; place-items: center; border-radius: 8px; background: #f4f1ea;
           box-shadow: 0 10px 18px -12px rgb(var(--scrim) / 0.35);
