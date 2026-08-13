@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
+
+/* Konten.com hero: loose V→L→V spokes into a flat brand tile.
+   Data in → LuxQuant → trade setup → desk → execute on your exchange. */
 
 const FEEDS = [
   { id: "price", label: "Price", icon: "price" },
@@ -16,38 +19,43 @@ const FEEDS = [
   { id: "breadth", label: "Breadth", icon: "grid" },
 ];
 
-const YOU_GET = [
-  { id: "call", label: "The call", icon: "signal" },
-  { id: "alerts", label: "Alerts", icon: "bell" },
-  { id: "record", label: "The record", icon: "check" },
-  { id: "agent", label: "Agent optional", icon: "agent" },
+const VENUE_LOGOS = [
+  "/exchanges/binance.png",
+  "/exchanges/okx.png",
+  "/exchanges/bybit.png?v=2",
+  "/exchanges/gate.png",
+  "/exchanges/bitget.png",
+  "/exchanges/bingx.png?v=2",
 ];
 
-const LOGO = (f) => `/exchanges/${f}`;
-const LOGO_SET_A = [
-  LOGO("binance.png"),
-  LOGO("okx.png"),
-  LOGO("bybit.png?v=2"),
-  LOGO("gate.png"),
-  LOGO("bitget.png"),
-  LOGO("bingx.png?v=2"),
-];
-const LOGO_SET_B = [
-  LOGO("mexc.png"),
-  LOGO("kucoin.png"),
-  LOGO("coinbase.png"),
-  LOGO("htx.png"),
-  LOGO("cryptocom.png"),
-  LOGO("upbit.png"),
-];
-const LOGO_CELLS = LOGO_SET_A.map((a, i) => [a, LOGO_SET_B[i], a, LOGO_SET_B[i]]);
-
-const DW = 1080;
-const DH = 600;
-const PH = 36;
+const DW = 1120;
+const DH = 620;
 
 function box(x, y, w, h) {
   return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
+}
+
+/** Konten.com: V → diagonal L → V (or H → L → H from the side). */
+function spokeIn(from, hub) {
+  if (from.b < hub.y - 8) {
+    const drop = from.b + 34;
+    const approach = hub.y - 26;
+    return `M${from.cx} ${from.b} V${drop} L${hub.cx} ${approach} V${hub.y}`;
+  }
+  if (from.r < hub.x) {
+    const out = from.r + 42;
+    const inn = hub.x - 22;
+    return `M${from.r} ${from.cy} H${out} L${inn} ${hub.cy} H${hub.x}`;
+  }
+  const out = from.x - 42;
+  const inn = hub.r + 22;
+  return `M${from.x} ${from.cy} H${out} L${inn} ${hub.cy} H${hub.r}`;
+}
+
+function spokeOut(from, to) {
+  const leave = from.b + 26;
+  const approach = to.y - 22;
+  return `M${from.cx} ${from.b} V${leave} L${to.cx} ${approach} V${to.y}`;
 }
 
 function Glyph({ type }) {
@@ -65,11 +73,7 @@ function Glyph({ type }) {
   };
   switch (type) {
     case "price":
-      return (
-        <svg {...c}>
-          <path className="lq-g-main" d="M2 13h2.2L6.2 6l2.6 9 2-5.4 1.6 2.2H18" />
-        </svg>
-      );
+      return <svg {...c}><path className="lq-g-main" d="M2 13h2.2L6.2 6l2.6 9 2-5.4 1.6 2.2H18" /></svg>;
     case "volume":
       return (
         <svg {...c}>
@@ -87,11 +91,7 @@ function Glyph({ type }) {
         </svg>
       );
     case "funding":
-      return (
-        <svg {...c}>
-          <path d="M10 3v14M7 6.5c.8-1.4 5.4-2 5.4.8 0 3.2-6 1.6-6 4.6 0 2.4 4.2 2.2 5.6.6" />
-        </svg>
-      );
+      return <svg {...c}><path d="M10 3v14M7 6.5c.8-1.4 5.4-2 5.4.8 0 3.2-6 1.6-6 4.6 0 2.4 4.2 2.2 5.6.6" /></svg>;
     case "liqs":
       return (
         <svg {...c}>
@@ -107,11 +107,7 @@ function Glyph({ type }) {
         </svg>
       );
     case "wave":
-      return (
-        <svg {...c}>
-          <path className="lq-g-main" d="M2 11c2.2 0 2.2-5 4.4-5s2.2 8 4.4 8 2.2-6 4.4-6c1.2 0 1.8 1 2.8 2" />
-        </svg>
-      );
+      return <svg {...c}><path className="lq-g-main" d="M2 11c2.2 0 2.2-5 4.4-5s2.2 8 4.4 8 2.2-6 4.4-6c1.2 0 1.8 1 2.8 2" /></svg>;
     case "grid":
       return (
         <svg {...c}>
@@ -135,46 +131,12 @@ function Glyph({ type }) {
           <path d="M7 17h6M10 14v3" />
         </svg>
       );
-    case "signal":
-      return (
-        <svg {...c}>
-          <path className="lq-g-b1" d="M4 16V10" />
-          <path className="lq-g-b2" d="M8 16V6" />
-          <path className="lq-g-b3" d="M12 16v-5" />
-          <path className="lq-g-b4" d="M16 16V4" />
-        </svg>
-      );
-    case "bell":
-      return (
-        <svg {...c}>
-          <path className="lq-g-bell" d="M5 14h10l-1.3-2V8a3.7 3.7 0 0 0-7.4 0v4zM8.5 16.5h3" />
-        </svg>
-      );
     case "check":
-      return (
-        <svg {...c}>
-          <path className="lq-g-pulse" d="m4 10 4 4 8-8" />
-        </svg>
-      );
-    case "agent":
-      return (
-        <svg {...c}>
-          <rect className="lq-g-bot" x="3" y="5" width="14" height="11" rx="3" />
-          <path d="M10 2v3M7 10h.01M13 10h.01M7 13h6" />
-        </svg>
-      );
+      return <svg {...c}><path className="lq-g-pulse" d="m4 10 4 4 8-8" /></svg>;
     case "exchange":
-      return (
-        <svg {...c}>
-          <path d="M4 8h12M4 12h12M8 4v12M12 4v12" />
-        </svg>
-      );
+      return <svg {...c}><path d="M4 8h12M4 12h12M8 4v12M12 4v12" /></svg>;
     default:
-      return (
-        <svg {...c}>
-          <circle cx="10" cy="10" r="6" />
-        </svg>
-      );
+      return <svg {...c}><circle cx="10" cy="10" r="6" /></svg>;
   }
 }
 
@@ -196,193 +158,104 @@ function useFitScale(ref, designWidth) {
   return scale;
 }
 
-function Plane({ width, height, children }) {
+const D = (() => {
+  const hub = box(500, 228, 120, 120);
+  const left = [
+    box(36, 48, 148, 40),
+    box(72, 148, 148, 40),
+    box(36, 248, 148, 40),
+    box(72, 348, 148, 40),
+  ];
+  const right = [
+    box(936, 48, 148, 40),
+    box(900, 148, 148, 40),
+    box(936, 248, 148, 40),
+    box(900, 348, 148, 40),
+  ];
+  const setup = box(472, 420, 176, 40);
+  const desk = box(280, 532, 156, 40);
+  const exec = box(500, 532, 200, 40);
+  const record = box(748, 532, 156, 40);
+  const feeds = [...left, ...right];
+  const intoHub = feeds.map((f) => spokeIn(f, hub));
+  const outHub = [spokeOut(hub, setup), spokeOut(setup, desk), spokeOut(setup, exec), spokeOut(setup, record)];
+  return { hub, left, right, feeds, setup, desk, exec, record, intoHub, outHub };
+})();
+
+function Desktop() {
   const host = useRef(null);
-  const scale = useFitScale(host, width);
+  const scale = useFitScale(host, DW);
   return (
-    <div ref={host} className="relative w-full" style={{ height: height * scale }}>
+    <div ref={host} className="relative w-full" style={{ height: DH * scale }}>
       <div
         className="absolute top-0"
         style={{
-          width,
-          height,
+          width: DW,
+          height: DH,
           left: "50%",
-          marginLeft: -width / 2,
+          marginLeft: -DW / 2,
           transform: `scale(${scale})`,
           transformOrigin: "top center",
         }}
       >
-        {children}
+        <svg className="pointer-events-none absolute inset-0 z-[1] overflow-visible" viewBox={`0 0 ${DW} ${DH}`} fill="none">
+          {[...D.intoHub, ...D.outHub].map((d, i) => (
+            <path key={`b${i}`} d={d} className="lq-flow" />
+          ))}
+          {D.intoHub.map((d, i) => (
+            <path key={`i${i}`} d={d} className="lq-flow-move" style={{ animationDelay: `${i * 0.18}s` }} />
+          ))}
+          {D.outHub.map((d, i) => (
+            <path key={`o${i}`} d={d} className="lq-flow-move is-out" style={{ animationDelay: `${0.3 + i * 0.15}s` }} />
+          ))}
+        </svg>
+
+        {D.left.map((n, i) => (
+          <div key={FEEDS[i].id} className="lq-pill" style={{ left: n.x, top: n.y, width: n.w, height: n.h }}>
+            <Glyph type={FEEDS[i].icon} />
+            {FEEDS[i].label}
+          </div>
+        ))}
+        {D.right.map((n, i) => (
+          <div key={FEEDS[i + 4].id} className="lq-pill" style={{ left: n.x, top: n.y, width: n.w, height: n.h }}>
+            <Glyph type={FEEDS[i + 4].icon} />
+            {FEEDS[i + 4].label}
+          </div>
+        ))}
+
+        <div className="lq-hub" style={{ left: D.hub.x, top: D.hub.y, width: D.hub.w, height: D.hub.h }}>
+          <img src="/logo.png" alt="LuxQuant" />
+        </div>
+
+        <div className="lq-pill" style={{ left: D.setup.x, top: D.setup.y, width: D.setup.w, height: D.setup.h }}>
+          <Glyph type="plan" />
+          Trade setup
+        </div>
+        <div className="lq-pill" style={{ left: D.desk.x, top: D.desk.y, width: D.desk.w, height: D.desk.h }}>
+          <Glyph type="desk" />
+          Your terminal
+        </div>
+        <div className="lq-exec" style={{ left: D.exec.x, top: D.exec.y, width: D.exec.w, height: D.exec.h }}>
+          <Glyph type="exchange" />
+          <span>Execute</span>
+          <span className="lq-exec-logos">
+            {VENUE_LOGOS.map((src) => (
+              <img key={src} src={src} alt="" />
+            ))}
+          </span>
+        </div>
+        <div className="lq-pill" style={{ left: D.record.x, top: D.record.y, width: D.record.w, height: D.record.h }}>
+          <Glyph type="check" />
+          Public record
+        </div>
       </div>
     </div>
   );
 }
 
-function FlipLogo({ items, scene, delay, running }) {
-  const wrap = useRef(null);
-  const flips = useRef(0);
-  const prev = useRef(-1);
-  const timer = useRef(null);
-  const [front, setFront] = useState(0);
-  const [back, setBack] = useState(1);
-
-  const onEnd = useCallback(
-    (e) => {
-      if (e.propertyName !== "transform") return;
-      const next = (scene + 1) % items.length;
-      if (scene % 2 === 0) setBack(next);
-      else setFront(next);
-    },
-    [scene, items.length],
-  );
-
-  useEffect(() => {
-    if (!running || scene === prev.current) return undefined;
-    prev.current = scene;
-    const n = flips.current;
-    if (n !== 0) {
-      timer.current = setTimeout(() => {
-        if (wrap.current) wrap.current.style.transform = `rotateX(${180 * n}deg)`;
-      }, delay);
-    }
-    flips.current += 1;
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [scene, delay, running]);
-
-  return (
-    <div className="lq-app">
-      <div ref={wrap} className="lq-app-flip" onTransitionEnd={onEnd}>
-        <div className="lq-app-face is-front">
-          <img src={items[front]} alt="" />
-        </div>
-        <div className="lq-app-face is-back">
-          <img src={items[back]} alt="" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LogoGrid({ scene, running, compact }) {
-  return (
-    <div className={`lq-apps${compact ? " is-compact" : ""}`}>
-      {LOGO_CELLS.map((items, i) => (
-        <FlipLogo key={i} items={items} scene={scene} delay={i * 80} running={running} />
-      ))}
-    </div>
-  );
-}
-
-const D = (() => {
-  const tw = 122;
-  const tg = 6;
-  const t0 = (DW - (8 * tw + 7 * tg)) / 2;
-  const T = FEEDS.map((_, i) => box(t0 + i * (tw + tg), 40, tw, PH));
-  const hub = box(486, 196, 108, 108);
-  const drop = 92;
-  const venues = box(248, 234, 136, PH);
-  const record = box(696, 234, 136, PH);
-  const logos = box(56, 198, 160, 108);
-  const dest = box(980, 230, 40, 40);
-  const plan = box(360, 344, 360, 56);
-  const desk = box(472, 434, 136, PH);
-  const ow = 168;
-  const og = 14;
-  const o0 = (DW - (4 * ow + 3 * og)) / 2;
-  const O = YOU_GET.map((_, i) => box(o0 + i * (ow + og), 534, ow, PH));
-  const neck = desk.b + 20;
-  const intoHub = T.map((t) => `M${t.cx} ${t.b} V${drop} H${hub.cx} V${hub.y}`);
-  const outHub = [
-    `M${logos.r} ${hub.cy} H${venues.x}`,
-    `M${venues.r} ${hub.cy} H${hub.x}`,
-    `M${hub.r} ${hub.cy} H${record.x}`,
-    `M${record.r} ${hub.cy} H${dest.x}`,
-    `M${hub.cx} ${hub.b} V${plan.y}`,
-    `M${plan.cx} ${plan.b} V${desk.y}`,
-    ...O.map((o) => `M${desk.cx} ${desk.b} V${neck} H${o.cx} V${o.y}`),
-  ];
-  return { T, plan, hub, venues, record, logos, dest, desk, O, intoHub, outHub };
-})();
-
-function Desktop({ scene, running }) {
-  return (
-    <Plane width={DW} height={DH}>
-      <svg className="pointer-events-none absolute inset-0 z-[1]" viewBox={`0 0 ${DW} ${DH}`} fill="none" aria-hidden="true">
-        {[...D.intoHub, ...D.outHub].map((d, i) => (
-          <path key={`base-${i}`} d={d} className="lq-flow" />
-        ))}
-        {D.intoHub.map((d, i) => (
-          <path key={`in-${i}`} d={d} className="lq-flow-move is-in" style={{ animationDelay: `${i * 0.12}s` }} />
-        ))}
-        {D.outHub.map((d, i) => (
-          <path key={`out-${i}`} d={d} className="lq-flow-move is-out" style={{ animationDelay: `${0.4 + i * 0.08}s` }} />
-        ))}
-      </svg>
-      <div className="lq-tag" style={{ left: D.T[0].x, top: 14, width: 360 }}>
-        1 · Every feed we actually read
-      </div>
-      {D.T.map((n, i) => (
-        <div key={FEEDS[i].id} className="lq-pill" style={{ left: n.x, top: n.y, width: n.w, height: n.h }}>
-          <Glyph type={FEEDS[i].icon} />
-          {FEEDS[i].label}
-        </div>
-      ))}
-      <div className="lq-tag" style={{ left: D.plan.x, top: D.plan.y - 22, width: D.plan.w }}>
-        2 · Trade projection setup
-      </div>
-      <div className="lq-plan" style={{ left: D.plan.x, top: D.plan.y, width: D.plan.w, height: D.plan.h }}>
-        <Glyph type="plan" />
-        <span>
-          <strong>Trade projection setup</strong>
-          <em>Entry · TP1–TP4 · Stop</em>
-        </span>
-      </div>
-      <div className="lq-apps" style={{ left: D.logos.x, top: D.logos.y, width: D.logos.w, height: D.logos.h }}>
-        {LOGO_CELLS.map((items, i) => (
-          <FlipLogo key={i} items={items} scene={scene} delay={i * 80} running={running} />
-        ))}
-      </div>
-      <div className="lq-pill" style={{ left: D.venues.x, top: D.venues.y, width: D.venues.w, height: D.venues.h }}>
-        <Glyph type="exchange" />
-        Your exchange
-      </div>
-      <div className="lq-hub" style={{ left: D.hub.x, top: D.hub.y, width: D.hub.w, height: D.hub.h }}>
-        <img src="/logo.png" alt="" />
-        <span>luxquant</span>
-      </div>
-      <div className="lq-pill" style={{ left: D.record.x, top: D.record.y, width: D.record.w, height: D.record.h }}>
-        <Glyph type="check" />
-        Public record
-      </div>
-      <div className="lq-dest" style={{ left: D.dest.x, top: D.dest.y, width: D.dest.w, height: D.dest.h }}>
-        <Glyph type="check" />
-      </div>
-      <div className="lq-tag" style={{ left: D.desk.x - 10, top: D.desk.y - 22, width: 220 }}>
-        3 · It lands on your desk
-      </div>
-      <div className="lq-pill" style={{ left: D.desk.x, top: D.desk.y, width: D.desk.w, height: D.desk.h }}>
-        <Glyph type="desk" />
-        Your terminal
-      </div>
-      <div className="lq-tag" style={{ left: D.O[0].x, top: D.O[0].y - 22, width: 280 }}>
-        4 · What you walk away with
-      </div>
-      {D.O.map((n, i) => (
-        <div key={YOU_GET[i].id} className="lq-pill" style={{ left: n.x, top: n.y, width: n.w, height: n.h }}>
-          <Glyph type={YOU_GET[i].icon} />
-          {YOU_GET[i].label}
-        </div>
-      ))}
-    </Plane>
-  );
-}
-
-function Mobile({ scene, running }) {
+function Mobile() {
   return (
     <div className="lq-m">
-      <p className="lq-m-tag">1 · Every feed we actually read</p>
       <div className="lq-m-feeds">
         {FEEDS.map((f) => (
           <span key={f.id} className="lq-chip">
@@ -391,56 +264,35 @@ function Mobile({ scene, running }) {
           </span>
         ))}
       </div>
-
       <span className="lq-m-line" aria-hidden="true" />
-
-      <p className="lq-m-tag">2 · Trade projection setup</p>
-      <div className="lq-plan lq-plan-m">
+      <div className="lq-hub lq-hub-m">
+        <img src="/logo.png" alt="LuxQuant" />
+      </div>
+      <span className="lq-m-line" aria-hidden="true" />
+      <span className="lq-chip lq-chip-lg">
         <Glyph type="plan" />
-        <span>
-          <strong>Trade projection setup</strong>
-          <em>Entry · TP1–TP4 · Stop</em>
-        </span>
-      </div>
-
+        Trade setup
+      </span>
       <span className="lq-m-line" aria-hidden="true" />
-
-      <div className="lq-m-mid">
-        <LogoGrid scene={scene} running={running} compact />
-        <div className="lq-hub lq-hub-m">
-          <img src="/logo.png" alt="" />
-          <span>luxquant</span>
-        </div>
-        <div className="lq-m-side">
-          <span className="lq-chip">
-            <Glyph type="exchange" />
-            Exchange
-          </span>
-          <span className="lq-chip">
-            <Glyph type="check" />
-            Record
-          </span>
-        </div>
-      </div>
-
-      <span className="lq-m-line" aria-hidden="true" />
-
-      <p className="lq-m-tag">3 · It lands on your desk</p>
-      <div className="lq-chip lq-chip-lg">
+      <span className="lq-chip lq-chip-lg">
         <Glyph type="desk" />
         Your terminal
-      </div>
-
+      </span>
       <span className="lq-m-line" aria-hidden="true" />
-
-      <p className="lq-m-tag">4 · What you walk away with</p>
-      <div className="lq-m-out">
-        {YOU_GET.map((o) => (
-          <span key={o.id} className="lq-chip">
-            <Glyph type={o.icon} />
-            {o.label}
+      <div className="lq-m-end">
+        <span className="lq-chip">
+          <Glyph type="check" />
+          Public record
+        </span>
+        <span className="lq-exec lq-exec-m">
+          <Glyph type="exchange" />
+          Execute
+          <span className="lq-exec-logos">
+            {VENUE_LOGOS.map((src) => (
+              <img key={src} src={src} alt="" />
+            ))}
           </span>
-        ))}
+        </span>
       </div>
     </div>
   );
@@ -449,33 +301,6 @@ function Mobile({ scene, running }) {
 export default function Architecture() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const root = useRef(null);
-  const [scene, setScene] = useState(0);
-  const [pageOn, setPageOn] = useState(() => typeof document === "undefined" || !document.hidden);
-  const [inView, setInView] = useState(false);
-  const reduce =
-    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-
-  useEffect(() => {
-    const el = root.current;
-    if (!el) return undefined;
-    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.15 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const onVis = () => setPageOn(!document.hidden);
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, []);
-
-  const live = inView && pageOn && !reduce;
-  useEffect(() => {
-    if (!live) return undefined;
-    const tick = setInterval(() => setScene((s) => (s + 1) % 4), 4000);
-    return () => clearInterval(tick);
-  }, [live]);
 
   const goVerify = () => {
     trackFunnel("cta_click", { source: "how_it_works", path: "/" });
@@ -494,125 +319,81 @@ export default function Architecture() {
     >
       <div className="mx-auto w-full max-w-[1120px] px-4 lg:px-8">
         <h2 className="max-w-4xl text-[28px] font-semibold leading-[1.28] tracking-[-0.025em] sm:text-[34px] lg:text-[40px]">
-          <span className="text-text-primary">Lots of market data. One written plan. </span>
-          <span className="text-text-muted">Then it shows up on your desk — and stays on the record.</span>
+          <span className="text-text-primary">Market data in. A setup out. </span>
+          <span className="text-text-muted">You execute on your exchange — the record stays public.</span>
         </h2>
       </div>
 
-      <div ref={root} className="lq-sys relative mx-auto mt-8 w-full max-w-[1120px] px-3 sm:mt-10 sm:px-6">
+      <div className="lq-sys relative mx-auto mt-10 w-full max-w-[1160px] px-3 sm:mt-12 sm:px-6">
         <div className="lq-sys-dots" aria-hidden="true" />
         <div className="relative hidden lg:block">
-          <Desktop scene={scene} running={live} />
+          <Desktop />
         </div>
         <div className="relative lg:hidden">
-          <Mobile scene={scene} running={live} />
+          <Mobile />
         </div>
       </div>
 
-      <p className="mx-auto mt-6 max-w-2xl px-4 text-center text-[13px] font-medium leading-[1.7] text-text-muted sm:text-[15px]">
-        Eight feeds go in. One call comes out — entry, targets, and a stop. You follow it in the terminal, or let Agent help.
-      </p>
-
-      <div className="mt-6 flex flex-col items-center gap-2.5 px-4">
+      <div className="mt-8 flex flex-col items-center gap-2.5 px-4">
         <PrimaryButton size="md" width="fullMobile" onClick={goVerify} className="group">
           {isAuthenticated ? "See the full record" : "Verify the track record"}
           <BtnArrow />
         </PrimaryButton>
-        <p className="text-center text-[10.5px] leading-relaxed text-text-muted">
-          Every call preserved. No selective screenshots.
-        </p>
       </div>
 
       <style>{`
-        .lq-sys { --line: rgb(var(--accent) / 0.45); --pill: rgb(var(--accent)); --ink: #171304; }
+        .lq-sys { --pill: rgb(var(--accent)); --ink: #171304; }
         .lq-sys-dots {
-          position: absolute; inset: -36px 0 -44px;
+          position: absolute; inset: -48px 0 -56px;
           background-image: url("data:image/svg+xml;utf8,<svg width='10' height='10' xmlns='http://www.w3.org/2000/svg'><rect width='2' height='2' fill='%238a6a28'/></svg>");
-          background-size: 10px 10px; opacity: .4; pointer-events: none;
-          -webkit-mask-image: linear-gradient(180deg, transparent, #737373 16%, #737373 84%, transparent);
-          mask-image: linear-gradient(180deg, transparent, #737373 16%, #737373 84%, transparent);
+          background-size: 10px 10px; opacity: .38; pointer-events: none;
+          -webkit-mask-image: linear-gradient(180deg, transparent, #737373 14%, #737373 86%, transparent);
+          mask-image: linear-gradient(180deg, transparent, #737373 14%, #737373 86%, transparent);
         }
-        .lq-flow { stroke: rgb(var(--accent) / 0.28); stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .lq-flow {
+          stroke: rgb(var(--accent) / 0.32);
+          stroke-width: 1.35;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          fill: none;
+        }
         .lq-flow-move {
-          fill: none; stroke-linecap: round; stroke-linejoin: round;
-          stroke: #f0c84a; stroke-width: 1.7;
-          stroke-dasharray: 10 22;
-          filter: drop-shadow(0 0 3px rgba(240, 200, 74, .7));
-          animation: lqTravel 1.7s linear infinite;
+          fill: none;
+          stroke: #e8b84a;
+          stroke-width: 1.6;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-dasharray: 14 28;
+          filter: drop-shadow(0 0 4px rgba(232, 184, 74, .55));
+          animation: lqTravel 2.4s linear infinite;
         }
-        .lq-flow-move.is-in { animation-duration: 1.55s; }
-        .lq-flow-move.is-out { animation-duration: 2.1s; stroke: #e7b72d; }
-        @keyframes lqTravel { to { stroke-dashoffset: -32; } }
-        .lq-plan {
-          position: absolute; z-index: 5;
-          display: flex; align-items: center; justify-content: center; gap: 10px;
+        .lq-flow-move.is-out { animation-duration: 2.8s; }
+        @keyframes lqTravel { to { stroke-dashoffset: -42; } }
+
+        .lq-pill, .lq-exec {
+          position: absolute; z-index: 4;
+          display: inline-flex; align-items: center; justify-content: center; gap: 7px;
           border-radius: 10px; background: var(--pill); color: var(--ink);
-          box-shadow: 0 16px 28px -18px rgb(var(--scrim) / 0.4);
+          font-size: 13px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
         }
-        .lq-plan span { display: flex; flex-direction: column; line-height: 1.15; }
-        .lq-plan strong { font-size: 13.5px; font-weight: 750; letter-spacing: -0.02em; }
-        .lq-plan em { margin-top: 2px; font-style: normal; font-size: 11.5px; font-weight: 650; opacity: .72; }
-        .lq-plan-m { position: relative; width: min(100%, 300px); height: 56px; }
-        .lq-pill, .lq-hub, .lq-apps, .lq-dest, .lq-tag { position: absolute; z-index: 4; box-sizing: border-box; }
-        .lq-tag {
-          z-index: 6; font-size: 10px; font-weight: 700; letter-spacing: .14em;
-          text-transform: uppercase; color: rgb(var(--accent)); line-height: 1; pointer-events: none;
+        .lq-exec { padding: 0 12px; }
+        .lq-exec-logos { display: inline-flex; gap: 3px; margin-left: 4px; }
+        .lq-exec-logos img { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; }
+
+        .lq-hub {
+          position: absolute; z-index: 8;
+          display: grid; place-items: center;
+          border-radius: 28px;
+          background: #d4a017;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.38),
+            inset 0 -10px 18px rgba(90,55,0,.16),
+            0 18px 36px -18px rgba(212,160,23,.5);
         }
-        .lq-pill, .lq-chip {
-          display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-          border-radius: 8px; background: var(--pill); color: var(--ink);
-          font-size: 12px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
-        }
-        .lq-pill { position: absolute; }
+        .lq-hub img { width: 48px; height: 48px; border-radius: 12px; object-fit: cover; }
+
         .lq-glyph { flex: 0 0 auto; overflow: visible; }
         .lq-glyph path, .lq-glyph rect, .lq-glyph circle { transform-box: fill-box; transform-origin: center; }
-        .lq-hub {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          z-index: 7; border-radius: 10px;
-          background: linear-gradient(288deg, #3a2a0c -7%, #d4a017 106%);
-          box-shadow: 0 0 0 8px rgb(var(--accent) / 0.08), 0 22px 40px -16px rgb(var(--scrim) / 0.55);
-        }
-        .lq-hub::after {
-          content: "";
-          position: absolute; inset: -28px; z-index: -1; border-radius: 28px;
-          background: radial-gradient(circle, rgb(var(--accent) / 0.28), transparent 68%);
-          pointer-events: none;
-        }
-        .lq-hub img { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
-        .lq-hub span { margin-top: 4px; color: #fbf3da; font-size: 9px; font-weight: 750; letter-spacing: -.04em; }
-        .lq-apps {
-          display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
-          gap: 6px; padding: 8px; border-radius: 10px;
-          background: rgb(var(--surface) / 0.75); border: 1px solid rgb(var(--ink) / 0.06);
-        }
-        .lq-app { position: relative; border-radius: 6px; perspective: 240px; min-height: 0; overflow: hidden; }
-        .lq-app-flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 2s cubic-bezier(.9,0,.1,1); }
-        .lq-app-face { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; border-radius: 6px; background: #111; backface-visibility: hidden; }
-        .lq-app-face.is-back { transform: rotateX(180deg); }
-        .lq-app-face img { width: 100%; height: 100%; object-fit: cover; }
-        .lq-dest { display: grid; place-items: center; border-radius: 8px; background: #f4f1ea; color: #171304; }
-
-        /* Mobile: native vertical story, not a scaled desktop plane */
-        .lq-m { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; padding: 8px 4px 12px; }
-        .lq-m-tag {
-          margin: 0 0 8px; font-size: 10px; font-weight: 700; letter-spacing: .14em;
-          text-transform: uppercase; color: rgb(var(--accent)); text-align: center;
-        }
-        .lq-m-feeds, .lq-m-out {
-          display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%;
-        }
-        .lq-chip { position: relative; height: 34px; padding: 0 10px; }
-        .lq-chip-lg { height: 38px; padding: 0 16px; font-size: 13px; }
-        .lq-m-line {
-          width: 1px; height: 18px; margin: 8px 0;
-          background: repeating-linear-gradient(to bottom, rgb(var(--accent) / 0.5) 0 2px, transparent 2px 5px);
-        }
-        .lq-m-mid { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
-        .lq-apps.is-compact { position: relative; width: 168px; height: 108px; }
-        .lq-hub-m { position: relative; width: 72px; height: 72px; }
-        .lq-m-side { display: flex; gap: 8px; }
-
-        /* Icon motion — same idea as the old architecture glyphs */
         .lq-glyph-price .lq-g-main { animation: lqWave 2.6s ease-in-out infinite; }
         .lq-glyph-volume .lq-g-b1 { animation: lqBar 1.6s ease-in-out -.1s infinite; }
         .lq-glyph-volume .lq-g-b2 { animation: lqBar 1.6s ease-in-out -.5s infinite; }
@@ -620,7 +401,6 @@ export default function Architecture() {
         .lq-glyph-volume .lq-g-b4 { animation: lqBar 1.6s ease-in-out -.3s infinite; }
         .lq-glyph-book .lq-g-bl { animation: lqBookL 2.4s ease-in-out infinite; }
         .lq-glyph-book .lq-g-br { animation: lqBookR 2.4s ease-in-out infinite; }
-        .lq-glyph-funding { animation: lqPulse 2s ease-in-out infinite; }
         .lq-glyph-liqs .lq-g-drop { animation: lqDrop 1.6s cubic-bezier(.4,0,.2,1) infinite; }
         .lq-glyph-chain .lq-g-pkt { animation: lqPkt 1.8s cubic-bezier(.4,0,.2,1) infinite; }
         .lq-glyph-wave .lq-g-main { animation: lqVol 2.1s ease-in-out infinite; }
@@ -628,14 +408,23 @@ export default function Architecture() {
         .lq-glyph-grid .lq-g-s2 { animation: lqSq 2.4s ease-in-out .3s infinite; }
         .lq-glyph-grid .lq-g-s3 { animation: lqSq 2.4s ease-in-out .6s infinite; }
         .lq-glyph-grid .lq-g-s4 { animation: lqSq 2.4s ease-in-out .9s infinite; }
-        .lq-glyph-plan .lq-g-pulse { animation: lqPulse 1.8s ease-in-out infinite; }
-        .lq-glyph-signal .lq-g-b1 { animation: lqBar 1.8s ease-in-out 0s infinite; }
-        .lq-glyph-signal .lq-g-b2 { animation: lqBar 1.8s ease-in-out -.4s infinite; }
-        .lq-glyph-signal .lq-g-b3 { animation: lqBar 1.8s ease-in-out -.8s infinite; }
-        .lq-glyph-signal .lq-g-b4 { animation: lqBar 1.8s ease-in-out -.2s infinite; }
-        .lq-glyph-bell .lq-g-bell { animation: lqBell 3s cubic-bezier(.36,.07,.19,.97) infinite; }
-        .lq-glyph-check .lq-g-pulse { animation: lqPulse 2.4s ease-in-out infinite; }
-        .lq-glyph-agent .lq-g-bot { animation: lqBot 2.6s ease-in-out infinite; }
+        .lq-glyph-plan .lq-g-pulse, .lq-glyph-check .lq-g-pulse { animation: lqPulse 2s ease-in-out infinite; }
+
+        .lq-m { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 0; padding: 8px 4px 16px; }
+        .lq-m-feeds { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+        .lq-chip {
+          display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
+          border-radius: 10px; background: var(--pill); color: var(--ink);
+          font-size: 12.5px; font-weight: 700;
+        }
+        .lq-chip-lg { height: 40px; padding: 0 16px; }
+        .lq-m-line {
+          width: 1.5px; height: 22px; margin: 10px 0;
+          background: repeating-linear-gradient(to bottom, #e8b84a 0 4px, transparent 4px 8px);
+        }
+        .lq-hub-m { position: relative; width: 96px; height: 96px; margin: 4px 0; }
+        .lq-m-end { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+        .lq-exec-m { position: relative; height: 40px; }
 
         @keyframes lqWave { 0%,100% { transform: translateX(-.6px); } 50% { transform: translateX(.6px) scaleY(1.08); } }
         @keyframes lqBar { 0%,100% { transform: scaleY(.55); } 50% { transform: scaleY(1.08); } }
@@ -644,15 +433,11 @@ export default function Architecture() {
         @keyframes lqPulse { 0%,100% { opacity: .55; transform: scale(.86); } 50% { opacity: 1; transform: scale(1); } }
         @keyframes lqDrop { 0% { transform: translateY(-2px); opacity: .4; } 55%,100% { transform: none; opacity: 1; } }
         @keyframes lqPkt { 0% { transform: translateX(-4px); opacity: 0; } 30%,70% { opacity: 1; } 100% { transform: translateX(7px); opacity: 0; } }
-        @keyframes lqVol { 0%,100% { transform: scaleY(.7) translateX(-.5px); } 50% { transform: scaleY(1.14) translateX(.5px); } }
+        @keyframes lqVol { 0%,100% { transform: scaleY(.7); } 50% { transform: scaleY(1.14); } }
         @keyframes lqSq { 0%,100% { opacity: .45; transform: scale(.78); } 40% { opacity: 1; transform: scale(1); } }
-        @keyframes lqBell { 0%,82%,100% { transform: rotate(0); } 86% { transform: rotate(-10deg); } 90% { transform: rotate(8deg); } 94% { transform: rotate(-4deg); } }
-        @keyframes lqBot { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
 
         @media (prefers-reduced-motion: reduce) {
-          .lq-glyph path, .lq-glyph rect, .lq-glyph circle, .lq-glyph,
-          .lq-flow-move { animation: none !important; }
-          .lq-app-flip { transition: none !important; }
+          .lq-glyph path, .lq-glyph rect, .lq-glyph circle, .lq-glyph, .lq-flow-move { animation: none !important; }
         }
       `}</style>
     </section>
