@@ -686,23 +686,36 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
           </span>
         </div>
 
-        <div className="lq-edge-stopline">
-          <span className="lq-edge-stoptag">Downside</span>
-          <span className="lq-edge-stopval">&minus;1.00R</span>
-          <span className="lq-edge-cap">fixed, every call</span>
-        </div>
-
-        <div className="lq-edge-rail">
-          <span className="lq-edge-entry">Entry · 0R</span>
-          <div className="lq-edge-targets">
-            {targets.map((t) => (
-              <div key={t} className="lq-edge-tp">
-                <span className="lq-edge-tpname">{t}</span>
+        {/* Ladder harga vertikal — dibaca dari atas ke bawah seperti trader
+            membacanya. Jarak antar baris SERAGAM, bukan proporsional terhadap
+            target, jadi tidak ada nilai R yang bocor lewat posisi. */}
+        <ol className="lq-ladder">
+          {[...targets].reverse().map((t) => (
+            <li key={t} className="lq-ladder-row">
+              <span className="lq-ladder-node" aria-hidden="true" />
+              <span className="lq-ladder-name">{t}</span>
+              <span className="lq-ladder-val">
                 <LockIcon />
-              </div>
-            ))}
-          </div>
-        </div>
+                locked
+              </span>
+            </li>
+          ))}
+
+          <li className="lq-ladder-row lq-ladder-row--entry">
+            <span className="lq-ladder-node lq-ladder-node--entry" aria-hidden="true" />
+            <span className="lq-ladder-name">Entry</span>
+            <span className="lq-ladder-val">0R</span>
+          </li>
+
+          <li className="lq-ladder-row lq-ladder-row--stop">
+            <span className="lq-ladder-node lq-ladder-node--stop" aria-hidden="true" />
+            <span className="lq-ladder-name">Stop</span>
+            <span className="lq-ladder-val lq-ladder-val--stop">
+              &minus;1.00R
+              <em>fixed, every call</em>
+            </span>
+          </li>
+        </ol>
 
         <div className="lq-edge-locked">
           <div className="lq-edge-lockedstat">

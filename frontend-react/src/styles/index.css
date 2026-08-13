@@ -1751,79 +1751,133 @@ textarea:focus-visible {
   color: rgb(var(--fg));
 }
 
-/* Downside jadi satu baris — sebelumnya kartu setinggi 100px untuk satu angka. */
-.lp-v2 .lq-edge-stopline {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgb(var(--neg) / 0.22);
-  background: rgb(var(--neg) / 0.06);
-}
-
-.lp-v2 .lq-edge-stoptag {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgb(var(--neg-text));
-}
-
-.lp-v2 .lq-edge-stopval {
-  font-size: 22px;
-  font-weight: 500;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: rgb(var(--fg));
-}
-
+/* Dipakai juga oleh .lq-edge-lockedstat di bawah — jangan ikut dibuang
+   bersama blok stopline lama. */
 .lp-v2 .lq-edge-cap {
   font-size: 14px;
   line-height: 1.5;
   color: rgb(var(--fg-muted));
 }
 
-.lp-v2 .lq-edge-rail {
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgb(var(--ink) / 0.05);
-  background: rgb(var(--surface-raised));
+/* ── Ladder harga vertikal ─────────────────────────────────────────
+   Satu sumbu rata, satu irama baris. Menggantikan empat chip berjenjang
+   yang terbaca sebagai salah rata alih-alih sebagai urutan. */
+.lp-v2 .lq-ladder {
+  position: relative;
+  margin: 2px 0 0;
+  padding: 4px 0;
+  list-style: none;
 }
 
-.lp-v2 .lq-edge-entry {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: rgb(var(--fg-muted));
+/* Garis penghubung — mengikat keenam baris jadi satu urutan. */
+.lp-v2 .lq-ladder::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 5px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--accent) / 0.45),
+    rgb(var(--ink) / 0.14) 62%,
+    rgb(var(--neg) / 0.42)
+  );
 }
 
-.lp-v2 .lq-edge-targets {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-}
-
-/* Chip sempit dan naik bertingkat — bentuknya yang menyampaikan urutan.
-   Kenaikan seragam, tanpa skala: tidak ada nilai R yang bocor. */
-.lp-v2 .lq-edge-tp {
+.lp-v2 .lq-ladder-row {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 9px 6px;
-  border-radius: 10px;
-  border: 1px solid rgb(var(--ink) / 0.06);
-  background: rgb(var(--surface));
+  gap: 12px;
+  min-height: 40px;
+  padding: 8px 0 8px 24px;
+}
+
+.lp-v2 .lq-ladder-node {
+  position: absolute;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 99px;
+  border: 2px solid rgb(var(--accent) / 0.55);
+  background: rgb(var(--surface-secondary));
+}
+
+.lp-v2 .lq-ladder-node--entry {
+  border-color: rgb(var(--fg) / 0.5);
+  background: rgb(var(--fg) / 0.5);
+}
+
+.lp-v2 .lq-ladder-node--stop {
+  border-color: rgb(var(--neg));
+  background: rgb(var(--neg));
+}
+
+.lp-v2 .lq-ladder-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgb(var(--fg));
+}
+
+.lp-v2 .lq-ladder-val {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
   color: rgb(var(--fg-muted));
 }
 
-.lp-v2 .lq-edge-tpname { font-size: 14px; font-weight: 500; color: rgb(var(--fg)); }
+.lp-v2 .lq-ladder-val svg { align-self: center; }
 
-.lp-v2 .lq-edge-tp:nth-child(1) { transform: translateY(12px); }
-.lp-v2 .lq-edge-tp:nth-child(2) { transform: translateY(8px); }
-.lp-v2 .lq-edge-tp:nth-child(3) { transform: translateY(4px); }
-.lp-v2 .lq-edge-tp:nth-child(4) { transform: translateY(0); }
+/* `inset` box-shadow, bukan border: garisnya sama, tapi tidak menambah
+   1px ke tinggi baris — dua baris terakhir jadi lebih tinggi dari empat
+   baris di atasnya kalau pakai border. */
+.lp-v2 .lq-ladder-row--entry { box-shadow: inset 0 1px 0 rgb(var(--ink) / 0.06); }
+
+.lp-v2 .lq-ladder-row--stop {
+  box-shadow: inset 0 1px 0 rgb(var(--ink) / 0.06);
+}
+
+.lp-v2 .lq-ladder-val--stop {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgb(var(--fg));
+}
+
+.lp-v2 .lq-ladder-val--stop em {
+  font-style: normal;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgb(var(--fg-muted));
+}
+
+/* Baris ladder muncul berurutan saat section terlihat. */
+.lp-v2 .lq-ladder-row {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 420ms ease, transform 520ms cubic-bezier(.25, 1, .5, 1);
+}
+
+.lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-ladder-row {
+  opacity: 1;
+  transform: none;
+}
+
+.lp-v2 .lq-ladder-row:nth-child(1) { transition-delay: 120ms; }
+.lp-v2 .lq-ladder-row:nth-child(2) { transition-delay: 190ms; }
+.lp-v2 .lq-ladder-row:nth-child(3) { transition-delay: 260ms; }
+.lp-v2 .lq-ladder-row:nth-child(4) { transition-delay: 330ms; }
+.lp-v2 .lq-ladder-row:nth-child(5) { transition-delay: 400ms; }
+.lp-v2 .lq-ladder-row:nth-child(6) { transition-delay: 470ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-v2 .lq-ladder-row { opacity: 1; transform: none; transition: none; }
+}
 
 .lp-v2 .lq-edge-locked {
   display: flex;
@@ -1848,7 +1902,6 @@ textarea:focus-visible {
 }
 
 @media (max-width: 520px) {
-  .lp-v2 .lq-edge-tp:nth-child(n) { transform: none; }
   .lp-v2 .lq-edge-head-num { font-size: 26px; }
   .lp-v2 .lq-edge-head--live .lq-edge-head-num { font-size: 34px; }
 }
