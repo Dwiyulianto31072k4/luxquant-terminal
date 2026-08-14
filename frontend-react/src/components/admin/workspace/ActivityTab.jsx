@@ -1,21 +1,29 @@
 // ════════════════════════════════════════════════════════════════════
-// ActivityTab — Activity Monitoring & Growth dashboard
+// ActivityTab — engagement, retention, and who is on the desk right now.
 //
-// Reads /api/v1/workspace/growth/* (Batch 2a) and renders:
-// • Header (teal glow, matches Finance Hub style)
-// • KPI grid: DAU / WAU / MAU / Stickiness / Active subs / Power users
-// • Feature funnel (horizontal bars, subscriber vs free reach)
-// • Hot Leads panel (engaged free users -> upgrade candidates)
-// • At-Risk panel (dormant / expiring subscribers, with churn vs
-// never-activated distinction)
-//
-// Read-only dashboard. Outreach is wired via window-level events the
-// parent can listen to later; for now the contact chips are display-only.
+// Reads /api/v1/workspace/growth/* and renders one operating surface:
+//   header + KPIs with real deltas
+//   activity series (users / events / signups)
+//   when-they-show-up heatmap
+//   live feed + most-active (click opens the user drawer)
+//   feature reach (stacked sub vs free, click filters the feed)
+//   hot leads + at-risk
 // ════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { growthApi } from "../../../services/growthApi";
-import { palette, tint, surface, motion, semantic } from "../designSystem";
+import { cssChannelHex } from "../../../utils/themeColors";
+import { palette, tint, surface, semantic } from "../designSystem";
 import { StatTile, Surface, Avatar, EmptyState, Spinner, IconBadge } from "../primitives";
 import {
   ActivityIcon,
@@ -31,8 +39,8 @@ import {
   EmailIcon,
   SparklesIcon,
 } from "../Icons";
+import { UserDetailDrawer } from "../UserDetailDrawer";
 
-// ── Feature display labels (bucketed names -> human) ──
 const FEATURE_LABELS = {
   signals: "Signals",
   autotrade: "Agent",
@@ -51,27 +59,36 @@ const FEATURE_LABELS = {
   referral: "Referral",
   profile: "Profile",
   analytics: "Analytics",
+  chat: "Chat",
+};
+
+// Distinct per-feature identity for charts — chrome stays gold/neutral.
+const FEATURE_COLORS = {
+  signals: "#c9a227",
+  autotrade: "#3d9a6a",
+  markets: "#4f7cff",
+  market_pulse: "#2a9d8f",
+  bitcoin: "#f7931a",
+  ai_arena: "#8b6cff",
+  tips: "#d97706",
+  whale_alert: "#0891b2",
+  onchain: "#0d9488",
+  news: "#64748b",
+  fx: "#2563eb",
+  macro_calendar: "#7c3aed",
+  watchlist: "#db2777",
+  journal: "#65a30d",
+  referral: "#ea580c",
+  profile: "#78716c",
+  analytics: "#ca8a04",
+  chat: "#5865f2",
 };
 
 const featureLabel = (f) => FEATURE_LABELS[f] || f;
+const featureColor = (f) => FEATURE_COLORS[f] || "#8a7a6e";
 
-// Deterministic accent per feature (cycles the semantic palette)
-const FEATURE_ACCENTS = [
-  palette.gold[300],
-  palette.blue[400],
-  palette.green[400],
-  palette.purple[400],
-  palette.orange[400],
-  palette.teal[400],
-  palette.amber[400],
-];
-const featureAccent = (feature) => {
-  let h = 0;
-  for (let i = 0; i < feature.length; i++) h = (h * 31 + feature.charCodeAt(i)) >>> 0;
-  return FEATURE_ACCENTS[h % FEATURE_ACCENTS.length];
-};
+const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-// ── time helpers ──
 const relativeTime = (iso) => {
   if (!iso) return "never";
   const then = new Date(iso).getTime();
@@ -83,19 +100,64 @@ const relativeTime = (iso) => {
   if (h < 24) return `${h}h ago`;
   const d = Math.floor(h / 24);
   if (d < 30) return `${d}d ago`;
-  const mo = Math.floor(d / 30);
-  return `${mo}mo ago`;
+  return `${Math.floor(d / 30)}mo ago`;
 };
 
-// ════════════════════════════════════════════════════════════════════
-// Header — teal glow, sibling to FinanceHeader
-// ════════════════════════════════════════════════════════════════════
+const fmtDay = (iso) => {
+  if (!iso) return "";
+  const d = new Date(`${iso}T00:00:00Z`);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+};
 
-const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
+const deltaRatio = (now, prev) => {
+  if (prev == null || prev === 0) return now ? 1 : 0;
+  return (now - prev) / prev;
+};
+
+const Seg = ({ options, value, onChange, tone = "gold" }) => (
+  <div className="flex items-center gap-0.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5">
+    {options.map((o) => {
+      const active = value === o.value;
+      return (
+        <button
+          key={String(o.value)}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={`rounded-md px-2 py-0.5 text-[10px] font-medium transition ${
+            active ? "bg-surface-raised text-text-primary shadow-sm" : "text-text-muted hover:text-text-primary"
+          }`}
+          style={
+            active && tone === "gold"
+              ? { color: "rgb(var(--accent-text))" }
+              : undefined
+          }
+        >
+          {o.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const RoleChip = ({ role }) => {
+  if (!role) return null;
+  const key = role === "premium" || role === "subscriber" ? "subscriber" : role === "admin" || role === "founder" ? "admin" : "free";
+  const s = semantic.role[key];
+  const label = role === "autotrade" ? "agent" : role;
+  return (
+    <span
+      className="inline-flex items-center rounded px-1.5 py-px text-[9px] font-semibold uppercase tracking-wider"
+      style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
+    >
+      {label}
+    </span>
+  );
+};
+
+const ActivityHeader = ({ onRefresh, refreshing, generatedAt, events1h }) => (
   <div className="flex flex-wrap items-start justify-between gap-3">
     <div className="flex min-w-0 items-start gap-3">
-      <IconBadge Icon={ActivityIcon} color="rgb(var(--ink) / 0.45)" size={38} iconSize={18} />
-
+      <IconBadge Icon={ActivityIcon} color="rgb(var(--accent))" size={38} iconSize={18} />
       <div className="min-w-0">
         <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
           Activity · Engagement & growth analytics
@@ -103,13 +165,25 @@ const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
         <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
           Growth Dashboard
         </h2>
-        <p className="mt-0.5 max-w-md text-[12px] text-text-muted">
-          Engagement, retention signals, and outreach targets across the platform.
+        <p className="mt-0.5 max-w-lg text-[12px] text-text-muted">
+          Who is on the product, which desks they touch, and who is about to slip.
         </p>
       </div>
     </div>
-
     <div className="flex items-center gap-2">
+      {events1h != null && (
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-medium"
+          style={{
+            background: "rgb(var(--pos) / 0.08)",
+            color: "rgb(var(--pos-text))",
+            borderColor: "rgb(var(--pos) / 0.22)",
+          }}
+        >
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+          {events1h} feature {events1h === 1 ? "touch" : "touches"} last hour
+        </span>
+      )}
       {generatedAt && (
         <span className="text-[10px] text-text-muted">updated {relativeTime(generatedAt)}</span>
       )}
@@ -126,93 +200,331 @@ const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
   </div>
 );
 
-// ════════════════════════════════════════════════════════════════════
-// Feature funnel — horizontal bars
-// ════════════════════════════════════════════════════════════════════
+const ChartTip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload || {};
+  return (
+    <div className="rounded-lg border border-ink/[0.1] bg-surface-raised px-2.5 py-2 shadow-lg">
+      <p className="mb-1 text-[10px] font-medium text-text-muted">{fmtDay(label)}</p>
+      <p className="text-[11.5px] tabular-nums text-text-primary">
+        <span className="text-text-muted">Active</span> {row.users ?? 0}
+      </p>
+      <p className="text-[11.5px] tabular-nums text-text-primary">
+        <span className="text-text-muted">Touches</span> {row.events ?? 0}
+      </p>
+      <p className="text-[11.5px] tabular-nums text-text-primary">
+        <span className="text-text-muted">Signups</span> {row.signups ?? 0}
+      </p>
+    </div>
+  );
+};
 
-const FeatureFunnel = ({ funnel, loading }) => {
-  if (loading) {
+const ActivityChart = ({ series, days, onDays, loading }) => {
+  const gold = cssChannelHex("--accent", "#c9a227");
+  const ink = cssChannelHex("--ink", "#8a7a6e");
+  if (loading && !series?.length) {
     return (
       <Surface variant="premium" hover={false} padding="p-5">
-        <div className="flex items-center justify-center py-10">
-          <Spinner size={16} tone={palette.teal[400]} />
+        <div className="flex h-56 items-center justify-center">
+          <Spinner size={16} />
+        </div>
+      </Surface>
+    );
+  }
+  const data = series || [];
+  const peak = data.reduce((m, d) => Math.max(m, d.users || 0), 0);
+  const peakDay = data.find((d) => d.users === peak);
+
+  return (
+    <Surface variant="premium" hover={false} padding="p-5">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h3 className="text-[14px] font-semibold tracking-tight text-text-primary">
+            Activity over time
+          </h3>
+          <p className="mt-0.5 text-[11px] text-text-muted">
+            Unique people who touched a feature, and how many touches that day.
+            {peakDay ? ` Peak ${peak} on ${fmtDay(peakDay.date)}.` : ""}
+          </p>
+        </div>
+        <Seg
+          value={days}
+          onChange={onDays}
+          options={[
+            { value: 7, label: "7d" },
+            { value: 30, label: "30d" },
+            { value: 90, label: "90d" },
+          ]}
+        />
+      </div>
+      <div className="h-56 w-full sm:h-64">
+        {data.length ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data} margin={{ top: 8, right: 6, left: -18, bottom: 0 }}>
+              <defs>
+                <linearGradient id="lqActFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={gold} stopOpacity={0.32} />
+                  <stop offset="100%" stopColor={gold} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--ink) / 0.06)" vertical={false} />
+              <XAxis
+                dataKey="date"
+                stroke="rgb(var(--fg-muted))"
+                fontSize={10}
+                tickLine={false}
+                axisLine={false}
+                interval={Math.ceil(data.length / 7)}
+                minTickGap={22}
+                tickFormatter={fmtDay}
+                dy={6}
+              />
+              <YAxis
+                yAxisId="users"
+                stroke="rgb(var(--fg-muted))"
+                fontSize={10}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+              />
+              <YAxis yAxisId="events" orientation="right" hide />
+              <Tooltip content={<ChartTip />} cursor={{ stroke: "rgb(var(--ink) / 0.12)" }} />
+              <Bar
+                yAxisId="events"
+                dataKey="events"
+                fill={ink}
+                fillOpacity={0.12}
+                radius={[2, 2, 0, 0]}
+                isAnimationActive={false}
+              />
+              <Area
+                yAxisId="users"
+                type="monotone"
+                dataKey="users"
+                stroke={gold}
+                strokeWidth={2}
+                fill="url(#lqActFill)"
+                isAnimationActive={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="flex h-full items-center justify-center text-[12px] text-text-muted">
+            No feature activity in this window.
+          </p>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-text-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-0.5 w-3 rounded-full" style={{ background: gold }} />
+          Active people
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-[2px] bg-ink/15" />
+          Feature touches
+        </span>
+      </div>
+    </Surface>
+  );
+};
+
+const Heatmap = ({ heatmap, loading }) => {
+  const cells = heatmap?.cells || [];
+  const peak = heatmap?.peak;
+  const max = peak?.events || 0;
+  const now = new Date();
+  const nowDow = ((now.getUTCDay() + 6) % 7) + 1;
+  const nowHour = now.getUTCHours();
+
+  const grid = useMemo(() => {
+    const m = new Map();
+    cells.forEach((c) => m.set(`${c.dow}-${c.hour}`, c));
+    return m;
+  }, [cells]);
+
+  if (loading && !cells.length) {
+    return (
+      <Surface variant="premium" hover={false} padding="p-5">
+        <div className="flex h-48 items-center justify-center">
+          <Spinner size={16} />
         </div>
       </Surface>
     );
   }
 
+  return (
+    <Surface variant="premium" hover={false} padding="p-5" className="h-full">
+      <div className="mb-3">
+        <h3 className="text-[14px] font-semibold tracking-tight text-text-primary">
+          When people show up
+        </h3>
+        <p className="mt-0.5 text-[11px] text-text-muted">
+          Feature touches by UTC hour, last 14 days.
+          {peak?.events
+            ? ` Busiest: ${DOW[peak.dow - 1]} ${String(peak.hour).padStart(2, "0")}:00 · ${peak.events} touches.`
+            : ""}
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[520px]">
+          <div className="mb-1 grid grid-cols-[28px_repeat(24,minmax(0,1fr))] gap-px">
+            <span />
+            {Array.from({ length: 24 }, (_, h) => (
+              <span
+                key={h}
+                className="text-center text-[8px] tabular-nums text-text-muted/70"
+              >
+                {h % 3 === 0 ? h : ""}
+              </span>
+            ))}
+          </div>
+          {DOW.map((name, i) => {
+            const dow = i + 1;
+            return (
+              <div
+                key={name}
+                className="mb-px grid grid-cols-[28px_repeat(24,minmax(0,1fr))] gap-px"
+              >
+                <span className="self-center text-[9px] text-text-muted">{name}</span>
+                {Array.from({ length: 24 }, (_, hour) => {
+                  const c = grid.get(`${dow}-${hour}`);
+                  const ev = c?.events || 0;
+                  const t = max > 0 ? ev / max : 0;
+                  const here = dow === nowDow && hour === nowHour;
+                  return (
+                    <div
+                      key={hour}
+                      title={`${name} ${String(hour).padStart(2, "0")}:00 UTC · ${ev} touches · ${c?.users || 0} people`}
+                      className="aspect-square rounded-[2px]"
+                      style={{
+                        background:
+                          ev === 0
+                            ? "rgb(var(--ink) / 0.05)"
+                            : `rgb(var(--accent) / ${0.14 + t * 0.78})`,
+                        outline: here ? "1px solid rgb(var(--accent-text))" : undefined,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-between text-[10px] text-text-muted">
+        <span>Less</span>
+        <div className="flex items-center gap-0.5">
+          {[0, 0.2, 0.4, 0.6, 0.85, 1].map((t) => (
+            <span
+              key={t}
+              className="h-2.5 w-3.5 rounded-[2px]"
+              style={{
+                background: t === 0 ? "rgb(var(--ink) / 0.05)" : `rgb(var(--accent) / ${0.14 + t * 0.78})`,
+              }}
+            />
+          ))}
+        </div>
+        <span>More</span>
+      </div>
+    </Surface>
+  );
+};
+
+const FeatureFunnel = ({ funnel, loading, days, onDays, activeFeature, onPick }) => {
   const features = funnel?.features || [];
   const maxUsers = features.reduce((m, f) => Math.max(m, f.users_total), 0) || 1;
 
   return (
     <Surface variant="premium" hover={false} padding="p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <TrendingUpIcon size={14} style={{ color: palette.teal[400] }} />
-          <h3 className="text-sm font-semibold text-text-primary tracking-tight">Feature Reach</h3>
-          <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
-            last {funnel?.days ?? 30}d
-          </span>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h3 className="text-[14px] font-semibold tracking-tight text-text-primary">
+            Feature reach
+          </h3>
+          <p className="mt-0.5 text-[11px] text-text-muted">
+            Gold = subscribers. Ink = free. Click a row to filter the live feed.
+          </p>
         </div>
-        <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
-          {funnel?.subscriber_base ?? 0} subs · {funnel?.free_base ?? 0} free
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-text-muted">
+            {funnel?.subscriber_base ?? 0} subs · {funnel?.free_base ?? 0} free
+          </span>
+          <Seg
+            value={days}
+            onChange={onDays}
+            options={[
+              { value: 7, label: "7d" },
+              { value: 30, label: "30d" },
+              { value: 90, label: "90d" },
+            ]}
+          />
+        </div>
       </div>
 
-      {features.length === 0 ? (
-        <p className="text-xs py-6 text-center" style={{ color: "rgb(var(--fg-muted))" }}>
+      {loading && !features.length ? (
+        <div className="flex items-center justify-center py-10">
+          <Spinner size={16} />
+        </div>
+      ) : features.length === 0 ? (
+        <p className="py-6 text-center text-xs text-text-muted">
           No feature activity recorded yet in this window.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {features.map((f) => {
-            const accent = featureAccent(f.feature);
-            const widthPct = Math.max(3, (f.users_total / maxUsers) * 100);
+            const color = featureColor(f.feature);
+            const widthPct = Math.max(4, (f.users_total / maxUsers) * 100);
+            const subShare = f.users_total ? (f.users_subscribers / f.users_total) * 100 : 0;
+            const active = activeFeature === f.feature;
             return (
-              <div key={f.feature}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[12px] font-medium text-text-primary">
+              <button
+                key={f.feature}
+                type="button"
+                onClick={() => onPick(active ? null : f.feature)}
+                className={`block w-full rounded-lg px-1 py-1 text-left transition ${
+                  active ? "bg-ink/[0.04]" : "hover:bg-ink/[0.02]"
+                }`}
+              >
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-[12px] font-medium text-text-primary">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: color }}
+                    />
                     {featureLabel(f.feature)}
                   </span>
-                  <span
-                    className="text-[10px] tabular-nums"
-                    style={{ color: "rgb(var(--fg-muted))" }}
-                  >
-                    {f.users_total} {f.users_total === 1 ? "user" : "users"} · {f.hits} hits
+                  <span className="text-[10px] tabular-nums text-text-muted">
+                    {f.users_total} {f.users_total === 1 ? "person" : "people"} · {f.hits} hits
                   </span>
                 </div>
                 <div
-                  className="relative h-6 rounded-md overflow-hidden"
-                  style={{ background: surface.sunken.bg }}
+                  className="relative h-2.5 overflow-hidden rounded-full"
+                  style={{ background: "rgb(var(--ink) / 0.07)", width: `${widthPct}%` }}
                 >
-                  {/* subscriber portion */}
                   <div
-                    className="absolute inset-y-0 left-0 flex items-center"
+                    className="absolute inset-y-0 left-0"
                     style={{
-                      width: `${widthPct}%`,
-                      background: `linear-gradient(90deg, ${tint(accent, 0.35)}, ${tint(accent, 0.12)})`,
-                      borderRight: `2px solid ${accent}`,
-                      transition: motion.slow,
+                      width: `${subShare}%`,
+                      background: color,
                     }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-between px-2.5">
-                    <span
-                      className="text-[10px] font-semibold tabular-nums"
-                      style={{ color: accent }}
-                    >
-                      {f.pct_of_subscribers}% of subs
-                    </span>
-                    {f.users_free > 0 && (
-                      <span
-                        className="text-[10px] tabular-nums"
-                        style={{ color: "rgb(var(--fg-muted))" }}
-                      >
-                        {f.users_free} free
-                      </span>
-                    )}
-                  </div>
+                  <div
+                    className="absolute inset-y-0"
+                    style={{
+                      left: `${subShare}%`,
+                      right: 0,
+                      background: "rgb(var(--ink) / 0.22)",
+                    }}
+                  />
                 </div>
-              </div>
+                <div className="mt-1 flex items-center justify-between text-[10px] tabular-nums text-text-muted">
+                  <span>
+                    {f.pct_of_subscribers}% of subs
+                    {f.users_free > 0 ? ` · ${f.users_free} free` : ""}
+                  </span>
+                  {f.pct_of_free > 0 && <span>{f.pct_of_free}% of free</span>}
+                </div>
+              </button>
             );
           })}
         </div>
@@ -220,10 +532,6 @@ const FeatureFunnel = ({ funnel, loading }) => {
     </Surface>
   );
 };
-
-// ════════════════════════════════════════════════════════════════════
-// Contact chips (display only)
-// ════════════════════════════════════════════════════════════════════
 
 const ContactChips = ({ telegram, discord, email }) => {
   const chips = [];
@@ -240,18 +548,14 @@ const ContactChips = ({ telegram, discord, email }) => {
     chips.push({ Icon: EmailIcon, label: email, color: palette.channels.email });
   }
   if (chips.length === 0) {
-    return (
-      <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
-        no contact
-      </span>
-    );
+    return <span className="text-[10px] text-text-muted">no contact</span>;
   }
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex flex-wrap items-center gap-1.5">
       {chips.map((c, i) => (
         <span
           key={i}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-medium truncate max-w-[160px]"
+          className="inline-flex max-w-[160px] items-center gap-1 truncate rounded px-1.5 py-0.5 text-[9.5px] font-medium"
           style={{
             background: tint(c.color, 0.1),
             color: c.color,
@@ -268,89 +572,86 @@ const ContactChips = ({ telegram, discord, email }) => {
 };
 
 const TopFeatureTags = ({ features }) => {
-  if (!features || features.length === 0) return null;
+  if (!features?.length) return null;
   return (
-    <div className="flex items-center gap-1 flex-wrap mt-1">
-      {features.map((f) => {
-        const accent = featureAccent(f.feature);
-        return (
-          <span
-            key={f.feature}
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium"
-            style={{ background: tint(accent, 0.1), color: accent }}
-          >
-            {featureLabel(f.feature)} ·{f.count}
-          </span>
-        );
-      })}
+    <div className="mt-1 flex flex-wrap items-center gap-1">
+      {features.map((f) => (
+        <span
+          key={f.feature}
+          className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-medium"
+          style={{
+            background: tint(featureColor(f.feature), 0.12),
+            color: featureColor(f.feature),
+          }}
+        >
+          {featureLabel(f.feature)} ·{f.count}
+        </span>
+      ))}
     </div>
   );
 };
-
-// ════════════════════════════════════════════════════════════════════
-// Hot Leads panel
-// ════════════════════════════════════════════════════════════════════
 
 const ScoreBadge = ({ score }) => {
   const tone =
-    score >= 60 ? palette.green[400] : score >= 30 ? palette.amber[400] : "rgb(var(--fg-muted))";
+    score >= 60 ? "rgb(var(--pos-text))" : score >= 30 ? "rgb(var(--accent-text))" : "rgb(var(--fg-muted))";
   return (
-    <div className="flex flex-col items-center shrink-0">
+    <div className="flex shrink-0 flex-col items-center">
       <span className="text-base font-light tabular-nums leading-none" style={{ color: tone }}>
         {score}
       </span>
-      <span
-        className="text-[8px] uppercase tracking-wider"
-        style={{ color: "rgb(var(--fg-muted))" }}
-      >
-        score
-      </span>
+      <span className="text-[8px] uppercase tracking-wider text-text-muted">score</span>
     </div>
   );
 };
 
-const HotLeadsPanel = ({ data, loading }) => {
+const HotLeadsPanel = ({ data, loading, onOpen }) => {
   const items = data?.items || [];
   return (
     <Surface variant="premium" hover={false} padding="p-5" className="h-full">
-      <div className="flex items-center gap-2 mb-1">
-        <FlameIcon size={14} style={{ color: palette.orange[400] }} />
-        <h3 className="text-sm font-semibold text-text-primary tracking-tight">Hot Leads</h3>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <FlameIcon size={14} style={{ color: "rgb(var(--accent-text))" }} />
+          <h3 className="text-sm font-semibold tracking-tight text-text-primary">Hot leads</h3>
+        </div>
+        {items.length > 0 && (
+          <span className="text-[10px] tabular-nums text-text-muted">{items.length}</span>
+        )}
       </div>
-      <p className="text-[11px] mb-4" style={{ color: "rgb(var(--fg-muted))" }}>
-        Engaged free users — prime upgrade targets.
+      <p className="mb-4 text-[11px] text-text-muted">
+        Free users already using the product — the ones worth a conversation.
       </p>
-
       {loading ? (
         <div className="flex items-center justify-center py-10">
-          <Spinner size={16} tone={palette.orange[400]} />
+          <Spinner size={16} />
         </div>
       ) : items.length === 0 ? (
         <EmptyState
           Icon={SparklesIcon}
           tone={palette.orange[400]}
           title="No hot leads yet"
-          description="Free users who actively engage over several days will surface here as upgrade candidates."
+          description="Free users who come back several days in a row will show up here."
         />
       ) : (
-        <div className="space-y-2.5">
+        <div className="max-h-[460px] space-y-2 overflow-y-auto pr-1">
           {items.map((u) => (
-            <div
+            <button
               key={u.id}
-              className="flex items-center gap-3 p-2.5 rounded-lg"
+              type="button"
+              onClick={() => onOpen(u.id)}
+              className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition hover:bg-ink/[0.03]"
               style={{ background: surface.base.bg, border: `1px solid ${surface.base.border}` }}
             >
               <Avatar src={u.avatar_url} name={u.username} size="sm" tone={palette.orange[400]} />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-semibold text-text-primary truncate">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-[12px] font-semibold text-text-primary">
                     @{u.username}
                   </span>
-                  <span className="text-[9px]" style={{ color: "rgb(var(--fg-muted))" }}>
+                  <span className="text-[9px] text-text-muted">
                     joined {u.joined_days_ago != null ? `${u.joined_days_ago}d ago` : "—"}
                   </span>
                 </div>
-                <div className="text-[10px] mt-0.5" style={{ color: "rgb(var(--fg-muted))" }}>
+                <div className="mt-0.5 text-[10px] text-text-muted">
                   {u.active_days_30d}d active · {u.events_30d} actions · seen{" "}
                   {relativeTime(u.last_active_at)}
                 </div>
@@ -360,7 +661,7 @@ const HotLeadsPanel = ({ data, loading }) => {
                 </div>
               </div>
               <ScoreBadge score={u.engagement_score} />
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -368,51 +669,38 @@ const HotLeadsPanel = ({ data, loading }) => {
   );
 };
 
-// ════════════════════════════════════════════════════════════════════
-// At-Risk panel
-// ════════════════════════════════════════════════════════════════════
-
 const RiskTag = ({ item }) => {
-  // Never activated = has access but never touched the web app
   if (item.last_active_at == null) {
     return (
-      <span
-        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider"
-        style={{
-          background: tint(palette.warm[400], 0.1),
-          color: "rgb(var(--fg-secondary))",
-          border: `1px solid ${tint(palette.warm[400], 0.2)}`,
-        }}
+      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-text-muted"
+        style={{ background: "rgb(var(--ink) / 0.06)", border: "1px solid rgb(var(--ink) / 0.12)" }}
       >
         never logged in
       </span>
     );
   }
-  // Expiring soon = churn-recoverable, highest urgency
   if (item.days_until_expiry != null && item.days_until_expiry <= 14) {
     return (
       <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider"
+        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
         style={{
-          background: tint(palette.red[400], 0.12),
-          color: palette.red[400],
-          border: `1px solid ${tint(palette.red[400], 0.28)}`,
+          background: "rgb(var(--neg) / 0.1)",
+          color: "rgb(var(--neg-text))",
+          border: "1px solid rgb(var(--neg) / 0.25)",
         }}
       >
-        <span className="animate-pulse">
-          <AlertTriangleIcon size={9} />
-        </span>
+        <AlertTriangleIcon size={9} />
         {item.days_until_expiry}d left
       </span>
     );
   }
   return (
     <span
-      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider"
+      className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
       style={{
-        background: tint(palette.amber[400], 0.1),
-        color: palette.amber[400],
-        border: `1px solid ${tint(palette.amber[400], 0.24)}`,
+        background: "rgb(var(--accent) / 0.1)",
+        color: "rgb(var(--accent-text))",
+        border: "1px solid rgb(var(--accent) / 0.22)",
       }}
     >
       dormant {item.days_inactive != null ? `${item.days_inactive}d` : ""}
@@ -420,48 +708,58 @@ const RiskTag = ({ item }) => {
   );
 };
 
-const AtRiskPanel = ({ data, loading }) => {
+const AtRiskPanel = ({ data, loading, onOpen }) => {
   const items = data?.items || [];
+  const expiring = items.filter((u) => u.days_until_expiry != null && u.days_until_expiry <= 14).length;
   return (
     <Surface variant="premium" hover={false} padding="p-5" className="h-full">
-      <div className="flex items-center gap-2 mb-1">
-        <AlertTriangleIcon size={14} style={{ color: palette.red[400] }} />
-        <h3 className="text-sm font-semibold text-text-primary tracking-tight">
-          At-Risk Subscribers
-        </h3>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <AlertTriangleIcon size={14} style={{ color: "rgb(var(--neg-text))" }} />
+          <h3 className="text-sm font-semibold tracking-tight text-text-primary">
+            At-risk subscribers
+          </h3>
+        </div>
+        {items.length > 0 && (
+          <span className="text-[10px] tabular-nums text-text-muted">
+            {items.length}
+            {expiring > 0 ? ` · ${expiring} expiring` : ""}
+          </span>
+        )}
       </div>
-      <p className="text-[11px] mb-4" style={{ color: "rgb(var(--fg-muted))" }}>
-        Active subscribers gone quiet — re-engage before they churn.
+      <p className="mb-4 text-[11px] text-text-muted">
+        Paying users gone quiet — or a renewal that is close.
       </p>
-
       {loading ? (
         <div className="flex items-center justify-center py-10">
-          <Spinner size={16} tone={palette.red[400]} />
+          <Spinner size={16} />
         </div>
       ) : items.length === 0 ? (
         <EmptyState
           Icon={ZapIcon}
           tone={palette.green[400]}
           title="No one at risk"
-          description="All active subscribers have been seen recently. Nice."
+          description="Every active subscriber has been seen recently."
         />
       ) : (
-        <div className="space-y-2.5">
+        <div className="max-h-[460px] space-y-2 overflow-y-auto pr-1">
           {items.map((u) => (
-            <div
+            <button
               key={u.id}
-              className="flex items-center gap-3 p-2.5 rounded-lg"
+              type="button"
+              onClick={() => onOpen(u.id)}
+              className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition hover:bg-ink/[0.03]"
               style={{ background: surface.base.bg, border: `1px solid ${surface.base.border}` }}
             >
               <Avatar src={u.avatar_url} name={u.username} size="sm" tone={palette.red[400]} />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[12px] font-semibold text-text-primary truncate">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-[12px] font-semibold text-text-primary">
                     @{u.username}
                   </span>
                   <RiskTag item={u} />
                 </div>
-                <div className="text-[10px] mt-0.5" style={{ color: "rgb(var(--fg-muted))" }}>
+                <div className="mt-0.5 text-[10px] text-text-muted">
                   {u.role}
                   {u.last_active_at
                     ? ` · last seen ${relativeTime(u.last_active_at)}`
@@ -472,11 +770,12 @@ const AtRiskPanel = ({ data, loading }) => {
                       ? " · lifetime"
                       : ""}
                 </div>
+                <TopFeatureTags features={u.top_features} />
                 <div className="mt-1.5">
                   <ContactChips telegram={u.telegram} discord={u.discord} email={u.email} />
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -484,50 +783,66 @@ const AtRiskPanel = ({ data, loading }) => {
   );
 };
 
-// ════════════════════════════════════════════════════════════════════
-// Live Activity Feed — global stream (who touched which feature, when)
-// ════════════════════════════════════════════════════════════════════
+const LiveActivityFeed = ({
+  events,
+  loading,
+  feature,
+  onFilter,
+  lastHour,
+  features,
+  onOpen,
+  onMore,
+  hasMore,
+  loadingMore,
+}) => {
+  const filters = useMemo(() => {
+    const extra = (features || [])
+      .map((f) => f.feature)
+      .filter((f) => f && !["signals", "fx", "watchlist", "markets", "autotrade"].includes(f));
+    const base = [
+      { value: null, label: "All" },
+      { value: "signals", label: "Signals" },
+      { value: "fx", label: "FX" },
+      { value: "watchlist", label: "Watchlist" },
+      { value: "markets", label: "Markets" },
+      { value: "autotrade", label: "Agent" },
+    ];
+    extra.slice(0, 6).forEach((f) => base.push({ value: f, label: featureLabel(f) }));
+    return base;
+  }, [features]);
 
-const FEED_FILTERS = [
-  { value: null, label: "All" },
-  { value: "signals", label: "Signals" },
-  { value: "fx", label: "FX" },
-  { value: "watchlist", label: "Watchlist" },
-  { value: "markets", label: "Markets" },
-  { value: "autotrade", label: "Agent" },
-];
-
-const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
-  <Surface variant="premium" hover={false} padding="p-5" className="h-full">
-    <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-      <div className="flex items-center gap-2">
-        <ActivityIcon size={14} style={{ color: palette.teal[400] }} />
-        <h3 className="text-sm font-semibold text-text-primary tracking-tight">Live Activity</h3>
-        {lastHour != null && (
-          <span
-            className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full"
-            style={{ background: tint(palette.teal[400], 0.1), color: palette.teal[400] }}
-          >
+  return (
+    <Surface variant="premium" hover={false} padding="p-5" className="h-full">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold tracking-tight text-text-primary">Live activity</h3>
+          {lastHour != null && (
             <span
-              className="w-1 h-1 rounded-full animate-pulse"
-              style={{ background: palette.teal[400] }}
-            />
-            {lastHour} last hour
-          </span>
-        )}
+              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px]"
+              style={{
+                background: "rgb(var(--pos) / 0.1)",
+                color: "rgb(var(--pos-text))",
+              }}
+            >
+              <span className="h-1 w-1 animate-pulse rounded-full bg-current" />
+              {lastHour} last hour
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-1 flex-wrap">
-        {FEED_FILTERS.map((f) => {
+      <div className="mb-3 flex flex-wrap items-center gap-1">
+        {filters.map((f) => {
           const active = feature === f.value;
           return (
             <button
               key={f.label}
+              type="button"
               onClick={() => onFilter(f.value)}
-              className="text-[9.5px] px-2 py-0.5 rounded font-medium"
+              className="rounded px-2 py-0.5 text-[9.5px] font-medium"
               style={{
-                background: active ? tint(palette.gold[300], 0.12) : surface.base.bg,
-                color: active ? palette.gold[300] : "rgb(var(--fg-muted))",
-                border: `1px solid ${active ? tint(palette.gold[300], 0.25) : "transparent"}`,
+                background: active ? "rgb(var(--accent) / 0.12)" : surface.base.bg,
+                color: active ? "rgb(var(--accent-text))" : "rgb(var(--fg-muted))",
+                border: `1px solid ${active ? "rgb(var(--accent) / 0.25)" : "transparent"}`,
               }}
             >
               {f.label}
@@ -535,56 +850,65 @@ const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
           );
         })}
       </div>
-    </div>
-    <p className="text-[11px] mb-3" style={{ color: "rgb(var(--fg-muted))" }}>
-      Feature touches across the platform, newest first (hourly granularity).
-    </p>
-
-    {loading ? (
-      <div className="flex items-center justify-center py-10">
-        <Spinner size={16} tone={palette.teal[400]} />
-      </div>
-    ) : !events || events.length === 0 ? (
-      <EmptyState
-        Icon={ActivityIcon}
-        tone={palette.teal[400]}
-        title="No activity yet"
-        description="Feature touches will stream in here."
-      />
-    ) : (
-      <div className="space-y-0.5 max-h-[420px] overflow-y-auto pr-1">
-        {events.map((e) => {
-          const accent = featureAccent(e.feature);
-          return (
-            <div
-              key={e.id}
-              className="flex items-center gap-2.5 py-1.5 px-1.5 rounded-md hover:bg-ink/[0.02]"
+      <p className="mb-3 text-[11px] text-text-muted">
+        Feature touches, newest first. One row per person per feature per hour.
+      </p>
+      {loading && !events?.length ? (
+        <div className="flex items-center justify-center py-10">
+          <Spinner size={16} />
+        </div>
+      ) : !events || events.length === 0 ? (
+        <EmptyState
+          Icon={ActivityIcon}
+          tone={palette.gold[300]}
+          title="No activity yet"
+          description="Feature touches will stream in here."
+        />
+      ) : (
+        <>
+          <div className="max-h-[420px] space-y-0.5 overflow-y-auto pr-1">
+            {events.map((e) => {
+              const accent = featureColor(e.feature);
+              return (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => onOpen(e.user_id)}
+                  className="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left hover:bg-ink/[0.03]"
+                >
+                  <Avatar src={e.avatar_url} name={e.username} size="xs" tone={accent} />
+                  <div className="min-w-0 flex-1 text-[11.5px]">
+                    <span className="truncate font-medium text-text-primary">
+                      {e.username || `#${e.user_id}`}
+                    </span>
+                    <span className="text-text-muted"> · </span>
+                    <span style={{ color: accent }}>{featureLabel(e.feature)}</span>
+                    <span className="ml-1.5 align-middle">
+                      <RoleChip role={e.role} />
+                    </span>
+                  </div>
+                  <span className="shrink-0 text-[9.5px] tabular-nums text-text-muted">
+                    {relativeTime(e.occurred_at)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {hasMore && (
+            <button
+              type="button"
+              onClick={onMore}
+              disabled={loadingMore}
+              className="mt-3 w-full rounded-lg border border-ink/[0.08] py-1.5 text-[11px] font-medium text-text-muted hover:bg-ink/[0.03] hover:text-text-primary disabled:opacity-50"
             >
-              <Avatar src={e.avatar_url} name={e.username} size="xs" tone={accent} />
-              <div className="min-w-0 flex-1 text-[11.5px]">
-                <span className="font-medium text-text-primary truncate">
-                  {e.username || `#${e.user_id}`}
-                </span>
-                <span style={{ color: "rgb(var(--fg-muted))" }}> · </span>
-                <span style={{ color: accent }}>{featureLabel(e.feature)}</span>
-              </div>
-              <span
-                className="text-[9.5px] tabular-nums shrink-0"
-                style={{ color: "rgb(var(--fg-muted))" }}
-              >
-                {relativeTime(e.occurred_at)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    )}
-  </Surface>
-);
-
-// ════════════════════════════════════════════════════════════════════
-// Most Active Users — sortable summary table
-// ════════════════════════════════════════════════════════════════════
+              {loadingMore ? "Loading…" : "Load older"}
+            </button>
+          )}
+        </>
+      )}
+    </Surface>
+  );
+};
 
 const USER_SORTS = [
   { value: "last_seen", label: "Last seen" },
@@ -597,123 +921,151 @@ const USER_WINDOWS = [
   { value: "all", label: "All" },
 ];
 
-const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindow }) => (
-  <Surface variant="premium" hover={false} padding="p-5" className="h-full">
-    <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-      <div className="flex items-center gap-2">
-        <FlameIcon size={14} style={{ color: palette.orange[400] }} />
-        <h3 className="text-sm font-semibold text-text-primary tracking-tight">
-          Most Active Users
-        </h3>
-      </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1">
-          {USER_WINDOWS.map((wv) => {
-            const active = win === wv.value;
-            return (
-              <button
-                key={wv.value}
-                onClick={() => onWindow(wv.value)}
-                className="text-[9.5px] px-1.5 py-0.5 rounded font-medium"
-                style={{
-                  background: active ? tint(palette.teal[400], 0.12) : surface.base.bg,
-                  color: active ? palette.teal[400] : "rgb(var(--fg-muted))",
-                }}
-              >
-                {wv.label}
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-1">
-          {USER_SORTS.map((s) => {
-            const active = sortBy === s.value;
-            return (
-              <button
-                key={s.value}
-                onClick={() => onSort(s.value)}
-                className="text-[9.5px] px-2 py-0.5 rounded font-medium"
-                style={{
-                  background: active ? tint(palette.gold[300], 0.12) : surface.base.bg,
-                  color: active ? palette.gold[300] : "rgb(var(--fg-muted))",
-                  border: `1px solid ${active ? tint(palette.gold[300], 0.25) : "transparent"}`,
-                }}
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-    <p className="text-[11px] mb-3" style={{ color: "rgb(var(--fg-muted))" }}>
-      Who is active, when they were last seen, and their latest feature.
-    </p>
+const ActiveUsersTable = ({
+  users,
+  loading,
+  sortBy,
+  window: win,
+  onSort,
+  onWindow,
+  onOpen,
+}) => {
+  const [q, setQ] = useState("");
+  const filtered = useMemo(() => {
+    const list = users || [];
+    const s = q.trim().toLowerCase();
+    if (!s) return list;
+    return list.filter(
+      (u) =>
+        (u.username || "").toLowerCase().includes(s) ||
+        String(u.user_id).includes(s) ||
+        featureLabel(u.last_feature || "").toLowerCase().includes(s)
+    );
+  }, [users, q]);
 
-    {loading ? (
-      <div className="flex items-center justify-center py-10">
-        <Spinner size={16} tone={palette.orange[400]} />
+  return (
+    <Surface variant="premium" hover={false} padding="p-5" className="h-full">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold tracking-tight text-text-primary">Most active</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <Seg value={win} onChange={onWindow} options={USER_WINDOWS} tone="neutral" />
+          <Seg value={sortBy} onChange={onSort} options={USER_SORTS} />
+        </div>
       </div>
-    ) : !users || users.length === 0 ? (
-      <EmptyState
-        Icon={UsersIcon}
-        tone={palette.orange[400]}
-        title="No active users"
-        description="Activity in this window will appear here."
+      <p className="mb-3 text-[11px] text-text-muted">
+        Who is active, when they were last seen, and the last desk they touched.
+      </p>
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Filter by name or feature"
+        className="mb-3 w-full rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-2.5 py-1.5 text-[12px] text-text-primary outline-none placeholder:text-text-muted focus:border-ink/20"
       />
-    ) : (
-      <div className="max-h-[420px] overflow-y-auto pr-1">
-        <div
-          className="grid grid-cols-[1.6fr_1fr_1fr_auto] gap-2 px-2 pb-1.5 text-[8.5px] uppercase tracking-wider sticky top-0"
-          style={{ color: "rgb(var(--fg-muted))", background: surface.raised.bg }}
-        >
-          <span>User</span>
-          <span>Last seen</span>
-          <span>Feature</span>
-          <span className="text-right">Events</span>
+      {loading && !users?.length ? (
+        <div className="flex items-center justify-center py-10">
+          <Spinner size={16} />
         </div>
-        <div className="space-y-0.5">
-          {users.map((u) => {
-            const accent = featureAccent(u.last_feature || "x");
-            return (
-              <div
-                key={u.user_id}
-                className="grid grid-cols-[1.6fr_1fr_1fr_auto] gap-2 items-center px-2 py-1.5 rounded-md hover:bg-ink/[0.02]"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <Avatar src={u.avatar_url} name={u.username} size="xs" tone={accent} />
-                  <span className="text-[11.5px] font-medium text-text-primary truncate">
-                    {u.username || `#${u.user_id}`}
-                  </span>
-                </div>
-                <span
-                  className="text-[10.5px] tabular-nums"
-                  style={{ color: "rgb(var(--fg-secondary))" }}
+      ) : !filtered.length ? (
+        <EmptyState
+          Icon={UsersIcon}
+          tone={palette.orange[400]}
+          title="No active users"
+          description="Activity in this window will appear here."
+        />
+      ) : (
+        <div className="max-h-[380px] overflow-y-auto pr-1">
+          <div className="sticky top-0 grid grid-cols-[1.6fr_0.9fr_1fr_auto] gap-2 bg-surface-raised px-2 pb-1.5 text-[8.5px] uppercase tracking-wider text-text-muted">
+            <span>User</span>
+            <span>Last seen</span>
+            <span>Feature</span>
+            <span className="text-right">Events</span>
+          </div>
+          <div className="space-y-0.5">
+            {filtered.map((u, i) => {
+              const accent = featureColor(u.last_feature || "x");
+              return (
+                <button
+                  key={u.user_id}
+                  type="button"
+                  onClick={() => onOpen(u.user_id)}
+                  className="grid w-full grid-cols-[1.6fr_0.9fr_1fr_auto] items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-ink/[0.03]"
                 >
-                  {relativeTime(u.last_seen)}
-                </span>
-                <span className="text-[10.5px] truncate" style={{ color: accent }}>
-                  {u.last_feature ? featureLabel(u.last_feature) : "—"}
-                </span>
-                <span className="text-[11px] tabular-nums text-right text-text-primary">
-                  {u.event_count}
-                </span>
-              </div>
-            );
-          })}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="w-4 shrink-0 text-[9px] tabular-nums text-text-muted/60">
+                      {i + 1}
+                    </span>
+                    <Avatar src={u.avatar_url} name={u.username} size="xs" tone={accent} />
+                    <span className="truncate text-[11.5px] font-medium text-text-primary">
+                      {u.username || `#${u.user_id}`}
+                    </span>
+                    <RoleChip role={u.role} />
+                  </div>
+                  <span className="text-[10.5px] tabular-nums text-text-muted">
+                    {relativeTime(u.last_seen)}
+                  </span>
+                  <span className="truncate text-[10.5px]" style={{ color: accent }}>
+                    {u.last_feature ? featureLabel(u.last_feature) : "—"}
+                  </span>
+                  <span className="text-right text-[11px] tabular-nums text-text-primary">
+                    {u.event_count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    )}
-  </Surface>
-);
+      )}
+    </Surface>
+  );
+};
 
-// ════════════════════════════════════════════════════════════════════
-// Main
-// ════════════════════════════════════════════════════════════════════
+const RetentionStrip = ({ retention, nr }) => {
+  if (!retention && !nr) return null;
+  const cells = [
+    { k: "d1", label: "Came back next day", hint: "Signed up yesterday, seen today" },
+    { k: "d7", label: "Still here after a week", hint: "Signed up 7 days ago, seen in the last 7" },
+    { k: "d14", label: "Still here after 2 weeks", hint: "Signed up 14 days ago, seen in the last 14" },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {cells.map((c) => {
+        const b = retention?.[c.k];
+        return (
+          <Surface key={c.k} variant="premium" hover={false} padding="p-4">
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+              {c.label}
+            </p>
+            <p className="mt-2 font-mono text-[22px] font-semibold tabular-nums tracking-tight text-text-primary">
+              {b?.pct == null ? "—" : `${b.pct}%`}
+            </p>
+            <p className="mt-1 text-[10.5px] text-text-muted">
+              {b?.cohort
+                ? `${b.returned} of ${b.cohort} · ${c.hint}`
+                : `No cohort yet · ${c.hint}`}
+            </p>
+          </Surface>
+        );
+      })}
+      <Surface variant="premium" hover={false} padding="p-4">
+        <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+          On the desk today
+        </p>
+        <p className="mt-2 font-mono text-[22px] font-semibold tabular-nums tracking-tight text-text-primary">
+          {(nr?.returning_today ?? 0) + (nr?.new_today ?? 0)}
+        </p>
+        <p className="mt-1 text-[10.5px] text-text-muted">
+          <span className="text-text-primary">{nr?.returning_today ?? 0}</span> returning ·{" "}
+          <span className="text-text-primary">{nr?.new_today ?? 0}</span> new
+        </p>
+      </Surface>
+    </div>
+  );
+};
 
 export const ActivityTab = () => {
   const [overview, setOverview] = useState(null);
   const [funnel, setFunnel] = useState(null);
+  const [funnelDays, setFunnelDays] = useState(30);
   const [hotLeads, setHotLeads] = useState(null);
   const [atRisk, setAtRisk] = useState(null);
   const [feed, setFeed] = useState(null);
@@ -721,58 +1073,121 @@ export const ActivityTab = () => {
   const [activeUsers, setActiveUsers] = useState(null);
   const [auSort, setAuSort] = useState("last_seen");
   const [auWindow, setAuWindow] = useState("30d");
+  const [insights, setInsights] = useState(null);
+  const [insightDays, setInsightDays] = useState(30);
+  const [drawerId, setDrawerId] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [moreLoading, setMoreLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchAll = useCallback(
-    async (isRefresh = false) => {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
-      setError(null);
-      try {
-        const [ov, fn, hl, ar, fd, au] = await Promise.all([
-          growthApi.getOverview(),
-          growthApi.getFeatureFunnel(30),
-          growthApi.getHotLeads({ minActiveDays: 3, limit: 25 }),
-          growthApi.getAtRisk({ dormantDays: 14, limit: 25 }),
-          growthApi.getActivityFeed({ feature: feedFeature, limit: 40 }),
-          growthApi.getActiveUsers({ sortBy: auSort, window: auWindow, limit: 30 }),
-        ]);
-        setOverview(ov);
-        setFunnel(fn);
-        setHotLeads(hl);
-        setAtRisk(ar);
-        setFeed(fd);
-        setActiveUsers(au);
-      } catch (e) {
-        console.error("Failed to load growth data:", e);
-        setError("Failed to load growth analytics. Try refreshing.");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [feedFeature, auSort, auWindow]
-  );
+  const fetchCore = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+    try {
+      const [ov, fn, hl, ar, ins] = await Promise.all([
+        growthApi.getOverview(),
+        growthApi.getFeatureFunnel(funnelDays),
+        growthApi.getHotLeads({ minActiveDays: 3, limit: 25 }),
+        growthApi.getAtRisk({ dormantDays: 14, limit: 25 }),
+        growthApi.getActivityInsights(insightDays),
+      ]);
+      setOverview(ov);
+      setFunnel(fn);
+      setHotLeads(hl);
+      setAtRisk(ar);
+      setInsights(ins);
+    } catch (e) {
+      console.error("Failed to load growth data:", e);
+      setError("Failed to load growth analytics. Try refreshing.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [funnelDays, insightDays]);
+
+  const fetchFeed = useCallback(async () => {
+    setFeedLoading(true);
+    try {
+      const fd = await growthApi.getActivityFeed({ feature: feedFeature, limit: 40 });
+      setFeed(fd);
+    } catch (e) {
+      console.error("Failed to load activity feed:", e);
+    } finally {
+      setFeedLoading(false);
+    }
+  }, [feedFeature]);
+
+  const fetchUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const au = await growthApi.getActiveUsers({ sortBy: auSort, window: auWindow, limit: 40 });
+      setActiveUsers(au);
+    } catch (e) {
+      console.error("Failed to load active users:", e);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [auSort, auWindow]);
 
   useEffect(() => {
-    fetchAll(false);
-  }, [fetchAll]);
+    fetchCore(false);
+  }, [fetchCore]);
 
-  // Auto-refresh every 30s (live feel)
   useEffect(() => {
-    const t = setInterval(() => fetchAll(true), 30000);
+    fetchFeed();
+  }, [fetchFeed]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      fetchCore(true);
+      fetchFeed();
+      fetchUsers();
+    }, 30000);
     return () => clearInterval(t);
-  }, [fetchAll]);
+  }, [fetchCore, fetchFeed, fetchUsers]);
+
+  const loadMore = async () => {
+    if (!feed?.next_before_id) return;
+    setMoreLoading(true);
+    try {
+      const next = await growthApi.getActivityFeed({
+        feature: feedFeature,
+        limit: 40,
+        beforeId: feed.next_before_id,
+      });
+      setFeed((prev) => ({
+        ...next,
+        events: [...(prev?.events || []), ...(next.events || [])],
+      }));
+    } finally {
+      setMoreLoading(false);
+    }
+  };
+
+  const pulse = insights?.pulse;
+  const series = insights?.series || [];
+  const userTrend = series.map((d) => d.users);
 
   return (
     <div className="space-y-5">
       <ActivityHeader
-        onRefresh={() => fetchAll(true)}
+        onRefresh={() => {
+          fetchCore(true);
+          fetchFeed();
+          fetchUsers();
+        }}
         refreshing={refreshing}
         generatedAt={overview?.generated_at}
+        events1h={pulse?.events_1h}
       />
 
       {error && (
@@ -783,29 +1198,46 @@ export const ActivityTab = () => {
         </Surface>
       )}
 
-      {/* KPI grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <StatTile
           label="DAU"
           value={overview?.dau ?? "—"}
           sub="active today"
-          accent="teal"
+          accent="gold"
           Icon={ActivityIcon}
           loading={loading}
+          emphasis
+          trend={userTrend}
+          delta={
+            pulse
+              ? {
+                  pct: deltaRatio(pulse.users_today, pulse.users_yesterday),
+                  note: "feature-active vs yesterday",
+                }
+              : null
+          }
         />
         <StatTile
           label="WAU"
           value={overview?.wau ?? "—"}
           sub="last 7 days"
-          accent="blue"
+          accent="green"
           Icon={UsersIcon}
           loading={loading}
+          delta={
+            pulse
+              ? {
+                  pct: deltaRatio(pulse.users_7d, pulse.users_prev_7d),
+                  note: "feature-active vs prior 7 days",
+                }
+              : null
+          }
         />
         <StatTile
           label="MAU"
           value={overview?.mau ?? "—"}
           sub="last 30 days"
-          accent="purple"
+          accent="muted"
           Icon={UsersIcon}
           loading={loading}
         />
@@ -835,66 +1267,92 @@ export const ActivityTab = () => {
         />
       </div>
 
-      {/* Signups strip */}
       {overview && (
         <Surface variant="base" padding="p-3.5">
-          <div
-            className="flex items-center gap-6 flex-wrap text-[11px]"
-            style={{ color: "rgb(var(--fg-secondary))" }}
-          >
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-text-muted">
             <span className="inline-flex items-center gap-1.5">
-              <ClockIcon size={11} style={{ color: palette.teal[400] }} />
-              Signups:
+              <ClockIcon size={11} style={{ color: "rgb(var(--accent-text))" }} />
+              Signups
             </span>
             <span>
-              <strong className="text-text-primary tabular-nums">{overview.signups_today}</strong>{" "}
+              <strong className="tabular-nums text-text-primary">{overview.signups_today}</strong>{" "}
               today
             </span>
             <span>
-              <strong className="text-text-primary tabular-nums">{overview.signups_7d}</strong> this
+              <strong className="tabular-nums text-text-primary">{overview.signups_7d}</strong> this
               week
             </span>
             <span>
-              <strong className="text-text-primary tabular-nums">{overview.signups_30d}</strong>{" "}
-              this month
+              <strong className="tabular-nums text-text-primary">{overview.signups_30d}</strong> this
+              month
             </span>
-            <span className="ml-auto" style={{ color: "rgb(var(--fg-muted))" }}>
-              <strong className="tabular-nums" style={{ color: "rgb(var(--fg-secondary))" }}>
-                {overview.total_users}
-              </strong>{" "}
+            {pulse && (
+              <span>
+                <strong className="tabular-nums text-text-primary">{pulse.events_24h}</strong>{" "}
+                touches / 24h
+              </span>
+            )}
+            <span className="ml-auto text-text-muted">
+              <strong className="tabular-nums text-text-primary">{overview.total_users}</strong>{" "}
               total users
             </span>
           </div>
         </Surface>
       )}
 
-      {/* Live activity + most active users */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <RetentionStrip retention={insights?.retention} nr={insights?.new_vs_returning} />
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)]">
+        <ActivityChart
+          series={series}
+          days={insightDays}
+          onDays={setInsightDays}
+          loading={loading}
+        />
+        <Heatmap heatmap={insights?.heatmap} loading={loading} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <LiveActivityFeed
           events={feed?.events}
-          loading={loading}
+          loading={feedLoading}
           feature={feedFeature}
           onFilter={setFeedFeature}
-          lastHour={overview?.dau != null ? feed?.count : null}
+          lastHour={pulse?.events_1h}
+          features={funnel?.features}
+          onOpen={setDrawerId}
+          onMore={loadMore}
+          hasMore={!!feed?.next_before_id && (feed?.events?.length || 0) >= 40}
+          loadingMore={moreLoading}
         />
         <ActiveUsersTable
           users={activeUsers?.users}
-          loading={loading}
+          loading={usersLoading}
           sortBy={auSort}
           window={auWindow}
           onSort={setAuSort}
           onWindow={setAuWindow}
+          onOpen={setDrawerId}
         />
       </div>
 
-      {/* Feature funnel */}
-      <FeatureFunnel funnel={funnel} loading={loading} />
+      <FeatureFunnel
+        funnel={funnel}
+        loading={loading}
+        days={funnelDays}
+        onDays={setFunnelDays}
+        activeFeature={feedFeature}
+        onPick={setFeedFeature}
+      />
 
-      {/* Hot leads + At-risk side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <HotLeadsPanel data={hotLeads} loading={loading} />
-        <AtRiskPanel data={atRisk} loading={loading} />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <HotLeadsPanel data={hotLeads} loading={loading} onOpen={setDrawerId} />
+        <AtRiskPanel data={atRisk} loading={loading} onOpen={setDrawerId} />
       </div>
+
+      {drawerId && (
+        <UserDetailDrawer userId={drawerId} onClose={() => setDrawerId(null)} canWrite={false} />
+      )}
     </div>
   );
 };

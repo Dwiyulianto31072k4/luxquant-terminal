@@ -78,4 +78,12 @@ export const growthApi = {
     });
     return response.data;
   },
+
+  // Daily series + hour heatmap + retention + live pulse (Activity tab)
+  getActivityInsights: async (days = 30) => {
+    const response = await api.get("/api/v1/workspace/growth/activity-insights", {
+      params: { days },
+    });
+    return response.data;
+  },
 };

@@ -683,3 +683,209 @@ def active_users(
         "window": window,
         "generated_at": _iso(w["now"]),
     }
+
+
+# ════════════════════════════════════════════════════════════════════
+# 7. ACTIVITY INSIGHTS — series, heatmap, retention, pulse
+#    One round-trip so the tab can go deep without a fan-out of queries.
+# ════════════════════════════════════════════════════════════════════
+
+def _retention_bucket(db: Session, signup_day, active_since):
+    """Of users who signed up on `signup_day` (UTC date), how many were
+    seen at or after `active_since`. Returns {cohort, returned, pct}."""
+    row = db.execute(
+        text(
+            """
+            SELECT
+              COUNT(*) AS cohort,
+              COUNT(*) FILTER (
+                WHERE last_active_at IS NOT NULL AND last_active_at >= :active_since
+              ) AS returned
+            FROM users
+            WHERE (created_at AT TIME ZONE 'UTC')::date = :signup_day
+            """
+        ),
+        {"signup_day": signup_day, "active_since": active_since},
+    ).mappings().first()
+    cohort = int(row["cohort"] or 0)
+    returned = int(row["returned"] or 0)
+    return {
+        "cohort": cohort,
+        "returned": returned,
+        "pct": round((returned / cohort) * 100, 1) if cohort else None,
+    }
+
+
+@router.get("/activity-insights")
+def activity_insights(
+    days: int = Query(30, ge=7, le=90),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    cache_key = f"lq:growth:insights:v1:{days}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    w = _windows()
+    today = w["today"]
+    yesterday = today - timedelta(days=1)
+    since = today - timedelta(days=days - 1)
+    heat_since = today - timedelta(days=13)
+    h1 = w["now"] - timedelta(hours=1)
+    h24 = w["now"] - timedelta(hours=24)
+    d7 = w["d7"]
+    d14 = w["d14"]
+
+    ev_rows = db.execute(
+        text(
+            """
+            SELECT (occurred_at AT TIME ZONE 'UTC')::date AS d,
+                   COUNT(*) AS events,
+                   COUNT(DISTINCT user_id) AS users,
+                   COUNT(DISTINCT feature) AS features
+            FROM user_activity_events
+            WHERE occurred_at >= :since
+            GROUP BY d
+            ORDER BY d
+            """
+        ),
+        {"since": since},
+    ).fetchall()
+
+    su_rows = db.execute(
+        text(
+            """
+            SELECT (created_at AT TIME ZONE 'UTC')::date AS d, COUNT(*) AS c
+            FROM users
+            WHERE created_at >= :since
+            GROUP BY d
+            """
+        ),
+        {"since": since},
+    ).fetchall()
+
+    ev_map = {str(r.d): r for r in ev_rows}
+    su_map = {str(r.d): int(r.c) for r in su_rows}
+    series = []
+    for i in range(days - 1, -1, -1):
+        day = (today - timedelta(days=i)).date()
+        key = str(day)
+        ev = ev_map.get(key)
+        series.append({
+            "date": key,
+            "users": int(ev.users) if ev else 0,
+            "events": int(ev.events) if ev else 0,
+            "features": int(ev.features) if ev else 0,
+            "signups": su_map.get(key, 0),
+        })
+
+    heat_rows = db.execute(
+        text(
+            """
+            SELECT EXTRACT(ISODOW FROM occurred_at AT TIME ZONE 'UTC')::int AS dow,
+                   EXTRACT(HOUR FROM occurred_at AT TIME ZONE 'UTC')::int AS hour,
+                   COUNT(*) AS events,
+                   COUNT(DISTINCT user_id) AS users
+            FROM user_activity_events
+            WHERE occurred_at >= :since
+            GROUP BY 1, 2
+            """
+        ),
+        {"since": heat_since},
+    ).fetchall()
+    heat_map = {(int(r.dow), int(r.hour)): r for r in heat_rows}
+    cells = []
+    peak = {"dow": 1, "hour": 0, "events": 0, "users": 0}
+    for dow in range(1, 8):
+        for hour in range(24):
+            r = heat_map.get((dow, hour))
+            ev = int(r.events) if r else 0
+            us = int(r.users) if r else 0
+            cell = {"dow": dow, "hour": hour, "events": ev, "users": us}
+            cells.append(cell)
+            if ev > peak["events"]:
+                peak = cell
+
+    pulse = db.execute(
+        text(
+            """
+            SELECT
+              COUNT(*) FILTER (WHERE occurred_at >= :h1) AS events_1h,
+              COUNT(*) FILTER (WHERE occurred_at >= :h24) AS events_24h,
+              COUNT(DISTINCT user_id) FILTER (WHERE occurred_at >= :today) AS users_today,
+              COUNT(DISTINCT user_id) FILTER (
+                WHERE occurred_at >= :yesterday AND occurred_at < :today
+              ) AS users_yesterday,
+              COUNT(DISTINCT user_id) FILTER (WHERE occurred_at >= :d7) AS users_7d,
+              COUNT(DISTINCT user_id) FILTER (
+                WHERE occurred_at >= :d14 AND occurred_at < :d7
+              ) AS users_prev_7d
+            FROM user_activity_events
+            WHERE occurred_at >= :d14
+            """
+        ),
+        {
+            "h1": h1,
+            "h24": h24,
+            "today": today,
+            "yesterday": yesterday,
+            "d7": d7,
+            "d14": d14,
+        },
+    ).mappings().first()
+
+    nr = db.execute(
+        text(
+            """
+            SELECT
+              COUNT(*) FILTER (
+                WHERE last_active_at >= :today AND created_at >= :today
+              ) AS new_today,
+              COUNT(*) FILTER (
+                WHERE last_active_at >= :today AND created_at < :today
+              ) AS returning_today
+            FROM users
+            WHERE last_active_at >= :today
+            """
+        ),
+        {"today": today},
+    ).mappings().first()
+
+    # D1 = signed up yesterday, seen since today.
+    # D7 = signed up 7 days ago, seen in the last 7 days.
+    # D14 = signed up 14 days ago, seen in the last 14 days.
+    yday = yesterday.date()
+    d7_day = (today - timedelta(days=7)).date()
+    d14_day = (today - timedelta(days=14)).date()
+    retention = {
+        "d1": _retention_bucket(db, yday, today),
+        "d7": _retention_bucket(db, d7_day, d7),
+        "d14": _retention_bucket(db, d14_day, d14),
+    }
+
+    result = {
+        "days": days,
+        "series": series,
+        "heatmap": {
+            "window_days": 14,
+            "cells": cells,
+            "peak": peak,
+        },
+        "pulse": {
+            "events_1h": int(pulse["events_1h"] or 0),
+            "events_24h": int(pulse["events_24h"] or 0),
+            "users_today": int(pulse["users_today"] or 0),
+            "users_yesterday": int(pulse["users_yesterday"] or 0),
+            "users_7d": int(pulse["users_7d"] or 0),
+            "users_prev_7d": int(pulse["users_prev_7d"] or 0),
+        },
+        "new_vs_returning": {
+            "new_today": int(nr["new_today"] or 0),
+            "returning_today": int(nr["returning_today"] or 0),
+        },
+        "retention": retention,
+        "generated_at": _iso(w["now"]),
+    }
+    cache_set(cache_key, result, ttl=120)
+    return result
