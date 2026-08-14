@@ -2630,27 +2630,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
   );
 }
 
-function ProofStrip({ stats }) {
-  const bits = [];
-  if (stats?.win_rate) {
-    bits.push(`${Number(stats.win_rate).toFixed(1)}% reached a target`);
-  }
-  const n = stats?.total_signals ?? stats?.closed_trades;
-  if (n) bits.push(`${Number(n).toLocaleString("en-US")} calls on record`);
-  bits.push("Since 2023");
-  return (
-    <p className="mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12.5px] leading-snug text-text-muted sm:text-[13px]">
-      {bits.map((bit, i) => (
-        <span key={bit} className="inline-flex items-center gap-3">
-          {i > 0 ? <span aria-hidden="true" className="text-ink/25">·</span> : null}
-          {bit}
-        </span>
-      ))}
-    </p>
-  );
-}
-
-export default function GlobalReach({ gainers = [], stats = null }) {
+export default function GlobalReach({ gainers = [] }) {
   const navigate = useNavigate();
   const [inView, setInView] = useState(false);
   const sentinelRef = useRef(null);
@@ -2779,14 +2759,13 @@ export default function GlobalReach({ gainers = [], stats = null }) {
 
       <div className="relative z-10 mx-auto max-w-6xl px-4">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[12px] font-medium tracking-wide text-text-muted">Built in Taipei</p>
+          <p className="text-[12px] font-medium tracking-wide text-text-muted">Global reach</p>
           <h2 className="mt-2 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-            Where every call{" "}
+            Precision intelligence,{" "}
             <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-              starts.
+              worldwide.
             </span>
           </h2>
-          <ProofStrip stats={stats} />
         </div>
       </div>
 
