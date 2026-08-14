@@ -43,46 +43,64 @@ import { UserDetailDrawer } from "../UserDetailDrawer";
 
 const FEATURE_LABELS = {
   signals: "Signals",
+  terminal: "Terminal",
+  performance: "Performance",
+  analytics: "Daily Performance",
   autotrade: "Agent",
+  assistant: "AI Research",
   markets: "Markets",
   market_pulse: "Market Pulse",
   bitcoin: "Bitcoin",
   ai_arena: "AI Arena",
-  tips: "Tips",
-  whale_alert: "Whale Alert",
   onchain: "On-chain",
+  delistings: "Delistings",
   news: "News",
   fx: "FX",
   macro_calendar: "Macro Calendar",
   watchlist: "Watchlist",
   journal: "Journal",
+  tips: "Tips",
   referral: "Referral",
   profile: "Profile",
-  analytics: "Analytics",
   chat: "Chat",
+  notifications: "Notifications",
+  resources: "Resources",
+  api_keys: "API Keys",
+  billing: "Billing",
+  whale_alert: "Whale Alert",
 };
 
 // Distinct per-feature identity for charts — chrome stays gold/neutral.
 const FEATURE_COLORS = {
   signals: "#c9a227",
+  terminal: "#1d4ed8",
+  performance: "#b45309",
+  analytics: "#ca8a04",
   autotrade: "#3d9a6a",
+  assistant: "#7c3aed",
   markets: "#4f7cff",
   market_pulse: "#2a9d8f",
   bitcoin: "#f7931a",
   ai_arena: "#8b6cff",
-  tips: "#d97706",
-  whale_alert: "#0891b2",
   onchain: "#0d9488",
+  delistings: "#be123c",
   news: "#64748b",
   fx: "#2563eb",
   macro_calendar: "#7c3aed",
   watchlist: "#db2777",
   journal: "#65a30d",
+  tips: "#d97706",
   referral: "#ea580c",
   profile: "#78716c",
-  analytics: "#ca8a04",
   chat: "#5865f2",
+  notifications: "#0ea5e9",
+  resources: "#0f766e",
+  api_keys: "#57534e",
+  billing: "#c2410c",
+  whale_alert: "#0891b2",
 };
+
+const FEATURE_CATALOG = Object.keys(FEATURE_LABELS);
 
 const featureLabel = (f) => FEATURE_LABELS[f] || f;
 const featureColor = (f) => FEATURE_COLORS[f] || "#8a7a6e";
@@ -430,8 +448,29 @@ const Heatmap = ({ heatmap, loading }) => {
   );
 };
 
+const emptyDesk = (id) => ({
+  feature: id,
+  users_total: 0,
+  users_subscribers: 0,
+  users_free: 0,
+  hits: 0,
+  pct_of_subscribers: 0,
+  pct_of_free: 0,
+  waiting: true,
+});
+
 const FeatureFunnel = ({ funnel, loading, days, onDays, activeFeature, onPick }) => {
-  const features = funnel?.features || [];
+  const features = useMemo(() => {
+    const incoming = funnel?.features || [];
+    const byId = Object.fromEntries(incoming.map((f) => [f.feature, { ...f, waiting: false }]));
+    const rows = FEATURE_CATALOG.map((id) => byId[id] || emptyDesk(id));
+    incoming.forEach((f) => {
+      if (!FEATURE_LABELS[f.feature]) rows.push({ ...f, waiting: false });
+    });
+    rows.sort((a, b) => b.users_total - a.users_total || featureLabel(a.feature).localeCompare(featureLabel(b.feature)));
+    return rows;
+  }, [funnel]);
+  const live = features.filter((f) => f.users_total > 0).length;
   const maxUsers = features.reduce((m, f) => Math.max(m, f.users_total), 0) || 1;
 
   return (
@@ -442,12 +481,15 @@ const FeatureFunnel = ({ funnel, loading, days, onDays, activeFeature, onPick })
             Feature reach
           </h3>
           <p className="mt-0.5 text-[11px] text-text-muted">
-            Gold = subscribers. Ink = free. Click a row to filter the live feed.
+            Every product desk. Colour = subscribers, ink = free. Click a row to
+            filter the live feed. Auth, admin, unread badges, and announcements
+            are not counted.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-text-muted">
-            {funnel?.subscriber_base ?? 0} subs · {funnel?.free_base ?? 0} free
+            {live}/{features.length} desks · {funnel?.subscriber_base ?? 0} subs ·{" "}
+            {funnel?.free_base ?? 0} free
           </span>
           <Seg
             value={days}
@@ -494,12 +536,18 @@ const FeatureFunnel = ({ funnel, loading, days, onDays, activeFeature, onPick })
                     {featureLabel(f.feature)}
                   </span>
                   <span className="text-[10px] tabular-nums text-text-muted">
-                    {f.users_total} {f.users_total === 1 ? "person" : "people"} · {f.hits} hits
+                    {f.waiting
+                      ? "waiting for first visit"
+                      : `${f.users_total} ${f.users_total === 1 ? "person" : "people"} · ${f.hits} hits`}
                   </span>
                 </div>
                 <div
                   className="relative h-2.5 overflow-hidden rounded-full"
-                  style={{ background: "rgb(var(--ink) / 0.07)", width: `${widthPct}%` }}
+                  style={{
+                    background: "rgb(var(--ink) / 0.07)",
+                    width: f.waiting ? "100%" : `${widthPct}%`,
+                    opacity: f.waiting ? 0.45 : 1,
+                  }}
                 >
                   <div
                     className="absolute inset-y-0 left-0"
@@ -798,16 +846,25 @@ const LiveActivityFeed = ({
   const filters = useMemo(() => {
     const extra = (features || [])
       .map((f) => f.feature)
-      .filter((f) => f && !["signals", "fx", "watchlist", "markets", "autotrade"].includes(f));
+      .filter(
+        (f) =>
+          f &&
+          !["signals", "terminal", "performance", "analytics", "fx", "watchlist", "markets", "autotrade"].includes(
+            f
+          )
+      );
     const base = [
       { value: null, label: "All" },
       { value: "signals", label: "Signals" },
+      { value: "terminal", label: "Terminal" },
+      { value: "performance", label: "Performance" },
+      { value: "analytics", label: "Daily Perf" },
       { value: "fx", label: "FX" },
       { value: "watchlist", label: "Watchlist" },
       { value: "markets", label: "Markets" },
       { value: "autotrade", label: "Agent" },
     ];
-    extra.slice(0, 6).forEach((f) => base.push({ value: f, label: featureLabel(f) }));
+    extra.slice(0, 8).forEach((f) => base.push({ value: f, label: featureLabel(f) }));
     return base;
   }, [features]);
 

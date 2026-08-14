@@ -38,10 +38,51 @@ from app.core.database import SessionLocal
 from app.models.activity import UserActivityEvent
 
 
-# ── URL → feature bucket (allowlist). Matches the first path segment ──
-# after /api/v1/. Anything not listed here is NOT logged as a feature
-# event (auth, admin, workspace, finance, notifications, telegram/discord
-# callbacks, etc.). End-user product surfaces only.
+# ── URL → product desk (allowlist) ──────────────────────────────────
+# Only end-user product surfaces. Chrome, auth, admin, and helper
+# pipelines are skipped so Feature Reach is a desk map, not a request log.
+#
+# Matching order:
+#   1. skip infra / chrome prefixes
+#   2. skip badge polls (unread-count)
+#   3. longest path prefix (FEATURE_PATHS)
+#   4. first segment (FEATURE_MAP)
+#
+# "daily-dashboard" / "edge-lab" as first segments never existed — those
+# live under /api/v1/analytics/… and were invisible until FEATURE_PATHS.
+
+SKIP_PREFIXES = {
+    "auth",
+    "admin",
+    "workspace",
+    "finance",
+    "funnel",
+    "me",
+    "charts",
+    "avatars",
+    "og",
+    "og-share",
+    "enrichment",  # helper called from Signals/Terminal — don't double-count
+    "announcements",  # global modal, would dominate every session
+}
+
+# (path after /api/v1/, bucket). Longest prefix wins. feature=None → skip.
+FEATURE_PATHS = (
+    ("market/bitcoin", "bitcoin"),
+    ("coingecko/bitcoin", "bitcoin"),
+    ("analytics/daily", "analytics"),
+    ("analytics/edge-lab", "analytics"),
+    ("analytics/wr-vs-btc", "analytics"),
+    # These fire from the Signals desk, not from Analytics.
+    ("analytics/tag-wr", "signals"),
+    ("analytics/edge-correlation", "signals"),
+    ("analytics/edge-score-backtest", "signals"),
+    ("coin-watch", "watchlist"),
+    ("agent", "autotrade"),
+    ("chat/unread-count", None),
+    ("notifications/unread-count", None),
+)
+
 FEATURE_MAP = {
     "signals": "signals",
     "market": "markets",
@@ -64,8 +105,15 @@ FEATURE_MAP = {
     "fx": "fx",
     "calendar": "macro_calendar",
     "watchlist": "watchlist",
-    "daily-dashboard": "analytics",
-    "edge-lab": "analytics",
+    "analytics": "analytics",
+    "terminal": "terminal",
+    "performance": "performance",
+    "assistant": "assistant",
+    "notifications": "notifications",
+    "delistings": "delistings",
+    "resources": "resources",
+    "api-keys": "api_keys",
+    "subscription": "billing",
 }
 
 SESSION_GAP_MINUTES = 60     # idle gap that starts a new "session"
@@ -74,11 +122,20 @@ EVENT_TTL = 3700             # ~1 hour — at most one feature row per hour
 
 
 def _match_feature(path: str):
-    """`/api/v1/signals/recent` -> 'signals' (or None if not tracked)."""
+    """`/api/v1/terminal/screener` -> 'terminal' (or None if not a desk)."""
     parts = [p for p in path.split("/") if p]
-    if len(parts) >= 3 and parts[0] == "api" and parts[1] == "v1":
-        return FEATURE_MAP.get(parts[2])
-    return None
+    if len(parts) < 3 or parts[0] != "api" or parts[1] != "v1":
+        return None
+    first = parts[2]
+    if first in SKIP_PREFIXES:
+        return None
+    if parts[-1] == "unread-count":
+        return None
+    rest = "/".join(parts[2:])
+    for prefix, feature in FEATURE_PATHS:
+        if rest == prefix or rest.startswith(prefix + "/"):
+            return feature
+    return FEATURE_MAP.get(first)
 
 
 def _extract_user_id(request):
