@@ -1582,9 +1582,7 @@ textarea:focus-visible {
 }
 
 .lp-v2 .lq-edge-kpi--live {
-  background:
-    linear-gradient(180deg, rgb(var(--accent) / 0.08), transparent 64%),
-    rgb(var(--surface-raised));
+  background: rgb(var(--surface-raised));
 }
 
 .lp-v2 .lq-edge-kpi--live .lq-edge-kpi-num,
