@@ -407,6 +407,9 @@ const SignalsTable = ({
   edgeScoreMap = {},
   signalTags = {},
   onWatchlistChange = null,
+  // Showcase / teaser: Price = max(live, recorded peak). Live only wins
+  // when the coin is still printing a new high.
+  preferBestPrice = false,
 }) => {
   const { t } = useTranslation();
 
@@ -873,6 +876,19 @@ const SignalsTable = ({
     return num.toFixed(2);
   };
 
+  // Recorded high (peak_price travels as close_price on the list payload).
+  // Live wins only when it has already printed through that high.
+  const bestPriceOf = (signal, live) => {
+    const peak = Number(signal.close_price ?? signal.peak_price);
+    const now = Number(live);
+    const peakOk = Number.isFinite(peak) && peak > 0;
+    const nowOk = Number.isFinite(now) && now > 0;
+    if (peakOk && nowOk) return Math.max(peak, now);
+    if (nowOk) return now;
+    if (peakOk) return peak;
+    return null;
+  };
+
   const formatVolume = (vol) => {
     if (!vol) return "-";
     const num = parseFloat(vol);
@@ -1122,7 +1138,11 @@ const SignalsTable = ({
   };
 
   const MobileSignalCard = ({ signal }) => {
-    const currentPrice = getPrice(signal.pair);
+    const livePrice = getPrice(signal.pair);
+    const currentPrice =
+      preferBestPrice || (!isSubscriber && signal.close_price != null)
+        ? bestPriceOf(signal, livePrice)
+        : livePrice;
     const currentVol = getVolume(signal.pair);
     const priceChange = getPriceChange(signal.entry, currentPrice);
     const open = !!expandedCards[signal.signal_id];
@@ -2001,40 +2021,32 @@ const SignalsTable = ({
                         {effectiveCols.current_price && (
                           <td className="text-right">
                             {(() => {
-                              // Free view: never show a number lower than where
-                              // the call actually finished, or a win that has
-                              // since retraced would render as a loss.
-                              const closedDisplayPrice =
-                                !isSubscriber && signal.close_price != null
-                                  ? Math.max(
-                                      Number(signal.close_price),
-                                      Number(currentPrice) || 0
-                                    )
-                                  : null;
-                              if (closedDisplayPrice != null) {
-                                // The price alone means nothing to a stranger.
-                                // What sells is the distance it travelled from
-                                // the entry, which we can now show because a
-                                // finished win carries its entry.
-                                const e = Number(signal.entry);
-                                const gain =
-                                  e > 0 ? ((closedDisplayPrice - e) / e) * 100 : null;
-                                return (
-                                  <span className="inline-flex items-baseline justify-end gap-1.5 whitespace-nowrap font-mono tabular-nums">
-                                    <span className="text-[13px] font-medium text-profit">
-                                      {formatPrice(closedDisplayPrice)}
-                                    </span>
-                                    {gain != null && (
-                                      <span className="text-[11px] font-semibold text-profit">
-                                        +{gain.toFixed(1)}%
-                                      </span>
-                                    )}
+                              // Free list + the VIP sample: never show a
+                              // retrace below the recorded high. Live only
+                              // wins when price is still printing a new peak.
+                              const useBest =
+                                preferBestPrice ||
+                                (!isSubscriber && signal.close_price != null);
+                              if (!useBest) return null;
+                              const display = bestPriceOf(signal, currentPrice);
+                              if (display == null) return null;
+                              const e = Number(signal.entry);
+                              const gain = e > 0 ? ((display - e) / e) * 100 : null;
+                              return (
+                                <span className="inline-flex items-baseline justify-end gap-1.5 whitespace-nowrap font-mono tabular-nums">
+                                  <span className="text-[13px] font-medium text-profit">
+                                    {formatPrice(display)}
                                   </span>
-                                );
-                              }
-                              return null;
+                                  {gain != null && (
+                                    <span className="text-[11px] font-semibold text-profit">
+                                      (+{gain.toFixed(1)}%)
+                                    </span>
+                                  )}
+                                </span>
+                              );
                             })()}
-                            {!isSubscriber && signal.close_price != null ? null : pricesLoading &&
+                            {preferBestPrice ||
+                            (!isSubscriber && signal.close_price != null) ? null : pricesLoading &&
                               !currentPrice ? (
                               <div className="ml-auto h-3 w-16 animate-pulse rounded bg-ink/[0.05]" />
                             ) : currentPrice ? (

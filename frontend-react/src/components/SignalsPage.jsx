@@ -2991,6 +2991,7 @@ const SignalsPage = () => {
             signals={vipSamples}
             loading={false}
             isSubscriber
+            preferBestPrice
             onRowClick={(sig) => openSignal(sig, "trade")}
             sortBy="created_at"
             sortOrder="desc"
