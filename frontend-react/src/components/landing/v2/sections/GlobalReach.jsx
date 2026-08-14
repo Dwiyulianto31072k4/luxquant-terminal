@@ -2835,10 +2835,10 @@ export default function GlobalReach({ gainers = [], stats = null }) {
             }}
           />
           <p className="pointer-events-auto relative max-w-md text-[15px] font-medium leading-snug tracking-[-0.015em] text-text-primary sm:text-[16px]">
-            From Taipei to every timezone.
+            Built in Taipei.
           </p>
           <p className="pointer-events-auto relative mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-text-muted sm:text-[14px]">
-            The same public book, wherever the desk is.
+            The record is public, on any desk.
           </p>
           {!isAuthenticated && (
             <div className="pointer-events-auto relative mt-5">
