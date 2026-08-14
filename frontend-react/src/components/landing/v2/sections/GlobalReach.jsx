@@ -1922,10 +1922,11 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
     // observer di bawah yang mengembalikannya ke Taipei tiap kali bagian ini
     // masuk layar. yaw = bujur membuat titik itu menghadap penonton:
     // yawZ = cos(lat)·cos(yaw − lng), maksimum saat yaw = lng.
-    const HOME_YAW = degToRad(121.233); // Taipei (TPE), asal semua arc
-    const HOME_PITCH = 0.3; // Taiwan di lat 25° — naik mendekati tengah
+    const HOME_YAW = degToRad(121.233); // Taipei faces the camera
+    const HOME_PITCH = 0.14; // keep Taipei in the middle, not lifted to the rim
     let yaw = HOME_YAW;
     let pitch = HOME_PITCH;
+    let easeHome = false;
 
     const drag = { x: 0, y: 0 };
 
@@ -1938,6 +1939,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
           if (entry.isIntersecting) {
             yaw = HOME_YAW;
             pitch = HOME_PITCH;
+            easeHome = false;
           }
         }
       },
@@ -2025,7 +2027,18 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
         const interaction = interactionRef.current;
 
         if (!interaction.dragging) {
-          yaw -= interaction.pointer.inside ? 0.00045 : 0.00108;
+          if (easeHome) {
+            yaw += (HOME_YAW - yaw) * 0.06;
+            pitch += (HOME_PITCH - pitch) * 0.06;
+            if (Math.abs(yaw - HOME_YAW) < 0.004 && Math.abs(pitch - HOME_PITCH) < 0.004) {
+              yaw = HOME_YAW;
+              pitch = HOME_PITCH;
+              easeHome = false;
+            }
+          } else {
+            yaw = HOME_YAW + Math.sin(time * 0.00014) * 0.15;
+            pitch = HOME_PITCH;
+          }
         }
 
         const radius = Math.min(width * 0.46, height * 0.46);
@@ -2281,7 +2294,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
 
           // persistent label (origin + major only)
           if (hub.label && point.depth > 0.24 && !isHovered) {
-            const text = `${hub.city}, ${hub.country}`;
+            const text = hub.isOrigin ? "Taipei" : hub.city;
 
             context.save();
             context.font = "500 10px Inter, ui-sans-serif, system-ui, sans-serif";
@@ -2421,6 +2434,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
     const onPointerUp = (event) => {
       const point = getPointerPosition(event);
       interactionRef.current.dragging = false;
+      easeHome = true;
       updateHoverTarget(point.x, point.y);
 
       if (canvas.hasPointerCapture?.(event.pointerId)) {
@@ -2767,9 +2781,9 @@ export default function GlobalReach({ gainers = [], stats = null }) {
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-[12px] font-medium tracking-wide text-text-muted">Built in Taipei</p>
           <h2 className="mt-2 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-            The book is{" "}
+            Where every call{" "}
             <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-              public.
+              starts.
             </span>
           </h2>
           <ProofStrip stats={stats} />

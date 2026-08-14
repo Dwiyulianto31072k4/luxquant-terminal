@@ -130,6 +130,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
   const isPremium = isPremiumUser(user);
 
   const [scrolled, setScrolled] = useState(false);
+  const [spyId, setSpyId] = useState(activeId);
   // The hero carries its own CTA in the first screen. Showing the header's copy
   // beside it asks the same thing twice; it takes over once the hero's is gone.
   const [pastHero, setPastHero] = useState(false);
@@ -159,9 +160,39 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return undefined;
+    let io;
+    const attach = () => {
+      io?.disconnect();
+      const ids = NAV.map((n) => n.id);
+      const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
+      if (!els.length) return;
+      io = new IntersectionObserver(
+        (entries) => {
+          const hit = entries
+            .filter((e) => e.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (hit?.target?.id) setSpyId(hit.target.id);
+        },
+        { rootMargin: "-28% 0px -58% 0px", threshold: [0, 0.15, 0.4, 0.7] },
+      );
+      els.forEach((el) => io.observe(el));
+    };
+    attach();
+    const main = document.getElementById("main");
+    const mo = main ? new MutationObserver(attach) : null;
+    mo?.observe(main, { childList: true, subtree: true });
+    return () => {
+      io?.disconnect();
+      mo?.disconnect();
+    };
+  }, []);
+
   // Landing-section scroll
   const handleNav = (id) => {
     setMobileOpen(false);
+    setSpyId(id);
     onNav?.(id);
   };
 
@@ -193,7 +224,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
         className={[
           "mx-auto w-full border transition-all duration-500 ease-out",
           scrolled
-            ? "mt-3 max-w-[1280px] rounded-full border-ink/[0.08] bg-surface/80 backdrop-blur-xl"
+            ? "mt-3 max-w-[1280px] rounded-full border-ink/[0.1] bg-surface/95 shadow-[0_8px_32px_rgb(var(--scrim)/0.28)] backdrop-blur-2xl"
             : "mt-0 max-w-7xl rounded-none border-transparent bg-transparent",
         ].join(" ")}
       >
@@ -227,21 +258,27 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           <nav className="hidden min-w-0 lg:block" aria-label="Main navigation">
             <div className="flex items-center justify-center gap-0.5 whitespace-nowrap 2xl:gap-1">
               {NAV.map((item) => {
-                const active = item.id === activeId;
+                const active = item.id === (spyId || activeId);
                 return (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => handleNav(item.id)}
                     className={[
-                      "shrink-0 rounded-md px-2.5 py-2 text-[12.5px] font-medium",
-                      "tracking-[0.01em] transition-colors 2xl:px-3 2xl:text-[13px]",
+                      "relative shrink-0 px-2.5 py-2 text-[13px] font-medium",
+                      "tracking-[-0.01em] transition-colors 2xl:px-3",
                       active
-                        ? "bg-ink/[0.04] text-accent"
-                        : "text-text-primary/60 hover:bg-ink/[0.03] hover:text-text-primary",
+                        ? "text-text-primary"
+                        : "text-text-muted hover:text-text-primary",
                     ].join(" ")}
                   >
                     {item.label}
+                    <span
+                      aria-hidden="true"
+                      className={`absolute inset-x-2.5 -bottom-0.5 h-px bg-accent transition-opacity ${
+                        active ? "opacity-100" : "opacity-0"
+                      }`}
+                    />
                   </button>
                 );
               })}
@@ -394,7 +431,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
         <div className="max-h-[82vh] space-y-0.5 overflow-y-auto px-3 py-3">
           {/* Primary landing sections — always visible */}
           {NAV.map((item) => {
-            const active = item.id === activeId;
+            const active = item.id === (spyId || activeId);
             return (
               <button
                 key={item.id}
