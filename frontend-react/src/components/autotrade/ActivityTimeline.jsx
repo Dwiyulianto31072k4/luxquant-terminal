@@ -337,6 +337,18 @@ function eventInfo(item) {
         source: "Emergency controls",
       };
     }
+    if (action === "position.futures_settlement_failed") {
+      return {
+        category: "position",
+        tone: "info",
+        title: `${symbol || "Position"} close booked without venue PnL`,
+        description:
+          metadata.error ||
+          "The exchange does not report income history to Agent. The position is already closed.",
+        source: "Position reconciler",
+        collapseKey: `settle-fail:${symbol || "x"}`,
+      };
+    }
     if (action === "position.reconciliation_resolved") {
       return {
         category: "position",

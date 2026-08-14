@@ -33,8 +33,8 @@ export const RISK_EVENTS = {
   reconciliation_required: {
     title: "A position needs reconciliation",
     blocking: true,
-    what: "One of your positions could not be matched against Binance, so every new entry is paused until it clears.",
-    why: "Usually the coin left your spot wallet outside the bot — a manual sell, a convert, or a transfer. All of those cancel the protective OCO first, which leaves the position unguarded and its real state unknown.",
+    what: "One of your positions could not be matched against the exchange, so every new entry is paused until it clears.",
+    why: "Usually the coin left the wallet outside the bot — a manual sell, a convert, or a transfer. All of those cancel the protective order first. It can also happen if a protective TP/SL was rejected after entry.",
     fix: "The reconciler closes these on its own once it confirms the balance is gone. If it persists for more than a few cycles, contact support.",
   },
   bot_access_blocked: {
