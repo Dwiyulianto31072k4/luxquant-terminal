@@ -88,6 +88,48 @@ def _build_cg_headers(api_key: str = "") -> dict:
 # ============================================
 
 _binance_client: Optional[httpx.AsyncClient] = None
+_binance_backup_client: Optional[httpx.AsyncClient] = None
+_binance_egress = None
+
+
+class _BinanceFailover:
+    """Use VPS-2 SOCKS when the primary box IP is 418'd."""
+
+    def __init__(self, primary: httpx.AsyncClient, backup: Optional[httpx.AsyncClient]):
+        self._primary = primary
+        self._backup = backup
+
+    def _primary_banned(self) -> bool:
+        try:
+            from app.services.terminal_worker import _fapi_ok
+
+            return _fapi_ok is not None and not _fapi_ok()
+        except Exception:
+            return False
+
+    async def request(self, method, url, **kwargs):
+        if self._backup is not None and self._primary_banned():
+            return await self._backup.request(method, url, **kwargs)
+        resp = await self._primary.request(method, url, **kwargs)
+        if resp.status_code in (418, 429) and self._backup is not None:
+            try:
+                from app.services.terminal_worker import _note_ban
+
+                if _note_ban:
+                    _note_ban(resp, 600 if resp.status_code == 418 else 120)
+            except Exception:
+                pass
+            resp = await self._backup.request(method, url, **kwargs)
+        return resp
+
+    async def get(self, url, **kwargs):
+        return await self.request("GET", url, **kwargs)
+
+    async def post(self, url, **kwargs):
+        return await self.request("POST", url, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._primary, name)
 _coingecko_main_client: Optional[httpx.AsyncClient] = None
 _coingecko_currency_client: Optional[httpx.AsyncClient] = None
 _coingecko_anon_client: Optional[httpx.AsyncClient] = None
@@ -309,10 +351,30 @@ def binance_get_sync(url: str, params: dict | None = None, timeout: float = 15.0
         _fapi_ok = None
         _note_ban = None
 
+    proxy = (os.getenv("BINANCE_BACKUP_PROXY") or os.getenv("TELEGRAM_PROXY") or "").strip()
     if _fapi_ok is not None and not _fapi_ok():
-        return None
+        if not proxy:
+            return None
+        try:
+            return requests.get(
+                url, params=params, timeout=timeout, proxies={"http": proxy, "https": proxy}
+            )
+        except Exception:
+            return None
 
     resp = requests.get(url, params=params, timeout=timeout)
+    if resp.status_code in (418, 429) and proxy:
+        if _note_ban is not None:
+            try:
+                _note_ban(resp, 600 if resp.status_code == 418 else 120)
+            except Exception:
+                pass
+        try:
+            return requests.get(
+                url, params=params, timeout=timeout, proxies={"http": proxy, "https": proxy}
+            )
+        except Exception:
+            return resp
 
     if _note_ban is not None and resp.status_code in (418, 429):
         try:
@@ -363,6 +425,20 @@ def init_clients():
         follow_redirects=False,
         event_hooks={"response": [binance_weight_hook("shared_client")]},
     )
+    backup_proxy = (os.getenv("BINANCE_BACKUP_PROXY") or os.getenv("TELEGRAM_PROXY") or "").strip()
+    global _binance_backup_client, _binance_egress
+    _binance_backup_client = None
+    if backup_proxy:
+        _binance_backup_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(BINANCE_TIMEOUT, connect=8.0),
+            limits=BINANCE_POOL,
+            headers=BASE_HEADERS,
+            http2=False,
+            follow_redirects=False,
+            proxy=backup_proxy,
+            event_hooks={"response": [binance_weight_hook("backup_socks")]},
+        )
+    _binance_egress = _BinanceFailover(_binance_client, _binance_backup_client)
 
     # ─── CoinGecko: Main (key utama — market data) ───
     _coingecko_main_client = httpx.AsyncClient(
@@ -409,7 +485,7 @@ def init_clients():
     main_status = "✓ key" if COINGECKO_API_KEY else "✗ anon"
     currency_status = "✓ dedicated key" if COINGECKO_API_KEY_CURRENCY else ("✓ fallback main key" if COINGECKO_API_KEY else "✗ anon")
     print(f"✅ HTTP clients initialized:")
-    print(f"   • Binance, General")
+    print(f"   • Binance, General" + (" + SOCKS backup" if _binance_backup_client else ""))
     print(f"   • CoinGecko-main:     {main_status}")
     print(f"   • CoinGecko-currency: {currency_status}")
     print(f"   • CoinGecko-anon:     no key (IP quota)")
@@ -422,8 +498,10 @@ async def close_clients():
     global _coingecko_client
     global _general_client
 
+    global _binance_backup_client, _binance_egress
     clients_to_close = [
         ("Binance", _binance_client),
+        ("Binance-backup", _binance_backup_client),
         ("CoinGecko-main", _coingecko_main_client),
         ("CoinGecko-currency", _coingecko_currency_client),
         ("CoinGecko-anon", _coingecko_anon_client),
@@ -438,6 +516,8 @@ async def close_clients():
                 print(f"⚠️ Error closing {name} client: {e}")
 
     _binance_client = None
+    _binance_backup_client = None
+    _binance_egress = None
     _coingecko_main_client = None
     _coingecko_currency_client = None
     _coingecko_anon_client = None
@@ -451,7 +531,9 @@ async def close_clients():
 # ============================================
 
 def get_binance_client() -> httpx.AsyncClient:
-    """Shared Binance HTTP client. Covers: api.binance.com, fapi.binance.com"""
+    """Shared Binance HTTP client. Fails over to SOCKS backup on 418."""
+    if _binance_egress is not None:
+        return _binance_egress
     if _binance_client is None:
         raise RuntimeError("HTTP clients not initialized. Call init_clients() in app lifespan.")
     return _binance_client
