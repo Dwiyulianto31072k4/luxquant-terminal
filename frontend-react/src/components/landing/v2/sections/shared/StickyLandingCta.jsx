@@ -1,5 +1,5 @@
 // Mobile sticky CTA — logged-out only. Hidden while the soft-gate is open
-// or while it would sit on top of the How It Works diagram.
+// or while it would sit on the How It Works diagram / risk-edge block.
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,14 +21,17 @@ export default function StickyLandingCta() {
     if (isAuthenticated) return undefined;
     const onScroll = () => {
       setVisible(window.scrollY > 420);
-      const el = document.querySelector("#how-it-works .lq-sys");
-      if (!el) {
-        setCoverDiagram(false);
-        return;
-      }
-      const r = el.getBoundingClientRect();
       const band = window.innerHeight - 108;
-      setCoverDiagram(r.bottom > band && r.top < window.innerHeight);
+      const blockers = [
+        document.querySelector("#how-it-works .lq-sys"),
+        document.querySelector(".lq-risk-section"),
+      ].filter(Boolean);
+      setCoverDiagram(
+        blockers.some((el) => {
+          const r = el.getBoundingClientRect();
+          return r.bottom > band && r.top < window.innerHeight;
+        }),
+      );
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });

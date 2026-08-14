@@ -33,7 +33,7 @@ import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import DayDrillModal from "./DayDrillModal";
 import LockedPct, { isLockedTarget } from "./shared/LockedPct";
-import { PrimaryButton, SecondaryButton, BtnArrow } from "./shared/LandingButtons";
+import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 import CountUp from "./shared/CountUp";
 
 const C = {
@@ -162,9 +162,9 @@ const INFO = {
   rEdge: {
     title: "Risk-Adjusted Edge",
     lines: [
-      "R is the risk each call sets for itself: 1R = entry minus stop-loss. Every result is measured in multiples of it, so a Bitcoin call and a micro-cap call sit on the same scale.",
-      "How to read the ladder: bars right of the line are what each target pays, the bar left of it is what the stop risks. A target shorter than the stop pays less than the trade risks.",
-      "Break-even win rate = what this geometry demands just to stay flat. The distance between that and the win rate above is where the edge actually lives.",
+      "R is the risk each call sets for itself: 1R = entry minus stop. Every result is measured in multiples of it, so a Bitcoin call and a micro-cap sit on the same scale.",
+      "Break-even is the win rate this geometry needs just to stay flat. Actual is the share of resolved calls that reached at least TP1. The gap between them is the edge.",
+      "The ladder shows order, not size. Target R multiples unlock after sign-in so the public page cannot give the book away.",
     ],
   },
   patterns: {
@@ -586,158 +586,152 @@ function RrLadder() {
  * prerendered HTML the crawler receives. Blurring a real number would only
  * hide it from people who do not open devtools.
  */
-/* ── Risk-adjusted edge (desain 2026-08-13) ───────────────────────────
-   Menggantikan susunan RrLadder + aside. Lihat catatan patch: yang dijual
-   adalah JARAK antara win rate impas dan win rate nyata — keduanya angka
-   publik. Tidak ada nilai R yang digambar, langsung maupun lewat proporsi. */
+/* Risk-adjusted edge.
+   Public math is the gap between break-even and actual WR — both already on
+   the page. The ladder shows order, never R multiples (equal row height,
+   hashed values). Stop is −1R by definition and leaks nothing about the book. */
 function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
   const breakeven = rGeo?.breakeven_win_rate_pct ?? null;
   const actual = winRate > 0 ? winRate : null;
   const calls = rGeo?.calls_measured ?? null;
   const ready = breakeven != null && actual != null;
-  const targets = ["TP1", "TP2", "TP3", "TP4"];
+  const gap = ready ? actual - breakeven : null;
+  const targets = ["TP4", "TP3", "TP2", "TP1"];
 
   return (
     <div className="lq-risk-suite lq-edge">
-      {/* ── KIRI: ceritanya, sebagai SATU grafik ambang batas ── */}
-      <div className="lq-edge-main">
-        <p className="lq-edge-eyebrow">Why it makes money</p>
-
+      <div className="lq-edge-proof">
         {ready ? (
-          <div className="lq-edge-plot">
-            <div className="lq-edge-heads">
-              <div className="lq-edge-head" style={{ left: `${breakeven}%` }}>
-                <span className="lq-edge-head-num">
+          <>
+            <div className="lq-edge-kpis">
+              <div className="lq-edge-kpi lq-edge-kpi--be">
+                <span className="lq-edge-kpi-num">
                   <CountUp value={breakeven} active={visible} suffix="%" />
                 </span>
-                <span className="lq-edge-head-cap">needed to break even</span>
+                <span className="lq-edge-kpi-lab">Break-even</span>
+                <span className="lq-edge-kpi-cap">Win rate needed to stay flat</span>
               </div>
-              <div className="lq-edge-head lq-edge-head--live" style={{ left: `${actual}%` }}>
-                <span className="lq-edge-head-num lq-edge-num--live">
+              <div className="lq-edge-kpi lq-edge-kpi--gap">
+                <span className="lq-edge-kpi-num">
+                  <CountUp value={gap} active={visible} prefix="+" suffix="" />
+                </span>
+                <span className="lq-edge-kpi-lab">pts of edge</span>
+                <span className="lq-edge-kpi-cap">Actual minus break-even</span>
+              </div>
+              <div className="lq-edge-kpi lq-edge-kpi--live">
+                <span className="lq-edge-kpi-num">
                   <CountUp value={actual} active={visible} suffix="%" />
                 </span>
-                <span className="lq-edge-head-cap">we actually win</span>
+                <span className="lq-edge-kpi-lab">Actual</span>
+                <span className="lq-edge-kpi-cap">Resolved calls that reached a target</span>
               </div>
             </div>
 
             <div
               className="lq-edge-axis"
               role="img"
-              aria-label={`Break-even at ${breakeven.toFixed(1)} percent, actual win rate ${actual.toFixed(1)} percent`}
+              aria-label={`Break-even ${breakeven.toFixed(1)} percent, actual ${actual.toFixed(1)} percent, edge ${gap.toFixed(1)} points`}
             >
               <span className="lq-edge-seg-need" style={{ width: `${breakeven}%` }} />
               <span
                 className="lq-edge-seg-edge"
-                style={{ left: `${breakeven}%`, width: `${Math.max(0, actual - breakeven)}%` }}
+                style={{ left: `${breakeven}%`, width: `${Math.max(0, gap)}%` }}
               />
-              <span className="lq-edge-gate" style={{ left: `${breakeven}%` }} />
+              <span className="lq-edge-tick" style={{ left: `${breakeven}%` }} />
+              <span className="lq-edge-tick lq-edge-tick--live" style={{ left: `${actual}%` }} />
             </div>
-
             <div className="lq-edge-scale">
               <span>0%</span>
               <span>50%</span>
               <span>100%</span>
             </div>
 
-            <p className="lq-edge-claim">
-              Only <strong>{breakeven.toFixed(1)}%</strong> of calls need to win just to cover
-              the losers. <strong>{actual.toFixed(1)}%</strong> actually do — that{" "}
-              <strong>{(actual - breakeven).toFixed(1)}-point gap</strong> is the profit
-              {calls != null ? `, across ${calls.toLocaleString("en-US")} calls` : ""}.
-            </p>
-
-            {/* Rincian dari mana 33,7% berasal. Sebuah angka tanpa dasar terbaca
-                seperti karangan — dan ini satu-satunya angka di section yang
-                pembacanya tidak bisa cek sendiri. Rasio di bawah dihitung dari
-                break-even itu sendiri, jadi tidak ada informasi baru yang
-                dibuka: nilai R tiap TP tetap tertutup. */}
-            <details className="lq-edge-why">
-              <summary>Where does {breakeven.toFixed(1)}% come from?</summary>
-              <div className="lq-edge-why-body">
-                <p>
-                  Every loss is capped at the stop — one risk unit, fixed before the trade is
-                  opened. Winners run an ordered ladder, so an average winner is worth about{" "}
-                  <strong>{((100 - breakeven) / breakeven).toFixed(2)}×</strong> what an average
-                  loser costs.
-                </p>
-                <p className="lq-edge-formula">
-                  break-even = avg loss ÷ (avg loss + avg win) = {breakeven.toFixed(1)}%
-                </p>
-                <p>
-                  Both averages are taken from every resolved call
-                  {calls != null ? ` — all ${calls.toLocaleString("en-US")} of them` : ""}. No
-                  model, no sample, no back-test.
-                </p>
-              </div>
-            </details>
-          </div>
+            <div className="lq-edge-read">
+              <p className="lq-edge-claim">
+                Only <strong>{breakeven.toFixed(1)}%</strong> of resolved calls need to win to
+                cover the losers. <strong>{actual.toFixed(1)}%</strong> do
+                {calls != null ? ` — a ${gap.toFixed(1)}-point gap across ${calls.toLocaleString("en-US")} calls` : ""}.
+              </p>
+              <details className="lq-edge-why">
+                <summary>Where does {breakeven.toFixed(1)}% come from?</summary>
+                <div className="lq-edge-why-body">
+                  <p>
+                    Every loss is capped at the stop — one risk unit, fixed before the trade
+                    opens. Winners run an ordered ladder, so an average winner is worth about{" "}
+                    <strong>{((100 - breakeven) / breakeven).toFixed(2)}×</strong> what an
+                    average loser costs.
+                  </p>
+                  <p className="lq-edge-formula">
+                    break-even = avg loss ÷ (avg loss + avg win) = {breakeven.toFixed(1)}%
+                  </p>
+                  <p>
+                    Both averages are taken from every resolved call
+                    {calls != null ? ` — all ${calls.toLocaleString("en-US")} of them` : ""}.
+                    No model, no cherry-picked window.
+                  </p>
+                </div>
+              </details>
+            </div>
+          </>
         ) : (
           <p className="lq-edge-claim">Break-even derived from this ladder&apos;s geometry.</p>
         )}
       </div>
 
-      {/* ── KANAN: mekanikanya ── */}
-      <div className="lq-edge-side">
-        <div className="lq-edge-rowhead">
-          <p className="lq-edge-label">How the ladder is built</p>
-          <span className="lq-private-badge inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium">
-            <LockIcon />
-            Private
-          </span>
-        </div>
+      <div className="lq-edge-mech">
+        <div className="lq-edge-instrument">
+          <div className="lq-edge-rowhead">
+            <div>
+              <p className="lq-edge-label">Call structure</p>
+              <p className="lq-edge-cap">Same order on every call. Spacing is even — not the R size.</p>
+            </div>
+          </div>
 
-        {/* Ladder harga vertikal — dibaca dari atas ke bawah seperti trader
-            membacanya. Jarak antar baris SERAGAM, bukan proporsional terhadap
-            target, jadi tidak ada nilai R yang bocor lewat posisi. */}
-        <ol className="lq-ladder">
-          {[...targets].reverse().map((t) => (
-            <li key={t} className="lq-ladder-row">
-              <span className="lq-ladder-node" aria-hidden="true" />
-              <span className="lq-ladder-name">{t}</span>
-              <span className="lq-ladder-val">
-                <LockIcon />
-                locked
-              </span>
+          <ol className="lq-ladder" aria-label="Call ladder. Target R values unlock after sign in.">
+            {targets.map((t) => (
+              <li key={t} className="lq-ladder-row">
+                <span className="lq-ladder-node" aria-hidden="true" />
+                <span className="lq-ladder-name">{t}</span>
+                <span className="lq-ladder-hash" aria-label={`${t} R locked`} />
+              </li>
+            ))}
+            <li className="lq-ladder-row lq-ladder-row--entry">
+              <span className="lq-ladder-node lq-ladder-node--entry" aria-hidden="true" />
+              <span className="lq-ladder-name">Entry</span>
+              <span className="lq-ladder-val">0R</span>
             </li>
-          ))}
-
-          <li className="lq-ladder-row lq-ladder-row--entry">
-            <span className="lq-ladder-node lq-ladder-node--entry" aria-hidden="true" />
-            <span className="lq-ladder-name">Entry</span>
-            <span className="lq-ladder-val">0R</span>
-          </li>
-
-          <li className="lq-ladder-row lq-ladder-row--stop">
-            <span className="lq-ladder-node lq-ladder-node--stop" aria-hidden="true" />
-            <span className="lq-ladder-name">Stop</span>
-            <span className="lq-ladder-val lq-ladder-val--stop">
-              &minus;1.00R
-              <em>fixed, every call</em>
-            </span>
-          </li>
-        </ol>
-
-        <div className="lq-edge-locked">
-          <div className="lq-edge-lockedstat">
-            <p className="lq-edge-label">Expectancy</p>
-            <p className="lq-edge-dots" aria-label="Expectancy — sign in to view">
-              <span aria-hidden="true">••••</span>
-            </p>
-            <p className="lq-edge-cap">per call, in R</p>
-          </div>
-          <div className="lq-edge-lockedstat">
-            <p className="lq-edge-label">Cumulative R</p>
-            <p className="lq-edge-dots" aria-label="Cumulative R — sign in to view">
-              <span aria-hidden="true">••••</span>
-            </p>
-            <p className="lq-edge-cap">since Dec 2023</p>
-          </div>
+            <li className="lq-ladder-row lq-ladder-row--stop">
+              <span className="lq-ladder-node lq-ladder-node--stop" aria-hidden="true" />
+              <span className="lq-ladder-name">Stop</span>
+              <span className="lq-ladder-val lq-ladder-val--stop">−1.00R</span>
+            </li>
+          </ol>
+          <p className="lq-edge-foot">
+            Stop is 1R by definition. Target multiples unlock after sign-in.
+          </p>
         </div>
 
-        <SecondaryButton size="lg" width="fullMobile" onClick={onUnlock} className="group">
-          Unlock expectancy &amp; R
-          <BtnArrow />
-        </SecondaryButton>
+        <div className="lq-edge-door">
+          <p className="lq-edge-label">The book in R</p>
+          <p className="lq-edge-cap">
+            Expectancy per call, and cumulative R since December 2023. Same sample as the
+            numbers above — just in risk units.
+          </p>
+          <ul className="lq-edge-doorlist">
+            <li>
+              <LockIcon />
+              Expectancy · per call
+            </li>
+            <li>
+              <LockIcon />
+              Cumulative R · since Dec 2023
+            </li>
+          </ul>
+          <PrimaryButton size="md" width="full" onClick={onUnlock} className="group">
+            Unlock the R book
+            <BtnArrow />
+          </PrimaryButton>
+        </div>
       </div>
     </div>
   );
@@ -1304,12 +1298,12 @@ export default function Performance({ data }) {
       <div
         ref={riskRef}
         data-lq-local-in={riskVisible ? "true" : "false"}
-        className="lq-risk-section mt-16 border-t border-ink/[0.06] pt-12 lg:mt-24 lg:pt-16"
+        className="lq-risk-section mt-16 scroll-mt-32 border-t border-ink/[0.06] pt-12 lg:mt-24 lg:pt-16"
       >
         <CardHead
           title="Risk-adjusted edge"
           info={INFO.rEdge}
-          sub="Every result in R — the risk each call sets for itself"
+          sub="Break-even versus the live book. Every result in R — the risk each call sets for itself."
         />
         <RiskEdge
           rGeo={rGeo}

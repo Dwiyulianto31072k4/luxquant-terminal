@@ -1527,84 +1527,94 @@ textarea:focus-visible {
    blok yang sebenarnya satu pernyataan. */
 
 .lp-v2 .lq-edge {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-@media (min-width: 1024px) {
-  .lp-v2 .lq-edge {
-    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
-  }
-  .lp-v2 .lq-edge-side {
-    border-top: 0;
-    border-left: 1px solid rgb(var(--ink) / 0.06);
-  }
-}
-
-.lp-v2 .lq-edge-main {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 26px 24px;
+.lp-v2 .lq-edge-proof {
+  padding: 22px 18px 20px;
 }
 
 @media (min-width: 640px) {
-  .lp-v2 .lq-edge-main { padding: 32px 30px; }
+  .lp-v2 .lq-edge-proof { padding: 26px 26px 22px; }
 }
 
-.lp-v2 .lq-edge-eyebrow {
-  font-size: 17px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  color: rgb(var(--fg));
+.lp-v2 .lq-edge-kpis {
+  display: grid;
+  grid-template-areas:
+    "live live"
+    "be gap";
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgb(var(--ink) / 0.07);
+  border: 1px solid rgb(var(--ink) / 0.07);
 }
 
-/* ── Grafik ambang batas ── */
-.lp-v2 .lq-edge-plot { margin-top: 26px; }
-
-.lp-v2 .lq-edge-heads {
-  position: relative;
-  height: 74px;
+@media (min-width: 800px) {
+  .lp-v2 .lq-edge-kpis {
+    grid-template-areas: "be gap live";
+    grid-template-columns: 1fr 1fr 1.12fr;
+  }
 }
 
-/* Tiap kepala angka berdiri TEPAT di atas posisinya pada sumbu. */
-.lp-v2 .lq-edge-head {
-  position: absolute;
-  bottom: 0;
-  transform: translateX(-50%);
+.lp-v2 .lq-edge-kpi--be { grid-area: be; }
+.lp-v2 .lq-edge-kpi--gap { grid-area: gap; }
+.lp-v2 .lq-edge-kpi--live { grid-area: live; }
+
+.lp-v2 .lq-edge-kpi {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  white-space: nowrap;
+  gap: 4px;
+  padding: 16px 16px 15px;
+  background: rgb(var(--surface-raised));
 }
 
-.lp-v2 .lq-edge-head-num {
-  font-size: 30px;
-  font-weight: 500;
+.lp-v2 .lq-edge-kpi-num {
+  font-size: 28px;
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--fg));
 }
 
-.lp-v2 .lq-edge-head--live .lq-edge-head-num { font-size: 42px; }
-.lp-v2 .lq-edge-num--live { color: rgb(var(--accent)); }
+.lp-v2 .lq-edge-kpi--live {
+  background:
+    linear-gradient(180deg, rgb(var(--accent) / 0.08), transparent 64%),
+    rgb(var(--surface-raised));
+}
 
-.lp-v2 .lq-edge-head-cap {
-  margin-top: 5px;
-  font-size: 13px;
+.lp-v2 .lq-edge-kpi--live .lq-edge-kpi-num,
+.lp-v2 .lq-edge-kpi--gap .lq-edge-kpi-num {
+  color: rgb(var(--accent-text));
+}
+
+.lp-v2 .lq-edge-kpi--live .lq-edge-kpi-num { font-size: 34px; }
+
+.lp-v2 .lq-edge-kpi-lab {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(var(--fg));
+}
+
+.lp-v2 .lq-edge-kpi-cap {
+  font-size: 12.5px;
+  line-height: 1.4;
   color: rgb(var(--fg-muted));
 }
 
 .lp-v2 .lq-edge-axis {
   position: relative;
-  height: 18px;
+  height: 10px;
+  margin-top: 22px;
   border-radius: 99px;
-  background: rgb(var(--ink) / 0.06);
-  overflow: hidden;
+  background: rgb(var(--ink) / 0.07);
 }
 
 .lp-v2 .lq-edge-seg-need,
@@ -1620,14 +1630,14 @@ textarea:focus-visible {
 .lp-v2 .lq-edge-seg-need {
   left: 0;
   border-radius: 99px 0 0 99px;
-  background: rgb(var(--ink) / 0.16);
-  transition-delay: 150ms;
+  background: rgb(var(--ink) / 0.18);
+  transition-delay: 120ms;
 }
 
 .lp-v2 .lq-edge-seg-edge {
   border-radius: 0 99px 99px 0;
   background: rgb(var(--accent));
-  transition-delay: 500ms;
+  transition-delay: 420ms;
 }
 
 .lp-v2 .lq-risk-section[data-lq-local-in="true"] .lq-edge-seg-need,
@@ -1635,39 +1645,52 @@ textarea:focus-visible {
   transform: scaleX(1);
 }
 
-.lp-v2 .lq-edge-gate {
+.lp-v2 .lq-edge-tick {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 3px;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
   margin-left: -1px;
-  background: rgb(var(--surface-secondary));
-  box-shadow: 0 0 0 1px rgb(var(--fg) / 0.4);
+  background: rgb(var(--fg) / 0.45);
+  border-radius: 2px;
   z-index: 2;
 }
+
+.lp-v2 .lq-edge-tick--live { background: rgb(var(--accent)); }
 
 .lp-v2 .lq-edge-scale {
   display: flex;
   justify-content: space-between;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: rgb(var(--fg) / 0.35);
+  color: rgb(var(--fg) / 0.38);
+}
+
+.lp-v2 .lq-edge-read {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+@media (min-width: 800px) {
+  .lp-v2 .lq-edge-read {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    align-items: start;
+    gap: 28px;
+  }
 }
 
 .lp-v2 .lq-edge-claim {
-  margin-top: 20px;
-  max-width: 46ch;
-  font-size: 16px;
+  margin: 0;
+  font-size: 15px;
   line-height: 1.6;
   color: rgb(var(--fg-muted));
 }
 
-.lp-v2 .lq-edge-claim strong { color: rgb(var(--fg)); font-weight: 500; }
+.lp-v2 .lq-edge-claim strong { color: rgb(var(--fg)); font-weight: 600; }
 
-/* Rincian "dari mana angkanya" — tertutup secara bawaan supaya tidak
-   membebani pembaca yang sudah percaya, tapi ada untuk yang tidak. */
-.lp-v2 .lq-edge-why { margin-top: 16px; max-width: 46ch; }
+.lp-v2 .lq-edge-why { margin: 0; }
 
 .lp-v2 .lq-edge-why > summary {
   display: inline-flex;
@@ -1675,8 +1698,8 @@ textarea:focus-visible {
   gap: 7px;
   cursor: pointer;
   list-style: none;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13.5px;
+  font-weight: 550;
   color: rgb(var(--fg) / 0.72);
   border-bottom: 1px dashed rgb(var(--ink) / 0.28);
   padding-bottom: 2px;
@@ -1687,7 +1710,7 @@ textarea:focus-visible {
 .lp-v2 .lq-edge-why > summary::marker { content: ""; }
 
 .lp-v2 .lq-edge-why > summary::after {
-  content: "＋";
+  content: "+";
   font-size: 12px;
   opacity: 0.6;
 }
@@ -1703,18 +1726,18 @@ textarea:focus-visible {
   margin-top: 12px;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid rgb(var(--ink) / 0.06);
+  border: 1px solid rgb(var(--ink) / 0.07);
   background: rgb(var(--surface));
 }
 
 .lp-v2 .lq-edge-why-body p {
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.6;
   color: rgb(var(--fg-muted));
 }
 
 .lp-v2 .lq-edge-why-body p + p { margin-top: 10px; }
-.lp-v2 .lq-edge-why-body strong { color: rgb(var(--fg)); font-weight: 500; }
+.lp-v2 .lq-edge-why-body strong { color: rgb(var(--fg)); font-weight: 550; }
 
 .lp-v2 .lq-edge-formula {
   font-variant-numeric: tabular-nums;
@@ -1724,65 +1747,116 @@ textarea:focus-visible {
   background: rgb(var(--ink) / 0.05);
 }
 
-/* ── Kolom kanan ── */
-.lp-v2 .lq-edge-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 26px 24px;
-  border-top: 1px solid rgb(var(--ink) / 0.06);
+.lp-v2 .lq-edge-mech {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid rgb(var(--ink) / 0.07);
+}
+
+@media (min-width: 860px) {
+  .lp-v2 .lq-edge-mech {
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  }
+}
+
+.lp-v2 .lq-edge-instrument {
+  padding: 22px 18px 20px;
 }
 
 @media (min-width: 640px) {
-  .lp-v2 .lq-edge-side { padding: 32px 30px; }
+  .lp-v2 .lq-edge-instrument { padding: 24px 26px; }
+}
+
+.lp-v2 .lq-edge-door {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 22px 18px 22px;
+  border-top: 1px solid rgb(var(--ink) / 0.07);
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgb(var(--accent) / 0.08), transparent 55%),
+    rgb(var(--surface));
+}
+
+@media (min-width: 640px) {
+  .lp-v2 .lq-edge-door { padding: 24px 26px; }
+}
+
+@media (min-width: 860px) {
+  .lp-v2 .lq-edge-door {
+    border-top: 0;
+    border-left: 1px solid rgb(var(--ink) / 0.07);
+  }
 }
 
 .lp-v2 .lq-edge-rowhead {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+  margin-bottom: 14px;
 }
 
 .lp-v2 .lq-edge-label {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.015em;
   color: rgb(var(--fg));
 }
 
-/* Dipakai juga oleh .lq-edge-lockedstat di bawah — jangan ikut dibuang
-   bersama blok stopline lama. */
 .lp-v2 .lq-edge-cap {
-  font-size: 14px;
+  margin-top: 4px;
+  font-size: 13px;
   line-height: 1.5;
   color: rgb(var(--fg-muted));
 }
 
-/* ── Ladder harga vertikal ─────────────────────────────────────────
-   Satu sumbu rata, satu irama baris. Menggantikan empat chip berjenjang
-   yang terbaca sebagai salah rata alih-alih sebagai urutan. */
+.lp-v2 .lq-edge-doorlist {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 2px 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: rgb(var(--fg-muted));
+}
+
+.lp-v2 .lq-edge-doorlist li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-v2 .lq-edge-foot {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgb(var(--fg-muted));
+}
+
 .lp-v2 .lq-ladder {
   position: relative;
-  margin: 2px 0 0;
-  padding: 4px 0;
+  margin: 0;
+  padding: 2px 0;
   list-style: none;
 }
 
-/* Garis penghubung — mengikat keenam baris jadi satu urutan. */
 .lp-v2 .lq-ladder::before {
   content: "";
   position: absolute;
-  top: 16px;
-  bottom: 16px;
+  top: 12px;
+  bottom: 12px;
   left: 5px;
   width: 2px;
   border-radius: 2px;
   background: linear-gradient(
     to bottom,
-    rgb(var(--accent) / 0.45),
+    rgb(var(--accent) / 0.5),
     rgb(var(--ink) / 0.14) 62%,
-    rgb(var(--neg) / 0.42)
+    rgb(var(--neg) / 0.5)
   );
 }
 
@@ -1791,8 +1865,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 40px;
-  padding: 8px 0 8px 24px;
+  min-height: 34px;
+  padding: 5px 0 5px 24px;
 }
 
 .lp-v2 .lq-ladder-node {
@@ -1801,13 +1875,13 @@ textarea:focus-visible {
   width: 12px;
   height: 12px;
   border-radius: 99px;
-  border: 2px solid rgb(var(--accent) / 0.55);
-  background: rgb(var(--surface-secondary));
+  border: 2px solid rgb(var(--accent) / 0.5);
+  background: rgb(var(--surface-raised));
 }
 
 .lp-v2 .lq-ladder-node--entry {
-  border-color: rgb(var(--fg) / 0.5);
-  background: rgb(var(--fg) / 0.5);
+  border-color: rgb(var(--fg) / 0.45);
+  background: rgb(var(--fg) / 0.45);
 }
 
 .lp-v2 .lq-ladder-node--stop {
@@ -1816,47 +1890,44 @@ textarea:focus-visible {
 }
 
 .lp-v2 .lq-ladder-name {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 550;
   color: rgb(var(--fg));
 }
 
 .lp-v2 .lq-ladder-val {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
   margin-left: auto;
-  font-size: 14px;
+  font-size: 13.5px;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--fg-muted));
 }
 
-.lp-v2 .lq-ladder-val svg { align-self: center; }
+.lp-v2 .lq-ladder-val--stop {
+  font-size: 15px;
+  font-weight: 650;
+  color: rgb(var(--neg-text));
+}
 
-/* `inset` box-shadow, bukan border: garisnya sama, tapi tidak menambah
-   1px ke tinggi baris — dua baris terakhir jadi lebih tinggi dari empat
-   baris di atasnya kalau pakai border. */
-.lp-v2 .lq-ladder-row--entry { box-shadow: inset 0 1px 0 rgb(var(--ink) / 0.06); }
+.lp-v2 .lq-ladder-hash {
+  display: block;
+  margin-left: auto;
+  width: 64px;
+  height: 7px;
+  border-radius: 99px;
+  background: repeating-linear-gradient(
+    -60deg,
+    rgb(var(--ink) / 0.05) 0 3px,
+    rgb(var(--ink) / 0.14) 3px 6px
+  );
+}
 
+.lp-v2 .lq-ladder-hash i { display: none; }
+
+.lp-v2 .lq-ladder-row--entry,
 .lp-v2 .lq-ladder-row--stop {
   box-shadow: inset 0 1px 0 rgb(var(--ink) / 0.06);
 }
 
-.lp-v2 .lq-ladder-val--stop {
-  font-size: 17px;
-  font-weight: 500;
-  line-height: 1.35;
-  color: rgb(var(--fg));
-}
-
-.lp-v2 .lq-ladder-val--stop em {
-  font-style: normal;
-  font-size: 14px;
-  font-weight: 400;
-  color: rgb(var(--fg-muted));
-}
-
-/* Baris ladder muncul berurutan saat section terlihat. */
 .lp-v2 .lq-ladder-row {
   opacity: 0;
   transform: translateY(6px);
@@ -1869,41 +1940,19 @@ textarea:focus-visible {
 }
 
 .lp-v2 .lq-ladder-row:nth-child(1) { transition-delay: 120ms; }
-.lp-v2 .lq-ladder-row:nth-child(2) { transition-delay: 190ms; }
-.lp-v2 .lq-ladder-row:nth-child(3) { transition-delay: 260ms; }
-.lp-v2 .lq-ladder-row:nth-child(4) { transition-delay: 330ms; }
-.lp-v2 .lq-ladder-row:nth-child(5) { transition-delay: 400ms; }
-.lp-v2 .lq-ladder-row:nth-child(6) { transition-delay: 470ms; }
+.lp-v2 .lq-ladder-row:nth-child(2) { transition-delay: 180ms; }
+.lp-v2 .lq-ladder-row:nth-child(3) { transition-delay: 240ms; }
+.lp-v2 .lq-ladder-row:nth-child(4) { transition-delay: 300ms; }
+.lp-v2 .lq-ladder-row:nth-child(5) { transition-delay: 360ms; }
+.lp-v2 .lq-ladder-row:nth-child(6) { transition-delay: 420ms; }
 
 @media (prefers-reduced-motion: reduce) {
   .lp-v2 .lq-ladder-row { opacity: 1; transform: none; transition: none; }
 }
 
-.lp-v2 .lq-edge-locked {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 26px;
-  margin-top: 4px;
-}
-
-.lp-v2 .lq-edge-lockedstat {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-}
-
-.lp-v2 .lq-edge-dots {
-  font-size: 19px;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0.14em;
-  color: rgb(var(--fg) / 0.3);
-  user-select: none;
-}
-
 @media (max-width: 520px) {
-  .lp-v2 .lq-edge-head-num { font-size: 26px; }
-  .lp-v2 .lq-edge-head--live .lq-edge-head-num { font-size: 34px; }
+  .lp-v2 .lq-edge-kpi-num { font-size: 24px; }
+  .lp-v2 .lq-edge-kpi--live .lq-edge-kpi-num { font-size: 30px; }
 }
 
 .lp-v2 .lq-risk-suite {
