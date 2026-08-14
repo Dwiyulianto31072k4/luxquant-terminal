@@ -1124,7 +1124,7 @@ export default function Performance({ data }) {
   return (
     <section
       id="performance"
-      className="relative z-10 mx-auto w-full max-w-7xl px-4 py-16 lg:px-8 lg:py-24"
+      className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-32 px-4 py-16 lg:px-8 lg:py-24"
     >
       {/* ── Autopilot-style hero: one number, plain language, no stat tiles ── */}
       <div className="mx-auto max-w-3xl text-center">

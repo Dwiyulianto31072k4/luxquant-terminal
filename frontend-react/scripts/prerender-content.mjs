@@ -126,7 +126,7 @@ async function main() {
   const { GLOSSARY } = await import("../src/content/glossary.js");
   const { POSTS } = await import("../src/content/posts.js");
   const { COINS, ALL_COINS, COIN_STATS } = await import("../src/content/coins.js");
-  const { LANDING_FAQ, landingFaqJsonLd } = await import("../src/content/faq.js");
+  const { LANDING_FAQ, landingFaqJsonLd, faqText } = await import("../src/content/faq.js");
   const termBy = (slug) => GLOSSARY.find((t) => t.slug === slug);
   const postBy = (slug) => POSTS.find((p) => p.slug === slug);
   const coinBy = (slug) => ALL_COINS.find((c) => c.slug === slug);
@@ -314,7 +314,7 @@ async function main() {
       `</ul></nav>` +
       trBlock +
       `<h2>Frequently asked questions</h2>` +
-      LANDING_FAQ.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join("") +
+      LANDING_FAQ.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(faqText(f))}</p>`).join("") +
       trFaq.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join("") +
       `<h2>Learn the concepts</h2><ul>${GLOSSARY.slice(0, 8)
         .map((t) => `<li><a href="/learn/${t.slug}">${esc(t.term)}</a> — ${esc(t.short)}</li>`)
