@@ -2679,11 +2679,8 @@ export default function GlobalReach({ gainers = [], stats = null }) {
   // Proof modal — the exact SignalDetailModal recipe TopGainers uses.
   const { isAuthenticated } = useAuth();
 
-  // Closing ask at the very end of the page body. Deliberately the lowest-
-  // friction ask on the page and a deliberate echo of the hero: someone who has
-  // read fourteen screens does not need another argument, and /home is the free
-  // hub the whole page has been describing. TopGainers already owns the ask
-  // that points at the record, so this one does not repeat it.
+  // Guest-only closer on the globe. Signed-in visitors already have Open App
+  // in the header; repeating it under the map is leftover chrome.
   const goClose = () => {
     trackFunnel("cta_click", { source: "global_reach_close", path: "/" });
     navigate(isAuthenticated ? "/home" : loginUrl("/home", { source: "global_reach_close" }));
@@ -2824,22 +2821,34 @@ export default function GlobalReach({ gainers = [], stats = null }) {
           {inView && <CanvasGlobe gainersRef={gainersRef} onOpenSignal={onOpenSignal} />}
         </div>
         {inView && <StatAnnotation stats={stats} />}
-      </div>
 
-      {/* Closing ask. This is the last section of the page body, and until now
-          the page simply ended — globe, then footer. Someone who has read all
-          fourteen screens is the most convinced visitor the site will ever
-          have, and nothing was asked of them. The globe's own proof markers do
-          open a soft gate, but only if a marker happens to be clicked. */}
-      <div className="relative z-10 mt-14 flex flex-col items-center gap-3 px-4 text-center lg:mt-20">
-        <p className="max-w-md text-[15px] leading-relaxed text-text-muted">
-          <span className="font-semibold text-text-primary">Every call above is on record.</span>{" "}
-          Free account opens Pulse, News and the full track record — no card.
-        </p>
-        <PrimaryButton size="lg" width="fullMobile" onClick={goClose} className="group">
-          {isAuthenticated ? CTA.openApp : CTA.pill}
-          <BtnArrow />
-        </PrimaryButton>
+        {/* End card on the globe — not a sales block after it. The map is
+            the last image; the line names what it is. Guests get one quiet
+            ask. Signed-in visitors already have Open App in the header. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-4 pb-8 pt-28 text-center sm:pb-10 sm:pt-36">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to top, rgb(var(--surface)) 0%, rgb(var(--surface) / 0.82) 28%, transparent 100%)",
+            }}
+          />
+          <p className="pointer-events-auto relative max-w-md text-[15px] font-medium leading-snug tracking-[-0.015em] text-text-primary sm:text-[16px]">
+            From Taipei to every timezone.
+          </p>
+          <p className="pointer-events-auto relative mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-text-muted sm:text-[14px]">
+            The same public book, wherever the desk is.
+          </p>
+          {!isAuthenticated && (
+            <div className="pointer-events-auto relative mt-5">
+              <PrimaryButton size="md" onClick={goClose} className="group">
+                {CTA.primaryGuest}
+                <BtnArrow />
+              </PrimaryButton>
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`
