@@ -64,6 +64,7 @@ SKIP_PREFIXES = {
     "og-share",
     "enrichment",  # helper called from Signals/Terminal — don't double-count
     "announcements",  # global modal, would dominate every session
+    "fx",  # USDT→fiat rates, loaded by CurrencyProvider on every session
 }
 
 # (path after /api/v1/, bucket). Longest prefix wins. feature=None → skip.
@@ -102,7 +103,6 @@ FEATURE_MAP = {
     "profile": "profile",
     "journal": "journal",
     "crypto-news-feed": "news",
-    "fx": "fx",
     "calendar": "macro_calendar",
     "watchlist": "watchlist",
     "analytics": "analytics",

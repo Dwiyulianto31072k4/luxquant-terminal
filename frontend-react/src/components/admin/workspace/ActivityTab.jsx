@@ -55,7 +55,6 @@ const FEATURE_LABELS = {
   onchain: "On-chain",
   delistings: "Delistings",
   news: "News",
-  fx: "FX",
   macro_calendar: "Macro Calendar",
   watchlist: "Watchlist",
   journal: "Journal",
@@ -85,7 +84,6 @@ const FEATURE_COLORS = {
   onchain: "#0d9488",
   delistings: "#be123c",
   news: "#64748b",
-  fx: "#2563eb",
   macro_calendar: "#7c3aed",
   watchlist: "#db2777",
   journal: "#65a30d",
@@ -461,7 +459,7 @@ const emptyDesk = (id) => ({
 
 const FeatureFunnel = ({ funnel, loading, days, onDays, activeFeature, onPick }) => {
   const features = useMemo(() => {
-    const incoming = funnel?.features || [];
+    const incoming = (funnel?.features || []).filter((f) => f.feature !== "fx");
     const byId = Object.fromEntries(incoming.map((f) => [f.feature, { ...f, waiting: false }]));
     const rows = FEATURE_CATALOG.map((id) => byId[id] || emptyDesk(id));
     incoming.forEach((f) => {
@@ -849,7 +847,7 @@ const LiveActivityFeed = ({
       .filter(
         (f) =>
           f &&
-          !["signals", "terminal", "performance", "analytics", "fx", "watchlist", "markets", "autotrade"].includes(
+          !["signals", "terminal", "performance", "analytics", "watchlist", "markets", "autotrade"].includes(
             f
           )
       );
@@ -859,7 +857,6 @@ const LiveActivityFeed = ({
       { value: "terminal", label: "Terminal" },
       { value: "performance", label: "Performance" },
       { value: "analytics", label: "Daily Perf" },
-      { value: "fx", label: "FX" },
       { value: "watchlist", label: "Watchlist" },
       { value: "markets", label: "Markets" },
       { value: "autotrade", label: "Agent" },
