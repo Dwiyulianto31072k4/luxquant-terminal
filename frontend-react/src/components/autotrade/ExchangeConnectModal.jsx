@@ -4,38 +4,78 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { checkExchangeKeys, saveExchangeKeys } from "../../services/autotradeApi";
 import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
-import { AUTOTRADE_SERVER_IP, EXCHANGE_LIST, EXCHANGE_VENUES, VenueLogo } from "./exchangeVenues";
+import {
+  AUTOTRADE_SERVER_IP,
+  EXCHANGE_LIST,
+  EXCHANGE_VENUES,
+  VenueLogo,
+  whitelistCopyText,
+  whitelistIpsFor,
+} from "./exchangeVenues";
 
 const INITIAL_FORM = { label: "", api_key: "", api_secret: "", passphrase: "" };
 
-function ServerIpBlock() {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
+function copyText(value) {
+  return navigator.clipboard.writeText(value);
+}
+
+function ServerIpList({ venueId }) {
+  const rows = whitelistIpsFor(venueId);
+  const [copied, setCopied] = useState("");
+  const mark = (id) => {
+    setCopied(id);
+    window.setTimeout(() => setCopied(""), 1600);
+  };
+  const copyOne = async (row) => {
     try {
-      await navigator.clipboard.writeText(AUTOTRADE_SERVER_IP);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+      await copyText(row.ip);
+      mark(row.id);
+    } catch {
+      /* ignore */
+    }
+  };
+  const copyAll = async () => {
+    try {
+      await copyText(whitelistCopyText(venueId));
+      mark("all");
     } catch {
       /* ignore */
     }
   };
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-surface-secondary px-3 py-2.5">
-      <div className="min-w-0">
-        <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-          Server IP
-        </p>
-        <p className="mt-0.5 select-all font-mono text-[13px] font-semibold text-text-primary">
-          {AUTOTRADE_SERVER_IP}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={copy}
-        className="shrink-0 rounded-md border border-ink/[0.1] px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary hover:text-text-primary"
-      >
-        {copied ? "Copied" : "Copy"}
-      </button>
+    <div className="space-y-2">
+      {rows.map((row) => (
+        <div
+          key={row.ip}
+          className="flex items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-surface-secondary px-3 py-2.5"
+        >
+          <div className="min-w-0">
+            <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">
+              {row.label}
+              {row.note ? <span className="font-sans font-medium normal-case tracking-normal"> · {row.note}</span> : null}
+            </p>
+            <p className="mt-0.5 select-all font-mono text-[13px] font-semibold text-text-primary">
+              {row.ip}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => copyOne(row)}
+            className="shrink-0 rounded-md border border-ink/[0.1] px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary hover:text-text-primary"
+          >
+            {copied === row.id ? "Copied" : "Copy"}
+          </button>
+        </div>
+      ))}
+      {rows.length > 1 ? (
+        <button
+          type="button"
+          onClick={copyAll}
+          className="w-full rounded-md border border-ink/[0.1] bg-surface-raised px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary hover:text-text-primary"
+        >
+          {copied === "all" ? "Both IPs copied" : "Copy both IPs"}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -132,14 +172,14 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
       setResult(check);
       if (!check.valid) {
         const hints = Array.isArray(check.hints) ? check.hints.filter(Boolean) : [];
-        const serverIp = check.server_ip || AUTOTRADE_SERVER_IP;
+        const ips = whitelistIpsFor(venue.id).map((row) => row.ip);
         const detail =
           check.message || hints.join(" ") || `Saved, but ${venue.name} rejected the key.`;
-        throw new Error(
-          `${detail}${
-            detail.toLowerCase().includes("ip") ? "" : ` Whitelist ${serverIp} if the key is IP-restricted.`
-          }`
-        );
+        const ipHint =
+          ips.length > 1
+            ? ` Whitelist both ${ips.join(" and ")} if the key is IP-restricted.`
+            : ` Whitelist ${ips[0] || AUTOTRADE_SERVER_IP} if the key is IP-restricted.`;
+        throw new Error(`${detail}${detail.toLowerCase().includes("ip") ? "" : ipHint}`);
       }
       onSuccess?.();
       setTimeout(() => onClose(), 800);
@@ -299,7 +339,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
                 </p>
                 <p className="mt-2 text-[12px] leading-5 text-text-secondary">{venue.ipHint}</p>
                 <div className="mt-2.5">
-                  <ServerIpBlock />
+                  <ServerIpList venueId={venue.id} />
                 </div>
               </div>
 

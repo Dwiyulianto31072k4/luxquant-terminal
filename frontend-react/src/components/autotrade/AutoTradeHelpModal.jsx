@@ -591,7 +591,7 @@ function SectionFAQ() {
     },
     {
       q: "Agent can’t turn on Futures — canTrade: false?",
-      a: "Your Binance API key doesn’t have Futures permission enabled. Go to your Binance API management, edit the key, enable Futures, and save with 2FA. Some keys also need IP whitelisting before Futures can be enabled.",
+      a: "Your Binance API key doesn’t have Futures permission enabled. Go to your Binance API management, edit the key, enable Futures, and save with 2FA. If the key is IP-restricted, whitelist both 187.127.135.84 (primary) and 103.197.189.58 (backup). Agent uses the second IP when the first is rate-limited.",
     },
     {
       q: "If I change my Binance API key, do I lose my settings?",

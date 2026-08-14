@@ -223,7 +223,7 @@ export const ENGINE_RULES = [
   },
   {
     title: "An invalid API key stops execution",
-    body: "Keys are validated when saved, and marked invalid automatically if Binance rejects them later (wrong permissions, or an IP allow-list that does not include our server). Reconnect the key to resume.",
+    body: "Keys are validated when saved, and marked invalid automatically if Binance rejects them later (wrong permissions, or an IP allow-list that is missing either 187.127.135.84 or the backup 103.197.189.58). Restrict the key to both IPs — Agent fails over if the primary is rate-limited. Reconnect the key to resume.",
   },
   {
     title: "Rate limits are shared",

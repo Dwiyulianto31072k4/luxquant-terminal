@@ -1,6 +1,23 @@
 import { BinanceIcon, BitgetIcon, BingxIcon, OkxIcon, BybitIcon, GateIcon } from "./BrandIcons";
 
 export const AUTOTRADE_SERVER_IP = "187.127.135.84";
+export const AUTOTRADE_BACKUP_IP = "103.197.189.58";
+
+export const AUTOTRADE_SERVER_IPS = [
+  { ip: AUTOTRADE_SERVER_IP, id: "primary", label: "Primary", note: "Default route" },
+  { ip: AUTOTRADE_BACKUP_IP, id: "backup", label: "Backup", note: "Used if primary is rate-limited" },
+];
+
+export function whitelistIpsFor(venueId) {
+  if (venueId === "binance") return AUTOTRADE_SERVER_IPS;
+  return AUTOTRADE_SERVER_IPS.slice(0, 1);
+}
+
+export function whitelistCopyText(venueId) {
+  return whitelistIpsFor(venueId)
+    .map((row) => row.ip)
+    .join("\n");
+}
 
 export const EXCHANGE_VENUES = {
   binance: {
@@ -15,7 +32,7 @@ export const EXCHANGE_VENUES = {
     placeholderLabel: "Primary Binance",
     keyPlaceholder: "API key",
     secretPlaceholder: "API secret",
-    ipHint: "If the key is IP-restricted, whitelist the server below or every order is rejected.",
+    ipHint: "Restrict the key to both IPs below. Agent fails over to backup if the primary is banned — one IP only and failover orders are rejected.",
     permissions: [
       { label: "Read", state: "yes" },
       { label: "Futures", state: "yes" },

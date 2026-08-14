@@ -129,6 +129,15 @@ export default function AccountsOverview({
                         ? ` · checked ${fmtDateTime(account.last_checked_at)}`
                         : ""}
                     </p>
+                    {account.exchange === "binance" ? (
+                      <p className="mt-1.5 text-[12px] leading-5 text-text-secondary">
+                        IP-restricted keys need both{" "}
+                        <span className="select-all font-mono text-text-primary">187.127.135.84</span>
+                        {" "}and{" "}
+                        <span className="select-all font-mono text-text-primary">103.197.189.58</span>
+                        . Agent uses the second if the first is rate-limited.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex-shrink-0">
                     <StatusDot tone={tone} pulse={tone === "good"}>
