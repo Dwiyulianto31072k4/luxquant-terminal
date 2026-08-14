@@ -1,4 +1,4 @@
-// FAQ — trust-first accordion. Answers stay in the DOM when collapsed
+// FAQ — one editorial list. Answers stay in the DOM when collapsed
 // so crawlers (and the FAQPage schema) can read them.
 
 import { useMemo, useState } from "react";
@@ -12,58 +12,35 @@ import { PrimaryButton, SecondaryButton, BtnArrow } from "./shared/LandingButton
 
 const PREVIEW_COUNT = 5;
 
-const TAG_TONE = {
-  free: "Free",
-  record: "Record",
-  risk: "Risk",
-  agent: "Agent",
-};
-
 function Chevron({ open }) {
   return (
     <svg
-      className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ${
-        open ? "rotate-180 text-accent" : "text-text-muted"
+      className={`mt-1 h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
+        open ? "rotate-180 text-accent" : "text-text-muted/70"
       }`}
-      viewBox="0 0 24 24"
+      viewBox="0 0 20 20"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.8}
       aria-hidden="true"
     >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+      <path d="M5 7.5 10 12.5 15 7.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
 function Row({ item, open, onToggle, onLink }) {
-  const tag = TAG_TONE[item.tag];
   return (
-    <div
-      className={`overflow-hidden rounded-2xl border transition-colors duration-200 ${
-        open
-          ? "border-accent/25 bg-surface-raised/90"
-          : "border-ink/[0.06] bg-transparent hover:border-ink/12 hover:bg-ink/[0.015]"
-      }`}
-    >
+    <div className={`lq-faq-row${open ? " is-open" : ""}`}>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-start gap-3.5 px-4 py-4 text-left sm:gap-4 sm:px-5 sm:py-4.5"
+        className="flex w-full items-start gap-5 py-5 text-left sm:py-[1.35rem]"
       >
-        {tag ? (
-          <span
-            className={`mt-0.5 hidden h-7 shrink-0 items-center rounded-full px-2.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] sm:inline-flex ${
-              open ? "bg-accent/15 text-accent" : "bg-ink/[0.05] text-text-muted"
-            }`}
-          >
-            {tag}
-          </span>
-        ) : null}
         <span
-          className={`min-w-0 flex-1 pt-0.5 text-[15px] font-semibold leading-snug tracking-tight sm:text-[16px] ${
-            open ? "text-text-primary" : "text-text-primary/90"
+          className={`min-w-0 flex-1 text-[16px] font-medium leading-snug tracking-[-0.018em] sm:text-[17.5px] ${
+            open ? "text-text-primary" : "text-text-primary/88"
           }`}
         >
           {item.q}
@@ -77,27 +54,25 @@ function Row({ item, open, onToggle, onLink }) {
         }`}
       >
         <div className="overflow-hidden">
-          <div className="border-t border-ink/[0.06] px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
-            <div>
-              <p className="text-[14px] leading-relaxed text-text-muted sm:text-[15px]">
-                {item.lead ? (
-                  <>
-                    <span className="font-medium text-text-primary">{item.lead}</span>{" "}
-                  </>
-                ) : null}
-                {item.a}
-              </p>
-              {item.link ? (
-                <button
-                  type="button"
-                  onClick={() => onLink(item.link.href)}
-                  className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent hover:text-accent-light"
-                >
-                  {item.link.label}
-                  <span aria-hidden="true">→</span>
-                </button>
+          <div className="pb-6 pr-8 sm:pr-10">
+            <p className="max-w-[54ch] text-[14.5px] leading-[1.7] text-text-muted sm:text-[15.5px]">
+              {item.lead ? (
+                <>
+                  <span className="font-medium text-text-primary">{item.lead}</span>{" "}
+                </>
               ) : null}
-            </div>
+              {item.a}
+            </p>
+            {item.link ? (
+              <button
+                type="button"
+                onClick={() => onLink(item.link.href)}
+                className="mt-3.5 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-accent hover:text-accent-light"
+              >
+                {item.link.label}
+                <span aria-hidden="true">→</span>
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -144,7 +119,7 @@ export default function FaqV2() {
   return (
     <section
       id="faq"
-      className="relative z-10 mx-auto w-full max-w-3xl scroll-mt-32 px-4 py-16 sm:py-20 lg:px-8 lg:py-28"
+      className="relative z-10 mx-auto w-full max-w-[760px] scroll-mt-32 px-4 py-16 sm:py-20 lg:px-8 lg:py-28"
     >
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
@@ -163,7 +138,7 @@ export default function FaqV2() {
       </div>
 
       <div
-        className="mx-auto mt-8 flex max-w-xl flex-wrap items-center justify-center gap-2"
+        className="lq-faq-seg mx-auto mt-8 flex w-full max-w-xl flex-wrap items-center justify-center gap-1 p-0 sm:w-fit sm:gap-0.5 sm:p-1"
         role="tablist"
         aria-label="FAQ topics"
       >
@@ -176,10 +151,10 @@ export default function FaqV2() {
               role="tab"
               aria-selected={on}
               onClick={() => pickTag(t.id)}
-              className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors sm:px-3.5 ${
                 on
-                  ? "bg-accent text-accent-fg"
-                  : "bg-ink/[0.04] text-text-primary/75 hover:bg-ink/[0.08] hover:text-text-primary"
+                  ? "bg-ink/[0.08] text-text-primary sm:bg-surface"
+                  : "text-text-muted hover:text-text-primary"
               }`}
             >
               {t.label}
@@ -188,7 +163,7 @@ export default function FaqV2() {
         })}
       </div>
 
-      <div className="mt-10 space-y-2.5 sm:mt-12">
+      <div className="lq-faq-list mt-10 sm:mt-12">
         {items.map((item, i) => {
           const shown = i < PREVIEW_COUNT || showAll || tag !== "all";
           return (
@@ -209,11 +184,12 @@ export default function FaqV2() {
       </div>
 
       {hidden > 0 && (
-        <div className="mt-6 flex justify-center">
-          <SecondaryButton
-            size="md"
+        <div className="mt-2 flex justify-center border-t border-ink/[0.07] pt-5">
+          <button
+            type="button"
             onClick={() => setShowAll((v) => !v)}
             aria-expanded={showAll}
+            className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-text-muted transition-colors hover:text-text-primary"
           >
             {showAll ? "Show fewer" : `Show all ${items.length} questions`}
             <svg
@@ -226,11 +202,11 @@ export default function FaqV2() {
             >
               <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </SecondaryButton>
+          </button>
         </div>
       )}
 
-      <div className="mt-12 flex flex-col items-center gap-4 text-center sm:mt-14">
+      <div className="mt-14 flex flex-col items-center gap-4 text-center">
         <p className="max-w-md text-[14px] leading-relaxed text-text-muted">
           The record is public. A free account just lets you go deeper — Pulse,
           older call levels, and the rest of the book.
@@ -245,6 +221,34 @@ export default function FaqV2() {
           </SecondaryButton>
         </div>
       </div>
+
+      <style>{`
+        .lq-faq-seg {
+          background: transparent;
+          border: 0;
+        }
+        @media (min-width: 640px) {
+          .lq-faq-seg {
+            border-radius: 999px;
+            background: rgb(var(--ink) / 0.045);
+            border: 1px solid rgb(var(--ink) / 0.06);
+          }
+        }
+        .lq-faq-list {
+          border-top: 1px solid rgb(var(--ink) / 0.08);
+        }
+        .lq-faq-row {
+          border-bottom: 1px solid rgb(var(--ink) / 0.08);
+        }
+        .lq-faq-row.is-open button span:first-of-type {
+          color: rgb(var(--fg));
+        }
+        @media (hover: hover) {
+          .lq-faq-row:not(.is-open) button:hover span:first-of-type {
+            color: rgb(var(--fg));
+          }
+        }
+      `}</style>
     </section>
   );
 }
