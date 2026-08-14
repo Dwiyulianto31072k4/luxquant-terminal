@@ -1,4 +1,5 @@
-// Mobile sticky CTA — logged-out only. Hidden while soft-gate is open.
+// Mobile sticky CTA — logged-out only. Hidden while the soft-gate is open
+// or while it would sit on top of the How It Works diagram.
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,14 +14,29 @@ export default function StickyLandingCta() {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [softGateOpen, setSoftGateOpen] = useState(false);
+  const [coverDiagram, setCoverDiagram] = useState(false);
   const shownTracked = useRef(false);
 
   useEffect(() => {
     if (isAuthenticated) return undefined;
-    const onScroll = () => setVisible(window.scrollY > 420);
+    const onScroll = () => {
+      setVisible(window.scrollY > 420);
+      const el = document.querySelector("#how-it-works .lq-sys");
+      if (!el) {
+        setCoverDiagram(false);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const band = window.innerHeight - 108;
+      setCoverDiagram(r.bottom > band && r.top < window.innerHeight);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -36,7 +52,7 @@ export default function StickyLandingCta() {
 
   // One impression per session for conversion dashboard.
   useEffect(() => {
-    if (!visible || softGateOpen || isAuthenticated || shownTracked.current) return;
+    if (!visible || softGateOpen || coverDiagram || isAuthenticated || shownTracked.current) return;
     shownTracked.current = true;
     // cta_shown, not cta_click: this fires when the bar becomes visible, and
     // counting it as a click made the funnel's own denominator its numerator.
@@ -44,9 +60,9 @@ export default function StickyLandingCta() {
       source: "sticky_mobile",
       path: "/",
     });
-  }, [visible, softGateOpen, isAuthenticated]);
+  }, [visible, softGateOpen, coverDiagram, isAuthenticated]);
 
-  if (isAuthenticated || !visible || softGateOpen) return null;
+  if (isAuthenticated || !visible || softGateOpen || coverDiagram) return null;
 
   const go = () => {
     trackFunnel("cta_click", { source: "sticky_mobile", path: "/" });

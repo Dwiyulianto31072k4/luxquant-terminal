@@ -10,18 +10,18 @@ import { EXCHANGE_LIST, VenueLogo } from "../../../autotrade/exchangeVenues";
    tape in → sanitize → engine. Products drop out. Exchange is the dest. */
 
 const SYSTEMS = [
-  { id: "price", label: "Price", icon: "price" },
-  { id: "book", label: "Order book", icon: "book" },
-  { id: "derivs", label: "Derivatives", icon: "funding" },
-  { id: "onchain", label: "On-chain", icon: "chain" },
-  { id: "vol", label: "Volatility", icon: "wave" },
+  { id: "price", label: "Price", icon: "price", hint: "Last, mark and volume across venues" },
+  { id: "book", label: "Order book", icon: "book", hint: "Depth, imbalance and liquidity" },
+  { id: "derivs", label: "Derivatives", icon: "funding", hint: "Funding, open interest, liquidations" },
+  { id: "onchain", label: "On-chain", icon: "chain", hint: "Exchange netflows and whale prints" },
+  { id: "vol", label: "Volatility", icon: "wave", hint: "ATR, compression and ranges" },
 ];
 
 const OUTPUTS = [
-  { id: "calls", label: "Algo calls", icon: "signal" },
-  { id: "ai", label: "AI research", icon: "spark" },
-  { id: "flow", label: "Money flow", icon: "flow" },
-  { id: "agent", label: "Agent", icon: "agent" },
+  { id: "calls", label: "Algo calls", icon: "signal", hint: "Timestamped entry, targets and stops" },
+  { id: "ai", label: "AI research", icon: "spark", hint: "Regime notes you can read" },
+  { id: "flow", label: "Money flow", icon: "flow", hint: "Where capital is rotating" },
+  { id: "agent", label: "Agent", icon: "agent", hint: "Assistance on your desk" },
 ];
 
 const SCENES = [
@@ -31,11 +31,11 @@ const SCENES = [
   { systems: ["price", "onchain", "vol", "derivs"], outputs: ["ai", "flow", "agent"] },
 ];
 
-const DW = 1000;
-const DH = 400;
+const DW = 1040;
+const DH = 448;
 const MW = 380;
-const MH = 560;
-const PH = 34;
+const MH = 520;
+const PH = 36;
 
 function box(x, y, w, h) {
   return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
@@ -65,33 +65,65 @@ function assertLayout(name, g) {
   if (err.length) throw new Error(err.join(" | "));
 }
 
+function sceneCaption(scene) {
+  const a = SYSTEMS.filter((s) => scene.systems.includes(s.id))
+    .map((s) => s.label)
+    .join(" · ");
+  const b = OUTPUTS.filter((o) => scene.outputs.includes(o.id))
+    .map((o) => o.label)
+    .join(" · ");
+  return `${a}  →  ${b}`;
+}
+
 /* Desktop — tape in, products out, exchange is the dest */
 const D = (() => {
-  const hub = box((DW - 80) / 2, 164, 80, 80);
-  const tw = 118;
-  const tg = 8;
+  const hub = box((DW - 90) / 2, 186, 90, 90);
+  const tw = 132;
+  const tg = 10;
   const tSpan = 5 * tw + 4 * tg;
   const t0 = (DW - tSpan) / 2;
-  const T = [0, 1, 2, 3, 4].map((i) => box(t0 + i * (tw + tg), 16, tw, PH));
-  const tray = box(t0 - 8, 8, tSpan + 16, 50);
-  const sanitize = box(hub.cx - 54, 108, 108, PH);
-  const logos = box(hub.r + 36, hub.cy - 40, 128, 80);
+  const T = [0, 1, 2, 3, 4].map((i) => box(t0 + i * (tw + tg), 38, tw, PH));
+  const tray = box(t0 - 10, 28, tSpan + 20, 56);
+  const sanitize = box(hub.cx - 60, 124, 120, PH);
+  const logos = box(hub.r + 28, hub.cy - 54, 172, 108);
 
-  const ow = 122;
-  const og = 12;
+  const ow = 138;
+  const og = 14;
   const oSpan = 4 * ow + 3 * og;
   const o0 = (DW - oSpan) / 2;
-  const O = [0, 1, 2, 3].map((i) => box(o0 + i * (ow + og), 332, ow, PH));
-  const neck = hub.b + 16;
+  const O = [0, 1, 2, 3].map((i) => box(o0 + i * (ow + og), 376, ow, PH));
+  const neck = hub.b + 18;
 
   const routes = [
-    ...T.map((t) => elbow(t, sanitize, "v")),
-    `M${sanitize.cx} ${sanitize.b} V${hub.y}`,
-    elbow(hub, logos, "h"),
-    ...O.map((o) => `M${hub.cx} ${hub.b} V${neck} H${o.cx} V${o.y}`),
+    ...T.map((t, i) => ({ d: elbow(t, sanitize, "v"), kind: "in", key: SYSTEMS[i].id })),
+    { d: `M${sanitize.cx} ${sanitize.b} V${hub.y}`, kind: "core", key: "engine" },
+    { d: elbow(hub, logos, "h"), kind: "dest", key: "dest" },
+    ...O.map((o, i) => ({
+      d: `M${hub.cx} ${hub.b} V${neck} H${o.cx} V${o.y}`,
+      kind: "out",
+      key: OUTPUTS[i].id,
+    })),
   ];
 
-  const g = { T, tray, sanitize, hub, logos, O, routes };
+  const tags = [{ x: tray.x, y: 8, w: tray.w, label: "Market tape" }];
+
+  const g = {
+    T,
+    tray,
+    sanitize,
+    hub,
+    logos,
+    O,
+    routes,
+    tags,
+    junctions: [
+      [sanitize.cx, sanitize.b],
+      [hub.cx, hub.y],
+      [hub.cx, hub.b],
+      [hub.r, hub.cy],
+      ...O.map((o) => [o.cx, neck]),
+    ],
+  };
   assertLayout("desktop", g);
   return g;
 })();
@@ -99,29 +131,51 @@ const D = (() => {
 const M = (() => {
   const tw = 168;
   const T = [
-    box(16, 16, tw, PH),
-    box(196, 16, tw, PH),
-    box(16, 56, tw, PH),
-    box(196, 56, tw, PH),
-    box(106, 96, tw, PH),
+    box(16, 22, tw, PH),
+    box(196, 22, tw, PH),
+    box(16, 64, tw, PH),
+    box(196, 64, tw, PH),
+    box(106, 106, tw, PH),
   ];
-  const sanitize = box(120, 154, 140, PH);
-  const hub = box(150, 210, 80, 80);
+  const sanitize = box(120, 160, 140, PH);
+  const hub = box(150, 216, 80, 80);
   const O = [
-    box(16, 318, 168, PH),
-    box(196, 318, 168, PH),
-    box(16, 362, 168, PH),
-    box(196, 362, 168, PH),
+    box(16, 326, 168, PH),
+    box(196, 326, 168, PH),
+    box(16, 370, 168, PH),
+    box(196, 370, 168, PH),
   ];
-  const logos = box(126, 430, 128, 80);
+  const logos = box(24, 428, 332, 80);
   const neck = hub.b + 14;
   const routes = [
-    ...T.map((t) => `M${t.cx} ${t.b} V${(t.b + sanitize.y) / 2} H${sanitize.cx} V${sanitize.y}`),
-    `M${sanitize.cx} ${sanitize.b} V${hub.y}`,
-    ...O.map((o) => `M${hub.cx} ${hub.b} V${neck} H${o.cx} V${o.y}`),
-    `M${hub.cx} ${O[2].b} V${logos.y}`,
+    ...T.map((t, i) => ({
+      d: `M${t.cx} ${t.b} V${(t.b + sanitize.y) / 2} H${sanitize.cx} V${sanitize.y}`,
+      kind: "in",
+      key: SYSTEMS[i].id,
+    })),
+    { d: `M${sanitize.cx} ${sanitize.b} V${hub.y}`, kind: "core", key: "engine" },
+    ...O.map((o, i) => ({
+      d: `M${hub.cx} ${hub.b} V${neck} H${o.cx} V${o.y}`,
+      kind: "out",
+      key: OUTPUTS[i].id,
+    })),
+    { d: `M${hub.cx} ${hub.b} V${logos.y}`, kind: "dest", key: "dest" },
   ];
-  return { T, sanitize, hub, logos, O, routes };
+  const tags = [{ x: 16, y: 4, w: 348, label: "Market tape" }];
+  return {
+    T,
+    sanitize,
+    hub,
+    logos,
+    O,
+    routes,
+    tags,
+    junctions: [
+      [sanitize.cx, sanitize.b],
+      [hub.cx, hub.y],
+      [hub.cx, hub.b],
+    ],
+  };
 })();
 
 function Glyph({ type }) {
@@ -223,11 +277,35 @@ function useInView(ref) {
   return on;
 }
 
-function Plane({ width, height, children }) {
+function routeOn(route, active, hover, init) {
+  if (init) return true;
+  const inScene =
+    route.kind === "core" ||
+    route.kind === "dest" ||
+    (route.kind === "in" && active.systems.includes(route.key)) ||
+    (route.kind === "out" && active.outputs.includes(route.key));
+  if (!hover) return inScene;
+  if (hover.type === "hub") return inScene;
+  if (hover.type === "sanitize") {
+    return route.kind === "core" || (route.kind === "in" && inScene);
+  }
+  if (hover.type === "dest") return route.kind === "dest" || route.kind === "core";
+  if (hover.type === "in") return route.key === hover.id || route.kind === "core";
+  if (hover.type === "out") return route.key === hover.id;
+  return inScene;
+}
+
+function Plane({ width, height, onPause, children }) {
   const host = useRef(null);
   const scale = useFitScale(host, width);
   return (
-    <div ref={host} className="relative w-full" style={{ height: height * scale }}>
+    <div
+      ref={host}
+      className="relative w-full"
+      style={{ height: height * scale }}
+      onMouseEnter={() => onPause?.(true)}
+      onMouseLeave={() => onPause?.(false)}
+    >
       <div
         className="absolute top-0"
         style={{
@@ -245,7 +323,7 @@ function Plane({ width, height, children }) {
   );
 }
 
-function Lines({ routes, width, height, running, lit, uid }) {
+function Lines({ routes, width, height, running, lit, junctions, uid }) {
   return (
     <svg
       className="pointer-events-none absolute inset-0 z-[1]"
@@ -253,15 +331,16 @@ function Lines({ routes, width, height, running, lit, uid }) {
       fill="none"
       aria-hidden="true"
     >
-      {routes.map((d, i) => {
+      {routes.map((route, i) => {
+        const d = typeof route === "string" ? route : route.d;
         const on = !lit || lit[i] !== false;
         const id = `${uid}-r${i}`;
         return (
-          <g key={i} className={on ? "lq-flow-wrap" : "lq-flow-wrap is-dim"}>
+          <g key={id} className={on ? "lq-flow-wrap" : "lq-flow-wrap is-dim"}>
             <path id={id} d={d} className="lq-flow" />
             <path d={d} className="lq-flow-run" />
             {running && on ? (
-              <circle r="2.3" className="lq-pkt">
+              <circle r="2.4" className="lq-pkt">
                 <animateMotion dur={`${1.7 + (i % 4) * 0.28}s`} begin={`${(i * 0.18) % 1.2}s`} repeatCount="indefinite">
                   <mpath href={`#${id}`} />
                 </animateMotion>
@@ -270,24 +349,58 @@ function Lines({ routes, width, height, running, lit, uid }) {
           </g>
         );
       })}
+      {(junctions || []).map(([x, y], i) => (
+        <circle key={`j${i}`} cx={x} cy={y} r="2.1" className="lq-junc" />
+      ))}
     </svg>
   );
 }
 
-function Pill({ node, icon, children }) {
+function Tip({ node, title, hint, place, planeW }) {
+  if (!node || !hint) return null;
+  const above = place !== "below";
+  const tipW = 196;
+  const left = Math.max(tipW / 2 + 8, Math.min(planeW - tipW / 2 - 8, node.cx));
   return (
-    <div className="lq-pill" style={{ left: node.x, top: node.y, width: node.w, height: node.h }}>
+    <div
+      className="lq-tip"
+      style={{
+        left,
+        top: above ? node.y - 12 : node.b + 12,
+        transform: above ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+      }}
+      role="tooltip"
+    >
+      <strong>{title}</strong>
+      <span>{hint}</span>
+    </div>
+  );
+}
+
+function Pill({ node, icon, children, hint }) {
+  return (
+    <div
+      className="lq-pill"
+      style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
+      aria-label={hint ? `${children}. ${hint}` : undefined}
+    >
       {icon ? <Glyph type={icon} /> : null}
       {children}
     </div>
   );
 }
 
-function Slot({ node, label, icon, on, init }) {
+function Slot({ node, label, icon, on, init, hint, onHover }) {
   return (
     <div
       className={`lq-slot${on ? " is-on" : ""}${init ? " is-init" : ""}`}
       style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
+      tabIndex={0}
+      aria-label={hint ? `${label}. ${hint}` : label}
+      onMouseEnter={() => onHover?.(true)}
+      onFocus={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(null)}
+      onBlur={() => onHover?.(null)}
     >
       <span>
         <Glyph type={icon} />
@@ -299,34 +412,89 @@ function Slot({ node, label, icon, on, init }) {
 
 function DestVenues({ node }) {
   return (
-    <div className="lq-dest" style={{ left: node.x, top: node.y, width: node.w, height: node.h }} aria-label="Your exchange">
-      {EXCHANGE_LIST.map((v) => (
-        <VenueLogo key={v.id} venue={v} className="h-9 w-9" />
-      ))}
+    <div
+      className="lq-dest"
+      style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
+      aria-label="Your exchange"
+    >
+      <span className="lq-dest-kicker">Your exchange</span>
+      <div className="lq-dest-marks">
+        {EXCHANGE_LIST.map((v) => (
+          <span key={v.id} title={v.name}>
+            <VenueLogo venue={v} className="h-8 w-8" />
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
 
 function Hub({ node }) {
   return (
-    <div className="lq-hub" style={{ left: node.x, top: node.y, width: node.w, height: node.h }}>
+    <div
+      className="lq-hub"
+      style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
+      aria-label="LuxQuant engine"
+    >
       <img src="/logo.png" alt="" />
       <span>luxquant</span>
     </div>
   );
 }
 
-function Diagram({ g, width, height, scene, init, running }) {
+function Diagram({ g, width, height, scene, init, running, onPause }) {
   const active = SCENES[scene];
+  const [hover, setHover] = useState(null);
+
+  const lit = g.routes.map((route) =>
+    routeOn(
+      route,
+      active,
+      hover
+        ? {
+            type: hover.type,
+            id: hover.itemId,
+          }
+        : null,
+      init,
+    ),
+  );
+
+  const setItemHover = (next) => {
+    if (!next) {
+      setHover(null);
+      return;
+    }
+    setHover(next);
+  };
+
+  const tipPlace = hover?.type === "in" ? "below" : "above";
+
   return (
-    <Plane width={width} height={height}>
+    <Plane width={width} height={height} onPause={onPause}>
+      <div
+        className="lq-hub-glow"
+        style={{
+          left: g.hub.cx - 130,
+          top: g.hub.cy - 130,
+          width: 260,
+          height: 260,
+        }}
+      />
       <Lines
         routes={g.routes}
         width={width}
         height={height}
         running={running}
+        lit={lit}
+        junctions={g.junctions}
         uid={`lq${width}`}
       />
+      {g.tags?.map((t) => (
+        <div key={t.label} className="lq-tag" style={{ left: t.x, top: t.y, width: t.w }}>
+          {t.label}
+        </div>
+      ))}
       {g.tray ? <div className="lq-tray" style={{ left: g.tray.x, top: g.tray.y, width: g.tray.w, height: g.tray.h }} /> : null}
       {g.T.map((n, i) => (
         <Slot
@@ -334,11 +502,25 @@ function Diagram({ g, width, height, scene, init, running }) {
           node={n}
           label={SYSTEMS[i].label}
           icon={SYSTEMS[i].icon}
-          on={active.systems.includes(SYSTEMS[i].id)}
+          hint={SYSTEMS[i].hint}
+          on={init || active.systems.includes(SYSTEMS[i].id)}
           init={init}
+          onHover={(h) =>
+            setItemHover(
+              h
+                ? { type: "in", itemId: SYSTEMS[i].id, node: n, title: SYSTEMS[i].label, hint: SYSTEMS[i].hint }
+                : null,
+            )
+          }
         />
       ))}
-      <Pill node={g.sanitize} icon="filter">Sanitize</Pill>
+      <Pill
+        node={g.sanitize}
+        icon="filter"
+        hint="Noise, outliers and broken prints are stripped before the engine"
+      >
+        Sanitize
+      </Pill>
       <Hub node={g.hub} />
       <DestVenues node={g.logos} />
       {g.O.map((n, i) => (
@@ -347,10 +529,21 @@ function Diagram({ g, width, height, scene, init, running }) {
           node={n}
           label={OUTPUTS[i].label}
           icon={OUTPUTS[i].icon}
-          on={active.outputs.includes(OUTPUTS[i].id)}
+          hint={OUTPUTS[i].hint}
+          on={init || active.outputs.includes(OUTPUTS[i].id)}
           init={init}
+          onHover={(h) =>
+            setItemHover(
+              h
+                ? { type: "out", itemId: OUTPUTS[i].id, node: n, title: OUTPUTS[i].label, hint: OUTPUTS[i].hint }
+                : null,
+            )
+          }
         />
       ))}
+      {hover ? (
+        <Tip node={hover.node} title={hover.title} hint={hover.hint} place={tipPlace} planeW={width} />
+      ) : null}
     </Plane>
   );
 }
@@ -362,6 +555,7 @@ export default function Architecture() {
   const inView = useInView(root);
   const [scene, setScene] = useState(0);
   const [init, setInit] = useState(true);
+  const [paused, setPaused] = useState(false);
   const [pageOn, setPageOn] = useState(() => typeof document === "undefined" || !document.hidden);
   const reduce =
     typeof window !== "undefined" &&
@@ -375,17 +569,19 @@ export default function Architecture() {
   }, []);
 
   useEffect(() => {
-    if (!live) return undefined;
+    if (!live || !init) return undefined;
     const first = setTimeout(() => {
       setInit(false);
       setScene((s) => (s + 1) % SCENES.length);
-    }, 1000);
-    const tick = setInterval(() => setScene((s) => (s + 1) % SCENES.length), 4000);
-    return () => {
-      clearTimeout(first);
-      clearInterval(tick);
-    };
-  }, [live]);
+    }, 1400);
+    return () => clearTimeout(first);
+  }, [live, init]);
+
+  useEffect(() => {
+    if (!live || paused || init) return undefined;
+    const tick = setInterval(() => setScene((s) => (s + 1) % SCENES.length), 4200);
+    return () => clearInterval(tick);
+  }, [live, paused, init]);
 
   const goVerify = () => {
     trackFunnel("cta_click", { source: "how_it_works", path: "/" });
@@ -396,11 +592,16 @@ export default function Architecture() {
     navigate(loginUrl("/performance", { source: "how_it_works" }));
   };
 
+  const goScene = (i) => {
+    setInit(false);
+    setScene(i);
+  };
+
   return (
     <section
       id="how-it-works"
       data-lq-self=""
-      className="relative z-10 w-full scroll-mt-32 overflow-hidden py-16 lg:py-24"
+      className="relative z-10 w-full scroll-mt-32 overflow-hidden py-16 pb-28 lg:py-24"
     >
       <div className="mx-auto w-full max-w-[1120px] px-4 lg:px-8">
         <h2 className="max-w-4xl text-[28px] font-semibold leading-[1.28] tracking-[-0.025em] sm:text-[34px] lg:text-[40px]">
@@ -415,14 +616,52 @@ export default function Architecture() {
       <div ref={root} className="lq-sys relative mx-auto mt-10 w-full max-w-[1080px] px-3 sm:mt-12 sm:px-6">
         <div className="lq-sys-dots" aria-hidden="true" />
         <div className="relative hidden lg:block">
-          <Diagram g={D} width={DW} height={DH} scene={scene} init={init} running={live && !init} />
+          <Diagram
+            g={D}
+            width={DW}
+            height={DH}
+            scene={scene}
+            init={init}
+            running={live && !init}
+            onPause={setPaused}
+          />
         </div>
         <div className="relative lg:hidden">
-          <Diagram g={M} width={MW} height={MH} scene={scene} init={init} running={live && !init} />
+          <Diagram
+            g={M}
+            width={MW}
+            height={MH}
+            scene={scene}
+            init={init}
+            running={live && !init}
+            onPause={setPaused}
+          />
         </div>
       </div>
 
-      <div className="mx-auto mt-10 flex max-w-[1120px] flex-col items-center gap-2.5 px-4 lg:mt-12 lg:px-8">
+      <div className="lq-livebar mx-auto mt-5 flex max-w-[720px] flex-col items-center gap-3 px-4 sm:mt-6">
+        <div className="flex items-center gap-2">
+          <span className={`lq-live-dot${live && !paused ? " is-on" : ""}`} aria-hidden="true" />
+          <p className="text-center text-[12.5px] font-medium leading-snug tracking-[-0.01em] text-text-secondary sm:text-[13.5px]">
+            {sceneCaption(SCENES[scene])}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5" role="tablist" aria-label="Live tape paths">
+          {SCENES.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              role="tab"
+              aria-selected={i === scene}
+              aria-label={`Show path ${i + 1}`}
+              className={`lq-scene-dot${i === scene ? " is-on" : ""}`}
+              onClick={() => goScene(i)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto mt-8 flex max-w-[1120px] flex-col items-center gap-2.5 px-4 lg:mt-10 lg:px-8">
         <p className="max-w-3xl text-center text-[13px] font-medium leading-[1.7] text-text-muted sm:text-[14.5px]">
           The tape comes in. The engine writes the call. You take it to your exchange.
         </p>
@@ -436,67 +675,153 @@ export default function Architecture() {
       </div>
 
       <style>{`
-        .lq-sys { --line: rgb(var(--accent) / 0.42); --idle: rgb(var(--accent) / 0.26); --pill: rgb(var(--accent)); --ink: #171304; }
-        .lq-sys-dots {
-          position: absolute; inset: -48px 0 -56px;
-          background-image: url("data:image/svg+xml;utf8,<svg width='10' height='10' xmlns='http://www.w3.org/2000/svg'><rect width='2' height='2' fill='%238a6a28'/></svg>");
-          background-size: 10px 10px; opacity: .46; pointer-events: none;
-          -webkit-mask-image: linear-gradient(180deg, transparent, #737373 22%, #737373 78%, transparent);
-          mask-image: linear-gradient(180deg, transparent, #737373 22%, #737373 78%, transparent);
+        .lq-sys {
+          --line: rgb(var(--accent) / 0.38);
+          --idle: rgb(var(--accent) / 0.22);
+          --gold: rgb(var(--accent));
+          --gold-ink: rgb(var(--accent-fg));
         }
-        .lq-flow { stroke: var(--line); stroke-width: 1.25; stroke-dasharray: 2 3; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .lq-sys-dots {
+          position: absolute; inset: -36px 8px -28px;
+          border-radius: 28px;
+          background-image: radial-gradient(circle, rgb(var(--accent) / 0.38) 0.7px, transparent 0.85px);
+          background-size: 14px 14px;
+          opacity: .28;
+          pointer-events: none;
+          -webkit-mask-image: radial-gradient(ellipse 78% 72% at 50% 48%, #737373 35%, transparent 78%);
+          mask-image: radial-gradient(ellipse 78% 72% at 50% 48%, #737373 35%, transparent 78%);
+        }
+        .lq-hub-glow {
+          position: absolute; z-index: 0; pointer-events: none; border-radius: 999px;
+          background: radial-gradient(circle, rgb(var(--accent) / 0.22), transparent 68%);
+        }
+        .lq-flow { stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 2 3.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
         .lq-flow-run {
           fill: none;
-          stroke: #f0c84a;
-          stroke-width: 1.45;
+          stroke: rgb(var(--accent-light));
+          stroke-width: 1.5;
           stroke-linecap: round;
           stroke-dasharray: 10 18;
           animation: lqDash 1.15s linear infinite;
         }
         .lq-pkt {
-          fill: #f0c84a;
-          filter: drop-shadow(0 0 5px rgba(240,185,11,.9));
+          fill: rgb(var(--accent-light));
+          filter: drop-shadow(0 0 5px rgb(var(--accent) / 0.9));
         }
-        .lq-flow-wrap.is-dim { opacity: .28; }
+        .lq-junc { fill: rgb(var(--accent) / 0.85); }
+        .lq-flow-wrap { transition: opacity .45s cubic-bezier(.4,0,.2,1); }
+        .lq-flow-wrap.is-dim { opacity: .18; }
         .lq-flow-wrap.is-dim .lq-flow-run, .lq-flow-wrap.is-dim .lq-pkt { opacity: 0; }
         @keyframes lqDash { to { stroke-dashoffset: -28; } }
-        .lq-tray { position: absolute; z-index: 1; border-radius: 8px; background: rgb(var(--surface) / 0.28); }
+        .lq-tray {
+          position: absolute; z-index: 1; border-radius: 12px;
+          background: rgb(var(--surface-raised) / 0.35);
+          border: 1px solid rgb(var(--accent) / 0.08);
+        }
+        .lq-tag {
+          position: absolute; z-index: 2;
+          font-size: 9.5px; font-weight: 650; letter-spacing: .16em; text-transform: uppercase;
+          color: rgb(var(--fg-muted)); text-align: center; pointer-events: none;
+        }
         .lq-pill, .lq-slot, .lq-hub, .lq-dest {
           position: absolute; z-index: 4; box-sizing: border-box;
         }
         .lq-pill {
           display: flex; align-items: center; justify-content: center; gap: 6px;
-          border-radius: 6px; background: var(--pill); color: var(--ink);
-          font-size: 12.5px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
+          border-radius: 8px;
+          background: radial-gradient(63% 56% at 22% -11%, #fff2bd 0%, rgb(var(--accent-light)) 30%, rgb(var(--accent)) 62%, rgb(var(--accent-dark)) 100%);
+          color: var(--gold-ink);
+          box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), inset 0 -3px 5px rgb(var(--scrim) / 0.16);
+          font-size: 12.5px; font-weight: 650; letter-spacing: -0.015em; white-space: nowrap;
+          outline: none;
+        }
+        .lq-pill:focus-visible, .lq-slot:focus-visible, .lq-hub:focus-visible {
+          box-shadow: 0 0 0 2px rgb(var(--surface)), 0 0 0 4px rgb(var(--accent) / 0.55);
         }
         .lq-slot {
           display: flex; align-items: center; justify-content: center;
-          border-radius: 6px;
+          border-radius: 8px; outline: none;
         }
         .lq-slot span {
           display: flex; align-items: center; justify-content: center; gap: 6px;
-          width: 100%; height: 100%; border-radius: 6px;
-          background: var(--pill); color: var(--ink);
-          font-size: 12px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap;
-          opacity: .48;
-          transition: opacity .45s cubic-bezier(.4,0,.2,1);
+          width: 100%; height: 100%; border-radius: 8px;
+          background: rgb(var(--accent) / 0.1);
+          border: 1px solid rgb(var(--accent) / 0.24);
+          color: rgb(var(--accent-text) / 0.78);
+          font-size: 12.5px; font-weight: 650; letter-spacing: -0.015em; white-space: nowrap;
+          transition: background .4s cubic-bezier(.4,0,.2,1), color .4s cubic-bezier(.4,0,.2,1), border-color .4s cubic-bezier(.4,0,.2,1), box-shadow .4s cubic-bezier(.4,0,.2,1);
         }
-        .lq-slot.is-on span, .lq-slot.is-init span { opacity: 1; }
+        .lq-slot.is-on span, .lq-slot.is-init span {
+          background: radial-gradient(63% 56% at 22% -11%, #fff2bd 0%, rgb(var(--accent-light)) 30%, rgb(var(--accent)) 62%, rgb(var(--accent-dark)) 100%);
+          border-color: transparent;
+          color: var(--gold-ink);
+          box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), inset 0 -3px 5px rgb(var(--scrim) / 0.16);
+        }
         .lq-slot.is-init span { transition-duration: 0ms; }
+        .lq-slot:hover span { filter: brightness(1.06); }
         .lq-hub {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
-          border-radius: 12px; background: #d4a017;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 16px 28px -16px rgb(var(--scrim) / 0.45);
+          border-radius: 16px;
+          background: radial-gradient(63% 56% at 22% -11%, #fff2bd 0%, rgb(var(--accent-light)) 30%, rgb(var(--accent)) 62%, rgb(var(--accent-dark)) 100%);
+          box-shadow:
+            inset 0 1px 0 rgb(255 255 255 / 0.38),
+            inset 0 -4px 8px rgb(var(--scrim) / 0.18),
+            0 18px 36px -18px rgb(var(--accent) / 0.55);
+          outline: none;
         }
-        .lq-hub img { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
-        .lq-hub span { margin-top: 4px; color: #171304; font-size: 9px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+        .lq-hub img { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
+        .lq-hub span {
+          margin-top: 5px; color: var(--gold-ink);
+          font-size: 9px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase;
+        }
         .lq-dest {
-          display: flex;
-          flex-wrap: wrap;
-          align-content: center;
-          justify-content: center;
-          gap: 8px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: rgb(var(--surface-raised) / 0.62);
+          border: 1px solid rgb(var(--ink) / 0.08);
+          box-shadow: inset 0 1px 0 rgb(var(--ink) / 0.04);
         }
+        .lq-dest-kicker {
+          font-size: 9px; font-weight: 650; letter-spacing: .14em; text-transform: uppercase;
+          color: rgb(var(--fg-muted));
+        }
+        .lq-dest-marks {
+          display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 7px;
+        }
+        .lq-tip {
+          position: absolute; z-index: 8; width: 196px;
+          padding: 8px 10px; border-radius: 10px;
+          background: rgb(var(--surface-raised));
+          border: 1px solid rgb(var(--ink) / 0.1);
+          box-shadow: 0 12px 28px -12px rgb(var(--scrim) / 0.55);
+          pointer-events: none;
+        }
+        @media (hover: none) {
+          .lq-tip { display: none; }
+        }
+        .lq-tip strong {
+          display: block; font-size: 11.5px; font-weight: 650; color: rgb(var(--fg));
+          letter-spacing: -0.01em;
+        }
+        .lq-tip span {
+          display: block; margin-top: 2px; font-size: 11px; line-height: 1.4; color: rgb(var(--fg-muted));
+        }
+        .lq-live-dot {
+          width: 6px; height: 6px; border-radius: 99px; background: rgb(var(--fg-muted) / 0.45);
+        }
+        .lq-live-dot.is-on {
+          background: rgb(var(--accent));
+          box-shadow: 0 0 0 4px rgb(var(--accent) / 0.16);
+          animation: lqPulse 1.8s ease-in-out infinite;
+        }
+        .lq-scene-dot {
+          width: 7px; height: 7px; border-radius: 99px; padding: 0; border: 0;
+          background: rgb(var(--ink) / 0.18); cursor: pointer;
+          transition: width .25s ease, background .25s ease;
+        }
+        .lq-scene-dot.is-on { width: 18px; background: rgb(var(--accent)); }
+        .lq-scene-dot:focus-visible { outline: 2px solid rgb(var(--accent) / 0.55); outline-offset: 2px; }
         .lq-ico { flex: 0 0 auto; }
         .lq-ico path, .lq-ico rect, .lq-ico circle { transform-box: fill-box; transform-origin: center; }
         .lq-ico-price .lq-g-main { animation: lqWave 2.6s ease-in-out infinite; }
@@ -507,8 +832,26 @@ export default function Architecture() {
         @keyframes lqBookL { 0%,100% { transform: scaleX(.9); } 50% { transform: scaleX(1.08); } }
         @keyframes lqBookR { 0%,100% { transform: scaleX(1.08); } 50% { transform: scaleX(.9); } }
         @keyframes lqVol { 0%,100% { transform: scaleY(.7); } 50% { transform: scaleY(1.12); } }
+        @keyframes lqPulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+        [data-theme="bright"] .lq-sys-dots { opacity: .16; }
+        [data-theme="bright"] .lq-hub-glow { opacity: .55; }
+        [data-theme="bright"] .lq-dest {
+          background: rgb(var(--surface-raised));
+          border-color: rgb(var(--ink) / 0.1);
+        }
+        [data-theme="bright"] .lq-tray { background: rgb(var(--surface-secondary) / 0.7); }
+        [data-theme="bright"] .lq-slot span {
+          background: rgb(var(--surface-raised));
+          color: rgb(var(--accent-text));
+        }
+        [data-theme="bright"] .lq-slot.is-on span,
+        [data-theme="bright"] .lq-slot.is-init span {
+          background: radial-gradient(63% 56% at 22% -11%, #fff2bd 0%, rgb(var(--accent-light)) 30%, rgb(var(--accent)) 62%, rgb(var(--accent-dark)) 100%);
+          border-color: transparent;
+          color: var(--gold-ink);
+        }
         @media (prefers-reduced-motion: reduce) {
-          .lq-slot span, .lq-ico path, .lq-ico rect, .lq-flow-run { transition: none !important; animation: none !important; }
+          .lq-slot span, .lq-ico path, .lq-ico rect, .lq-flow-run, .lq-live-dot { transition: none !important; animation: none !important; }
           .lq-pkt { display: none !important; }
         }
       `}</style>
