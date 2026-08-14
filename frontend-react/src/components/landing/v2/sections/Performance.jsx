@@ -587,151 +587,144 @@ function RrLadder() {
  * hide it from people who do not open devtools.
  */
 /* Risk-adjusted edge.
-   Public math is the gap between break-even and actual WR — both already on
-   the page. The ladder shows order, never R multiples (equal row height,
-   hashed values). Stop is −1R by definition and leaks nothing about the book. */
+   One comparison, not three tiles: need vs do, with the gap as the
+   connector. The plan is a process (order only) — never a table of
+   hashed R multiples. Stop is −1R by definition and leaks nothing. */
 function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
   const breakeven = rGeo?.breakeven_win_rate_pct ?? null;
   const actual = winRate > 0 ? winRate : null;
   const calls = rGeo?.calls_measured ?? null;
   const ready = breakeven != null && actual != null;
   const gap = ready ? actual - breakeven : null;
-  const targets = ["TP4", "TP3", "TP2", "TP1"];
+  const steps = [
+    { id: "TP4", kind: "tp" },
+    { id: "TP3", kind: "tp" },
+    { id: "TP2", kind: "tp" },
+    { id: "TP1", kind: "tp" },
+    { id: "Entry", kind: "entry", val: "0R" },
+    { id: "Stop", kind: "stop", val: "−1R" },
+  ];
 
   return (
     <div className="lq-risk-suite lq-edge">
-      <div className="lq-edge-proof">
-        {ready ? (
-          <>
-            <div className="lq-edge-kpis">
-              <div className="lq-edge-kpi lq-edge-kpi--be">
-                <span className="lq-edge-kpi-num">
-                  <CountUp value={breakeven} active={visible} suffix="%" />
-                </span>
-                <span className="lq-edge-kpi-lab">Need to win</span>
-                <span className="lq-edge-kpi-cap">To cover the losing calls</span>
-              </div>
-              <div className="lq-edge-kpi lq-edge-kpi--gap">
-                <span className="lq-edge-kpi-num">
-                  <CountUp value={gap} active={visible} prefix="+" suffix="" />
-                </span>
-                <span className="lq-edge-kpi-lab">The gap</span>
-                <span className="lq-edge-kpi-cap">How far above even we sit</span>
-              </div>
-              <div className="lq-edge-kpi lq-edge-kpi--live">
-                <span className="lq-edge-kpi-num">
-                  <CountUp value={actual} active={visible} suffix="%" />
-                </span>
-                <span className="lq-edge-kpi-lab">Do win</span>
-                <span className="lq-edge-kpi-cap">Hit at least the first target</span>
-              </div>
+      {ready ? (
+        <>
+          <div className="lq-edge-vs">
+            <div className="lq-edge-side lq-edge-side--need">
+              <span className="lq-edge-kicker">Need</span>
+              <span className="lq-edge-figure">
+                <CountUp value={breakeven} active={visible} suffix="%" />
+              </span>
+              <span className="lq-edge-hint">to cover the losers</span>
             </div>
-
-            <div
-              className="lq-edge-axis"
-              role="img"
-              aria-label={`Need ${breakeven.toFixed(1)} percent to cover losers. ${actual.toFixed(1)} percent hit a target. Gap ${gap.toFixed(1)} points.`}
-            >
-              <span className="lq-edge-seg-need" style={{ width: `${breakeven}%` }} />
-              <span
-                className="lq-edge-seg-edge"
-                style={{ left: `${breakeven}%`, width: `${Math.max(0, gap)}%` }}
-              />
-              <span className="lq-edge-tick" style={{ left: `${breakeven}%` }} />
-              <span className="lq-edge-tick lq-edge-tick--live" style={{ left: `${actual}%` }} />
+            <div className="lq-edge-mid">
+              <span className="lq-edge-gap">
+                <CountUp value={gap} active={visible} prefix="+" />
+              </span>
+              <span className="lq-edge-gaplab">pts above even</span>
             </div>
-            <div className="lq-edge-scale">
-              <span>0%</span>
-              <span>50%</span>
-              <span>100%</span>
-            </div>
-
-            <div className="lq-edge-read">
-              <p className="lq-edge-claim">
-                We only need <strong>{breakeven.toFixed(1)}%</strong> of finished calls to hit a
-                target so the winners still cover the losers. <strong>{actual.toFixed(1)}%</strong>{" "}
-                do
-                {calls != null
-                  ? ` — ${calls.toLocaleString("en-US")} calls, nothing left out`
-                  : ""}.
-              </p>
-              <details className="lq-edge-why">
-                <summary>Why {breakeven.toFixed(1)}% is enough</summary>
-                <div className="lq-edge-why-body">
-                  <p>
-                    Every losing call stops at a planned stop — one unit of risk. Winning calls
-                    take profit in steps, so a typical win is about{" "}
-                    <strong>{((100 - breakeven) / breakeven).toFixed(2)}×</strong> a typical
-                    loss. That is why we do not need to be right most of the time to stay even.
-                  </p>
-                  <p className="lq-edge-formula">
-                    need-to-win = average loss ÷ (average loss + average win) ={" "}
-                    {breakeven.toFixed(1)}%
-                  </p>
-                  <p>
-                    Those averages use every finished call
-                    {calls != null ? ` — all ${calls.toLocaleString("en-US")}` : ""}. Not a
-                    model, not a picked window.
-                  </p>
-                </div>
-              </details>
-            </div>
-          </>
-        ) : (
-          <p className="lq-edge-claim">Need-to-win is worked out from the stop and the targets.</p>
-        )}
-      </div>
-
-      <div className="lq-edge-mech">
-        <div className="lq-edge-instrument">
-          <div className="lq-edge-rowhead">
-            <div>
-              <p className="lq-edge-label">Every call looks like this</p>
-              <p className="lq-edge-cap">Targets, then entry, then the stop. Same order every time.</p>
+            <div className="lq-edge-side lq-edge-side--do">
+              <span className="lq-edge-kicker">Do</span>
+              <span className="lq-edge-figure lq-edge-kpi-num">
+                <CountUp value={actual} active={visible} suffix="%" />
+              </span>
+              <span className="lq-edge-hint">hit the first target</span>
             </div>
           </div>
 
-          <ol className="lq-ladder" aria-label="Call plan. Target sizes unlock after sign in.">
-            {targets.map((t) => (
-              <li key={t} className="lq-ladder-row">
-                <span className="lq-ladder-node" aria-hidden="true" />
-                <span className="lq-ladder-name">{t}</span>
-                <span className="lq-ladder-hash" aria-label={`${t} size after sign-in`} />
-              </li>
-            ))}
-            <li className="lq-ladder-row lq-ladder-row--entry">
-              <span className="lq-ladder-node lq-ladder-node--entry" aria-hidden="true" />
-              <span className="lq-ladder-name">Entry</span>
-              <span className="lq-ladder-val">0R</span>
-            </li>
-            <li className="lq-ladder-row lq-ladder-row--stop">
-              <span className="lq-ladder-node lq-ladder-node--stop" aria-hidden="true" />
-              <span className="lq-ladder-name">Stop</span>
-              <span className="lq-ladder-val lq-ladder-val--stop">−1.00R</span>
-            </li>
-          </ol>
-          <p className="lq-edge-foot">
-            The stop is always one unit of risk. How big each target is unlocks after you sign in.
+          <div
+            className="lq-edge-axis"
+            role="img"
+            aria-label={`Need ${breakeven.toFixed(1)} percent to cover losers. ${actual.toFixed(1)} percent hit a target. Gap ${gap.toFixed(1)} points.`}
+          >
+            <span className="lq-edge-track" />
+            <span className="lq-edge-seg-need" style={{ width: `${breakeven}%` }} />
+            <span
+              className="lq-edge-seg-edge"
+              style={{ left: `${breakeven}%`, width: `${Math.max(0, gap)}%` }}
+            />
+            <span className="lq-edge-mark lq-edge-mark--need" style={{ left: `${breakeven}%` }}>
+              <i />
+            </span>
+            <span className="lq-edge-mark lq-edge-mark--do" style={{ left: `${actual}%` }}>
+              <i />
+            </span>
+          </div>
+          <div className="lq-edge-scale">
+            <span>0%</span>
+            <span className="lq-edge-gapline">
+              <CountUp value={gap} active={visible} prefix="+" /> pts above even
+              {calls != null ? ` · ${calls.toLocaleString("en-US")} calls` : ""}
+            </span>
+            <span>100%</span>
+          </div>
+
+          <p className="lq-edge-claim">
+            We only need <strong>{breakeven.toFixed(1)}%</strong> of finished calls to hit a
+            target so the winners still cover the losers.{" "}
+            <strong>{actual.toFixed(1)}%</strong> do
+            {calls != null ? ` — ${calls.toLocaleString("en-US")} calls, nothing left out` : ""}.
+          </p>
+          <details className="lq-edge-why">
+            <summary>Why {breakeven.toFixed(1)}% is enough</summary>
+            <div className="lq-edge-why-body">
+              <p>
+                Every losing call stops at a planned stop — one unit of risk. Winning calls
+                take profit in steps, so a typical win is about{" "}
+                <strong>{((100 - breakeven) / breakeven).toFixed(2)}×</strong> a typical loss.
+                That is why we do not need to be right most of the time to stay even.
+              </p>
+              <p className="lq-edge-formula">
+                need-to-win = average loss ÷ (average loss + average win) ={" "}
+                {breakeven.toFixed(1)}%
+              </p>
+              <p>
+                Those averages use every finished call
+                {calls != null ? ` — all ${calls.toLocaleString("en-US")}` : ""}. Not a model,
+                not a picked window.
+              </p>
+            </div>
+          </details>
+        </>
+      ) : (
+        <p className="lq-edge-claim">Need-to-win is worked out from the stop and the targets.</p>
+      )}
+
+      <div className="lq-edge-plan">
+        <div className="lq-edge-plan-copy">
+          <p className="lq-edge-label">Every call, same order</p>
+          <p className="lq-edge-cap">
+            Targets, then entry, then the stop. Target sizes after you sign in.
           </p>
         </div>
-
-        <div className="lq-edge-door">
-          <p className="lq-edge-label">See the rest</p>
-          <p className="lq-edge-cap">
-            Average result per call, and the running total since 2023. Same calls as above —
-            measured in units of the stop.
+        <div className="lq-edge-steps" aria-label="Call plan. Target sizes unlock after sign in.">
+          <ol className="lq-edge-run">
+            {steps
+              .filter((s) => s.kind === "tp")
+              .map((s) => (
+                <li key={s.id} className={`lq-edge-step lq-edge-step--${s.kind}`}>
+                  <span className="lq-edge-dot" aria-hidden="true" />
+                  <span className="lq-edge-step-name">{s.id}</span>
+                </li>
+              ))}
+          </ol>
+          <ol className="lq-edge-run">
+            {steps
+              .filter((s) => s.kind !== "tp")
+              .map((s) => (
+                <li key={s.id} className={`lq-edge-step lq-edge-step--${s.kind}`}>
+                  <span className="lq-edge-dot" aria-hidden="true" />
+                  <span className="lq-edge-step-name">{s.id}</span>
+                  {s.val ? <span className="lq-edge-step-val">{s.val}</span> : null}
+                </li>
+              ))}
+          </ol>
+        </div>
+        <div className="lq-edge-unlock">
+          <p className="lq-edge-unlock-copy">
+            Average result per call, and the running total since 2023.
           </p>
-          <ul className="lq-edge-doorlist">
-            <li>
-              <LockIcon />
-              Average per call
-            </li>
-            <li>
-              <LockIcon />
-              Running total since 2023
-            </li>
-          </ul>
-          <PrimaryButton size="md" width="full" onClick={onUnlock} className="group">
+          <PrimaryButton size="md" width="fullMobile" onClick={onUnlock} className="group">
             Sign in to see the numbers
             <BtnArrow />
           </PrimaryButton>
