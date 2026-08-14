@@ -2616,53 +2616,23 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
   );
 }
 
-// The dashed stat annotation — Cloudflare's "234B daily cyber threats
-// blocked" box, speaking LuxQuant numbers. Rotates so the globe narrates
-// different proof points; positioned off the sphere so it never fights
-// the notification chips for attention.
-function StatAnnotation({ stats }) {
-  const items = [];
-  if (stats?.closed_trades) {
-    items.push({ v: Number(stats.closed_trades).toLocaleString("en-US"), c: "Signals resolved on public record." });
-  }
+function ProofStrip({ stats }) {
+  const bits = [];
   if (stats?.win_rate) {
-    items.push({ v: `${Number(stats.win_rate).toFixed(1)}%`, c: "Calls that reached a target — every one auditable." });
+    bits.push(`${Number(stats.win_rate).toFixed(1)}% reached a target`);
   }
-  if (stats?.active_pairs) {
-    items.push({ v: Number(stats.active_pairs).toLocaleString("en-US"), c: "Pairs tracked in real time." });
-  }
-  items.push({ v: "<1s", c: "Calls delivered to every timezone." });
-
-  const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    if (items.length < 2) return undefined;
-    const iv = setInterval(() => setIdx((i) => (i + 1) % items.length), 5200);
-    return () => clearInterval(iv);
-  }, [items.length]);
-
-  const item = items[idx % items.length];
-  if (!item) return null;
+  const n = stats?.total_signals ?? stats?.closed_trades;
+  if (n) bits.push(`${Number(n).toLocaleString("en-US")} calls on record`);
+  bits.push("Since 2023");
   return (
-    <div
-      className="pointer-events-none absolute left-[4%] top-[34%] z-20 hidden w-56 select-none lg:block"
-      aria-hidden="true"
-    >
-      <div
-        key={idx}
-        className="lq-statbox rounded-sm border border-dashed px-4 py-3"
-        style={{
-          borderColor: "rgb(var(--accent) / 0.55)",
-          background: "rgb(var(--surface) / 0.6)",
-        }}
-      >
-        <p className="font-mono text-lg font-semibold leading-none" style={{ color: "rgb(var(--accent-text))" }}>
-          {item.v}
-        </p>
-        <p className="mt-1.5 text-xs leading-snug" style={{ color: "rgb(var(--accent-text) / 0.85)" }}>
-          {item.c}
-        </p>
-      </div>
-    </div>
+    <p className="mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12.5px] leading-snug text-text-muted sm:text-[13px]">
+      {bits.map((bit, i) => (
+        <span key={bit} className="inline-flex items-center gap-3">
+          {i > 0 ? <span aria-hidden="true" className="text-ink/25">·</span> : null}
+          {bit}
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -2795,11 +2765,14 @@ export default function GlobalReach({ gainers = [], stats = null }) {
 
       <div className="relative z-10 mx-auto max-w-6xl px-4">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[12px] font-medium tracking-wide text-text-muted">Global reach</p>
+          <p className="text-[12px] font-medium tracking-wide text-text-muted">Built in Taipei</p>
           <h2 className="mt-2 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-            Precision intelligence,{" "}
-            <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">worldwide.</span>
+            The book is{" "}
+            <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
+              public.
+            </span>
           </h2>
+          <ProofStrip stats={stats} />
         </div>
       </div>
 
@@ -2820,28 +2793,17 @@ export default function GlobalReach({ gainers = [], stats = null }) {
         <div className="absolute inset-0">
           {inView && <CanvasGlobe gainersRef={gainersRef} onOpenSignal={onOpenSignal} />}
         </div>
-        {inView && <StatAnnotation stats={stats} />}
-
-        {/* End card on the globe — not a sales block after it. The map is
-            the last image; the line names what it is. Guests get one quiet
-            ask. Signed-in visitors already have Open App in the header. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-4 pb-8 pt-28 text-center sm:pb-10 sm:pt-36">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-8 pt-28 sm:pb-10 sm:pt-36">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "linear-gradient(to top, rgb(var(--surface)) 0%, rgb(var(--surface) / 0.82) 28%, transparent 100%)",
+                "linear-gradient(to top, rgb(var(--surface)) 0%, rgb(var(--surface) / 0.75) 36%, transparent 100%)",
             }}
           />
-          <p className="pointer-events-auto relative max-w-md text-[15px] font-medium leading-snug tracking-[-0.015em] text-text-primary sm:text-[16px]">
-            Built in Taipei.
-          </p>
-          <p className="pointer-events-auto relative mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-text-muted sm:text-[14px]">
-            The record is public, on any desk.
-          </p>
           {!isAuthenticated && (
-            <div className="pointer-events-auto relative mt-5">
+            <div className="pointer-events-auto relative">
               <PrimaryButton size="md" onClick={goClose} className="group">
                 {CTA.primaryGuest}
                 <BtnArrow />
@@ -2852,8 +2814,6 @@ export default function GlobalReach({ gainers = [], stats = null }) {
       </div>
 
       <style>{`
-        .lq-statbox { animation: lqStatIn 0.5s ease-out; }
-        @keyframes lqStatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         .lq-gchip .lq-gchip-a { animation: lqGchipA 7.6s linear forwards; }
         .lq-gchip .lq-gchip-b { animation: lqGchipB 7.6s linear forwards; opacity: 0; }
         .lq-gchip-phone { transform-origin: 50% 20%; animation: lqGchipRing 1.1s ease-in-out 2; }
