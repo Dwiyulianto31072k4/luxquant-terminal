@@ -160,11 +160,11 @@ const INFO = {
     ],
   },
   rEdge: {
-    title: "Risk-Adjusted Edge",
+    title: "Need to win vs actually win",
     lines: [
-      "R is the risk each call sets for itself: 1R = entry minus stop. Every result is measured in multiples of it, so a Bitcoin call and a micro-cap sit on the same scale.",
-      "Break-even is the win rate this geometry needs just to stay flat. Actual is the share of resolved calls that reached at least TP1. The gap between them is the edge.",
-      "The ladder shows order, not size. Target R multiples unlock after sign-in so the public page cannot give the book away.",
+      "A call “wins” when price hits at least the first target (TP1). A loss always stops at the planned stop.",
+      "Need-to-win is the share of calls that must hit a target so the winners still cover the losers. Actually-win is what the public book did.",
+      "The gap is the edge. Target sizes stay behind sign-in so this page cannot give the book away.",
     ],
   },
   patterns: {
@@ -608,29 +608,29 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
                 <span className="lq-edge-kpi-num">
                   <CountUp value={breakeven} active={visible} suffix="%" />
                 </span>
-                <span className="lq-edge-kpi-lab">Break-even</span>
-                <span className="lq-edge-kpi-cap">Win rate needed to stay flat</span>
+                <span className="lq-edge-kpi-lab">Need to win</span>
+                <span className="lq-edge-kpi-cap">To cover the losing calls</span>
               </div>
               <div className="lq-edge-kpi lq-edge-kpi--gap">
                 <span className="lq-edge-kpi-num">
                   <CountUp value={gap} active={visible} prefix="+" suffix="" />
                 </span>
-                <span className="lq-edge-kpi-lab">pts of edge</span>
-                <span className="lq-edge-kpi-cap">Actual minus break-even</span>
+                <span className="lq-edge-kpi-lab">The gap</span>
+                <span className="lq-edge-kpi-cap">How far above even we sit</span>
               </div>
               <div className="lq-edge-kpi lq-edge-kpi--live">
                 <span className="lq-edge-kpi-num">
                   <CountUp value={actual} active={visible} suffix="%" />
                 </span>
-                <span className="lq-edge-kpi-lab">Actual</span>
-                <span className="lq-edge-kpi-cap">Resolved calls that reached a target</span>
+                <span className="lq-edge-kpi-lab">Do win</span>
+                <span className="lq-edge-kpi-cap">Hit at least the first target</span>
               </div>
             </div>
 
             <div
               className="lq-edge-axis"
               role="img"
-              aria-label={`Break-even ${breakeven.toFixed(1)} percent, actual ${actual.toFixed(1)} percent, edge ${gap.toFixed(1)} points`}
+              aria-label={`Need ${breakeven.toFixed(1)} percent to cover losers. ${actual.toFixed(1)} percent hit a target. Gap ${gap.toFixed(1)} points.`}
             >
               <span className="lq-edge-seg-need" style={{ width: `${breakeven}%` }} />
               <span
@@ -648,33 +648,37 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
 
             <div className="lq-edge-read">
               <p className="lq-edge-claim">
-                Only <strong>{breakeven.toFixed(1)}%</strong> of resolved calls need to win to
-                cover the losers. <strong>{actual.toFixed(1)}%</strong> do
-                {calls != null ? ` — a ${gap.toFixed(1)}-point gap across ${calls.toLocaleString("en-US")} calls` : ""}.
+                We only need <strong>{breakeven.toFixed(1)}%</strong> of finished calls to hit a
+                target so the winners still cover the losers. <strong>{actual.toFixed(1)}%</strong>{" "}
+                do
+                {calls != null
+                  ? ` — ${calls.toLocaleString("en-US")} calls, nothing left out`
+                  : ""}.
               </p>
               <details className="lq-edge-why">
-                <summary>Where does {breakeven.toFixed(1)}% come from?</summary>
+                <summary>Why {breakeven.toFixed(1)}% is enough</summary>
                 <div className="lq-edge-why-body">
                   <p>
-                    Every loss is capped at the stop — one risk unit, fixed before the trade
-                    opens. Winners run an ordered ladder, so an average winner is worth about{" "}
-                    <strong>{((100 - breakeven) / breakeven).toFixed(2)}×</strong> what an
-                    average loser costs.
+                    Every losing call stops at a planned stop — one unit of risk. Winning calls
+                    take profit in steps, so a typical win is about{" "}
+                    <strong>{((100 - breakeven) / breakeven).toFixed(2)}×</strong> a typical
+                    loss. That is why we do not need to be right most of the time to stay even.
                   </p>
                   <p className="lq-edge-formula">
-                    break-even = avg loss ÷ (avg loss + avg win) = {breakeven.toFixed(1)}%
+                    need-to-win = average loss ÷ (average loss + average win) ={" "}
+                    {breakeven.toFixed(1)}%
                   </p>
                   <p>
-                    Both averages are taken from every resolved call
-                    {calls != null ? ` — all ${calls.toLocaleString("en-US")} of them` : ""}.
-                    No model, no cherry-picked window.
+                    Those averages use every finished call
+                    {calls != null ? ` — all ${calls.toLocaleString("en-US")}` : ""}. Not a
+                    model, not a picked window.
                   </p>
                 </div>
               </details>
             </div>
           </>
         ) : (
-          <p className="lq-edge-claim">Break-even derived from this ladder&apos;s geometry.</p>
+          <p className="lq-edge-claim">Need-to-win is worked out from the stop and the targets.</p>
         )}
       </div>
 
@@ -682,17 +686,17 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
         <div className="lq-edge-instrument">
           <div className="lq-edge-rowhead">
             <div>
-              <p className="lq-edge-label">Call structure</p>
-              <p className="lq-edge-cap">Same order on every call. Spacing is even — not the R size.</p>
+              <p className="lq-edge-label">Every call looks like this</p>
+              <p className="lq-edge-cap">Targets, then entry, then the stop. Same order every time.</p>
             </div>
           </div>
 
-          <ol className="lq-ladder" aria-label="Call ladder. Target R values unlock after sign in.">
+          <ol className="lq-ladder" aria-label="Call plan. Target sizes unlock after sign in.">
             {targets.map((t) => (
               <li key={t} className="lq-ladder-row">
                 <span className="lq-ladder-node" aria-hidden="true" />
                 <span className="lq-ladder-name">{t}</span>
-                <span className="lq-ladder-hash" aria-label={`${t} R locked`} />
+                <span className="lq-ladder-hash" aria-label={`${t} size after sign-in`} />
               </li>
             ))}
             <li className="lq-ladder-row lq-ladder-row--entry">
@@ -707,28 +711,28 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
             </li>
           </ol>
           <p className="lq-edge-foot">
-            Stop is 1R by definition. Target multiples unlock after sign-in.
+            The stop is always one unit of risk. How big each target is unlocks after you sign in.
           </p>
         </div>
 
         <div className="lq-edge-door">
-          <p className="lq-edge-label">The book in R</p>
+          <p className="lq-edge-label">See the rest</p>
           <p className="lq-edge-cap">
-            Expectancy per call, and cumulative R since December 2023. Same sample as the
-            numbers above — just in risk units.
+            Average result per call, and the running total since 2023. Same calls as above —
+            measured in units of the stop.
           </p>
           <ul className="lq-edge-doorlist">
             <li>
               <LockIcon />
-              Expectancy · per call
+              Average per call
             </li>
             <li>
               <LockIcon />
-              Cumulative R · since Dec 2023
+              Running total since 2023
             </li>
           </ul>
           <PrimaryButton size="md" width="full" onClick={onUnlock} className="group">
-            Unlock the R book
+            Sign in to see the numbers
             <BtnArrow />
           </PrimaryButton>
         </div>
@@ -1301,9 +1305,9 @@ export default function Performance({ data }) {
         className="lq-risk-section mt-16 scroll-mt-32 border-t border-ink/[0.06] pt-12 lg:mt-24 lg:pt-16"
       >
         <CardHead
-          title="Risk-adjusted edge"
+          title="Need to win vs actually win"
           info={INFO.rEdge}
-          sub="Break-even versus the live book. Every result in R — the risk each call sets for itself."
+          sub="How often a call must hit a target to cover the losers — and how often it does."
         />
         <RiskEdge
           rGeo={rGeo}
