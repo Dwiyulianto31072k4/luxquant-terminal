@@ -5,6 +5,7 @@ import {
   buildTelegramFallbackUrl,
   buildTelegramMiniAppUrl,
   buildTelegramStartParam,
+  buildTelegramWebCampaignUrl,
   parseLuxQuantStartParam,
   telegramCampaignSlug,
 } from "./telegramCampaign";
@@ -51,6 +52,18 @@ describe("telegram campaign payloads", () => {
     );
     expect(buildTelegramMiniAppUrl({ medium: "channel", campaign: "post", content: "proof" }))
       .toContain("startapp=lq1c_post_proof");
+  });
+
+  it("sends normal-browser paid traffic to public proof before login", () => {
+    const url = buildTelegramWebCampaignUrl({
+      campaign: "Proof Scale",
+      content: "Signals A",
+    });
+
+    expect(url).toBe(
+      "https://luxquant.tw/?utm_source=telegram&utm_medium=paid_social&utm_campaign=proof-scale&utm_content=signals-a#performance"
+    );
+    expect(url).not.toContain("luxquant.tw/performance?");
   });
 
   it("normalizes labels for links and dashboards", () => {

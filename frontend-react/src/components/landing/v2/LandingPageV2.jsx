@@ -48,6 +48,45 @@ export default function LandingPageV2() {
     trackFunnel("landing_view", { source: "landing_v2", path: "/" });
   }, []);
 
+  // The browser tries to resolve a URL hash before React has mounted the
+  // landing sections, so paid links such as `/?utm_...#performance` otherwise
+  // remain at the hero. Retry briefly after mount and land the visitor on the
+  // proof that the campaign promised. Use an immediate jump: a long smooth
+  // scroll through the whole page makes an ad deep-link feel broken.
+  useEffect(() => {
+    const raw = window.location.hash.slice(1);
+    if (!raw) return undefined;
+
+    let targetId;
+    try {
+      targetId = decodeURIComponent(raw);
+    } catch {
+      targetId = raw;
+    }
+
+    let attempts = 0;
+    let timer = null;
+    let cancelled = false;
+    const seek = () => {
+      if (cancelled) return;
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "auto", block: "start" });
+        setActiveId(targetId);
+        return;
+      }
+      attempts += 1;
+      if (attempts < 12) timer = window.setTimeout(seek, 100);
+    };
+
+    const frame = window.requestAnimationFrame(seek);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      if (timer) window.clearTimeout(timer);
+    };
+  }, []);
+
   const scrollTo = (id) => {
     setActiveId(id);
     const el = document.getElementById(id);

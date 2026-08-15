@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import {
   buildTelegramMiniAppUrl,
   buildTelegramStartParam,
+  buildTelegramWebCampaignUrl,
   telegramCampaignSlug,
 } from "../../../utils/telegramCampaign";
 
@@ -48,16 +49,13 @@ const TelegramAdsLaunchPanel = ({ rows = [] }) => {
       campaign: campaignSlug,
       content: creativeSlug,
     });
-    const query = new URLSearchParams({
-      utm_source: "telegram",
-      utm_medium: "paid_social",
-      utm_campaign: campaignSlug,
-      utm_content: creativeSlug,
-    });
     return {
       startParam,
       miniApp,
-      web: `https://luxquant.tw/performance?${query.toString()}`,
+      web: buildTelegramWebCampaignUrl({
+        campaign: campaignSlug,
+        content: creativeSlug,
+      }),
     };
   }, [campaign, creative]);
 
@@ -108,7 +106,7 @@ const TelegramAdsLaunchPanel = ({ rows = [] }) => {
           onCopy={copy}
         />
         <LinkRow
-          label="Web campaign · alternate"
+          label="Web campaign · public proof"
           value={links.web}
           copied={copied}
           onCopy={copy}
@@ -117,8 +115,9 @@ const TelegramAdsLaunchPanel = ({ rows = [] }) => {
 
       <p className="mt-2 text-[10.5px] leading-relaxed text-text-muted">
         Signed payload <code className="text-text-secondary">{links.startParam}</code> carries
-        campaign and creative through Telegram, signs the user in inside the Mini App, and lands on
-        proof at <span className="font-medium text-text-secondary">/performance</span>.
+        campaign and creative through Telegram, signs the user in inside the Mini App, and routes to
+        the full performance hub. The web companion shows the public verified track record before
+        asking for sign-in.
       </p>
 
       {paidRows.length > 0 ? (

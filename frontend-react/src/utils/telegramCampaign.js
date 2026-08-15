@@ -67,6 +67,30 @@ export function buildTelegramMiniAppUrl(options = {}) {
   return `${MINI_APP_BASE}?startapp=${encodeURIComponent(startParam)}`;
 }
 
+/**
+ * Web-safe companion for a Telegram campaign.
+ *
+ * `/performance` is intentionally login-required. Paid visitors arriving in a
+ * normal browser should see the public, verified track record first, then opt
+ * into auth from a proof CTA. Keeping UTM in the query (before the hash) lets
+ * first-touch attribution capture the campaign while `#performance` selects
+ * the matching landing section.
+ */
+export function buildTelegramWebCampaignUrl({
+  campaign = "telegram-ads",
+  content = "unknown-creative",
+} = {}) {
+  const campaignSlug = telegramCampaignSlug(campaign, "campaign");
+  const contentSlug = telegramCampaignSlug(content, "creative");
+  const query = new URLSearchParams({
+    utm_source: "telegram",
+    utm_medium: "paid_social",
+    utm_campaign: campaignSlug,
+    utm_content: contentSlug,
+  });
+  return `https://luxquant.tw/?${query.toString()}#performance`;
+}
+
 export function buildTelegramFallbackUrl(acq) {
   const source = String(acq?.source || "").toLowerCase();
   const medium = String(acq?.medium || "").toLowerCase();
