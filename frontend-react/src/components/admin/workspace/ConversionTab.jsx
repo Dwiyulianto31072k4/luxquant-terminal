@@ -1496,15 +1496,8 @@ export const ConversionTab = () => {
       </Panel>
 
       <Panel
-        title="Telegram Ads · launch links to confirmed revenue"
-        sub="Generate one campaign/creative identity, preserve it through Mini App signup, and read the same cohort through activation and payment."
-      >
-        <TelegramAdsLaunchPanel rows={canonicalCampaigns} />
-      </Panel>
-
-      <Panel
-        title="Canonical lifecycle · cohort to confirmed revenue"
-        sub="One user-linked definition across product intent, domain actions, attribution, and payment truth."
+        title="Signals lifecycle · proof to confirmed revenue"
+        sub="One user-linked definition from verified signal proof and armed value through product intent, payment, and renewal."
       >
         {canonical.status === "migration_required" ? (
           <p className="rounded-xl border border-warning/20 bg-warning/[0.06] px-3 py-3 text-[11px] leading-relaxed text-text-muted">
@@ -1615,6 +1608,13 @@ export const ConversionTab = () => {
             )}
           </>
         )}
+      </Panel>
+
+      <Panel
+        title="Acquisition pilot · Telegram links to confirmed revenue"
+        sub="Generate one campaign/creative identity, preserve it through Mini App signup, and judge the cohort by signal activation, payment, and confirmed revenue."
+      >
+        <TelegramAdsLaunchPanel rows={canonicalCampaigns} />
       </Panel>
 
       {/* Where the money actually leaks. Kept as its own panel, and measured in

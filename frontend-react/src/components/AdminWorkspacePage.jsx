@@ -135,7 +135,7 @@ const TABS = [
   {
     id: "growth",
     label: "Growth",
-    description: "Revenue, Agent activation & referrals",
+    description: "Revenue, retention & referrals",
     Icon: RocketIcon,
     group: "growth",
   },
@@ -415,15 +415,6 @@ const PulseStrip = ({ stats, financeStats, servicesSummary, onJumpTo }) => {
       Icon: KeyIcon,
       pulse: true,
       onClick: () => onJumpTo("autotrade"),
-    });
-  if (stats?.paid_no_agent > 0)
-    chips.push({
-      label: "paid, no Agent",
-      value: stats.paid_no_agent,
-      accent: palette.amber[400],
-      Icon: RocketIcon,
-      pulse: true,
-      onClick: () => onJumpTo("growth"),
     });
   if (stats?.agent_live > 0)
     chips.push({
@@ -858,7 +849,9 @@ const AdminWorkspacePage = () => {
       finance:
         financeStats?.stale_count || financeStats?.payment_gap_pending || null,
       autotrade: stats?.agent_errors || stats?.agent_invalid_keys || null,
-      growth: stats?.paid_no_agent || null,
+      // Agent adoption belongs to the Agent operations desk. Growth is led by
+      // signal activation, confirmed revenue, retention, and referrals.
+      growth: null,
       todos: stats?.todos_urgent || null,
       activity: null,
       apikeys: null,

@@ -1,4 +1,4 @@
-// GrowthTab — revenue intelligence + referral operating system.
+// GrowthTab — signals-led revenue, retention, and referral operating system.
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { workspaceApi } from "../../../services/workspaceApi";
@@ -330,111 +330,11 @@ const Overview = ({ data }) => {
         </Panel>
       </div>
       <Panel
-        title="Activation after payment"
-        sub="Paid members who never connected Agent are leftover revenue — they already paid"
-      >
-        <ActivationDesk act={data?.activation || {}} />
-      </Panel>
-      <Panel
         title="Churn risk"
         sub="Paying members who've gone quiet — reach out before they lapse"
       >
         <ChurnRisk risk={data?.health?.churn_risk || []} />
       </Panel>
-    </div>
-  );
-};
-
-const ActivationDesk = ({ act }) => {
-  const steps = [
-    ["Paying now", act.paying || 0],
-    ["Connected Agent", act.paid_connected || 0],
-    ["Live", act.paid_live || 0],
-    ["Profitable bots", act.profitable_bots || 0],
-  ];
-  const venues = act.agent_venues || [];
-  const outreach = act.outreach || [];
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {steps.map(([label, value], i) => {
-          const prev = i === 0 ? value : steps[i - 1][1];
-          const rate = i === 0 || !prev ? null : Math.round((value / prev) * 100);
-          return (
-            <MiniStat
-              key={label}
-              label={label}
-              value={num(value)}
-              tone={i === 0 ? "profit" : i === 3 ? "accent" : "muted"}
-              sub={rate == null ? "active subscribers" : `${rate}% of previous`}
-            />
-          );
-        })}
-      </div>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <MiniStat
-          label="Paid, no key"
-          value={num(act.paid_no_agent)}
-          tone={act.paid_no_agent ? "loss" : "profit"}
-          sub="outreach queue"
-        />
-        <MiniStat
-          label="Paid → connected"
-          value={act.connect_rate_paid == null ? "—" : pct(act.connect_rate_paid)}
-          tone="accent"
-        />
-        <MiniStat
-          label="Connected → live"
-          value={act.live_rate_paid == null ? "—" : pct(act.live_rate_paid)}
-        />
-      </div>
-      {venues.length ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          {venues.map((v) => (
-            <div
-              key={v.exchange}
-              className="rounded-xl border border-ink/[0.07] bg-surface-raised px-3 py-2"
-            >
-              <p className="text-[10px] font-semibold capitalize text-text-primary">
-                {v.exchange}
-              </p>
-              <p className="mt-0.5 text-[11px] tabular-nums text-text-muted">
-                {num(v.connected)} keys · {num(v.live)} live
-              </p>
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {outreach.length ? (
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold text-text-muted">
-            Reach these first — already paying, Agent still empty
-          </p>
-          {outreach.slice(0, 12).map((u) => (
-            <div
-              key={u.id}
-              className="flex items-center justify-between gap-2 rounded-xl border border-ink/[0.07] bg-surface-raised px-3 py-2"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-[12px] font-medium text-text-primary">
-                  @{u.username || u.email || u.id}
-                </p>
-                <p className="text-[10px] text-text-muted">
-                  {u.has_telegram ? "Telegram ready" : "No Telegram"}
-                  {u.expires_at ? ` · expires ${fmtDate(u.expires_at)}` : ""}
-                </p>
-              </div>
-              <span className="shrink-0 text-[10px] font-bold tabular-nums text-loss">
-                {u.days_inactive == null ? "never active" : `${u.days_inactive}d quiet`}
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-[11px] text-text-muted">
-          Every paying member has connected at least one exchange.
-        </p>
-      )}
     </div>
   );
 };
@@ -1360,8 +1260,9 @@ export const GrowthTab = () => {
             Growth &amp; Revenue
           </h2>
           <p className="mt-0.5 max-w-2xl text-[12px] text-text-muted">
-            Revenue, Agent activation after payment, and the referral loop —
-            from advocate to relationship, reward, and re-engagement.
+            Confirmed revenue, subscriber retention, and the referral loop.
+            Signal proof-to-paid activation is measured in Conversion; Agent
+            adoption remains in the dedicated Agent operations desk.
           </p>
         </div>
         <button
