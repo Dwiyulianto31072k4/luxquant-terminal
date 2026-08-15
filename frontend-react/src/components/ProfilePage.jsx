@@ -85,6 +85,59 @@ const ProfilePage = () => {
     ensureTelegram().catch(() => {});
   }, []);
 
+  const detailMessage = (err) => {
+    const d = err?.response?.data?.detail;
+    if (typeof d === "string") return d;
+    return d?.message || "";
+  };
+
+  const offerMigrate = (detail) => {
+    if (!detail || typeof detail !== "object" || !detail.transferable) return false;
+    return window.confirm(detail.message || "Move this login to this account?");
+  };
+
+  // After Discord OAuth: the identity is on another row — offer to move it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const migrate = params.get("migrate") === "discord" || params.get("discord_transfer") === "1";
+    const locked = params.get("error") === "discord_linked_elsewhere_locked";
+    const already = params.get("error") === "discord_already_linked";
+    if (!migrate && !locked && !already) return;
+
+    const next = new URL(window.location.href);
+    next.search = "";
+    window.history.replaceState({}, "", next.pathname + next.hash);
+
+    (async () => {
+      if (locked) {
+        showToast(
+          "That Discord belongs to a staff account. Ask an admin to move it.",
+          "error"
+        );
+        return;
+      }
+      try {
+        const pending = (await api.get("/api/v1/profile/pending-identity-transfer")).data;
+        if (!pending?.pending) {
+          if (already) showToast("This Discord is already linked to another account.", "error");
+          return;
+        }
+        if (!pending.transferable) {
+          showToast(pending.message || "Cannot move this Discord.", "error");
+          return;
+        }
+        if (!offerMigrate(pending)) return;
+        const res = await api.post("/api/v1/profile/confirm-discord-transfer");
+        setUser(res.data);
+        fetchConnections();
+        showToast("Discord moved to this account");
+      } catch (err) {
+        showToast(detailMessage(err) || "Could not move Discord", "error");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Deep-link from avatar menu → Appearance
   useEffect(() => {
     if (window.location.hash !== "#appearance") return;
@@ -310,29 +363,19 @@ const ProfilePage = () => {
           fetchConnections();
           showToast(t("profile.google_linked"));
         };
-        // detail is a string for plain errors, an object for the 409 conflicts
-        const msgOf = (err) => {
-          const d = err.response?.data?.detail;
-          if (typeof d === "string") return d;
-          return d?.message || t("profile.google_link_failed");
-        };
 
         try {
           onLinked(await postLink(false));
         } catch (err) {
           const detail = err.response?.data?.detail;
-          // This Google email is still attached to an empty stray account
-          // (the "salah login → kebuat akun baru" case). Offer to move it.
-          if (err.response?.status === 409 && detail?.transferable) {
-            if (window.confirm(detail.message)) {
-              try {
-                onLinked(await postLink(true));
-              } catch (err2) {
-                showToast(msgOf(err2), "error");
-              }
+          if (err.response?.status === 409 && offerMigrate(detail)) {
+            try {
+              onLinked(await postLink(true));
+            } catch (err2) {
+              showToast(detailMessage(err2) || t("profile.google_link_failed"), "error");
             }
           } else {
-            showToast(msgOf(err), "error");
+            showToast(detailMessage(err) || t("profile.google_link_failed"), "error");
           }
         } finally {
           setLinkingGoogle(false);
@@ -365,10 +408,27 @@ const ProfilePage = () => {
     setLinkingTelegram(true);
     try {
       const telegramUser = await openTelegramAuth();
-      const res = await api.post("/api/v1/profile/link-telegram", telegramUser);
-      setUser(res.data);
-      fetchConnections();
-      showToast(isReplace ? t("profile.telegram_replaced") : t("profile.telegram_linked"));
+      const postLink = (transfer) =>
+        api.post("/api/v1/profile/link-telegram", {
+          ...telegramUser,
+          ...(transfer ? { transfer: true } : {}),
+        });
+      try {
+        const res = await postLink(false);
+        setUser(res.data);
+        fetchConnections();
+        showToast(isReplace ? t("profile.telegram_replaced") : t("profile.telegram_linked"));
+      } catch (err) {
+        const detail = err.response?.data?.detail;
+        if (err.response?.status === 409 && offerMigrate(detail)) {
+          const res = await postLink(true);
+          setUser(res.data);
+          fetchConnections();
+          showToast("Telegram moved to this account");
+        } else {
+          throw err;
+        }
+      }
     } catch (err) {
       if (err.message === "cancelled") return; // user batal — diam
       if (err.message === "not-ready") {
@@ -377,7 +437,7 @@ const ProfilePage = () => {
           "error"
         );
       } else {
-        showToast(err.response?.data?.detail || t("profile.telegram_link_failed"), "error");
+        showToast(detailMessage(err) || t("profile.telegram_link_failed"), "error");
       }
     } finally {
       setLinkingTelegram(false);

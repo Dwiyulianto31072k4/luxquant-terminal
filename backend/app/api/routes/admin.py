@@ -1568,6 +1568,145 @@ def update_user_contact(
     }
 
 
+def _login_methods(user: User) -> list[str]:
+    out: list[str] = []
+    if user.telegram_id:
+        out.append("telegram")
+    if user.discord_id:
+        out.append("discord")
+    if user.google_id:
+        out.append("google")
+    if user.password_hash:
+        out.append("password")
+    return out
+
+
+def _resolve_user_ref(db: Session, ref: str) -> User | None:
+    raw = (ref or "").strip()
+    if not raw:
+        return None
+    if raw.isdigit():
+        found = db.query(User).filter(User.id == int(raw)).first()
+        if found:
+            return found
+    return (
+        db.query(User)
+        .filter(func.lower(User.username) == raw.lower())
+        .first()
+    )
+
+
+def _identity_card(user: User) -> dict:
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+        "discord_id": user.discord_id,
+        "discord_username": user.discord_username,
+        "telegram_id": user.telegram_id,
+        "telegram_username": user.telegram_username,
+        "google_id": user.google_id,
+        "logins": _login_methods(user),
+    }
+
+
+@router.get("/users/{user_id}/transfer-discord/preview")
+def preview_transfer_discord(
+    user_id: int,
+    from_user: str = Query(..., description="Source user id or username"),
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Show what moving Discord from another row onto this user would do."""
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target user not found")
+    source = _resolve_user_ref(db, from_user)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source user not found")
+    if source.id == target.id:
+        raise HTTPException(status_code=400, detail="Source and target are the same account")
+    if not source.discord_id:
+        raise HTTPException(status_code=400, detail="Source account has no Discord linked")
+    if target.discord_id and target.discord_id != source.discord_id:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Target already has a different Discord (@{target.discord_username} / "
+                f"{target.discord_id}). Unlink that first."
+            ),
+        )
+    left = [m for m in _login_methods(source) if m != "discord"]
+    return {
+        "from_user": _identity_card(source),
+        "to_user": _identity_card(target),
+        "will_move": {
+            "discord_id": source.discord_id,
+            "discord_username": source.discord_username,
+        },
+        "source_left_with": left,
+        "source_will_lose_login": len(left) == 0,
+    }
+
+
+@router.post("/users/{user_id}/transfer-discord")
+def transfer_discord(
+    user_id: int,
+    payload: dict,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Move a Discord OAuth identity from another user onto this one.
+
+    The source row is kept. Discord is unique, so the source is cleared first.
+    Use this when someone created a stray Discord/Google login and wants the
+    handle on the account they actually use (usually Telegram).
+    """
+    from_ref = str(payload.get("from_user") or payload.get("from_user_id") or "").strip()
+    if not from_ref:
+        raise HTTPException(status_code=400, detail="from_user is required")
+
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target user not found")
+    source = _resolve_user_ref(db, from_ref)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source user not found")
+    if source.id == target.id:
+        raise HTTPException(status_code=400, detail="Source and target are the same account")
+    if not source.discord_id:
+        raise HTTPException(status_code=400, detail="Source account has no Discord linked")
+    if target.discord_id and target.discord_id != source.discord_id:
+        raise HTTPException(
+            status_code=409,
+            detail="Target already has a different Discord linked",
+        )
+
+    from app.services.identity_transfer import apply_discord_transfer
+
+    did = source.discord_id
+    dname = source.discord_username
+    apply_discord_transfer(
+        db,
+        source=source,
+        target=target,
+        discord_id=did,
+        discord_username=dname,
+        actor=f"oleh admin {admin.username}",
+    )
+    db.commit()
+    db.refresh(target)
+    db.refresh(source)
+
+    return {
+        "success": True,
+        "message": f"Discord @{dname} moved from {source.username} to {target.username}",
+        "from_user": _identity_card(source),
+        "to_user": _identity_card(target),
+    }
+
+
 @router.get("/users/{user_id}/telegram-identity")
 async def get_user_telegram_identity(
     user_id: int,

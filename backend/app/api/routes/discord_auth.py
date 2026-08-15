@@ -177,7 +177,26 @@ async def discord_callback(
         # Guard collision: discord_id ga boleh dipakai user lain
         existing = db.query(User).filter(User.discord_id == discord_id).first()
         if existing and existing.id != link_user.id:
-            return RedirectResponse(f"{FRONTEND_URL}/profile?error=discord_already_linked")
+            from urllib.parse import quote as _q
+
+            from app.services.identity_transfer import collision_detail, stash_discord_transfer
+
+            offer = collision_detail(db, existing, moving="discord", target=link_user)
+            if not offer["transferable"]:
+                return RedirectResponse(
+                    f"{FRONTEND_URL}/profile?error=discord_linked_elsewhere_locked"
+                    f"&from={_q(existing.username or '')}"
+                )
+            stash_discord_transfer(
+                link_user.id,
+                {
+                    "from_user_id": existing.id,
+                    "from_username": existing.username,
+                    "discord_id": discord_id,
+                    "discord_username": discord_username,
+                },
+            )
+            return RedirectResponse(f"{FRONTEND_URL}/profile?migrate=discord")
 
         link_user.discord_id = discord_id
         link_user.discord_username = discord_username

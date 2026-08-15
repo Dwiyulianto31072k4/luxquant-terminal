@@ -556,9 +556,19 @@ async def link_telegram(
     # Cek apakah telegram_id sudah dipakai user lain
     existing = db.query(User).filter(User.telegram_id == data.id).first()
     if existing and existing.id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This Telegram account is already linked to another account"
+        from app.services.identity_transfer import apply_telegram_transfer, collision_detail
+
+        body = data.model_dump() if hasattr(data, "model_dump") else {}
+        offer = collision_detail(db, existing, moving="telegram", target=current_user)
+        if not offer["transferable"] or not bool(body.get("transfer")):
+            raise HTTPException(status_code=409, detail=offer)
+        apply_telegram_transfer(
+            db,
+            source=existing,
+            target=current_user,
+            telegram_id=data.id,
+            telegram_username=data.username,
+            actor="atas permintaan pemilik Telegram",
         )
 
     current_user.telegram_id = data.id

@@ -266,6 +266,21 @@ export const adminApi = {
     return response.data;
   },
 
+  previewTransferDiscord: async (targetUserId, fromUser) => {
+    const response = await api.get(
+      `/api/v1/admin/users/${targetUserId}/transfer-discord/preview`,
+      { params: { from_user: fromUser } }
+    );
+    return response.data;
+  },
+
+  transferDiscord: async (targetUserId, fromUser) => {
+    const response = await api.post(`/api/v1/admin/users/${targetUserId}/transfer-discord`, {
+      from_user: fromUser,
+    });
+    return response.data;
+  },
+
   // List message templates
   getOutreachTemplates: async () => {
     const response = await api.get("/api/v1/admin/outreach/templates");

@@ -286,14 +286,8 @@ def link_google(
     because a Google-created account has no password/Telegram/Discord to fall
     back on. The user could never reach their premium account.
 
-    Now the Google identity can be TRANSFERRED here, but only when BOTH sides
-    are proven and the stray account holds nothing of value:
-      • ownership of THIS account   → the JWT (get_current_user)
-      • ownership of the GOOGLE id  → a freshly verified Google id_token
-      • the source account has no subscription / payment / other login identity
-
-    The source row is NEVER deleted — it only releases the Google link — so
-    user counts stay exactly the same. Pass {"transfer": true} to confirm.
+    If that Google is already on another row, the user is offered a migrate
+    confirm. Subscription / keys stay on the source. Pass {"transfer": true}.
     """
 
     id_token_str = data.get("id_token")
@@ -320,106 +314,24 @@ def link_google(
     # Is this Google identity already attached to a DIFFERENT account?
     existing = db.query(User).filter(User.google_id == google_id).first()
     if existing and existing.id != current_user.id:
-        # Never strip a Google login off an account that still holds value —
-        # that would be an account-takeover / lockout vector.
-        blockers = []
-        if existing.has_active_access:
-            blockers.append("active subscription")
-        if existing.telegram_id:
-            blockers.append("Telegram linked")
-        if existing.discord_id:
-            blockers.append("Discord linked")
-        if existing.password_hash:
-            blockers.append("its own password")
-        # Only a COMPLETED payment counts. Abandoned checkouts (expired /
-        # cancelled / pending) are not "payment history" — blocking on those
-        # would lock people out of their own account over an invoice they
-        # never paid, which is exactly what happened to the first user to hit
-        # this flow (an invoice that expired 26s after signup).
-        if (
-            db.query(Payment.id)
-            .filter(Payment.user_id == existing.id, Payment.status == "confirmed")
-            .first()
-        ):
-            blockers.append("payment history")
+        from app.services.identity_transfer import apply_google_transfer, collision_detail
 
-        # After a transfer the source account has no login method left, so any
-        # irreplaceable data on it would be orphaned. No account currently in
-        # this state holds any (checked: 0 of 423), but that's luck rather than
-        # design — money and exchange credentials must never be stranded.
-        stranded = db.execute(text("""
-            SELECT
-              EXISTS (SELECT 1 FROM credit_ledger     WHERE user_id = :uid) AS credits,
-              EXISTS (SELECT 1 FROM referral_payouts  WHERE user_id = :uid) AS payouts,
-              EXISTS (SELECT 1 FROM cashout_requests  WHERE user_id = :uid) AS cashouts,
-              EXISTS (SELECT 1 FROM exchange_accounts WHERE user_id = :uid) AS exchanges,
-              EXISTS (SELECT 1 FROM api_keys          WHERE user_id = :uid) AS api_keys
-        """), {"uid": existing.id}).first()
-        if stranded:
-            if stranded.credits:
-                blockers.append("credit balance")
-            if stranded.payouts or stranded.cashouts:
-                blockers.append("referral earnings")
-            if stranded.exchanges:
-                blockers.append("a connected exchange")
-            if stranded.api_keys:
-                blockers.append("API keys")
-
-        if blockers:
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "code": "google_linked_elsewhere_locked",
-                    "transferable": False,
-                    "reasons": blockers,
-                    "message": (
-                        "This Google account is still linked to another active account ("
-                        + ", ".join(blockers)
-                        + "). For security, moving it has to go through an admin."
-                    ),
-                },
-            )
-
+        offer = collision_detail(db, existing, moving="google", target=current_user)
+        if not offer["transferable"]:
+            raise HTTPException(status_code=409, detail=offer)
         if not confirm_transfer:
-            # Ask for an explicit confirmation instead of moving silently.
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "code": "google_linked_elsewhere",
-                    "transferable": True,
-                    "from_username": existing.username,
-                    "from_email": existing.email,
-                    "message": (
-                        f"This Google email is still attached to the account '{existing.username}'. "
-                        "That account has no subscription or payment history, so its Google "
-                        "connection can be moved to this account. Continue?"
-                    ),
-                },
-            )
-
-        # ── Transfer: release the link, KEEP the row (user count unchanged) ──
-        existing.google_id = None
-        if existing.auth_provider == "google":
-            existing.auth_provider = "local"
-        stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        note = (
-            f"[{stamp}] Koneksi Google ({google_email}) dipindahkan ke akun "
-            f"'{current_user.username}' (id={current_user.id}) atas permintaan "
-            f"pemilik email. Akun ini dipertahankan tanpa login Google."
+            raise HTTPException(status_code=409, detail=offer)
+        apply_google_transfer(
+            db,
+            source=existing,
+            target=current_user,
+            google_id=google_id,
+            google_email=google_email,
+            actor="atas permintaan pemilik Google",
         )
-        existing.admin_notes = (
-            f"{existing.admin_notes}\n{note}" if existing.admin_notes else note
-        )
-        # google_id is UNIQUE — push the release UPDATE to the DB before the
-        # new owner claims the same value, otherwise SQLAlchemy may emit the
-        # two UPDATEs in an order that trips a duplicate-key violation.
-        db.flush()
-        logger.warning(
-            "google_link_transfer: google_id=%s email=%s from_user=%s(id=%s) "
-            "to_user=%s(id=%s)",
-            google_id, google_email, existing.username, existing.id,
-            current_user.username, current_user.id,
-        )
+        db.commit()
+        db.refresh(current_user)
+        return UserResponse.model_validate(current_user)
 
     # Link to the current (authenticated) account
     current_user.google_id = google_id
@@ -504,16 +416,83 @@ async def unlink_telegram(
 @router.get("/link-discord/url")
 async def link_discord_url(current_user: User = Depends(get_current_user)):
     """Get Discord OAuth2 URL for linking to existing account"""
+    from app.api.routes.discord_auth import _encode_state
+
     params = {
         "client_id": DISCORD_CLIENT_ID,
         "redirect_uri": DISCORD_REDIRECT_URI,
         "response_type": "code",
         "scope": "identify guilds.members.read",
         "prompt": "consent",
-        "state": f"link_{current_user.id}",
+        "state": _encode_state(link_user_id=current_user.id),
     }
     url = f"https://discord.com/oauth2/authorize?{urlencode(params)}"
     return {"url": url}
+
+
+@router.get("/pending-identity-transfer")
+def pending_identity_transfer(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Ticket parked after Discord OAuth when that Discord is on another row."""
+    from app.services.identity_transfer import collision_detail, peek_discord_transfer
+
+    ticket = peek_discord_transfer(current_user.id)
+    if not ticket:
+        return {"pending": False}
+    source = db.query(User).filter(User.id == ticket.get("from_user_id")).first()
+    if not source:
+        return {"pending": False}
+    offer = collision_detail(db, source, moving="discord", target=current_user)
+    return {"pending": True, **offer}
+
+
+@router.post("/confirm-discord-transfer", response_model=UserResponse)
+def confirm_discord_transfer(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Finish a Discord move the user just confirmed after OAuth.
+
+    The callback already proved they own that Discord and parked the ticket
+    in Redis. This is the second click — same pattern as Google `transfer: true`.
+    """
+    from app.services.identity_transfer import (
+        apply_discord_transfer,
+        collision_detail,
+        pop_discord_transfer,
+    )
+
+    ticket = pop_discord_transfer(current_user.id)
+    if not ticket:
+        raise HTTPException(
+            status_code=400,
+            detail="No pending Discord move. Link Discord again from this account.",
+        )
+    source = db.query(User).filter(User.id == ticket.get("from_user_id")).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Source account no longer exists")
+    discord_id = int(ticket["discord_id"])
+    if source.discord_id != discord_id:
+        raise HTTPException(
+            status_code=409,
+            detail="That Discord is no longer on the other account. Try linking again.",
+        )
+    offer = collision_detail(db, source, moving="discord", target=current_user)
+    if not offer["transferable"]:
+        raise HTTPException(status_code=409, detail=offer)
+    apply_discord_transfer(
+        db,
+        source=source,
+        target=current_user,
+        discord_id=discord_id,
+        discord_username=ticket.get("discord_username"),
+        actor="atas permintaan pemilik Discord",
+    )
+    db.commit()
+    db.refresh(current_user)
+    return UserResponse.model_validate(current_user)
 
 
 # ════════════════════════════════════════════
@@ -572,7 +551,22 @@ async def link_discord(
     # Check if already linked to another user
     existing = db.query(User).filter(User.discord_id == discord_id).first()
     if existing and existing.id != current_user.id:
-        raise HTTPException(status_code=400, detail="This Discord account is already linked to another account")
+        from app.services.identity_transfer import apply_discord_transfer, collision_detail
+
+        offer = collision_detail(db, existing, moving="discord", target=current_user)
+        if not offer["transferable"] or not bool(data.get("transfer")):
+            raise HTTPException(status_code=409, detail=offer)
+        apply_discord_transfer(
+            db,
+            source=existing,
+            target=current_user,
+            discord_id=discord_id,
+            discord_username=discord_username,
+            actor="atas permintaan pemilik Discord",
+        )
+        db.commit()
+        db.refresh(current_user)
+        return UserResponse.model_validate(current_user)
 
     # Link
     current_user.discord_id = discord_id
@@ -673,10 +667,29 @@ async def link_telegram(
     # Cek telegram_id belum dipakai user lain
     existing = db.query(User).filter(User.telegram_id == tg.id).first()
     if existing and existing.id != current_user.id:
-        raise HTTPException(
-            status_code=400,
-            detail="This Telegram account is already linked to another account"
+        from app.services.identity_transfer import apply_telegram_transfer, collision_detail
+
+        offer = collision_detail(db, existing, moving="telegram", target=current_user)
+        if not offer["transferable"] or not bool(data.get("transfer")):
+            raise HTTPException(status_code=409, detail=offer)
+        apply_telegram_transfer(
+            db,
+            source=existing,
+            target=current_user,
+            telegram_id=tg.id,
+            telegram_username=tg.username,
+            actor="atas permintaan pemilik Telegram",
         )
+        is_vip = await _check_vip_membership(tg.id)
+        is_legacy = _check_legacy_member(db, tg.id)
+        new_role, new_source = resolve_role_for_telegram(current_user, is_vip, is_legacy)
+        current_user.role = new_role
+        current_user.subscription_source = new_source
+        current_user.telegram_in_group = is_vip
+        _maybe_claim_legacy(db, current_user, new_source, is_legacy)
+        db.commit()
+        db.refresh(current_user)
+        return UserResponse.model_validate(current_user)
 
     # Link + resolve role
     current_user.telegram_id = tg.id

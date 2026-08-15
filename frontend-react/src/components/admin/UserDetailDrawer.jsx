@@ -1360,7 +1360,105 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
           </div>
         </Section>
       )}
+
+      {canWrite && (
+        <MoveDiscordCard user={user} onDone={onContactUpdate} />
+      )}
     </div>
+  );
+};
+
+const MoveDiscordCard = ({ user, onDone }) => {
+  const [fromRef, setFromRef] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const loadPreview = async () => {
+    const ref = fromRef.trim();
+    if (!ref) return;
+    setBusy(true);
+    setErr("");
+    setPreview(null);
+    try {
+      setPreview(await adminApi.previewTransferDiscord(user.id, ref));
+    } catch (e) {
+      const d = e.response?.data?.detail;
+      setErr(typeof d === "string" ? d : "Could not load that account");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmMove = async () => {
+    if (!preview) return;
+    const handle = preview.will_move?.discord_username || preview.will_move?.discord_id;
+    const ok = window.confirm(
+      `Move Discord @${handle} from ${preview.from_user.username} (#${preview.from_user.id}) onto ${user.username} (#${user.id})?`
+    );
+    if (!ok) return;
+    setBusy(true);
+    setErr("");
+    try {
+      await adminApi.transferDiscord(user.id, fromRef.trim());
+      setPreview(null);
+      setFromRef("");
+      await onDone?.();
+    } catch (e) {
+      const d = e.response?.data?.detail;
+      setErr(typeof d === "string" ? d : "Move failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="Move Discord here" Icon={DiscordIcon}>
+      <p className="text-[11px] leading-relaxed text-text-muted">
+        If this person already OAuth-linked Discord on another LuxQuant row (wrong
+        Google / Discord login), pull that identity onto this account. The better
+        subscription follows. Exchange keys and payment receipts stay on the
+        other row.
+      </p>
+      <div className="mt-2 flex gap-2">
+        <input
+          type="text"
+          value={fromRef}
+          onChange={(e) => setFromRef(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && loadPreview()}
+          placeholder="source user id or username"
+          className="min-w-0 flex-1 rounded-xl border border-ink/[0.08] bg-ink/[0.03] px-2.5 py-1.5 font-mono text-xs text-text-primary outline-none focus:border-ink/20"
+        />
+        <GhostButton onClick={loadPreview} disabled={busy || !fromRef.trim()}>
+          {busy ? "…" : "Preview"}
+        </GhostButton>
+      </div>
+      {err && (
+        <p className="mt-2 text-[11px] text-loss">{err}</p>
+      )}
+      {preview && (
+        <div className="mt-2 space-y-2 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-3 text-[11px] text-text-secondary">
+          <p>
+            Move <span className="font-mono text-text-primary">@{preview.will_move.discord_username}</span>{" "}
+            <span className="font-mono text-text-muted">({preview.will_move.discord_id})</span>
+          </p>
+          <p>
+            From <strong className="text-text-primary">{preview.from_user.username}</strong> #{preview.from_user.id}
+            {" "}({(preview.from_user.logins || []).join(", ") || "no login"})
+            {" → "}
+            <strong className="text-text-primary">{preview.to_user.username}</strong> #{preview.to_user.id}
+          </p>
+          {preview.source_will_lose_login && (
+            <p className="text-loss">
+              After this, #{preview.from_user.id} has no login method left. The row stays.
+            </p>
+          )}
+          <GoldButton onClick={confirmMove} disabled={busy}>
+            Move Discord here
+          </GoldButton>
+        </div>
+      )}
+    </Section>
   );
 };
 
@@ -1716,6 +1814,10 @@ export const UserDetailDrawer = ({
 
   const handleContactUpdate = async (payload) => {
     if (!canWrite) throw new Error("View-only staff cannot edit contact");
+    if (!payload) {
+      await fetchData();
+      return;
+    }
     const result = await adminApi.updateUserContact(userId, payload);
     await fetchData();
     if (onUserUpdated) onUserUpdated(result.user);
