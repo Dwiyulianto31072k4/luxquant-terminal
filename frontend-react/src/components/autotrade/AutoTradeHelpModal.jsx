@@ -230,36 +230,40 @@ function SectionTpSl() {
       </Field>
 
       <Field label="Exit mode: Fixed SL">
-        Stop Loss sits where it was placed at entry. Position exits at either TP or SL — two simple
-        outcomes. Recommended for short-swing signals where the move plays out quickly.
+        Agent places a take-profit at your chosen TP and a hard stop at your chosen SL. The
+        position exits at whichever fills first. When LuxQuant marks that TP, the exchange order
+        should already be closing the trade.
       </Field>
 
       <Field label="Exit mode: Trailing stop">
-        After the take-profit level is reached, a trailing stop begins following the price up (for
-        longs). Locks in profit while letting winners run. Requires a <Code>Trailing callback</Code>{" "}
-        percentage.
+        Agent places two close orders at the fill: a hard stop at your SL, and a trailing stop at
+        the callback you set. It does <b>not</b> place a take-profit. The trail is live from the
+        fill — it does not wait for TP. Requires a <Code>Trailing callback</Code> percentage.
+        Futures only; spot silently uses Fixed SL.
       </Field>
 
       <Field label="Trailing callback">
-        Distance the trailing stop keeps from the highest price seen. Range on Binance Futures:{" "}
+        How far price must pull back from the high (long) before the trail exits. Range{" "}
         <Code>0.1%</Code> to <Code>10%</Code>.
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>
-            <b>0.5–1%</b> — tight, locks profit fast but exits prematurely on noise
+            <b>0.5–1%</b> — tight. Often closes on noise, and cannot lock a TP1 smaller than the
+            callback.
           </li>
           <li>
-            <b>2–3%</b> — balanced, sweet spot for most crypto swings
+            <b>2–3%</b> — usual swing range
           </li>
           <li>
-            <b>5–10%</b> — loose, lets profit run further but gives more back on reversal
+            <b>5–10%</b> — loose, gives more back on a reversal
           </li>
         </ul>
       </Field>
 
       <Tip tone="warn">
-        Stop loss is always required — there is no “no SL” option. If Binance rejects the protective
-        order, the reconciler marks the position as unprotected and blocks further entries until the
-        issue clears.
+        On Trailing, your exchange often shows two close orders and labels the hard stop “TP/SL”.
+        That is the stop, not a take-profit. LuxQuant marking TP1 does not close the BingX / Binance
+        position. There is no trailing-only option — the hard SL stays as a floor. If the venue
+        rejects protection, the fill is force-closed rather than left naked.
       </Tip>
     </div>
   );
@@ -586,6 +590,18 @@ function SectionFAQ() {
       a: "Check fees. A $5 trade with thin profit can be net-negative after entry + exit fees. Use TP2+ or a wider custom TP percentage so profit comfortably exceeds fees.",
     },
     {
+      q: "Why do I see two SL / “TP/SL” plus a trailing stop?",
+      a: "Trailing mode places a hard stop at your SL and a trailing close. The venue often labels the stop “TP/SL” even though it is not a take-profit. That is expected — not a duplicate bug. There is no trailing-only option.",
+    },
+    {
+      q: "LuxQuant shows TP1 but my exchange position is still open?",
+      a: "On Trailing stop, Agent does not place a take-profit order. TP1 on the signal / poster is a price status, not a fill. The position closes only when the hard SL or the trailing pullback hits. Switch to Fixed SL if you want that TP to take profit on the venue.",
+    },
+    {
+      q: "Position TP/SL columns on BingX are empty?",
+      a: "We send standalone close orders, not TP/SL attached to the position row. Open the Current / Open orders tab — the stop and the trail are there.",
+    },
+    {
       q: "My futures position quantity is way larger than my margin?",
       a: "That’s leverage, not a bug. A $10 margin at 10× opens a $100 notional position; quantity = $100 / coin price. Your wallet only holds $10 — Binance is sizing the position by notional.",
     },
@@ -693,6 +709,19 @@ function SectionSettingsReference() {
                     <br />
                     {guide.watch}
                   </p>
+                ) : null}
+                {Array.isArray(guide.scenarios) && guide.scenarios.length ? (
+                  <div className="mt-3 space-y-2 border-t border-ink/[0.06] pt-3">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+                      Scenarios
+                    </p>
+                    {guide.scenarios.map((item) => (
+                      <p key={item.title} className="text-[12px] leading-6 text-text-muted">
+                        <span className="font-medium text-text-secondary">{item.title}. </span>
+                        {item.body}
+                      </p>
+                    ))}
+                  </div>
                 ) : null}
               </div>
             );

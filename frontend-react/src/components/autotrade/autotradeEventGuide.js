@@ -215,20 +215,20 @@ export const EXIT_EVENTS = {
   take_profit: {
     title: "Take-profit hit",
     what: "Price reached the target and the position closed in profit.",
-    why: "The take-profit order we placed triggered.",
+    why: "The take-profit order we placed triggered. This only happens in Fixed SL mode — Trailing does not place a take-profit.",
     fix: "Nothing — this is the intended outcome.",
   },
   stop_loss: {
     title: "Stop-loss hit",
     what: "Price reached the stop and the position closed at a loss.",
-    why: "The stop we placed triggered. This means the signal went the wrong way — it does not mean the leverage was too high.",
+    why: "The hard stop we placed triggered. This means the signal went the wrong way — it does not mean the leverage was too high. In Trailing mode this is the SL floor, not the trail.",
     fix: "Nothing on this trade. A run of these is a signal-quality question, not a leverage one.",
   },
   trailing_stop: {
     title: "Trailing stop closed the position",
-    what: "The trailing stop followed price up and then closed the position when it turned.",
-    why: "The trailing stop armed once price reached its activation level.",
-    fix: "Nothing to do.",
+    what: "The trailing stop followed price and then closed the position after the callback pullback.",
+    why: "The trail is live from the fill (it does not wait for TP). A tight callback can exit on ordinary noise, even if LuxQuant has not marked a TP.",
+    fix: "Widen the callback if noise is closing you out, or switch to Fixed SL if you want the signal TP to take profit on the exchange.",
   },
   liquidated: {
     title: "Liquidated by the exchange",

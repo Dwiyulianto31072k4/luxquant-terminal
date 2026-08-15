@@ -47,9 +47,22 @@ function protectionTone(position) {
   return "warn";
 }
 
-function protectionLabel(position) {
-  if (position.protection_status === "protected") return "OCO protected";
+function snapshotOf(position, config) {
+  return config || position?.execution?.config_snapshot || {};
+}
+
+function isTrailingExit(position, config) {
+  const snap = snapshotOf(position, config);
+  const mode = String(
+    snap.exit_mode || snap.futures_exit_mode || position?.exit_mode || ""
+  ).toLowerCase();
+  return mode === "trailing_stop";
+}
+
+function protectionLabel(position, config) {
   if (position.protection_status === "attention_required") return "Attention required";
+  if (isTrailingExit(position, config)) return "SL + trailing";
+  if (position.protection_status === "protected") return "TP + SL";
   return "Protection unknown";
 }
 
@@ -295,7 +308,11 @@ function SpotPositionCard({ position, onOpen, onForceSell, busy }) {
             <Metric label="Value now" value={fmtUsd(position.current_value_usdt)} />
             <Metric label="Entry" value={fmtNum(position.entry_price, 8)} />
             <Metric label="Current" value={fmtNum(position.current_price, 8)} />
-            <Metric label="Take profit" value={fmtNum(position.take_profit, 8)} tone="good" />
+            <Metric
+              label={isTrailingExit(position) ? "Signal TP (not on exchange)" : "Take profit"}
+              value={fmtNum(position.take_profit, 8)}
+              tone="good"
+            />
             <Metric label="Stop loss" value={fmtNum(position.stop_loss, 8)} tone="bad" />
           </div>
           <div className="mt-4 flex items-center justify-between gap-2 border-t border-ink/[0.06] pt-3">
@@ -465,6 +482,7 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
   const signal = position.signal || {};
   const execution = position.execution || {};
   const config = execution.config_snapshot || {};
+  const trailing = isTrailingExit(position, config);
   const tpDistance = distancePct(position.current_price, position.take_profit);
   const slDistance = distancePct(position.current_price, position.stop_loss);
   const canOpenSignal = Boolean(signal.luxquant_signal_id);
@@ -499,13 +517,16 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
                     {position.symbol}
                   </h3>
                   <StatusBadge tone={protectionTone(position)}>
-                    {protectionLabel(position)}
+                    {protectionLabel(position, config)}
                   </StatusBadge>
                   <StatusBadge tone="info">Live spot</StatusBadge>
                 </div>
                 <p className="mt-1 text-xs text-text-muted">
                   Signal called {fmtDateTime(signal.created_at)} · executed{" "}
                   {fmtDateTime(position.executed_at)}
+                  {trailing
+                    ? " · Trailing: LuxQuant TP does not close this exchange position"
+                    : ""}
                 </p>
               </div>
             </div>
@@ -555,12 +576,12 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
               <DetailRow label="Entry price" value={fmtNum(position.entry_price, 8)} />
               <DetailRow label="Current price" value={fmtNum(position.current_price, 8)} />
               <DetailRow
-                label="Take profit"
+                label={trailing ? "Signal TP (not placed on exchange)" : "Take profit"}
                 value={`${fmtNum(position.take_profit, 8)}${tpDistance === null ? "" : ` · ${fmtPct(tpDistance)} away`}`}
                 tone="text-profit"
               />
               <DetailRow
-                label="Stop loss"
+                label={trailing ? "Hard stop (on exchange)" : "Stop loss"}
                 value={`${fmtNum(position.stop_loss, 8)}${slDistance === null ? "" : ` · ${fmtPct(slDistance)} away`}`}
                 tone="text-negative"
               />
@@ -628,9 +649,13 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
               />
               <DetailRow
                 label="Exit mode"
-                value={config.spot_exit_mode || config.exit_mode || position.exit_mode || "—"}
+                value={
+                  trailing
+                    ? "Trailing stop — SL + trail, no TP order"
+                    : config.spot_exit_mode || config.exit_mode || position.exit_mode || "—"
+                }
               />
-              <DetailRow label="Protection" value={protectionLabel(position)} />
+              <DetailRow label="Protection" value={protectionLabel(position, config)} />
               <DetailRow label="Monitoring" value="Auto-refreshes with the Agent dashboard" />
             </DetailPanel>
           </div>

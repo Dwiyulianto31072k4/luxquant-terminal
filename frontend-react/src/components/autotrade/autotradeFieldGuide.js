@@ -86,15 +86,15 @@ export const FIELD_GUIDE = {
   // ── Take profit / stop loss ──────────────────────────────────
   tp_level: {
     title: "Take profit target",
-    what: "Which take-profit price from the signal to exit on. TP1 is nearest the entry, TP4 is furthest.",
+    what: "Which take-profit price from the signal to aim at. TP1 is nearest the entry, TP4 is furthest. Whether that price is actually sent to the exchange depends on Exit mode.",
     example:
       "A signal with TP1 1.05, TP2 1.12, TP3 1.20: choosing TP1 exits often for small wins; TP3 wins bigger but far more trades come back to the stop first.",
     watch:
-      "If a signal does not contain the level you picked, that execution FAILS rather than skipping. Choose TP4 and every signal that only publishes three targets errors out. TP1–TP2 are the safe choices.",
+      "If a signal does not contain the level you picked, that execution FAILS rather than skipping. Choose TP4 and every signal that only publishes three targets errors out. TP1–TP2 are the safe choices. In Trailing stop mode this level is the planned target in Agent — it is not placed as a live take-profit order.",
   },
   sl_level: {
     title: "Stop loss level",
-    what: "Which stop-loss price from the signal to use. SL1 is tighter, SL2 gives the trade more room.",
+    what: "Which stop-loss price from the signal to use. SL1 is tighter, SL2 gives the trade more room. A hard stop at this price is always placed — including when Exit mode is Trailing stop.",
     example:
       "Entry 1.00 with SL1 0.95 and SL2 0.90: SL1 caps the loss at 5% but gets hit by ordinary noise; SL2 risks 10% for a better chance of surviving the dip.",
     watch:
@@ -102,19 +102,53 @@ export const FIELD_GUIDE = {
   },
   exit_mode: {
     title: "Exit mode",
-    what: "Fixed SL places a take-profit and stop-loss pair and leaves them. Trailing stop follows the price up and exits after a set pullback.",
+    what: "Fixed SL places a take-profit and a hard stop and leaves both. Trailing stop places a hard stop at your SL level plus a trailing close that follows price — it does not place a take-profit. Trailing is not “after TP is hit”; it is live from the fill.",
     example:
-      "Price runs from 1.00 to 1.30 with a 2.5% trailing callback: the stop follows to about 1.27 and exits there, instead of stopping at your fixed TP.",
+      "DOT long 0.7744, signal TP1 0.7778 (+0.4%), SL1 0.7645, trailing 1%. Fixed SL would close at 0.7778. Trailing leaves the position open when LuxQuant marks TP1 — the exchange only exits at 0.7645 or after a 1% pullback from the high.",
     watch:
-      "Trailing stop is FUTURES ONLY. Select it with a spot trade and the engine silently uses Fixed SL instead — no error, no warning in the order.",
+      "Trailing is FUTURES ONLY. Spot silently uses Fixed SL. Your exchange often labels the hard stop as “TP/SL” even though it is not a take-profit — that is why Trailing can look like two stop-losses. There is no trailing-only option: the hard SL stays as a floor.",
+    scenarios: [
+      {
+        title: "Two close orders on the exchange",
+        body: "Expected on Trailing. One is STOP (your SL). One is TRAILING. BingX / Binance often name the stop “Close Long TP/SL”. That label is theirs, not a second take-profit from us.",
+      },
+      {
+        title: "LuxQuant says TP1, the position is still open",
+        body: "Expected on Trailing. TP1 is the signal status. No take-profit order sits on the exchange, so the poster hitting TP1 does not reduce or close the position.",
+      },
+      {
+        title: "Position panel shows TP/SL as empty",
+        body: "We place standalone close orders, not TP/SL attached to the position row. Check Current / Open orders — the stop and the trail live there.",
+      },
+      {
+        title: "Price reaches TP then comes back",
+        body: "Fixed SL would already be flat. Trailing stays in until the callback pullback or the hard SL. A TP1 only 0.4% above entry can never be “locked” by a 1% trail.",
+      },
+      {
+        title: "A 1% dip right after entry",
+        body: "Trailing 1% can close before the hard SL if the SL is further away. That looks like a tiny loss plus fees — it is the trail, not a broken SL.",
+      },
+      {
+        title: "A strong run past TP",
+        body: "Trailing can exit above your TP level and keep more of the move. Fixed SL would have been flat at the target.",
+      },
+      {
+        title: "Trailing is rejected by the venue",
+        body: "The engine falls back to Fixed SL for that fill (TP + hard stop). One trade can therefore show a take-profit order even if the strategy says Trailing.",
+      },
+      {
+        title: "Spot-only account",
+        body: "Trailing is ignored. The fill is protected with a normal TP + SL pair and Activity will not warn that the choice was downgraded.",
+      },
+    ],
   },
   trailing_callback_rate: {
     title: "Trailing callback",
-    what: "How far the price must fall back from its high before a trailing stop exits.",
+    what: "How far price must fall back from its high (longs) or bounce from its low (shorts) before the trailing order exits. The trail arms at the fill — it does not wait for TP.",
     example:
-      "2.5% on a run to 1.30 exits at about 1.27. A 1% callback exits at 1.29 — more of the peak kept, but ordinary wobble ends the trade early.",
+      "2.5% on a run to 1.30 exits near 1.27. A 1% callback exits near 1.29 — more of the peak kept, but ordinary wobble ends the trade. On a 0.4% TP1 the 1% trail sits below entry, so it cannot lock that target.",
     watch:
-      "Binance only accepts 0.1% to 10%. Tight values look attractive in a straight run and get shaken out constantly in real markets.",
+      "Venues accept roughly 0.1% to 10%. 0.5–1% is tight for crypto noise and will often close before your hard SL. 2–3% is the usual swing range. Compare the callback to the distance from entry to TP1: if the callback is larger than that distance, Trailing cannot harvest TP1.",
   },
 
   // ── Risk filter ──────────────────────────────────────────────
@@ -222,6 +256,10 @@ export const ENGINE_RULES = [
     body: "Entitlement is verified before each live entry, not just at login. If a subscription lapses, new entries pause — open positions keep their take-profit and stop-loss.",
   },
   {
+    title: "A LuxQuant TP does not close a Trailing position",
+    body: "Signal status (TP1–TP4) is the desk’s view of price versus the published targets. In Trailing stop mode Agent never places that target as an exchange order, so the position stays open until the hard SL or the trailing pullback fills. Switch to Fixed SL if you want the chosen TP to actually take profit on the venue.",
+  },
+  {
     title: "An invalid API key stops execution",
     body: "Keys are validated when saved, and marked invalid automatically if Binance rejects them later (wrong permissions, or an IP allow-list that is missing either 187.127.135.84 or the backup 103.197.189.58). Restrict the key to both IPs — Agent fails over if the primary is rate-limited. Reconnect the key to resume.",
   },
@@ -230,3 +268,51 @@ export const ENGINE_RULES = [
     body: "All accounts trade through one server IP, so a per-account throttle protects everyone. It clears within a minute on its own.",
   },
 ];
+
+/** Live preview for the Configure tab — same rules the engine uses. */
+export function describeExitPlan({
+  exitMode = "fixed_sl",
+  tpLevel = 1,
+  slLevel = 1,
+  callbackRate = 1,
+  spotEnabled = false,
+  futuresEnabled = true,
+} = {}) {
+  const trailingWanted = exitMode === "trailing_stop";
+  const spotOnly = spotEnabled && !futuresEnabled;
+  const trailing = trailingWanted && !spotOnly;
+  const callback = Math.max(0.1, Number(callbackRate) || 1);
+  const tp = `TP${tpLevel || 1}`;
+  const sl = `SL${slLevel || 1}`;
+  return {
+    trailing,
+    trailingWanted,
+    spotOnly,
+    callback,
+    tp,
+    sl,
+    title: trailing ? "Trailing stop — what the exchange actually gets" : "Fixed SL — what the exchange actually gets",
+    placed: trailing
+      ? [
+          `Hard stop at ${sl} — always placed`,
+          `Trailing close at ${callback}% from the high — live from the fill`,
+          `${tp} is not placed as an order`,
+        ]
+      : [`Take-profit at ${tp}`, `Hard stop at ${sl}`],
+    youSee: trailing
+      ? "Two close orders. The one labelled “TP/SL” on BingX or Binance is the hard stop, not a take-profit. Position-row TP/SL is often blank — the orders sit under Current / Open orders."
+      : "One take-profit and one stop. When LuxQuant marks the chosen TP, the exchange order should already be filling.",
+    ifSignalTp: trailing
+      ? `When LuxQuant marks ${tp} hit, this position stays open. Only ${sl} or a ${callback}% pullback from the high will close it.`
+      : `When price reaches ${tp}, the take-profit order on the exchange closes the position.`,
+    tight:
+      trailing && callback <= 1.2
+        ? `${callback}% is tighter than most signal TP1 distances. Ordinary noise can close the trade before ${sl}, and the trail cannot lock a target smaller than ${callback}%.`
+        : null,
+    spotNote: trailingWanted && spotOnly
+      ? "Trailing is futures-only. With only spot enabled, this fill uses Fixed SL instead."
+      : trailingWanted && spotEnabled
+        ? "Spot fills still use Fixed SL. Only futures fills trail."
+        : null,
+  };
+}

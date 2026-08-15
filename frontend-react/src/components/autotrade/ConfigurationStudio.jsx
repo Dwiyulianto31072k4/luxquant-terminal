@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { updateStrategyConfig } from "../../services/autotradeApi";
-import { FIELD_GUIDE, ENGINE_RULES, MIN_LIVE_ENTRY_USDT } from "./autotradeFieldGuide";
+import { FIELD_GUIDE, ENGINE_RULES, MIN_LIVE_ENTRY_USDT, describeExitPlan } from "./autotradeFieldGuide";
 import LiveRiskAckModal from "./LiveRiskAckModal";
 import { useUiPrefs } from "../../hooks/useUiPrefs";
 import {
@@ -71,6 +71,56 @@ function ExplainPanel({ guide }) {
           <br />
           {guide.watch}
         </p>
+      ) : null}
+      {Array.isArray(guide.scenarios) && guide.scenarios.length ? (
+        <div className="space-y-2 border-t border-accent/15 pt-2">
+          <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-accent">
+            Scenarios
+          </p>
+          {guide.scenarios.map((item) => (
+            <p key={item.title} className="text-[11px] leading-[1.5] text-text-muted">
+              <span className="font-medium text-text-secondary">{item.title}. </span>
+              {item.body}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ExitPlanPreview({ draft }) {
+  const plan = describeExitPlan({
+    exitMode: draft.exit_mode,
+    tpLevel: draft.tp_level,
+    slLevel: draft.sl_level,
+    callbackRate: draft.trailing_callback_rate,
+    spotEnabled: draft.spot_enabled,
+    futuresEnabled: draft.futures_enabled,
+  });
+  return (
+    <div className="mt-4 space-y-3 rounded-lg border border-accent/25 bg-accent/[0.04] px-3.5 py-3">
+      <div>
+        <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">
+          On the exchange after a fill
+        </p>
+        <p className="mt-1 text-[12px] font-medium text-text-primary">{plan.title}</p>
+      </div>
+      <ul className="space-y-1 text-[12px] leading-[1.5] text-text-secondary">
+        {plan.placed.map((line) => (
+          <li key={line} className="flex gap-2">
+            <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-accent" />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[11px] leading-[1.5] text-text-muted">{plan.youSee}</p>
+      <p className="text-[11px] leading-[1.5] text-text-secondary">{plan.ifSignalTp}</p>
+      {plan.tight ? (
+        <p className="text-[11px] leading-[1.5] text-warn">{plan.tight}</p>
+      ) : null}
+      {plan.spotNote ? (
+        <p className="text-[11px] leading-[1.5] text-warn">{plan.spotNote}</p>
       ) : null}
     </div>
   );
@@ -594,14 +644,26 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       <Card>
         <SectionTitle>Take profit / Stop loss</SectionTitle>
         <div className="space-y-4">
-          <Row guide={FIELD_GUIDE.tp_level} label="Take profit target" hint="Which TP level from the signal to exit on.">
+          <Row
+            guide={FIELD_GUIDE.tp_level}
+            label="Take profit target"
+            hint={
+              draft.exit_mode === "trailing_stop"
+                ? "Signal target shown in Agent. Not placed as an exchange order in Trailing mode."
+                : "Which TP level from the signal to exit on."
+            }
+          >
             <Segmented
               value={draft.tp_level}
               onChange={(value) => patch({ tp_level: value })}
               options={LEVEL_OPTIONS}
             />
           </Row>
-          <Row guide={FIELD_GUIDE.sl_level} label="Stop loss level" hint="Which SL level from the signal to use.">
+          <Row
+            guide={FIELD_GUIDE.sl_level}
+            label="Stop loss level"
+            hint="Always placed as a hard stop — including in Trailing mode."
+          >
             <Segmented
               value={draft.sl_level}
               onChange={(value) => patch({ sl_level: value })}
@@ -619,7 +681,11 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                 ]}
               />
             </Row>
-            <Row guide={FIELD_GUIDE.trailing_callback_rate} label="Trailing callback" hint="Used only for trailing stop.">
+            <Row
+              guide={FIELD_GUIDE.trailing_callback_rate}
+              label="Trailing callback"
+              hint="How far price must pull back from the high. Live from the fill — not after TP."
+            >
               <NumberInput
                 value={draft.trailing_callback_rate}
                 onChange={(value) => patch({ trailing_callback_rate: value })}
@@ -630,6 +696,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
               />
             </Row>
           </div>
+          <ExitPlanPreview draft={draft} />
         </div>
       </Card>
 
