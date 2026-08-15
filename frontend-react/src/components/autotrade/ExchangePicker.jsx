@@ -13,9 +13,10 @@ export default function ExchangePicker({ onPick }) {
           Choose one venue
         </h2>
         <p className="mt-2 max-w-2xl text-[13.5px] leading-6 text-text-secondary">
-          Keys stay encrypted. Funds stay on the exchange. Withdraw is never
-          requested. Agent runs one venue at a time — start in dry-run, pause
-          whenever you want.
+          Live agreement is already signed — this is the first time a key is
+          stored. Funds stay on the exchange. Withdraw is never requested.
+          Agent runs one venue at a time — start in dry-run, pause whenever
+          you want.
         </p>
       </div>
 

@@ -3,7 +3,7 @@
 // whenever wording changes so old PDFs stay historically accurate.
 
 export const ASSISTANT_FORM_VERSION = "2026-08-13.3";
-export const LIVE_FORM_VERSION = "2026-08-13.1";
+export const LIVE_FORM_VERSION = "2026-08-15.1";
 
 export const ASSISTANT_FORM = {
   kind: "assistant",
@@ -62,14 +62,23 @@ export const ASSISTANT_FORM = {
 export const LIVE_FORM = {
   kind: "live",
   version: LIVE_FORM_VERSION,
-  title: "Before Agent places real orders",
+  title: "Sign before you connect an exchange",
   sections: [
     {
+      title: "This form comes before any key",
+      body: "You cannot connect Binance, BingX, Bitget, Bybit, OKX, or Gate until this acknowledgement is signed. Unsigned keys are disconnected. The terminal and the signals stay available either way — only the exchange key waits here.",
+    },
+    {
       title: "Live trading",
-      body: "Agent follows your rules on your exchange account. It is an assistant, not a promise, a managed account, or financial advice.",
+      body: "Agent follows your rules on your exchange account. It is an assistant, not a promise, a managed account, or financial advice. Dry-run and live both require this form. Connecting is not the same as going live — after you sign, you still choose the venue, size, and when Agent is on.",
     },
   ],
   checks: [
+    {
+      id: "connect",
+      label:
+        "I understand no exchange key is stored until I sign this form. Connecting is my next step, not this one.",
+    },
     {
       id: "own",
       label:

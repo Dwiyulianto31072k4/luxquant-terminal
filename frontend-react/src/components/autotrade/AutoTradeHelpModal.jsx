@@ -115,6 +115,19 @@ function SectionHowItWorks() {
 
       <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] p-4">
         <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+          Before any key
+        </p>
+        <ol className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
+          <li>1. Sign the assistant notice</li>
+          <li>2. Sign the live trading agreement — Connect stays hidden until this is done</li>
+          <li>3. Link the helper (no keys yet)</li>
+          <li>4. Connect one venue and paste the API key</li>
+          <li>5. Set size and start dry-run, then live when you accept the risk</li>
+        </ol>
+      </div>
+
+      <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] p-4">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
           Decision flow
         </p>
         <ol className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
@@ -577,6 +590,10 @@ function SectionCapital() {
 
 function SectionFAQ() {
   const qa = [
+    {
+      q: "Why can’t I connect my exchange yet?",
+      a: "The live trading agreement must be signed first. Connect is hidden until that form is saved. Unsigned keys are disconnected. Signing is not going live — you still choose dry-run vs live after the key is in.",
+    },
     {
       q: "Why are so many signals skipped today?",
       a: "Check the Activity tab — each skip has a reason (max_daily_trades, loss_cooldown, max_open_positions). These are protections you configured. If you want more trades, raise the relevant limit slowly.",

@@ -33,11 +33,11 @@ import {
   setStrategyActive,
 } from "../services/autotradeApi";
 import { authApi, getMyAgentDisclaimerAcks } from "../services/authApi";
+import { LIVE_FORM } from "./autotrade/agentDisclaimerCopy";
 
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import ExchangePicker from "./autotrade/ExchangePicker";
 import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
-import LiveRiskAckModal from "./autotrade/LiveRiskAckModal";
 import AutoTradeSettings from "./autotrade/AutoTradeSettings";
 import PositionsBoard from "./autotrade/PositionsBoard";
 import ActivityTimeline from "./autotrade/ActivityTimeline";
@@ -597,7 +597,6 @@ export default function AutoTradePage() {
   const [rereadDisclaimer, setRereadDisclaimer] = useState(false);
   const [hasSignedAssistantForm, setHasSignedAssistantForm] = useState(false);
   const [hasSignedLiveForm, setHasSignedLiveForm] = useState(false);
-  const [showLiveAck, setShowLiveAck] = useState(false);
   const [acksReady, setAcksReady] = useState(false);
   const { prefs, setPref, ready: prefsReady } = useUiPrefs({
     agent_assistant_ack: false,
@@ -899,6 +898,14 @@ export default function AutoTradePage() {
             setRereadDisclaimer(false);
           }}
         />
+      ) : !hasSignedLiveForm ? (
+        <AgentDisclaimer
+          form={LIVE_FORM}
+          onAccept={() => {
+            setPref("agent_live_ack", true);
+            setHasSignedLiveForm(true);
+          }}
+        />
       ) : !hasAutotradeToken ? (
         <SetupCard
           title="Link the execution helper"
@@ -907,25 +914,6 @@ export default function AutoTradePage() {
           onAction={handleAuthorizeAutotrade}
           disabled={authActionLoading}
         />
-      ) : !hasSignedLiveForm ? (
-        <>
-          <SetupCard
-            title="Sign the live trading agreement"
-            body="Connecting an exchange key requires the live trading acknowledgement. Unsigned keys are disconnected. Dry-run and live both wait on this form."
-            actionLabel="Read and sign"
-            onAction={() => setShowLiveAck(true)}
-          />
-          <LiveRiskAckModal
-            open={showLiveAck}
-            firstTime
-            onCancel={() => setShowLiveAck(false)}
-            onConfirm={() => {
-              setPref("agent_live_ack", true);
-              setHasSignedLiveForm(true);
-              setShowLiveAck(false);
-            }}
-          />
-        </>
       ) : loading ? (
         <LoadingState />
       ) : !hasExchangeAccount ? (
@@ -1011,7 +999,7 @@ export default function AutoTradePage() {
       )}
 
       <ExchangeConnectModal
-        isOpen={showConnect && hasAutotradeToken}
+        isOpen={showConnect && hasAutotradeToken && hasSignedLiveForm}
         exchange={connectExchange}
         onClose={() => setShowConnect(false)}
         onSuccess={load}

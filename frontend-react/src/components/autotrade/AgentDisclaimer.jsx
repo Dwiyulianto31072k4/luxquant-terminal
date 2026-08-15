@@ -6,16 +6,20 @@ import { submitAgentDisclaimerAck } from "../../services/authApi";
 import { ASSISTANT_FORM, buildAckPayload } from "./agentDisclaimerCopy";
 import { GoldButton, GhostButton, Notice } from "./AutoTradeUI";
 
-const CHECKS = ASSISTANT_FORM.checks;
-
-export default function AgentDisclaimer({ onAccept, compact = false, onCollapse }) {
+export default function AgentDisclaimer({
+  form = ASSISTANT_FORM,
+  onAccept,
+  compact = false,
+  onCollapse,
+}) {
+  const checks = form.checks;
   const [checked, setChecked] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [scrolledEnd, setScrolledEnd] = useState(false);
   const [progress, setProgress] = useState(0);
   const scrollerRef = useRef(null);
-  const ready = scrolledEnd && CHECKS.every((item) => checked[item.id]);
+  const ready = scrolledEnd && checks.every((item) => checked[item.id]);
 
   const onScroll = () => {
     const el = scrollerRef.current;
@@ -29,18 +33,25 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
   };
 
   useEffect(() => {
+    setChecked({});
+    setScrolledEnd(false);
+    setProgress(0);
+    setError("");
+  }, [form.kind]);
+
+  useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
     onScroll();
     const id = requestAnimationFrame(onScroll);
     return () => cancelAnimationFrame(id);
-  }, []);
+  }, [form.kind]);
 
   const accept = async () => {
     setSaving(true);
     setError("");
     try {
-      await submitAgentDisclaimerAck(buildAckPayload(ASSISTANT_FORM, checked));
+      await submitAgentDisclaimerAck(buildAckPayload(form, checked));
       await onAccept?.();
     } catch (err) {
       const detail = err?.response?.data?.detail;
@@ -56,14 +67,15 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
     <div className="flex h-[min(72vh,760px)] flex-col overflow-hidden rounded-xl border border-ink/[0.1] bg-surface-raised">
       <header className="shrink-0 border-b border-ink/[0.08] px-5 py-4 sm:px-7">
         <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted">
-          Please read this first
+          {form.kind === "live" ? "Live trading agreement" : "Please read this first"}
         </p>
         <h2 className="mt-1.5 text-[22px] font-semibold tracking-tight text-text-primary sm:text-[26px]">
-          Agent is an assistant, not a money machine
+          {form.title}
         </h2>
         <p className="mt-1.5 text-[13px] leading-6 text-text-secondary">
-          Scroll the notice. Boxes unlock at the bottom. The signed form is saved
-          with time, IP, and version.
+          {form.kind === "live"
+            ? "Sign this before Connect appears. Scroll, tick every box, then continue."
+            : "Scroll the notice. Boxes unlock at the bottom. The signed form is saved with time, IP, and version."}
         </p>
         <div className="mt-3 h-0.5 overflow-hidden rounded-full bg-ink/[0.08]">
           <div
@@ -80,7 +92,7 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
           className="h-full overflow-y-auto overscroll-contain px-5 py-5 sm:px-7"
         >
           <div className="mx-auto max-w-3xl space-y-7 pb-6">
-            {ASSISTANT_FORM.sections.map((section) => (
+            {form.sections.map((section) => (
               <section key={section.title} className="space-y-2">
                 <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
                   {section.title}
@@ -89,19 +101,32 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
               </section>
             ))}
 
-            <section className="space-y-2">
-              <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
-                Typical situations that led here
-              </h3>
-              <ul className="list-disc space-y-1.5 pl-5 text-[13.5px] leading-7 text-text-secondary">
-                <li>The desk is open while they are at work, asleep, or in another timezone.</li>
-                <li>Some regions cannot complete Binance KYC, so they asked for BingX.</li>
-                <li>Others already trade Bitget and wanted the same rules they set here.</li>
-                <li>
-                  The recurring ask: apply my size and stop when I cannot sit on the exchange.
-                </li>
-              </ul>
-            </section>
+            {form.kind === "assistant" ? (
+              <section className="space-y-2">
+                <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
+                  Typical situations that led here
+                </h3>
+                <ul className="list-disc space-y-1.5 pl-5 text-[13.5px] leading-7 text-text-secondary">
+                  <li>The desk is open while they are at work, asleep, or in another timezone.</li>
+                  <li>Some regions cannot complete Binance KYC, so they asked for BingX.</li>
+                  <li>Others already trade Bitget and wanted the same rules they set here.</li>
+                  <li>
+                    The recurring ask: apply my size and stop when I cannot sit on the exchange.
+                  </li>
+                </ul>
+              </section>
+            ) : (
+              <section className="space-y-2">
+                <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
+                  What happens after you sign
+                </h3>
+                <ul className="list-disc space-y-1.5 pl-5 text-[13.5px] leading-7 text-text-secondary">
+                  <li>Connect one venue and paste the API key. Withdraw stays off.</li>
+                  <li>Set size, leverage, and dry-run vs live yourself.</li>
+                  <li>Nothing trades until you start Agent. Pause anytime.</li>
+                </ul>
+              </section>
+            )}
 
             <div className="space-y-2.5 border-t border-ink/[0.08] pt-5">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
@@ -110,7 +135,7 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
                   : "Scroll to the end to unlock these boxes"}
               </p>
               <ul className="space-y-2">
-                {CHECKS.map((item) => {
+                {checks.map((item) => {
                   const on = Boolean(checked[item.id]);
                   return (
                     <li key={item.id}>
@@ -159,7 +184,9 @@ export default function AgentDisclaimer({ onAccept, compact = false, onCollapse 
           ) : (
             <p className="text-[12px] leading-5 text-text-muted">
               {scrolledEnd
-                ? "Tick every box above, then continue. Connect stays hidden until then."
+                ? form.kind === "live"
+                  ? "Tick every box. Connect stays hidden until this form is signed."
+                  : "Tick every box above, then continue."
                 : "Scroll the notice first. Tick the boxes at the bottom when you have."}
             </p>
           )}
