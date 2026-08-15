@@ -563,6 +563,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
   const groups = detail?.error_groups || [];
   const blocks = detail?.blocks || [];
   const positions = detail?.positions || [];
+  const live = detail?.live_unrealized || {};
   const alerts = detail?.alerts || [];
   const activity = detail?.activity || [];
 
@@ -723,8 +724,22 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                 <Kpi
                   label="Open now"
                   value={s.open_positions ?? 0}
-                  sub={s.stuck_positions ? `${s.stuck_positions} stuck` : "none stuck"}
-                  tone={s.stuck_positions ? DOWN : undefined}
+                  sub={
+                    live.live_unrealized_pnl == null
+                      ? s.stuck_positions
+                        ? `${s.stuck_positions} stuck`
+                        : "none stuck"
+                      : `${live.live_unrealized_pnl >= 0 ? "+" : ""}$${Number(live.live_unrealized_pnl).toFixed(2)} live`
+                  }
+                  tone={
+                    s.stuck_positions
+                      ? DOWN
+                      : live.live_unrealized_pnl > 0
+                        ? UP
+                        : live.live_unrealized_pnl < 0
+                          ? DOWN
+                          : undefined
+                  }
                 />
                 <Kpi
                   label="Active for"
@@ -1176,6 +1191,8 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                       <th className="px-2 py-2 font-medium">Side</th>
                       <th className="px-2 py-2 text-right font-medium">Qty</th>
                       <th className="px-2 py-2 text-right font-medium">Entry</th>
+                      <th className="px-2 py-2 text-right font-medium">Mark</th>
+                      <th className="px-2 py-2 text-right font-medium">Live PnL</th>
                       <th className="px-2 py-2 text-right font-medium">Notional</th>
                       <th className="px-2 py-2 font-medium">Opened</th>
                       <th className="px-2 py-2 font-medium">Status</th>
@@ -1198,6 +1215,19 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                         </td>
                         <td className="px-2 py-2 text-right tabular-nums">{p.quantity}</td>
                         <td className="px-2 py-2 text-right tabular-nums">{p.entry_price ?? "—"}</td>
+                        <td className="px-2 py-2 text-right tabular-nums text-text-muted">
+                          {p.mark_price == null ? "—" : p.mark_price}
+                        </td>
+                        <td className="px-2 py-2 text-right tabular-nums">
+                          {p.unrealized_pnl == null ? (
+                            "—"
+                          ) : (
+                            <span style={{ color: p.unrealized_pnl >= 0 ? UP : DOWN }}>
+                              {signed(p.unrealized_pnl)}
+                              {p.unrealized_pnl_pct == null ? "" : ` · ${p.unrealized_pnl_pct}%`}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-2 py-2 text-right tabular-nums">{p.notional == null ? "—" : usd(p.notional)}</td>
                         <td className="px-2 py-2 text-text-muted">{ago(p.created_at)}</td>
                         <td className="px-2 py-2">

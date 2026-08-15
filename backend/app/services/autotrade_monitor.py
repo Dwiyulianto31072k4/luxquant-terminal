@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -46,6 +47,11 @@ ERROR_ACTIONS = ("execution.failed", "execution.entry_landed_despite_failure")
 # for each of these so a desk can see empty venues, not just ones already live.
 KNOWN_VENUES = ("binance", "okx", "bybit", "bitget", "bingx", "gate")
 
+# Public last prices for live uPnL on the desk. 20s is enough for an operator
+# glance and keeps us off every venue's ticker budget.
+_PRICE_TTL_SEC = 20.0
+_price_books: dict[str, tuple[float, dict[str, float]]] = {}
+
 
 def _canon_venue(name: str | None) -> str:
     raw = str(name or "").strip().lower()
@@ -57,6 +63,109 @@ def _canon_venue(name: str | None) -> str:
         if raw.endswith(suffix):
             return raw[: -len(suffix)]
     return raw
+
+
+def _canon_symbol(symbol: str | None) -> str:
+    return (symbol or "").upper().replace("-", "").replace("_", "")
+
+
+def _http_json(url: str, params: dict | None = None) -> Any:
+    import httpx
+
+    with httpx.Client(timeout=5.0) as client:
+        resp = client.get(url, params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+
+def _book_from_pairs(pairs: list[tuple[str, Any]]) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for symbol, raw in pairs:
+        try:
+            price = float(raw or 0)
+        except (TypeError, ValueError):
+            continue
+        key = _canon_symbol(symbol)
+        if key and price > 0:
+            out[key] = price
+    return out
+
+
+def _fetch_venue_book(venue: str) -> dict[str, float]:
+    """Last/mark from the public book. Fail empty — never invent a price."""
+    if venue == "binance":
+        data = _http_json("https://fapi.binance.com/fapi/v1/ticker/price")
+        rows = data if isinstance(data, list) else []
+        return _book_from_pairs([(r.get("symbol"), r.get("price")) for r in rows if isinstance(r, dict)])
+    if venue == "bingx":
+        data = _http_json("https://open-api.bingx.com/openApi/swap/v2/quote/ticker")
+        rows = data.get("data") if isinstance(data, dict) else data
+        if isinstance(rows, dict):
+            rows = rows.get("tickers") or rows.get("list") or [rows]
+        return _book_from_pairs(
+            [(r.get("symbol"), r.get("lastPrice") or r.get("price") or r.get("close")) for r in (rows or []) if isinstance(r, dict)]
+        )
+    if venue == "bybit":
+        data = _http_json("https://api.bybit.com/v5/market/tickers", {"category": "linear"})
+        rows = ((data or {}).get("result") or {}).get("list") or []
+        return _book_from_pairs([(r.get("symbol"), r.get("lastPrice") or r.get("markPrice")) for r in rows if isinstance(r, dict)])
+    if venue == "bitget":
+        data = _http_json("https://api.bitget.com/api/v2/mix/market/tickers", {"productType": "USDT-FUTURES"})
+        rows = data.get("data") if isinstance(data, dict) else data
+        return _book_from_pairs(
+            [(r.get("symbol"), r.get("lastPr") or r.get("last") or r.get("markPrice")) for r in (rows or []) if isinstance(r, dict)]
+        )
+    if venue == "okx":
+        data = _http_json("https://www.okx.com/api/v5/market/tickers", {"instType": "SWAP"})
+        rows = data.get("data") if isinstance(data, dict) else data
+        return _book_from_pairs([(r.get("instId"), r.get("last") or r.get("markPx")) for r in (rows or []) if isinstance(r, dict)])
+    if venue == "gate":
+        rows = _http_json("https://api.gateio.ws/api/v4/futures/usdt/tickers")
+        return _book_from_pairs(
+            [(r.get("contract"), r.get("last") or r.get("mark_price")) for r in (rows or []) if isinstance(r, dict)]
+        )
+    return {}
+
+
+def _last_prices(venue: str) -> dict[str, float]:
+    now = time.monotonic()
+    cached = _price_books.get(venue)
+    if cached and now - cached[0] < _PRICE_TTL_SEC:
+        return cached[1]
+    try:
+        book = _fetch_venue_book(venue)
+    except Exception as exc:
+        logger.info("Live mark book unavailable for %s: %s", venue, exc)
+        book = cached[1] if cached else {}
+    _price_books[venue] = (now, book)
+    return book
+
+
+def _attach_live_marks(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Stamp mark + unrealized USDT PnL on each open row. Linear USDT-M: (mark-entry)*qty."""
+    venues = {row.get("venue") or _canon_venue(row.get("exchange")) or "binance" for row in rows}
+    books = {venue: _last_prices(venue) for venue in venues if venue}
+    live_net = 0.0
+    priced = 0
+    for row in rows:
+        venue = row.get("venue") or _canon_venue(row.get("exchange")) or "binance"
+        symbol = _canon_symbol(row.get("symbol"))
+        mark = (books.get(venue) or {}).get(symbol)
+        entry = float(row.get("entry_price") or 0)
+        qty = float(row.get("quantity") or 0)
+        side = str(row.get("side") or "BUY").upper()
+        row["mark_price"] = mark
+        if mark and entry > 0 and qty > 0:
+            direction = -1.0 if side in {"SELL", "SHORT"} else 1.0
+            upnl = (mark - entry) * qty * direction
+            row["unrealized_pnl"] = round(upnl, 4)
+            row["unrealized_pnl_pct"] = round(((mark - entry) / entry) * direction * 100.0, 2)
+            live_net += upnl
+            priced += 1
+        else:
+            row["unrealized_pnl"] = None
+            row["unrealized_pnl_pct"] = None
+    return {"live_unrealized_pnl": round(live_net, 2), "priced": priced, "open": len(rows)}
 
 
 def _normalise_dsn(dsn: str) -> str:
@@ -934,12 +1043,14 @@ def open_positions() -> dict[str, Any]:
 
     for row in rows:
         row["venue"] = _canon_venue(row.get("exchange")) or "binance"
+    live = _attach_live_marks(rows)
     totals = {
         "open": len([r for r in rows if r["status"] == "open"]),
         "stuck": len([r for r in rows if r["status"] == "reconciliation_required"]),
         "spot": len([r for r in rows if r["market_type"] == "spot"]),
         "futures": len([r for r in rows if r["market_type"] == "futures"]),
         "users_holding": len({r["subject"] for r in rows}),
+        "live_unrealized_pnl": live["live_unrealized_pnl"],
         "by_exchange": [
             {
                 "exchange": name,
@@ -1116,6 +1227,7 @@ def user_detail(luxquant_user_id: int) -> dict[str, Any]:
         qty = float(row.get("quantity") or 0)
         entry = row.get("entry_price")
         row["notional"] = round(qty * float(entry), 2) if entry else None
+    live = _attach_live_marks(positions)
 
     for row in recent_closed:
         row["venue"] = _canon_venue(row.get("exchange")) or "binance"
@@ -1137,6 +1249,7 @@ def user_detail(luxquant_user_id: int) -> dict[str, Any]:
         "error_groups": sorted(error_groups.values(), key=lambda g: g["hits"], reverse=True),
         "blocks": blocks,
         "positions": positions,
+        "live_unrealized": live,
         "recent_closed": recent_closed,
         "alerts": alerts,
         "activity": activity,

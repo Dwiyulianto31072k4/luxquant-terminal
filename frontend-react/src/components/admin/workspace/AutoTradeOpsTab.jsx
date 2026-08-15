@@ -1108,7 +1108,12 @@ export const AutoTradeOpsTab = () => {
         padded={false}
         right={
           <span className="font-mono text-[11px] text-text-muted">
-            {pt.open ?? 0} open · {pt.stuck ?? 0} stuck · {pt.users_holding ?? 0} users
+            {pt.open ?? 0} open
+            {pt.live_unrealized_pnl == null
+              ? ""
+              : ` · ${pt.live_unrealized_pnl >= 0 ? "+" : ""}$${Number(pt.live_unrealized_pnl).toFixed(2)} live`}
+            {" · "}
+            {pt.stuck ?? 0} stuck · {pt.users_holding ?? 0} users
           </span>
         }
       >
@@ -1127,6 +1132,8 @@ export const AutoTradeOpsTab = () => {
                   <th className="pb-2 pr-3 font-medium">Side</th>
                   <th className="pb-2 pr-3 text-right font-medium">Qty</th>
                   <th className="pb-2 pr-3 text-right font-medium">Entry</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Mark</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Live PnL</th>
                   <th className="pb-2 pr-3 text-right font-medium">Notional</th>
                   <th className="pb-2 pr-3 font-medium">User</th>
                   <th className="pb-2 pr-3 font-medium">Opened</th>
@@ -1157,6 +1164,19 @@ export const AutoTradeOpsTab = () => {
                     </td>
                     <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
                       {p.entry_price ?? "—"}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-text-muted">
+                      {p.mark_price == null ? "—" : p.mark_price}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      {p.unrealized_pnl == null ? (
+                        "—"
+                      ) : (
+                        <span style={{ color: p.unrealized_pnl >= 0 ? UP : DOWN }}>
+                          {`${p.unrealized_pnl >= 0 ? "+" : ""}${usd(p.unrealized_pnl)}`}
+                          {p.unrealized_pnl_pct == null ? "" : ` · ${p.unrealized_pnl_pct}%`}
+                        </span>
+                      )}
                     </td>
                     <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
                       {p.notional === null ? "—" : usd(p.notional)}
