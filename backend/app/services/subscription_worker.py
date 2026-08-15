@@ -33,6 +33,7 @@ from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.core.redis import get_redis, is_redis_available
 from app.models.subscription import Payment
+from app.models.workspace import AdminFollowup
 from app.services.referral_service import refund_redemption
 from app.services.notifier import create_notification, notification_exists
 from app.services.telegram_group import is_in_group, kick_member, send_dm
@@ -80,6 +81,7 @@ MSG_FINAL = (
 # only moment renewing feels like continuity rather than repurchase.
 RENEW_URL = f"{SITE_URL}/pricing"
 CHECKOUT_URL = f"{SITE_URL}/payment"
+RECOVERY_URL = f"{SITE_URL}/pricing?source=invoice_recovery"
 
 
 def _hours_phrase(hours_left: float) -> str:
@@ -108,6 +110,112 @@ def _checkout_msg(plan_label: str, amount, hours_left: float) -> str:
         "Already sent it? Paste the transaction hash on that page and it will "
         "unlock straight away."
     )
+
+
+def _expired_checkout_msg(plan_label: str, amount, recovery_url: str) -> str:
+    return (
+        f"Your {plan_label} invoice expired before payment was confirmed.\n\n"
+        f"Previous amount: {amount} USDT\n"
+        "No access was removed and no new charge was created.\n\n"
+        f"Restart securely when you are ready: {recovery_url}"
+    )
+
+
+def _queue_payment_followup(db, row, now, reason: str) -> bool:
+    """Create one human fallback for an expired high-intent checkout."""
+    token = f"payment_id={row['id']}"
+    exists = (
+        db.query(AdminFollowup.id)
+        .filter(
+            AdminFollowup.user_id == row["user_id"],
+            AdminFollowup.category == "payment",
+            AdminFollowup.status.in_(("pending", "in_progress")),
+            AdminFollowup.note.ilike(f"%{token}%"),
+        )
+        .first()
+    )
+    if exists:
+        return False
+
+    creator_id = db.execute(
+        text("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1")
+    ).scalar()
+    if not creator_id:
+        logger.warning("Payment recovery follow-up skipped: no admin creator exists")
+        return False
+
+    db.add(
+        AdminFollowup(
+            user_id=row["user_id"],
+            title=f"Recover expired {row['plan_label']} invoice #{row['id']}",
+            note=(
+                f"{token}; amount={row['amount']} USDT; reason={reason}. "
+                "The automatic in-app recovery was created. Reach out once, "
+                "without urgency or performance claims, if a contact channel is available."
+            ),
+            category="payment",
+            due_date=now,
+            priority="high",
+            status="pending",
+            created_by=creator_id,
+        )
+    )
+    db.commit()
+    return True
+
+
+async def _send_expired_payment_recoveries(db, rows, now):
+    """Recover only invoices that expired in this worker cycle.
+
+    There is deliberately no historical blast. The notification source id and
+    follow-up token are persistent idempotency guards across worker restarts.
+    """
+    result = {"notified": 0, "dm_sent": 0, "queued": 0}
+    for row in rows:
+        source_id = f"checkout:expired:{row['id']}"
+        recovery_url = f"{RECOVERY_URL}&payment={row['id']}"
+        try:
+            if not notification_exists(db, type="checkout_expired", source_id=source_id):
+                create_notification(
+                    db,
+                    type="checkout_expired",
+                    title="Your invoice expired — restart when ready",
+                    body=(
+                        f"{row['plan_label']} — {row['amount']} USDT. "
+                        "No new charge was created."
+                    ),
+                    data={"payment_id": row["id"], "recovery_url": recovery_url},
+                    source_type="payment",
+                    source_id=source_id,
+                    user_id=row["user_id"],
+                )
+                result["notified"] += 1
+        except Exception as exc:
+            logger.warning("Expired checkout notification failed for payment %s: %s", row["id"], exc)
+            db.rollback()
+
+        dm_sent = False
+        if row.get("telegram_id") and row.get("telegram_bot_started_at"):
+            try:
+                dm_sent = await send_dm(
+                    row["telegram_id"],
+                    _expired_checkout_msg(row["plan_label"], row["amount"], recovery_url),
+                )
+            except Exception as exc:
+                logger.warning("Expired checkout DM failed for payment %s: %s", row["id"], exc)
+        if dm_sent:
+            result["dm_sent"] += 1
+            continue
+
+        reason = "telegram_not_ready" if not row.get("telegram_bot_started_at") else "dm_failed"
+        try:
+            if _queue_payment_followup(db, row, now, reason):
+                result["queued"] += 1
+        except Exception as exc:
+            logger.warning("Payment recovery queue failed for payment %s: %s", row["id"], exc)
+            db.rollback()
+
+    return result
 
 def _remaining_phrase(days_left: float) -> str:
     """How long is actually left, in the units a person would use."""
@@ -628,6 +736,35 @@ async def subscription_expiry_loop():
                 if expiring_with_credit:
                     db.commit()
 
+                # Capture only this cycle's genuinely recoverable checkout
+                # intents before the status flip. Historical expired rows are
+                # intentionally excluded so deployment cannot cause a blast.
+                recovery_rows = db.execute(
+                    text("""
+                        SELECT p.id, p.user_id,
+                               COALESCE(p.final_amount, p.amount_usdt) AS amount,
+                               COALESCE(pl.label, 'LuxQuant') AS plan_label,
+                               u.telegram_id, u.telegram_bot_started_at
+                        FROM payments p
+                        JOIN users u ON u.id = p.user_id
+                        LEFT JOIN subscription_plans pl ON pl.id = p.plan_id
+                        WHERE p.status = 'pending'
+                          AND p.deleted_at IS NULL
+                          AND p.expires_at IS NOT NULL
+                          AND p.expires_at < :now
+                          AND NOT (u.role IN ('premium', 'subscriber')
+                                   AND (u.subscription_expires_at IS NULL
+                                        OR u.subscription_expires_at > :now))
+                          AND NOT EXISTS (
+                            SELECT 1 FROM payments paid
+                            WHERE paid.user_id = p.user_id
+                              AND paid.deleted_at IS NULL
+                              AND paid.status = 'confirmed'
+                          )
+                    """),
+                    {"now": now},
+                ).mappings().all()
+
                 result_pay = db.execute(
                     text("""
                         UPDATE payments
@@ -640,6 +777,7 @@ async def subscription_expiry_loop():
                 )
                 expired_payments = result_pay.rowcount
                 db.commit()
+                recovery = await _send_expired_payment_recoveries(db, recovery_rows, now)
 
                 # Churn: referees whose subscription has been expired for longer
                 # than CHURN_AFTER_DAYS without renewal. Reversible — a renewal
@@ -663,7 +801,8 @@ async def subscription_expiry_loop():
                 db.commit()
 
                 if (expired or kicked or reminded or expired_payments or reconciled
-                        or unstuck or refunded_credit or churned_refs or checkout_nudges):
+                        or unstuck or refunded_credit or churned_refs or checkout_nudges
+                        or recovery["notified"] or recovery["dm_sent"] or recovery["queued"]):
                     logger.info(
                         f"♻️ Subscription worker: expired {expired} users, "
                         f"reminded {reminded}, kicked {kicked}, "
@@ -671,6 +810,8 @@ async def subscription_expiry_loop():
                         f"reconciled {reconciled} in-group, "
                         f"expired {expired_payments} payments, "
                         f"nudged {checkout_nudges} open invoices, "
+                        f"recovery notified {recovery['notified']}, "
+                        f"DM {recovery['dm_sent']}, queued {recovery['queued']}, "
                         f"refunded {refunded_credit} credit-invoices, "
                         f"churned {churned_refs} referrals"
                     )

@@ -45,6 +45,9 @@ not used as canonical activation.
 - `wallet_address_copied`
 - `payment_amount_copied`
 - `transaction_submitted`
+- `telegram_write_access_shown`
+- `telegram_write_access_allowed`
+- `telegram_write_access_cancelled`
 
 The ingestion endpoint requires a valid user access token, uses a server-side
 timestamp, limits metadata, and accepts only allowlisted events. Transport is

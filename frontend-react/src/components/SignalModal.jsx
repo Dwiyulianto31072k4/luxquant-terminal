@@ -27,6 +27,7 @@ import {
 import { deriveChartWithCard } from "./signalModal/utils";
 import { peakContextLabel, daysToPeak, peakIsAfterStop } from "../utils/peakTiming";
 import { buildLevelTimeline } from "../utils/journeyEvents";
+import { requestTelegramWriteAccess } from "../utils/telegramWriteAccess";
 
 const SignalModal = ({
   signal,
@@ -136,7 +137,10 @@ const SignalModal = ({
         method: armed ? "DELETE" : "POST",
         headers: tk ? { Authorization: `Bearer ${tk}` } : {},
       });
-      if (r.ok) setEntryAlert(await r.json());
+      if (r.ok) {
+        setEntryAlert(await r.json());
+        if (!armed) void requestTelegramWriteAccess({ trigger: "entry_alert_armed" });
+      }
     } catch {
       /* non-fatal */
     } finally {
@@ -952,10 +956,7 @@ const SignalModal = ({
       value: signal.stop1,
       pct: calcPct(signal.stop1, signal.entry),
       // Only mark hit on true stop-out; prefer SL2 if that was the update
-      hit:
-        isStopped &&
-        !!(getUpdateInfo("sl") || getUpdateInfo("sl1")) &&
-        !getUpdateInfo("sl2"),
+      hit: isStopped && !!(getUpdateInfo("sl") || getUpdateInfo("sl1")) && !getUpdateInfo("sl2"),
       reachedAt: getUpdateInfo("sl")?.update_at || getUpdateInfo("sl1")?.update_at,
     },
     {
@@ -2062,14 +2063,32 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       >
                         {chartFull ? (
                           <>
-                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <svg
+                              className="h-3 w-3"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
                               <path d="M9 3v6H3M15 21v-6h6M3 15h6v6M21 9h-6V3" />
                             </svg>
                             Back
                           </>
                         ) : (
                           <>
-                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <svg
+                              className="h-3 w-3"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
                               <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
                             </svg>
                             Full
@@ -2083,7 +2102,16 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         aria-label="Open on TradingView.com"
                         className="flex h-[30px] w-[30px] items-center justify-center rounded-md border border-ink/15 bg-surface/80 text-text-muted backdrop-blur-md transition-colors hover:border-accent/35 hover:text-accent"
                       >
-                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <svg
+                          className="h-3.5 w-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
                           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                           <polyline points="15 3 21 3 21 9" />
                           <line x1="10" y1="14" x2="21" y2="3" />
@@ -2114,28 +2142,28 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         ))}
                       </div>
                       {chartMode === "tv" && (
-                      <button
-                        onClick={toggleIndicators}
-                        title={
-                          showIndicators
-                            ? "Hide indicators (MACD · RSI · BB)"
-                            : "Show indicators (MACD · RSI · BB)"
-                        }
-                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md border text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
-                          showIndicators
-                            ? "bg-surface/80 border-ink/15 text-text-primary"
-                            : "bg-surface/60 border-ink/10 text-text-muted hover:text-text-primary"
-                        }`}
-                      >
-                        <span
-                          className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-ink/40" : "bg-ink/15"}`}
+                        <button
+                          onClick={toggleIndicators}
+                          title={
+                            showIndicators
+                              ? "Hide indicators (MACD · RSI · BB)"
+                              : "Show indicators (MACD · RSI · BB)"
+                          }
+                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md border text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
+                            showIndicators
+                              ? "bg-surface/80 border-ink/15 text-text-primary"
+                              : "bg-surface/60 border-ink/10 text-text-muted hover:text-text-primary"
+                          }`}
                         >
                           <span
-                            className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${showIndicators ? "translate-x-2.5" : "translate-x-0.5"}`}
-                          />
-                        </span>
-                        Ind
-                      </button>
+                            className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-ink/40" : "bg-ink/15"}`}
+                          >
+                            <span
+                              className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${showIndicators ? "translate-x-2.5" : "translate-x-0.5"}`}
+                            />
+                          </span>
+                          Ind
+                        </button>
                       )}
                     </div>
                     {/* Both hosts stay mounted and are toggled with CSS. Swapping
@@ -2181,10 +2209,14 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </div>
                     )}
                   </div>
-                  <div className={`${chartFull ? "hidden" : "hidden lg:block"} w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-ink/10 overflow-y-auto custom-scrollbar`}>
+                  <div
+                    className={`${chartFull ? "hidden" : "hidden lg:block"} w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-ink/10 overflow-y-auto custom-scrollbar`}
+                  >
                     {renderTargetsPanel("sidebar")}
                   </div>
-                  <div className={`${chartFull ? "hidden" : "lg:hidden"} flex-shrink-0 bg-surface-raised border-t border-ink/10 overflow-y-auto custom-scrollbar mobile-targets-panel`}>
+                  <div
+                    className={`${chartFull ? "hidden" : "lg:hidden"} flex-shrink-0 bg-surface-raised border-t border-ink/10 overflow-y-auto custom-scrollbar mobile-targets-panel`}
+                  >
                     {renderTargetsPanel("bottom")}
                   </div>
                 </div>

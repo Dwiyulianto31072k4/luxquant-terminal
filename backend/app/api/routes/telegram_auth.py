@@ -59,7 +59,7 @@ from app.services.role_resolver import (
     SOURCE_LEGACY,
     PROVIDER_TELEGRAM,
 )
-from app.services.telegram_group import create_one_time_invite_link
+from app.services.telegram_group import create_one_time_invite_link, send_dm
 from app.services.telegram_attribution import acq_from_telegram_start_param
 from app.services.telegram_bot_onboarding import (
     command_from_text,
@@ -179,6 +179,41 @@ async def telegram_bot_webhook(
 
     await _send_terminal_bot_message(chat_id, command)
     return {"ok": True, "handled": True, "command": command}
+
+
+@router.post("/telegram/write-access/confirm")
+async def confirm_telegram_write_access(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Verify a Mini App write-access grant with one useful DM.
+
+    Telegram owns the native permission prompt. A successful send is the
+    server-side truth that lifecycle and saved-alert messages can reach this
+    account; the endpoint is idempotent after that truth is established.
+    """
+    if not current_user.telegram_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Telegram is not linked to this account",
+        )
+    if current_user.telegram_bot_started_at:
+        return {"ok": True, "verified": True, "already_verified": True}
+
+    message = (
+        "LuxQuant alerts are ready.\n\n"
+        "Saved signals and entry alerts can now reach you here. "
+        "You can change alert preferences any time inside Notifications."
+    )
+    if not await send_dm(current_user.telegram_id, message):
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail="Telegram write access could not be verified",
+        )
+
+    current_user.telegram_bot_started_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"ok": True, "verified": True, "already_verified": False}
 
 
 # ====================================================================

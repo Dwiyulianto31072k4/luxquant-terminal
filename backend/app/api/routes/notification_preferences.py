@@ -37,6 +37,11 @@ NOTIF_REGISTRY = [
     {"type": "news",             "label": "News",            "group": "market",  "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "market_pulse",     "label": "Market Pulse",    "group": "market",  "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "sub_expiry",       "label": "Subscription",    "group": "account", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
+    # Checkout lifecycle is sent directly by subscription_worker with its own
+    # idempotency. Keep it visible in Account without routing it through the
+    # generic Telegram delivery worker a second time.
+    {"type": "checkout_pending",  "label": "Open Invoice",    "group": "account", "telegram_eligible": False, "default_in_app": True, "default_telegram": False},
+    {"type": "checkout_expired",  "label": "Invoice Recovery", "group": "account", "telegram_eligible": False, "default_in_app": True, "default_telegram": False},
     {"type": "admin_broadcast",  "label": "Announcements",   "group": "account", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "autotrade",        "label": "AutoTrade",       "group": "autotrade", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     # Support chat. default_telegram=True on purpose: this is a 1:1 reply to a

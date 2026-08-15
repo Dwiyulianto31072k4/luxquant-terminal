@@ -30,6 +30,8 @@ export const notificationsEn = {
   type_btcdom_call: "BTCDOM Alert",
   type_watchlist_update: "Watchlist",
   type_sub_expiry: "Subscription",
+  type_checkout_pending: "Open Invoice",
+  type_checkout_expired: "Invoice Recovery",
   type_admin_broadcast: "Announcement",
   type_coin_called: "Watchlist Calls",
   // Notification content
@@ -81,6 +83,8 @@ export const notificationsZh = {
   type_btcdom_call: "BTCDOM 警报",
   type_watchlist_update: "自选列表",
   type_sub_expiry: "订阅",
+  type_checkout_pending: "待支付账单",
+  type_checkout_expired: "账单恢复",
   type_admin_broadcast: "公告",
   type_coin_called: "自选币呼叫",
   // Notification content

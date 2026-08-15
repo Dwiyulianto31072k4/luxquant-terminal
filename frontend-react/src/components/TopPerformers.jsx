@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import SignalJourneyExtended from "./SignalJourneyExtended";
@@ -12,6 +12,8 @@ import { buildProofJourneyEvents } from "../utils/journeyEvents";
 import { useAuth } from "../context/AuthContext";
 import { isEntitled } from "../utils/entitlement";
 import { trackGrowth } from "../utils/growthAnalytics";
+import { watchlistApi } from "../services/watchlistApi";
+import { requestTelegramWriteAccess } from "../utils/telegramWriteAccess";
 
 const API_BASE = "/api/v1";
 
@@ -24,6 +26,7 @@ const deriveChartWithCard = (rawUrl) => {
 
 const TopPerformers = () => {
   const { t } = useTranslation();
+  const location = useLocation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("7d");
@@ -37,6 +40,7 @@ const TopPerformers = () => {
   const [modalItem, setModalItem] = useState(null);
   const [signalDetail, setSignalDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const proofAutoOpened = useRef(false);
 
   const [historyModalSignal, setHistoryModalSignal] = useState(null);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
@@ -152,6 +156,19 @@ const TopPerformers = () => {
     setModalOpen(true);
     fetchDetail(item.signal_id);
   };
+
+  // A first-session activation route should deliver the proof it promised,
+  // not stop one click short at a leaderboard. Only the explicit onboarding
+  // query auto-opens; ordinary Performance visits remain unchanged.
+  useEffect(() => {
+    if (proofAutoOpened.current || !location.search.includes("onboarding=proof")) return;
+    const first = displayed[0];
+    if (!first?.signal_id) return;
+    proofAutoOpened.current = true;
+    handleItemClick(first);
+    // handleItemClick intentionally follows the current rendered cohort.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayed, location.search]);
 
   const goToSignal = (i) => {
     if (i >= 0 && i < modalSignalIds.length) {
@@ -496,9 +513,7 @@ const TopPerformers = () => {
 
             {displayed.length > 0 && (
               <div className="mt-1 flex items-center justify-between gap-3 border-t border-ink/[0.05] pt-3">
-                <p className="text-[11px] text-text-muted">
-                  Tap a row to open call proof
-                </p>
+                <p className="text-[11px] text-text-muted">Tap a row to open call proof</p>
                 <p className="font-mono text-[11px] tabular-nums text-text-muted">
                   {resultCount} listed
                 </p>
@@ -721,6 +736,9 @@ export const SignalDetailModal = ({
   const navigate = useNavigate();
   const { user } = useAuth();
   const isEntitledUser = isEntitled(user);
+  const [proofWatchlisted, setProofWatchlisted] = useState(false);
+  const [watchBusy, setWatchBusy] = useState(false);
+  const [activationNote, setActivationNote] = useState("");
   const [lightboxImg, setLightboxImg] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
   const [showTV, setShowTV] = useState(false);
@@ -746,6 +764,48 @@ export const SignalDetailModal = ({
   // Current signal id (respects multi-signal navigation) → full history route.
   const currentSid = (signalIds && signalIds[currentIndex]) || item?.signal_id || detail?.signal_id;
   const historyHref = `/signals?signal=${encodeURIComponent(currentSid || "")}&tab=history`;
+
+  useEffect(() => {
+    let alive = true;
+    setProofWatchlisted(false);
+    setActivationNote("");
+    if (!user || !currentSid) return undefined;
+    watchlistApi
+      .checkInWatchlist(currentSid)
+      .then((result) => {
+        if (alive) setProofWatchlisted(Boolean(result?.in_watchlist));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [currentSid, user]);
+
+  const armProofValue = async () => {
+    if (!user) {
+      navigate(`/login?redirect=${encodeURIComponent(`/performance?onboarding=proof`)}`);
+      return;
+    }
+    if (!currentSid || proofWatchlisted || watchBusy) return;
+    setWatchBusy(true);
+    setActivationNote("");
+    try {
+      await watchlistApi.addToWatchlist(currentSid);
+      setProofWatchlisted(true);
+      const writeAccess = await requestTelegramWriteAccess({ trigger: "proof_watch_saved" });
+      setActivationNote(
+        writeAccess.verified
+          ? "Saved. Telegram alerts are ready."
+          : writeAccess.status === "allowed"
+            ? "Saved. Telegram permission is on; your LuxQuant inbox is active."
+            : "Saved. Your LuxQuant inbox is active; Telegram can be enabled later."
+      );
+    } catch {
+      setActivationNote("Could not save this call yet. Please try again.");
+    } finally {
+      setWatchBusy(false);
+    }
+  };
 
   // Canonical activation milestone: a logged-in user has actually opened a
   // resolved call, not merely visited the Signals desk. Live/open calls are
@@ -784,16 +844,13 @@ export const SignalDetailModal = ({
           ? detail.updates.find((u) => /sl|stop/i.test(u.update_type || ""))
           : null;
         const slTs = slUpd?.update_at ? Date.parse(slUpd.update_at) : NaN;
-        const lastUpd = Array.isArray(detail.updates) && detail.updates.length
-          ? detail.updates[detail.updates.length - 1]
-          : null;
+        const lastUpd =
+          Array.isArray(detail.updates) && detail.updates.length
+            ? detail.updates[detail.updates.length - 1]
+            : null;
         const lastTs = lastUpd?.update_at ? Date.parse(lastUpd.update_at) : NaN;
         // Cap at last signal event (or SL) — never open-ended to "now"
-        const endTime = !Number.isNaN(lastTs)
-          ? lastTs
-          : !Number.isNaN(slTs)
-            ? slTs
-            : Date.now();
+        const endTime = !Number.isNaN(lastTs) ? lastTs : !Number.isNaN(slTs) ? slTs : Date.now();
 
         const extractPeak = (candles, gH, gT) => {
           if (!Array.isArray(candles) || candles.length === 0) return null;
@@ -1040,7 +1097,11 @@ export const SignalDetailModal = ({
 
   // Journey stepper: hide SL failure chips when the call still hit TP / finished WIN
   // (SL then TP looks like a bug). Label SL1 vs SL2 on real stop-outs.
-  const { events, suppressedSl, note: journeyNote } = buildProofJourneyEvents({
+  const {
+    events,
+    suppressedSl,
+    note: journeyNote,
+  } = buildProofJourneyEvents({
     updates: detail?.updates,
     status,
     entry: detail?.entry,
@@ -1060,9 +1121,7 @@ export const SignalDetailModal = ({
   // Derived display — hero gain must match leaderboard / server peak, not only last TP tick.
   // LuxQuant Calls list uses signals.peak_price (→ item.gain_pct / item.tp_price).
   // TP updates alone can stop at TP3 (+4.9%) while peak is +334%.
-  const lastUpdate = detail?.updates?.length
-    ? detail.updates[detail.updates.length - 1]
-    : null;
+  const lastUpdate = detail?.updates?.length ? detail.updates[detail.updates.length - 1] : null;
   const durationText = lastUpdate
     ? fmtDiff(created, lastUpdate.update_at)
     : detail
@@ -1070,11 +1129,7 @@ export const SignalDetailModal = ({
       : "—";
 
   const entryVal =
-    detail?.entry > 0
-      ? Number(detail.entry)
-      : item?.entry > 0
-        ? Number(item.entry)
-        : 0;
+    detail?.entry > 0 ? Number(detail.entry) : item?.entry > 0 ? Number(item.entry) : 0;
 
   // Best TP hit from updates (exclude SL) — "realized to plan", not hero peak
   let tpHitPrice = null;
@@ -1100,8 +1155,7 @@ export const SignalDetailModal = ({
     }
   }
 
-  const detailPeakPrice =
-    detail?.peak_price > 0 ? Number(detail.peak_price) : null;
+  const detailPeakPrice = detail?.peak_price > 0 ? Number(detail.peak_price) : null;
   const detailPeakPct =
     detail?.peak_pct != null && !Number.isNaN(Number(detail.peak_pct))
       ? Number(detail.peak_pct)
@@ -1111,9 +1165,7 @@ export const SignalDetailModal = ({
 
   const itemPeakPrice = item?.tp_price > 0 ? Number(item.tp_price) : null;
   const itemPeakPct =
-    item?.gain_pct != null && !Number.isNaN(Number(item.gain_pct))
-      ? Number(item.gain_pct)
-      : null;
+    item?.gain_pct != null && !Number.isNaN(Number(item.gain_pct)) ? Number(item.gain_pct) : null;
 
   // Hero = best known peak for this call (server peak → list peak → TP hit)
   // Prefer the larger of detail peak vs item peak when both exist (multi-call row).
@@ -1129,9 +1181,7 @@ export const SignalDetailModal = ({
   }
   // Item peak only when viewing the leaderboard's primary signal (same id)
   const isPrimaryListSignal =
-    !item?.signal_id ||
-    !currentSid ||
-    String(item.signal_id) === String(currentSid);
+    !item?.signal_id || !currentSid || String(item.signal_id) === String(currentSid);
   if (isPrimaryListSignal && itemPeakPct != null) {
     candidates.push({
       pct: itemPeakPct,
@@ -1150,42 +1200,29 @@ export const SignalDetailModal = ({
     candidates.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
     gainPctNum = candidates[0].pct;
     peakPriceDisplay =
-      candidates[0].price ??
-      (entryVal > 0 ? entryVal * (1 + candidates[0].pct / 100) : null);
+      candidates[0].price ?? (entryVal > 0 ? entryVal * (1 + candidates[0].pct / 100) : null);
   }
 
   const gainHero =
     gainPctNum != null && !Number.isNaN(gainPctNum)
       ? `${gainPctNum >= 0 ? "+" : ""}${Number(gainPctNum).toFixed(1)}%`
       : null;
-  const gainIsLoss =
-    isStopped ||
-    tpHitIsSL ||
-    (gainPctNum != null && gainPctNum < 0);
+  const gainIsLoss = isStopped || tpHitIsSL || (gainPctNum != null && gainPctNum < 0);
 
   // "Hit" in strip = peak price shown in hero (aligned with list %)
   const hitPriceDisplay = peakPriceDisplay;
 
   // Realized to highest TP (if much lower than peak, show as secondary)
   const tpHitPct =
-    tpHitPrice != null && entryVal > 0
-      ? ((tpHitPrice - entryVal) / entryVal) * 100
-      : null;
+    tpHitPrice != null && entryVal > 0 ? ((tpHitPrice - entryVal) / entryVal) * 100 : null;
   const showTpRealized =
-    tpHitPct != null &&
-    gainPctNum != null &&
-    !tpHitIsSL &&
-    gainPctNum - tpHitPct > 5;
+    tpHitPct != null && gainPctNum != null && !tpHitIsSL && gainPctNum - tpHitPct > 5;
 
   // Live kline high only if clearly above hero peak
   const coinHighPct =
-    coinHighPrice && entryVal > 0
-      ? ((coinHighPrice - entryVal) / entryVal) * 100
-      : null;
+    coinHighPrice && entryVal > 0 ? ((coinHighPrice - entryVal) / entryVal) * 100 : null;
   const showCoinHigh =
-    coinHighPrice != null &&
-    hitPriceDisplay != null &&
-    coinHighPrice > hitPriceDisplay * 1.05;
+    coinHighPrice != null && hitPriceDisplay != null && coinHighPrice > hitPriceDisplay * 1.05;
 
   const afterMark = lastUpdate?.price > 0 ? lastUpdate.price : null;
   const afterPct =
@@ -1201,20 +1238,30 @@ export const SignalDetailModal = ({
     const isLast = i === events.length - 1;
     return (
       <div key={i} className="relative flex flex-1 flex-col items-center min-w-[72px]">
-        {!isLast && (
-          <div className="absolute left-1/2 top-[13px] h-px w-full bg-ink/[0.08]" />
-        )}
+        {!isLast && <div className="absolute left-1/2 top-[13px] h-px w-full bg-ink/[0.08]" />}
         <div
           className={`relative z-10 flex h-[26px] w-[26px] items-center justify-center rounded-full text-text-primary ${c.dot}`}
         >
           {i === 0 ? (
             <span className="h-1.5 w-1.5 rounded-full bg-ink/90" />
           ) : ev.isSL ? (
-            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={3}
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : (
-            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={3}
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
@@ -1223,7 +1270,9 @@ export const SignalDetailModal = ({
           <p className={`truncate text-[11px] font-semibold ${c.text}`}>{ev.label}</p>
           <p className="font-mono text-[10px] tabular-nums text-text-muted">{ev.time}</p>
           {ev.detail && (
-            <p className={`truncate font-mono text-[10px] tabular-nums ${ev.isSL ? "text-loss" : "text-profit"}`}>
+            <p
+              className={`truncate font-mono text-[10px] tabular-nums ${ev.isSL ? "text-loss" : "text-profit"}`}
+            >
               {ev.detail}
             </p>
           )}
@@ -1293,27 +1342,58 @@ export const SignalDetailModal = ({
           )}
 
           <div className="flex shrink-0 items-center gap-1">
-            <a href={xUrl} target="_blank" rel="noopener noreferrer" className={iconBtn} title={`Explore $${xCash} on X`}>
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <a
+              href={xUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={iconBtn}
+              title={`Explore $${xCash} on X`}
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
             </a>
             {onOpenHistory ? (
-              <button type="button" onClick={() => onOpenHistory(item)} className={iconBtn} title="History">
+              <button
+                type="button"
+                onClick={() => onOpenHistory(item)}
+                className={iconBtn}
+                title="History"
+              >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </button>
             ) : (
               <a href={historyHref} className={iconBtn} title="History">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </a>
             )}
             <button type="button" onClick={handleClose} className={iconBtn} aria-label="Close">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -1365,13 +1445,18 @@ export const SignalDetailModal = ({
           ) : detail?.is_redacted ? (
             <div className="space-y-4 pb-1">
               <div className="rounded-2xl bg-profit/[0.07] px-5 py-5 text-center">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">Peak reached</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                  Peak reached
+                </p>
                 <p className="mt-1.5 font-mono text-[32px] font-bold leading-none text-profit">
                   {detail.peak_pct != null ? `+${Number(detail.peak_pct).toFixed(1)}%` : "—"}
                 </p>
                 <p className="mt-2 text-[12px] text-text-muted">
                   This call ran{" "}
-                  {detail.peak_pct != null ? `+${Number(detail.peak_pct).toFixed(1)}%` : "in profit"} from entry.
+                  {detail.peak_pct != null
+                    ? `+${Number(detail.peak_pct).toFixed(1)}%`
+                    : "in profit"}{" "}
+                  from entry.
                 </p>
               </div>
 
@@ -1410,7 +1495,13 @@ export const SignalDetailModal = ({
                       />
                       <div className="absolute inset-0 flex items-center justify-center bg-surface/30">
                         <span className="flex items-center gap-1.5 rounded-full bg-surface-raised/90 px-3 py-1.5 text-[11px] font-medium text-text-secondary backdrop-blur-sm">
-                          <svg className="h-3 w-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
+                          <svg
+                            className="h-3 w-3 text-accent"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2.2}
+                          >
                             <rect x="5" y="11" width="14" height="10" rx="2" />
                             <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
                           </svg>
@@ -1445,13 +1536,17 @@ export const SignalDetailModal = ({
               {/* Stats grid — never stacks labels onto one cramped line */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Entry</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
+                    Entry
+                  </p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
                     {entryVal > 0 ? `$${formatPrice(entryVal)}` : "—"}
                   </p>
                 </div>
                 <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Peak</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
+                    Peak
+                  </p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
                     {hitPriceDisplay != null ? `$${formatPrice(hitPriceDisplay)}` : "—"}
                   </p>
@@ -1466,13 +1561,17 @@ export const SignalDetailModal = ({
                   )}
                 </div>
                 <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Time</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
+                    Time
+                  </p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
                     {durationText}
                   </p>
                 </div>
                 <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Risk</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
+                    Risk
+                  </p>
                   <p
                     className={`mt-0.5 font-mono text-[13px] font-semibold ${
                       detail.risk_level === "High"
@@ -1584,8 +1683,18 @@ export const SignalDetailModal = ({
 
                     <div className="hidden items-center justify-center md:flex">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink/[0.05] text-text-muted">
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -1603,13 +1712,16 @@ export const SignalDetailModal = ({
                             isStopped ? "bg-loss/80" : "bg-profit/75"
                           }`}
                         >
-                          {t("top.after") || "After"} · {status === "open" ? t("top.latest") || "Latest" : sLabel(status)}
+                          {t("top.after") || "After"} ·{" "}
+                          {status === "open" ? t("top.latest") || "Latest" : sLabel(status)}
                         </span>
                         {afterMark != null && (
                           <span className="rounded-md bg-scrim/45 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white/90 backdrop-blur-sm">
                             ${formatPrice(afterMark)}
                             {afterPct != null && (
-                              <span className={`ml-1 ${isStopped ? "text-red-200" : "text-emerald-200"}`}>
+                              <span
+                                className={`ml-1 ${isStopped ? "text-red-200" : "text-emerald-200"}`}
+                              >
                                 {afterPct}%
                               </span>
                             )}
@@ -1660,7 +1772,9 @@ export const SignalDetailModal = ({
                     </div>
                   </div>
                   {journeyNote && (
-                    <p className="mt-2 text-[11px] leading-relaxed text-text-muted">{journeyNote}</p>
+                    <p className="mt-2 text-[11px] leading-relaxed text-text-muted">
+                      {journeyNote}
+                    </p>
                   )}
                   {suppressedSl && (
                     <p className="mt-1 text-[10px] text-text-muted/80">
@@ -1675,6 +1789,40 @@ export const SignalDetailModal = ({
                 </div>
               )}
 
+              {/* The canonical activation step: proof is already open, now
+                  save one concrete call so LuxQuant has value to return to. */}
+              <div className="rounded-2xl border border-accent/25 bg-accent/[0.06] px-4 py-3.5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-[13px] font-semibold text-text-primary">
+                      {proofWatchlisted ? "This call is armed" : "Make this proof useful"}
+                    </p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
+                      {proofWatchlisted
+                        ? "It is saved in your watchlist. LuxQuant will keep the outcome and updates together."
+                        : "Save this resolved call to your watchlist. In Telegram, we will then ask once for permission to deliver alerts."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={armProofValue}
+                    disabled={watchBusy || proofWatchlisted}
+                    className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-[12px] font-semibold text-accent-fg shadow-[0_4px_12px_rgb(var(--accent)/0.22)] disabled:cursor-default disabled:opacity-65"
+                  >
+                    {watchBusy
+                      ? "Saving…"
+                      : proofWatchlisted
+                        ? "Saved to watchlist"
+                        : "Save & enable alerts"}
+                  </button>
+                </div>
+                {activationNote && (
+                  <p className="mt-2 text-[11px] leading-relaxed text-text-muted" role="status">
+                    {activationNote}
+                  </p>
+                )}
+              </div>
+
               {/* Free users: upgrade tease on the proof they already value */}
               {!isEntitledUser && (
                 <div className="rounded-2xl border border-accent/25 bg-accent/[0.07] px-4 py-3.5">
@@ -1682,8 +1830,8 @@ export const SignalDetailModal = ({
                     Want live levels on new calls?
                   </p>
                   <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
-                    Free includes this verified track record. Premium unlocks live entry / SL1 / SL2 /
-                    TP on open signals, Terminal, and Agent.
+                    Free includes this verified track record. Premium unlocks live entry / SL1 / SL2
+                    / TP on open signals, Terminal, and Agent.
                   </p>
                   <button
                     type="button"
@@ -1706,14 +1854,21 @@ export const SignalDetailModal = ({
                     onClick={() => setJourneyOpen((v) => !v)}
                     className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-ink/[0.02]"
                   >
-                    <span className="text-[13px] font-semibold text-text-primary">Detailed journey</span>
+                    <span className="text-[13px] font-semibold text-text-primary">
+                      Detailed journey
+                    </span>
                     <svg
                       className={`h-4 w-4 text-text-muted transition-transform ${journeyOpen ? "rotate-180" : ""}`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 6-6" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 9l6 6 6-6"
+                      />
                     </svg>
                   </button>
                   {journeyOpen && (

@@ -29,6 +29,8 @@ const getTypeToken = (type, data) => {
     btcdom_call: { tone: "gold", label: "BTCDOM" },
     watchlist_update: { tone: "gold", label: "WATCH" },
     sub_expiry: { tone: "danger", label: "EXPIRY" },
+    checkout_pending: { tone: "gold", label: "INVOICE" },
+    checkout_expired: { tone: "danger", label: "RECOVER" },
     admin_broadcast: { tone: "neutral", label: "BROADCAST" },
     coin_called: { tone: "gold", label: "CALLED" },
     news: { tone: "neutral", label: "NEWS" },
@@ -158,6 +160,8 @@ const NotificationBell = () => {
     if (notif.type === "btcdom_call" || notif.type === "watchlist_update") navigate("/signals");
     else if (notif.type === "daily_results") navigate("/analytics");
     else if (notif.type === "sub_expiry") navigate("/pricing");
+    else if (notif.type === "checkout_pending") navigate("/payment");
+    else if (notif.type === "checkout_expired") navigate("/pricing?source=invoice_recovery");
     else if (notif.type === "coin_called") navigate("/signals");
     else if (notif.type === "market_pulse") navigate("/pulse");
     else if (notif.type && notif.type.startsWith("autotrade")) navigate("/autotrade");

@@ -1,7 +1,8 @@
 // src/components/StarButton.jsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { watchlistApi } from "../services/watchlistApi";
+import { requestTelegramWriteAccess } from "../utils/telegramWriteAccess";
 
 const StarButton = ({ signalId, isStarred: initialStarred, onToggle }) => {
   const { isAuthenticated } = useAuth();
@@ -10,7 +11,7 @@ const StarButton = ({ signalId, isStarred: initialStarred, onToggle }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   // Sync with parent state
-  useState(() => {
+  useEffect(() => {
     setIsStarred(initialStarred);
   }, [initialStarred]);
 
@@ -33,6 +34,7 @@ const StarButton = ({ signalId, isStarred: initialStarred, onToggle }) => {
         await watchlistApi.addToWatchlist(signalId);
         setIsStarred(true);
         if (onToggle) onToggle(signalId, true);
+        void requestTelegramWriteAccess({ trigger: "watchlist_saved" });
       }
     } catch (error) {
       console.error("Watchlist error:", error);

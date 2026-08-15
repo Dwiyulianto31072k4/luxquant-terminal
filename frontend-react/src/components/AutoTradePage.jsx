@@ -38,6 +38,7 @@ import { LIVE_FORM } from "./autotrade/agentDisclaimerCopy";
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import ExchangePicker from "./autotrade/ExchangePicker";
 import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
+import LiveRiskAckModal from "./autotrade/LiveRiskAckModal";
 import AutoTradeSettings from "./autotrade/AutoTradeSettings";
 import PositionsBoard from "./autotrade/PositionsBoard";
 import ActivityTimeline from "./autotrade/ActivityTimeline";
@@ -61,12 +62,32 @@ import { PageHeader } from "./ui/PageHeader";
 import { useUiPrefs } from "../hooks/useUiPrefs";
 
 const TABS = [
-  { id: "overview", label: "Overview", hint: "Wallet, connection, and the rules that are live right now." },
-  { id: "positions", label: "Positions", hint: "What Agent is holding on the exchange — not every coin in your wallet." },
+  {
+    id: "overview",
+    label: "Overview",
+    hint: "Wallet, connection, and the rules that are live right now.",
+  },
+  {
+    id: "positions",
+    label: "Positions",
+    hint: "What Agent is holding on the exchange — not every coin in your wallet.",
+  },
   { id: "trades", label: "Trade History", hint: "Closed Agent trades only. A skip is not a loss." },
-  { id: "history", label: "Activity", hint: "Every fill, skip, and block with the reason in plain language." },
-  { id: "signals", label: "Signals", hint: "Open desk signals. Agent may skip any of these if your rules say so." },
-  { id: "settings", label: "Settings", hint: "Trading rules, exchange keys, and Telegram. Changes apply to the next signal." },
+  {
+    id: "history",
+    label: "Activity",
+    hint: "Every fill, skip, and block with the reason in plain language.",
+  },
+  {
+    id: "signals",
+    label: "Signals",
+    hint: "Open desk signals. Agent may skip any of these if your rules say so.",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    hint: "Trading rules, exchange keys, and Telegram. Changes apply to the next signal.",
+  },
 ];
 
 function venueMeta(exchange) {
@@ -268,8 +289,7 @@ function AutoTradeControlCenter({
   let state = {
     eyebrow: "PAUSED",
     title: "Assistant is off — no new entries",
-    description:
-      "Your rules are saved. Start Agent only when you can supervise it. Pause anytime.",
+    description: "Your rules are saved. Start Agent only when you can supervise it. Pause anytime.",
     tone: "warn",
     panel: "border-ink/[0.1] bg-surface-raised",
   };
@@ -598,7 +618,11 @@ export default function AutoTradePage() {
   const [hasSignedAssistantForm, setHasSignedAssistantForm] = useState(false);
   const [hasSignedLiveForm, setHasSignedLiveForm] = useState(false);
   const [acksReady, setAcksReady] = useState(false);
-  const { prefs, setPref, ready: prefsReady } = useUiPrefs({
+  const {
+    prefs,
+    setPref,
+    ready: prefsReady,
+  } = useUiPrefs({
     agent_assistant_ack: false,
     agent_live_ack: false,
   });
@@ -796,7 +820,8 @@ export default function AutoTradePage() {
   }, [hasAutotradeToken]);
 
   const summaryText = useMemo(() => {
-    if (!prefs.agent_assistant_ack) return "Read the assistant disclaimer before connecting anything";
+    if (!prefs.agent_assistant_ack)
+      return "Read the assistant disclaimer before connecting anything";
     if (!hasAutotradeToken) return "Link this LuxQuant account to the execution helper";
     if (!hasSignedLiveForm) return "Sign the live trading agreement before connecting a key";
     if (!hasExchangeAccount) return "One venue. Spot and futures. You turn it off.";
@@ -833,7 +858,7 @@ export default function AutoTradePage() {
 
   const openConnect = (exchange = "binance") => {
     if (!hasSignedLiveForm) {
-      setShowLiveAck(true);
+      setError("Sign the live trading agreement before connecting an exchange.");
       return;
     }
     setConnectExchange(exchange);

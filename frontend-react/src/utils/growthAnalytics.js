@@ -18,6 +18,9 @@ const ALLOWED = new Set([
   "wallet_address_copied",
   "payment_amount_copied",
   "transaction_submitted",
+  "telegram_write_access_shown",
+  "telegram_write_access_allowed",
+  "telegram_write_access_cancelled",
 ]);
 
 function randomId(prefix = "g") {

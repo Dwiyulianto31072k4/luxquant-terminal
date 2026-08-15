@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { isEntitled } from "../utils/entitlement";
 import { trackFunnel } from "../utils/funnelAnalytics";
 
-const LS_KEY = "lq_free_onboarding_v1";
+const LS_KEY = "lq_free_onboarding_v2";
 const DELAY_MS = 900;
 
 const readDone = () => {
@@ -27,25 +27,25 @@ const markDone = () => {
 
 const STEPS = [
   {
-    id: "pulse",
-    title: "Market Pulse",
-    body: "Live market temperature — free, no card.",
-    path: "/market-pulse",
-    cta: "Open Pulse",
-  },
-  {
     id: "performance",
-    title: "Track record",
-    body: "Win rate & proof charts you can audit.",
-    path: "/performance",
-    cta: "Open Performance",
+    title: "Verify one resolved call",
+    body: "Open the timestamped entry, targets, stop and final outcome.",
+    path: "/performance?onboarding=proof",
+    cta: "Verify proof",
   },
   {
     id: "watchlist",
-    title: "Watchlist",
-    body: "Pin pairs you care about — personal & free.",
+    title: "Arm the value",
+    body: "Save a call or pair so LuxQuant can bring you back when it matters.",
     path: "/watchlist",
-    cta: "Open Watchlist",
+    cta: "See watchlist",
+  },
+  {
+    id: "pulse",
+    title: "Read the market",
+    body: "Use Pulse, flow and research after you have verified the signal process.",
+    path: "/market-pulse",
+    cta: "Open Pulse",
   },
 ];
 
@@ -85,7 +85,7 @@ export default function FreeOnboardingModal() {
     navigate(step.path);
   };
 
-  const startPulse = () => go(STEPS[0]);
+  const startProof = () => go(STEPS[0]);
 
   return (
     <div
@@ -106,10 +106,11 @@ export default function FreeOnboardingModal() {
             id="free-onboard-title"
             className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary"
           >
-            Start with free tools today
+            Verify the process, then arm one alert
           </h2>
           <p className="mt-2 text-[14px] leading-relaxed text-text-muted">
-            No card. Pulse, track record, watchlist &amp; more. Live signal levels stay Premium.
+            Start with a resolved signal that cannot change after the fact. Save it, then explore
+            Pulse, Terminal and research at your own pace.
           </p>
         </div>
 
@@ -139,10 +140,10 @@ export default function FreeOnboardingModal() {
         <div className="mt-4 flex flex-col gap-2 border-t border-ink/[0.06] px-5 py-4 sm:px-6">
           <button
             type="button"
-            onClick={startPulse}
+            onClick={startProof}
             className="inline-flex h-12 w-full items-center justify-center rounded-full bg-accent text-[15px] font-semibold text-accent-fg shadow-[0_4px_16px_rgb(var(--accent)/0.28)]"
           >
-            Open Market Pulse
+            Verify a resolved call
           </button>
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <button

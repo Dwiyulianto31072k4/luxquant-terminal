@@ -25,6 +25,8 @@ CLIENT_META_KEYS = frozenset(
         "plan_name",
         "price_usdt",
         "auto_retry",
+        "trigger",
+        "result",
     }
 )
 
