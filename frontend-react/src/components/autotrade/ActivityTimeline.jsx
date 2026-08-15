@@ -45,7 +45,7 @@ const RISK_LIMIT_HELP = {
   reconciliation_required: {
     label: "Position needs reconciliation",
     blocking: true,
-    hint: "A position could not be matched against Binance, so every new entry is paused until it clears. This usually means the coin left your spot wallet outside the bot — a manual sell, convert or transfer, all of which cancel the protective OCO first. The reconciler now closes those automatically once it confirms the balance is gone; if it persists, contact support.",
+    hint: "A position could not be matched against your exchange, so every new entry is paused until it clears. This usually means the coin left the wallet outside the bot — a manual sell, convert or transfer, which cancel the protective orders first. The reconciler closes those once it confirms the balance is gone; if it persists, contact support.",
   },
   subscription_inactive: {
     label: "LuxQuant subscription is not active",
@@ -158,7 +158,22 @@ function skipInfo(action, metadata = {}) {
       return {
         label: "No usable exchange key",
         detail:
-          "This account has no working Binance key, so nothing can be placed. Either none was ever connected, or the key was revoked, lost its trading permission, or fell off the IP allow-list. Reconnect it — positions you already hold cannot be managed until you do.",
+          "This account has no working exchange key, so nothing can be placed. Either none was ever connected, or the key was revoked, lost trading permission, or fell off the IP allow-list. Reconnect it — positions you already hold cannot be managed until you do.",
+      };
+    case "execution.skip_symbol_not_listed":
+      return {
+        label: "Coin not listed on this exchange",
+        detail: `${metadata.symbol || "This coin"} is offline or not listed on ${metadata.exchange || "your venue"}${metadata.error ? ` — ${metadata.error}` : ""}. Agent will not invent a substitute pair.`,
+      };
+    case "execution.skip_venue_price_outside_entry":
+      return {
+        label: "Venue price is outside the entry zone",
+        detail: `${metadata.symbol || "This coin"} last printed ${metadata.entry_price ?? "—"} on ${metadata.exchange || "the venue"}; the signal entry is ${metadata.printed_min ?? metadata.entry_min ?? "—"}–${metadata.printed_max ?? metadata.entry_max ?? "—"}. Agent will not chase a gapped book.`,
+      };
+    case "execution.skip_venue_unreachable":
+      return {
+        label: "Exchange was unreachable",
+        detail: "The venue did not answer in time. No order was placed. The next signal retries.",
       };
     case "execution.skip_risk_level_filtered":
       return {
@@ -265,7 +280,7 @@ function eventInfo(item) {
       category: "execution",
       tone: "info",
       title: `${symbol || "Order"} simulated`,
-      description: "Execution completed without placing a Binance order.",
+      description: "Execution completed without placing an exchange order.",
       source: "Execution engine",
     };
   }
@@ -282,8 +297,10 @@ function eventInfo(item) {
         ? `${symbol || "Execution"} blocked — exchange rate limit (418)`
         : `${symbol || "Execution"} failed`,
       description: is418
-        ? "Binance temporarily banned this VPS IP for too many REST calls. Wait for ban expiry or use websocket-backed price feeds; raise notional only after IP is clear."
-        : rawErr || "The execution engine returned an error.",
+        ? "The venue temporarily rate-limited our server IP. Wait for the window to lift; no order was placed."
+        : /ConnectError/i.test(rawErr)
+          ? "The exchange connection dropped before an order was placed. The next signal retries."
+          : rawErr || "The execution engine returned an error.",
       source: "Execution engine",
     };
   }
@@ -358,11 +375,40 @@ function eventInfo(item) {
         source: "Position reconciler",
       };
     }
+    if (action === "position.futures_close_settled" || action === "position.closed") {
+      const reason = metadata.exit_reason || metadata.reason || "exchange";
+      const pnl = metadata.realized_pnl;
+      return {
+        category: "position",
+        tone: Number(pnl) >= 0 ? "good" : "info",
+        title: `${symbol || "Position"} closed`,
+        description: [
+          reason.replaceAll("_", " "),
+          pnl === undefined || pnl === null ? null : `PnL ${Number(pnl).toFixed(2)} USDT`,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        source: "Position reconciler",
+      };
+    }
+    if (action === "position.futures_protection_check_failed") {
+      return {
+        category: "position",
+        tone: "warn",
+        title: `${symbol || "Position"} protection check failed`,
+        description: metadata.error || "Could not read open stop orders. The position was not closed.",
+        source: "Position reconciler",
+      };
+    }
     return {
       category: "position",
-      tone: action.includes("reconciliation_required") ? "bad" : "info",
-      title: `${symbol || "Position"} needs attention`,
-      description: metadata.reason || action.replaceAll(".", " "),
+      tone: action.includes("reconciliation_required") || action.includes("unprotected") ? "bad" : "info",
+      title: action.includes("unprotected")
+        ? `${symbol || "Position"} has no stop`
+        : action.includes("reconciliation_required")
+          ? `${symbol || "Position"} needs reconciliation`
+          : `${symbol || "Position"} update`,
+      description: metadata.reason || metadata.note || action.replaceAll(".", " "),
       source: "Position reconciler",
     };
   }
@@ -397,7 +443,7 @@ function eventInfo(item) {
     return {
       category: "account",
       tone: metadata.valid === false ? "bad" : "good",
-      title: action.endsWith("check") ? "Binance connection checked" : "Binance connection updated",
+      title: action.endsWith("check") ? "Exchange connection checked" : "Exchange connection updated",
       description: "Exchange credentials or connectivity status changed.",
       source: "Connection manager",
     };

@@ -85,7 +85,7 @@ export default function AccountsOverview({
               ) : null}
             </div>
             <GoldButton onClick={() => openConnect(primaryExchange)}>
-              {exchangeAccounts.length > 0 ? "Manage API keys" : "Connect Binance"}
+              {exchangeAccounts.length > 0 ? "Manage API keys" : "Connect exchange"}
             </GoldButton>
           </div>
         </div>

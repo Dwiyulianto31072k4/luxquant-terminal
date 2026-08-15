@@ -35,9 +35,9 @@ export const FIELD_GUIDE = {
   },
   dry_run: {
     title: "Dry run (simulation)",
-    what: "The bot follows every signal and records what it would have done, but sends nothing to Binance.",
+    what: "The bot follows every signal and records what it would have done, but sends nothing to your exchange.",
     example:
-      "A signal arrives, you see a simulated entry in Activity, and your Binance balance does not move.",
+      "A signal arrives, you see a simulated entry in Activity, and your exchange balance does not move.",
     watch:
       "Dry run sizes percent-based trades off a fixed 1,000 USDT, not your real balance. A 2% setting always simulates 20 USDT no matter what you actually hold, so treat simulated position sizes as illustrative.",
   },
@@ -56,7 +56,7 @@ export const FIELD_GUIDE = {
     what: "How much capital each entry uses. This is margin, not position size — on futures, leverage multiplies it.",
     example:
       "Fixed 12 USDT at 10× leverage opens a 120 USDT position. On spot the same 12 USDT buys 12 USDT of coin.",
-    watch: `Anything below ${MIN_LIVE_ENTRY_USDT} USDT is raised to ${MIN_LIVE_ENTRY_USDT} — Binance rejects smaller orders. On spot, budget 10–15 USDT: the protective stop leg has its own minimum (see Per trade cap).`,
+    watch: `Anything below ${MIN_LIVE_ENTRY_USDT} USDT is raised to ${MIN_LIVE_ENTRY_USDT} — venues reject smaller live orders. On spot, budget 10–15 USDT: the protective stop leg has its own minimum (see Per trade cap).`,
   },
   leverage: {
     title: "Leverage",
@@ -68,7 +68,7 @@ export const FIELD_GUIDE = {
   },
   leverage_fallback: {
     title: "If a coin caps leverage",
-    what: "Binance sets a maximum leverage per coin, often well below what you configured. This decides what the bot does when your setting does not fit.",
+    what: "Each exchange sets a maximum leverage per coin, often well below what you configured. This decides what the bot does when your setting does not fit.",
     example:
       "You run 25x and a signal arrives on a coin capped at 10x. Trade at the coin's maximum: 12 USDT still, but the position is 120 instead of 300. Keep position size: margin rises to 30 USDT to reach the same 300. Skip: no trade.",
     watch:
@@ -222,7 +222,7 @@ export const FIELD_GUIDE = {
     title: "After error",
     what: "How long to wait after a failed execution before trying another entry.",
     example:
-      "Set to 15: an order rejected by Binance at 14:00 pauses new entries until 14:15.",
+      "Set to 15: an order rejected by the exchange at 14:00 pauses new entries until 14:15.",
     watch:
       "Only genuine trade failures count. Exchange rate limits, IP bans and API-key errors are excluded on purpose, so one infrastructure hiccup does not freeze your bot for 15 minutes.",
   },
@@ -230,9 +230,9 @@ export const FIELD_GUIDE = {
     title: "Engine",
     what: "The master switch. Paused means signals are recorded but nothing is executed.",
     example:
-      "Pausing does not touch open positions — their take-profit and stop-loss stay live on Binance.",
+      "Pausing does not touch open positions — their protective orders stay live on the exchange.",
     watch:
-      "Pausing stops NEW entries only. To exit a position you still need to close it, on the Positions tab or on Binance.",
+      "Pausing stops NEW entries only. To exit a position you still need to close it, on the Positions tab or on the exchange.",
   },
 };
 
@@ -241,11 +241,11 @@ export const FIELD_GUIDE = {
 export const ENGINE_RULES = [
   {
     title: "A stuck position pauses everything",
-    body: "If a position cannot be matched against Binance it is flagged for reconciliation, and that blocks every new entry — not just the one coin. It usually means the asset left your wallet outside the bot (a manual sell, convert or transfer, each of which cancels the protective order first). The reconciler now resolves this on its own once it confirms the balance is gone.",
+    body: "If a position cannot be matched against the exchange it is flagged for reconciliation, and that blocks every new entry — not just the one coin. It usually means the asset left your wallet outside the bot (a manual sell, convert or transfer, each of which cancels the protective order first). The reconciler now resolves this on its own once it confirms the balance is gone.",
   },
   {
     title: "Spot entries get resized to fit their protection",
-    body: "On spot, the stop-loss leg is a separate order that must independently clear Binance's 5 USDT minimum — and it sits below your entry, so it is always the binding constraint. The engine automatically raises your entry up to 2× your configured amount to make that fit. If even 2× is not enough, or it exceeds your balance, the signal is skipped rather than opened without protection.",
+    body: "On spot, the stop-loss leg is a separate order that must independently clear the venue's minimum — and it sits below your entry, so it is always the binding constraint. The engine automatically raises your entry up to 2× your configured amount to make that fit. If even 2× is not enough, or it exceeds your balance, the signal is skipped rather than opened without protection.",
   },
   {
     title: "Live entries need free USDT",
@@ -261,7 +261,7 @@ export const ENGINE_RULES = [
   },
   {
     title: "An invalid API key stops execution",
-    body: "Keys are validated when saved, and marked invalid automatically if Binance rejects them later (wrong permissions, or an IP allow-list that is missing either 187.127.135.84 or the backup 103.197.189.58). Restrict the key to both IPs — Agent fails over if the primary is rate-limited. Reconnect the key to resume.",
+    body: "Keys are validated when saved, and marked invalid automatically if the exchange rejects them later (wrong permissions, or an IP allow-list that is missing either 187.127.135.84 or the backup 103.197.189.58). Restrict the key to both IPs — Agent fails over if the primary is rate-limited. Reconnect the key to resume.",
   },
   {
     title: "Rate limits are shared",

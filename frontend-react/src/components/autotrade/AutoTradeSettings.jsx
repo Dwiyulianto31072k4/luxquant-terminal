@@ -2,7 +2,7 @@ import { useState } from "react";
 import AccountsOverview from "./AccountsOverview";
 import ConfigurationStudio from "./ConfigurationStudio";
 import TelegramAlertsCard from "./TelegramAlertsCard";
-import { BinanceIcon, TelegramIcon, SettingsIcon } from "./BrandIcons";
+import { TelegramIcon, SettingsIcon } from "./BrandIcons";
 
 const SECTIONS = [
   {
@@ -15,7 +15,7 @@ const SECTIONS = [
     id: "connections",
     label: "Connections",
     description: "Exchange API credentials and account health",
-    icon: BinanceIcon,
+    icon: SettingsIcon,
   },
   {
     id: "notifications",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { describeExitPlan } from "./autotradeFieldGuide";
+import { formatExitMode, formatExitReason } from "./autotradeLabels";
 
 describe("describeExitPlan", () => {
   it("trailing does not place TP and warns when the callback is tight", () => {
@@ -28,6 +29,12 @@ describe("describeExitPlan", () => {
     expect(plan.placed).toEqual(["Take-profit at TP2", "Hard stop at SL1"]);
     expect(plan.ifSignalTp).toMatch(/TP2/);
     expect(plan.tight).toBeNull();
+  });
+
+  it("humanizes exit labels", () => {
+    expect(formatExitMode("trailing_stop")).toBe("Trailing stop");
+    expect(formatExitReason("exchange_close")).toBe("Closed on exchange");
+    expect(formatExitReason("trailing_stop")).toBe("Trailing stop");
   });
 
   it("spot-only trailing is downgraded", () => {

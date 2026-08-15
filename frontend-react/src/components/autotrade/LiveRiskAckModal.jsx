@@ -90,7 +90,7 @@ export default function LiveRiskAckModal({
         ) : (
           <p className="mt-4 rounded-lg border border-ink/[0.08] bg-surface-secondary/60 px-3 py-2.5 text-[12.5px] leading-snug text-text-secondary">
             New matching signals may place real orders with real funds. Pause anytime —
-            open positions keep their take-profit and stop-loss on the exchange.
+            open positions keep their exchange protection (TP/SL or hard SL + trailing).
           </p>
         )}
 

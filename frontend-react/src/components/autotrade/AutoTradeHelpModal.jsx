@@ -123,8 +123,9 @@ function SectionHowItWorks() {
           <li>3. Check market — Spot or Futures enabled?</li>
           <li>4. Check Risk Limits — open positions, daily trades, cooldown</li>
           <li>5. Compute position size from your sizing rule</li>
-          <li>6. Place market entry + protective TP / SL on Binance</li>
-          <li>7. Monitor until TP / SL fills, record the result</li>
+          <li>6. Place a market entry on the exchange you connected</li>
+          <li>7. Place protection: Fixed SL sends TP + stop; Trailing sends hard SL + trail (no TP order)</li>
+          <li>8. Wait for those exchange orders — not the LuxQuant poster — to close the trade</li>
         </ol>
       </div>
 
@@ -143,14 +144,13 @@ function SectionMarkets() {
       <H>Choose where Agent trades</H>
 
       <Field label="Spot trading">
-        Trades the actual coin on Binance Spot — you receive the asset, no leverage, no liquidation
-        risk. Best for users new to automated execution.
+        Trades the actual coin on the venue’s spot book — you receive the asset, no leverage, no
+        liquidation risk. Best for users new to automated execution.
       </Field>
 
       <Field label="Futures trading">
-        Trades USDⓈ-M perpetual futures with leverage. Requires Binance API key with Futures
-        permission enabled. Higher reward potential, but also liquidation risk if leverage is
-        misused.
+        Trades USDT-margined perpetual futures with leverage. The API key must have futures
+        permission. Higher reward potential, but also liquidation risk if leverage is misused.
       </Field>
 
       <Tip tone="warn">
@@ -181,7 +181,7 @@ function SectionSizing() {
         The numeric value for the chosen method — USDT for <Code>Fixed</Code>, percent for{" "}
         <Code>Percent</Code>. This is the margin you commit, not the position size: live entries
         floor at <b>5 USDT</b>, which leverage multiplies up (5 USDT at 10× opens a 50 USDT
-        position). 5 USDT is Binance’s own minimum order size.
+        position). 5 USDT is Agent’s live floor so venues do not reject the order.
       </Field>
 
       <Field label="Per trade cap (Risk Limits → Per trade cap)">
@@ -391,7 +391,7 @@ function SectionRiskLimits() {
       </Field>
 
       <Field label="After error (cooldown)">
-        After a Binance error blocks an execution, pauses new entries for this many minutes.
+        After an exchange error blocks an execution, pauses new entries for this many minutes.
         Prevents error storms when something infrastructural is wrong.
       </Field>
 
@@ -603,14 +603,14 @@ function SectionFAQ() {
     },
     {
       q: "My futures position quantity is way larger than my margin?",
-      a: "That’s leverage, not a bug. A $10 margin at 10× opens a $100 notional position; quantity = $100 / coin price. Your wallet only holds $10 — Binance is sizing the position by notional.",
+      a: "That’s leverage, not a bug. A $10 margin at 10× opens a $100 notional position; quantity = $100 / coin price. Your wallet only holds $10 — the exchange is sizing the position by notional.",
     },
     {
       q: "Agent can’t turn on Futures — canTrade: false?",
-      a: "Your Binance API key doesn’t have Futures permission enabled. Go to your Binance API management, edit the key, enable Futures, and save with 2FA. If the key is IP-restricted, whitelist both 187.127.135.84 (primary) and 103.197.189.58 (backup). Agent uses the second IP when the first is rate-limited.",
+      a: "The API key does not have futures permission. Edit the key on the exchange, enable futures, and save with 2FA. If the key is IP-restricted, whitelist both 187.127.135.84 (primary) and 103.197.189.58 (backup). Agent uses the second IP when the first is rate-limited.",
     },
     {
-      q: "If I change my Binance API key, do I lose my settings?",
+      q: "If I change my exchange API key, do I lose my settings?",
       a: "No. Strategy and history are tied to your LuxQuant account, not to a specific API key. Replacing the key only updates the credentials — strategy, positions, and trade history stay intact.",
     },
     {
@@ -751,13 +751,13 @@ function SectionCaseStudies() {
       </P>
 
       <Field label="Case 1 — “Every signal says reconciliation required”">
-        One of your positions could not be matched against Binance, and that pauses <i>all</i> new
-        entries until it clears — it is a gate, not a per-signal skip. The usual cause is that the
-        coin left your spot wallet outside the bot: you sold, converted or transferred it on Binance
-        directly. Any of those cancels the protective OCO first, which is exactly what leaves the
-        bot with a position it can no longer see or protect. The reconciler now detects this on its
-        own — once it confirms the balance is really gone, it closes the position and the gate
-        lifts. Nothing for you to do but wait a minute.
+        One of your positions could not be matched against the exchange, and that pauses <i>all</i>{" "}
+        new entries until it clears — it is a gate, not a per-signal skip. The usual cause is that
+        the coin left your wallet outside the bot: you sold, converted or transferred it on the
+        exchange directly. Any of those cancels the protective orders first, which is exactly what
+        leaves the bot with a position it can no longer see or protect. The reconciler now detects
+        this on its own — once it confirms the balance is really gone, it closes the position and
+        the gate lifts. Nothing for you to do but wait a minute.
       </Field>
 
       <Field label="Case 1b — “Force sell keeps failing”">
@@ -782,7 +782,7 @@ function SectionCaseStudies() {
 
       <Field label="Case 4 — “Spot entries fail at the minimum size”">
         On spot the binding constraint is not your entry, it’s the protective stop leg: quantity ×
-        stop-limit price must clear Binance’s 5 USDT notional. Because the stop sits below your
+        stop-limit price must clear the venue’s minimum notional. Because the stop sits below your
         entry, a 5 USDT spot entry lands under that threshold as soon as the stop is more than a few
         percent away. Give spot 10–15 USDT per trade so the stop leg fits comfortably.
       </Field>

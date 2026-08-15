@@ -20,7 +20,7 @@ export const ASSISTANT_FORM = {
     },
     {
       title: "What it actually does",
-      body: "When you turn it on, Agent watches incoming signals and, if they match the rules you saved, it can place an order on your Binance, Bitget, or BingX account. Funds never leave that exchange. Withdraw permission is never requested. It will also skip trades — risk cap, daily loss limit, cooldown, invalid key, symbol not listed, you paused it. A skip is not a bug. A fill is not a gift.",
+      body: "When you turn it on, Agent watches incoming signals and, if they match the rules you saved, it can place an order on your connected exchange (Binance, BingX, Bitget, Bybit, OKX, or Gate). Funds never leave that exchange. Withdraw permission is never requested. It will also skip trades — risk cap, daily loss limit, cooldown, invalid key, symbol not listed, you paused it. A skip is not a bug. A fill is not a gift.",
     },
     {
       title: "What it is not",

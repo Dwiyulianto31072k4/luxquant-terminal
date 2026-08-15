@@ -262,7 +262,7 @@ function WorkedExample({ draft, availableUsdt }) {
       </ol>
       {draft.dry_run ? (
         <p className="mt-4 text-[11px] leading-4 text-text-muted">
-          Dry run is on — nothing reaches Binance, and percent sizing is simulated against a
+          Dry run is on — nothing reaches the exchange, and percent sizing is simulated against a
           fixed $1,000 rather than your real balance.
         </p>
       ) : null}
@@ -413,7 +413,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
   // the exact threshold depends on the signal's stop distance.
   const spotSizeWarning =
     draft.spot_enabled && draft.sizing_method === "fixed" && Number(draft.sizing_value) < 10
-      ? "On spot, the protective stop leg — not your entry — sets the real minimum. Below about 10 USDT per trade, wider stops push that leg under Binance's minimum and the exchange rejects the protection. Consider 10–15 USDT for spot."
+      ? "On spot, the protective stop leg — not your entry — sets the real minimum. Below about 10 USDT per trade, wider stops push that leg under the venue minimum and the exchange rejects the protection. Consider 10–15 USDT for spot."
       : "";
 
   // resolve_exit_plan downgrades trailing_stop to fixed_sl for spot without
@@ -548,7 +548,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
               label="Dry run (simulation)"
               hint={
                 draft.dry_run
-                  ? "ON — bot follows signals but places no real Binance orders."
+                  ? `ON — bot follows signals but places no real ${venueName} orders.`
                   : "OFF — LIVE mode. Matching signals may place real orders when the engine is started."
               }
               checked={Boolean(draft.dry_run)}
@@ -613,7 +613,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
               <Row
                 guide={FIELD_GUIDE.leverage_fallback}
                 label="If a coin caps leverage"
-                hint="Binance limits leverage per coin, and the limit is often below your setting."
+                hint={`${venueName} limits leverage per coin, and the limit is often below your setting.`}
               >
                 <Select
                   value={draft.leverage_fallback}
@@ -734,7 +734,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
             <h4 className="text-base font-semibold text-text-primary">Portfolio protection</h4>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-text-muted">
               These limits are stored per user and checked by the execution engine before an order
-              reaches Binance.
+              reaches {venueName}.
             </p>
           </div>
           <div className="w-full sm:w-[360px]">

@@ -26,6 +26,7 @@ import {
   fmtUsd,
 } from "./AutoTradeUI";
 import { useDialog } from "../../hooks/useDialog";
+import { exitReasonTone, formatExitMode, formatExitReason } from "./autotradeLabels";
 
 const COLORS = { up: "#0ECB81", down: "#F6465D", gold: "rgb(var(--accent))", muted: "#848E9C" };
 const PAGE_SIZE = 10;
@@ -142,8 +143,8 @@ function TradeDetailModal({ trade, onClose, basis }) {
                   <h3 className="font-mono text-lg font-semibold text-text-primary">
                     {trade.symbol}
                   </h3>
-                  <StatusBadge tone={trade.exit_reason === "take_profit" ? "good" : "bad"}>
-                    {trade.exit_reason?.replaceAll("_", " ") || trade.status}
+                  <StatusBadge tone={exitReasonTone(trade.exit_reason)}>
+                    {formatExitReason(trade.exit_reason) || trade.status}
                   </StatusBadge>
                 </div>
                 <p className="mt-1 text-xs text-text-muted">
@@ -179,7 +180,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
             <DetailPanel title="Trade outcome">
               <DetailRow label="Opened" value={fmtDateTime(trade.opened_at)} />
               <DetailRow label="Closed" value={fmtDateTime(trade.closed_at)} />
-              <DetailRow label="Result" value={trade.exit_reason?.replaceAll("_", " ") || "—"} />
+              <DetailRow label="Result" value={formatExitReason(trade.exit_reason)} />
               <DetailRow label="Entry order" value={entryOrder?.exchange_order_id || "—"} />
               <DetailRow label="OCO list" value={exitOrder?.exchange_order_list_id || "—"} />
               <DetailRow
@@ -203,7 +204,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
               />
               <DetailRow
                 label="Exit mode"
-                value={config.spot_exit_mode || config.exit_mode || "—"}
+                value={formatExitMode(config.spot_exit_mode || config.exit_mode)}
               />
               <DetailRow label="Risk" value={signal.risk_level || "—"} />
             </DetailPanel>
@@ -510,8 +511,8 @@ export default function TradeHistoryCalendar({ history = {} }) {
                       <span className="font-mono text-sm font-semibold text-text-primary">
                         {trade.symbol}
                       </span>
-                      <StatusBadge tone={trade.exit_reason === "take_profit" ? "good" : "bad"}>
-                        {trade.exit_reason?.replaceAll("_", " ")}
+                      <StatusBadge tone={exitReasonTone(trade.exit_reason)}>
+                        {formatExitReason(trade.exit_reason)}
                       </StatusBadge>
                     </span>
                     <span className="mt-0.5 block font-mono text-[10px] text-text-muted">
@@ -587,8 +588,8 @@ export default function TradeHistoryCalendar({ history = {} }) {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge tone={trade.exit_reason === "take_profit" ? "good" : "bad"}>
-                          {trade.exit_reason?.replaceAll("_", " ")}
+                        <StatusBadge tone={exitReasonTone(trade.exit_reason)}>
+                          {formatExitReason(trade.exit_reason)}
                         </StatusBadge>
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-text-primary/85">

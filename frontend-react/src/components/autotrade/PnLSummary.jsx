@@ -45,7 +45,11 @@ export default function PnLSummary({ portfolio, executions = [], tradeSummary = 
       <StatCard
         label="Live Trades"
         value={`${openLive} / ${closedLive}`}
-        sub={executionIssues.length > 0 ? executionIssues.join(" · ") : "Open / closed live"}
+        sub={
+          executionIssues.length > 0
+            ? executionIssues.join(" · ")
+            : "Open / closed Agent fills — skips are not losses"
+        }
         valueColor={
           failed > 0 || reconciliation > 0
             ? "text-negative"

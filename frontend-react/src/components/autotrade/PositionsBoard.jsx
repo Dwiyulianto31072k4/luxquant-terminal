@@ -617,7 +617,7 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
               <DetailRow label="Execution time" value={fmtDateTime(position.executed_at)} />
               <DetailRow label="Job status" value={execution.status || "—"} />
               <DetailRow
-                label="Binance order"
+                label="Exchange order"
                 value={position.entry_order?.exchange_order_id || "—"}
               />
               <DetailRow

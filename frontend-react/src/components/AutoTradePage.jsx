@@ -61,12 +61,12 @@ import { PageHeader } from "./ui/PageHeader";
 import { useUiPrefs } from "../hooks/useUiPrefs";
 
 const TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "positions", label: "Positions" },
-  { id: "trades", label: "Trade History" },
-  { id: "history", label: "Activity" },
-  { id: "signals", label: "Signals" },
-  { id: "settings", label: "Settings" },
+  { id: "overview", label: "Overview", hint: "Wallet, connection, and the rules that are live right now." },
+  { id: "positions", label: "Positions", hint: "What Agent is holding on the exchange — not every coin in your wallet." },
+  { id: "trades", label: "Trade History", hint: "Closed Agent trades only. A skip is not a loss." },
+  { id: "history", label: "Activity", hint: "Every fill, skip, and block with the reason in plain language." },
+  { id: "signals", label: "Signals", hint: "Open desk signals. Agent may skip any of these if your rules say so." },
+  { id: "settings", label: "Settings", hint: "Trading rules, exchange keys, and Telegram. Changes apply to the next signal." },
 ];
 
 function venueMeta(exchange) {
@@ -424,8 +424,18 @@ function AutoTradeOverview({
   const telegram = alertStatus?.telegram || {};
   const alertsEnabled = alertStatus?.preferences?.enabled !== false;
 
+  const exitMode = config?.exit?.mode || config?.exit_mode;
+  const callback = config?.exit?.trailing_callback_rate;
+
   return (
     <div className="space-y-5">
+      {exitMode === "trailing_stop" ? (
+        <Notice tone="info">
+          Trailing is on{callback ? ` at ${callback}%` : ""}. After each fill Agent places a hard
+          stop plus a trail — not a take-profit. LuxQuant marking TP1 does not close the exchange
+          position.
+        </Notice>
+      ) : null}
       <PnLSummary portfolio={portfolio} executions={executions} tradeSummary={tradeSummary} />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -486,7 +496,11 @@ function AutoTradeOverview({
           <p className="mt-1 text-xs leading-5 text-text-muted">
             {config?.spot_enabled ? "Spot" : ""}
             {config?.spot_enabled && config?.futures_enabled ? " + " : ""}
-            {config?.futures_enabled ? "Futures" : ""} ·{" "}
+            {config?.futures_enabled ? "Futures" : ""}
+            {exitMode === "trailing_stop"
+              ? ` · Trailing${callback ? ` ${callback}%` : ""}`
+              : " · Fixed SL"}{" "}
+            ·{" "}
             {config?.sizing?.method === "fixed"
               ? `${config?.sizing?.value || 0} USDT`
               : `${config?.sizing?.value || 0}%`}{" "}
@@ -910,6 +924,11 @@ export default function AutoTradePage() {
                 <MobileSectionPicker tabs={TABS} value={tab} onChange={setTab} />
               </div>
               <div className="pt-1 lg:pt-0">
+                {TABS.find((item) => item.id === tab)?.hint ? (
+                  <p className="mb-4 text-xs leading-5 text-text-muted">
+                    {TABS.find((item) => item.id === tab).hint}
+                  </p>
+                ) : null}
                 {tab === "overview" ? (
                   <AutoTradeOverview
                     portfolio={portfolio}
