@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ensureTelegram } from "../../utils/telegramLoader";
-import TelegramRedirectButton from "./TelegramRedirectButton";
+import TelegramRescuePanel, { TelegramMiniAppLink } from "./TelegramRescuePanel";
 import { inMiniAppContext, inTelegramWebView } from "../../utils/telegramWebApp";
 import LeftBrandPanel, { AssetCoins } from "./LeftBrandPanel";
 import ReferralBanner from "./ReferralBanner";
@@ -70,7 +70,7 @@ const LoginPage = () => {
   //
   // So: offer the other door early, and do NOT cancel the attempt underneath.
   // If the popup does come back at 40s it still works; if it never does, they
-  // had a way out at 18 instead of 90.
+  // had a way out at 8 instead of 90.
   const [telegramSlow, setTelegramSlow] = useState(false);
   const [telegramWebView, setTelegramWebView] = useState(() => inTelegramWebView());
   const [popupBlocked, setPopupBlocked] = useState(
@@ -197,7 +197,9 @@ const LoginPage = () => {
       setTelegramSlow(false);
       return undefined;
     }
-    const t = setTimeout(() => setTelegramSlow(true), 18_000);
+    // A real popup may still complete later; this only exposes a second door
+    // early enough that paid traffic does not stare at a spinner and leave.
+    const t = setTimeout(() => setTelegramSlow(true), 8_000);
     return () => clearTimeout(t);
   }, [telegramLoading]);
 
@@ -266,8 +268,18 @@ const LoginPage = () => {
       });
     } catch (err) {
       if (err.message !== "cancelled") {
-        const message =
-          err?.response?.data?.detail || err?.reason || err?.message || "Telegram sign-in failed";
+        const reason = err?.reason || err?.message;
+        const message = err?.response?.data?.detail || reason || "Telegram sign-in failed";
+        if (reason === "popup-unreachable") {
+          setPopupBlocked(true);
+          setError(null);
+          trackFunnel("auth_fallback_offered", {
+            provider: "telegram",
+            source: "login_popup_timeout",
+            meta: { reason },
+          });
+          return;
+        }
         trackFunnel("auth_error", {
           provider: "telegram",
           meta: { message, mode: inMiniAppContext() ? "miniapp_manual" : "popup" },
@@ -538,36 +550,30 @@ const LoginPage = () => {
                   loadingText={!telegramReady ? a("preparing") : a("connecting")}
                 />
               )}
+              {!popupBlocked && !telegramSlow && (
+                <TelegramMiniAppLink
+                  label="Pop-up trouble? Open in Telegram"
+                  source="login_always_available"
+                  className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-text-muted transition-colors hover:text-[#229ED9]"
+                />
+              )}
               {popupBlocked && (
-                <div className="rounded-xl border border-accent/30 bg-accent/[0.06] p-3">
-                  <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
-                    {telegramWebView
-                      ? "Continue securely with Telegram below — this browser uses the redirect flow."
-                      : "This browser blocked the Telegram sign-in window. Use the button below instead — it opens Telegram directly."}
-                  </p>
-                  <TelegramRedirectButton className="flex justify-center" />
-                </div>
+                <TelegramRescuePanel
+                  reason={telegramWebView ? "webview" : "blocked"}
+                  onGoogle={handleGoogleLogin}
+                />
               )}
               {telegramSlow && !popupBlocked && (
-                <div className="rounded-xl border border-ink/12 bg-ink/[0.03] p-3">
-                  <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
-                    Still waiting on Telegram. It may still come through — or you
-                    can sign in with Google now, which does not need a pop-up.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackFunnel("auth_fallback_taken", {
-                        provider: "google",
-                        source: "login_slow",
-                      });
-                      handleGoogleLogin();
-                    }}
-                    className="w-full rounded-lg border border-ink/15 bg-surface-raised px-3 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
-                  >
-                    Continue with Google instead
-                  </button>
-                </div>
+                <TelegramRescuePanel
+                  reason="slow"
+                  onGoogle={() => {
+                    trackFunnel("auth_fallback_taken", {
+                      provider: "google",
+                      source: "login_slow",
+                    });
+                    handleGoogleLogin();
+                  }}
+                />
               )}
               <LoginButton
                 active={(hoverIdx ?? 0) === 1}
@@ -768,37 +774,32 @@ const LoginPage = () => {
               />
             )}
 
+            {!popupBlocked && !telegramSlow && (
+              <TelegramMiniAppLink
+                label="Pop-up trouble? Open in Telegram"
+                source="login_always_available"
+                className="mt-2 flex items-center justify-center gap-1.5 text-[11.5px] font-medium text-text-muted transition-colors hover:text-[#229ED9]"
+              />
+            )}
+
             {popupBlocked && (
-              <div className="rounded-xl border border-accent/30 bg-accent/[0.06] p-3">
-                <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
-                  {telegramWebView
-                    ? "Continue securely with Telegram below — this browser uses the redirect flow."
-                    : "This browser blocked the Telegram sign-in window. Use the button below instead — it opens Telegram directly."}
-                </p>
-                <TelegramRedirectButton className="flex justify-center" />
-              </div>
+              <TelegramRescuePanel
+                reason={telegramWebView ? "webview" : "blocked"}
+                onGoogle={handleGoogleLogin}
+              />
             )}
 
             {telegramSlow && !popupBlocked && (
-              <div className="rounded-xl border border-ink/12 bg-ink/[0.03] p-3">
-                <p className="mb-2 text-[11.5px] leading-snug text-text-muted">
-                  Still waiting on Telegram. It may still come through — or you
-                  can sign in with Google now, which does not need a pop-up.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    trackFunnel("auth_fallback_taken", {
-                      provider: "google",
-                      source: "login_slow",
-                    });
-                    handleGoogleLogin();
-                  }}
-                  className="w-full rounded-lg border border-ink/15 bg-surface-raised px-3 py-2 text-[13px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
-                >
-                  Continue with Google instead
-                </button>
-              </div>
+              <TelegramRescuePanel
+                reason="slow"
+                onGoogle={() => {
+                  trackFunnel("auth_fallback_taken", {
+                    provider: "google",
+                    source: "login_slow",
+                  });
+                  handleGoogleLogin();
+                }}
+              />
             )}
 
             <div className="my-4 flex items-center gap-4">

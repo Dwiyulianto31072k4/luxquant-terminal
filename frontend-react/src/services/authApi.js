@@ -13,7 +13,7 @@ const api = axios.create({
 // Request interceptor - tambah token ke header
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("access_token");
+    const token = config.skipAuthHeader ? null : localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -57,7 +57,12 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     const status = error.response?.status;
 
-    if (status === 401 && originalRequest && !originalRequest._retry) {
+    if (
+      status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.skipAuthRefresh
+    ) {
       originalRequest._retry = true;
 
       // All concurrent 401s share ONE in-flight refresh.
@@ -103,7 +108,10 @@ export const authApi = {
     const body = { id_token: idToken };
     if (referralCode) body.referral_code = referralCode;
     if (acq) body.acq = acq;
-    const response = await api.post("/api/v1/auth/google", body);
+    const response = await api.post("/api/v1/auth/google", body, {
+      skipAuthHeader: true,
+      skipAuthRefresh: true,
+    });
     return response.data;
   },
 
@@ -121,7 +129,10 @@ export const authApi = {
     const body = { init_data: initData };
     if (referralCode) body.referral_code = referralCode;
     if (acq) body.acq = acq;
-    const response = await api.post("/api/v1/auth/telegram/webapp", body);
+    const response = await api.post("/api/v1/auth/telegram/webapp", body, {
+      skipAuthHeader: true,
+      skipAuthRefresh: true,
+    });
     return response.data;
   },
 
@@ -129,7 +140,10 @@ export const authApi = {
     const body = { ...telegramData };
     if (referralCode) body.referral_code = referralCode;
     if (acq) body.acq = acq;
-    const response = await api.post("/api/v1/auth/telegram", body);
+    const response = await api.post("/api/v1/auth/telegram", body, {
+      skipAuthHeader: true,
+      skipAuthRefresh: true,
+    });
     return response.data;
   },
 
@@ -155,7 +169,11 @@ export const authApi = {
    */
   discordGetUrl: async (referralCode = null) => {
     const params = referralCode ? { referral_code: referralCode } : {};
-    const response = await api.get("/api/v1/auth/discord/url", { params });
+    const response = await api.get("/api/v1/auth/discord/url", {
+      params,
+      skipAuthHeader: true,
+      skipAuthRefresh: true,
+    });
     return response.data;
   },
 

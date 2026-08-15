@@ -306,6 +306,8 @@ def _canonical_growth_funnel(db: Session, since: datetime) -> dict[str, Any]:
             "tracking_started_at": None,
             "totals": {},
             "by_source": [],
+            "by_campaign": [],
+            "by_content": [],
         }
     cohort_since = max(since, first_at)
 
@@ -313,7 +315,8 @@ def _canonical_growth_funnel(db: Session, since: datetime) -> dict[str, Any]:
         text(
             """
             WITH cohort AS (
-              SELECT id AS user_id, created_at, acq_source
+              SELECT id AS user_id, created_at, acq_source, acq_medium,
+                     acq_campaign, acq_content
               FROM users
               WHERE created_at >= :since
             ),
@@ -372,6 +375,9 @@ def _canonical_growth_funnel(db: Session, since: datetime) -> dict[str, Any]:
             )
             SELECT
               COALESCE(NULLIF(trim(c.acq_source), ''), '(unknown)') AS source,
+              COALESCE(NULLIF(trim(c.acq_medium), ''), '(none)') AS medium,
+              COALESCE(NULLIF(trim(c.acq_campaign), ''), '(none)') AS campaign,
+              COALESCE(NULLIF(trim(c.acq_content), ''), '(none)') AS content,
               count(*)::int AS signups,
               count(*) FILTER (WHERE m.proof_at IS NOT NULL)::int AS proof_users,
               count(*) FILTER (WHERE a.armed_at IS NOT NULL)::int AS armed_users,
@@ -389,14 +395,26 @@ def _canonical_growth_funnel(db: Session, since: datetime) -> dict[str, Any]:
             LEFT JOIN milestones m ON m.user_id = c.user_id
             LEFT JOIN armed a ON a.user_id = c.user_id
             LEFT JOIN payment_truth p ON p.user_id = c.user_id
-            GROUP BY 1
+            GROUP BY 1, 2, 3, 4
             ORDER BY paid_users DESC, activated_users DESC, signups DESC
             """
         ),
         {"since": cohort_since},
     ).mappings().all()
 
-    by_source = []
+    metric_keys = (
+        "signups",
+        "proof_users",
+        "armed_users",
+        "activated_users",
+        "pricing_users",
+        "plan_users",
+        "invoice_users",
+        "tx_users",
+        "paid_users",
+        "renewal_users",
+        "revenue_usdt",
+    )
     totals = {
         "signups": 0,
         "proof_users": 0,
@@ -410,9 +428,13 @@ def _canonical_growth_funnel(db: Session, since: datetime) -> dict[str, Any]:
         "renewal_users": 0,
         "revenue_usdt": 0.0,
     }
+    detailed = []
     for row in rows:
         item = {
             "source": row["source"],
+            "medium": row["medium"],
+            "campaign": row["campaign"],
+            "content": row["content"],
             "signups": int(row["signups"] or 0),
             "proof_users": int(row["proof_users"] or 0),
             "armed_users": int(row["armed_users"] or 0),
@@ -425,9 +447,34 @@ def _canonical_growth_funnel(db: Session, since: datetime) -> dict[str, Any]:
             "renewal_users": int(row["renewal_users"] or 0),
             "revenue_usdt": float(row["revenue"] or 0),
         }
-        by_source.append(item)
+        detailed.append(item)
         for key in totals:
             totals[key] += item[key]
+
+    def _rollup(dimensions: tuple[str, ...]) -> list[dict[str, Any]]:
+        buckets: dict[tuple[str, ...], dict[str, Any]] = {}
+        for item in detailed:
+            group_key = tuple(str(item[dimension]) for dimension in dimensions)
+            bucket = buckets.get(group_key)
+            if bucket is None:
+                bucket = {dimension: item[dimension] for dimension in dimensions}
+                bucket.update({key: 0.0 if key == "revenue_usdt" else 0 for key in metric_keys})
+                buckets[group_key] = bucket
+            for key in metric_keys:
+                bucket[key] += item[key]
+        return sorted(
+            buckets.values(),
+            key=lambda item: (
+                item["paid_users"],
+                item["activated_users"],
+                item["signups"],
+            ),
+            reverse=True,
+        )
+
+    by_source = _rollup(("source",))
+    by_campaign = _rollup(("source", "medium", "campaign"))
+    by_content = _rollup(("source", "medium", "campaign", "content"))
 
     signups_total = totals["signups"]
     activated_total = totals["activated_users"]
@@ -448,6 +495,8 @@ def _canonical_growth_funnel(db: Session, since: datetime) -> dict[str, Any]:
         "cohort_since": cohort_since.isoformat(),
         "totals": totals,
         "by_source": by_source,
+        "by_campaign": by_campaign,
+        "by_content": by_content,
     }
 
 

@@ -15,6 +15,8 @@
 //
 // Keep in step with FREE_CTA_RECORD / FREE_CTA_PLAIN in
 // /root/luxquant-x-poster/caption_builder.py.
+import { parseLuxQuantStartParam } from "./telegramCampaign";
+
 const KEY_DESTINATIONS = {
   results: "/performance",
   wr_coin: "/performance",
@@ -47,6 +49,10 @@ const KEYS = Object.keys(KEY_DESTINATIONS).sort((a, b) => b.length - a.length);
 export function startDestination(startParam) {
   const s = String(startParam || "").trim().toLowerCase();
   if (!s) return null;
+  const campaign = parseLuxQuantStartParam(s);
+  if (campaign) {
+    return campaign.medium === "auth_fallback" ? "/home" : "/performance";
+  }
   const key = KEYS.find((k) => s === k || s.endsWith(`_${k}`));
   return key ? KEY_DESTINATIONS[key] : null;
 }
@@ -70,14 +76,16 @@ const EVENT_PREFIXES = ["closed_loss", "closed_win", "tp1", "tp2", "tp3", "tp4",
 export function parseStartParam(startParam) {
   const s = String(startParam || "").trim().toLowerCase();
   if (!s) return null;
+  const campaign = parseLuxQuantStartParam(s);
+  if (campaign) return campaign;
   // Longest known event first. A plain split on "_" turns "closed_win_..."
   // into campaign "closed", because the event name contains an underscore too.
   const ev = EVENT_PREFIXES.find((e) => s === e || s.startsWith(`${e}_`));
   if (ev) {
     const content = s.slice(ev.length + 1);
-    return { campaign: ev, content: content || null };
+    return { campaign: ev, content: content || null, medium: "miniapp" };
   }
   const bits = s.split("_");
   if (bits.length < 2) return null;
-  return { campaign: bits[0], content: bits.slice(1).join("_") };
+  return { campaign: bits[0], content: bits.slice(1).join("_"), medium: "miniapp" };
 }

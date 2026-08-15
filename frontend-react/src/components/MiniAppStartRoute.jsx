@@ -45,7 +45,7 @@ const MiniAppStartRoute = () => {
         source: "telegram",
         path: window.location.pathname || "/",
         meta: {
-          medium: "miniapp",
+          medium: parsed.medium || "miniapp",
           campaign: parsed.campaign,
           content: parsed.content,
         },

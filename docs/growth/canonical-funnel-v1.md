@@ -56,9 +56,11 @@ record stores the raw transaction hash.
 
 ## Attribution rule
 
-The dashboard groups canonical cohort outcomes by `users.acq_source`. This is
-first-touch attribution. It answers which source originally acquired an
-account; it does not claim that a later channel interaction caused the sale.
+The dashboard groups canonical cohort outcomes by `users.acq_source`, with
+campaign and creative rollups from `acq_medium`, `acq_campaign`, and
+`acq_content`. This is first-touch attribution. It answers which original
+source/campaign acquired an account; it does not claim that a later channel
+interaction caused the sale.
 
 ## Cohort scope
 
@@ -74,6 +76,37 @@ activation. Historical payments remain available in the legacy revenue panel.
 4. Open one resolved proof, save one watch/alert, view pricing, and create a test invoice.
 5. Confirm the Conversion dashboard reports `status=collecting` and shows the new cohort start.
 6. Do not backfill proof or activation from `login_count`; no data is better than invented history.
+
+## Telegram acquisition contract
+
+Paid Telegram traffic should enter through the Mini App link generated in
+**Admin Workspace → Conversion → Telegram Ads**. Its signed `start_param` uses
+the compact form below because ordinary UTM parameters do not survive a
+`t.me` → Mini App handoff:
+
+```text
+lq1p_<campaign>_<creative>
+```
+
+The backend decodes that payload as:
+
+```text
+source=telegram
+medium=paid_social
+campaign=<campaign>
+content=<creative>
+```
+
+The Mini App signs the user in without an OAuth popup and lands paid traffic
+on `/performance`, where the resolved-proof milestone can begin activation.
+The canonical API returns `by_campaign` and `by_content` rollups so spend is
+judged by activation, invoice, paid users, and confirmed revenue—not clicks or
+Telegram subscribers alone.
+
+The login page keeps the fast popup path for browsers where it works, but
+exposes the Mini App rescue immediately and promotes it after eight seconds or
+as soon as a blocked popup is observed. Popup abandonment is not duplicated as
+an `auth_error`.
 
 ## Rollback
 

@@ -11,6 +11,7 @@ const WorldMapPanel = lazy(() => import("./WorldMapPanel"));
 import { growthApi } from "../../../services/growthApi";
 import { StatTile, Surface, Spinner } from "../primitives";
 import { RefreshIcon, GoogleIcon, TelegramIcon, DiscordIcon } from "../Icons";
+import TelegramAdsLaunchPanel from "./TelegramAdsLaunchPanel";
 
 // The API treats anything at or beyond 3650 days as "all time"; the exact
 // number never reaches the reader. Declared here because the range picker on
@@ -1252,6 +1253,7 @@ export const ConversionTab = () => {
   const canonicalTotals = canonical.totals || {};
   const canonicalRates = canonicalTotals.rates || {};
   const canonicalSources = canonical.by_source || [];
+  const canonicalCampaigns = canonical.by_campaign || [];
   const thr = data?.funnel_threaded || {};
   const fsess = data?.funnel_sessions || {};
   const fwin = data?.funnel_window || {};
@@ -1491,6 +1493,13 @@ export const ConversionTab = () => {
         sub={`Per provider · ${win} window. One broken door is invisible in a single error count — compare them.`}
       >
         <AuthHealth health={authHealth} win={win} />
+      </Panel>
+
+      <Panel
+        title="Telegram Ads · launch links to confirmed revenue"
+        sub="Generate one campaign/creative identity, preserve it through Mini App signup, and read the same cohort through activation and payment."
+      >
+        <TelegramAdsLaunchPanel rows={canonicalCampaigns} />
       </Panel>
 
       <Panel

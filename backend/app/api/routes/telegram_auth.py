@@ -60,6 +60,7 @@ from app.services.role_resolver import (
     PROVIDER_TELEGRAM,
 )
 from app.services.telegram_group import create_one_time_invite_link
+from app.services.telegram_attribution import acq_from_telegram_start_param
 
 logger = logging.getLogger(__name__)
 
@@ -346,31 +347,7 @@ async def telegram_webapp_login(
     acq = payload.acq
     start_param = (fields.get("start_param") or "").strip()
     if acq is None and start_param:
-        # Match a KNOWN event prefix, longest first. Splitting on the first
-        # underscore breaks on `closed_win`, which contains one: the campaign
-        # came out as "closed" and the content kept a stray "win_" in front of
-        # the button key. Harmless today only because the full-sweep button
-        # still uses the web branch, where utm_campaign arrives whole — it
-        # would corrupt attribution the moment that button moved.
-        _EVENTS = ("closed_loss", "closed_win", "tp1", "tp2", "tp3", "tp4", "post")
-        low = start_param.lower()
-        campaign = next(
-            (e for e in sorted(_EVENTS, key=len, reverse=True)
-             if low == e or low.startswith(e + "_")),
-            None,
-        )
-        if campaign:
-            content = start_param[len(campaign) + 1:] or None
-        else:
-            bits = start_param.split("_")
-            campaign = bits[0] if bits else None
-            content = "_".join(bits[1:]) or None
-        acq = AcqPayload(
-            source="telegram",
-            medium="miniapp",
-            campaign=campaign,
-            content=content,
-        )
+        acq = acq_from_telegram_start_param(start_param)
 
     data = TelegramLogin(
         id=int(tg_user["id"]),

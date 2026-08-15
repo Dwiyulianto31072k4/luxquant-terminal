@@ -206,7 +206,10 @@ export const AuthProvider = ({ children }) => {
       // actively wrong for a blocked popup — waiting cannot unblock it, so the
       // instruction sends people into an unwinnable retry loop.
       const message = TG_AUTH_FAILURES[err.message] || TG_AUTH_FAILURES.default;
-      setError(message);
+      // Popup loss is already measured as auth_popup_blocked/auth_abandoned
+      // and LoginPage has a working Mini App rescue visible. Do not turn the
+      // same incident into a second red auth_error banner 90 seconds later.
+      if (err.message !== "popup-unreachable") setError(message);
       const wrapped = new Error(message);
       wrapped.reason = err.message; // so callers report the cause, not the copy
       throw wrapped;
