@@ -316,3 +316,251 @@ export function describeExitPlan({
         : null,
   };
 }
+
+const VENUE_LABEL = {
+  binance: "Binance",
+  bingx: "BingX",
+  bitget: "Bitget",
+  bybit: "Bybit",
+  okx: "OKX",
+  gate: "Gate",
+};
+
+/** Accept the API nest or the Configure draft so one template covers both. */
+export function flattenStrategy(config = {}) {
+  const risk = config.risk_limits || {};
+  const futures = config.futures || {};
+  const sizing = config.sizing || {};
+  const tp = config.tp || {};
+  const sl = config.sl || {};
+  const exit = config.exit || {};
+  const levels = Array.isArray(config.allowed_risk_levels)
+    ? config.allowed_risk_levels.filter(Boolean)
+    : [];
+  return {
+    exchange: config.exchange || "binance",
+    is_active: Boolean(config.is_active),
+    dry_run: config.dry_run !== false,
+    spot_enabled: Boolean(config.spot_enabled),
+    futures_enabled:
+      config.futures_enabled === undefined ? !config.spot_enabled : Boolean(config.futures_enabled),
+    sizing_method: sizing.method || config.sizing_method || "fixed",
+    sizing_value: Number(sizing.value ?? config.sizing_value ?? 0),
+    leverage: Math.max(1, Number(futures.leverage ?? config.leverage ?? 1)),
+    margin_mode: futures.margin_mode || config.margin_mode || "isolated",
+    leverage_fallback: futures.leverage_fallback || config.leverage_fallback || "clamp",
+    exit_mode: exit.mode || config.exit_mode || "fixed_sl",
+    trailing_callback_rate: Number(
+      exit.trailing_callback_rate ?? config.trailing_callback_rate ?? 1
+    ),
+    tp_level: Math.max(1, Number(tp.level ?? config.tp_level ?? 1)),
+    sl_level: Math.max(1, Number(sl.level ?? config.sl_level ?? 1)),
+    allowed_risk_levels: levels,
+    one_open_position_per_symbol:
+      risk.one_open_position_per_symbol ?? config.one_open_position_per_symbol ?? true,
+    max_open_positions: Math.max(
+      1,
+      Number(risk.max_open_positions ?? config.max_open_positions ?? 3)
+    ),
+    max_daily_trades: Math.max(
+      1,
+      Number(risk.max_daily_trades ?? config.max_daily_trades ?? 5)
+    ),
+    max_trade_notional_usdt: Number(
+      risk.max_trade_notional_usdt ?? config.max_trade_notional_usdt ?? 0
+    ),
+    min_available_usdt: Number(risk.min_available_usdt ?? config.min_available_usdt ?? 0),
+    daily_loss_limit_usdt: Number(
+      risk.daily_loss_limit_usdt ?? config.daily_loss_limit_usdt ?? 0
+    ),
+    cooldown_after_loss_minutes: Number(
+      risk.cooldown_after_loss_minutes ?? config.cooldown_after_loss_minutes ?? 0
+    ),
+    cooldown_after_error_minutes: Number(
+      risk.cooldown_after_error_minutes ?? config.cooldown_after_error_minutes ?? 0
+    ),
+  };
+}
+
+function usd(n) {
+  const x = Number(n) || 0;
+  const abs = Math.abs(x);
+  const body = abs >= 100 ? abs.toFixed(0) : abs.toFixed(2).replace(/\.00$/, "");
+  return `${x < 0 ? "-" : ""}$${body}`;
+}
+
+function listLevels(levels) {
+  if (!levels.length) return "every risk level";
+  if (levels.length === 1) return `${levels[0]}-risk`;
+  const last = levels[levels.length - 1];
+  return `${levels.slice(0, -1).join(", ")} or ${last}-risk`;
+}
+
+/**
+ * If-then copy for the rules this person actually saved.
+ * Templates only — numbers come from their config, never invented prices.
+ */
+export function describeAppliedRules(config = {}) {
+  const s = flattenStrategy(config);
+  const venue = VENUE_LABEL[s.exchange] || s.exchange;
+  const exit = describeExitPlan({
+    exitMode: s.exit_mode,
+    tpLevel: s.tp_level,
+    slLevel: s.sl_level,
+    callbackRate: s.trailing_callback_rate,
+    spotEnabled: s.spot_enabled,
+    futuresEnabled: s.futures_enabled,
+  });
+  const markets = [
+    s.futures_enabled ? "futures" : null,
+    s.spot_enabled ? "spot" : null,
+  ].filter(Boolean);
+  const marketPhrase = markets.length ? markets.join(" and ") : "no market";
+  const margin =
+    s.sizing_method === "percent"
+      ? null
+      : Math.max(MIN_LIVE_ENTRY_USDT, s.sizing_value);
+  const notional = margin && s.futures_enabled ? margin * s.leverage : margin;
+  const tenPct = notional ? notional * 0.1 : null;
+  const cap = s.max_trade_notional_usdt;
+  const capBlocks = margin && cap > 0 && cap + 1e-9 < margin;
+
+  const scenarios = [];
+
+  if (!s.is_active) {
+    scenarios.push({
+      id: "paused",
+      if: "A matching signal arrives while Agent is paused",
+      then: "It is recorded only. No new order is sent. Open positions keep the protection already on the exchange.",
+      tone: "warn",
+    });
+  } else if (s.dry_run) {
+    scenarios.push({
+      id: "dry",
+      if: `A ${listLevels(s.allowed_risk_levels)} ${marketPhrase} signal arrives`,
+      then: `Agent logs what it would have done on ${venue}. Nothing is sent to the exchange.`,
+    });
+  } else {
+    scenarios.push({
+      id: "live",
+      if: `A ${listLevels(s.allowed_risk_levels)} ${marketPhrase} signal arrives on ${venue}`,
+      then: capBlocks
+        ? `Every entry is skipped — the per-trade cap (${usd(cap)}) is below the ${usd(margin)} amount.`
+        : s.sizing_method === "percent"
+          ? `Agent uses ${s.sizing_value}% of free USDT as margin${
+              s.futures_enabled ? ` at ${s.leverage}× ${s.margin_mode}` : ""
+            }, then places a market order if every risk gate passes.`
+          : `Agent uses ${usd(margin)} of margin${
+              s.futures_enabled
+                ? ` at ${s.leverage}× ${s.margin_mode} — about ${usd(notional)} on the book. A 10% coin move is ${usd(tenPct)}.`
+                : ` to buy about ${usd(margin)} of the coin.`
+            }`,
+      tone: capBlocks ? "warn" : undefined,
+    });
+  }
+
+  if (s.spot_enabled && !s.futures_enabled) {
+    scenarios.push({
+      id: "shorts",
+      if: "A short signal arrives",
+      then: "It is skipped. Spot can only go long.",
+    });
+  }
+
+  scenarios.push({
+    id: "fill",
+    if: "The entry fills",
+    then: exit.trailing
+      ? `${venue} gets a hard stop at ${exit.sl} and a ${exit.callback}% trailing close. ${exit.tp} is not placed as an order.`
+      : `${venue} gets a take-profit at ${exit.tp} and a hard stop at ${exit.sl}.`,
+  });
+
+  scenarios.push({
+    id: "signal-tp",
+    if: `LuxQuant marks ${exit.tp} hit`,
+    then: exit.ifSignalTp,
+    tone: exit.trailing ? "warn" : undefined,
+  });
+
+  if (exit.tight) {
+    scenarios.push({
+      id: "tight-trail",
+      if: `Price only moves a little after the fill`,
+      then: exit.tight,
+      tone: "warn",
+    });
+  }
+
+  if (exit.spotNote) {
+    scenarios.push({
+      id: "spot-trail",
+      if: "The fill is on spot",
+      then: exit.spotNote,
+    });
+  }
+
+  if (s.one_open_position_per_symbol) {
+    scenarios.push({
+      id: "same-coin",
+      if: "You already hold this coin",
+      then: "The new signal is skipped. One open position per symbol.",
+    });
+  }
+
+  scenarios.push({
+    id: "max-open",
+    if: `You already have ${s.max_open_positions} positions open`,
+    then: "New entries wait until one closes.",
+  });
+
+  scenarios.push({
+    id: "max-daily",
+    if: `${s.max_daily_trades} entries have already filled today`,
+    then: "Further signals are skipped until 00:00 UTC.",
+  });
+
+  if (s.daily_loss_limit_usdt > 0) {
+    scenarios.push({
+      id: "daily-loss",
+      if: `Realised losses today reach ${usd(s.daily_loss_limit_usdt)}`,
+      then: "New entries pause until 00:00 UTC. Open positions keep their stops.",
+      tone: "warn",
+    });
+  }
+
+  if (s.min_available_usdt > 0) {
+    scenarios.push({
+      id: "reserve",
+      if: `The entry would leave less than ${usd(s.min_available_usdt)} free USDT`,
+      then: "It is skipped so the reserve stays intact.",
+    });
+  }
+
+  if (s.cooldown_after_loss_minutes > 0) {
+    scenarios.push({
+      id: "loss-cd",
+      if: "A trade closes at a loss",
+      then: `The next entry waits ${s.cooldown_after_loss_minutes} minute${
+        s.cooldown_after_loss_minutes === 1 ? "" : "s"
+      }.`,
+    });
+  }
+
+  if (s.cooldown_after_error_minutes > 0) {
+    scenarios.push({
+      id: "error-cd",
+      if: "An order fails",
+      then: `The next entry waits ${s.cooldown_after_error_minutes} minute${
+        s.cooldown_after_error_minutes === 1 ? "" : "s"
+      }.`,
+    });
+  }
+
+  const headline = s.dry_run
+    ? "With these rules Agent only simulates"
+    : exit.trailing
+      ? `With these rules ${exit.tp} on the signal will not close the ${venue} position`
+      : `With these rules a fill closes at ${exit.tp} or ${exit.sl} on ${venue}`;
+
+  return { headline, venue, exit, scenarios, strategy: s };
+}

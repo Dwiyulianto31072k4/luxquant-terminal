@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { updateStrategyConfig } from "../../services/autotradeApi";
 import { FIELD_GUIDE, ENGINE_RULES, MIN_LIVE_ENTRY_USDT, describeExitPlan } from "./autotradeFieldGuide";
+import AppliedRulesCard from "./AppliedRulesCard";
 import LiveRiskAckModal from "./LiveRiskAckModal";
 import { useUiPrefs } from "../../hooks/useUiPrefs";
 import {
@@ -520,6 +521,8 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       {spotSizeWarning && !sizingLimitError ? (
         <Notice tone="warn">{spotSizeWarning}</Notice>
       ) : null}
+
+      <AppliedRulesCard config={draft} />
 
       {/* ── Markets + execution mode ── */}
       <Card>

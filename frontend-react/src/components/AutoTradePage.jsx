@@ -35,6 +35,7 @@ import {
 import { authApi, getMyAgentDisclaimerAcks } from "../services/authApi";
 import { LIVE_FORM } from "./autotrade/agentDisclaimerCopy";
 
+import AppliedRulesCard from "./autotrade/AppliedRulesCard";
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import ExchangePicker from "./autotrade/ExchangePicker";
 import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
@@ -449,13 +450,7 @@ function AutoTradeOverview({
 
   return (
     <div className="space-y-5">
-      {exitMode === "trailing_stop" ? (
-        <Notice tone="info">
-          Trailing is on{callback ? ` at ${callback}%` : ""}. After each fill Agent places a hard
-          stop plus a trail — not a take-profit. LuxQuant marking TP1 does not close the exchange
-          position.
-        </Notice>
-      ) : null}
+      <AppliedRulesCard config={config} />
       <PnLSummary portfolio={portfolio} executions={executions} tradeSummary={tradeSummary} />
 
       <div className="grid gap-4 lg:grid-cols-3">
