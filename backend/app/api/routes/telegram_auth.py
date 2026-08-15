@@ -61,6 +61,11 @@ from app.services.role_resolver import (
 )
 from app.services.telegram_group import create_one_time_invite_link
 from app.services.telegram_attribution import acq_from_telegram_start_param
+from app.services.telegram_bot_onboarding import (
+    command_from_text,
+    reply_for_command,
+    webhook_secret,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,13 +74,111 @@ router = APIRouter(prefix="/auth", tags=["Telegram Auth"])
 # -- Config --
 TELEGRAM_BOT_TOKEN = os.getenv(
     "TELEGRAM_BOT_TOKEN",
-    "8398445725:AAF4zg1TEG_qUMrgwyOSlgXXQB-tyG64SqU"
+    "",
 )
 VIP_GROUP_CHAT_ID = int(os.getenv("VIP_GROUP_CHAT_ID", "-1002670915863"))
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
 # Berapa lama invite link valid (detik). Default 1 jam.
 INVITE_LINK_TTL = int(os.getenv("VIP_INVITE_LINK_TTL", "3600"))
+TELEGRAM_MINI_APP_URL = os.getenv("TELEGRAM_MINI_APP_URL", "https://luxquant.tw/")
+TELEGRAM_PERFORMANCE_URL = os.getenv(
+    "TELEGRAM_PERFORMANCE_URL",
+    "https://t.me/LuxQuantTerminalBot/terminal?startapp=lq1c_bot_performance",
+)
+TELEGRAM_SUPPORT_URL = os.getenv("TELEGRAM_SUPPORT_URL", "https://t.me/luxquantadmin")
+
+
+def _bot_reply_markup(command: str) -> dict:
+    rows = [
+        [
+            {
+                "text": "Open LuxQuant Terminal",
+                "web_app": {"url": TELEGRAM_MINI_APP_URL},
+            }
+        ],
+        [{"text": "View Performance", "url": TELEGRAM_PERFORMANCE_URL}],
+    ]
+    if command == "help":
+        rows.append([{"text": "Contact Support", "url": TELEGRAM_SUPPORT_URL}])
+    return {"inline_keyboard": rows}
+
+
+async def _send_terminal_bot_message(chat_id: int, command: str) -> None:
+    if not TELEGRAM_BOT_TOKEN:
+        logger.error("Terminal Bot reply skipped: TELEGRAM_BOT_TOKEN is not configured")
+        return
+    payload = {
+        "chat_id": chat_id,
+        "text": reply_for_command(command),
+        "reply_markup": _bot_reply_markup(command),
+        "disable_web_page_preview": True,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=8.0, proxy=_TG_PROXY) as client:
+            response = await client.post(f"{TELEGRAM_API}/sendMessage", json=payload)
+            if response.status_code != 200 or not response.json().get("ok"):
+                logger.warning(
+                    "Terminal Bot sendMessage failed: status=%s body=%s",
+                    response.status_code,
+                    response.text[:200],
+                )
+    except Exception:
+        logger.exception("Terminal Bot sendMessage request failed")
+
+
+@router.post("/telegram/bot/webhook", include_in_schema=False)
+async def telegram_bot_webhook(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Welcome real bot conversations and expose the Mini App front door.
+
+    Telegram sends a secret header configured by the deployment script.  Old
+    queued messages are acknowledged without a reply so enabling the webhook
+    cannot produce a historical message storm.
+    """
+    expected_secret = webhook_secret(TELEGRAM_BOT_TOKEN)
+    supplied_secret = request.headers.get("x-telegram-bot-api-secret-token", "")
+    if not expected_secret or not hmac.compare_digest(expected_secret, supplied_secret):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+    try:
+        update = await request.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid update")
+
+    message = update.get("message") if isinstance(update, dict) else None
+    if not isinstance(message, dict):
+        return {"ok": True, "handled": False}
+
+    message_date = int(message.get("date") or 0)
+    if not message_date or time.time() - message_date > 300:
+        return {"ok": True, "handled": False, "reason": "stale"}
+
+    chat = message.get("chat") or {}
+    sender = message.get("from") or {}
+    chat_id = chat.get("id")
+    if chat.get("type") != "private" or not isinstance(chat_id, int):
+        return {"ok": True, "handled": False, "reason": "not_private"}
+
+    command = command_from_text(message.get("text"))
+    if command not in {"start", "terminal", "performance", "help"}:
+        command = "help"
+
+    sender_id = sender.get("id")
+    if command == "start" and isinstance(sender_id, int):
+        user = db.query(User).filter(User.telegram_id == sender_id).first()
+        if user is not None and not user.telegram_bot_started_at:
+            user.telegram_bot_started_at = datetime.now(timezone.utc)
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+                logger.exception("Could not record Terminal Bot start for user_id=%s", user.id)
+
+    await _send_terminal_bot_message(chat_id, command)
+    return {"ok": True, "handled": True, "command": command}
 
 
 # ====================================================================
