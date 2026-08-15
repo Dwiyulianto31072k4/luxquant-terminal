@@ -25,6 +25,7 @@ from app.api.routes import coins, daily_dashboard, edge_lab
 from app.api.routes import terminal
 from app.api.routes import workspace, finance, growth, crm
 from app.api.routes import funnel
+from app.api.routes import growth_measurement
 from app.api.routes import services_monitor
 from app.api.routes import public_status
 
@@ -326,6 +327,7 @@ app.include_router(finance.router, tags=["finance"])
 app.include_router(growth.router, tags=["growth"])
 app.include_router(funnel.router, tags=["funnel"])
 app.include_router(funnel.growth_router, tags=["growth"])
+app.include_router(growth_measurement.router)
 app.include_router(assistant.router, prefix="/api/v1", tags=["assistant"])
 app.include_router(ai_cost.router, tags=["ai-cost"])
 app.include_router(marketing_x_usage.router, tags=["x-usage"])

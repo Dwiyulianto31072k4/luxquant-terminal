@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import subscriptionApi from "../../services/subscriptionApi";
 import SubscribeViaAdminModal from "./SubscribeViaAdminModal";
+import { trackGrowth } from "../../utils/growthAnalytics";
 
 const Check = ({ className = "h-3.5 w-3.5", tone = "rgb(var(--accent) / 0.85)" }) => (
   <svg
@@ -82,6 +83,13 @@ const PricingPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    trackGrowth("pricing_viewed", {
+      source: "pricing_page",
+      once: "pricing:view",
+    });
+  }, []);
+
+  useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
@@ -120,6 +128,12 @@ const PricingPage = () => {
   }, [plans]);
 
   const handleSubscribe = async (plan) => {
+    trackGrowth("plan_selected", {
+      source: "pricing_page:onchain",
+      entity_type: "subscription_plan",
+      entity_id: plan.id,
+      meta: { plan_name: plan.name, price_usdt: Number(plan.price_usdt) },
+    });
     if (!isAuthenticated) {
       navigate("/login", { state: { from: "/pricing" } });
       return;
@@ -150,6 +164,12 @@ const PricingPage = () => {
   };
 
   const handleSubscribeViaAdmin = (plan) => {
+    trackGrowth("plan_selected", {
+      source: "pricing_page:admin",
+      entity_type: "subscription_plan",
+      entity_id: plan.id,
+      meta: { plan_name: plan.name, price_usdt: Number(plan.price_usdt) },
+    });
     if (!isAuthenticated) {
       navigate("/login", { state: { from: "/pricing" } });
       return;

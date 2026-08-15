@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import subscriptionApi from "../../services/subscriptionApi";
 import { loginUrl } from "../../utils/postLoginRedirect";
 import SubscribeViaAdminModal from "./SubscribeViaAdminModal";
+import { trackGrowth } from "../../utils/growthAnalytics";
 
 // ═══════════════════════════════════════════
 // Tether icon (USDT)
@@ -104,6 +105,16 @@ const PaymentPage = () => {
   })();
   const planLabel = plan?.label || invoice?.plan?.label || invoice?.plan?.name || "Subscription";
 
+  useEffect(() => {
+    if (!paymentId) return;
+    trackGrowth("checkout_viewed", {
+      source: stateInvoice ? "invoice_created" : "invoice_recovered",
+      entity_type: "payment",
+      entity_id: paymentId,
+      once: `checkout:${paymentId}`,
+    });
+  }, [paymentId, stateInvoice]);
+
   // Ask the server for the open checkout before giving up on it. Only bounce
   // when there genuinely isn't one.
   useEffect(() => {
@@ -156,6 +167,12 @@ const PaymentPage = () => {
   const handleCopy = (text, label) => {
     if (!text) return;
     navigator.clipboard.writeText(String(text));
+    trackGrowth(label === "wallet" ? "wallet_address_copied" : "payment_amount_copied", {
+      source: "payment_page",
+      entity_type: "payment",
+      entity_id: paymentId,
+      once: `payment-copy:${label}:${paymentId}`,
+    });
     setCopied(label);
     setTimeout(() => setCopied(null), 2000);
   };
@@ -172,6 +189,13 @@ const PaymentPage = () => {
   const handleVerify = async (isAuto = false) => {
     if (!txHash.trim() || !paymentId) return;
     if (!isAuto) clearAutoRetry();
+    trackGrowth("transaction_submitted", {
+      source: isAuto ? "payment_page:auto_retry" : "payment_page",
+      entity_type: "payment",
+      entity_id: paymentId,
+      meta: { auto_retry: Boolean(isAuto) },
+      once: `transaction:${paymentId}`,
+    });
     setVerifying(true);
     if (!isAuto) setResult(null);
 

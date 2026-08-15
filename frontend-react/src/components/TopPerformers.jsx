@@ -11,6 +11,7 @@ import GateSelect from "./ui/GateSelect";
 import { buildProofJourneyEvents } from "../utils/journeyEvents";
 import { useAuth } from "../context/AuthContext";
 import { isEntitled } from "../utils/entitlement";
+import { trackGrowth } from "../utils/growthAnalytics";
 
 const API_BASE = "/api/v1";
 
@@ -745,6 +746,21 @@ export const SignalDetailModal = ({
   // Current signal id (respects multi-signal navigation) → full history route.
   const currentSid = (signalIds && signalIds[currentIndex]) || item?.signal_id || detail?.signal_id;
   const historyHref = `/signals?signal=${encodeURIComponent(currentSid || "")}&tab=history`;
+
+  // Canonical activation milestone: a logged-in user has actually opened a
+  // resolved call, not merely visited the Signals desk. Live/open calls are
+  // excluded because they are intelligence, not historical proof yet.
+  useEffect(() => {
+    const proofStatus = String(detail?.status || item?.status || "").toLowerCase();
+    if (!currentSid || !proofStatus || proofStatus === "open") return;
+    trackGrowth("proof_verified", {
+      source: "signal_detail_modal",
+      entity_type: "signal",
+      entity_id: currentSid,
+      meta: { status: proofStatus },
+      once: `proof:${currentSid}`,
+    });
+  }, [currentSid, detail?.status, item?.status]);
 
   useEffect(() => {
     setShowTV(false);

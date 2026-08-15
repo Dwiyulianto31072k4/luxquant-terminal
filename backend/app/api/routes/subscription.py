@@ -23,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import logging
 import os
+import hashlib
 
 from app.config import settings
 from app.services.notifier import create_notification, notification_exists
@@ -45,6 +46,7 @@ from app.services.commission_service import (
 )
 from app.services.referral_service import refund_redemption
 from app.services.wallet_pool import pick_wallet, increment_usage
+from app.services.growth_measurement import record_growth_event_best_effort
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +202,24 @@ def create_subscription(
     db.commit()
     db.refresh(payment)
 
+    record_growth_event_best_effort(
+        db,
+        user_id=current_user.id,
+        event="invoice_created",
+        event_id=f"server:invoice_created:{payment.id}",
+        source="subscription_api",
+        path="/api/v1/subscription/subscribe",
+        entity_type="payment",
+        entity_id=payment.id,
+        meta={
+            "plan_id": plan.id,
+            "plan_name": plan.name,
+            "amount_usdt": float(final_amount),
+            "is_upgrade": bool(data.is_upgrade),
+        },
+        commit=True,
+    )
+
     # ── Multi-Wallet: increment usage stats ──
     try:
         increment_usage(db, rotated_wallet)
@@ -277,6 +297,8 @@ async def verify_payment(
             detail="This invoice was cancelled. Please create a new one."
         )
 
+    was_expired = payment.status == "expired"
+
     # An expired invoice is not a closed case. People pay late — the exchange
     # held the withdrawal, or they came back the next morning — and they arrive
     # holding a real hash. Refusing it means keeping money we were sent.
@@ -317,6 +339,23 @@ async def verify_payment(
     payment.status = "verifying"
     payment.updated_at = datetime.now(timezone.utc)
     db.commit()
+
+    # Server truth for submit intent. Only a digest of the hash participates in
+    # idempotency; the transaction hash itself already belongs to payments and
+    # is not duplicated into analytics metadata.
+    tx_digest = hashlib.sha256(tx_hash_clean.encode()).hexdigest()[:20]
+    record_growth_event_best_effort(
+        db,
+        user_id=current_user.id,
+        event="transaction_submitted",
+        event_id=f"server:transaction_submitted:{payment.id}:{tx_digest}",
+        source="subscription_api",
+        path="/api/v1/subscription/verify",
+        entity_type="payment",
+        entity_id=payment.id,
+        meta={"late_invoice": was_expired},
+        commit=True,
+    )
 
     logger.info(f"🔍 Verifying payment #{payment.id} tx={tx_hash_clean}")
 
@@ -367,6 +406,25 @@ async def verify_payment(
         db.commit()
         db.refresh(current_user)
 
+        record_growth_event_best_effort(
+            db,
+            user_id=current_user.id,
+            event="payment_confirmed",
+            event_id=f"server:payment_confirmed:{payment.id}",
+            source="subscription_api",
+            path="/api/v1/subscription/verify",
+            entity_type="payment",
+            entity_id=payment.id,
+            meta={
+                "plan_id": payment.plan_id,
+                "plan_name": plan.name if plan else None,
+                "amount_usdt": float(payment.final_amount or payment.amount_usdt),
+                "method": payment.method,
+                "network": payment.network,
+            },
+            commit=True,
+        )
+
         logger.info(
             f"✅ Payment #{payment.id} confirmed. "
             f"User {current_user.id} → subscriber ({plan_label})"
@@ -408,6 +466,39 @@ async def verify_payment(
         payment.notes = result.error
         payment.updated_at = datetime.now(timezone.utc)
         db.commit()
+
+        error_text = str(result.error or "").lower()
+        if getattr(result, "retryable", False):
+            reason_code = "retryable_chain_check"
+        elif "amount" in error_text or "insufficient" in error_text:
+            reason_code = "amount_mismatch"
+        elif "wallet" in error_text or "recipient" in error_text or "address" in error_text:
+            reason_code = "wallet_mismatch"
+        elif "not found" in error_text or "transaction" in error_text:
+            reason_code = "transaction_not_found"
+        elif "network" in error_text or "token" in error_text:
+            reason_code = "network_or_token_mismatch"
+        else:
+            reason_code = "verification_rejected"
+
+        record_growth_event_best_effort(
+            db,
+            user_id=current_user.id,
+            event="payment_verification_failed",
+            event_id=(
+                f"server:payment_verification_failed:{payment.id}:"
+                f"{tx_digest}:{reason_code}"
+            ),
+            source="subscription_api",
+            path="/api/v1/subscription/verify",
+            entity_type="payment",
+            entity_id=payment.id,
+            meta={
+                "reason_code": reason_code,
+                "retryable": bool(getattr(result, "retryable", False)),
+            },
+            commit=True,
+        )
 
         logger.warning(
             f"{'⏳' if getattr(result, 'retryable', False) else '❌'} "

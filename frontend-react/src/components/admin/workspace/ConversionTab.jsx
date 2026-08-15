@@ -1248,6 +1248,10 @@ export const ConversionTab = () => {
   const gf = data?.global_funnel || {};
   const gfr = gf.rates || {};
   const rails = gf.rails || [];
+  const canonical = data?.canonical_funnel || {};
+  const canonicalTotals = canonical.totals || {};
+  const canonicalRates = canonicalTotals.rates || {};
+  const canonicalSources = canonical.by_source || [];
   const thr = data?.funnel_threaded || {};
   const fsess = data?.funnel_sessions || {};
   const fwin = data?.funnel_window || {};
@@ -1487,6 +1491,121 @@ export const ConversionTab = () => {
         sub={`Per provider · ${win} window. One broken door is invisible in a single error count — compare them.`}
       >
         <AuthHealth health={authHealth} win={win} />
+      </Panel>
+
+      <Panel
+        title="Canonical lifecycle · cohort to confirmed revenue"
+        sub="One user-linked definition across product intent, domain actions, attribution, and payment truth."
+      >
+        {canonical.status === "migration_required" ? (
+          <p className="rounded-xl border border-warning/20 bg-warning/[0.06] px-3 py-3 text-[11px] leading-relaxed text-text-muted">
+            Measurement migration has not been installed. Existing analytics remain available,
+            but canonical proof-to-activation tracking has not started.
+          </p>
+        ) : canonical.status === "unavailable" ? (
+          <p className="rounded-xl border border-loss/20 bg-loss/[0.06] px-3 py-3 text-[11px] text-text-muted">
+            Canonical lifecycle is temporarily unavailable. The legacy panels below are unaffected.
+          </p>
+        ) : !canonical.tracking_started_at ? (
+          <p className="rounded-xl border border-ink/[0.07] bg-surface-secondary/40 px-3 py-3 text-[11px] text-text-muted">
+            Collector is ready. This panel will start its cohort when the first authenticated milestone arrives.
+          </p>
+        ) : (
+          <>
+            <FunnelFlow
+              steps={[
+                { label: "Signed up", value: canonicalTotals.signups || 0 },
+                {
+                  label: "Verified proof",
+                  value: canonicalTotals.proof_users || 0,
+                  sub:
+                    canonicalRates.proof_per_signup != null
+                      ? `${pct(canonicalRates.proof_per_signup)} of signups`
+                      : null,
+                },
+                {
+                  label: "Activated ≤24h",
+                  value: canonicalTotals.activated_users || 0,
+                  sub:
+                    canonicalRates.activated_per_signup != null
+                      ? `${pct(canonicalRates.activated_per_signup)} of signups`
+                      : null,
+                },
+                {
+                  label: "Created invoice",
+                  value: canonicalTotals.invoice_users || 0,
+                  sub:
+                    canonicalRates.invoice_per_activated != null
+                      ? `${pct(canonicalRates.invoice_per_activated)} of activated`
+                      : null,
+                },
+                {
+                  label: "Confirmed paid",
+                  value: canonicalTotals.paid_users || 0,
+                  sub:
+                    canonicalRates.paid_per_invoice != null
+                      ? `${pct(canonicalRates.paid_per_invoice)} of invoices`
+                      : null,
+                },
+              ]}
+            />
+
+            <p className="mt-3 text-[11px] leading-relaxed text-text-muted">
+              Activated means a resolved proof was opened and a watchlist, coin watch, or entry
+              alert was saved within 24 hours of signup. Cohort starts {new Date(
+                canonical.cohort_since || canonical.tracking_started_at
+              ).toLocaleString()} — earlier accounts are excluded instead of being counted as zero.
+            </p>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {[
+                ["Watch / alert", canonicalTotals.armed_users],
+                ["Viewed pricing", canonicalTotals.pricing_users],
+                ["Selected plan", canonicalTotals.plan_users],
+                ["Submitted TX", canonicalTotals.tx_users],
+                ["Renewed", canonicalTotals.renewal_users],
+                ["Revenue", `$${num(Math.round(canonicalTotals.revenue_usdt || 0))}`],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="rounded-xl border border-ink/[0.06] bg-surface-secondary/40 px-3 py-2.5"
+                >
+                  <p className="text-[9px] uppercase tracking-wider text-text-muted">{label}</p>
+                  <p className="mt-1 text-[13px] font-semibold tabular-nums text-text-primary">
+                    {typeof value === "string" ? value : num(value)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {canonicalSources.length > 0 && (
+              <div className="mt-4 overflow-x-auto rounded-xl border border-ink/[0.06]">
+                <table className="w-full min-w-[520px] text-left text-[11px]">
+                  <thead className="bg-surface-secondary/60 text-[9px] uppercase tracking-wider text-text-muted">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">First-touch source</th>
+                      <th className="px-3 py-2 text-right font-semibold">Signup</th>
+                      <th className="px-3 py-2 text-right font-semibold">Activated</th>
+                      <th className="px-3 py-2 text-right font-semibold">Paid</th>
+                      <th className="px-3 py-2 text-right font-semibold">Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {canonicalSources.slice(0, 12).map((row) => (
+                      <tr key={row.source} className="border-t border-ink/[0.05] text-text-primary">
+                        <td className="px-3 py-2 font-medium">{row.source}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{num(row.signups)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{num(row.activated_users)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-profit">{num(row.paid_users)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">${num(Math.round(row.revenue_usdt || 0))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
       </Panel>
 
       {/* Where the money actually leaks. Kept as its own panel, and measured in

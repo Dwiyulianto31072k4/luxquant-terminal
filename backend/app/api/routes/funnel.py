@@ -278,6 +278,179 @@ def _ratio(num: Optional[int], den: Optional[int]) -> Optional[float]:
     return round((num or 0) / den, 4)
 
 
+def _canonical_growth_funnel(db: Session, since: datetime) -> dict[str, Any]:
+    """Cohort funnel stitched from existing domain truth plus growth_events.
+
+    The legacy dashboard's ``login_count >= 2`` remains a useful return proxy,
+    but it is not product activation. Canonical activation requires both a
+    resolved proof view and a saved watch/alert within 24 hours of signup.
+    """
+    table_ready = db.execute(
+        text("SELECT to_regclass('public.growth_events') IS NOT NULL")
+    ).scalar()
+    if not table_ready:
+        return {
+            "status": "migration_required",
+            "schema_version": "2026-08-15",
+            "definition": "resolved proof + watch/alert within 24h",
+        }
+
+    first_at = db.execute(
+        text("SELECT min(occurred_at) FROM growth_events")
+    ).scalar()
+    if first_at is None:
+        return {
+            "status": "collecting",
+            "schema_version": "2026-08-15",
+            "definition": "resolved proof + watch/alert within 24h",
+            "tracking_started_at": None,
+            "totals": {},
+            "by_source": [],
+        }
+    cohort_since = max(since, first_at)
+
+    rows = db.execute(
+        text(
+            """
+            WITH cohort AS (
+              SELECT id AS user_id, created_at, acq_source
+              FROM users
+              WHERE created_at >= :since
+            ),
+            milestones AS (
+              SELECT
+                g.user_id,
+                min(g.occurred_at) FILTER (
+                  WHERE g.event = 'proof_verified'
+                    AND g.occurred_at < c.created_at + interval '24 hours'
+                ) AS proof_at,
+                min(g.occurred_at) FILTER (WHERE g.event = 'pricing_viewed') AS pricing_at,
+                min(g.occurred_at) FILTER (WHERE g.event = 'plan_selected') AS plan_at,
+                min(g.occurred_at) FILTER (WHERE g.event = 'transaction_submitted') AS tx_at
+              FROM growth_events g
+              JOIN cohort c ON c.user_id = g.user_id
+              WHERE g.occurred_at >= c.created_at
+              GROUP BY g.user_id
+            ),
+            armed_events AS (
+              SELECT w.user_id, w.created_at AS armed_at
+              FROM watchlist w
+              JOIN cohort c ON c.user_id = w.user_id
+              WHERE w.created_at >= c.created_at
+                AND w.created_at < c.created_at + interval '24 hours'
+              UNION ALL
+              SELECT cw.user_id, cw.created_at
+              FROM coin_watch cw
+              JOIN cohort c ON c.user_id = cw.user_id
+              WHERE cw.created_at >= c.created_at
+                AND cw.created_at < c.created_at + interval '24 hours'
+              UNION ALL
+              SELECT ea.user_id, ea.created_at
+              FROM entry_alerts ea
+              JOIN cohort c ON c.user_id = ea.user_id
+              WHERE ea.created_at >= c.created_at
+                AND ea.created_at < c.created_at + interval '24 hours'
+            ),
+            armed AS (
+              SELECT user_id, min(armed_at) AS armed_at
+              FROM armed_events
+              GROUP BY user_id
+            ),
+            payment_truth AS (
+              SELECT
+                p.user_id,
+                min(p.created_at) AS invoice_at,
+                min(p.verified_at) FILTER (WHERE p.status = 'confirmed') AS paid_at,
+                count(*) FILTER (WHERE p.status = 'confirmed') AS confirmed_payments,
+                COALESCE(sum(COALESCE(p.final_amount, p.amount_usdt)) FILTER (
+                  WHERE p.status = 'confirmed'
+                ), 0) AS revenue
+              FROM payments p
+              JOIN cohort c ON c.user_id = p.user_id
+              WHERE p.deleted_at IS NULL AND p.created_at >= c.created_at
+              GROUP BY p.user_id
+            )
+            SELECT
+              COALESCE(NULLIF(trim(c.acq_source), ''), '(unknown)') AS source,
+              count(*)::int AS signups,
+              count(*) FILTER (WHERE m.proof_at IS NOT NULL)::int AS proof_users,
+              count(*) FILTER (WHERE a.armed_at IS NOT NULL)::int AS armed_users,
+              count(*) FILTER (
+                WHERE m.proof_at IS NOT NULL AND a.armed_at IS NOT NULL
+              )::int AS activated_users,
+              count(*) FILTER (WHERE m.pricing_at IS NOT NULL)::int AS pricing_users,
+              count(*) FILTER (WHERE m.plan_at IS NOT NULL)::int AS plan_users,
+              count(*) FILTER (WHERE p.invoice_at IS NOT NULL)::int AS invoice_users,
+              count(*) FILTER (WHERE m.tx_at IS NOT NULL)::int AS tx_users,
+              count(*) FILTER (WHERE p.paid_at IS NOT NULL)::int AS paid_users,
+              count(*) FILTER (WHERE p.confirmed_payments > 1)::int AS renewal_users,
+              COALESCE(sum(p.revenue), 0) AS revenue
+            FROM cohort c
+            LEFT JOIN milestones m ON m.user_id = c.user_id
+            LEFT JOIN armed a ON a.user_id = c.user_id
+            LEFT JOIN payment_truth p ON p.user_id = c.user_id
+            GROUP BY 1
+            ORDER BY paid_users DESC, activated_users DESC, signups DESC
+            """
+        ),
+        {"since": cohort_since},
+    ).mappings().all()
+
+    by_source = []
+    totals = {
+        "signups": 0,
+        "proof_users": 0,
+        "armed_users": 0,
+        "activated_users": 0,
+        "pricing_users": 0,
+        "plan_users": 0,
+        "invoice_users": 0,
+        "tx_users": 0,
+        "paid_users": 0,
+        "renewal_users": 0,
+        "revenue_usdt": 0.0,
+    }
+    for row in rows:
+        item = {
+            "source": row["source"],
+            "signups": int(row["signups"] or 0),
+            "proof_users": int(row["proof_users"] or 0),
+            "armed_users": int(row["armed_users"] or 0),
+            "activated_users": int(row["activated_users"] or 0),
+            "pricing_users": int(row["pricing_users"] or 0),
+            "plan_users": int(row["plan_users"] or 0),
+            "invoice_users": int(row["invoice_users"] or 0),
+            "tx_users": int(row["tx_users"] or 0),
+            "paid_users": int(row["paid_users"] or 0),
+            "renewal_users": int(row["renewal_users"] or 0),
+            "revenue_usdt": float(row["revenue"] or 0),
+        }
+        by_source.append(item)
+        for key in totals:
+            totals[key] += item[key]
+
+    signups_total = totals["signups"]
+    activated_total = totals["activated_users"]
+    invoice_total = totals["invoice_users"]
+    totals["rates"] = {
+        "proof_per_signup": _ratio(totals["proof_users"], signups_total),
+        "armed_per_signup": _ratio(totals["armed_users"], signups_total),
+        "activated_per_signup": _ratio(activated_total, signups_total),
+        "invoice_per_activated": _ratio(invoice_total, activated_total),
+        "paid_per_invoice": _ratio(totals["paid_users"], invoice_total),
+    }
+
+    return {
+        "status": "collecting",
+        "schema_version": "2026-08-15",
+        "definition": "resolved proof + watch/alert within 24h",
+        "tracking_started_at": first_at.isoformat() if first_at else None,
+        "cohort_since": cohort_since.isoformat(),
+        "totals": totals,
+        "by_source": by_source,
+    }
+
+
 @growth_router.get("/conversion")
 def growth_conversion(
     days: int = 30,
@@ -1041,6 +1214,21 @@ def growth_conversion(
         except Exception:
             pass
 
+    canonical_funnel: dict[str, Any] = {}
+    try:
+        canonical_funnel = _canonical_growth_funnel(db, since)
+    except Exception:
+        logger.exception("canonical growth funnel aggregate failed")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        canonical_funnel = {
+            "status": "unavailable",
+            "schema_version": "2026-08-15",
+            "definition": "resolved proof + watch/alert within 24h",
+        }
+
     payload = {
         "window_days": days,
         "all_time": all_time,
@@ -1084,6 +1272,7 @@ def growth_conversion(
         "funnel_threaded": funnel_threaded,
         "funnel_window": funnel_window,
         "global_funnel": money,
+        "canonical_funnel": canonical_funnel,
         "cta_by_source": funnel_by_source,
         "acquisition": {
             "by_source": acq_by_source,
