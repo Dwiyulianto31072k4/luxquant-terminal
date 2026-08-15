@@ -125,7 +125,7 @@ function PortfolioCharts({ trackedSpot, manualSpot, futures }) {
           </p>
         </div>
         <div className="grid items-center gap-3 md:grid-cols-[1fr_180px]">
-          <div className="h-56">
+          <div className="h-44 sm:h-52" style={{ touchAction: "pan-y" }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -175,11 +175,11 @@ function PortfolioCharts({ trackedSpot, manualSpot, futures }) {
           Unrealized PnL by tracked Agent position.
         </p>
         {exposure.length === 0 ? (
-          <div className="flex h-56 items-center justify-center text-sm text-text-muted">
+          <div className="flex h-44 items-center justify-center text-sm text-text-muted sm:h-52">
             No open Agent exposure
           </div>
         ) : (
-          <div className="mt-4 h-56">
+          <div className="mt-4 h-44 sm:h-52" style={{ touchAction: "pan-y" }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={exposure} layout="vertical" margin={{ left: 10 }}>
                 <CartesianGrid stroke="rgb(var(--ink) / 0.05)" horizontal={false} />
@@ -926,13 +926,20 @@ export default function PositionsBoard({ portfolio, onChanged }) {
   };
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 [&_.recharts-wrapper]:[touch-action:pan-y]">
       {operationMessage ? (
         <div className="rounded-lg border border-ink/10 bg-surface-secondary px-4 py-3 text-sm text-accent">
           {operationMessage}
         </div>
       ) : null}
       <PortfolioCharts trackedSpot={trackedSpot} manualSpot={manualSpot} futures={futures} />
+
+      {futures.length > 0 ? (
+        <section className="space-y-3">
+          <SectionHeader label="Futures Positions" hint={`${futures.length} open`} />
+          <FuturesPositions positions={futures} />
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1003,10 +1010,12 @@ export default function PositionsBoard({ portfolio, onChanged }) {
         )}
       </section>
 
-      <section className="space-y-3">
-        <SectionHeader label="Futures Positions" hint={`${futures.length} open`} />
-        <FuturesPositions positions={futures} />
-      </section>
+      {futures.length === 0 ? (
+        <section className="space-y-3">
+          <SectionHeader label="Futures Positions" hint="0 open" />
+          <FuturesPositions positions={futures} />
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">

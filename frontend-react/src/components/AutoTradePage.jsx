@@ -819,7 +819,7 @@ export default function AutoTradePage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-8">
+    <div className="mx-auto max-w-[1400px] space-y-6 overflow-x-hidden px-4 py-8 pb-28">
       <SectionHeader label="Agent" />
 
       {/* Header */}
@@ -901,11 +901,11 @@ export default function AutoTradePage() {
           />
 
           {/* Desktop: vertical side nav · Mobile: scrollable strip */}
-          <div className="flex gap-6 lg:gap-8">
-            <aside className="hidden lg:block w-48 flex-shrink-0">
+          <div className="flex items-start gap-6 lg:gap-8">
+            <aside className="sticky top-24 hidden w-48 shrink-0 lg:block">
               <SideNav tabs={TABS} value={tab} onChange={setTab} />
             </aside>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 overflow-visible">
               <div className="lg:hidden mb-4">
                 <MobileSectionPicker tabs={TABS} value={tab} onChange={setTab} />
               </div>

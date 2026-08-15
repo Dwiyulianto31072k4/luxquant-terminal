@@ -407,7 +407,7 @@ export function Notice({ tone = "info", children }) {
 export function EmptyState({ icon, title, hint, action }) {
   return (
     <Card className="text-center" padded>
-      <div className="flex flex-col items-center gap-3 py-6">
+      <div className="flex flex-col items-center gap-2 py-3 sm:py-5">
         {icon ? (
           <div className="flex h-14 w-14 items-center justify-center rounded-full border border-ink/[0.1] bg-surface-secondary text-2xl text-text-secondary">
             {icon}
