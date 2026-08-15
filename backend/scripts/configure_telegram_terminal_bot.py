@@ -6,6 +6,7 @@ prints method status only and never prints the bot token or webhook secret.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import sys
 from pathlib import Path
@@ -14,6 +15,7 @@ import httpx
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+PROFILE_PHOTO = BACKEND_DIR / "assets" / "telegram-terminal-bot-profile.jpg"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
@@ -61,6 +63,52 @@ async def main() -> None:
     ]
 
     async with httpx.AsyncClient(timeout=15.0) as client:
+        me_response = await client.get(f"{api}/getMe")
+        me = me_response.json()
+        if me_response.status_code != 200 or not me.get("ok"):
+            raise SystemExit(f"getMe failed: {me.get('description', me_response.status_code)}")
+        bot_id = me["result"]["id"]
+        photos_response = await client.get(
+            f"{api}/getUserProfilePhotos",
+            params={"user_id": bot_id, "limit": 1},
+        )
+        photos = photos_response.json()
+        if photos_response.status_code != 200 or not photos.get("ok"):
+            raise SystemExit(
+                f"getUserProfilePhotos failed: {photos.get('description', photos_response.status_code)}"
+            )
+
+        if int(photos["result"].get("total_count") or 0) == 0:
+            if not PROFILE_PHOTO.is_file():
+                raise SystemExit(f"profile photo missing: {PROFILE_PHOTO}")
+            with PROFILE_PHOTO.open("rb") as photo_file:
+                response = await client.post(
+                    f"{api}/setMyProfilePhoto",
+                    data={
+                        "photo": json.dumps(
+                            {
+                                "type": "static",
+                                "photo": "attach://profile_file",
+                            }
+                        )
+                    },
+                    files={
+                        "profile_file": (
+                            PROFILE_PHOTO.name,
+                            photo_file,
+                            "image/jpeg",
+                        )
+                    },
+                )
+            data = response.json()
+            if response.status_code != 200 or not data.get("ok"):
+                raise SystemExit(
+                    f"setMyProfilePhoto failed: {data.get('description', response.status_code)}"
+                )
+            print("setMyProfilePhoto: ok")
+        else:
+            print("setMyProfilePhoto: already present")
+
         for method, payload in operations:
             response = await client.post(f"{api}/{method}", json=payload)
             data = response.json()
