@@ -110,7 +110,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger("pnl-card-worker")
 
-engine = create_engine(DATABASE_URL, future=True)
+engine = create_engine(
+    DATABASE_URL, future=True, pool_pre_ping=True, pool_recycle=300, pool_size=2, max_overflow=2
+)
 os.makedirs(PNL_CARD_DIR, exist_ok=True)
 
 

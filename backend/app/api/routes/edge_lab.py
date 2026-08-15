@@ -237,6 +237,13 @@ def get_edge_lab(
     _stale, _ = cache_get_with_stale(cache_key)
     if _stale:
         return _stale
+    # Daily key includes end_str, so midnight looks like a cold start. Serve
+    # yesterday's payload rather than making the first visitor wait ~40s.
+    if days:
+        yday = (end_date - timedelta(days=1)).isoformat()
+        prev = cache_get(f"lq:edge-lab:v4:{days}:{sector_filter}:{yday}")
+        if prev:
+            return prev
 
     # ─── Common params + sector WHERE clause helper ───
     sector_clause = "" if sector_filter == "all" else "AND COALESCE(c.sector, 'uncategorized') = :sector"

@@ -552,77 +552,68 @@ async def get_heatmap_data():
 # 7. COMBINED — All Markets Page data
 # ════════════════════════════════════════════
 
+def _cached_or_stale(key: str):
+    hit = cache_get(key)
+    if hit:
+        return hit
+    stale, _ = cache_get_with_stale(key)
+    return stale
+
+
 @router.get("/markets-page")
 async def get_markets_page_data():
     """
-    Combined endpoint: fetch all Markets Page sections in parallel.
-    Returns cached data where available, fetches fresh otherwise.
-    Frontend calls this once on page load.
+    Combined Markets Page payload. Never block the browser on a cold
+    Coingecko / DefiLlama burst — serve Redis (fresh or stale) first,
+    fill only the holes, and give up after a few seconds.
     """
-    # Try to get each section from cache first, fetch if missing
+    page_key = "lq:mkt:page:v2"
+    cached = cache_get(page_key)
+    if cached:
+        return cached
+
     sections = {
-        "defi": cache_get("lq:mkt:defi"),
-        "stablecoins": cache_get("lq:mkt:stablecoins"),
-        "liquidations": cache_get("lq:mkt:liquidations"),
-        "etfFlows": cache_get("lq:mkt:etf-flows"),
-        "cryptoNews": cache_get("lq:mkt:crypto-news"),
-        "heatmap": cache_get("lq:mkt:heatmap"),
+        "defi": _cached_or_stale("lq:mkt:defi"),
+        "stablecoins": _cached_or_stale("lq:mkt:stablecoins"),
+        "liquidations": _cached_or_stale("lq:mkt:liquidations"),
+        "etfFlows": _cached_or_stale("lq:mkt:etf-flows"),
+        "cryptoNews": _cached_or_stale("lq:mkt:crypto-news"),
+        "heatmap": _cached_or_stale("lq:mkt:heatmap"),
+        "global": _cached_or_stale("lq:market:global"),
+        "trending": _cached_or_stale("lq:market:trending"),
+        "categories": _cached_or_stale("lq:market:categories"),
+        "derivativesPulse": _cached_or_stale("lq:market:deriv-pulse"),
+        "coins": _cached_or_stale("lq:market:coins:100:1:market_cap_desc"),
     }
 
-    # Find which sections need fetching
-    fetch_tasks = {}
-    if not sections["defi"]:
-        fetch_tasks["defi"] = get_defi_overview()
-    if not sections["stablecoins"]:
-        fetch_tasks["stablecoins"] = get_stablecoins()
-    if not sections["liquidations"]:
-        fetch_tasks["liquidations"] = get_liquidations()
-    if not sections["etfFlows"]:
-        fetch_tasks["etfFlows"] = get_etf_flows()
-    if not sections["cryptoNews"]:
-        fetch_tasks["cryptoNews"] = get_crypto_news()
-    if not sections["heatmap"]:
-        fetch_tasks["heatmap"] = get_heatmap_data()
-
-    if fetch_tasks:
-        keys = list(fetch_tasks.keys())
-        results = await asyncio.gather(
-            *[fetch_tasks[k] for k in keys],
-            return_exceptions=True,
-        )
-        for i, key in enumerate(keys):
-            if not isinstance(results[i], Exception):
-                sections[key] = results[i]
-            else:
-                sections[key] = None
-
-    # Also include data from existing market.py endpoints (via cache)
-    # Also include data from existing market.py endpoints (via cache)
-    sections["global"] = cache_get("lq:market:global")
-    sections["trending"] = cache_get("lq:market:trending")
-    sections["categories"] = cache_get("lq:market:categories")
-    sections["derivativesPulse"] = cache_get("lq:market:deriv-pulse")
-    sections["coins"] = cache_get("lq:market:coins:100:1:market_cap_desc")
-
-    if not sections["coins"]:
+    fetchers = {
+        "defi": get_defi_overview,
+        "stablecoins": get_stablecoins,
+        "liquidations": get_liquidations,
+        "etfFlows": get_etf_flows,
+        "cryptoNews": get_crypto_news,
+        "heatmap": get_heatmap_data,
+    }
+    missing = [k for k in fetchers if not sections[k]]
+    if missing:
         try:
-            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-                res = await client.get(
-                    f"{COINGECKO_API}/coins/markets",
-                    params={
-                        "vs_currency": "usd",
-                        "order": "market_cap_desc",
-                        "per_page": 100,
-                        "page": 1,
-                        "sparkline": "true",
-                        "price_change_percentage": "1h,24h,7d"
-                    },
-                    headers=CG_HEADERS
-                )
-                if res.status_code == 200:
-                    sections["coins"] = attach_spark24(res.json())
-                    cache_set("lq:market:coins:100:1:market_cap_desc", sections["coins"], ttl=120)
-        except Exception as e:
-            print(f"Fallback fetch for coins failed: {e}")
+            results = await asyncio.wait_for(
+                asyncio.gather(
+                    *[fetchers[k]() for k in missing],
+                    return_exceptions=True,
+                ),
+                timeout=8.0,
+            )
+            for key, result in zip(missing, results):
+                if result is not None and not isinstance(result, Exception):
+                    sections[key] = result
+        except asyncio.TimeoutError:
+            pass
 
+    if any(sections.values()):
+        cache_set(page_key, sections, ttl=45)
+    else:
+        stale, _ = cache_get_with_stale(page_key)
+        if stale:
+            return stale
     return sections

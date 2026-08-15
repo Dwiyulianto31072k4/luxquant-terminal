@@ -33,7 +33,7 @@ CHANNEL_ID   = int(os.getenv("TG_CHANNEL_ID", "-1002051092635"))
 SESSION_FILE = os.getenv("TG_SESSION_FILE", "/opt/luxquant-sync/telethon_sessionvip.txt")
 DB_URL = os.getenv("DB_URL", "postgresql+psycopg2://luxq:ukCjpVAkqpeExAiLcFNETgmP@127.0.0.1:5432/luxquant")
 
-engine = create_engine(DB_URL, future=True)
+engine = create_engine(DB_URL, future=True, pool_pre_ping=True, pool_recycle=300)
 
 def is_pg(e: Engine) -> bool:
     try:

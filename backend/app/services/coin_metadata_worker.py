@@ -56,7 +56,9 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("coin-metadata-worker")
-engine = create_engine(DATABASE_URL, future=True)
+engine = create_engine(
+    DATABASE_URL, future=True, pool_pre_ping=True, pool_recycle=300, pool_size=2, max_overflow=2
+)
 
 
 # ============================================================

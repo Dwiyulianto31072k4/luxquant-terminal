@@ -14,14 +14,28 @@ from app.config import settings
 _POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
 _MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
 _POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "10"))
+# Postgres idle_session_timeout is 10 minutes. Recycle well under that so a
+# pooled connection is never handed out after the server already closed it.
+# (pool_pre_ping still catches the rest; recycle just keeps the ping rare.)
+_POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", "300"))
+
+
+def engine_kwargs(**overrides):
+    """Shared pool flags for every long-lived engine in this process."""
+    kw = {
+        "pool_pre_ping": True,
+        "pool_size": _POOL_SIZE,
+        "max_overflow": _MAX_OVERFLOW,
+        "pool_timeout": _POOL_TIMEOUT,
+        "pool_recycle": _POOL_RECYCLE,
+    }
+    kw.update(overrides)
+    return kw
+
 
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=_POOL_SIZE,
-    max_overflow=_MAX_OVERFLOW,
-    pool_timeout=_POOL_TIMEOUT,   # wait at most N s for a free connection, then error (don't hang)
-    pool_recycle=1800,
+    **engine_kwargs(),
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

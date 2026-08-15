@@ -45,7 +45,9 @@ DATABASE_URL = os.getenv(
     "postgresql://luxq:ukCjpVAkqpeExAiLcFNETgmP@127.0.0.1:5432/luxquant"
 )
 
-engine = create_engine(DATABASE_URL, future=True)
+engine = create_engine(
+    DATABASE_URL, future=True, pool_pre_ping=True, pool_recycle=300, pool_size=2, max_overflow=2
+)
 console = Console()
 
 

@@ -20,24 +20,18 @@ Version: v3.0
 
 import json
 import logging
-import os
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, PlainTextResponse
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 
 from app.api.deps import require_subscription, get_current_user_optional
+from app.core.database import engine
 from app.core.redis import cache_get
 from app.models.user import User
 
 logger = logging.getLogger("enrichment-v3-api")
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://luxq:ukCjpVAkqpeExAiLcFNETgmP@127.0.0.1:5432/luxquant"
-)
-engine = create_engine(DATABASE_URL, future=True)
 
 router = APIRouter(prefix="/api/v1/enrichment/v3", tags=["enrichment-v3"])
 
