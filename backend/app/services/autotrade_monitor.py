@@ -72,7 +72,8 @@ def _canon_symbol(symbol: str | None) -> str:
 def _http_json(url: str, params: dict | None = None) -> Any:
     import httpx
 
-    with httpx.Client(timeout=5.0) as client:
+    headers = {"User-Agent": "LuxQuantMonitor/1.0", "Accept": "application/json"}
+    with httpx.Client(timeout=8.0, headers=headers) as client:
         resp = client.get(url, params=params)
         resp.raise_for_status()
         return resp.json()
@@ -130,15 +131,21 @@ def _fetch_venue_book(venue: str) -> dict[str, float]:
 def _last_prices(venue: str) -> dict[str, float]:
     now = time.monotonic()
     cached = _price_books.get(venue)
-    if cached and now - cached[0] < _PRICE_TTL_SEC:
+    if cached and cached[1] and now - cached[0] < _PRICE_TTL_SEC:
         return cached[1]
     try:
         book = _fetch_venue_book(venue)
     except Exception as exc:
         logger.info("Live mark book unavailable for %s: %s", venue, exc)
-        book = cached[1] if cached else {}
-    _price_books[venue] = (now, book)
-    return book
+        return cached[1] if cached else {}
+    if book:
+        _price_books[venue] = (now, book)
+        return book
+    # An empty book is a miss, not a price of "unknown forever". Keep the last
+    # good snapshot if we have one so a blip does not blank the desk.
+    if cached and cached[1]:
+        return cached[1]
+    return {}
 
 
 def _attach_live_marks(rows: list[dict[str, Any]]) -> dict[str, Any]:

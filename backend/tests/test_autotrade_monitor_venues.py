@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
+from app.services import autotrade_monitor
 from app.services.autotrade_monitor import (
+    _attach_live_marks,
+    _canon_symbol,
     _canon_venue,
     _extract_error_code,
     _health,
@@ -98,3 +101,45 @@ def test_health_marks_recovered_errors_as_warning_not_error():
 def test_extract_error_code_reads_bingx_and_418():
     assert _extract_error_code("BingX 109400 reduceOnly not allowed") == "109400"
     assert _extract_error_code("HTTP 418 Way too many requests") == "418"
+
+
+def test_canon_symbol_matches_bingx_hyphen_tickers():
+    assert _canon_symbol("BAT-USDT") == "BATUSDT"
+    assert _canon_symbol("BATUSDT") == "BATUSDT"
+
+
+def test_attach_live_marks_prices_bingx_from_public_book(monkeypatch):
+    monkeypatch.setattr(
+        autotrade_monitor,
+        "_last_prices",
+        lambda venue: {"BATUSDT": 0.05854} if venue == "bingx" else {},
+    )
+    rows = [
+        {
+            "symbol": "BATUSDT",
+            "exchange": "bingx",
+            "venue": "bingx",
+            "side": "BUY",
+            "quantity": 1000,
+            "entry_price": 0.058,
+        }
+    ]
+    live = _attach_live_marks(rows)
+    assert live["priced"] == 1
+    assert rows[0]["mark_price"] == 0.05854
+    assert rows[0]["unrealized_pnl"] == 0.54
+
+
+def test_last_prices_does_not_cache_an_empty_book(monkeypatch):
+    autotrade_monitor._price_books.clear()
+    calls = {"n": 0}
+
+    def boom(venue):
+        calls["n"] += 1
+        raise RuntimeError("timeout")
+
+    monkeypatch.setattr(autotrade_monitor, "_fetch_venue_book", boom)
+    assert autotrade_monitor._last_prices("bingx") == {}
+    assert autotrade_monitor._last_prices("bingx") == {}
+    assert calls["n"] == 2
+    autotrade_monitor._price_books.clear()

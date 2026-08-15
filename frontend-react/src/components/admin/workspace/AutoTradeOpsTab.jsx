@@ -74,6 +74,15 @@ const EXIT_REASONS = {
 
 const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(Number(n) || 0).toFixed(2)}`;
 const signed = (n) => `${n >= 0 ? "+" : "-"}$${Math.abs(Number(n) || 0).toFixed(2)}`;
+const fmtMark = (n) => {
+  const x = Number(n);
+  if (!Number.isFinite(x) || x <= 0) return "—";
+  if (x >= 100) return x.toFixed(2);
+  if (x >= 1) return x.toPrecision(6).replace(/\.?0+$/, "");
+  return String(x);
+};
+const marksMissing = (rows) =>
+  Array.isArray(rows) && rows.length > 0 && rows.every((p) => p.mark_price == null);
 const day = (v) =>
   v ? new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "—";
 const ago = (v) => {
@@ -183,9 +192,12 @@ export const AutoTradeOpsTab = () => {
   const [venueFilter, setVenueFilter] = useState("all");
   const [query, setQuery] = useState("");
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError("");
+  const load = useCallback((attempt = 0) => {
+    const n = typeof attempt === "number" ? attempt : 0;
+    if (n === 0) {
+      setLoading(true);
+      setError("");
+    }
     Promise.all([
       adminApi.getAutoTradeOverview(),
       adminApi.getAutoTradePositions(),
@@ -197,12 +209,19 @@ export const AutoTradeOpsTab = () => {
         setPositions(p);
         setAnalytics(a);
         setWaitlist(w);
+        if (marksMissing(p?.positions) && n < 1) {
+          setTimeout(() => load(n + 1), 1500);
+        }
       })
       .catch((e) => setError(e?.message || "Could not load Agent data"))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (n === 0) setLoading(false);
+      });
   }, [since]);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    load(0);
+  }, [load]);
 
   const onSort = (key) =>
     setSort((s) => ({ key, dir: s.key === key && s.dir === "desc" ? "asc" : "desc" }));
@@ -1166,7 +1185,7 @@ export const AutoTradeOpsTab = () => {
                       {p.entry_price ?? "—"}
                     </td>
                     <td className="py-2.5 pr-3 text-right tabular-nums text-text-muted">
-                      {p.mark_price == null ? "—" : p.mark_price}
+                      {p.mark_price == null ? "—" : fmtMark(p.mark_price)}
                     </td>
                     <td className="py-2.5 pr-3 text-right tabular-nums">
                       {p.unrealized_pnl == null ? (

@@ -91,6 +91,15 @@ const TABS = [
 
 const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(Number(n) || 0).toFixed(2)}`;
 const signed = (n) => `${n >= 0 ? "+" : "-"}$${Math.abs(Number(n) || 0).toFixed(2)}`;
+const fmtMark = (n) => {
+  const x = Number(n);
+  if (!Number.isFinite(x) || x <= 0) return "—";
+  if (x >= 100) return x.toFixed(2);
+  if (x >= 1) return x.toPrecision(6).replace(/\.?0+$/, "");
+  return String(x);
+};
+const marksMissing = (rows) =>
+  Array.isArray(rows) && rows.length > 0 && rows.every((p) => p.mark_price == null);
 const day = (v) =>
   v ? new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "—";
 const when = (v) =>
@@ -487,20 +496,30 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
   useEffect(() => {
     if (!userId) return;
     let dead = false;
-    Promise.all([
-      adminApi.getAutoTradeUser(userId),
-      adminApi.getAutoTradeTrades(userId, since),
-      adminApi.getUserAgentAcks(userId).catch(() => ({ items: [] })),
-    ])
-      .then(([d, t, a]) => {
-        if (dead) return;
-        setDetail(d);
-        setTrades(t);
-        setAcks(a?.items || []);
-      })
-      .catch((e) => !dead && setError(e?.message || "Could not load"));
+    let retryTimer;
+    const load = (attempt = 0) => {
+      Promise.all([
+        adminApi.getAutoTradeUser(userId),
+        adminApi.getAutoTradeTrades(userId, since),
+        adminApi.getUserAgentAcks(userId).catch(() => ({ items: [] })),
+      ])
+        .then(([d, t, a]) => {
+          if (dead) return;
+          setDetail(d);
+          setTrades(t);
+          setAcks(a?.items || []);
+          // Backend stamps marks from the public book. A deploy/restart can
+          // miss the first tick — retry once instead of leaving the desk on —.
+          if (marksMissing(d?.positions) && attempt < 1) {
+            retryTimer = setTimeout(() => load(attempt + 1), 1500);
+          }
+        })
+        .catch((e) => !dead && setError(e?.message || "Could not load"));
+    };
+    load();
     return () => {
       dead = true;
+      clearTimeout(retryTimer);
     };
   }, [userId, since, reloadKey]);
 
@@ -661,6 +680,13 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
             </div>
             <button
               type="button"
+              onClick={reload}
+              className="rounded-lg border border-ink/12 px-2 py-1.5 text-[11px] text-text-secondary hover:border-accent hover:text-accent"
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
               onClick={onClose}
               className="rounded-lg border border-ink/12 p-1.5 text-text-secondary hover:border-accent hover:text-accent"
               aria-label="Close"
@@ -725,7 +751,9 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                   label="Open now"
                   value={s.open_positions ?? 0}
                   sub={
-                    live.live_unrealized_pnl == null
+                    live.priced === 0 && live.open > 0
+                      ? "mark unavailable"
+                      : live.live_unrealized_pnl == null
                       ? s.stuck_positions
                         ? `${s.stuck_positions} stuck`
                         : "none stuck"
@@ -1216,7 +1244,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                         <td className="px-2 py-2 text-right tabular-nums">{p.quantity}</td>
                         <td className="px-2 py-2 text-right tabular-nums">{p.entry_price ?? "—"}</td>
                         <td className="px-2 py-2 text-right tabular-nums text-text-muted">
-                          {p.mark_price == null ? "—" : p.mark_price}
+                          {p.mark_price == null ? "—" : fmtMark(p.mark_price)}
                         </td>
                         <td className="px-2 py-2 text-right tabular-nums">
                           {p.unrealized_pnl == null ? (
@@ -1254,6 +1282,12 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                     ))}
                   </tbody>
                 </table>
+                <p className="px-4 py-2 text-[11px] text-text-muted">
+                  Mark is the venue last from the public book, not an invented
+                  mid. Live PnL is linear USDT-M: (mark − entry) × qty. A dash
+                  means that book was unreachable on this refresh — tap Refresh.
+                  It is not a flat position.
+                </p>
               </div>
             ) : (
               <div className="rounded-xl border border-ink/[0.08] bg-surface-raised px-4 py-10 text-center text-[13px] text-text-muted">
