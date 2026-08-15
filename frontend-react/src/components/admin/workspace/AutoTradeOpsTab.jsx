@@ -549,8 +549,8 @@ export const AutoTradeOpsTab = () => {
         )}
         <p className="mt-3 text-[11px] leading-relaxed text-text-muted">
           The same PDFs also live on each person&apos;s record: Users → open the user →
-          Agent tab → Signed acknowledgements. Unsigned connected keys stay under
-          No agreement — they are not live Agent incidents.
+          Agent tab → Signed acknowledgements. Connecting a key requires this form.
+          Unsigned keys are disconnected.
         </p>
       </Card>
 

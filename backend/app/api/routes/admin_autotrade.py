@@ -96,9 +96,8 @@ def _attach_agreements(db: Session, rows: list[dict[str, Any]]) -> None:
         )
         if row.get("has_live_ack"):
             continue
-        if row.get("status") in ("error", "warn"):
-            row["status"] = "unsigned"
-            row["reasons"] = ["No live trading agreement signed"] + list(row.get("reasons") or [])
+        row["status"] = "unsigned"
+        row["reasons"] = ["No live trading agreement signed"] + list(row.get("reasons") or [])
 
 
 def _recount_overview(data: dict[str, Any]) -> None:
@@ -107,12 +106,12 @@ def _recount_overview(data: dict[str, Any]) -> None:
     totals = data.setdefault("totals", {})
     totals["errors"] = len([r for r in rows if r.get("status") == "error"])
     totals["warnings"] = len([r for r in rows if r.get("status") == "warn"])
-    totals["unsigned"] = len([r for r in linked if r.get("status") == "unsigned"])
+    totals["unsigned"] = len([r for r in linked if not r.get("has_live_ack")])
     totals["unsigned_live"] = len(
         [
             r
             for r in linked
-            if r.get("status") == "unsigned" and r.get("is_active") and r.get("dry_run") is False
+            if not r.get("has_live_ack") and r.get("is_active") and r.get("dry_run") is False
         ]
     )
     totals["signed_live"] = len([r for r in linked if r.get("has_live_ack")])

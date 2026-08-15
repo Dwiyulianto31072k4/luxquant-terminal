@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import decode_token
+from app.models.agent_disclaimer import AgentDisclaimerAck
 from app.models.user import User
 
 router = APIRouter(prefix="/autotrade", tags=["AutoTrade Auth"])
@@ -53,7 +54,16 @@ def _require_service_key(x_service_key: str = Header(None)):
     return True
 
 
-def _entitlement_payload(user: User) -> dict:
+def _has_live_ack(db: Session, user_id: int) -> bool:
+    return (
+        db.query(AgentDisclaimerAck.id)
+        .filter(AgentDisclaimerAck.user_id == user_id, AgentDisclaimerAck.kind == "live")
+        .first()
+        is not None
+    )
+
+
+def _entitlement_payload(user: User, db: Session) -> dict:
     """Bentuk response entitlement yang konsisten dipakai kedua endpoint."""
     google_linked = user.google_id is not None
     return {
@@ -64,6 +74,9 @@ def _entitlement_payload(user: User) -> dict:
         # has_active_access = admin | lifetime | premium/subscriber belum expired.
         # Ini SATU-SATUNYA field yang AutoTrade pakai buat gate akses.
         "has_active_access": user.has_active_access,
+        # Live trading acknowledgement. Connecting a key and going live both
+        # require this. Assistant-only is not enough.
+        "has_live_ack": _has_live_ack(db, user.id),
         # Operator kill-switch, kept SEPARATE from has_active_access on purpose:
         # that field also gates the signal feed and the journey view, so folding
         # a bot block into it would cut the user off from everything they pay
@@ -109,7 +122,7 @@ def verify_access(
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
-    return _entitlement_payload(user)
+    return _entitlement_payload(user, db)
 
 
 @router.get("/entitlement/{user_id}")
@@ -133,7 +146,7 @@ def get_entitlement(
         raise HTTPException(status_code=404, detail="User not found")
     if not user.is_active:
         # Akun dinonaktifkan/ban -> anggap gak punya akses
-        data = _entitlement_payload(user)
+        data = _entitlement_payload(user, db)
         data["has_active_access"] = False
         return data
-    return _entitlement_payload(user)
+    return _entitlement_payload(user, db)

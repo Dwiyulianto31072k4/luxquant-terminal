@@ -596,6 +596,8 @@ export default function AutoTradePage() {
   const [hasAutotradeToken, setHasAutotradeToken] = useState(Boolean(getStoredAutotradeToken()));
   const [rereadDisclaimer, setRereadDisclaimer] = useState(false);
   const [hasSignedAssistantForm, setHasSignedAssistantForm] = useState(false);
+  const [hasSignedLiveForm, setHasSignedLiveForm] = useState(false);
+  const [showLiveAck, setShowLiveAck] = useState(false);
   const [acksReady, setAcksReady] = useState(false);
   const { prefs, setPref, ready: prefsReady } = useUiPrefs({
     agent_assistant_ack: false,
@@ -764,6 +766,7 @@ export default function AutoTradePage() {
         if (!alive) return;
         const items = data?.items || [];
         setHasSignedAssistantForm(items.some((row) => row.kind === "assistant"));
+        setHasSignedLiveForm(items.some((row) => row.kind === "live"));
         setAcksReady(true);
       })
       .catch(() => {
@@ -796,6 +799,7 @@ export default function AutoTradePage() {
   const summaryText = useMemo(() => {
     if (!prefs.agent_assistant_ack) return "Read the assistant disclaimer before connecting anything";
     if (!hasAutotradeToken) return "Link this LuxQuant account to the execution helper";
+    if (!hasSignedLiveForm) return "Sign the live trading agreement before connecting a key";
     if (!hasExchangeAccount) return "One venue. Spot and futures. You turn it off.";
     const totalAccounts = exchangeAccounts.length;
     const totalExecutions = liveExecutions.length;
@@ -806,6 +810,7 @@ export default function AutoTradePage() {
     hasAutotradeToken,
     hasExchangeAccount,
     prefs.agent_assistant_ack,
+    hasSignedLiveForm,
   ]);
 
   const handleAuthorizeAutotrade = async () => {
@@ -828,6 +833,10 @@ export default function AutoTradePage() {
   };
 
   const openConnect = (exchange = "binance") => {
+    if (!hasSignedLiveForm) {
+      setShowLiveAck(true);
+      return;
+    }
     setConnectExchange(exchange);
     setShowConnect(true);
   };
@@ -898,6 +907,25 @@ export default function AutoTradePage() {
           onAction={handleAuthorizeAutotrade}
           disabled={authActionLoading}
         />
+      ) : !hasSignedLiveForm ? (
+        <>
+          <SetupCard
+            title="Sign the live trading agreement"
+            body="Connecting an exchange key requires the live trading acknowledgement. Unsigned keys are disconnected. Dry-run and live both wait on this form."
+            actionLabel="Read and sign"
+            onAction={() => setShowLiveAck(true)}
+          />
+          <LiveRiskAckModal
+            open={showLiveAck}
+            firstTime
+            onCancel={() => setShowLiveAck(false)}
+            onConfirm={() => {
+              setPref("agent_live_ack", true);
+              setHasSignedLiveForm(true);
+              setShowLiveAck(false);
+            }}
+          />
+        </>
       ) : loading ? (
         <LoadingState />
       ) : !hasExchangeAccount ? (
