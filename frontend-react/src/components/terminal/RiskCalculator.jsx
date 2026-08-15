@@ -35,6 +35,8 @@ export function RiskTab({ view, deriv }) {
   const [pair, setPair] = useState(null);
   const [selSig, setSelSig] = useState(null);
   const [q, setQ] = useState("");
+  const [slPick, setSlPick] = useState("stop1");
+  const [tpPick, setTpPick] = useState(0);
 
   const options = useMemo(() => {
     const seen = new Set();
@@ -68,6 +70,26 @@ export function RiskTab({ view, deriv }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wanted, view]);
 
+  const callStops = (s) =>
+    [s?.stop1, s?.stop2].map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0);
+  const callTargets = (s) =>
+    (s?.targets || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0);
+
+  const applyLevels = (s, nextSl, nextTp) => {
+    const e = Number(s.entry) || 0;
+    const stops = callStops(s);
+    const tps = callTargets(s);
+    const slIdx = nextSl === "stop2" && stops.length > 1 ? 1 : 0;
+    const tpIdx = Number.isInteger(nextTp) ? nextTp : 0;
+    if (stops[slIdx] != null) setSl(String(stops[slIdx]));
+    if (tps[tpIdx] != null) setTarget(String(tps[tpIdx]));
+    else if (e && s.max_target_pct != null) {
+      const isShort = (s.signal_direction || "").toUpperCase() === "BEARISH";
+      const t = isShort ? e * (1 - s.max_target_pct / 100) : e * (1 + s.max_target_pct / 100);
+      setTarget(String(Number(t.toPrecision(6))));
+    }
+  };
+
   const prefill = (s) => {
     setPair(s.pair);
     setSelSig(s);
@@ -76,15 +98,19 @@ export function RiskTab({ view, deriv }) {
     const isShort = (s.signal_direction || "").toUpperCase() === "BEARISH";
     setSide(isShort ? "short" : "long");
     setEntry(e ? String(e) : "");
-    if (e && s.max_target_pct != null) {
-      const t = isShort ? e * (1 - s.max_target_pct / 100) : e * (1 + s.max_target_pct / 100);
-      setTarget(String(Number(t.toPrecision(6))));
-    }
-    // default stop by risk tier (no explicit SL in the screener blob)
-    const slPct = s.risk_norm === "HIGH" ? 0.08 : s.risk_norm === "LOW" ? 0.03 : 0.05;
-    if (e) {
+    const stops = callStops(s);
+    const tps = callTargets(s);
+    setSlPick("stop1");
+    setTpPick(0);
+    applyLevels(s, "stop1", 0);
+    // Last resort only: the call has no printed stop.
+    if (!stops.length && e) {
+      const slPct = s.risk_norm === "HIGH" ? 0.08 : s.risk_norm === "LOW" ? 0.03 : 0.05;
       const stop = isShort ? e * (1 + slPct) : e * (1 - slPct);
       setSl(String(Number(stop.toPrecision(6))));
+    }
+    if (!tps.length && !s.max_target_pct && e) {
+      setTarget("");
     }
   };
 
@@ -284,6 +310,47 @@ export function RiskTab({ view, deriv }) {
               />
             </div>
           </div>
+          {selSig && (callStops(selSig).length > 0 || callTargets(selSig).length > 0) ? (
+            <div className="flex flex-wrap gap-1.5">
+              {callStops(selSig).map((lv, i) => {
+                const key = i === 0 ? "stop1" : "stop2";
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setSlPick(key);
+                      applyLevels(selSig, key, tpPick);
+                    }}
+                    className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${
+                      slPick === key
+                        ? "bg-accent text-surface-primary"
+                        : "border border-ink/12 text-text-muted"
+                    }`}
+                  >
+                    SL{i + 1} {fmtP(lv)}
+                  </button>
+                );
+              })}
+              {callTargets(selSig).map((lv, i) => (
+                <button
+                  key={`tp${i}`}
+                  type="button"
+                  onClick={() => {
+                    setTpPick(i);
+                    applyLevels(selSig, slPick, i);
+                  }}
+                  className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${
+                    tpPick === i
+                      ? "bg-accent text-surface-primary"
+                      : "border border-ink/12 text-text-muted"
+                  }`}
+                >
+                  TP{i + 1} {fmtP(lv)}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {/* ── outputs ── */}

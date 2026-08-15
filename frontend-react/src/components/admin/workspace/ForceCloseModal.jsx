@@ -53,7 +53,7 @@ export default function ForceCloseModal({ position, onClose, onDone }) {
 
   return (
     <div
- className="lq-modal-safe lq-scrim-bg fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+      className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[220] flex items-end justify-center p-0 sm:items-center sm:p-4"
       onClick={() => !busy && onClose?.()}
       role="presentation"
     >

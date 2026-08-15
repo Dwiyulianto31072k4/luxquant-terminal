@@ -32,6 +32,122 @@ from app.schemas.workspace import (
 
 router = APIRouter(prefix="/api/v1/workspace", tags=["workspace"])
 
+_activation_cache: dict = {"at": 0.0, "data": None}
+
+
+def _activation_snapshot(db: Session, now: datetime, *, with_analytics: bool = False) -> dict:
+    """Paid members vs Agent connect/live — the growth leak after checkout.
+
+    Cached briefly because it reads the cryptobot RO database and this
+    snapshot is polled from the workspace pulse every minute.
+    """
+    import time
+
+    cache_key = "full" if with_analytics else "pulse"
+    bucket = (_activation_cache.get("data") or {}) if isinstance(_activation_cache.get("data"), dict) else {}
+    # Pulse and full share the same body; only profitable_bots needs analytics.
+    if bucket.get(cache_key) is not None and time.monotonic() - float(bucket.get(f"{cache_key}_at") or 0) < 45:
+        return bucket[cache_key]
+
+    paying = (
+        db.query(User)
+        .filter(
+            User.role.in_(["premium", "subscriber"]),
+            User.is_active.is_(True),
+            or_(User.subscription_expires_at.is_(None), User.subscription_expires_at > now),
+        )
+        .all()
+    )
+    paying_ids = {u.id for u in paying}
+    empty = {
+        "paying": len(paying_ids),
+        "agent_connected": 0,
+        "paid_connected": 0,
+        "paid_live": 0,
+        "paid_no_agent": len(paying_ids),
+        "agent_live": 0,
+        "agent_errors": 0,
+        "agent_invalid_keys": 0,
+        "agent_venues": [],
+        "profitable_bots": 0,
+        "connect_rate_paid": None,
+        "live_rate_paid": None,
+        "outreach": [],
+    }
+    try:
+        from app.services import autotrade_monitor
+
+        ov = autotrade_monitor.overview()
+        if ov.get("available"):
+            from app.api.routes.admin_autotrade import decorate_agent_overview
+
+            decorate_agent_overview(db, ov)
+        an = (
+            autotrade_monitor.analytics(since=autotrade_monitor.TRACKING_RESET_AT)
+            if with_analytics
+            else {}
+        )
+    except Exception:
+        ov, an = {"available": False, "users": [], "totals": {}}, {}
+
+    if not ov.get("available"):
+        store = _activation_cache.get("data") if isinstance(_activation_cache.get("data"), dict) else {}
+        store[cache_key] = empty
+        store[f"{cache_key}_at"] = time.monotonic()
+        _activation_cache["data"] = store
+        return empty
+
+    users = ov.get("users") or []
+    connected_ids = {
+        u.get("luxquant_user_id")
+        for u in users
+        if u.get("has_account") and u.get("luxquant_user_id")
+    }
+    live_ids = {
+        u.get("luxquant_user_id")
+        for u in users
+        if u.get("is_active") and u.get("dry_run") is False and u.get("luxquant_user_id")
+    }
+    paid_connected = len(paying_ids & connected_ids)
+    paid_live = len(paying_ids & live_ids)
+    outreach = []
+    for u in paying:
+        if u.id in connected_ids:
+            continue
+        outreach.append(
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "expires_at": u.subscription_expires_at.isoformat() if u.subscription_expires_at else None,
+                "days_inactive": (now - u.last_active_at).days if u.last_active_at else None,
+                "has_telegram": bool(getattr(u, "telegram_id", None)),
+            }
+        )
+    outreach.sort(key=lambda r: (r["days_inactive"] is not None, r["days_inactive"] or 0), reverse=True)
+    totals = ov.get("totals") or {}
+    an_tot = (an or {}).get("totals") or {}
+    result = {
+        "paying": len(paying_ids),
+        "agent_connected": len(connected_ids),
+        "paid_connected": paid_connected,
+        "paid_live": paid_live,
+        "paid_no_agent": len(outreach),
+        "agent_live": int(totals.get("live") or 0),
+        "agent_errors": int(totals.get("errors") or 0),
+        "agent_invalid_keys": int(totals.get("invalid_keys") or 0),
+        "agent_venues": ov.get("by_exchange") or [],
+        "profitable_bots": int(an_tot.get("profitable_users") or 0),
+        "connect_rate_paid": round(paid_connected / len(paying_ids) * 100, 1) if paying_ids else None,
+        "live_rate_paid": round(paid_live / paid_connected * 100, 1) if paid_connected else None,
+        "outreach": outreach[:25],
+    }
+    store = _activation_cache.get("data") if isinstance(_activation_cache.get("data"), dict) else {}
+    store[cache_key] = result
+    store[f"{cache_key}_at"] = time.monotonic()
+    _activation_cache["data"] = store
+    return result
+
 
 REFERRAL_REMINDER_COOLDOWN_DAYS = 30
 REFERRAL_REMINDER_ACTIVE_DAYS = 30
@@ -420,6 +536,7 @@ def workspace_stats(
         BrandTodo.priority == 'urgent',
     ).count()
 
+    activation = _activation_snapshot(db, now)
     return WorkspaceStats(
         followups_pending=followups_pending,
         followups_overdue=followups_overdue,
@@ -430,6 +547,11 @@ def workspace_stats(
         todos_in_progress=todos_in_progress,
         todos_backlog=todos_backlog,
         todos_urgent=todos_urgent,
+        agent_live=int(activation.get("agent_live") or 0),
+        agent_errors=int(activation.get("agent_errors") or 0),
+        agent_invalid_keys=int(activation.get("agent_invalid_keys") or 0),
+        agent_connected=int(activation.get("agent_connected") or 0),
+        paid_no_agent=int(activation.get("paid_no_agent") or 0),
     )
 
 
@@ -582,6 +704,7 @@ def growth_analytics(
             "referral": referral_ops,
         },
         "health": {"churn_risk": churn_risk},
+        "activation": _activation_snapshot(db, now, with_analytics=True),
         "generated_at": now,
     }
 

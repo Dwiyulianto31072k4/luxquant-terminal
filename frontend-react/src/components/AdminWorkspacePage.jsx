@@ -135,7 +135,7 @@ const TABS = [
   {
     id: "growth",
     label: "Growth",
-    description: "Revenue, retention & attribution",
+    description: "Revenue, Agent activation & referrals",
     Icon: RocketIcon,
     group: "growth",
   },
@@ -397,6 +397,41 @@ const PulseStrip = ({ stats, financeStats, servicesSummary, onJumpTo }) => {
       accent: palette.green[400],
       Icon: TrendingUpIcon,
       onClick: () => onJumpTo("finance"),
+    });
+  if (stats?.agent_errors > 0)
+    chips.push({
+      label: "agent errors",
+      value: stats.agent_errors,
+      accent: palette.red[400],
+      Icon: BotIcon,
+      pulse: true,
+      onClick: () => onJumpTo("autotrade"),
+    });
+  if (stats?.agent_invalid_keys > 0)
+    chips.push({
+      label: "bad keys",
+      value: stats.agent_invalid_keys,
+      accent: palette.amber[400],
+      Icon: KeyIcon,
+      pulse: true,
+      onClick: () => onJumpTo("autotrade"),
+    });
+  if (stats?.paid_no_agent > 0)
+    chips.push({
+      label: "paid, no Agent",
+      value: stats.paid_no_agent,
+      accent: palette.amber[400],
+      Icon: RocketIcon,
+      pulse: true,
+      onClick: () => onJumpTo("growth"),
+    });
+  if (stats?.agent_live > 0)
+    chips.push({
+      label: "live bots",
+      value: stats.agent_live,
+      accent: palette.green[400],
+      Icon: BotIcon,
+      onClick: () => onJumpTo("autotrade"),
     });
   if (stats?.campaigns_active > 0)
     chips.push({
@@ -822,7 +857,8 @@ const AdminWorkspacePage = () => {
       // Prefer stale payments; fall back to payment-gap backlog
       finance:
         financeStats?.stale_count || financeStats?.payment_gap_pending || null,
-      growth: null,
+      autotrade: stats?.agent_errors || stats?.agent_invalid_keys || null,
+      growth: stats?.paid_no_agent || null,
       todos: stats?.todos_urgent || null,
       activity: null,
       apikeys: null,

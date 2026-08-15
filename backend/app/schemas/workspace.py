@@ -303,3 +303,11 @@ class WorkspaceStats(BaseModel):
     todos_in_progress: int
     todos_backlog: int
     todos_urgent: int
+
+    # Agent activation — paid members who still have not connected a venue
+    # are the highest-leverage outreach queue on the desk.
+    agent_live: int = 0
+    agent_errors: int = 0
+    agent_invalid_keys: int = 0
+    agent_connected: int = 0
+    paid_no_agent: int = 0

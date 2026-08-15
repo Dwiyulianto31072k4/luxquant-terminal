@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -30,12 +31,32 @@ logger = logging.getLogger(__name__)
 _engine: Engine | None = None
 _engine_failed = False
 
+# Desk reset: performance figures start here. History is not deleted —
+# pass since="" (all time) or an earlier date to see it.
+TRACKING_RESET_AT = "2026-08-14T17:13:05Z"
+
 # How far back "recent" reaches for errors and activity counts.
 RECENT_WINDOW_HOURS = 24
 
 # Audit actions that represent a real execution problem, as opposed to a signal
 # that was skipped on purpose by a risk rule.
 ERROR_ACTIONS = ("execution.failed", "execution.entry_landed_despite_failure")
+
+# Every venue Agent can actually execute on. The monitor always returns a row
+# for each of these so a desk can see empty venues, not just ones already live.
+KNOWN_VENUES = ("binance", "okx", "bybit", "bitget", "bingx", "gate")
+
+
+def _canon_venue(name: str | None) -> str:
+    raw = str(name or "").strip().lower()
+    if not raw:
+        return ""
+    if raw.startswith("binance"):
+        return "binance"
+    for suffix in ("_spot", "_futures", "-spot", "-futures"):
+        if raw.endswith(suffix):
+            return raw[: -len(suffix)]
+    return raw
 
 
 def _normalise_dsn(dsn: str) -> str:
@@ -87,6 +108,62 @@ def _as_utc(value: datetime) -> datetime:
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
 
 
+def _later(a: Any, b: Any) -> bool:
+    """True when both timestamps exist and a is strictly after b."""
+    if not a or not b:
+        return False
+    try:
+        return _as_utc(a) > _as_utc(b)
+    except (TypeError, ValueError):
+        return False
+
+
+def _reset_at() -> datetime:
+    return datetime.fromisoformat(TRACKING_RESET_AT.replace("Z", "+00:00"))
+
+
+def _extract_error_code(raw: str) -> str | None:
+    text = raw or ""
+    if re.search(r"HTTP 418|Way too many requests|IP\([^)]*\) banned", text, re.I):
+        return "418"
+    match = re.search(r"\b(10\d{4})\b", text)
+    if match:
+        return match.group(1)
+    match = re.search(r"code['\"]?\s*[:=]\s*['\"]?(-?\d{3,6})", text)
+    if match:
+        return match.group(1)
+    return None
+
+
+def _slim_meta(meta: Any) -> dict[str, Any]:
+    if not isinstance(meta, dict):
+        return {}
+    keep = (
+        "symbol",
+        "exchange",
+        "venue",
+        "market_type",
+        "side",
+        "error",
+        "original_error",
+        "message",
+        "cooldown_until",
+        "limit",
+        "open_positions",
+        "daily_trades",
+        "notional",
+        "remaining",
+        "minimum_reserve",
+        "realized_pnl_today",
+        "retry_after_seconds",
+        "balance",
+        "required_quote",
+        "configured_quote",
+        "active",
+    )
+    return {k: meta[k] for k in keep if k in meta and meta[k] is not None}
+
+
 def _subject(user_id: int) -> str:
     """cryptobot mints its subjects as lq:{luxquant_user_id}."""
     return f"lq:{user_id}"
@@ -105,11 +182,29 @@ def _health(row: dict[str, Any]) -> tuple[str, list[str]]:
         reasons.append(f"{row['stuck_positions']} position(s) awaiting reconciliation — all new entries blocked")
         status = "error"
     if row.get("key_status") == "invalid":
-        reasons.append("Binance API key rejected — cannot trade until reconnected")
+        bad = [
+            str(v.get("exchange") or "")
+            for v in (row.get("venues") or [])
+            if v.get("key_status") == "invalid"
+        ]
+        label = ", ".join(n for n in bad if n) or "API"
+        reasons.append(f"{label} key rejected — cannot trade until reconnected")
         status = "error"
     if row.get("recent_errors"):
-        reasons.append(f"{row['recent_errors']} execution error(s) in the last {RECENT_WINDOW_HOURS}h")
-        status = "error"
+        n = row["recent_errors"]
+        recovered = _later(
+            row.get("last_success_at") or row.get("last_fill_at"),
+            row.get("last_error_at"),
+        )
+        if recovered:
+            reasons.append(
+                f"{n} recovered error(s) in the last {RECENT_WINDOW_HOURS}h — latest live fill succeeded"
+            )
+            if status != "error":
+                status = "warn"
+        else:
+            reasons.append(f"{n} execution error(s) in the last {RECENT_WINDOW_HOURS}h")
+            status = "error"
 
     if status != "error":
         if row.get("key_status") == "unchecked":
@@ -123,7 +218,7 @@ def _health(row: dict[str, Any]) -> tuple[str, list[str]]:
             status = "warn"
 
     if not row.get("has_account"):
-        return "unlinked", ["No Binance account connected to AutoTrade"]
+        return "unlinked", ["No exchange connected to Agent"]
     if not row.get("is_active"):
         # Paused is a choice, not a fault — never report it as a problem.
         return ("paused", reasons) if status == "ok" else (status, reasons)
@@ -140,15 +235,18 @@ def _base_rows(subjects: list[str] | None = None) -> list[dict[str, Any]]:
             u.subject           AS subject,
             u.email             AS cb_email,
             c.is_active         AS is_active,
-            c.dry_run           AS dry_run,
+            c.has_live          AS has_live,
+            c.has_dry           AS has_dry,
             c.spot_enabled      AS spot_enabled,
             c.futures_enabled   AS futures_enabled,
             c.leverage          AS leverage,
-            a.id IS NOT NULL    AS has_account,
+            c.configs           AS configs,
+            a.has_account       AS has_account,
             a.key_status        AS key_status,
             a.last_checked_at   AS key_checked_at,
-            a.created_at        AS linked_at,
-            c.created_at        AS config_created_at,
+            a.linked_at         AS linked_at,
+            a.accounts          AS accounts,
+            c.config_created_at AS config_created_at,
             (SELECT count(*) FROM positions p
                WHERE p.user_id = u.id AND p.status = 'open')                       AS open_positions,
             (SELECT count(*) FROM positions p
@@ -171,19 +269,82 @@ def _base_rows(subjects: list[str] | None = None) -> list[dict[str, Any]]:
                  AND j.status = 'completed' AND j.created_at >= :since)            AS recent_entries,
             (SELECT count(*) FROM audit_logs l
                WHERE l.user_id = u.id AND l.action = ANY(:error_actions)
-                 AND l.created_at >= :since)                                       AS recent_errors,
+                 AND l.created_at >= :since
+                 AND coalesce(btrim(l.metadata_json->>'error'), '') <> '')          AS recent_errors,
             (SELECT count(*) FROM audit_logs l
                WHERE l.user_id = u.id AND l.action LIKE 'execution.skip_risk_limit.%%'
                  AND l.created_at >= :since)                                       AS recent_blocks,
             (SELECT max(l.created_at) FROM audit_logs l
-               WHERE l.user_id = u.id AND l.action = ANY(:error_actions))          AS last_error_at
+               WHERE l.user_id = u.id AND l.action = ANY(:error_actions)
+                 AND coalesce(btrim(l.metadata_json->>'error'), '') <> '')          AS last_error_at,
+            (SELECT max(j.created_at) FROM execution_jobs j
+               WHERE j.user_id = u.id AND j.dry_run IS false
+                 AND j.status = 'completed')                                       AS last_success_at,
+            (SELECT max(p.closed_at) FROM positions p
+               WHERE p.user_id = u.id AND p.status = 'closed'
+                 AND p.execution_job_id IS NOT NULL)                               AS last_fill_at,
+            (SELECT count(*) FROM audit_logs l
+               WHERE l.user_id = u.id AND l.action = ANY(:error_actions)
+                 AND l.created_at >= CAST(:reset_at AS timestamptz)
+                 AND coalesce(btrim(l.metadata_json->>'error'), '') <> '')          AS errors_since_reset
         FROM users u
-        LEFT JOIN strategy_configs c ON c.user_id = u.id AND c.exchange = 'binance'
-        LEFT JOIN exchange_accounts a ON a.user_id = u.id AND a.exchange = 'binance'
+        LEFT JOIN LATERAL (
+            SELECT
+                bool_or(is_active) AS is_active,
+                bool_or(is_active AND NOT dry_run) AS has_live,
+                bool_or(is_active AND dry_run) AS has_dry,
+                bool_or(spot_enabled) AS spot_enabled,
+                bool_or(futures_enabled) AS futures_enabled,
+                max(leverage) AS leverage,
+                min(created_at) AS config_created_at,
+                coalesce(
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'exchange', regexp_replace(exchange, '_(spot|futures)$', '', 'i'),
+                            'is_active', is_active,
+                            'dry_run', dry_run,
+                            'spot_enabled', spot_enabled,
+                            'futures_enabled', futures_enabled,
+                            'leverage', leverage
+                        )
+                        ORDER BY exchange
+                    ),
+                    '[]'::jsonb
+                ) AS configs
+            FROM strategy_configs
+            WHERE user_id = u.id
+        ) c ON true
+        LEFT JOIN LATERAL (
+            SELECT
+                count(*) > 0 AS has_account,
+                CASE
+                    WHEN bool_or(key_status = 'invalid') THEN 'invalid'
+                    WHEN bool_or(key_status IS NULL OR key_status IN ('unchecked', '')) THEN 'unchecked'
+                    ELSE 'valid'
+                END AS key_status,
+                max(last_checked_at) AS last_checked_at,
+                min(created_at) AS linked_at,
+                coalesce(
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'exchange', regexp_replace(exchange, '_(spot|futures)$', '', 'i'),
+                            'key_status', key_status
+                        )
+                        ORDER BY exchange
+                    ),
+                    '[]'::jsonb
+                ) AS accounts
+            FROM exchange_accounts
+            WHERE user_id = u.id
+        ) a ON true
         {where}
         ORDER BY u.created_at DESC
     """
-    params: dict[str, Any] = {"since": since, "error_actions": list(ERROR_ACTIONS)}
+    params: dict[str, Any] = {
+        "since": since,
+        "error_actions": list(ERROR_ACTIONS),
+        "reset_at": TRACKING_RESET_AT,
+    }
     if subjects:
         params["subjects"] = subjects
     return _rows(sql, params)
@@ -240,7 +401,71 @@ def _lifecycle(cb_user_ids: list[str]) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _as_list(value: Any) -> list[dict[str, Any]]:
+    if isinstance(value, list):
+        return [v for v in value if isinstance(v, dict)]
+    return []
+
+
+def _merge_venues(row: dict[str, Any]) -> list[dict[str, Any]]:
+    """One card per venue: key + whether that venue is live / dry-run."""
+    by_id: dict[str, dict[str, Any]] = {}
+    for acc in _as_list(row.get("accounts")):
+        venue = _canon_venue(acc.get("exchange"))
+        if not venue:
+            continue
+        slot = by_id.setdefault(
+            venue,
+            {
+                "exchange": venue,
+                "connected": False,
+                "key_status": None,
+                "is_active": False,
+                "dry_run": None,
+                "spot_enabled": False,
+                "futures_enabled": False,
+                "leverage": None,
+            },
+        )
+        slot["connected"] = True
+        if acc.get("key_status") == "invalid":
+            slot["key_status"] = "invalid"
+        elif slot["key_status"] != "invalid" and acc.get("key_status"):
+            slot["key_status"] = acc.get("key_status")
+    for cfg in _as_list(row.get("configs")):
+        venue = _canon_venue(cfg.get("exchange"))
+        if not venue:
+            continue
+        slot = by_id.setdefault(
+            venue,
+            {
+                "exchange": venue,
+                "connected": False,
+                "key_status": None,
+                "is_active": False,
+                "dry_run": None,
+                "spot_enabled": False,
+                "futures_enabled": False,
+                "leverage": None,
+            },
+        )
+        if cfg.get("is_active"):
+            slot["is_active"] = True
+        if cfg.get("is_active") and cfg.get("dry_run") is False:
+            slot["dry_run"] = False
+        elif slot["dry_run"] is None and cfg.get("dry_run") is not None:
+            slot["dry_run"] = bool(cfg.get("dry_run"))
+        slot["spot_enabled"] = slot["spot_enabled"] or bool(cfg.get("spot_enabled"))
+        slot["futures_enabled"] = slot["futures_enabled"] or bool(cfg.get("futures_enabled"))
+        if cfg.get("leverage") and not slot["leverage"]:
+            slot["leverage"] = cfg.get("leverage")
+    order = {name: i for i, name in enumerate(KNOWN_VENUES)}
+    return sorted(by_id.values(), key=lambda v: (order.get(v["exchange"], 99), v["exchange"]))
+
+
 def _decorate(row: dict[str, Any], life: dict[str, Any] | None = None) -> dict[str, Any]:
+    venues = _merge_venues(row)
+    row = {**row, "venues": venues}
     status, reasons = _health(row)
     life = life or {}
     # A bot that is on but predates the audit action has no interval to walk.
@@ -252,6 +477,12 @@ def _decorate(row: dict[str, Any], life: dict[str, Any] | None = None) -> dict[s
             datetime.now(timezone.utc) - _as_utc(row["config_created_at"])
         ).total_seconds()
     markets = [m for m, on in (("spot", row.get("spot_enabled")), ("futures", row.get("futures_enabled"))) if on]
+    if row.get("has_live"):
+        dry_run = False
+    elif row.get("has_dry"):
+        dry_run = True
+    else:
+        dry_run = None
     return {
         "subject": row["subject"],
         "luxquant_user_id": int(row["subject"][3:]) if str(row["subject"]).startswith("lq:") else None,
@@ -259,9 +490,10 @@ def _decorate(row: dict[str, Any], life: dict[str, Any] | None = None) -> dict[s
         "status": status,
         "reasons": reasons,
         "is_active": bool(row.get("is_active")),
-        "dry_run": bool(row.get("dry_run")) if row.get("dry_run") is not None else None,
+        "dry_run": dry_run,
         "markets": markets,
         "leverage": row.get("leverage"),
+        "venues": venues,
         "has_account": bool(row.get("has_account")),
         "key_status": row.get("key_status"),
         "key_checked_at": row.get("key_checked_at"),
@@ -271,7 +503,14 @@ def _decorate(row: dict[str, Any], life: dict[str, Any] | None = None) -> dict[s
         "recent_entries": int(row.get("recent_entries") or 0),
         "recent_errors": int(row.get("recent_errors") or 0),
         "recent_blocks": int(row.get("recent_blocks") or 0),
+        "errors_since_reset": int(row.get("errors_since_reset") or 0),
+        "errors_recovered": _later(
+            row.get("last_success_at") or row.get("last_fill_at"),
+            row.get("last_error_at"),
+        ),
         "last_error_at": row.get("last_error_at"),
+        "last_success_at": row.get("last_success_at") or row.get("last_fill_at"),
+        "last_fill_at": row.get("last_fill_at"),
         "linked_at": row.get("linked_at"),
         # Only fall back to the config date for a bot that is on but predates the
         # audit action. A bot that was never switched on has no first-active date,
@@ -299,27 +538,95 @@ def overview() -> dict[str, Any]:
         return {"available": False, "error": str(exc)[:200], "totals": {}, "users": []}
 
     linked = [r for r in rows if r["has_account"]]
+    live = [r for r in linked if r["is_active"] and r["dry_run"] is False]
+    opened = len(rows)
+    connected = len(linked)
+    live_n = len(live)
+    by_exchange = _venue_totals(rows)
     totals = {
         # Everyone who ever opened AutoTrade, vs everyone who actually connected
         # an exchange. The gap is a funnel fact, not a bot to monitor — showing
         # 110 "bots" when 85 of them never connected anything was misleading.
-        "signed_in": len(rows),
-        "never_linked": len(rows) - len(linked),
+        "signed_in": opened,
+        "never_linked": opened - connected,
         "configured": len([r for r in rows if r["has_account"] and r["dry_run"] is not None]),
-        "linked": len(linked),
+        "linked": connected,
         "active": len([r for r in linked if r["is_active"]]),
-        "live": len([r for r in linked if r["is_active"] and r["dry_run"] is False]),
+        "live": live_n,
         "errors": len([r for r in rows if r["status"] == "error"]),
         "warnings": len([r for r in rows if r["status"] == "warn"]),
         "stuck_positions": sum(r["stuck_positions"] for r in rows),
         "invalid_keys": len([r for r in linked if r["key_status"] == "invalid"]),
         "open_positions": sum(r["open_positions"] for r in rows),
+        "venues_live": len([v for v in by_exchange if v["live"] > 0]),
+        "connect_rate": round(connected / opened * 100, 1) if opened else None,
+        "live_rate": round(live_n / connected * 100, 1) if connected else None,
+    }
+    funnel = {
+        "opened": opened,
+        "connected": connected,
+        "live": live_n,
+        "connect_rate": totals["connect_rate"],
+        "live_rate": totals["live_rate"],
     }
     # Worst first: an admin opening this wants the broken ones on screen, not
     # to scroll past everyone who is fine.
     rank = {"error": 0, "warn": 1, "unlinked": 3, "paused": 2, "ok": 2}
     rows.sort(key=lambda r: (rank.get(r["status"], 4), -r["recent_errors"], -r["stuck_positions"]))
-    return {"available": True, "window_hours": RECENT_WINDOW_HOURS, "totals": totals, "users": rows}
+    return {
+        "available": True,
+        "window_hours": RECENT_WINDOW_HOURS,
+        "totals": totals,
+        "funnel": funnel,
+        "by_exchange": by_exchange,
+        "users": rows,
+    }
+
+
+def _venue_totals(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One snapshot per known venue, including zeros — empty is a growth fact."""
+    out = {
+        name: {
+            "exchange": name,
+            "connected": 0,
+            "live": 0,
+            "dry_run": 0,
+            "invalid_keys": 0,
+            "active": 0,
+        }
+        for name in KNOWN_VENUES
+    }
+    seen: dict[str, set[str]] = {name: set() for name in KNOWN_VENUES}
+    for row in rows:
+        subject = row.get("subject")
+        for venue in row.get("venues") or []:
+            name = _canon_venue(venue.get("exchange"))
+            if name not in out:
+                out[name] = {
+                    "exchange": name,
+                    "connected": 0,
+                    "live": 0,
+                    "dry_run": 0,
+                    "invalid_keys": 0,
+                    "active": 0,
+                }
+                seen[name] = set()
+            if subject in seen[name]:
+                continue
+            seen[name].add(subject)
+            if venue.get("connected"):
+                out[name]["connected"] += 1
+            if venue.get("is_active"):
+                out[name]["active"] += 1
+            if venue.get("is_active") and venue.get("dry_run") is False:
+                out[name]["live"] += 1
+            elif venue.get("is_active") and venue.get("dry_run") is True:
+                out[name]["dry_run"] += 1
+            if venue.get("key_status") == "invalid":
+                out[name]["invalid_keys"] += 1
+    return [out[name] for name in KNOWN_VENUES if name in out] + [
+        slot for name, slot in out.items() if name not in KNOWN_VENUES
+    ]
 
 
 _btc_cache: dict[str, Any] = {"at": 0.0, "days": {}}
@@ -473,7 +780,7 @@ def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = Non
             """
             SELECT p.symbol, p.market_type, p.side, p.quantity, p.entry_price,
                    p.exit_price, p.realized_pnl, p.fees, p.exit_reason,
-                   p.created_at, p.closed_at,
+                   p.exchange, p.created_at, p.closed_at,
                    -- No execution job means the bot never placed this: the
                    -- reconciler adopted a trade the user made by hand.
                    (p.execution_job_id IS NOT NULL) AS is_bot
@@ -498,6 +805,7 @@ def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = Non
     gross_win = gross_loss = 0.0
     by_symbol: dict[str, dict[str, Any]] = {}
     for row in rows:
+        row["venue"] = _canon_venue(row.get("exchange")) or "binance"
         pnl = row.get("realized_pnl")
         day = row["closed_at"].date().isoformat() if row.get("closed_at") else None
         row["day"] = day
@@ -513,6 +821,14 @@ def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = Non
             )
         else:
             row["move_pct"] = None
+        opened, closed = row.get("created_at"), row.get("closed_at")
+        if opened and closed:
+            try:
+                row["hold_hours"] = round((_as_utc(closed) - _as_utc(opened)).total_seconds() / 3600, 2)
+            except (TypeError, ValueError):
+                row["hold_hours"] = None
+        else:
+            row["hold_hours"] = None
 
         if pnl is None:
             continue
@@ -546,6 +862,8 @@ def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = Non
         # closing order, so this split answers whether the stops are doing
         # their job or the leverage is wiping positions out first.
         "by_exit_reason": _pnl_buckets(rows, "exit_reason"),
+        "by_exchange": _pnl_buckets(rows, "venue"),
+        "by_market_type": _pnl_buckets(rows, "market_type"),
         "btc_benchmark": btc_benchmark(rows),
         "since": since,
         "summary": {
@@ -575,7 +893,7 @@ def open_positions() -> dict[str, Any]:
             """
             SELECT p.id AS position_id,
                    p.symbol, p.market_type, p.side, p.quantity, p.entry_price,
-                   p.status, p.exit_reason, p.created_at, p.last_synced_at,
+                   p.exchange, p.status, p.exit_reason, p.created_at, p.last_synced_at,
                    u.subject, u.email AS cb_email,
                    c.leverage AS leverage, c.dry_run AS dry_run,
                    -- No execution job means the desk did not open this; the
@@ -594,7 +912,9 @@ def open_positions() -> dict[str, Any]:
             FROM positions p
             JOIN users u ON u.id = p.user_id
             LEFT JOIN strategy_configs c
-                   ON c.user_id = p.user_id AND c.exchange = 'binance'
+                   ON c.user_id = p.user_id
+                  AND regexp_replace(c.exchange, '_(spot|futures)$', '', 'i')
+                    = regexp_replace(coalesce(p.exchange, 'binance'), '_(spot|futures)$', '', 'i')
             WHERE p.status <> 'closed'
             ORDER BY (p.status = 'reconciliation_required') DESC, p.created_at DESC
             """
@@ -612,12 +932,25 @@ def open_positions() -> dict[str, Any]:
         entry = row.get("entry_price")
         row["notional"] = round(qty * float(entry), 2) if entry else None
 
+    for row in rows:
+        row["venue"] = _canon_venue(row.get("exchange")) or "binance"
     totals = {
         "open": len([r for r in rows if r["status"] == "open"]),
         "stuck": len([r for r in rows if r["status"] == "reconciliation_required"]),
         "spot": len([r for r in rows if r["market_type"] == "spot"]),
         "futures": len([r for r in rows if r["market_type"] == "futures"]),
         "users_holding": len({r["subject"] for r in rows}),
+        "by_exchange": [
+            {
+                "exchange": name,
+                "open": len([r for r in rows if r.get("venue") == name and r["status"] == "open"]),
+                "stuck": len(
+                    [r for r in rows if r.get("venue") == name and r["status"] == "reconciliation_required"]
+                ),
+            }
+            for name in KNOWN_VENUES
+            if any(r.get("venue") == name for r in rows)
+        ],
     }
     return {"available": True, "totals": totals, "positions": rows}
 
@@ -640,6 +973,8 @@ def user_detail(luxquant_user_id: int) -> dict[str, Any]:
     summary = _decorate(base[0], _lifecycle([base[0]["cb_user_id"]]).get(base[0]["cb_user_id"]))
     cb_user_id = base[0]["cb_user_id"]
     since = datetime.now(timezone.utc) - timedelta(days=7)
+    last_ok = summary.get("last_success_at") or summary.get("last_fill_at")
+    reset = _reset_at()
 
     try:
         errors = _rows(
@@ -647,16 +982,17 @@ def user_detail(luxquant_user_id: int) -> dict[str, Any]:
             SELECT l.created_at, l.action, l.metadata_json
             FROM audit_logs l
             WHERE l.user_id = :uid AND l.action = ANY(:error_actions)
-            ORDER BY l.created_at DESC LIMIT 20
+            ORDER BY l.created_at DESC LIMIT 40
             """,
             {"uid": cb_user_id, "error_actions": list(ERROR_ACTIONS)},
         )
         blocks = _rows(
             """
-            SELECT l.action, count(*) AS hits, max(l.created_at) AS last_at
+            SELECT l.action, count(*) AS hits, max(l.created_at) AS last_at,
+                   (array_agg(l.metadata_json ORDER BY l.created_at DESC))[1] AS last_meta
             FROM audit_logs l
             WHERE l.user_id = :uid
-              AND l.action LIKE 'execution.skip_risk_limit.%%'
+              AND l.action LIKE 'execution.skip%%'
               AND l.created_at >= :since
             GROUP BY l.action ORDER BY hits DESC
             """,
@@ -664,20 +1000,25 @@ def user_detail(luxquant_user_id: int) -> dict[str, Any]:
         )
         positions = _rows(
             """
-            SELECT symbol, market_type, side, quantity, entry_price, exit_price,
-                   realized_pnl, status, exit_reason, created_at, closed_at
-            FROM positions
-            WHERE user_id = :uid AND status <> 'closed'
-            ORDER BY created_at DESC LIMIT 25
+            SELECT p.id AS position_id, p.symbol, p.market_type, p.side, p.quantity,
+                   p.entry_price, p.exit_price, p.realized_pnl, p.fees, p.status,
+                   p.exit_reason, p.exchange, p.created_at, p.closed_at, p.last_synced_at,
+                   (p.execution_job_id IS NOT NULL) AS is_bot
+            FROM positions p
+            WHERE p.user_id = :uid AND p.status <> 'closed'
+            ORDER BY (p.status = 'reconciliation_required') DESC, p.created_at DESC
+            LIMIT 25
             """,
             {"uid": cb_user_id},
         )
         recent_closed = _rows(
             """
-            SELECT symbol, market_type, realized_pnl, exit_reason, closed_at
+            SELECT symbol, market_type, side, quantity, entry_price, exit_price,
+                   realized_pnl, fees, exit_reason, exchange, created_at, closed_at,
+                   (execution_job_id IS NOT NULL) AS is_bot
             FROM positions
             WHERE user_id = :uid AND status = 'closed' AND closed_at IS NOT NULL
-            ORDER BY closed_at DESC LIMIT 10
+            ORDER BY closed_at DESC LIMIT 12
             """,
             {"uid": cb_user_id},
         )
@@ -691,27 +1032,115 @@ def user_detail(luxquant_user_id: int) -> dict[str, Any]:
             """,
             {"uid": cb_user_id},
         )
+        activity = _rows(
+            """
+            SELECT created_at, action, metadata_json
+            FROM audit_logs
+            WHERE user_id = :uid
+              AND (
+                action LIKE 'execution.%%'
+                OR action LIKE 'position.%%'
+                OR action = 'strategy_config.active'
+              )
+            ORDER BY created_at DESC
+            LIMIT 40
+            """,
+            {"uid": cb_user_id},
+        )
     except Exception as exc:
         logger.warning("AutoTrade detail partial for %s: %s", subject, exc)
         return {"available": True, "linked": True, "summary": summary, "error": str(exc)[:200]}
 
     for row in errors:
         meta = row.get("metadata_json") or {}
-        row["error"] = str(meta.get("error") or meta.get("original_error") or "")[:600]
+        raw = str(meta.get("error") or meta.get("original_error") or meta.get("message") or "")[:600]
+        created = row.get("created_at")
+        row["error"] = raw
         row["symbol"] = meta.get("symbol")
+        row["venue"] = _canon_venue(meta.get("exchange") or meta.get("venue"))
+        row["code"] = _extract_error_code(raw)
+        row["fingerprint"] = row["code"] or (raw[:72] if raw else row.get("action"))
+        row["since_reset"] = bool(created and _as_utc(created) >= reset)
+        row["resolved"] = bool(last_ok and created and _later(last_ok, created))
         row.pop("metadata_json", None)
+
+    error_groups: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for row in errors:
+        key = (row.get("fingerprint"), row.get("venue") or "", row.get("symbol") or "")
+        group = error_groups.setdefault(
+            key,
+            {
+                "fingerprint": row.get("fingerprint"),
+                "code": row.get("code"),
+                "venue": row.get("venue"),
+                "symbol": row.get("symbol"),
+                "hits": 0,
+                "resolved_hits": 0,
+                "since_reset": 0,
+                "first_at": row.get("created_at"),
+                "last_at": row.get("created_at"),
+                "sample": row.get("error"),
+                "resolved": True,
+            },
+        )
+        group["hits"] += 1
+        if row.get("resolved"):
+            group["resolved_hits"] += 1
+        else:
+            group["resolved"] = False
+        if row.get("since_reset"):
+            group["since_reset"] += 1
+        if row.get("created_at") and (
+            group["last_at"] is None or _later(row["created_at"], group["last_at"])
+        ):
+            group["last_at"] = row["created_at"]
+            group["sample"] = row.get("error")
+        if row.get("created_at") and (
+            group["first_at"] is None or _later(group["first_at"], row["created_at"])
+        ):
+            group["first_at"] = row["created_at"]
+
     for row in blocks:
-        row["code"] = row["action"].rsplit(".", 1)[-1]
+        action = row.get("action") or ""
+        row["code"] = action.rsplit(".", 1)[-1] if action.startswith("execution.skip_risk_limit.") else action.replace(
+            "execution.skip_", ""
+        )
+        meta = row.get("last_meta") or {}
+        row["last_symbol"] = meta.get("symbol")
+        row["last_venue"] = _canon_venue(meta.get("exchange") or meta.get("venue"))
+        row["last_meta"] = _slim_meta(meta)
+        row["kind"] = "risk" if action.startswith("execution.skip_risk_limit.") else "skip"
+
+    for row in positions:
+        row["venue"] = _canon_venue(row.get("exchange")) or "binance"
+        qty = float(row.get("quantity") or 0)
+        entry = row.get("entry_price")
+        row["notional"] = round(qty * float(entry), 2) if entry else None
+
+    for row in recent_closed:
+        row["venue"] = _canon_venue(row.get("exchange")) or "binance"
+
+    for row in activity:
+        meta = row.get("metadata_json") or {}
+        row["symbol"] = meta.get("symbol")
+        row["venue"] = _canon_venue(meta.get("exchange") or meta.get("venue"))
+        raw = str(meta.get("error") or meta.get("original_error") or "")[:240]
+        row["error"] = raw or None
+        row["meta"] = _slim_meta(meta)
+        row.pop("metadata_json", None)
 
     return {
         "available": True,
         "linked": True,
         "summary": summary,
         "errors": errors,
+        "error_groups": sorted(error_groups.values(), key=lambda g: g["hits"], reverse=True),
         "blocks": blocks,
         "positions": positions,
         "recent_closed": recent_closed,
         "alerts": alerts,
+        "activity": activity,
+        "tracking_reset_at": TRACKING_RESET_AT,
     }
 
 
@@ -757,7 +1186,7 @@ def analytics(since: str | None = None) -> dict[str, Any]:
         rows = _rows(
             """
             SELECT p.symbol, p.market_type, p.side, p.realized_pnl, p.exit_reason,
-                   p.created_at, p.closed_at, u.subject,
+                   p.exchange, p.created_at, p.closed_at, u.subject,
                    c.leverage AS leverage, c.dry_run AS dry_run,
                    -- A position with no execution job was not opened by the bot.
                    -- The reconciler adopts whatever it finds on the exchange, so
@@ -768,7 +1197,10 @@ def analytics(since: str | None = None) -> dict[str, Any]:
                    EXTRACT(EPOCH FROM (p.closed_at - p.created_at)) AS held_seconds
             FROM positions p
             JOIN users u ON u.id = p.user_id
-            LEFT JOIN strategy_configs c ON c.user_id = p.user_id AND c.exchange = 'binance'
+            LEFT JOIN strategy_configs c
+                   ON c.user_id = p.user_id
+                  AND regexp_replace(c.exchange, '_(spot|futures)$', '', 'i')
+                    = regexp_replace(coalesce(p.exchange, 'binance'), '_(spot|futures)$', '', 'i')
             WHERE p.status = 'closed'
               AND (:since IS NULL OR p.closed_at >= CAST(:since AS timestamptz))
             """,
@@ -784,6 +1216,7 @@ def analytics(since: str | None = None) -> dict[str, Any]:
             int(row["subject"][3:]) if str(row.get("subject", "")).startswith("lq:") else None
         )
         row["origin"] = "bot" if row.get("is_bot") else "manual"
+        row["venue"] = _canon_venue(row.get("exchange")) or "binance"
 
     # Everything below answers "how is AutoTrade performing", so it counts only
     # what AutoTrade did. Hand trades are reported separately rather than
@@ -880,10 +1313,13 @@ def analytics(since: str | None = None) -> dict[str, Any]:
             "avg_hold_loss_hours": _avg_hold(losses),
             "profitable_users": len([u for u in per_user.values() if u["net"] > 0]),
             "losing_users": len([u for u in per_user.values() if u["net"] <= 0]),
+            "venues_traded": len({r.get("venue") for r in settled if r.get("venue")}),
         },
         "leaderboard": sorted(per_user.values(), key=lambda u: -u["net"]),
         "by_leverage": _pnl_buckets(settled, "leverage"),
         "by_exit_reason": _pnl_buckets(settled, "exit_reason"),
+        "by_exchange": _pnl_buckets(settled, "venue"),
+        "by_market_type": _pnl_buckets(settled, "market_type"),
         "by_symbol": _pnl_buckets(settled, "symbol")[:15],
         "curve": curve,
         # Trades on these accounts that the bot did not place. Shown so the

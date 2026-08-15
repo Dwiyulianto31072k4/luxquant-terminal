@@ -94,7 +94,7 @@ _SCREENER_SQL = f"""
     SELECT
         s.signal_id,
         s.pair,
-        s.entry, s.target1, s.target2, s.target3, s.target4, s.stop1,
+        s.entry, s.target1, s.target2, s.target3, s.target4, s.stop1, s.stop2,
         s.created_at,
         s.market_cap,
         s.peak_pct,
@@ -342,6 +342,7 @@ def get_deep_screener(
                 "entry": entry,
                 "targets": targets,
                 "stop1": _to_float(r["stop1"]),
+                "stop2": _to_float(r["stop2"]),
                 "max_target_pct": max_target_pct,
                 "created_at": r["created_at"],
                 "status": r["status"],

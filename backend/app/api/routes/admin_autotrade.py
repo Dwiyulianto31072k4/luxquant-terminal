@@ -18,17 +18,15 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_admin_user
 from app.core.database import get_db
+from app.models.agent_disclaimer import AgentDisclaimerAck
 from app.models.user import User
 from app.services import autotrade_monitor
+from app.services.autotrade_monitor import TRACKING_RESET_AT
 
 router = APIRouter(prefix="/admin/autotrade", tags=["Admin AutoTrade"])
 
-# The reconciler, entitlement gate, fill recording and auth fixes all landed on
-# 2026-07-30. Results before that came from a system that was demonstrably
-# broken — the reconciler had not completed a cycle in weeks — so the default
-# view starts the day after. History is not deleted; `since=` selects the
-# window and an empty value returns everything.
-FIXES_LANDED = "2026-07-31"
+# Default performance window. History is not deleted; empty `since` is all time.
+FIXES_LANDED = TRACKING_RESET_AT
 
 
 def _attach_identities(db: Session, rows: list[dict[str, Any]]) -> None:
@@ -61,6 +59,77 @@ def _attach_identities(db: Session, rows: list[dict[str, Any]]) -> None:
         row["bot_access_blocked_by"] = getattr(user, "autotrade_blocked_by", None)
 
 
+def _attach_agreements(db: Session, rows: list[dict[str, Any]]) -> None:
+    """Join the signed Agent forms and drop unsigned noise from the incident queue.
+
+    A rejected key or a risk-limit skip is not a live Agent incident if the
+    person never signed the live trading acknowledgement. History is kept;
+    only the desk status is reclassified. Anyone who signed stays as-is.
+    """
+    ids = {r.get("luxquant_user_id") for r in rows if r.get("luxquant_user_id")}
+    latest: dict[int, dict[str, Any]] = {}
+    if ids:
+        try:
+            ack_rows = (
+                db.query(AgentDisclaimerAck)
+                .filter(AgentDisclaimerAck.user_id.in_(ids))
+                .order_by(AgentDisclaimerAck.accepted_at.desc())
+                .all()
+            )
+        except Exception:
+            return
+        for ack in ack_rows:
+            slot = latest.setdefault(ack.user_id, {"live": None, "assistant": None})
+            if ack.kind in slot and slot[ack.kind] is None:
+                slot[ack.kind] = ack
+    for row in rows:
+        uid = row.get("luxquant_user_id")
+        slot = latest.get(uid) or {}
+        live = slot.get("live")
+        assistant = slot.get("assistant")
+        row["has_live_ack"] = live is not None
+        row["live_ack_id"] = getattr(live, "id", None)
+        row["live_ack_at"] = live.accepted_at.isoformat() if live and live.accepted_at else None
+        row["has_assistant_ack"] = assistant is not None
+        row["assistant_ack_at"] = (
+            assistant.accepted_at.isoformat() if assistant and assistant.accepted_at else None
+        )
+        if row.get("has_live_ack"):
+            continue
+        if row.get("status") in ("error", "warn"):
+            row["status"] = "unsigned"
+            row["reasons"] = ["No live trading agreement signed"] + list(row.get("reasons") or [])
+
+
+def _recount_overview(data: dict[str, Any]) -> None:
+    rows = data.get("users") or []
+    linked = [r for r in rows if r.get("has_account")]
+    totals = data.setdefault("totals", {})
+    totals["errors"] = len([r for r in rows if r.get("status") == "error"])
+    totals["warnings"] = len([r for r in rows if r.get("status") == "warn"])
+    totals["unsigned"] = len([r for r in linked if r.get("status") == "unsigned"])
+    totals["unsigned_live"] = len(
+        [
+            r
+            for r in linked
+            if r.get("status") == "unsigned" and r.get("is_active") and r.get("dry_run") is False
+        ]
+    )
+    totals["signed_live"] = len([r for r in linked if r.get("has_live_ack")])
+    totals["invalid_keys"] = len(
+        [r for r in linked if r.get("key_status") == "invalid" and r.get("has_live_ack")]
+    )
+
+
+def decorate_agent_overview(db: Session, data: dict[str, Any]) -> dict[str, Any]:
+    """Identities + agreement gate used by both the monitor and the workspace pulse."""
+    if data.get("available"):
+        _attach_identities(db, data.get("users", []))
+        _attach_agreements(db, data.get("users", []))
+        _recount_overview(data)
+    return data
+
+
 @router.get("/overview")
 def autotrade_overview(
     admin: User = Depends(get_admin_user),
@@ -73,9 +142,7 @@ def autotrade_overview(
     is embedded in.
     """
     data = autotrade_monitor.overview()
-    if data.get("available"):
-        _attach_identities(db, data.get("users", []))
-    return data
+    return decorate_agent_overview(db, data)
 
 
 @router.get("/users/{user_id}/trades")
@@ -180,4 +247,5 @@ def autotrade_user_detail(
     data = autotrade_monitor.user_detail(user_id)
     if data.get("available") and data.get("summary"):
         _attach_identities(db, [data["summary"]])
+        _attach_agreements(db, [data["summary"]])
     return data
