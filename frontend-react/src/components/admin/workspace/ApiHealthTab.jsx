@@ -24,6 +24,7 @@ const SIGNAL_LABEL = {
   balance: "balance",
   quota: "quota",
   validity: "key only",
+  usage: "our meter",
 };
 
 // Order the table by urgency, not by name: anything broken sorts to the top so
@@ -80,6 +81,14 @@ function Metrics({ row }) {
       <span className="font-mono text-xs tabular-nums">
         ${Number(m.used_usd).toFixed(4)} / ${Number(m.limit_usd).toFixed(0)}
         <span className="ml-1 text-text-primary/40">({m.used_pct}%)</span>
+      </span>
+    );
+  }
+  if (typeof m.calls_24h === "number") {
+    return (
+      <span className="font-mono text-xs tabular-nums">
+        ${Number(m.cost_usd_24h || 0).toFixed(2)}
+        <span className="ml-1 text-text-primary/40">/ 24h</span>
       </span>
     );
   }

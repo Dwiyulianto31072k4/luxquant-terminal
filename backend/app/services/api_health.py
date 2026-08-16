@@ -6,9 +6,18 @@ in what they will tell us, so each one is tagged with the best signal available:
 
   ``balance``  the provider returns real money left (DeepSeek).
   ``quota``    the provider returns usage against a cap (Apify, BGeometrics,
-               Discord) — usually in rate-limit headers.
+               Tavily, Discord) — usually in rate-limit headers.
   ``validity`` the provider has no billing endpoint at all, so the only honest
                signal is whether the key is still accepted.
+  ``usage``    the provider tells us nothing, so we read our own meter instead
+               (X / Twitter, via the x_api_usage table).
+
+Keys live in eight different env files across 29 systemd units, not just
+backend/.env — see ``_EXTRA_ENV_FILES``.
+
+Not covered: the Binance keys in /root/cryptobot/.env. Validating them requires
+a signed account read, which is a trading-account balance lookup; a read-only
+health dashboard should not be performing one.
 
 Nothing here ever returns a key value.  Callers get ``configured`` plus a
 masked tail so the admin can tell two keys apart without the secret leaking
@@ -289,6 +298,49 @@ def _mk_telegram_bot(env_key: str):
     return _run
 
 
+def _x_usage_rows() -> tuple[int, int, float]:
+    """Last 24h of X API calls from our own meter. Sync — call via to_thread."""
+    from sqlalchemy import text as _sql
+    from app.core.database import SessionLocal
+
+    with SessionLocal() as db:
+        row = db.execute(_sql("""
+            SELECT COALESCE(SUM(CASE WHEN ok THEN 1 ELSE 0 END), 0) AS ok_n,
+                   COALESCE(SUM(CASE WHEN ok THEN 0 ELSE 1 END), 0) AS bad_n,
+                   COALESCE(SUM(cost_usd), 0)                       AS usd
+            FROM x_api_usage
+            WHERE ts > now() - interval '24 hours'
+        """)).one()
+    return int(row[0]), int(row[1]), float(row[2])
+
+
+async def _probe_x(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    """X is measured from our own meter, not by calling X.
+
+    Validating the OAuth 1.0a credentials would mean signing a request, which a
+    read-only dashboard has no business doing. The x_api_usage table the poster
+    already writes is a better signal anyway: it shows whether posting actually
+    works right now, and what it cost — neither of which a key check reveals.
+    """
+    try:
+        ok_n, bad_n, usd = await asyncio.to_thread(_x_usage_rows)
+    except Exception as e:
+        return ProbeResult(ERROR, f"usage table unreadable: {type(e).__name__}"[:120])
+
+    total = ok_n + bad_n
+    metrics = {"calls_24h": total, "ok_24h": ok_n, "failed_24h": bad_n,
+               "cost_usd_24h": round(usd, 4)}
+    if total == 0:
+        return ProbeResult(WARN, "no X API calls logged in 24h", metrics)
+    fail_pct = bad_n / total * 100
+    detail = f"{ok_n} ok / {bad_n} failed in 24h · ${usd:.2f}"
+    if fail_pct >= 50:
+        return ProbeResult(DOWN, f"most calls failing — {detail}", metrics)
+    if fail_pct >= 15:
+        return ProbeResult(WARN, detail, metrics)
+    return ProbeResult(OK, detail, metrics)
+
+
 async def _probe_xai(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
     r = await client.get(
         "https://api.x.ai/v1/models",
@@ -468,6 +520,9 @@ PROVIDERS: list[Provider] = [
     Provider("anthropic", "Anthropic", "validity",
              "X poster copy (luxquant-x-poster)", ("ANTHROPIC_API_KEY",), _probe_anthropic,
              "https://console.anthropic.com/settings/billing"),
+    Provider("x_twitter", "X / Twitter", "usage",
+             "Signal tweets + Gainers/Proof bundles", ("X_API_KEY",), _probe_x,
+             "https://developer.x.com/en/portal/dashboard"),
     Provider("xai", "xAI (Grok)", "validity",
              "Social post editorial copy", ("XAI_API_KEY",), _probe_xai,
              "https://console.x.ai"),
