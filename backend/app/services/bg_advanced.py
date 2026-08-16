@@ -49,13 +49,55 @@ HTTP_TIMEOUT = 10.0
 HTTP_MAX_RETRIES = 2
 RATE_LIMIT_SLEEP = 0.3            # seconds between sequential requests
 
-# Optional Redis dependency — degrades to no-cache if unavailable
+# The BGeometrics allowance (200/hour) is per ACCOUNT, not per endpoint, so a
+# 429 on one endpoint means all 23 are out of budget.  A single global breaker
+# therefore parks every endpoint at once.
+#
+# Why this exists: failures are never written to the metric cache, so before the
+# breaker a rate-limited run left nothing cached, and the arena-v6 monitor timer
+# (OnUnitActiveSec=2min) re-fetched all 23 endpoints two minutes later — 23
+# calls, ×3 while 429 was also retried, ~2000 requests/hour against a 200/hour
+# cap.  The quota could never recover on its own and BTC Compass hard-failed for
+# 17 hours with `BG snapshot: 0/23 ok`.  Do not reintroduce retry-on-429.
+COOLDOWN_KEY = "bg:adv:cooldown"
+COOLDOWN_DEFAULT = 600            # 10 min when the provider gives no reset hint
+COOLDOWN_MAX = 3600               # never park longer than the 1-hour window
+
+# Optional Redis dependency — degrades to no-cache if unavailable.
+#
+# This used to import `redis_client`, which app.core.redis has never exported
+# (the module keeps a private `_redis_client` and hands it out via get_redis()).
+# The ImportError was swallowed by the bare `except`, so HAS_REDIS silently
+# pinned to False and THE BGEOMETRICS CACHE NEVER RAN ONCE. Every scheduled
+# pass therefore refetched all 23 endpoints, which is what exhausted the
+# 200/hour quota and hard-failed BTC Compass. Keep this import bound to a name
+# app.core.redis actually exports.
 try:
-    from app.core.redis import redis_client  # type: ignore
-    HAS_REDIS = redis_client is not None
+    from app.core.redis import get_redis  # type: ignore
+    HAS_REDIS = True
 except Exception:
-    redis_client = None
+    get_redis = None  # type: ignore
     HAS_REDIS = False
+
+
+async def _redis(command: str, *args, **kwargs):
+    """Run one sync redis command off the event loop.
+
+    app.core.redis hands out a *synchronous* client, but everything here is
+    async, so the calls are pushed to a worker thread rather than awaited
+    directly. Returns None whenever Redis is unusable — callers treat that as
+    "no cache" and carry on.
+    """
+    if not HAS_REDIS or get_redis is None:
+        return None
+    try:
+        client = get_redis()
+        if client is None:
+            return None
+        return await asyncio.to_thread(getattr(client, command), *args, **kwargs)
+    except Exception as e:
+        logger.warning("BG redis %s failed: %s", command, e)
+        return None
 
 
 # ─── Endpoint registry ────────────────────────────────────────────────
@@ -140,7 +182,7 @@ async def _cache_get(endpoint: str) -> BGMetric | None:
     if not HAS_REDIS:
         return None
     try:
-        raw = await redis_client.get(_cache_key(endpoint))  # type: ignore
+        raw = await _redis("get", _cache_key(endpoint))
         if not raw:
             return None
         data = json.loads(raw)
@@ -158,11 +200,46 @@ async def _cache_get(endpoint: str) -> BGMetric | None:
         return None
 
 
+async def _cooldown_left() -> int:
+    """Seconds remaining on the account-wide rate-limit breaker, 0 if clear."""
+    try:
+        ttl = await _redis("ttl", COOLDOWN_KEY)
+        return int(ttl) if ttl and int(ttl) > 0 else 0
+    except Exception:
+        return 0
+
+
+async def _cooldown_start(reset_hint: str | None) -> None:
+    """Park all endpoints until the hourly window rolls over.
+
+    ``x-ratelimit-reset-hour`` is a unix timestamp when present; fall back to a
+    flat window when it is missing or nonsensical.
+    """
+    seconds = COOLDOWN_DEFAULT
+    try:
+        if reset_hint:
+            delta = int(float(reset_hint) - time.time())
+            if 0 < delta <= COOLDOWN_MAX:
+                seconds = delta + 5   # clear the boundary, don't race it
+    except (TypeError, ValueError):
+        pass
+    seconds = max(60, min(seconds, COOLDOWN_MAX))
+    try:
+        await _redis("set", COOLDOWN_KEY, "1", ex=seconds)
+        logger.warning(
+            "BG rate limited — pausing all endpoints for %ss so the hourly "
+            "quota can recover", seconds,
+        )
+    except Exception as e:
+        logger.warning("BG cooldown write failed: %s", e)
+
+
 async def _cache_set(metric: BGMetric) -> None:
     if not HAS_REDIS or not metric.ok:
         return
     try:
-        await redis_client.set(  # type: ignore
+        await _redis(
+            "set",
             _cache_key(metric.key),
             json.dumps(metric.to_dict(), default=str),
             ex=CACHE_TTL_STALE,
@@ -279,7 +356,12 @@ async def _http_fetch(client: httpx.AsyncClient, endpoint: str) -> BGMetric:
                 if value is None:
                     return BGMetric(key=endpoint, error=f"normalize_failed: {resp.text[:100]}")
                 return BGMetric(key=endpoint, value=value, timestamp=ts)
-            if resp.status_code in (429, 503):
+            if resp.status_code == 429:
+                # Never retry a rate limit — each extra attempt spends quota we
+                # already do not have. Park every endpoint instead.
+                await _cooldown_start(resp.headers.get("x-ratelimit-reset-hour"))
+                return BGMetric(key=endpoint, error="http_429: rate limited")
+            if resp.status_code == 503:
                 await asyncio.sleep(1.0 * (attempt + 1))
                 last_err = f"http_{resp.status_code}"
                 continue
@@ -318,6 +400,21 @@ class BGClient:
             cached = await _cache_get(endpoint)
             if cached and not cached.is_stale:
                 return cached
+
+        # Rate-limit breaker: while it is armed, make no request at all. Serving
+        # stale data (or failing) costs nothing; hammering keeps the quota at
+        # zero. force_refresh does not override this — the whole point is that
+        # the caller cannot spend budget the account does not have.
+        cooling = await _cooldown_left()
+        if cooling:
+            stale = await _cache_get(endpoint)
+            if stale and stale.value is not None:
+                stale.is_stale = True
+                return stale
+            return BGMetric(
+                key=endpoint,
+                error=f"rate_limit_cooldown: retrying in {cooling}s",
+            )
 
         async with httpx.AsyncClient() as client:
             metric = await _http_fetch(client, endpoint)
