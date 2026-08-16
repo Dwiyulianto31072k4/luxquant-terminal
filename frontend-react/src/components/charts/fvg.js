@@ -31,9 +31,8 @@ export const DEFAULTS = {
   clusterBars: 5,
 };
 
-/** Mean relative bar range — the yardstick for "is this gap big enough to care".
- *  Scaling by price keeps one threshold usable across a $60k pair and a $0.0001
- *  one, which a fixed percentage cannot do. */
+/** Mean relative bar range. Kept for callers that want a volatility yardstick;
+ *  it is NOT the gap filter — see meanRelativeHeight for why. */
 export function meanRelativeRange(candles) {
   if (!candles?.length) return 0;
   let sum = 0;
@@ -41,6 +40,29 @@ export function meanRelativeRange(candles) {
   for (const c of candles) {
     if (c.low > 0) {
       sum += (c.high - c.low) / c.low;
+      n += 1;
+    }
+  }
+  return n ? sum / n : 0;
+}
+
+/** Mean height of the gaps actually found, relative to price.
+ *
+ *  The filter has to be calibrated against gaps, not against candles. A gap is
+ *  the sliver a bar leaves behind, so it is routinely a fraction of that bar's
+ *  range — measuring it against mean bar range discards nearly everything.
+ *  Measured on TRUTHUSDT this cut 25 raw gaps to 2, and the chart drew nothing.
+ *
+ *  Averaging the gaps themselves is self-calibrating: roughly the larger half
+ *  survives on any pair and any timeframe, with no magic number.
+ */
+export function meanRelativeHeight(gaps) {
+  if (!gaps?.length) return 0;
+  let sum = 0;
+  let n = 0;
+  for (const g of gaps) {
+    if (g.bottom > 0) {
+      sum += (g.top - g.bottom) / g.bottom;
       n += 1;
     }
   }
@@ -59,11 +81,9 @@ export function detectFVGs(candles, options = {}) {
   const o = { ...DEFAULTS, ...options };
   if (!Array.isArray(candles) || candles.length < 3) return [];
 
-  const threshold = o.autoThreshold
-    ? meanRelativeRange(candles)
-    : Math.max(0, Number(o.thresholdPct) || 0) / 100;
-
-  const zones = [];
+  // Pass 1 — every imbalance, unfiltered. The auto threshold is derived from
+  // this set, so it cannot be applied until the set exists.
+  const raw = [];
 
   for (let i = 2; i < candles.length; i += 1) {
     const a = candles[i - 2];
@@ -86,24 +106,9 @@ export function detectFVGs(candles, options = {}) {
 
     const top = bull ? c.low : a.low;
     const bottom = bull ? a.high : c.high;
-    const height = top - bottom;
-    if (!(height > 0) || !(bottom > 0)) continue;
-    if (height / bottom < threshold) continue;
+    if (!(top > bottom) || !(bottom > 0)) continue;
 
-    // Suppress a same-direction zone stacked on top of a very recent one; a
-    // trending leg otherwise prints a ladder of near-identical bands.
-    if (o.clusterBars > 0) {
-      const recent = zones[zones.length - 1];
-      if (
-        recent &&
-        recent.dir === (bull ? "bull" : "bear") &&
-        i - recent.index < o.clusterBars
-      ) {
-        continue;
-      }
-    }
-
-    zones.push({
+    raw.push({
       dir: bull ? "bull" : "bear",
       index: i,
       time: c.time,
@@ -114,6 +119,26 @@ export function detectFVGs(candles, options = {}) {
       invertedAt: null,
       invalidatedAt: null,
     });
+  }
+
+  const threshold = o.autoThreshold
+    ? meanRelativeHeight(raw)
+    : Math.max(0, Number(o.thresholdPct) || 0) / 100;
+
+  // Pass 2 — keep the gaps worth drawing.
+  const zones = [];
+  for (const g of raw) {
+    if ((g.top - g.bottom) / g.bottom < threshold) continue;
+
+    // Suppress a same-direction zone stacked on a very recent one; a trending
+    // leg otherwise prints a ladder of near-identical bands.
+    if (o.clusterBars > 0) {
+      const recent = zones[zones.length - 1];
+      if (recent && recent.dir === g.dir && g.index - recent.index < o.clusterBars) {
+        continue;
+      }
+    }
+    zones.push(g);
   }
 
   resolveZones(zones, candles, o);

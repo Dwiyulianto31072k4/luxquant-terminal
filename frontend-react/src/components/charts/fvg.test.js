@@ -12,7 +12,13 @@
 //     inversion flips the zone's meaning while price is still respecting it.
 
 import { describe, it, expect } from "vitest";
-import { detectFVGs, partitionZones, meanRelativeRange, MITIGATION } from "./fvg";
+import {
+  detectFVGs,
+  partitionZones,
+  meanRelativeRange,
+  meanRelativeHeight,
+  MITIGATION,
+} from "./fvg";
 
 const c = (time, open, high, low, close) => ({ time, open, high, low, close });
 
@@ -113,14 +119,54 @@ describe("inversion", () => {
 });
 
 describe("auto threshold", () => {
-  it("discards a gap far below typical bar range", () => {
-    const noisy = Array.from({ length: 40 }, (_, i) => c(100 + i, 100, 103, 97, 101));
-    const trivial = [
-      c(1, 100, 100.05, 99.95, 100),
-      c(2, 100, 100.06, 99.99, 100.055),
-      c(3, 100.05, 100.1, 100.051, 100.09),
-    ];
-    expect(detectFVGs([...noisy, ...trivial], { autoThreshold: true, clusterBars: 0 })).toHaveLength(0);
+  // Appends a bullish gap of `width`, continuing from the running price.
+  // Each block MUST start where the last one closed: rebasing to a new price
+  // inserts a jump between blocks, and that jump is itself a far larger gap
+  // than the ones under test — which is how the first version of this fixture
+  // ended up measuring its own seams.
+  const push = (s, width) => {
+    const t = s.length ? s[s.length - 1].time + 1 : 1;
+    const base = s.length ? s[s.length - 1].close : 100;
+    s.push(c(t, base, base, base - 1, base));
+    s.push(c(t + 1, base, base + width + 2, base, base + width + 1));
+    s.push(c(t + 2, base + width + 1, base + width + 3, base + width, base + width + 2));
+    return s;
+  };
+  const build = (widths) => widths.reduce((s, w) => push(s, w), []);
+  const opts = { autoThreshold: true, clusterBars: 0, mitigation: MITIGATION.NONE, showInversions: false };
+
+  it("keeps the larger gaps and drops the slivers", () => {
+    // Three wide gaps (~8%) and three hairline ones (~0.04%) in one series.
+    const kept = detectFVGs(build([8, 9, 10, 0.05, 0.06, 0.04]), opts);
+    expect(kept).toHaveLength(3);
+    for (const z of kept) expect(z.top - z.bottom).toBeGreaterThan(1);
+  });
+
+  it("calibrates against gaps, not candle ranges", () => {
+    // Regression. The first version judged a gap against MEAN BAR RANGE, which
+    // shipped and drew nothing: a gap is the sliver a bar leaves behind, so on
+    // real candles it is a fraction of that bar's range. Reproduced here with
+    // wide bars (~22% range) and narrow gaps (~1.7%) — the shape real data has.
+    const wide = (s, width) => {
+      const t = s.length ? s[s.length - 1].time + 1 : 1;
+      const base = s.length ? s[s.length - 1].close : 100;
+      const wick = 20;
+      s.push(c(t, base, base, base - wick, base));
+      s.push(c(t + 1, base, base + width + 2, base - wick, base + width + 1));
+      s.push(c(t + 2, base + width + 1, base + width + wick, base + width, base + width + 2));
+      return s;
+    };
+    const series = [3, 3.5, 4, 0.2, 0.25, 0.15].reduce(wide, []);
+    const all = detectFVGs(series, { ...opts, autoThreshold: false });
+
+    expect(meanRelativeRange(series)).toBeGreaterThan(meanRelativeHeight(all));
+    // The old rule kept nothing at all on this shape.
+    const byBarRange = all.filter(
+      (z) => (z.top - z.bottom) / z.bottom >= meanRelativeRange(series)
+    );
+    expect(byBarRange).toHaveLength(0);
+    // The gap-calibrated rule keeps the larger half.
+    expect(detectFVGs(series, opts)).toHaveLength(3);
   });
 
   it("scales with price rather than assuming a fixed percentage", () => {
