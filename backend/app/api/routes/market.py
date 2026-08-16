@@ -732,10 +732,22 @@ async def get_klines(
 ):
     """Proxy Binance klines (OHLC data) through backend to avoid CORS.
 
-    Additive v2 (Terminal Trade Replay): optional startTime/endTime (epoch ms)
-    for historical windows, with automatic futures fallback when the pair
-    doesn't exist on spot (many alt signals are futures-listed only).
-    Response format is the raw Binance kline array — unchanged.
+    FUTURES FIRST, spot as the fallback. Every signal LuxQuant publishes is a
+    USDT perpetual — the modal's own TradingView embed charts `BINANCE:{pair}.P`
+    — so serving spot candles beside it put two different prices in one modal.
+
+    This used to try spot first and only fall back to futures when the pair was
+    futures-only. Measured over the 523 pairs signalled in the last 30 days,
+    that meant 358 of them (69%) were drawn from spot while the chart next to
+    them showed perp. On BTCUSDT 1h the two feeds differed by ~$33 on the high.
+    Wick-derived overlays (fair value gaps, levels) split between the two charts
+    because of it.
+
+    Spot still answers for anything not listed on futures, so pairs that only
+    exist on spot keep working.
+
+    Optional startTime/endTime (epoch ms) support historical windows for the
+    Terminal's Trade Replay. Response is the raw Binance kline array — unchanged.
     """
     params = {"symbol": symbol.upper(), "interval": interval, "limit": min(limit, 500)}
     if start_time is not None:
@@ -746,26 +758,26 @@ async def get_klines(
     client = get_binance_client()
     last_err = None
 
-    # 1) Spot first (existing behavior)
+    # 1) Futures first — matches the .P symbol every LuxQuant chart references
     try:
-        response = await client.get(f"{BINANCE_SPOT_API}/api/v3/klines", params=params)
+        response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/klines", params=params)
         if response.status_code == 200:
             data = response.json()
             if data:  # non-empty
                 return data
         else:
-            last_err = f"spot HTTP {response.status_code}"
+            last_err = f"futures HTTP {response.status_code}"
     except Exception as e:
-        last_err = f"spot {e}"
+        last_err = f"futures {e}"
 
-    # 2) Futures fallback (pair not on spot, or empty spot history)
+    # 2) Spot fallback (pair not listed on futures, or empty futures history)
     try:
-        response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/klines", params=params)
+        response = await client.get(f"{BINANCE_SPOT_API}/api/v3/klines", params=params)
         if response.status_code == 200:
             return response.json()
-        last_err = f"{last_err or ''}; futures HTTP {response.status_code}"
+        last_err = f"{last_err or ''}; spot HTTP {response.status_code}"
     except Exception as e:
-        last_err = f"{last_err or ''}; futures {e}"
+        last_err = f"{last_err or ''}; spot {e}"
 
     raise HTTPException(status_code=502, detail=f"Klines fetch failed: {last_err}")
 
