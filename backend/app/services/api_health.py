@@ -73,11 +73,15 @@ class ProbeResult:
 class Provider:
     id: str
     label: str
-    signal: str            # balance | quota | validity
+    signal: str            # balance | quota | validity | usage | reachability
     powers: str            # which LuxQuant feature dies if this key dies
     env_keys: tuple[str, ...]
     probe: Callable[[httpx.AsyncClient, dict[str, str]], Awaitable[ProbeResult]]
     docs: str = ""
+    # Per-provider freshness. bitcoin-data.com allows only 15 requests a DAY, so
+    # probing it on the normal cadence would consume the very budget the row is
+    # meant to protect. Anything with a tight allowance gets a long interval.
+    min_interval: int = 0  # 0 = use the global default
 
 
 # Most providers are owned by a sibling service, not the backend: systemd feeds
@@ -514,6 +518,39 @@ async def _probe_dune(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResu
     return ProbeResult(OK, f"key accepted (HTTP {r.status_code})")
 
 
+def _mk_reachable(url: str, expect: str = "", parse: Callable[[str], str] | None = None):
+    """Liveness probe for a dependency that has no key to validate.
+
+    These hosts are unauthenticated, so "is the key accepted" is meaningless —
+    the only question worth asking is whether the host is still answering and
+    how slowly. Each URL is the cheapest public endpoint that proves the service
+    is really serving data rather than just terminating TLS.
+    """
+    async def _run(c: httpx.AsyncClient, _k: dict[str, str]) -> ProbeResult:
+        r = await c.get(url)
+        if r.status_code == 429:
+            return ProbeResult(WARN, "rate limited")
+        if r.status_code >= 500:
+            return ProbeResult(DOWN, f"provider error HTTP {r.status_code}")
+        if r.status_code >= 400:
+            return ProbeResult(DOWN, f"HTTP {r.status_code}")
+        body = r.text or ""
+        if expect and expect not in body[:400]:
+            return ProbeResult(WARN, f"reachable but unexpected body ({len(body)}B)")
+        detail = "reachable"
+        if parse:
+            try:
+                detail = parse(body) or detail
+            except Exception:
+                pass
+        return ProbeResult(OK, detail, {"bytes": len(body)})
+    return _run
+
+
+def _first_line(body: str) -> str:
+    return f"tip {body.strip().splitlines()[0][:24]}"
+
+
 PROVIDERS: list[Provider] = [
     Provider("deepseek", "DeepSeek", "balance",
              "BTC Compass verdict (R1) + AI Assistant + Shariah screening",
@@ -571,6 +608,39 @@ PROVIDERS: list[Provider] = [
              "ETF flow data", ("SOSOVALUE_API_KEY",), _probe_sosovalue),
     Provider("dune", "Dune Analytics", "validity",
              "Token flow queries", ("DUNEAPIKEY_TERMINAL",), _probe_dune),
+
+    # ── Keyless dependencies ──────────────────────────────────────────
+    # No credential to check, but the product breaks if these stop answering.
+    # env_keys is empty, so `configured` is always true for them.
+    Provider("bybit", "Bybit (public)", "reachability",
+             "Order book, funding, OI, klines", (),
+             _mk_reachable("https://api.bybit.com/v5/market/time", expect='"retCode":0')),
+    Provider("mempool", "mempool.space", "reachability",
+             "BTC fees, hashrate, mempool", (),
+             _mk_reachable("https://mempool.space/api/blocks/tip/height", parse=_first_line)),
+    Provider("alternative_me", "Alternative.me", "reachability",
+             "Fear & Greed index", (),
+             _mk_reachable("https://api.alternative.me/fng/?limit=1", expect="Fear and Greed")),
+    Provider("blockchain_info", "Blockchain.info", "reachability",
+             "BTC chain stats", (),
+             _mk_reachable("https://blockchain.info/q/getblockcount", parse=_first_line)),
+    Provider("geckoterminal", "GeckoTerminal", "reachability",
+             "DEX pool data", (),
+             _mk_reachable("https://api.geckoterminal.com/api/v2/networks", expect='"data"')),
+    Provider("cointelegraph", "Cointelegraph RSS", "reachability",
+             "News pipeline feed", (),
+             _mk_reachable("https://cointelegraph.com/rss/tag/bitcoin", expect="<rss")),
+    Provider("google_news", "Google News RSS", "reachability",
+             "News pipeline feed", (),
+             _mk_reachable(
+                 "https://news.google.com/rss/search?q=bitcoin&hl=en-US&gl=US&ceid=US:en",
+                 expect="<rss")),
+    # BGeometrics' free tier — a SECOND, separate dependency from the paid
+    # api.bgeometrics.com row above. 15 requests a day, so probe twice daily.
+    Provider("bitcoin_data", "BGeometrics (free)", "reachability",
+             "Extra on-chain metrics (onchain_extra)", (),
+             _mk_reachable("https://bitcoin-data.com/v1/hashrate/last", expect="hashrate"),
+             docs="https://bitcoin-data.com", min_interval=12 * 3600),
 ]
 
 
@@ -608,7 +678,8 @@ async def _run_one(client: httpx.AsyncClient, p: Provider) -> dict:
         "docs": p.docs,
         "env_keys": list(p.env_keys),
         "configured": not missing,
-        "key_hint": _mask(keys.get(p.env_keys[0], "")),
+        # Keyless dependencies have no env_keys at all — do not index into it.
+        "key_hint": _mask(keys.get(p.env_keys[0], "")) if p.env_keys else "",
         "checked_at": time.time(),
     }
 
@@ -639,11 +710,14 @@ async def collect(force: bool = False) -> dict:
     the refresh button must not become a way to burn a provider's quota.
     """
     now = time.time()
-    window = _MIN_INTERVAL if force else _DEFAULT_TTL
 
     fresh: dict[str, dict] = {}
     stale: list[Provider] = []
     for p in PROVIDERS:
+        # A provider's own floor always wins, even on a forced refresh — that
+        # floor exists because the provider cannot afford to be asked often.
+        floor = p.min_interval or _MIN_INTERVAL
+        window = floor if force else max(_DEFAULT_TTL, floor)
         cached = _read_cache(p.id)
         if cached and (now - float(cached.get("checked_at") or 0)) < window:
             fresh[p.id] = cached

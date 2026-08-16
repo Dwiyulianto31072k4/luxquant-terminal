@@ -25,6 +25,7 @@ const SIGNAL_LABEL = {
   quota: "quota",
   validity: "key only",
   usage: "our meter",
+  reachability: "no key",
 };
 
 // Order the table by urgency, not by name: anything broken sorts to the top so
