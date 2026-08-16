@@ -59,8 +59,15 @@ def webhook_secret(bot_token: str) -> str:
 
 
 def command_from_text(text: object) -> str:
-    """Normalize ``/start payload`` and ``/start@BotName`` to ``start``."""
-    first = str(text or "").strip().split(maxsplit=1)[0].lower()
+    """Normalize ``/start payload`` and ``/start@BotName`` to ``start``.
+
+    Photos, stickers, and other non-text messages carry no ``text`` field at
+    all, so an empty update must fall back to help rather than raise.
+    """
+    words = str(text or "").strip().split(maxsplit=1)
+    if not words:
+        return "help"
+    first = words[0].lower()
     if not first.startswith("/"):
         return "help"
     return first[1:].split("@", 1)[0] or "help"
