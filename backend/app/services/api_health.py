@@ -1,0 +1,544 @@
+"""External API inventory — key status, balance, and quota in one place.
+
+Every third-party provider LuxQuant depends on is declared here once, with the
+probe that answers "is this key alive, and how much is left?".  Providers differ
+in what they will tell us, so each one is tagged with the best signal available:
+
+  ``balance``  the provider returns real money left (DeepSeek).
+  ``quota``    the provider returns usage against a cap (Apify, BGeometrics,
+               Discord) — usually in rate-limit headers.
+  ``validity`` the provider has no billing endpoint at all, so the only honest
+               signal is whether the key is still accepted.
+
+Nothing here ever returns a key value.  Callers get ``configured`` plus a
+masked tail so the admin can tell two keys apart without the secret leaking
+into a browser, a log line, or a screenshot.
+
+Results are cached in Redis because this is a dashboard, not a monitor: an
+admin refreshing the page must never be able to spend a provider's quota.  See
+``_MIN_INTERVAL`` for the floor that even a forced refresh respects.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import time
+from dataclasses import dataclass, field, asdict
+from typing import Any, Callable, Awaitable
+
+import httpx
+
+from app.core.redis import get_redis
+
+# A browser UA: several providers sit behind Cloudflare, which answers the
+# default urllib/httpx agent with an "error code: 1010" block page that looks
+# exactly like an auth failure.
+_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+)
+
+_CACHE_PREFIX = "lq:apihealth:"
+_DEFAULT_TTL = 900          # 15 min — normal dashboard freshness
+_MIN_INTERVAL = 60          # a forced refresh still cannot probe faster than this
+
+_TIMEOUT = 12.0
+
+OK = "ok"
+WARN = "warn"
+DOWN = "down"
+UNCONFIGURED = "unconfigured"
+ERROR = "error"
+
+
+@dataclass
+class ProbeResult:
+    status: str = ERROR
+    detail: str = ""
+    metrics: dict[str, Any] = field(default_factory=dict)
+    latency_ms: int | None = None
+
+
+@dataclass
+class Provider:
+    id: str
+    label: str
+    signal: str            # balance | quota | validity
+    powers: str            # which LuxQuant feature dies if this key dies
+    env_keys: tuple[str, ...]
+    probe: Callable[[httpx.AsyncClient, dict[str, str]], Awaitable[ProbeResult]]
+    docs: str = ""
+
+
+# Some providers are owned by a sibling service, not the backend: systemd feeds
+# this process only backend/.env, so ANTHROPIC_API_KEY (used by the X poster)
+# is absent from our environment even though the key is live.  Reading those
+# files keeps the inventory honest instead of reporting a working key as
+# "not set".  Values are used for probing only and never returned.
+_EXTRA_ENV_FILES = ("/root/luxquant-x-poster/.env",)
+
+_extra_env: dict[str, str] | None = None
+
+
+def _load_extra_env() -> dict[str, str]:
+    global _extra_env
+    if _extra_env is not None:
+        return _extra_env
+    found: dict[str, str] = {}
+    for path in _EXTRA_ENV_FILES:
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, _, v = line.partition("=")
+                    found.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+        except OSError:
+            continue
+    _extra_env = found
+    return found
+
+
+def _env(name: str) -> str:
+    value = (os.getenv(name) or "").strip()
+    if value:
+        return value
+    return _load_extra_env().get(name, "").strip()
+
+
+def _mask(value: str) -> str:
+    """Enough to tell two keys apart, never enough to use one."""
+    if not value:
+        return ""
+    return f"…{value[-4:]}" if len(value) > 8 else "…"
+
+
+def _quota_headers(headers: Any) -> dict[str, str]:
+    wanted = ("ratelimit", "quota", "remaining")
+    return {
+        k.lower(): v
+        for k, v in dict(headers).items()
+        if any(w in k.lower() for w in wanted)
+    }
+
+
+# ─── Probes ───────────────────────────────────────────────────────────
+# Each probe picks the cheapest endpoint that still proves the key works, and
+# returns DOWN only when the provider actually rejected us — a network blip is
+# ERROR, so a flaky link never reads as "your key is dead".
+
+
+async def _probe_deepseek(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://api.deepseek.com/user/balance",
+        headers={"Authorization": f"Bearer {k['DEEPSEEK_API_KEY']}"},
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+    r.raise_for_status()
+    data = r.json()
+    infos = data.get("balance_infos") or [{}]
+    total = float(infos[0].get("total_balance") or 0)
+    available = bool(data.get("is_available"))
+    metrics = {
+        "balance_usd": round(total, 4),
+        "currency": infos[0].get("currency", "USD"),
+        "is_available": available,
+    }
+    if not available or total <= 0:
+        return ProbeResult(DOWN, "out of credit — calls will 402", metrics)
+    if total < 2:
+        return ProbeResult(WARN, f"low balance ${total:.2f}", metrics)
+    return ProbeResult(OK, f"${total:.2f} available", metrics)
+
+
+async def _probe_apify(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://api.apify.com/v2/users/me/limits",
+        headers={"Authorization": f"Bearer {k['APIFY_TOKEN']}"},
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"token rejected (HTTP {r.status_code})")
+    r.raise_for_status()
+    d = r.json().get("data", {})
+    used = float((d.get("current") or {}).get("monthlyUsageUsd") or 0)
+    cap = float((d.get("limits") or {}).get("maxMonthlyUsageUsd") or 0)
+    pct = (used / cap * 100) if cap else 0.0
+    metrics = {
+        "used_usd": round(used, 4),
+        "limit_usd": cap,
+        "used_pct": round(pct, 1),
+        "cycle_ends": ((d.get("monthlyUsageCycle") or {}).get("endAt") or "")[:10],
+    }
+    detail = f"${used:.4f} of ${cap:.0f} this cycle"
+    if pct >= 90:
+        return ProbeResult(DOWN, f"monthly cap nearly gone — {detail}", metrics)
+    if pct >= 70:
+        return ProbeResult(WARN, detail, metrics)
+    return ProbeResult(OK, detail, metrics)
+
+
+async def _probe_bgeometrics(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    """Auth is a ``token`` query param on api.bgeometrics.com — matching
+    bg_advanced.py.  The hourly allowance only appears in the headers, so this
+    probe is the one place the remaining quota is observable at all."""
+    r = await client.get(
+        "https://api.bgeometrics.com/v1/hashrate/last",
+        params={"token": k["BGEOMETRICS_API_KEY"]},
+    )
+    h = _quota_headers(r.headers)
+    limit = h.get("x-ratelimit-limit-hour")
+    remaining = h.get("x-ratelimit-remaining-hour")
+    metrics = {"limit_hour": limit, "remaining_hour": remaining}
+    if r.status_code == 429:
+        return ProbeResult(
+            DOWN,
+            f"hourly quota exhausted (0 of {limit or '?'} left) — BTC Compass pipeline is failing",
+            metrics,
+        )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})", metrics)
+    r.raise_for_status()
+    try:
+        left = int(remaining) if remaining is not None else None
+        cap = int(limit) if limit is not None else None
+    except (TypeError, ValueError):
+        left = cap = None
+    detail = f"{remaining or '?'} of {limit or '?'} left this hour"
+    if left is not None and cap and left < cap * 0.2:
+        return ProbeResult(WARN, detail, metrics)
+    return ProbeResult(OK, detail, metrics)
+
+
+async def _probe_discord(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://discord.com/api/v10/users/@me",
+        headers={"Authorization": f"Bot {k['DISCORD_BOT_TOKEN']}"},
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"bot token rejected (HTTP {r.status_code})")
+    r.raise_for_status()
+    h = _quota_headers(r.headers)
+    body = r.json()
+    metrics = {
+        "bot_username": body.get("username"),
+        "limit": h.get("x-ratelimit-limit"),
+        "remaining": h.get("x-ratelimit-remaining"),
+    }
+    return ProbeResult(OK, f"bot @{body.get('username')} authenticated", metrics)
+
+
+async def _probe_openai(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://api.openai.com/v1/models",
+        headers={"Authorization": f"Bearer {k['OPENAI_API_KEY']}"},
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+    if r.status_code == 429:
+        return ProbeResult(WARN, "rate limited or quota exceeded")
+    r.raise_for_status()
+    n = len(r.json().get("data", []))
+    return ProbeResult(OK, f"key valid — {n} models", {"models": n})
+
+
+async def _probe_anthropic(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://api.anthropic.com/v1/models",
+        headers={
+            "x-api-key": k["ANTHROPIC_API_KEY"],
+            "anthropic-version": "2023-06-01",
+        },
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+    if r.status_code == 429:
+        return ProbeResult(WARN, "rate limited")
+    r.raise_for_status()
+    n = len(r.json().get("data", []))
+    return ProbeResult(OK, f"key valid — {n} models", {"models": n})
+
+
+async def _probe_telegram(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(f"https://api.telegram.org/bot{k['TELEGRAM_BOT_TOKEN']}/getMe")
+    if r.status_code in (401, 404):
+        return ProbeResult(DOWN, "bot token rejected")
+    r.raise_for_status()
+    res = r.json().get("result", {})
+    return ProbeResult(
+        OK, f"bot @{res.get('username')} authenticated", {"bot_username": res.get("username")}
+    )
+
+
+async def _probe_etherscan(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    """V2 multichain, chainid=1 — the shape whale_service.py actually calls."""
+    r = await client.get(
+        "https://api.etherscan.io/v2/api",
+        params={
+            "chainid": 1, "module": "stats", "action": "ethsupply",
+            "apikey": k["ETHERSCAN_API_KEY"],
+        },
+    )
+    r.raise_for_status()
+    body = r.json()
+    if str(body.get("status")) == "1":
+        return ProbeResult(OK, "key valid (V2 chainid=1)")
+    msg = str(body.get("result") or body.get("message") or "")[:120]
+    if "invalid" in msg.lower() or "rate limit" in msg.lower():
+        return ProbeResult(DOWN, msg)
+    return ProbeResult(WARN, msg)
+
+
+async def _probe_bscscan(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://api.etherscan.io/v2/api",
+        params={
+            "chainid": 56, "module": "stats", "action": "bnbsupply",
+            "apikey": k["BSCSCAN_API_KEY"],
+        },
+    )
+    r.raise_for_status()
+    body = r.json()
+    if str(body.get("status")) == "1":
+        return ProbeResult(OK, "key valid (V2 chainid=56)")
+    msg = str(body.get("result") or body.get("message") or "")[:140]
+    # A free key simply does not cover BSC on V2; that is a plan ceiling, not a
+    # dead key, so it must not read as an outage.
+    if "upgrade" in msg.lower() or "not supported" in msg.lower():
+        return ProbeResult(WARN, f"plan does not cover BSC on V2 — {msg}")
+    return ProbeResult(WARN, msg)
+
+
+def _mk_coingecko(env_key: str):
+    """Both CoinGecko rows share one probe shape but read different env keys.
+
+    The account is on the Demo tier, whose ``/key`` credit endpoint is PRO-only,
+    so ``/ping`` is the most the provider will confirm.
+    """
+    async def _run(c: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+        r = await c.get(
+            "https://api.coingecko.com/api/v3/ping",
+            headers={"x-cg-demo-api-key": k[env_key]},
+        )
+        if r.status_code in (401, 403):
+            return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+        if r.status_code == 429:
+            return ProbeResult(WARN, "rate limited (Demo tier)")
+        r.raise_for_status()
+        return ProbeResult(OK, "key valid (Demo tier — no credit endpoint)")
+    return _run
+
+
+async def _probe_coinalyze(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://api.coinalyze.net/v1/exchanges",
+        headers={"api_key": k["COINALYZE_API_KEY"]},
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+    if r.status_code == 429:
+        return ProbeResult(WARN, "rate limited")
+    r.raise_for_status()
+    return ProbeResult(OK, f"key valid — {len(r.json())} exchanges")
+
+
+async def _probe_coinglass(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    """Coinglass answers HTTP 200 with an error *code in the body*, so the
+    status line alone would wrongly report a healthy key."""
+    r = await client.get(
+        "https://open-api-v4.coinglass.com/api/futures/supported-coins",
+        headers={"CG-API-KEY": k["COINGLASS_API_KEY"]},
+    )
+    r.raise_for_status()
+    body = r.json()
+    code = str(body.get("code", "0"))
+    if code in ("0", "200"):
+        return ProbeResult(OK, "key valid")
+    msg = str(body.get("msg") or "")[:120]
+    if "upgrade" in msg.lower():
+        return ProbeResult(WARN, f"plan ceiling — {msg}")
+    return ProbeResult(DOWN, msg or f"code {code}")
+
+
+async def _probe_sosovalue(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    """The open API is POST-only; a GET returns 405 before auth is even read."""
+    r = await client.post(
+        "https://api.sosovalue.xyz/openapi/v1/data/default/coin/list",
+        headers={"x-soso-api-key": k["SOSOVALUE_API_KEY"], "Content-Type": "application/json"},
+        json={},
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+    if r.status_code == 429:
+        return ProbeResult(WARN, "rate limited")
+    if r.status_code >= 500:
+        return ProbeResult(ERROR, f"provider error HTTP {r.status_code}")
+    return ProbeResult(OK, f"key accepted (HTTP {r.status_code})")
+
+
+async def _probe_dune(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://api.dune.com/api/v1/query/1/results",
+        headers={"X-Dune-Api-Key": k["DUNEAPIKEY_TERMINAL"]},
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+    if r.status_code == 429:
+        return ProbeResult(WARN, "credits exhausted or rate limited")
+    # 404 / 400 mean the probe query is not ours but the key itself passed auth.
+    return ProbeResult(OK, f"key accepted (HTTP {r.status_code})")
+
+
+PROVIDERS: list[Provider] = [
+    Provider("deepseek", "DeepSeek", "balance",
+             "BTC Compass verdict (R1) + AI Assistant + Shariah screening",
+             ("DEEPSEEK_API_KEY",), _probe_deepseek,
+             "https://platform.deepseek.com/usage"),
+    Provider("apify", "Apify", "quota",
+             "CoinAnk scraping", ("APIFY_TOKEN",), _probe_apify,
+             "https://console.apify.com/billing"),
+    Provider("bgeometrics", "BGeometrics", "quota",
+             "BTC Compass 2.0 / AI Research — all 23 metrics", ("BGEOMETRICS_API_KEY",),
+             _probe_bgeometrics, "https://bgeometrics.com"),
+    Provider("discord", "Discord", "quota",
+             "Discord relay + Premium+ entitlement", ("DISCORD_BOT_TOKEN",), _probe_discord),
+    Provider("openai", "OpenAI", "validity",
+             "Embeddings (semantic cache), image generation", ("OPENAI_API_KEY",),
+             _probe_openai, "https://platform.openai.com/usage"),
+    Provider("anthropic", "Anthropic", "validity",
+             "X poster copy (luxquant-x-poster)", ("ANTHROPIC_API_KEY",), _probe_anthropic,
+             "https://console.anthropic.com/settings/billing"),
+    Provider("telegram", "Telegram Bot", "validity",
+             "Terminal Bot, alerts, delivery", ("TELEGRAM_BOT_TOKEN",), _probe_telegram),
+    Provider("etherscan", "Etherscan", "validity",
+             "Whale tracking / ETH on-chain", ("ETHERSCAN_API_KEY",), _probe_etherscan),
+    Provider("bscscan", "BscScan", "validity",
+             "BSC on-chain", ("BSCSCAN_API_KEY",), _probe_bscscan),
+    Provider("coingecko", "CoinGecko", "validity",
+             "Market data, coin metadata", ("COINGECKO_API_KEY",),
+             _mk_coingecko("COINGECKO_API_KEY")),
+    Provider("coingecko_currency", "CoinGecko (FX)", "validity",
+             "Currency / FX conversion", ("COINGECKO_API_KEY_CURRENCY",),
+             _mk_coingecko("COINGECKO_API_KEY_CURRENCY")),
+    Provider("coinalyze", "Coinalyze", "validity",
+             "Derivatives & funding data", ("COINALYZE_API_KEY",), _probe_coinalyze),
+    Provider("coinglass", "Coinglass", "validity",
+             "Derivatives data", ("COINGLASS_API_KEY",), _probe_coinglass),
+    Provider("sosovalue", "SosoValue", "validity",
+             "ETF flow data", ("SOSOVALUE_API_KEY",), _probe_sosovalue),
+    Provider("dune", "Dune Analytics", "validity",
+             "Token flow queries", ("DUNEAPIKEY_TERMINAL",), _probe_dune),
+]
+
+
+# ─── Cache + orchestration ────────────────────────────────────────────
+
+
+def _cache_key(pid: str) -> str:
+    return f"{_CACHE_PREFIX}{pid}"
+
+
+def _read_cache(pid: str) -> dict | None:
+    try:
+        raw = get_redis().get(_cache_key(pid))
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
+
+
+def _write_cache(pid: str, payload: dict) -> None:
+    try:
+        get_redis().set(_cache_key(pid), json.dumps(payload, default=str), ex=_DEFAULT_TTL * 4)
+    except Exception:
+        pass
+
+
+async def _run_one(client: httpx.AsyncClient, p: Provider) -> dict:
+    keys = {name: _env(name) for name in p.env_keys}
+    missing = [n for n, v in keys.items() if not v]
+
+    base = {
+        "id": p.id,
+        "label": p.label,
+        "signal": p.signal,
+        "powers": p.powers,
+        "docs": p.docs,
+        "env_keys": list(p.env_keys),
+        "configured": not missing,
+        "key_hint": _mask(keys.get(p.env_keys[0], "")),
+        "checked_at": time.time(),
+    }
+
+    if missing:
+        base.update(status=UNCONFIGURED, detail=f"not set: {', '.join(missing)}",
+                    metrics={}, latency_ms=None)
+        return base
+
+    started = time.perf_counter()
+    try:
+        res = await asyncio.wait_for(p.probe(client, keys), timeout=_TIMEOUT + 3)
+    except asyncio.TimeoutError:
+        res = ProbeResult(ERROR, f"probe timed out after {_TIMEOUT + 3:.0f}s")
+    except httpx.HTTPStatusError as e:
+        res = ProbeResult(ERROR, f"HTTP {e.response.status_code}")
+    except Exception as e:  # a bad probe must never take the page down
+        res = ProbeResult(ERROR, f"{type(e).__name__}: {e}"[:160])
+    res.latency_ms = int((time.perf_counter() - started) * 1000)
+
+    base.update(asdict(res))
+    return base
+
+
+async def collect(force: bool = False) -> dict:
+    """Probe every provider whose cached result has aged out.
+
+    ``force`` shortens the window to ``_MIN_INTERVAL`` rather than removing it:
+    the refresh button must not become a way to burn a provider's quota.
+    """
+    now = time.time()
+    window = _MIN_INTERVAL if force else _DEFAULT_TTL
+
+    fresh: dict[str, dict] = {}
+    stale: list[Provider] = []
+    for p in PROVIDERS:
+        cached = _read_cache(p.id)
+        if cached and (now - float(cached.get("checked_at") or 0)) < window:
+            fresh[p.id] = cached
+        else:
+            stale.append(p)
+
+    if stale:
+        limits = httpx.Limits(max_connections=10)
+        async with httpx.AsyncClient(
+            timeout=_TIMEOUT, headers={"User-Agent": _UA}, limits=limits, follow_redirects=True
+        ) as client:
+            done = await asyncio.gather(
+                *(_run_one(client, p) for p in stale), return_exceptions=True
+            )
+        for p, row in zip(stale, done):
+            if isinstance(row, BaseException):
+                row = {
+                    "id": p.id, "label": p.label, "signal": p.signal, "powers": p.powers,
+                    "docs": p.docs, "env_keys": list(p.env_keys), "configured": True,
+                    "key_hint": "", "status": ERROR,
+                    "detail": f"{type(row).__name__}: {row}"[:160],
+                    "metrics": {}, "latency_ms": None, "checked_at": time.time(),
+                }
+            _write_cache(p.id, row)
+            fresh[p.id] = row
+
+    rows = [fresh[p.id] for p in PROVIDERS if p.id in fresh]
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+
+    return {
+        "providers": rows,
+        "counts": counts,
+        "total": len(rows),
+        "probed_now": len(stale),
+        "generated_at": now,
+        "cache_ttl_s": _DEFAULT_TTL,
+    }

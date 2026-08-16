@@ -71,6 +71,7 @@ from app.api.routes.onchain_endpoint import router as onchain_router
 from app.api.routes.fx import router as fx_router
 from app.api.routes import assistant
 from app.api.routes import ai_cost
+from app.api.routes import api_health
 from app.api.routes import marketing_x_usage
 from app.api.routes import performance_metrics
 
@@ -330,6 +331,7 @@ app.include_router(funnel.growth_router, tags=["growth"])
 app.include_router(growth_measurement.router)
 app.include_router(assistant.router, prefix="/api/v1", tags=["assistant"])
 app.include_router(ai_cost.router, tags=["ai-cost"])
+app.include_router(api_health.router, tags=["api-health"])
 app.include_router(marketing_x_usage.router, tags=["x-usage"])
 app.include_router(performance_metrics.router, prefix="/api/v1", tags=["performance"])
 

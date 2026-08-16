@@ -51,6 +51,19 @@ export const workspaceApi = {
   },
 
   // ════════════════════════════════════
+  // EXTERNAL API HEALTH
+  // ════════════════════════════════════
+  getApiHealth: async () => {
+    const response = await api.get("/api/v1/workspace/api-health");
+    return response.data;
+  },
+
+  refreshApiHealth: async () => {
+    const response = await api.post("/api/v1/workspace/api-health/refresh");
+    return response.data;
+  },
+
+  // ════════════════════════════════════
   // AI COST TRACKER
   // ════════════════════════════════════
   getAiCostSummary: async (days = 30) => {

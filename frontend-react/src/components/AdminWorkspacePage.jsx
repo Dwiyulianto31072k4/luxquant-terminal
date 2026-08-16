@@ -34,6 +34,7 @@ import { ChatTab } from "./admin/workspace/ChatTab";
 import { SystemTab } from "./admin/workspace/SystemTab";
 import { ProfitSharingTab } from "./admin/workspace/ProfitSharingTab";
 import { AiCostTab } from "./admin/workspace/AiCostTab";
+import { ApiHealthTab } from "./admin/workspace/ApiHealthTab";
 import { StatusTab } from "./admin/workspace/StatusTab";
 import { ResourcesTab } from "./admin/workspace/ResourcesTab";
 import SocialPostsAdminPage from "./SocialPostsAdminPage";
@@ -214,6 +215,13 @@ const TABS = [
     label: "AI Cost",
     description: "AI usage & spend tracking",
     Icon: CpuChipIcon,
+    group: "platform",
+  },
+  {
+    id: "apihealth",
+    label: "API Health",
+    description: "External keys, balance & quota",
+    Icon: KeyIcon,
     group: "platform",
   },
 ];
@@ -963,6 +971,7 @@ const AdminWorkspacePage = () => {
               {activeTab === "status" && <StatusTab />}
               {activeTab === "profitshare" && <ProfitSharingTab />}
               {activeTab === "aicost" && <AiCostTab />}
+              {activeTab === "apihealth" && <ApiHealthTab />}
             </RouteErrorBoundary>
           </div>
         </main>
