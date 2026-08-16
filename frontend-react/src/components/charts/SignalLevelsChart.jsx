@@ -8,6 +8,7 @@ import {
 } from "lightweight-charts";
 import { useChartDrawings, TOOLS, measureStats } from "./useChartDrawings";
 import { detectFVGs, partitionZones, MITIGATION } from "./fvg";
+import { FvgPrimitive } from "./fvgPrimitive";
 
 /**
  * The signal's own chart, with entry / TP1-4 / SL1-2 drawn on it.
@@ -118,14 +119,16 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
     });
   };
 
-  // Recomputed only when the candles actually change, not on every repaint:
-  // the overlay re-projects on pan/zoom far more often than the data reloads.
+  // Recomputed only when the candles actually change. The primitive repaints
+  // with the chart on every frame, so detection must not be on that path.
   const fvgZones = useMemo(() => {
     if (!fvgOn || !candles?.length) return { open: [], inverted: [] };
     return partitionZones(
       detectFVGs(candles, { mitigation: MITIGATION.AVERAGE })
     );
   }, [fvgOn, candles]);
+
+  const fvgRef = useRef(null);
 
   const pair = (signal?.pair || "").toUpperCase();
 
@@ -251,6 +254,16 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
       priceLineVisible: false,
     });
     chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+    // Attached once per chart. The chart is rebuilt on theme change, so the
+    // primitive is recreated with it rather than carried across — a primitive
+    // outlives its series only as a dangling reference.
+    fvgRef.current = new FvgPrimitive();
+    // Label text stays white: the chip behind it is the zone colour at high
+    // alpha in both themes, so it never sits on the page background.
+    fvgRef.current.setColors({ bull: palette.pos, bear: palette.neg });
+    candleRef.current.attachPrimitive(fvgRef.current);
+
     setChartEpoch((n) => n + 1);
 
     return () => {
@@ -258,9 +271,16 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
       chartRef.current = null;
       candleRef.current = null;
       volRef.current = null;
+      fvgRef.current = null;
       linesRef.current = [];
     };
   }, [palette]);
+
+  // Push zones to the primitive whenever detection or the toggle changes. The
+  // primitive owns the painting; this only hands it the data.
+  useEffect(() => {
+    fvgRef.current?.setZones(fvgOn ? fvgZones : { open: [], inverted: [] });
+  }, [fvgZones, fvgOn, chartEpoch]);
 
   // ── data + levels ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -389,55 +409,6 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
             chart keeps its own crosshair and wheel zoom; the host element below
             is what listens for drawing gestures. */}
         <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
-          <defs>
-            {/* Inverted zones are hatched rather than another flat fill, so the
-                two states stay apart for a colour-blind reader too. */}
-            <pattern id="fvg-inv" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" strokeWidth="2" />
-            </pattern>
-          </defs>
-
-          {/* FVG zones sit first in the SVG so user drawings paint over them. */}
-          {fvgOn &&
-            [
-              ...fvgZones.open.map((z) => ({ z, flipped: false })),
-              ...fvgZones.inverted.map((z) => ({ z, flipped: true })),
-            ].map(({ z, flipped }) => {
-              const a = toPixel({ time: z.time, price: z.top });
-              const b = toPixel({ time: z.time, price: z.bottom });
-              if (!a || !b) return null;
-              const y = Math.min(a.y, b.y);
-              const h = Math.abs(b.y - a.y);
-              if (!(h > 0)) return null;
-              // A flipped bullish gap behaves bearishly from then on, so colour
-              // by what the zone does NOW, not by how it was born.
-              const acts = flipped ? (z.dir === "bull" ? "bear" : "bull") : z.dir;
-              const colour = acts === "bull" ? palette.pos : palette.neg;
-              const x = Math.max(a.x, 0);
-              return (
-                <g key={`fvg-${z.dir}-${z.time}`} style={{ color: colour }}>
-                  <rect
-                    x={x}
-                    y={y}
-                    width={`calc(100% - ${x}px)`}
-                    height={h}
-                    fill={flipped ? "url(#fvg-inv)" : colour}
-                    fillOpacity={flipped ? 0.22 : 0.1}
-                  />
-                  <line
-                    x1={x}
-                    y1={y + h / 2}
-                    x2="100%"
-                    y2={y + h / 2}
-                    stroke={colour}
-                    strokeWidth="1"
-                    strokeDasharray="2 4"
-                    strokeOpacity="0.5"
-                  />
-                </g>
-              );
-            })}
-
           {[...shapes, ...(draft ? [{ ...draft, id: "draft" }] : [])].map((s) => {
             if (s.type === TOOLS.HLINE) {
               const p = toPixel({ time: s.time ?? 0, price: s.price });
