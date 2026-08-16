@@ -80,6 +80,16 @@ SCHEMA_VERSION = "v6.1"
 # Models
 MODEL_STAGE1 = "gpt-4o-mini"
 MODEL_STAGE2 = "deepseek-reasoner"
+
+# deepseek-reasoner spends max_tokens on its chain-of-thought FIRST and only
+# then writes `content`. At 8000 a long reasoning pass consumed the whole budget
+# and the verdict came back EMPTY with finish_reason=length — measured 45 times
+# between 10-12 Aug, each one surfacing as a misleading "10 validation errors …
+# input_value={}". A finished verdict runs 7-9k characters, so the ceiling has
+# to cover reasoning plus that. The API accepts up to 65536; billing is on
+# tokens actually produced, so a higher cap costs nothing when reasoning is
+# short — it only stops the truncation.
+STAGE2_MAX_TOKENS = 32000
 MODEL_STAGE3 = "gpt-4o"
 
 # Approximate costs per 1K tokens (USD) — rough estimates for tracking
@@ -663,6 +673,27 @@ PRICE_DATA:
 Now produce the verdict JSON. Specific. Evidence-based. No fluff."""
 
 
+def _stage2_content(resp) -> str:
+    """Return Stage 2 content, refusing to disguise an empty answer as ``{}``.
+
+    The call sites used ``message.content or "{}"``. When the reasoner spent its
+    whole budget thinking and wrote nothing, that turned an empty answer into a
+    valid-looking empty object, and the failure then surfaced as ten "field
+    required" errors on ``input_value={}`` — which reads like a contract
+    mismatch and hides the real cause. Say what actually happened instead.
+    """
+    choice = resp.choices[0]
+    content = (choice.message.content or "").strip()
+    if content:
+        return content
+    reasoning = getattr(choice.message, "reasoning_content", None) or ""
+    raise RuntimeError(
+        f"Stage 2 returned empty content (finish_reason={choice.finish_reason}, "
+        f"{len(reasoning)} chars of reasoning). The token budget was consumed "
+        f"before the verdict was written — raise STAGE2_MAX_TOKENS."
+    )
+
+
 def _repair_json(raw: str) -> str:
     """Best-effort JSON repair for truncated LLM output (v6.3)."""
     import re
@@ -721,12 +752,12 @@ async def stage2_reason(
             {"role": "user", "content": user_prompt},
         ],
         response_format={"type": "json_object"},
-        max_tokens=8000,
+        max_tokens=STAGE2_MAX_TOKENS,
     )
 
     # ── v6.3: detect truncation + retry + JSON repair ──
     finish_reason = resp.choices[0].finish_reason
-    raw_json = resp.choices[0].message.content or "{}"
+    raw_json = _stage2_content(resp)
 
     if finish_reason == "length":
         _log(f"WARN Stage 2: response truncated (finish_reason=length, {len(raw_json)} chars). Retrying with concise hint...")
@@ -737,11 +768,11 @@ async def stage2_reason(
                 {"role": "user", "content": user_prompt + "\n\nIMPORTANT: Be concise. Output complete valid JSON within token budget."},
             ],
             response_format={"type": "json_object"},
-            max_tokens=8000,
+            max_tokens=STAGE2_MAX_TOKENS,
             temperature=0.3,
         )
         finish_reason = resp.choices[0].finish_reason
-        raw_json = resp.choices[0].message.content or "{}"
+        raw_json = _stage2_content(resp)
         _log(f"Stage 2 retry done (finish_reason={finish_reason}, {len(raw_json)} chars)")
 
     try:
@@ -774,10 +805,10 @@ async def stage2_reason(
                     },
                 ],
                 response_format={"type": "json_object"},
-                max_tokens=8000,
+                max_tokens=STAGE2_MAX_TOKENS,
                 temperature=0.2,
             )
-            raw_json = resp.choices[0].message.content or "{}"
+            raw_json = _stage2_content(resp)
             verdict = CompleteVerdict.model_validate_json(raw_json)
             _validate_stage2_dynamic_contract(verdict)
             _log("Stage 2: contract retry produced valid Compass 2.0 JSON")
