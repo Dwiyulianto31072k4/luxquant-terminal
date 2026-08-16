@@ -209,11 +209,21 @@ async def _probe_bgeometrics(client: httpx.AsyncClient, k: dict[str, str]) -> Pr
     h = _quota_headers(r.headers)
     limit = h.get("x-ratelimit-limit-hour")
     remaining = h.get("x-ratelimit-remaining-hour")
-    metrics = {"limit_hour": limit, "remaining_hour": remaining}
+    day_limit = h.get("x-ratelimit-limit-day")
+    day_left = h.get("x-ratelimit-remaining-day")
+    metrics = {
+        "limit_hour": limit, "remaining_hour": remaining,
+        "limit_day": day_limit, "remaining_day": day_left,
+    }
     if r.status_code == 429:
+        # Two ceilings, and the daily one is invisible unless you read for it.
+        # Naming the wrong window sends the reader off to wait an hour for
+        # something that will not clear until tomorrow.
+        window = "daily" if str(day_left).strip() == "0" else "hourly"
+        cap = day_limit if window == "daily" else limit
         return ProbeResult(
             DOWN,
-            f"hourly quota exhausted (0 of {limit or '?'} left) — BTC Compass pipeline is failing",
+            f"{window} quota exhausted (0 of {cap or '?'}) — BTC Compass pipeline is failing",
             metrics,
         )
     if r.status_code in (401, 403):
@@ -224,8 +234,13 @@ async def _probe_bgeometrics(client: httpx.AsyncClient, k: dict[str, str]) -> Pr
         cap = int(limit) if limit is not None else None
     except (TypeError, ValueError):
         left = cap = None
-    detail = f"{remaining or '?'} of {limit or '?'} left this hour"
-    if left is not None and cap and left < cap * 0.2:
+    detail = f"{remaining or '?'}/{limit or '?'} per hr · {day_left or '?'}/{day_limit or '?'} per day"
+    try:
+        d_left, d_cap = int(day_left), int(day_limit)
+    except (TypeError, ValueError):
+        d_left = d_cap = None
+    if (left is not None and cap and left < cap * 0.2) or \
+       (d_left is not None and d_cap and d_left < d_cap * 0.2):
         return ProbeResult(WARN, detail, metrics)
     return ProbeResult(OK, detail, metrics)
 

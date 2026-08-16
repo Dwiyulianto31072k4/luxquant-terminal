@@ -61,7 +61,8 @@ RATE_LIMIT_SLEEP = 0.3            # seconds between sequential requests
 # 17 hours with `BG snapshot: 0/23 ok`.  Do not reintroduce retry-on-429.
 COOLDOWN_KEY = "bg:adv:cooldown"
 COOLDOWN_DEFAULT = 600            # 10 min when the provider gives no reset hint
-COOLDOWN_MAX = 3600               # never park longer than the 1-hour window
+COOLDOWN_MAX = 3600               # cap when the hourly (200) window is the empty one
+COOLDOWN_MAX_DAY = 24 * 3600      # cap when the daily (800) window is the empty one
 
 # Optional Redis dependency — degrades to no-cache if unavailable.
 #
@@ -209,26 +210,42 @@ async def _cooldown_left() -> int:
         return 0
 
 
-async def _cooldown_start(reset_hint: str | None) -> None:
-    """Park all endpoints until the hourly window rolls over.
-
-    ``x-ratelimit-reset-hour`` is a unix timestamp when present; fall back to a
-    flat window when it is missing or nonsensical.
-    """
-    seconds = COOLDOWN_DEFAULT
+def _reset_delta(hint: str | None) -> int | None:
+    """Seconds until a unix-timestamp reset hint, or None if unusable."""
     try:
-        if reset_hint:
-            delta = int(float(reset_hint) - time.time())
-            if 0 < delta <= COOLDOWN_MAX:
-                seconds = delta + 5   # clear the boundary, don't race it
+        if not hint:
+            return None
+        delta = int(float(hint) - time.time())
+        return delta if delta > 0 else None
     except (TypeError, ValueError):
-        pass
-    seconds = max(60, min(seconds, COOLDOWN_MAX))
+        return None
+
+
+async def _cooldown_start(headers: Any) -> None:
+    """Park all endpoints until the exhausted window actually rolls over.
+
+    BGeometrics enforces TWO ceilings — 200/hour and 800/day — and only the day
+    one appears in ``x-ratelimit-remaining-day``. Parking on the hourly reset
+    while the daily budget is the empty one means waking up every hour to spend
+    23 requests on another 429, so pick whichever window is actually blocking.
+    """
+    h = {str(k).lower(): v for k, v in dict(headers or {}).items()}
+    day_left = h.get("x-ratelimit-remaining-day")
+    hour_delta = _reset_delta(h.get("x-ratelimit-reset-hour"))
+    day_delta = _reset_delta(h.get("x-ratelimit-reset-day"))
+
+    seconds, window = COOLDOWN_DEFAULT, "default"
+    if str(day_left).strip() == "0" and day_delta:
+        seconds, window = day_delta + 5, "daily"
+    elif hour_delta:
+        seconds, window = hour_delta + 5, "hourly"
+
+    seconds = max(60, min(seconds, COOLDOWN_MAX_DAY if window == "daily" else COOLDOWN_MAX))
     try:
         await _redis("set", COOLDOWN_KEY, "1", ex=seconds)
         logger.warning(
-            "BG rate limited — pausing all endpoints for %ss so the hourly "
-            "quota can recover", seconds,
+            "BG rate limited (%s window empty) — pausing all endpoints for %ss "
+            "so the quota can recover", window, seconds,
         )
     except Exception as e:
         logger.warning("BG cooldown write failed: %s", e)
@@ -359,7 +376,7 @@ async def _http_fetch(client: httpx.AsyncClient, endpoint: str) -> BGMetric:
             if resp.status_code == 429:
                 # Never retry a rate limit — each extra attempt spends quota we
                 # already do not have. Park every endpoint instead.
-                await _cooldown_start(resp.headers.get("x-ratelimit-reset-hour"))
+                await _cooldown_start(resp.headers)
                 return BGMetric(key=endpoint, error="http_429: rate limited")
             if resp.status_code == 503:
                 await asyncio.sleep(1.0 * (attempt + 1))
