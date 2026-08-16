@@ -71,12 +71,21 @@ class Provider:
     docs: str = ""
 
 
-# Some providers are owned by a sibling service, not the backend: systemd feeds
-# this process only backend/.env, so ANTHROPIC_API_KEY (used by the X poster)
-# is absent from our environment even though the key is live.  Reading those
-# files keeps the inventory honest instead of reporting a working key as
-# "not set".  Values are used for probing only and never returned.
-_EXTRA_ENV_FILES = ("/root/luxquant-x-poster/.env",)
+# Most providers are owned by a sibling service, not the backend: systemd feeds
+# this process only backend/.env, so keys like ANTHROPIC_API_KEY (X poster) or
+# ALERT_BOT_TOKEN (delivery worker) are absent from our environment even though
+# they are live.  Reading those files keeps the inventory honest instead of
+# reporting a working key as "not set".  Values are used for probing only and
+# never returned.
+#
+# Deliberately NOT read: /root/cryptobot/.env.  Its Binance keys can only be
+# validated with a signed account read, which this dashboard has no business
+# performing — see the note on the Binance gap in the module docs.
+_EXTRA_ENV_FILES = (
+    "/root/luxquant-terminal/backend/.env.social-posts",   # xAI, Tavily, image gen
+    "/root/luxquant-x-poster/.env",                        # Anthropic, X, TG poster bot
+    "/root/.luxquant_alertbot_env",                        # alert delivery bot
+)
 
 _extra_env: dict[str, str] | None = None
 
@@ -261,15 +270,62 @@ async def _probe_anthropic(client: httpx.AsyncClient, k: dict[str, str]) -> Prob
     return ProbeResult(OK, f"key valid — {n} models", {"models": n})
 
 
-async def _probe_telegram(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
-    r = await client.get(f"https://api.telegram.org/bot{k['TELEGRAM_BOT_TOKEN']}/getMe")
-    if r.status_code in (401, 404):
-        return ProbeResult(DOWN, "bot token rejected")
-    r.raise_for_status()
-    res = r.json().get("result", {})
-    return ProbeResult(
-        OK, f"bot @{res.get('username')} authenticated", {"bot_username": res.get("username")}
+def _mk_telegram_bot(env_key: str):
+    """LuxQuant runs three separate Telegram bots on three separate tokens.
+
+    getMe is the only identity check Telegram offers; it also proves which bot a
+    token actually belongs to, which is how the three were told apart.
+    """
+    async def _run(c: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+        r = await c.get(f"https://api.telegram.org/bot{k[env_key]}/getMe")
+        if r.status_code in (401, 404):
+            return ProbeResult(DOWN, "bot token rejected")
+        r.raise_for_status()
+        res = r.json().get("result", {})
+        return ProbeResult(
+            OK, f"bot @{res.get('username')} authenticated",
+            {"bot_username": res.get("username")},
+        )
+    return _run
+
+
+async def _probe_xai(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    r = await client.get(
+        "https://api.x.ai/v1/models",
+        headers={"Authorization": f"Bearer {k['XAI_API_KEY']}"},
     )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+    if r.status_code == 429:
+        return ProbeResult(WARN, "rate limited or out of credit")
+    r.raise_for_status()
+    n = len(r.json().get("data", []))
+    return ProbeResult(OK, f"key valid — {n} models", {"models": n})
+
+
+async def _probe_tavily(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    """/usage reports plan consumption without spending a search credit."""
+    r = await client.get(
+        "https://api.tavily.com/usage",
+        headers={"Authorization": f"Bearer {k['TAVILY_API_KEY']}"},
+    )
+    if r.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
+    r.raise_for_status()
+    acct = r.json().get("account", {}) or {}
+    used = acct.get("plan_usage")
+    cap = acct.get("plan_limit")
+    metrics = {"plan": acct.get("current_plan"), "used": used, "limit": cap}
+    if isinstance(used, int) and isinstance(cap, int) and cap:
+        pct = used / cap * 100
+        metrics["used_pct"] = round(pct, 1)
+        detail = f"{used} of {cap} credits ({acct.get('current_plan')})"
+        if pct >= 90:
+            return ProbeResult(DOWN, f"plan nearly exhausted — {detail}", metrics)
+        if pct >= 70:
+            return ProbeResult(WARN, detail, metrics)
+        return ProbeResult(OK, detail, metrics)
+    return ProbeResult(OK, f"key valid ({acct.get('current_plan') or 'unknown plan'})", metrics)
 
 
 async def _probe_etherscan(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
@@ -402,6 +458,8 @@ PROVIDERS: list[Provider] = [
     Provider("bgeometrics", "BGeometrics", "quota",
              "BTC Compass 2.0 / AI Research — all 23 metrics", ("BGEOMETRICS_API_KEY",),
              _probe_bgeometrics, "https://bgeometrics.com"),
+    # DISCORD_TOKEN (cryptobot, relay) and DISCORD_BOT_TOKEN (backend) resolve to
+    # the same bot id, so this is one provider, not three.
     Provider("discord", "Discord", "quota",
              "Discord relay + Premium+ entitlement", ("DISCORD_BOT_TOKEN",), _probe_discord),
     Provider("openai", "OpenAI", "validity",
@@ -410,8 +468,21 @@ PROVIDERS: list[Provider] = [
     Provider("anthropic", "Anthropic", "validity",
              "X poster copy (luxquant-x-poster)", ("ANTHROPIC_API_KEY",), _probe_anthropic,
              "https://console.anthropic.com/settings/billing"),
-    Provider("telegram", "Telegram Bot", "validity",
-             "Terminal Bot, alerts, delivery", ("TELEGRAM_BOT_TOKEN",), _probe_telegram),
+    Provider("xai", "xAI (Grok)", "validity",
+             "Social post editorial copy", ("XAI_API_KEY",), _probe_xai,
+             "https://console.x.ai"),
+    Provider("tavily", "Tavily", "quota",
+             "News/web search for Social Posts", ("TAVILY_API_KEY",), _probe_tavily,
+             "https://app.tavily.com"),
+    Provider("telegram", "Telegram — Terminal Bot", "validity",
+             "Mini App front door, onboarding", ("TELEGRAM_BOT_TOKEN",),
+             _mk_telegram_bot("TELEGRAM_BOT_TOKEN")),
+    Provider("telegram_alert", "Telegram — Alert Bot", "validity",
+             "Saved-signal & entry alert delivery", ("ALERT_BOT_TOKEN",),
+             _mk_telegram_bot("ALERT_BOT_TOKEN")),
+    Provider("telegram_poster", "Telegram — Poster Bot", "validity",
+             "Free channel posts (luxquant-x-poster)", ("TG_BOT_TOKEN",),
+             _mk_telegram_bot("TG_BOT_TOKEN")),
     Provider("etherscan", "Etherscan", "validity",
              "Whale tracking / ETH on-chain", ("ETHERSCAN_API_KEY",), _probe_etherscan),
     Provider("bscscan", "BscScan", "validity",

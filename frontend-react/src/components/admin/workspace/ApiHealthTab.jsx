@@ -83,6 +83,16 @@ function Metrics({ row }) {
       </span>
     );
   }
+  if (typeof m.used === "number" && typeof m.limit === "number") {
+    return (
+      <span className="font-mono text-xs tabular-nums">
+        {m.used} / {m.limit}
+        {m.used_pct != null && (
+          <span className="ml-1 text-text-primary/40">({m.used_pct}%)</span>
+        )}
+      </span>
+    );
+  }
   if (m.remaining_hour !== undefined && m.remaining_hour !== null) {
     return (
       <span className="font-mono text-xs tabular-nums">
