@@ -7,6 +7,7 @@ import {
   CrosshairMode,
 } from "lightweight-charts";
 import { useChartDrawings, TOOLS, measureStats } from "./useChartDrawings";
+import { detectFVGs, partitionZones, MITIGATION } from "./fvg";
 
 /**
  * The signal's own chart, with entry / TP1-4 / SL1-2 drawn on it.
@@ -94,6 +95,37 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
   const [interval, setInterval_] = useState("4h");
   const [candles, setCandles] = useState(null);
   const [error, setError] = useState(null);
+
+  // Fair Value Gaps. Off by default — this chart's job is the trade plan, and a
+  // user who has not asked for imbalance zones should not have to dismiss them.
+  // The preference is remembered so it does not have to be re-armed per signal.
+  const [fvgOn, setFvgOn] = useState(() => {
+    try {
+      return localStorage.getItem("pref_chart_fvg") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleFvg = () => {
+    setFvgOn((on) => {
+      const next = !on;
+      try {
+        localStorage.setItem("pref_chart_fvg", next ? "1" : "0");
+      } catch {
+        /* private mode — the toggle still works for this session */
+      }
+      return next;
+    });
+  };
+
+  // Recomputed only when the candles actually change, not on every repaint:
+  // the overlay re-projects on pan/zoom far more often than the data reloads.
+  const fvgZones = useMemo(() => {
+    if (!fvgOn || !candles?.length) return { open: [], inverted: [] };
+    return partitionZones(
+      detectFVGs(candles, { mitigation: MITIGATION.AVERAGE })
+    );
+  }, [fvgOn, candles]);
 
   const pair = (signal?.pair || "").toUpperCase();
 
@@ -291,6 +323,22 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
           ))}
         </div>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={toggleFvg}
+            title={
+              "Fair Value Gaps — unfilled 3-candle imbalances.\n" +
+              "Solid = still open. Hatched = price closed through it, so the zone " +
+              "has flipped and now acts as the opposite level."
+            }
+            className={`mr-1 rounded px-2 py-1 font-mono text-[10px] leading-none transition-colors ${
+              fvgOn
+                ? "bg-accent text-accent-fg"
+                : "text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
+            }`}
+          >
+            FVG
+          </button>
           {[
             { k: TOOLS.CURSOR, label: "✛", title: "Pan / zoom" },
             { k: TOOLS.MEASURE, label: "⇔", title: "Measure a move — drag across the candles" },
@@ -341,6 +389,55 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
             chart keeps its own crosshair and wheel zoom; the host element below
             is what listens for drawing gestures. */}
         <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
+          <defs>
+            {/* Inverted zones are hatched rather than another flat fill, so the
+                two states stay apart for a colour-blind reader too. */}
+            <pattern id="fvg-inv" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" strokeWidth="2" />
+            </pattern>
+          </defs>
+
+          {/* FVG zones sit first in the SVG so user drawings paint over them. */}
+          {fvgOn &&
+            [
+              ...fvgZones.open.map((z) => ({ z, flipped: false })),
+              ...fvgZones.inverted.map((z) => ({ z, flipped: true })),
+            ].map(({ z, flipped }) => {
+              const a = toPixel({ time: z.time, price: z.top });
+              const b = toPixel({ time: z.time, price: z.bottom });
+              if (!a || !b) return null;
+              const y = Math.min(a.y, b.y);
+              const h = Math.abs(b.y - a.y);
+              if (!(h > 0)) return null;
+              // A flipped bullish gap behaves bearishly from then on, so colour
+              // by what the zone does NOW, not by how it was born.
+              const acts = flipped ? (z.dir === "bull" ? "bear" : "bull") : z.dir;
+              const colour = acts === "bull" ? palette.pos : palette.neg;
+              const x = Math.max(a.x, 0);
+              return (
+                <g key={`fvg-${z.dir}-${z.time}`} style={{ color: colour }}>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={`calc(100% - ${x}px)`}
+                    height={h}
+                    fill={flipped ? "url(#fvg-inv)" : colour}
+                    fillOpacity={flipped ? 0.22 : 0.1}
+                  />
+                  <line
+                    x1={x}
+                    y1={y + h / 2}
+                    x2="100%"
+                    y2={y + h / 2}
+                    stroke={colour}
+                    strokeWidth="1"
+                    strokeDasharray="2 4"
+                    strokeOpacity="0.5"
+                  />
+                </g>
+              );
+            })}
+
           {[...shapes, ...(draft ? [{ ...draft, id: "draft" }] : [])].map((s) => {
             if (s.type === TOOLS.HLINE) {
               const p = toPixel({ time: s.time ?? 0, price: s.price });
