@@ -242,6 +242,7 @@ const CrmSegments = ({ onToast }) => {
               <thead className="sticky top-0 z-10 bg-surface-raised">
                 <tr className="text-left text-[10px] uppercase tracking-wider text-text-muted">
                   <th className="px-3 py-2 font-medium">User</th>
+                  <th className="px-2 py-2 font-medium">Acquisition</th>
                   <th className="px-2 py-2 font-medium">Access</th>
                   <th className="px-2 py-2 font-medium">Last seen</th>
                   <th className="px-2 py-2 font-medium">Activity</th>
@@ -304,6 +305,29 @@ const CrmSegments = ({ onToast }) => {
                         >
                           {m.failed_verify} failed verify ↗
                         </button>
+                      )}
+                    </td>
+                    <td
+                      className="max-w-[190px] px-2 py-2"
+                      title={[
+                        m.acq_source,
+                        m.acq_medium,
+                        m.acq_campaign,
+                        m.acq_content,
+                        m.acq_path,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    >
+                      <div className="font-medium text-text-primary">
+                        {m.acq_source || "—"}
+                      </div>
+                      {(m.acq_campaign || m.acq_content) && (
+                        <div className="truncate text-[10.5px] text-text-muted">
+                          {[m.acq_campaign, m.acq_content]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </div>
                       )}
                     </td>
                     <td className="px-2 py-2">

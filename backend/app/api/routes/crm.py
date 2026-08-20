@@ -172,6 +172,10 @@ def segment_members(
                    u.last_login_at, u.created_at,
                    u.subscription_expires_at,
                    COALESCE(u.acq_source, '') AS acq_source,
+                   COALESCE(u.acq_medium, '') AS acq_medium,
+                   COALESCE(u.acq_campaign, '') AS acq_campaign,
+                   COALESCE(u.acq_content, '') AS acq_content,
+                   COALESCE(u.acq_path, '') AS acq_path,
                    -- An invoice the user created and never paid. A plan switch
                    -- auto-cancels the old invoice, so those are excluded: they
                    -- are the checkout working, not the user giving up.
@@ -222,6 +226,10 @@ def segment_members(
                 r["subscription_expires_at"].isoformat() if r["subscription_expires_at"] else None
             ),
             "acq_source": r["acq_source"] or None,
+            "acq_medium": r["acq_medium"] or None,
+            "acq_campaign": r["acq_campaign"] or None,
+            "acq_content": r["acq_content"] or None,
+            "acq_path": r["acq_path"] or None,
             "unpaid_invoices": r["unpaid_invoices"],
             "switched_plan": r["switched_plan"],
             "failed_verify": r["failed_verify"],
