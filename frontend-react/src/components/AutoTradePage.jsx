@@ -36,6 +36,7 @@ import { authApi, getMyAgentDisclaimerAcks } from "../services/authApi";
 import { LIVE_FORM } from "./autotrade/agentDisclaimerCopy";
 
 import AppliedRulesCard from "./autotrade/AppliedRulesCard";
+import { skipSummary } from "./autotrade/autotradeEventGuide";
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import ExchangePicker from "./autotrade/ExchangePicker";
 import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
@@ -435,6 +436,7 @@ function AutoTradeOverview({
   exchangeAccounts,
   alertStatus,
   config,
+  activityLogs,
   onOpenSettings,
 }) {
   const primary =
@@ -448,9 +450,42 @@ function AutoTradeOverview({
   const exitMode = config?.exit?.mode || config?.exit_mode;
   const callback = config?.exit?.trailing_callback_rate;
 
+  const recentSkips = [];
+  const seenSkips = new Set();
+  for (const row of activityLogs || []) {
+    const skip = skipSummary(row.action, row.metadata || {});
+    if (!skip) continue;
+    const key = `${skip.symbol}:${skip.title}`;
+    if (seenSkips.has(key)) continue;
+    seenSkips.add(key);
+    recentSkips.push({ ...skip, at: row.created_at });
+    if (recentSkips.length >= 6) break;
+  }
+
   return (
     <div className="space-y-5">
       <AppliedRulesCard config={config} />
+      {recentSkips.length ? (
+        <div className="rounded-lg border border-ink/[0.08] bg-surface-raised px-4 py-3.5">
+          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+            Signals not taken
+          </p>
+          <p className="mt-1 text-[12px] text-text-secondary">
+            Agent skipped these on purpose. Open Activity for the full list.
+          </p>
+          <ul className="mt-2.5 space-y-1.5">
+            {recentSkips.map((row) => (
+              <li key={`${row.symbol}-${row.title}-${row.at}`} className="text-[12px] leading-5">
+                <span className="font-medium text-text-primary">{row.symbol || "Signal"}</span>
+                <span className="text-text-muted"> — {row.title}</span>
+                {row.blocking ? (
+                  <span className="ml-1 text-warn">· pausing new entries</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <PnLSummary portfolio={portfolio} executions={executions} tradeSummary={tradeSummary} />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -973,6 +1008,7 @@ export default function AutoTradePage() {
                     exchangeAccounts={exchangeAccounts}
                     alertStatus={alertStatus}
                     config={strategyConfig}
+                    activityLogs={activityLogs}
                     onOpenSettings={openSettings}
                   />
                 ) : null}

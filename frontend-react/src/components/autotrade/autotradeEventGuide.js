@@ -34,8 +34,8 @@ export const RISK_EVENTS = {
     title: "A position needs reconciliation",
     blocking: true,
     what: "One of your positions could not be matched against the exchange, so every new entry is paused until it clears.",
-    why: "Usually the coin left the wallet outside the bot — a manual sell, a convert, or a transfer. All of those cancel the protective order first. It can also happen if a protective TP/SL was rejected after entry.",
-    fix: "The reconciler closes these on its own once it confirms the balance is gone. If it persists for more than a few cycles, contact support.",
+    why: "Usually the coin left the wallet outside the bot — a manual sell, a convert, or a transfer. It can also happen if a protective TP/SL was rejected after entry. A leftover job after an emergency close used to stay stuck and pause every new signal even at flat; that now clears on its own.",
+    fix: "Wait for the next reconcile cycle — settled emergency closes and vanished positions should unpause entries automatically. Contact support only if new signals stay blocked for more than a few minutes with no open position.",
   },
   bot_access_blocked: {
     title: "Bot access switched off by the LuxQuant team",
@@ -174,6 +174,23 @@ export const SKIP_EVENTS = {
     fix: "Change the leverage fallback to 'clamp' to trade at the highest allowed leverage instead of skipping.",
   },
 };
+
+export function skipSummary(action, metadata = {}) {
+  if (!action || !String(action).startsWith("execution.skip")) return null;
+  const symbol = metadata.symbol || "";
+  if (action.startsWith("execution.skip_risk_limit.")) {
+    const code = action.split(".").pop();
+    const ev = RISK_EVENTS[code];
+    return {
+      symbol,
+      title: ev?.title || code.replaceAll("_", " "),
+      blocking: Boolean(ev?.blocking),
+    };
+  }
+  const ev = SKIP_EVENTS[action];
+  if (ev) return { symbol, title: ev.title, blocking: Boolean(ev.blocking) };
+  return { symbol, title: String(action).replace("execution.skip_", "").replaceAll("_", " ") };
+}
 
 // ── Alerts ───────────────────────────────────────────────────────
 // Categories from the monitoring worker, delivered by Telegram.

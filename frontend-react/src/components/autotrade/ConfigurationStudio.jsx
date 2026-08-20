@@ -503,6 +503,8 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
         <p className="mt-1 text-sm text-text-secondary">{statusText}</p>
         <p className="mt-3 border-t border-ink/[0.06] pt-3 text-xs text-text-muted">
           Start and pause Agent from the engine control at the top of the page.
+          Saving exit rules (Fixed SL vs Trailing, TP/SL levels) also replaces
+          the protective orders on positions this bot already holds on this venue.
         </p>
       </Card>
 

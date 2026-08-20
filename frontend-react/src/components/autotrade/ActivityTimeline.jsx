@@ -187,8 +187,10 @@ function skipInfo(action, metadata = {}) {
       };
     case "execution.skip_no_supported_market":
       return {
-        label: "Coin not available on your markets",
-        detail: `${metadata.symbol || "This coin"} is not listed on the market you have enabled.`,
+        label: "Coin not listed on your enabled market",
+        detail: metadata.futures_available === false && metadata.futures_enabled
+          ? `${metadata.symbol || "This coin"} has no ${metadata.venue || "this venue"} futures contract. Your bot is futures-only, so the signal was skipped. Spot on the same venue would be a different setting.`
+          : `${metadata.symbol || "This coin"} is not listed on the market you have enabled.`,
       };
     case "execution.skip_price_outside_entry_window":
       return {
