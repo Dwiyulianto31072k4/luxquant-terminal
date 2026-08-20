@@ -21,6 +21,7 @@ import TelegramNudgeModal from "./components/TelegramNudgeModal";
 import OpenInvoiceCard from "./components/subscription/OpenInvoiceCard";
 import FreeOnboardingModal from "./components/FreeOnboardingModal";
 import MiniAppStartRoute from "./components/MiniAppStartRoute";
+import TelegramAdTerminalEntry from "./components/telegramAds/TelegramAdTerminalEntry";
 import AnnouncementModal from "./components/AnnouncementModal";
 import ChatLauncher from "./components/chat/ChatLauncher";
 import { stashPostLoginRedirect } from "./utils/postLoginRedirect";
@@ -1764,13 +1765,15 @@ function App() {
                   <Route
                     path="/terminal"
                     element={
-                      <RequireAuth>
-                        <AppShell>
-                          <PremiumGate>
-                            <TerminalLayout />
-                          </PremiumGate>
-                        </AppShell>
-                      </RequireAuth>
+                      <TelegramAdTerminalEntry>
+                        <RequireAuth>
+                          <AppShell>
+                            <PremiumGate>
+                              <TerminalLayout />
+                            </PremiumGate>
+                          </AppShell>
+                        </RequireAuth>
+                      </TelegramAdTerminalEntry>
                     }
                   >
                     <Route index element={<TerminalIndex />} />

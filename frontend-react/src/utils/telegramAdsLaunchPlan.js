@@ -7,17 +7,17 @@ export const TELEGRAM_AD_CREATIVES = [
   {
     id: "proof-timestamps",
     angle: "Resolved proof",
-    text: "Audit a resolved crypto call from timestamped entry to final outcome. Then explore live signals, market data and research inside LuxQuant.",
+    text: "Audit resolved LuxQuant crypto calls from timestamped entry through tracked updates to the final recorded outcome.",
   },
   {
     id: "signal-process",
     angle: "Signal process",
-    text: "Before following any crypto signal, inspect the process. LuxQuant shows entries, targets, stops, updates and resolved outcomes in one terminal.",
+    text: "Inspect resolved LuxQuant call journeys: original entry, targets, stop, tracked updates and final recorded outcome.",
   },
   {
     id: "terminal-context",
     angle: "Full terminal",
-    text: "Signals need context. Combine LuxQuant calls with market flow, on-chain data, Bitcoin metrics and research in one Telegram Mini App.",
+    text: "Explore the LuxQuant Telegram Mini App: resolved calls plus market-flow, on-chain, Bitcoin and research modules in one workspace.",
   },
   {
     id: "outcome-journey",

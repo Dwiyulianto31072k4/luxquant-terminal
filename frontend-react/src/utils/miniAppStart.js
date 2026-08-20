@@ -42,6 +42,30 @@ const KEY_DESTINATIONS = {
 // the same trap the campaign grouping hit. Suffix-match the whole known key.
 const KEYS = Object.keys(KEY_DESTINATIONS).sort((a, b) => b.length - a.length);
 
+// Telegram reviews the first screen reached by each sponsored message. These
+// three ads make different promises, so their signed start_param is rendered
+// in place at /terminal by TelegramAdTerminalEntry. Returning no redirect here
+// is deliberate: automatically forwarding every ad to one generic page was
+// rejected under the "irrelevant destinations" rule.
+const TELEGRAM_AD_CAMPAIGN = "tg-proof-scale-aug26";
+const TELEGRAM_AD_VARIANTS = new Set([
+  "proof-timestamps",
+  "signal-process",
+  "terminal-context",
+]);
+
+export function telegramAdVariant(startParam) {
+  const campaign = parseLuxQuantStartParam(String(startParam || "").trim().toLowerCase());
+  if (
+    campaign?.medium !== "paid_social" ||
+    campaign?.campaign !== TELEGRAM_AD_CAMPAIGN ||
+    !TELEGRAM_AD_VARIANTS.has(campaign?.content)
+  ) {
+    return null;
+  }
+  return campaign.content;
+}
+
 /**
  * @param {string|null|undefined} startParam raw Telegram start_param
  * @returns {string|null} an in-app path, or null when nothing is claimed
@@ -49,15 +73,22 @@ const KEYS = Object.keys(KEY_DESTINATIONS).sort((a, b) => b.length - a.length);
 export function startDestination(startParam) {
   const s = String(startParam || "").trim().toLowerCase();
   if (!s) return null;
+  if (telegramAdVariant(s)) return null;
   const campaign = parseLuxQuantStartParam(s);
   if (campaign) {
-    return campaign.medium === "auth_fallback" ? "/home" : "/performance";
+    if (campaign.medium === "auth_fallback") return "/home";
+    return "/performance";
   }
   const key = KEYS.find((k) => s === k || s.endsWith(`_${k}`));
   return key ? KEY_DESTINATIONS[key] : null;
 }
 
-export const __TEST__ = { KEY_DESTINATIONS, KEYS };
+export const __TEST__ = {
+  KEY_DESTINATIONS,
+  KEYS,
+  TELEGRAM_AD_CAMPAIGN,
+  TELEGRAM_AD_VARIANTS,
+};
 
 /**
  * Split a start_param the way the backend does, so a Mini App arrival can be
