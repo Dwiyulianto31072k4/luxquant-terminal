@@ -79,7 +79,8 @@ const UserMenu = () => {
   };
 
   const go = (path) => {
-    navigate(path);
+    const [pathname, hash] = String(path).split("#");
+    navigate(hash ? { pathname, hash: `#${hash}` } : pathname);
     handleClose();
   };
 
@@ -101,12 +102,8 @@ const UserMenu = () => {
       go("/pricing");
       return;
     }
-    if (!telegramLinked) {
-      go("/profile");
-      return;
-    }
-    if (inVipGroup) {
-      go("/profile");
+    if (!telegramLinked || inVipGroup) {
+      go("/profile#vip-group");
       return;
     }
     setVipBusy(true);

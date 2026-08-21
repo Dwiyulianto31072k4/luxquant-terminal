@@ -15,9 +15,10 @@ import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import api from "../services/authApi";
 
-const Section = ({ title, badge, children }) => (
+const Section = ({ title, badge, children, id }) => (
   <div
-    className="overflow-hidden rounded-md border border-ink/[0.06] bg-ink/[0.015]"
+    id={id}
+    className="scroll-mt-4 overflow-hidden rounded-md border border-ink/[0.06] bg-ink/[0.015] transition-shadow duration-500"
     style={{ boxShadow: "inset 0 1px 2px -1px rgb(var(--scrim) / 0.3)" }}
   >
     <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-ink/[0.05] bg-ink/[0.015]">
@@ -85,7 +86,7 @@ const VipGroupCard = ({ onToast }) => {
   };
 
   return (
-    <Section title={t("vip.section_title", "Telegram VIP Group")}>
+    <Section id="vip-group" title={t("vip.section_title", "Telegram VIP Group")}>
       <div className="p-4 sm:p-5">
         {/* Grace-period warning banner */}
         {inGrace && (

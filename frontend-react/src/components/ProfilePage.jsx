@@ -9,6 +9,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useTheme } from "../context/ThemeContext";
@@ -43,6 +44,7 @@ const loadGsiScript = () =>
 
 const ProfilePage = () => {
   const { t } = useTranslation();
+  const location = useLocation();
   const { user, setUser } = useAuth();
   const { rates, supported } = useCurrency();
   const { canSwitchTheme } = useTheme();
@@ -73,6 +75,31 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchConnections();
   }, []);
+
+  // Avatar menu "Join VIP group" lands on /profile#vip-group. The settings
+  // dialog scrolls its own pane, not the window — scrollIntoView still walks
+  // that overflow ancestor.
+  useEffect(() => {
+    if (location.hash !== "#vip-group") return undefined;
+    let tries = 0;
+    let timer = 0;
+    const run = () => {
+      const el = document.getElementById("vip-group");
+      if (!el && tries < 12) {
+        tries += 1;
+        timer = window.setTimeout(run, 50);
+        return;
+      }
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-accent/40");
+      timer = window.setTimeout(() => {
+        el.classList.remove("ring-2", "ring-accent/40");
+      }, 1600);
+    };
+    timer = window.setTimeout(run, 80);
+    return () => window.clearTimeout(timer);
+  }, [location.hash, location.key]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 3500);
