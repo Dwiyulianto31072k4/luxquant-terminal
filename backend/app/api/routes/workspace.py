@@ -326,6 +326,8 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             "payment_status": payment_state,
             "joined_at": use.created_at,
             "activated_at": use.first_login_at,
+            "qualified": bool(use.qualified_at),
+            "qualified_at": use.qualified_at,
             "last_active_at": (referred.last_active_at or referred.last_login_at) if referred else None,
             "payments": confirmed_payments,
             "historical_payments": int(use.total_payments or 0),
@@ -431,7 +433,8 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             "tracked_shares": sum(a["shares"] for a in advocates),
             "referred": total_referred,
             "activated": total_activated,
-            "qualified": sum(a.get("qualified", 0) for a in advocates),
+            "qualified": sum(1 for u in uses if u.qualified_at),
+            "unlock_days": sum(int(u.reward_days_granted or 0) for u in uses),
             "subscribed": total_subscribed,
             "activation_rate": (total_activated / total_referred * 100) if total_referred else 0,
             "paid_rate": (total_subscribed / total_referred * 100) if total_referred else 0,
@@ -608,10 +611,21 @@ def growth_analytics(
         .filter(*CONFIRMED, PAID_AT >= d365)
         .group_by(month).order_by(month).all()
     )
-    trend = [
-        {"month": m.strftime('%Y-%m') if m else None, "revenue": float(s or 0), "count": int(c or 0)}
+    by_month = {
+        (m.strftime("%Y-%m") if m else ""): {"revenue": float(s or 0), "count": int(c or 0)}
         for m, s, c in trend_rows
-    ]
+        if m
+    }
+    trend = []
+    cursor = (now.replace(day=1) - timedelta(days=365)).replace(day=1)
+    while cursor <= now:
+        key = cursor.strftime("%Y-%m")
+        point = by_month.get(key) or {"revenue": 0.0, "count": 0}
+        trend.append({"month": key, **point})
+        if cursor.month == 12:
+            cursor = cursor.replace(year=cursor.year + 1, month=1)
+        else:
+            cursor = cursor.replace(month=cursor.month + 1)
 
     # ── Subscriptions & churn ──
     active_subs = db.query(func.count(User.id)).filter(

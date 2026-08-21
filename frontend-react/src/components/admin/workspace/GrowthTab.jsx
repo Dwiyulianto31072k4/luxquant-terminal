@@ -115,33 +115,188 @@ const StateBadge = ({ state }) => {
   );
 };
 
+const fillMonths = (trend, months = 12) => {
+  const map = Object.fromEntries(
+    (trend || []).filter((t) => t?.month).map((t) => [t.month, t]),
+  );
+  const now = new Date();
+  const out = [];
+  for (let i = months - 1; i >= 0; i -= 1) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const key = d.toISOString().slice(0, 7);
+    out.push(map[key] || { month: key, revenue: 0, count: 0 });
+  }
+  return out;
+};
+
 const RevenueTrend = ({ trend }) => {
-  const max = Math.max(...trend.map((t) => t.revenue), 1);
-  if (!trend.length)
-    return (
-      <p className="py-6 text-center text-[11px] text-text-muted">
-        No revenue recorded yet.
-      </p>
-    );
+  const series = fillMonths(trend);
+  const max = Math.max(...series.map((t) => Number(t.revenue) || 0), 1);
+  const [hover, setHover] = useState(null);
+  const w = 640;
+  const h = 196;
+  const pad = { l: 8, r: 8, t: 18, b: 28 };
+  const innerW = w - pad.l - pad.r;
+  const innerH = h - pad.t - pad.b;
+  const gap = innerW / series.length;
+  const barW = Math.max(gap * 0.55, 8);
+
   return (
-    <div className="flex h-40 items-end gap-1.5 pt-2">
-      {trend.map((t) => (
-        <div
-          key={t.month}
-          className="group flex min-w-0 flex-1 flex-col items-center gap-1.5"
-        >
-          <div className="relative flex w-full flex-1 items-end">
-            <div
-              className="w-full rounded-t-sm bg-ink/30 transition-all group-hover:bg-accent/50"
-              style={{ height: `${Math.max((t.revenue / max) * 100, 2)}%` }}
-              title={`${t.month}: ${usd(t.revenue)} · ${t.count} payments`}
-            />
-          </div>
-          <span className="text-[8.5px] tabular-nums text-text-muted/70">
-            {monthLabel(t.month)}
+    <div className="relative">
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-48 w-full" role="img" aria-label="Monthly confirmed revenue">
+        {[0.25, 0.5, 0.75, 1].map((g) => (
+          <line
+            key={g}
+            x1={pad.l}
+            x2={w - pad.r}
+            y1={pad.t + innerH * (1 - g)}
+            y2={pad.t + innerH * (1 - g)}
+            stroke="rgb(var(--ink) / 0.08)"
+            strokeWidth="1"
+          />
+        ))}
+        {series.map((t, i) => {
+          const rev = Number(t.revenue) || 0;
+          const bh = Math.max((rev / max) * innerH, rev > 0 ? 4 : 0);
+          const x = pad.l + i * gap + (gap - barW) / 2;
+          const y = pad.t + innerH - bh;
+          return (
+            <g key={t.month}>
+              <rect
+                x={x}
+                y={y}
+                width={barW}
+                height={bh}
+                rx="3"
+                fill={hover === i ? "rgb(var(--accent))" : "rgb(var(--accent) / 0.72)"}
+                onMouseEnter={() => setHover(i)}
+                onMouseLeave={() => setHover(null)}
+              />
+              <text
+                x={x + barW / 2}
+                y={h - 8}
+                textAnchor="middle"
+                fill="rgb(var(--fg-muted))"
+                fontSize="9"
+              >
+                {monthLabel(t.month)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      {hover != null && series[hover] && (
+        <div className="pointer-events-none absolute right-1 top-0 rounded-md border border-ink/10 bg-surface-raised px-2 py-1 text-[10px] text-text-primary shadow-sm">
+          <span className="font-semibold">{usd(series[hover].revenue)}</span>
+          <span className="ml-1.5 text-text-muted">
+            {series[hover].count} pay · {monthLabel(series[hover].month)}
           </span>
         </div>
-      ))}
+      )}
+    </div>
+  );
+};
+
+const STATUS_COLOR = {
+  subscribed: "rgb(var(--pos))",
+  qualified: "rgb(var(--accent))",
+  active: "rgb(var(--accent) / 0.55)",
+  pending: "rgb(var(--fg-muted))",
+  churned: "rgb(var(--neg))",
+  cancelled: "rgb(var(--neg))",
+};
+
+const ReferralGraph = ({ relationships }) => {
+  const rows = relationships || [];
+  const hubs = useMemo(() => {
+    const map = new Map();
+    rows.forEach((r) => {
+      const id = r.referrer_id;
+      if (!map.has(id)) {
+        map.set(id, {
+          id,
+          name: r.referrer_username,
+          kids: [],
+        });
+      }
+      map.get(id).kids.push(r);
+    });
+    return [...map.values()].sort((a, b) => b.kids.length - a.kids.length);
+  }, [rows]);
+
+  if (!rows.length) {
+    return (
+      <p className="py-8 text-center text-[11px] text-text-muted">
+        No referral relationships yet. Graph fills as invites convert.
+      </p>
+    );
+  }
+
+  const w = 720;
+  const h = 280;
+  const left = 118;
+  const right = 560;
+  const shown = hubs.slice(0, 8);
+  const hubY = (i) => 28 + (i * (h - 48)) / Math.max(shown.length - 1, 1);
+
+  let leafIndex = 0;
+  const leafTotal = shown.reduce((n, hub) => n + hub.kids.length, 0);
+  const leaves = shown.flatMap((hub, hi) => {
+    const hy = hubY(hi);
+    return hub.kids.map((kid) => {
+      const t = leafTotal <= 1 ? 0.5 : leafIndex / (leafTotal - 1);
+      leafIndex += 1;
+      const y = 20 + t * (h - 40);
+      return { hub, kid, hy, y, color: STATUS_COLOR[kid.status] || STATUS_COLOR.active };
+    });
+  });
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-64 w-full" role="img" aria-label="Referrer to referee graph">
+        {leaves.map((n) => (
+          <path
+            key={n.kid.id}
+            d={`M ${left} ${n.hy} C ${(left + right) / 2} ${n.hy}, ${(left + right) / 2} ${n.y}, ${right} ${n.y}`}
+            fill="none"
+            stroke={n.color}
+            strokeOpacity="0.45"
+            strokeWidth="1.2"
+          />
+        ))}
+        {shown.map((hub, i) => {
+          const y = hubY(i);
+          const r = Math.min(16, 7 + Math.sqrt(hub.kids.length) * 2.4);
+          return (
+            <g key={hub.id}>
+              <circle cx={left} cy={y} r={r} fill="rgb(var(--accent))" />
+              <text x={left - r - 8} y={y + 3} textAnchor="end" fill="rgb(var(--fg))" fontSize="10" fontWeight="600">
+                @{hub.name}
+              </text>
+              <text x={left - r - 8} y={y + 14} textAnchor="end" fill="rgb(var(--fg-muted))" fontSize="8">
+                {hub.kids.length} invited
+              </text>
+            </g>
+          );
+        })}
+        {leaves.map((n) => (
+          <circle key={`d-${n.kid.id}`} cx={right} cy={n.y} r={3.2} fill={n.color} />
+        ))}
+        <text x={right + 12} y={24} fill="rgb(var(--fg-muted))" fontSize="9">
+          referees
+        </text>
+      </svg>
+      <div className="mt-2 flex flex-wrap gap-3 text-[9px] uppercase tracking-wider text-text-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <i className="inline-block h-2 w-2 rounded-full bg-accent" /> Active
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <i className="inline-block h-2 w-2 rounded-full bg-profit" /> Paid
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <i className="inline-block h-2 w-2 rounded-full bg-loss" /> Churned
+        </span>
+      </div>
     </div>
   );
 };
@@ -355,6 +510,11 @@ const ReferralFunnel = ({ summary }) => {
         : 0,
     ],
     ["Activated", summary.activated, summary.activation_rate],
+    [
+      "Qualified",
+      summary.qualified || 0,
+      summary.referred ? ((summary.qualified || 0) / summary.referred) * 100 : 0,
+    ],
     ["Paid", summary.subscribed, summary.paid_rate],
   ];
   const max = Math.max(...stages.map((s) => s[1]), 1);
@@ -377,7 +537,7 @@ const ReferralFunnel = ({ summary }) => {
           </div>
           <div className="h-2.5 overflow-hidden rounded-full bg-ink/[0.05]">
             <div
-              className={`h-full rounded-full ${i === 3 ? "bg-profit" : "bg-accent/65"}`}
+              className={`h-full rounded-full ${i === stages.length - 1 ? "bg-profit" : "bg-accent/65"}`}
               style={{
                 width: `${Math.max((value / max) * 100, value ? 3 : 0)}%`,
               }}
@@ -1003,6 +1163,12 @@ const ReferralEngine = ({ referral, onSend, onPause, sending }) => {
           </span>
         </div>
       </div>
+      <Panel
+        title="Referral graph"
+        sub="Who invited whom — gold hubs are advocates, dots on the right are referees"
+      >
+        <ReferralGraph relationships={referral?.relationships || []} />
+      </Panel>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile
           label="Advocates"
@@ -1019,11 +1185,11 @@ const ReferralEngine = ({ referral, onSend, onPause, sending }) => {
           sub="server-side links"
         />
         <StatTile
-          label="Activated"
-          value={num(summary.activated)}
+          label="Qualified"
+          value={num(summary.qualified)}
           Icon={TrendingUpIcon}
           accent="muted"
-          sub={pct(summary.activation_rate)}
+          sub={`${num(summary.unlock_days)} unlock days`}
         />
         <StatTile
           label="Paid"
