@@ -1578,10 +1578,10 @@ function drawGrid(ctx, radius, cx, cy, yaw, pitch) {
 function getAppTheme() {
   try {
     const t = document.documentElement.dataset.theme;
-    if (t === "luxquant") return "bright";
-    return t || "bright";
+    if (t === "luxquant" || t === "dark" || t === "bright") return t;
+    return "luxquant";
   } catch {
-    return "bright";
+    return "luxquant";
   }
 }
 
