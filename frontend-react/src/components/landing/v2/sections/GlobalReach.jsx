@@ -1577,9 +1577,11 @@ function drawGrid(ctx, radius, cx, cy, yaw, pitch) {
 
 function getAppTheme() {
   try {
-    return document.documentElement.dataset.theme || "luxquant";
+    const t = document.documentElement.dataset.theme;
+    if (t === "luxquant") return "bright";
+    return t || "bright";
   } catch {
-    return "luxquant";
+    return "bright";
   }
 }
 

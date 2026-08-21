@@ -8,9 +8,11 @@
 
 export function getActiveTheme() {
   try {
-    return document.documentElement?.dataset?.theme || "luxquant";
+    const t = document.documentElement?.dataset?.theme;
+    if (t === "luxquant") return "bright";
+    return t || "bright";
   } catch {
-    return "luxquant";
+    return "bright";
   }
 }
 

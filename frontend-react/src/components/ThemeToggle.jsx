@@ -9,18 +9,17 @@ import { useTheme } from "../context/ThemeContext";
 
 const THEMES = [
   {
-    key: "luxquant",
-    labelKey: "userMenu.theme_lux",
-    labelDefault: "Luxquant",
-    hintKey: "userMenu.theme_lux_hint",
-    hintDefault: "Warm gold on deep desk",
-    // Mini UI mock: top bar + accent CTA
+    key: "bright",
+    labelKey: "userMenu.theme_bright",
+    labelDefault: "Bright",
+    hintKey: "userMenu.theme_bright_hint",
+    hintDefault: "Light desk",
     preview: {
-      bg: "#0a0506",
-      bar: "#14080a",
-      line: "rgba(240,185,11,0.35)",
+      bg: "#F5F6F8",
+      bar: "#FFFFFF",
+      line: "rgba(15,23,42,0.1)",
       cta: "#F0B90B",
-      text: "#e8e0d4",
+      text: "#0B0E11",
     },
   },
   {
@@ -28,27 +27,13 @@ const THEMES = [
     labelKey: "userMenu.theme_dark",
     labelDefault: "Dark",
     hintKey: "userMenu.theme_dark_hint",
-    hintDefault: "Binance-neutral monochrome",
+    hintDefault: "Low light",
     preview: {
       bg: "#0B0E11",
       bar: "#181C22",
       line: "rgba(255,255,255,0.12)",
       cta: "#F0B90B",
       text: "#EAECEF",
-    },
-  },
-  {
-    key: "bright",
-    labelKey: "userMenu.theme_bright",
-    labelDefault: "Bright",
-    hintKey: "userMenu.theme_bright_hint",
-    hintDefault: "Paper desk · Stripe light",
-    preview: {
-      bg: "#F5F6F8",
-      bar: "#FFFFFF",
-      line: "rgba(15,23,42,0.1)",
-      cta: "#F0B90B",
-      text: "#0B0E11",
     },
   },
 ];

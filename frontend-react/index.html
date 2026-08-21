@@ -3,33 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0a0506" />
+    <meta name="theme-color" content="#f5f6f8" />
 
-    <!-- Theme anti-flash: set data-theme BEFORE first paint so there is no
-         flash of the wrong theme. Defaults to Luxquant. Members never have a
-         stored theme (switching is admin-gated), so they always resolve here. -->
+    <!-- Theme anti-flash: set data-theme before first paint. Bright is default.
+         Retired "luxquant" storage migrates to Bright. -->
     <script>
       (function () {
         try {
           var t = localStorage.getItem('lq-theme');
-          // Admin-selectable themes (members never persist a non-default).
-          var ok = ['luxquant', 'dark', 'bright'];
-          var theme = ok.indexOf(t) > -1 ? t : 'luxquant';
-          // Landing/login/register are luxquant+dark only — render a stored
-          // Bright as Dark on those routes (matches ThemeProvider clamp).
-          if (theme === 'bright' && /^\/(?:$|login|register)/.test(location.pathname)) {
-            theme = 'dark';
-          }
+          if (t === 'luxquant') t = 'bright';
+          var theme = t === 'dark' ? 'dark' : 'bright';
           document.documentElement.dataset.theme = theme;
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) {
-            meta.setAttribute(
-              'content',
-              theme === 'bright' ? '#f5f6f8' : theme === 'dark' ? '#050506' : '#0a0506'
-            );
-          }
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#050506' : '#f5f6f8');
         } catch (e) {
-          document.documentElement.dataset.theme = 'luxquant';
+          document.documentElement.dataset.theme = 'bright';
         }
       })();
     </script>
