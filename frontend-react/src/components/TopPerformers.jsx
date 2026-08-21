@@ -755,7 +755,7 @@ export const SignalDetailModal = ({
   // Link to LuxQuant's X post. If a per-signal tweet URL is ever stored on the
   // signal (detail.x_post_url), use it directly; otherwise fall back to a live
   // search of LuxQuant's own posts for this coin's cashtag (drives X traffic).
-  const X_HANDLE = "luxquantcrypto";
+  const X_HANDLE = "luxquantapp";
   const xCash = (pair || "").replace(/USDT$|USDC$|USD$/i, "");
   const xUrl =
     detail?.x_post_url ||
@@ -1841,7 +1841,7 @@ export const SignalDetailModal = ({
                     }}
                     className="mt-3 rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-accent-fg shadow-[0_4px_12px_rgb(var(--accent)/0.28)]"
                   >
-                    View Premium plans
+                    See plans
                   </button>
                 </div>
               )}

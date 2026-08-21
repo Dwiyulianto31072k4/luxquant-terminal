@@ -10,8 +10,8 @@ export const apiKeysEn = {
   // Locked / upsell
   locked_title: "API access requires an active subscription",
   locked_desc:
-    "You can create keys, but they will only return data while your subscription is active. Upgrade to start using the data API.",
-  upgrade_cta: "Upgrade Plan",
+    "You can create keys, but they only return data while a paid plan is active. See plans to unlock the data API.",
+  upgrade_cta: "See plans",
 
   // Create
   create_title: "Create a new key",
@@ -68,8 +68,8 @@ export const apiKeysZh = {
     "生成密钥，将 LuxQuant 数据接入您自己的机器人、智能体或自动化交易系统。每个密钥长期有效，仅在订阅有效期内可用。",
 
   locked_title: "API 访问需要有效订阅",
-  locked_desc: "您可以创建密钥，但只有在订阅有效期内才能返回数据。升级后即可使用数据 API。",
-  upgrade_cta: "升级套餐",
+  locked_desc: "您可以创建密钥，但只有在付费方案有效期内才会返回数据。查看方案以解锁数据 API。",
+  upgrade_cta: "查看方案",
 
   create_title: "创建新密钥",
   active: "个有效",

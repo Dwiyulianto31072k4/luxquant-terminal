@@ -4,11 +4,11 @@
 Site: https://luxquant.tw
 Brand: LuxQuant / LuxQuant Terminal
 Founded: 2023
-Contact: https://x.com/luxquantcrypto · https://t.me/LuxQuantSignal
+Contact: https://x.com/luxquantapp · https://t.me/LuxQuantSignal
 
 ## Primary pages
 - [Homepage](https://luxquant.tw/): Product overview, track-record proof, FAQ
-- [Pricing](https://luxquant.tw/pricing): Free tier and premium plans
+- [Pricing](https://luxquant.tw/pricing): Free Pulse and public record; paid unlocks live levels, Agent, and research. USDT on BNB Smart Chain, no auto-renewal.
 - [Market Overview](https://luxquant.tw/home): Live market overview (sign-in for full terminal)
 - [Status](https://luxquant.tw/status): Platform & API operational status
 

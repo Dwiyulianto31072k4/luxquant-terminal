@@ -234,8 +234,6 @@ const PaymentPage = () => {
 
   const isExpired = timeLeft === t("payment.expired");
 
-  if (!invoice) return null;
-
   // Recovering the invoice from the server. Rendering the checkout with no
   // wallet, no amount and a blank countdown for that moment looks like the
   // page is broken, which is the worst possible read on a payment screen.
@@ -244,11 +242,13 @@ const PaymentPage = () => {
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-3 text-text-muted">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/30 border-t-accent" />
-          <span className="text-sm">{t("payment.loading_invoice", "Loading your invoice…")}</span>
+          <span className="text-sm">{t("payment.loading_invoice")}</span>
         </div>
       </div>
     );
   }
+
+  if (!invoice) return null;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -281,14 +281,14 @@ const PaymentPage = () => {
                 className="text-[10px] font-bold uppercase tracking-[0.2em]"
                 style={{ color: "rgb(var(--fg-muted))" }}
               >
-                Payment Invoice
+                {t("payment.invoice_eyebrow")}
               </span>
             </div>
             <h1
               className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary tracking-tight leading-tight"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
-              Complete Your Payment
+              {t("payment.hero_title")}
             </h1>
             <p className="text-sm mt-2" style={{ color: "rgb(var(--fg-muted))" }}>
               <span style={{ color: "rgb(var(--accent-text))" }}>{planLabel}</span>
@@ -318,7 +318,7 @@ const PaymentPage = () => {
                 className="text-[10px] font-bold uppercase tracking-wider"
                 style={{ color: isExpired ? "#f87171" : "#22c55e" }}
               >
-                {isExpired ? "Expired" : "Awaiting Payment"}
+                {isExpired ? t("payment.expired") : t("payment.awaiting")}
               </span>
             </div>
           </div>
@@ -328,7 +328,7 @@ const PaymentPage = () => {
  TOP STAT ROW — 4 cards summary
  ════════════════════════════════════════════════ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <StatCard label="Amount Due">
+          <StatCard label={t("payment.amount_due")}>
             <div className="flex items-baseline gap-2">
               <span
                 className="text-2xl sm:text-3xl font-bold text-text-primary"
@@ -342,7 +342,7 @@ const PaymentPage = () => {
             </div>
           </StatCard>
 
-          <StatCard label="Currency">
+          <StatCard label={t("payment.currency")}>
             <div className="flex items-center gap-2.5">
               <UsdtIcon size={26} />
               <div>
@@ -354,7 +354,7 @@ const PaymentPage = () => {
             </div>
           </StatCard>
 
-          <StatCard label="Network">
+          <StatCard label={t("payment.network")}>
             <div className="flex items-center gap-2.5">
               <BNBIcon size={26} />
               <div>
@@ -366,7 +366,7 @@ const PaymentPage = () => {
             </div>
           </StatCard>
 
-          <StatCard label="Expires In">
+          <StatCard label={t("payment.expires_label")}>
             <div
               className={`text-lg sm:text-xl font-mono font-bold tracking-wider ${isExpired ? "text-loss" : ""}`}
               style={!isExpired ? { color: "rgb(var(--accent-text))" } : {}}
@@ -374,7 +374,9 @@ const PaymentPage = () => {
               {timeLeft || t("payment.calculating")}
             </div>
             <div className="text-[10px] mt-1" style={{ color: "rgb(var(--fg-muted))" }}>
-              {windowHours ? `${windowHours}h payment window` : "Payment window"}
+              {windowHours
+                ? t("payment.payment_window", { hours: windowHours })
+                : t("payment.payment_window_generic")}
             </div>
           </StatCard>
         </div>
@@ -410,14 +412,13 @@ const PaymentPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-bold text-text-primary mb-0.5">
-                    Don&rsquo;t have USDT, or prefer a bank transfer?
+                    {t("payment.other_way_title")}
                   </h4>
                   <p
                     className="text-xs leading-relaxed"
                     style={{ color: "rgb(var(--fg-muted))" }}
                   >
-                    Message an admin on Telegram and we will arrange bank transfer or
-                    another method by hand. Same plan, same price.
+                    {t("payment.other_way_body")}
                   </p>
                 </div>
               </div>
@@ -429,7 +430,7 @@ const PaymentPage = () => {
                   color: "rgb(var(--accent-fg))",
                 }}
               >
-                Pay another way
+                {t("payment.other_way_cta")}
               </button>
             </div>
           </div>
@@ -450,12 +451,12 @@ const PaymentPage = () => {
               }}
             />
             <div className="p-5 sm:p-7">
-              <SectionLabel label="Transfer Details" />
+              <SectionLabel label={t("payment.transfer_label")} />
               <h2
                 className="text-lg sm:text-xl font-bold text-text-primary mb-5 tracking-tight"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
-                Send USDT to wallet
+                {t("payment.transfer_title")}
               </h2>
 
               {/* Wallet Address */}
@@ -471,7 +472,7 @@ const PaymentPage = () => {
                     className="text-[10px] font-semibold uppercase tracking-wider"
                     style={{ color: "rgb(var(--fg-muted))" }}
                   >
-                    Wallet Address
+                    {t("payment.wallet_address")}
                   </span>
                   <button
                     onClick={() => handleCopy(walletAddress, "wallet")}
@@ -496,11 +497,13 @@ const PaymentPage = () => {
                   className="mt-2.5 text-[11px] leading-relaxed"
                   style={{ color: "rgb(var(--fg-muted))" }}
                 >
-                  <span className="font-semibold text-text-primary/90">
-                    This address was issued for this invoice only.
-                  </span>{" "}
-                  It is how we match your transfer to your account, so do not reuse it
-                  for a later payment.
+                  {t("payment.unique_address")}
+                </p>
+                <p
+                  className="mt-2 text-[11px] leading-relaxed"
+                  style={{ color: "rgb(var(--fg-muted))" }}
+                >
+                  {t("payment.never_dm")}
                 </p>
               </div>
 
@@ -518,7 +521,7 @@ const PaymentPage = () => {
                       className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
                       style={{ color: "rgb(var(--fg-muted))" }}
                     >
-                      Exact Amount
+                      {t("payment.exact_amount")}
                     </p>
                     <div className="flex items-baseline gap-2">
                       <span
@@ -577,10 +580,9 @@ const PaymentPage = () => {
                   style={{ color: "rgb(var(--fg-muted))" }}
                 >
                   <span className="font-semibold text-text-primary/90">
-                    Only send USDT via BSC (BEP-20).
+                    {t("payment.network_warn_title")}
                   </span>{" "}
-                  Sending other tokens or using other networks (ERC-20, TRC-20) will result in
-                  permanent loss of funds.
+                  {t("payment.network_warn_body")}
                 </p>
               </div>
 
@@ -603,12 +605,12 @@ const PaymentPage = () => {
               }}
             />
             <div className="p-5 sm:p-7">
-              <SectionLabel label="Verify Payment" />
+              <SectionLabel label={t("payment.verify_label")} />
               <h2
                 className="text-lg sm:text-xl font-bold text-text-primary mb-5 tracking-tight"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
-                Submit transaction hash
+                {t("payment.verify_title")}
               </h2>
 
               <div className="space-y-4">
@@ -616,8 +618,7 @@ const PaymentPage = () => {
                   className="text-[11px] leading-relaxed"
                   style={{ color: "rgb(var(--fg-muted))" }}
                 >
-                  After completing the transfer, paste your transaction hash below to verify and
-                  activate your subscription.
+                  {t("payment.verify_intro")}
                 </p>
 
                 <div>
@@ -625,7 +626,7 @@ const PaymentPage = () => {
                     className="block text-[10px] font-semibold uppercase tracking-wider mb-2"
                     style={{ color: "rgb(var(--fg-muted))" }}
                   >
-                    TX Hash
+                    {t("payment.tx_hash")}
                   </label>
                   <input
                     type="text"
@@ -684,10 +685,10 @@ const PaymentPage = () => {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                           />
                         </svg>
-                        Verifying on-chain...
+                        {t("payment.verifying")}
                       </span>
                     ) : (
-                      "Verify Payment"
+                      t("payment.verify_btn")
                     )}
                   </span>
                 </button>
@@ -758,13 +759,15 @@ const PaymentPage = () => {
                           }}
                         >
                           {result.status === "confirmed"
-                            ? "Payment confirmed!"
-                            : "We're still looking for it"}
+                            ? t("payment.confirmed")
+                            : t("payment.looking")}
                         </h4>
 
                         {result.status === "confirmed" ? (
                           <p className="text-xs" style={{ color: "rgb(var(--fg-muted))" }}>
-                            {`${result.subscription?.plan_label || planLabel} is now active. Redirecting…`}
+                            {t("payment.confirmed_body", {
+                              plan: result.subscription?.plan_label || planLabel,
+                            })}
                           </p>
                         ) : (
                           <div className="space-y-2.5">
@@ -772,11 +775,10 @@ const PaymentPage = () => {
                               className="text-xs font-medium"
                               style={{ color: "rgb(var(--fg-secondary))" }}
                             >
-                              Your funds are safe. We have saved your transaction hash
-                              and nothing is lost.
+                              {t("payment.funds_safe")}
                             </p>
                             <p className="text-xs" style={{ color: "rgb(var(--fg-muted))" }}>
-                              There are three reasons this happens:
+                              {t("payment.why_title")}
                             </p>
                             <ul
                               className="text-xs space-y-1.5 pl-4 list-disc"
@@ -784,29 +786,21 @@ const PaymentPage = () => {
                             >
                               <li>
                                 <b style={{ color: "rgb(var(--fg-secondary))" }}>
-                                  The network is still confirming.
+                                  {t("payment.why_confirming_title")}
                                 </b>{" "}
-                                Give it a few minutes and check again.
-                              </li>
-                              <li>
-                                {/* This one is not the customer's fault and cannot be
-                                    retried into working: some exchanges settle a
-                                    withdrawal internally when the destination is one of
-                                    their own addresses, so no chain transaction is ever
-                                    created and no on-chain lookup can ever find it. */}
-                                <b style={{ color: "rgb(var(--fg-secondary))" }}>
-                                  You sent it from an exchange that settled it internally.
-                                </b>{" "}
-                                MEXC, Bybit and others do this when the destination is
-                                one of their own addresses — the transfer never reaches
-                                the blockchain, so no lookup can find it. Retrying will
-                                not help; send us the withdrawal ID instead.
+                                {t("payment.why_confirming_body")}
                               </li>
                               <li>
                                 <b style={{ color: "rgb(var(--fg-secondary))" }}>
-                                  It went to a different network or amount.
+                                  {t("payment.why_internal_title")}
                                 </b>{" "}
-                                We only receive USDT on BNB Smart Chain (BEP-20).
+                                {t("payment.why_internal_body")}
+                              </li>
+                              <li>
+                                <b style={{ color: "rgb(var(--fg-secondary))" }}>
+                                  {t("payment.why_network_title")}
+                                </b>{" "}
+                                {t("payment.why_network_body")}
                               </li>
                             </ul>
 
@@ -815,8 +809,7 @@ const PaymentPage = () => {
                                 className="text-[11px] font-medium"
                                 style={{ color: "rgb(var(--accent-text))" }}
                               >
-                                We&rsquo;re checking again automatically over the next
-                                minute — you can leave this page open.
+                                {t("payment.auto_checking")}
                               </p>
                             )}
 
@@ -830,14 +823,14 @@ const PaymentPage = () => {
                                   color: "rgb(var(--accent-fg))",
                                 }}
                               >
-                                Send this to an admin
+                                {t("payment.send_to_us")}
                               </button>
                               {result.can_retry && (
                                 <span
                                   className="text-[11px]"
                                   style={{ color: "rgb(var(--fg-muted))" }}
                                 >
-                                  or paste the hash again in a few minutes
+                                  {t("payment.or_repaste")}
                                 </span>
                               )}
                             </div>
@@ -847,7 +840,7 @@ const PaymentPage = () => {
                                 className="text-[10.5px] pt-1"
                                 style={{ color: "rgb(var(--fg-muted))" }}
                               >
-                                Technical detail: {result.message}
+                                {t("payment.technical", { message: result.message })}
                               </p>
                             )}
                           </div>
@@ -871,37 +864,28 @@ const PaymentPage = () => {
                   className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
                   style={{ color: "rgb(var(--fg-muted))" }}
                 >
-                  After you send
+                  {t("payment.after_title")}
                 </p>
                 <ul className="space-y-2 text-[11.5px] leading-relaxed">
                   <li className="flex gap-2.5">
                     <span style={{ color: "rgb(var(--pos-text))" }}>&#10003;</span>
-                    <span style={{ color: "rgb(var(--fg-muted))" }}>
-                      Paste your transaction hash and we check it against the chain.
-                      <span className="text-text-primary/90">
-                        {" "}
-                        Most payments confirm automatically in under a minute.
-                      </span>
-                    </span>
+                    <span style={{ color: "rgb(var(--fg-muted))" }}>{t("payment.after_1")}</span>
                   </li>
                   <li className="flex gap-2.5">
                     <span style={{ color: "rgb(var(--pos-text))" }}>&#10003;</span>
-                    <span style={{ color: "rgb(var(--fg-muted))" }}>
-                      Access opens the moment it confirms — no waiting for a human.
-                    </span>
+                    <span style={{ color: "rgb(var(--fg-muted))" }}>{t("payment.after_2")}</span>
                   </li>
                   <li className="flex gap-2.5">
                     <span style={{ color: "rgb(var(--accent-text))" }}>&#8226;</span>
                     <span style={{ color: "rgb(var(--fg-muted))" }}>
-                      If it does not confirm, your funds are safe and your hash is kept.
-                      A real person will match it by hand —{" "}
+                      {t("payment.after_3_before")}{" "}
                       <button
                         type="button"
                         onClick={() => setShowAdminModal(true)}
                         className="font-semibold underline underline-offset-2"
                         style={{ color: "rgb(var(--accent-text))" }}
                       >
-                        message an admin
+                        {t("payment.after_3_cta")}
                       </button>
                       .
                     </span>
@@ -921,14 +905,14 @@ const PaymentPage = () => {
         {/* Footer */}
         <div className="text-center space-y-2">
           <p className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
-            Payment will be verified on-chain via BSCScan. Activation is instant.
+            {t("payment.footer_verify")}
           </p>
           <button
             onClick={() => navigate("/pricing")}
             className="text-xs transition-colors hover:text-text-primary"
             style={{ color: "rgb(var(--fg-muted))" }}
           >
-            ← Back to pricing
+            {t("payment.back_pricing")}
           </button>
         </div>
       </div>

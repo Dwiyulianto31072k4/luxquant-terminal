@@ -1,9 +1,11 @@
 // src/components/subscription/SubscriptionStatus.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import subscriptionApi from "../../services/subscriptionApi";
 
 const SubscriptionStatus = ({ compact = false }) => {
+  const { t } = useTranslation();
   const [sub, setSub] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -25,12 +27,11 @@ const SubscriptionStatus = ({ compact = false }) => {
 
   if (loading) return null;
 
-  // Compact badge version (for header/menu)
   if (compact) {
     if (sub?.tier === "admin") {
       return (
         <span
-          className="px-2 py-0.5 rounded text-[10px] font-bold"
+          className="rounded px-2 py-0.5 text-[10px] font-bold"
           style={{
             background: "rgba(239, 68, 68, 0.15)",
             color: "rgb(var(--neg-text))",
@@ -45,7 +46,7 @@ const SubscriptionStatus = ({ compact = false }) => {
     if (sub?.is_subscribed) {
       return (
         <span
-          className="px-2 py-0.5 rounded text-[10px] font-bold"
+          className="rounded px-2 py-0.5 text-[10px] font-bold"
           style={{
             background: "rgb(var(--accent) / 0.15)",
             color: "rgb(var(--accent-text))",
@@ -59,83 +60,72 @@ const SubscriptionStatus = ({ compact = false }) => {
 
     return (
       <button
+        type="button"
         onClick={() => navigate("/pricing")}
-        className="px-2 py-0.5 rounded text-[10px] font-bold transition-colors"
+        className="rounded px-2 py-0.5 text-[10px] font-bold transition-colors"
         style={{
           background: "rgba(100, 100, 100, 0.15)",
           color: "rgb(var(--fg-muted))",
           border: "1px solid rgba(100, 100, 100, 0.2)",
         }}
       >
-        FREE
+        {t("pricing.free_name")}
       </button>
     );
   }
 
-  // Full card version (for profile/settings)
   return (
-    <div
-      className="rounded-xl p-4"
-      style={{ background: "rgba(20, 10, 12, 0.6)", border: "1px solid rgb(var(--line) / 0.15)" }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-text-primary">Subscription</span>
+    <div className="rounded-xl border border-ink/[0.08] bg-surface-raised p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm font-medium text-text-primary">{t("pricing.status_title")}</span>
         {sub?.tier === "admin" ? (
           <span
-            className="px-2 py-0.5 rounded text-xs font-bold"
+            className="rounded px-2 py-0.5 text-xs font-bold"
             style={{ background: "rgba(239, 68, 68, 0.15)", color: "rgb(var(--neg-text))" }}
           >
             ADMIN
           </span>
         ) : sub?.is_subscribed ? (
           <span
-            className="px-2 py-0.5 rounded text-xs font-bold"
+            className="rounded px-2 py-0.5 text-xs font-bold"
             style={{ background: "rgb(var(--accent) / 0.15)", color: "rgb(var(--accent-text))" }}
           >
-            PREMIUM
+            {t("pricing.premium")}
           </span>
         ) : (
-          <span
-            className="px-2 py-0.5 rounded text-xs font-bold"
-            style={{ background: "rgba(100, 100, 100, 0.15)", color: "rgb(var(--fg-muted))" }}
-          >
-            FREE
+          <span className="rounded bg-ink/[0.08] px-2 py-0.5 text-xs font-bold text-text-muted">
+            {t("pricing.free_name")}
           </span>
         )}
       </div>
 
       {sub?.is_subscribed && sub?.subscription ? (
         <div className="space-y-1.5">
-          <p className="text-xs" style={{ color: "#8a7b6b" }}>
-            Paket: <span className="text-text-primary">{sub.subscription.plan_label}</span>
+          <p className="text-xs text-text-muted">
+            {t("pricing.status_plan")}:{" "}
+            <span className="text-text-primary">{sub.subscription.plan_label}</span>
           </p>
           {sub.days_remaining !== null && sub.days_remaining !== undefined ? (
-            <p className="text-xs" style={{ color: "#8a7b6b" }}>
-              Sisa:{" "}
+            <p className="text-xs text-text-muted">
               <span className={sub.days_remaining <= 7 ? "text-accent" : "text-text-primary"}>
-                {sub.days_remaining} hari
+                {t("pricing.status_remaining", { days: sub.days_remaining })}
               </span>
             </p>
           ) : (
             <p className="text-xs" style={{ color: "rgb(var(--pos-text))" }}>
-              Lifetime ∞
+              {t("pricing.status_lifetime")}
             </p>
           )}
         </div>
       ) : (
         <div>
-          <p className="text-xs mb-3" style={{ color: "rgb(var(--fg-muted))" }}>
-            Upgrade untuk akses semua fitur premium
-          </p>
+          <p className="mb-3 text-xs text-text-muted">{t("pricing.status_upgrade_body")}</p>
           <button
+            type="button"
             onClick={() => navigate("/pricing")}
-            className="w-full py-2 rounded-lg text-xs font-semibold transition-all"
-            style={{
-              background: "linear-gradient(to right, rgb(var(--accent)), rgb(var(--accent)))",
-              color: "rgb(var(--accent-fg))",
-            }}
+            className="w-full rounded-lg bg-accent py-2 text-xs font-semibold text-accent-fg transition hover:brightness-105"
           >
-            Upgrade Sekarang
+            {t("pricing.status_upgrade_cta")}
           </button>
         </div>
       )}

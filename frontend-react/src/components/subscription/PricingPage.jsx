@@ -1,11 +1,11 @@
 // src/components/subscription/PricingPage.jsx
-// Calm, product-grade pricing — OpenAI / Anthropic / SpaceXAI tone.
-// Seamless with global luxury-bg (no grid “page-in-page”). No pill badges.
-// Keeps invoice / upgrade / Telegram admin flows.
+// Calm pricing — Claude / ChatGPT / Kimi: one product, three billing cycles.
+// Unique invoice / upgrade / Telegram assisted-pay flows unchanged.
+// "Pay with admin" is not shown on public cards.
 
 import Seo from "../Seo";
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import subscriptionApi from "../../services/subscriptionApi";
@@ -21,14 +21,9 @@ const Check = ({ className = "h-3.5 w-3.5", tone = "rgb(var(--accent) / 0.85)" }
     strokeWidth={2}
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <path d="M5 13l4 4L19 7" />
-  </svg>
-);
-
-const TelegramIcon = ({ className = "h-3.5 w-3.5" }) => (
-  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
   </svg>
 );
 
@@ -40,6 +35,7 @@ function FaqItem({ q, a }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-4 py-5 text-left"
+        aria-expanded={open}
       >
         <span className="text-[15px] font-medium tracking-tight text-text-primary/90">{q}</span>
         <span
@@ -53,7 +49,7 @@ function FaqItem({ q, a }) {
         className={`grid transition-[grid-template-rows] duration-200 ease-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
         <div className="overflow-hidden">
-          <p className="pb-5 text-[14px] leading-relaxed text-text-primary/45">{a}</p>
+          <p className="pb-5 text-[14px] leading-relaxed text-text-primary/50">{a}</p>
         </div>
       </div>
     </div>
@@ -64,7 +60,7 @@ function SkeletonCards() {
   return (
     <div className="mx-auto grid max-w-5xl gap-px overflow-hidden rounded-2xl border border-ink/[0.06] bg-ink/[0.04] sm:grid-cols-2 lg:grid-cols-4">
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="h-[380px] animate-pulse bg-surface-raised/80" />
+        <div key={i} className="h-[420px] animate-pulse bg-surface-raised/80" />
       ))}
     </div>
   );
@@ -81,13 +77,15 @@ const PricingPage = () => {
   const [adminModalPlan, setAdminModalPlan] = useState(null);
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const embedded = location.pathname.startsWith("/account/subscription");
 
   useEffect(() => {
     trackGrowth("pricing_viewed", {
-      source: "pricing_page",
-      once: "pricing:view",
+      source: embedded ? "account_subscription" : "pricing_page",
+      once: embedded ? "pricing:account" : "pricing:view",
     });
-  }, []);
+  }, [embedded]);
 
   useEffect(() => {
     loadData();
@@ -112,8 +110,6 @@ const PricingPage = () => {
     }
   };
 
-  // Backend rejects subscribe without is_upgrade when user already has access.
-  // Prefer /subscription/me, fall back to auth role so invoice creation still works.
   const isPremium =
     (Boolean(subStatus?.is_subscribed) && subStatus?.tier !== "admin") ||
     Boolean(subStatus?.is_premium) ||
@@ -146,7 +142,6 @@ const PricingPage = () => {
       try {
         invoice = await subscriptionApi.createInvoice(plan.id, isPremium);
       } catch (err) {
-        // Auto-retry as upgrade when backend says subscription already active.
         const detail = String(err.response?.data?.detail || "");
         if (err.response?.status === 400 && /is_upgrade|sudah punya subscription/i.test(detail)) {
           invoice = await subscriptionApi.createInvoice(plan.id, true);
@@ -163,19 +158,18 @@ const PricingPage = () => {
     }
   };
 
-  const handleSubscribeViaAdmin = (plan) => {
+  const handlePayAnotherWay = (plan) => {
     trackGrowth("plan_selected", {
-      source: "pricing_page:admin",
+      source: "pricing_page:assisted",
       entity_type: "subscription_plan",
-      entity_id: plan.id,
-      meta: { plan_name: plan.name, price_usdt: Number(plan.price_usdt) },
+      entity_id: plan?.id,
+      meta: { plan_name: plan?.name, price_usdt: Number(plan?.price_usdt) },
     });
     if (!isAuthenticated) {
       navigate("/login", { state: { from: "/pricing" } });
       return;
     }
-    if (isPremium && plan.name === currentPlanName) return;
-    setAdminModalPlan(plan);
+    setAdminModalPlan(plan || sortedPlans.find((p) => p.name === "yearly") || sortedPlans[0]);
   };
 
   const isRecommended = (name) => name === "yearly";
@@ -221,7 +215,12 @@ const PricingPage = () => {
   };
 
   const getButtonLabel = (plan) => {
-    if (!isPremium) return t("pricing.continue_payment");
+    if (!isPremium) {
+      if (plan.name === "monthly") return t("pricing.get_monthly");
+      if (plan.name === "yearly") return t("pricing.get_yearly");
+      if (plan.name === "lifetime") return t("pricing.get_lifetime");
+      return t("pricing.continue_payment");
+    }
     if (plan.name === currentPlanName) return t("pricing.current_plan");
     const currentPlan = plans.find((p) => p.name === currentPlanName);
     if (currentPlan && plan.sort_order > currentPlan.sort_order) return t("pricing.upgrade_pay");
@@ -234,9 +233,10 @@ const PricingPage = () => {
     t("pricing.premium");
 
   const getFeatures = (plan) => [
+    t("pricing.feat_everything_free"),
     t("pricing.feat_signals"),
+    t("pricing.feat_market"),
     t("pricing.feat_autotrade"),
-    t("pricing.feat_analytics"),
     t("pricing.feat_onchain"),
     t("pricing.feat_ai"),
     plan.name === "monthly"
@@ -259,14 +259,17 @@ const PricingPage = () => {
     { q: t("pricing.faq_q3"), a: t("pricing.faq_a3") },
     { q: t("pricing.faq_q4"), a: t("pricing.faq_a4") },
     { q: t("pricing.faq_q5"), a: t("pricing.faq_a5") },
+    { q: t("pricing.faq_q6"), a: t("pricing.faq_a6") },
+    { q: t("pricing.faq_q7"), a: t("pricing.faq_a7") },
+    { q: t("pricing.faq_q8"), a: t("pricing.faq_a8") },
   ];
 
-  // Dynamic inclusion matrix — values drive the interactive “What’s included” (no wide table).
   const compareMatrix = useMemo(
     () => [
       {
         id: "signals",
         label: t("pricing.compare_signals"),
+        hint: t("pricing.compare_signals_hint"),
         free: false,
         monthly: true,
         yearly: true,
@@ -275,6 +278,7 @@ const PricingPage = () => {
       {
         id: "called",
         label: t("pricing.compare_called"),
+        hint: t("pricing.compare_called_hint"),
         free: false,
         monthly: true,
         yearly: true,
@@ -283,6 +287,7 @@ const PricingPage = () => {
       {
         id: "autotrade",
         label: t("pricing.compare_autotrade"),
+        hint: t("pricing.compare_autotrade_hint"),
         free: false,
         monthly: true,
         yearly: true,
@@ -291,6 +296,7 @@ const PricingPage = () => {
       {
         id: "analytics",
         label: t("pricing.compare_analytics"),
+        hint: t("pricing.compare_analytics_hint"),
         free: "partial",
         monthly: true,
         yearly: true,
@@ -299,6 +305,7 @@ const PricingPage = () => {
       {
         id: "onchain",
         label: t("pricing.compare_onchain"),
+        hint: t("pricing.compare_onchain_hint"),
         free: false,
         monthly: true,
         yearly: true,
@@ -307,6 +314,7 @@ const PricingPage = () => {
       {
         id: "ai",
         label: t("pricing.compare_ai"),
+        hint: t("pricing.compare_ai_hint"),
         free: false,
         monthly: true,
         yearly: true,
@@ -315,6 +323,7 @@ const PricingPage = () => {
       {
         id: "performance",
         label: t("pricing.compare_performance"),
+        hint: t("pricing.compare_performance_hint"),
         free: "partial",
         monthly: true,
         yearly: true,
@@ -359,72 +368,89 @@ const PricingPage = () => {
     return { kind: "text", text: String(v) };
   };
 
-  /* Shared card surface — soft, blends with terminal (no heavy fill contrast) */
+  const trustPillars = [
+    { title: t("pricing.trust_since"), body: t("pricing.trust_since_body") },
+    { title: t("pricing.trust_pay"), body: t("pricing.trust_pay_body") },
+    { title: t("pricing.trust_keys"), body: t("pricing.trust_keys_body") },
+  ];
+
+  const howSteps = [
+    { n: "1", title: t("pricing.how_1_title"), body: t("pricing.how_1_body") },
+    { n: "2", title: t("pricing.how_2_title"), body: t("pricing.how_2_body") },
+    { n: "3", title: t("pricing.how_3_title"), body: t("pricing.how_3_body") },
+  ];
+
   const cardBase = "relative flex flex-col px-6 py-8 sm:px-7 sm:py-9 bg-transparent";
 
-  return (
-    <div className="relative min-h-screen">
-      <Seo
-        title="Pricing & Plans — LuxQuant Terminal"
-        description="LuxQuant Terminal plans. Free to start; paid access unlocks signals, Agent, on-chain intelligence, and research."
-        path="/pricing"
-        keywords="luxquant pricing, crypto signals subscription, quant terminal plans"
-        jsonLd={[
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Home", item: "https://luxquant.tw/" },
-              {
-                "@type": "ListItem",
-                position: 2,
-                name: "Pricing",
-                item: "https://luxquant.tw/pricing",
-              },
-            ],
-          },
-          {
-            "@context": "https://schema.org",
-            "@type": "Product",
-            name: "LuxQuant Terminal",
-            brand: { "@type": "Brand", name: "LuxQuant" },
-            url: "https://luxquant.tw/pricing",
-            offers: {
-              "@type": "AggregateOffer",
-              lowPrice: "0",
-              priceCurrency: "USD",
-              offerCount: "4",
-              availability: "https://schema.org/InStock",
-            },
-          },
-          {
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: faqs.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          },
-        ]}
-      />
+  const shellPad = embedded
+    ? "relative z-10 mx-auto max-w-5xl px-0 pb-10 pt-1"
+    : "relative z-10 mx-auto max-w-5xl px-4 pb-28 pt-14 sm:px-6 sm:pt-20 lg:pt-24";
 
-      {/* No local grid / second background — inherits global luxury-bg like other pages */}
-      <div className="relative z-10 mx-auto max-w-5xl px-4 pb-28 pt-14 sm:px-6 sm:pt-20 lg:pt-24">
-        {/* Hero — typography first */}
-        <header className="mx-auto mb-14 max-w-2xl text-center sm:mb-20">
-          <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary/35">
+  return (
+    <div className={embedded ? "relative" : "relative min-h-screen"}>
+      {!embedded && (
+        <Seo
+          title={t("pricing.seo_title")}
+          description={t("pricing.seo_desc")}
+          path="/pricing"
+          keywords="luxquant pricing, crypto signals subscription, quant terminal plans"
+          jsonLd={[
+            {
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "Home", item: "https://luxquant.tw/" },
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: "Pricing",
+                  item: "https://luxquant.tw/pricing",
+                },
+              ],
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "Product",
+              name: "LuxQuant Terminal",
+              brand: { "@type": "Brand", name: "LuxQuant" },
+              url: "https://luxquant.tw/pricing",
+              offers: {
+                "@type": "AggregateOffer",
+                lowPrice: "0",
+                priceCurrency: "USD",
+                offerCount: "4",
+                availability: "https://schema.org/InStock",
+              },
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: faqs.map((f) => ({
+                "@type": "Question",
+                name: f.q,
+                acceptedAnswer: { "@type": "Answer", text: f.a },
+              })),
+            },
+          ]}
+        />
+      )}
+
+      <div className={shellPad}>
+        <header className={`mx-auto max-w-2xl text-center ${embedded ? "mb-8" : "mb-12 sm:mb-16"}`}>
+          <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary/35">
             {t("pricing.hero_eyebrow")}
           </p>
           <h1
-            className="text-[2rem] font-semibold leading-[1.15] tracking-[-0.02em] text-text-primary sm:text-[2.75rem] lg:text-[3.15rem]"
+            className={`font-semibold leading-[1.15] tracking-[-0.02em] text-text-primary ${
+              embedded ? "text-[1.65rem] sm:text-[2rem]" : "text-[2rem] sm:text-[2.75rem] lg:text-[3.15rem]"
+            }`}
             style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
           >
             {t("pricing.hero_title_line1")}
             <br />
-            <span className="text-text-primary/55">{t("pricing.hero_title_line2")}</span>
+            <span className="text-text-primary/50">{t("pricing.hero_title_line2")}</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-text-primary/45 sm:text-base">
+          <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-text-primary/50 sm:text-base">
             {isPremium
               ? `${t("pricing.subscribing_to")} ${getCurrentPlanLabel()}${
                   subStatus?.days_remaining != null
@@ -434,6 +460,19 @@ const PricingPage = () => {
               : t("pricing.hero_subtitle")}
           </p>
         </header>
+
+        {!isPremium && (
+          <ul
+            className={`mx-auto grid max-w-5xl gap-8 sm:grid-cols-3 ${embedded ? "mb-10" : "mb-14 sm:mb-16"}`}
+          >
+            {trustPillars.map((p) => (
+              <li key={p.title} className="text-left sm:text-center">
+                <p className="text-[13px] font-medium text-text-primary/85">{p.title}</p>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-text-primary/40">{p.body}</p>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {loading ? (
           <SkeletonCards />
@@ -450,32 +489,30 @@ const PricingPage = () => {
           </div>
         ) : (
           <>
-            {/* Plans — one continuous panel (Anthropic / OpenAI style), not floating boxes */}
+            <p className="mb-4 text-center text-[12px] text-text-primary/35">
+              {t("pricing.same_product")}
+            </p>
+
             <div className="overflow-hidden rounded-2xl border border-ink/[0.08] bg-ink/[0.015] backdrop-blur-[2px]">
               <div className="grid divide-y divide-ink/[0.06] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
-                {/* Free */}
                 <article className={cardBase}>
                   <div className="mb-8">
                     <h2 className="text-[15px] font-medium text-text-primary/90">
                       {t("pricing.free_name")}
                     </h2>
-                    <p className="mt-1 text-[13px] text-text-primary/35">
-                      {t("pricing.free_desc")}
-                    </p>
+                    <p className="mt-1 text-[13px] text-text-primary/35">{t("pricing.free_desc")}</p>
                   </div>
                   <div className="mb-8">
                     <div className="flex items-baseline gap-0.5">
                       <span className="text-sm text-text-primary/30">$</span>
                       <span
-                        className="text-[2.75rem] font-semibold tracking-tight text-text-primary tabular-nums leading-none"
+                        className="text-[2.75rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
                         style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                       >
                         {t("pricing.free_price")}
                       </span>
                     </div>
-                    <p className="mt-2 text-[12px] text-text-primary/30">
-                      {t("pricing.free_forever")}
-                    </p>
+                    <p className="mt-2 text-[12px] text-text-primary/30">{t("pricing.free_forever")}</p>
                   </div>
                   <ul className="mb-10 flex-1 space-y-3">
                     {freeFeatures.map((f) => (
@@ -510,7 +547,7 @@ const PricingPage = () => {
                     <article
                       key={plan.id}
                       className={`${cardBase} ${
-                        recommended ? "bg-ink/[0.025] ring-1 ring-inset ring-accent/25" : ""
+                        recommended && !current ? "bg-accent/[0.035] ring-1 ring-inset ring-accent/30" : ""
                       } ${current ? "bg-profit/[0.03]" : ""}`}
                     >
                       <div className="mb-8">
@@ -519,7 +556,7 @@ const PricingPage = () => {
                             {getPlanLabel(plan)}
                           </h2>
                           {recommended && !current && (
-                            <span className="text-[11px] font-medium text-text-muted">
+                            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-accent">
                               {t("pricing.recommended")}
                             </span>
                           )}
@@ -536,7 +573,7 @@ const PricingPage = () => {
                         <div className="flex items-baseline gap-0.5">
                           <span className="text-sm text-text-primary/30">$</span>
                           <span
-                            className="text-[2.75rem] font-semibold tracking-tight text-text-primary tabular-nums leading-none"
+                            className="text-[2.75rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
                             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                           >
                             {plan.price_usdt}
@@ -552,7 +589,7 @@ const PricingPage = () => {
                             </span>
                           ) : null}
                           {plan.name === "yearly" ? (
-                            <span className="text-text-primary/40">
+                            <span className="text-text-primary/45">
                               {" "}
                               · {t("pricing.yearly_save")}
                             </span>
@@ -572,62 +609,86 @@ const PricingPage = () => {
                         ))}
                       </ul>
 
-                      <div className="mt-auto space-y-2">
-                        <button
-                          type="button"
-                          onClick={() => handleSubscribe(plan)}
-                          disabled={creating || current}
-                          className={`w-full rounded-lg py-2.5 text-[13px] font-medium transition disabled:cursor-default active:scale-[0.99] ${
-                            current
-                              ? "border border-profit/25 bg-profit/[0.06] text-profit/90"
-                              : recommended
-                                ? "bg-ink text-ink-inv hover:bg-ink/90"
-                                : "border border-ink/[0.12] text-text-primary/85 hover:border-ink/25 hover:bg-ink/[0.03]"
-                          }`}
-                        >
-                          {creating && selectedPlan === plan.id
-                            ? t("pricing.processing")
-                            : getButtonLabel(plan)}
-                        </button>
-
-                        {!current && (
-                          <button
-                            type="button"
-                            onClick={() => handleSubscribeViaAdmin(plan)}
-                            className="flex w-full items-center justify-center gap-1.5 py-2 text-[12px] text-text-primary/35 transition hover:text-text-primary/60"
-                          >
-                            <TelegramIcon className="h-3 w-3 opacity-70" />
-                            {t("pricing.subscribe_via_admin")}
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSubscribe(plan)}
+                        disabled={creating || current}
+                        className={`mt-auto w-full rounded-lg py-2.5 text-[13px] font-medium transition disabled:cursor-default active:scale-[0.99] ${
+                          current
+                            ? "border border-profit/25 bg-profit/[0.06] text-profit/90"
+                            : recommended
+                              ? "bg-accent text-accent-fg hover:brightness-105"
+                              : "border border-ink/[0.12] text-text-primary/85 hover:border-ink/25 hover:bg-ink/[0.03]"
+                        }`}
+                      >
+                        {creating && selectedPlan === plan.id
+                          ? t("pricing.processing")
+                          : getButtonLabel(plan)}
+                      </button>
                     </article>
                   );
                 })}
               </div>
             </div>
 
-            {/* Payment — quiet footer line, not a card box */}
-            <p className="mx-auto mt-10 max-w-xl text-center text-[13px] leading-relaxed text-text-primary/30">
+            <p className="mx-auto mt-8 max-w-xl text-center text-[13px] leading-relaxed text-text-primary/35">
               {t("pricing.payment_desc")}{" "}
-              <span className="text-text-primary/40">
-                {t("pricing.usdt_bep20")} · {t("pricing.auto_verify")} · {t("pricing.instant_act")}
+              <span className="text-text-primary/50">
+                {t("pricing.trust_cancel")} · {t("pricing.trust_secure")}
               </span>
             </p>
 
-            {/* What’s included — dynamic plan tabs, no horizontal scroll */}
-            <section className="mx-auto mt-20 max-w-lg sm:mt-24">
+            <section className={`mx-auto max-w-3xl ${embedded ? "mt-14" : "mt-20 sm:mt-24"}`}>
+              <h2
+                className="mb-2 text-center text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                {t("pricing.how_title")}
+              </h2>
+              <p className="mb-10 text-center text-[14px] text-text-primary/40">
+                {t("pricing.how_subtitle")}
+              </p>
+              <ol className="grid gap-8 sm:grid-cols-3">
+                {howSteps.map((s) => (
+                  <li key={s.n} className="text-left">
+                    <span
+                      className="font-mono text-[11px] text-text-primary/30"
+                      aria-hidden
+                    >
+                      {s.n}
+                    </span>
+                    <p className="mt-2 text-[14px] font-medium text-text-primary/85">{s.title}</p>
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-text-primary/40">{s.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <div className="mx-auto mt-12 max-w-xl rounded-xl border border-ink/[0.07] px-5 py-4 text-center sm:px-8">
+              <p className="text-[14px] font-medium text-text-primary/80">
+                {t("pricing.pay_other_title")}
+              </p>
+              <p className="mt-1 text-[13px] text-text-primary/40">{t("pricing.pay_other_body")}</p>
+              <button
+                type="button"
+                onClick={() => handlePayAnotherWay(sortedPlans.find((p) => p.name === "yearly"))}
+                className="mt-3 text-[13px] font-medium text-accent underline-offset-4 hover:underline"
+              >
+                {t("pricing.pay_other_cta")}
+              </button>
+            </div>
+
+            <section className={`mx-auto max-w-lg ${embedded ? "mt-14" : "mt-20 sm:mt-24"}`}>
               <h2
                 className="mb-2 text-center text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {t("pricing.compare_title")}
               </h2>
-              <p className="mb-8 text-center text-[14px] text-text-primary/35">
+              <p className="mb-8 text-center text-[14px] text-text-primary/40">
                 {t("pricing.compare_subtitle")}
               </p>
 
-              {/* Segmented control — wraps on narrow screens, no swipe table */}
               <div
                 className="mb-6 grid grid-cols-4 gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-1"
                 role="tablist"
@@ -661,20 +722,29 @@ const PricingPage = () => {
                   return (
                     <li
                       key={row.id}
-                      className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5"
+                      className="flex items-start justify-between gap-4 px-4 py-3.5 sm:px-5"
                     >
-                      <span className="text-[13px] text-text-primary/60 sm:text-[14px]">
-                        {row.label}
+                      <span className="min-w-0">
+                        <span className="block text-[13px] text-text-primary/70 sm:text-[14px]">
+                          {row.label}
+                        </span>
+                        {row.hint ? (
+                          <span className="mt-0.5 block text-[12px] leading-snug text-text-primary/35">
+                            {row.hint}
+                          </span>
+                        ) : null}
                       </span>
-                      <span className="shrink-0 text-right">
+                      <span className="shrink-0 pt-0.5 text-right">
                         {v.kind === "yes" && (
                           <span className="inline-flex items-center gap-1.5 text-[12px] text-accent">
                             <Check className="h-3.5 w-3.5" />
-                            <span className="sr-only">Included</span>
+                            <span className="sr-only">{t("pricing.included")}</span>
                           </span>
                         )}
                         {v.kind === "no" && (
-                          <span className="text-[13px] text-text-primary/20">—</span>
+                          <span className="text-[13px] text-text-primary/20" aria-label={t("pricing.not_included")}>
+                            —
+                          </span>
                         )}
                         {v.kind === "partial" && (
                           <span className="text-[12px] text-text-primary/40">{v.text}</span>
@@ -688,13 +758,12 @@ const PricingPage = () => {
                 })}
               </ul>
 
-              <p className="mt-4 text-center text-[12px] leading-relaxed text-text-primary/25">
+              <p className="mt-4 text-center text-[12px] leading-relaxed text-text-primary/30">
                 {t("pricing.compare_note")}
               </p>
             </section>
 
-            {/* FAQ */}
-            <section className="mx-auto mt-20 max-w-xl sm:mt-24">
+            <section className={`mx-auto max-w-xl ${embedded ? "mt-14" : "mt-20 sm:mt-24"}`}>
               <h2
                 className="mb-8 text-center text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
@@ -708,15 +777,17 @@ const PricingPage = () => {
               </div>
             </section>
 
-            <div className="mt-16 text-center">
-              <button
-                type="button"
-                onClick={() => navigate("/")}
-                className="text-[13px] text-text-primary/30 transition hover:text-text-primary/60"
-              >
-                {t("pricing.cta_secondary")}
-              </button>
-            </div>
+            {!embedded && (
+              <div className="mt-16 text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate("/")}
+                  className="text-[13px] text-text-primary/30 transition hover:text-text-primary/60"
+                >
+                  {t("pricing.cta_secondary")}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

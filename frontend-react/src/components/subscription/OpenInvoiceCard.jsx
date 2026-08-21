@@ -92,7 +92,7 @@ export default function OpenInvoiceCard() {
       <div className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border border-accent/25 bg-surface-raised/95 p-3 backdrop-blur">
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-text-primary">
-            Your {planLabel} invoice is still open
+            {planLabel} is waiting
           </p>
           <p className="mt-0.5 text-[12px] text-text-muted">
             {amount} USDT · {left}
@@ -103,7 +103,7 @@ export default function OpenInvoiceCard() {
           onClick={() => navigate("/payment")}
           className="flex-shrink-0 rounded-lg bg-accent px-3.5 py-2 text-[12px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
         >
-          Finish
+          Continue
         </button>
         <button
           type="button"

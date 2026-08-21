@@ -231,7 +231,7 @@ function PremiumGate({ children }) {
               onClick={() => navigate("/pricing")}
               className="rounded-full bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg shadow-[0_4px_14px_rgb(var(--accent)/0.28)]"
             >
-              View Premium
+              See plans
             </button>
             <button
               type="button"
