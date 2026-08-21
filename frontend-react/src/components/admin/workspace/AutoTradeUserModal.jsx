@@ -47,7 +47,11 @@ const EXIT_REASONS = {
   emergency_close_unprotected: { label: "Emergency close", tone: DOWN },
   forced_sell: { label: "Force-closed", tone: AXIS },
   manual_exit: { label: "Closed manually", tone: AXIS },
-  exchange_close: { label: "Not attributed", tone: AXIS },
+  exchange_close: {
+    label: "Not attributed",
+    tone: AXIS,
+    note: "venue closed it; the closing order was not matched to our TP/SL",
+  },
 };
 
 const RISK_HELP = {
@@ -121,6 +125,76 @@ const ago = (v) => {
 };
 const venueName = (id) => EXCHANGE_VENUES[id]?.name || id || "—";
 const who = (u, id) => u?.username || u?.email || u?.cb_email || `lq:${id}`;
+
+function fmtQty(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x) || x <= 0) return "—";
+  if (x >= 100) return x.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  return String(x);
+}
+
+function fmtHold(hours) {
+  if (hours == null || !Number.isFinite(Number(hours))) return "—";
+  const minutes = Math.max(0, Math.round(Number(hours) * 60));
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${h}h ${rest}m` : `${h}h`;
+}
+
+function fmtPrice(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x) || x <= 0) return "—";
+  if (x >= 100) return x.toFixed(2);
+  if (x >= 1) return x.toPrecision(6).replace(/\.?0+$/, "");
+  return x.toPrecision(6).replace(/\.?0+$/, "");
+}
+
+/** Closed row that is fees/funding only — BingX recon without an exit price. */
+function isFeeOnlyClose(row) {
+  if (row?.exit_price) return false;
+  if (row?.exit_reason && row.exit_reason !== "exchange_close") return false;
+  const fees = Number(row?.fees);
+  const pnl = Number(row?.realized_pnl);
+  if (!Number.isFinite(fees) || fees <= 0 || !Number.isFinite(pnl)) return false;
+  return Math.abs(pnl) <= fees * 1.6 + 0.03;
+}
+
+function describeTrade(row) {
+  const meta = EXIT_REASONS[row.exit_reason] || {};
+  const feeOnly = isFeeOnlyClose(row);
+  const qty = Number(row.size_qty ?? row.initial_quantity ?? row.quantity);
+  const entry = Number(row.entry_price);
+  const notional =
+    row.notional_usdt != null
+      ? Number(row.notional_usdt)
+      : Number.isFinite(qty) && qty > 0 && Number.isFinite(entry)
+        ? qty * entry
+        : null;
+  const fees = Number(row.fees);
+  const pnl = row.realized_pnl == null ? null : Number(row.realized_pnl);
+  const leftover = pnl != null && Number.isFinite(fees) ? pnl + fees : null;
+  let label = meta.label || (row.exit_reason || "—").replaceAll("_", " ");
+  let story;
+  if (row.is_bot === false) {
+    label = "traded by hand";
+    story = "Opened outside the Agent. The desk adopted it after the fact.";
+  } else if (feeOnly) {
+    label = "Fees & funding";
+    story =
+      "BingX already closed this position, but the close did not match our TP/SL order. Recorded PnL is commission plus funding only — no exit price, so Move is blank. This is not a stop-loss.";
+  } else if (row.exit_reason === "exchange_close") {
+    story =
+      "The venue closed the position. The closing order could not be identified as take-profit or stop-loss.";
+  } else if (row.exit_reason === "take_profit") {
+    story = "Take-profit filled. The move % is entry to the recorded exit.";
+  } else if (row.exit_reason === "stop_loss") {
+    story = "Stop-loss filled. The move % is entry to the recorded exit.";
+  } else {
+    story = meta.note || "Click through the figures below.";
+  }
+  return { label, story, feeOnly, qty, notional, fees, pnl, leftover };
+}
 
 function ChartFrame({ title, note, children, height = 200 }) {
   return (
@@ -398,9 +472,10 @@ function Verdict({ summary, trades, errors }) {
 }
 
 function TradeRow({ row, open, onToggle }) {
-  const reason = row.is_bot === false
-    ? "traded by hand"
-    : EXIT_REASONS[row.exit_reason]?.label || (row.exit_reason || "—").replaceAll("_", " ");
+  const d = describeTrade(row);
+  const reasonColor = d.feeOnly
+    ? AXIS
+    : EXIT_REASONS[row.exit_reason]?.tone || AXIS;
   return (
     <>
       <tr
@@ -428,19 +503,34 @@ function TradeRow({ row, open, onToggle }) {
         <td className="px-2 py-2 text-right tabular-nums text-text-muted">
           {row.move_pct === null || row.move_pct === undefined ? "—" : `${row.move_pct}%`}
         </td>
-        <td className="px-2 py-2 text-text-muted">{reason}</td>
+        <td className="px-2 py-2" style={{ color: reasonColor }}>
+          {d.label}
+        </td>
       </tr>
       {open ? (
         <tr className="border-b border-ink/[0.06] bg-ink/[0.02]">
           <td colSpan={6} className="px-4 py-3">
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <p className="max-w-3xl text-[12.5px] leading-relaxed text-text-primary">{d.story}</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ["Side", row.side || "—"],
-                ["Qty", row.quantity ?? "—"],
-                ["Entry", row.entry_price ?? "—"],
-                ["Exit", row.exit_price ?? "—"],
-                ["Fees", row.fees == null ? "—" : usd(row.fees)],
-                ["Hold", row.hold_hours == null ? "—" : `${row.hold_hours}h`],
+                ["Size", d.qty > 0 ? fmtQty(d.qty) : "—"],
+                ["Notional", d.notional != null ? usd(d.notional) : "—"],
+                ["Entry", fmtPrice(row.entry_price)],
+                [
+                  "Exit",
+                  row.exit_price
+                    ? fmtPrice(row.exit_price)
+                    : "not returned by venue",
+                ],
+                [
+                  "Move",
+                  row.move_pct == null ? "needs an exit price" : `${row.move_pct}%`,
+                ],
+                ["Commission", row.fees == null ? "—" : usd(row.fees)],
+                ["PnL besides fees", d.leftover == null ? "—" : signed(d.leftover)],
+                ["Net PnL", d.pnl == null ? "—" : signed(d.pnl)],
+                ["Hold", fmtHold(row.hold_hours)],
                 ["Opened", when(row.created_at)],
                 ["Closed", when(row.closed_at)],
                 [
@@ -592,6 +682,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
       if (tradeVenue !== "all" && (r.venue || r.exchange) !== tradeVenue) return false;
       if (tradeSide === "win" && !(Number(r.realized_pnl) > 0)) return false;
       if (tradeSide === "loss" && !(Number(r.realized_pnl) < 0)) return false;
+      if (tradeSide === "fees" && !isFeeOnlyClose(r)) return false;
       if (!q) return true;
       return (
         String(r.symbol || "").toLowerCase().includes(q) ||
@@ -1327,6 +1418,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                   ["all", "All"],
                   ["win", "Wins"],
                   ["loss", "Losses"],
+                  ["fees", "Fees only"],
                 ].map(([id, label]) => (
                   <button
                     key={id}
@@ -1373,7 +1465,9 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                     </table>
                   </div>
                   <p className="border-t border-ink/[0.06] px-4 py-2 text-[10px] text-text-muted">
-                    Click a row for entry, exit, fees and hold time. Move is entry to exit.
+                    Click a row for size, notional, fees, and why it closed. A blank
+                    Move with a few cents of PnL is almost always commission and
+                    funding — the venue closed it without a matched TP/SL order.
                   </p>
                 </div>
               ) : (

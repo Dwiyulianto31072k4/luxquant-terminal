@@ -894,8 +894,8 @@ def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = Non
     try:
         rows = _rows(
             """
-            SELECT p.symbol, p.market_type, p.side, p.quantity, p.entry_price,
-                   p.exit_price, p.realized_pnl, p.fees, p.exit_reason,
+            SELECT p.symbol, p.market_type, p.side, p.quantity, p.initial_quantity,
+                   p.entry_price, p.exit_price, p.realized_pnl, p.fees, p.exit_reason,
                    p.exchange, p.created_at, p.closed_at,
                    -- No execution job means the bot never placed this: the
                    -- reconciler adopted a trade the user made by hand.
@@ -928,6 +928,21 @@ def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = Non
         row["btc_change_pct"] = (btc.get(day) or {}).get("change_pct")
         row["btc_close"] = (btc.get(day) or {}).get("close")
         row["signal_regime"] = (regimes.get(day) or {}).get("regime")
+        size_qty = row.get("initial_quantity") or row.get("quantity")
+        try:
+            size_qty = float(size_qty) if size_qty is not None else None
+        except (TypeError, ValueError):
+            size_qty = None
+        if size_qty is not None and size_qty <= 0:
+            size_qty = None
+        row["size_qty"] = size_qty
+        try:
+            entry = float(row["entry_price"]) if row.get("entry_price") is not None else None
+        except (TypeError, ValueError):
+            entry = None
+        row["notional_usdt"] = (
+            round(size_qty * entry, 2) if size_qty and entry else None
+        )
         if row.get("entry_price") and row.get("exit_price"):
             direction = 1 if (row.get("side") or "BUY") == "BUY" else -1
             row["move_pct"] = round(
