@@ -45,6 +45,10 @@ describe("Mini App campaign routing", () => {
     expect(startDestination("lq1f_login_redirect")).toBe("/home");
   });
 
+  it("routes referral Mini App arrivals to the public record", () => {
+    expect(startDestination("lq1r_luxquantadmin")).toBe("/performance");
+  });
+
   it("keeps legacy channel payload grouping intact", () => {
     expect(startDestination("closed_win_btc_wr_coin")).toBe("/performance");
     expect(parseStartParam("closed_win_btc_wr_coin")).toEqual({

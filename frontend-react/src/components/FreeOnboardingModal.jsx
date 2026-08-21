@@ -47,6 +47,13 @@ const STEPS = [
     path: "/market-pulse",
     cta: "Open Pulse",
   },
+  {
+    id: "invite",
+    title: "Send this record to someone",
+    body: "Share your link. They join free. You earn USDT when they subscribe.",
+    path: "/referral",
+    cta: "Invite · Earn USDT",
+  },
 ];
 
 export default function FreeOnboardingModal() {

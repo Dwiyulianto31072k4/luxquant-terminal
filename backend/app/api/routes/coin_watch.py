@@ -170,6 +170,12 @@ def add_coin_watch(
     )
     db.commit()
 
+    try:
+        from app.services.referral_viral import evaluate_referral_qualification
+        evaluate_referral_qualification(db, current_user, commit=True)
+    except Exception:
+        pass
+
     return {"message": "Koin ditambahkan", "symbol": symbol}
 
 
@@ -280,6 +286,11 @@ def arm_entry_alert(
         {"u": current_user.id, "s": signal_id, "p": sig[0], "e": float(sig[1])},
     )
     db.commit()
+    try:
+        from app.services.referral_viral import evaluate_referral_qualification
+        evaluate_referral_qualification(db, current_user, commit=True)
+    except Exception:
+        pass
     return {"armed": True, "pair": sig[0], "entry": float(sig[1])}
 
 

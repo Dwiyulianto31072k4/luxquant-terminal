@@ -88,10 +88,12 @@ class ReferralCodeResponse(BaseModel):
     # ─── Share-ready fields (computed) ───
     share_link: str           # https://luxquant.tw/?ref=XXX
     qr_url: str               # https://luxquant.tw/api/v1/referral/qr/XXX
+    telegram_share_link: Optional[str] = None
 
     # ─── Tracking metrics ───
     share_count: int = 0
     qr_count: int = 0
+    signup_count: int = 0
     last_shared_at: Optional[datetime] = None
 
     class Config:
@@ -138,7 +140,10 @@ class TrackShareRequest(BaseModel):
     @field_validator('channel')
     @classmethod
     def validate_channel(cls, v):
-        allowed = {"copy_link", "qr_download", "twitter", "telegram", "whatsapp", "other"}
+        allowed = {
+            "copy_link", "qr_download", "twitter", "telegram",
+            "whatsapp", "signal_share", "other",
+        }
         if v not in allowed:
             raise ValueError(f"channel must be one of: {', '.join(allowed)}")
         return v
@@ -160,6 +165,9 @@ class ReferralFunnelResponse(BaseModel):
     active: int           # Yang udah login min 1x
     subscribed: int       # Yang udah bayar min 1x
     churned: int          # Subscription expired & ga renew
+    qualified: int = 0
+    reward_days_granted: int = 0
+    next_reward_at: int = 3
 
     # Conversion rates (helper, frontend bisa display %)
     activation_rate: float = 0       # active / signed_up
@@ -192,6 +200,7 @@ class RefereeItem(BaseModel):
     login_count: int = 0
     total_payments: int = 0
     total_commission_earned: float = 0    # Commission yg lo dapet dari user ini
+    qualified_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -286,12 +295,20 @@ class CreditLedgerResponse(BaseModel):
 # COMBINED STATS (dashboard summary)
 # ════════════════════════════════════════════════════════════════════
 
+class ReferralEstimator(BaseModel):
+    commission_pct: float = 10
+    monthly_usdt: float = 5
+    annual_usdt: float = 40
+    lifetime_usdt: float = 100
+
+
 class ReferralStatsResponse(BaseModel):
     """One-shot endpoint buat dashboard load"""
     code: Optional[ReferralCodeResponse] = None       # User's code (None kalau belum generate)
     funnel: ReferralFunnelResponse
     earnings: ReferralEarningsResponse
     recent_referees: List[RefereeItem] = []           # Last 5 referees (for dashboard preview)
+    estimator: ReferralEstimator = ReferralEstimator()
 
 
 # ════════════════════════════════════════════════════════════════════

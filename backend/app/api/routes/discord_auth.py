@@ -40,6 +40,7 @@ from app.services.referral_helpers import (
     apply_referral_to_user,
     track_user_login,
 )
+from app.services.referral_service import ensure_referral_code
 from app.services.geo_helpers import location_from_request
 from app.services.role_resolver import (
     resolve_role_for_discord,
@@ -305,6 +306,10 @@ async def discord_callback(
 
     # ─── Track login + geo ───
     track_user_login(db, user, commit=True, **location_from_request(request))
+    try:
+        ensure_referral_code(db, user)
+    except Exception:
+        logger.exception("auto-provision referral code failed discord user=%s", user.id)
 
     tokens = create_tokens(user.id, user.email)
     cryptobot_token = create_cryptobot_exchange_token(user)

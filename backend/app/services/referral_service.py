@@ -42,12 +42,51 @@ REFERRAL_BASE_URL = os.getenv("REFERRAL_BASE_URL", "https://luxquant.tw")
 API_PREFIX = os.getenv("API_PREFIX", "/api/v1")
 
 
+TELEGRAM_MINI_APP_BASE = os.getenv(
+    "TELEGRAM_MINI_APP_URL",
+    "https://t.me/LuxQuantTerminalBot/terminal",
+)
+
+
 def build_share_link(code: str) -> str:
     return f"{REFERRAL_BASE_URL}/?ref={code}"
 
 
+def build_telegram_share_link(code: str) -> str:
+    slug = (code or "").strip().lower()
+    return f"{TELEGRAM_MINI_APP_BASE}?startapp=lq1r_{slug}"
+
+
 def build_qr_url(code: str) -> str:
     return f"{REFERRAL_BASE_URL}{API_PREFIX}/referral/qr/{code}"
+
+
+def ensure_referral_code(db: Session, user: User) -> ReferralCode:
+    """Every logged-in user has an active code. Custom slugs stay intact."""
+    existing = (
+        db.query(ReferralCode)
+        .filter(
+            ReferralCode.user_id == user.id,
+            ReferralCode.is_active == True,  # noqa: E712
+        )
+        .order_by(ReferralCode.created_at.desc())
+        .first()
+    )
+    if existing:
+        return existing
+
+    new_code = ReferralCode(
+        user_id=user.id,
+        code=generate_unique_code(db),
+        discount_pct=10.00,
+        commission_pct=10.00,
+        is_active=True,
+    )
+    db.add(new_code)
+    db.commit()
+    db.refresh(new_code)
+    logger.info("🎟️ Auto-provisioned code %s for user %s", new_code.code, user.id)
+    return new_code
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -143,14 +182,39 @@ def calculate_funnel(db: Session, referrer_id: int) -> dict:
     active_total = active + subscribed + churned
     subscribed_total = subscribed + churned
 
+    qualified = (
+        db.query(func.count(ReferralUse.id))
+        .filter(
+            ReferralUse.referrer_id == referrer_id,
+            ReferralUse.qualified_at.isnot(None),
+        )
+        .scalar()
+        or 0
+    )
+    reward_days = (
+        db.query(func.coalesce(func.sum(ReferralUse.reward_days_granted), 0))
+        .filter(ReferralUse.referrer_id == referrer_id)
+        .scalar()
+        or 0
+    )
+
     activation_rate = (active_total / signed_up * 100) if signed_up > 0 else 0
     subscription_rate = (subscribed_total / active_total * 100) if active_total > 0 else 0
+
+    next_at = 3
+    if qualified >= 10:
+        next_at = qualified + 1
+    elif qualified >= 3:
+        next_at = 10
 
     return {
         "signed_up": signed_up,
         "active": active_total,
         "subscribed": subscribed_total,
         "churned": churned,
+        "qualified": int(qualified),
+        "reward_days_granted": int(reward_days),
+        "next_reward_at": int(next_at),
         "activation_rate": round(activation_rate, 1),
         "subscription_rate": round(subscription_rate, 1),
     }
@@ -229,6 +293,7 @@ def get_referee_list(
             "login_count": user.login_count or 0,
             "total_payments": use.total_payments or 0,
             "total_commission_earned": float(use.total_commission_earned or 0),
+            "qualified_at": use.qualified_at,
         })
 
     return items, total or 0

@@ -96,4 +96,11 @@ def ingest_growth_event(
         db.rollback()
         raise HTTPException(status_code=503, detail="growth measurement unavailable") from exc
 
+    if event == "proof_verified":
+        try:
+            from app.services.referral_viral import evaluate_referral_qualification
+            evaluate_referral_qualification(db, current_user, commit=True)
+        except Exception:
+            pass
+
     return {"ok": True, "inserted": inserted}

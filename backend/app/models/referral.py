@@ -41,6 +41,7 @@ class ReferralCode(Base):
     commission_pct = Column(Numeric(5, 2), default=10.00)
     max_uses = Column(Integer, nullable=True)          # NULL = unlimited
     times_used = Column(Integer, default=0)
+    signup_count = Column(Integer, default=0, nullable=False, server_default="0")
     is_active = Column(Boolean, default=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -79,6 +80,8 @@ class ReferralUse(Base):
     total_commission_earned = Column(Numeric(10, 2), default=0, nullable=False)  # akumulator semua payment
     total_payments = Column(Integer, default=0, nullable=False)                  # jumlah payment (first + renewals)
     last_payment_at = Column(DateTime(timezone=True), nullable=True)
+    qualified_at = Column(DateTime(timezone=True), nullable=True)
+    reward_days_granted = Column(Integer, default=0, nullable=False, server_default="0")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

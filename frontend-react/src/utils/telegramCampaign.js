@@ -13,12 +13,14 @@ const PREFIX_BY_MEDIUM = {
   paid_social: "lq1p",
   channel: "lq1c",
   auth_fallback: "lq1f",
+  referral: "lq1r",
 };
 
 const MEDIUM_BY_PREFIX = {
   lq1p: "paid_social",
   lq1c: "channel",
   lq1f: "auth_fallback",
+  lq1r: "referral",
 };
 
 const MAX_START_PARAM = 64;
@@ -65,6 +67,22 @@ export function parseLuxQuantStartParam(value) {
 export function buildTelegramMiniAppUrl(options = {}) {
   const startParam = buildTelegramStartParam(options);
   return `${MINI_APP_BASE}?startapp=${encodeURIComponent(startParam)}`;
+}
+
+export function buildReferralMiniAppUrl(code) {
+  const slug = String(code || "")
+    .trim()
+    .toLowerCase()
+    .slice(0, MAX_START_PARAM - 5);
+  if (!slug) return MINI_APP_BASE;
+  return `${MINI_APP_BASE}?startapp=${encodeURIComponent(`lq1r_${slug}`)}`;
+}
+
+export function referralCodeFromStartParam(value) {
+  const raw = String(value || "").trim();
+  if (!raw.toLowerCase().startsWith("lq1r_")) return null;
+  const code = raw.slice(5).trim().toUpperCase();
+  return code || null;
 }
 
 /**

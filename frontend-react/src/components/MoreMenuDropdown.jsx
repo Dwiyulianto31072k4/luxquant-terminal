@@ -512,8 +512,9 @@ const MoreMenuDropdown = ({
         {
           path: "/referral",
           icon: Icon.referral,
-          label: t("mfm.referral"),
-          desc: "Invite & earn rewards",
+          label: t("mfm.referral", { defaultValue: "Invite · Earn USDT" }),
+          desc: "Earn USDT when friends subscribe",
+          highlight: true,
         },
         {
           path: "/api-keys",
@@ -552,7 +553,9 @@ const MoreMenuDropdown = ({
     return (
       <button
         onClick={() => go(item.path)}
-        className="group relative w-full flex items-start gap-3 pl-3 pr-2.5 py-2 rounded-md hover:bg-ink/[0.05] transition-colors text-left"
+        className={`group relative w-full flex items-start gap-3 pl-3 pr-2.5 py-2 rounded-md hover:bg-ink/[0.05] transition-colors text-left ${
+          item.highlight ? "bg-accent/[0.06]" : ""
+        }`}
       >
         {active && (
           <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-ink/70" />
@@ -580,6 +583,11 @@ const MoreMenuDropdown = ({
             >
               {item.label}
             </span>
+            {item.highlight && (
+              <span className="rounded-full border border-accent/30 bg-accent/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-accent">
+                USDT
+              </span>
+            )}
           </span>
           {item.desc && (
             <span className="block text-[11px] leading-snug text-text-primary/40 group-hover:text-text-primary/55 transition-colors mt-0.5 truncate">

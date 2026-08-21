@@ -76,20 +76,20 @@ const pickVariant = (arr, seed) => {
 
 const TEXT_REACHED = [
   (P) =>
-    `${P} just ran to its targets on LuxQuant Terminal. See how the whole move played out, and get 10% off your first payment when you sign up through my link.`,
+    `${P} just ran to its targets on LuxQuant Terminal. Every call since December 2023 is on the public record — check this one free with my link.`,
   (P) =>
-    `Another clean run on LuxQuant Terminal: ${P} reached its targets. Take a look at the full breakdown, and use my link for 10% off your first payment.`,
+    `Another clean run on LuxQuant Terminal: ${P} reached its targets. Open the full breakdown and verify it yourself:`,
   (P) =>
-    `${P} hit target on LuxQuant Terminal. See the entry, the targets, and how it unfolded, then claim 10% off your first payment with my link.`,
+    `${P} hit target on LuxQuant Terminal. See the entry, the targets, and how it unfolded — join free with my link.`,
 ];
 
 const TEXT_LIVE = [
   (P) =>
-    `Watching ${P} unfold on LuxQuant Terminal — entry, targets, and live progress in one place. Join through my link for 10% off your first payment.`,
+    `Watching ${P} unfold on LuxQuant Terminal — entry, targets, and live progress in one place. Check it free with my link.`,
   (P) =>
-    `${P} is live on LuxQuant Terminal right now. Follow the setup as it plays out, and use my link for 10% off your first payment.`,
+    `${P} is live on LuxQuant Terminal right now. Follow the setup as it plays out:`,
   (P) =>
-    `Tracking ${P} on LuxQuant Terminal — the full setup and live updates. Take a look, and get 10% off your first payment with my link.`,
+    `Tracking ${P} on LuxQuant Terminal — the full setup and live updates. Take a look with my link.`,
 ];
 
 const buildShareText = (signal) => {

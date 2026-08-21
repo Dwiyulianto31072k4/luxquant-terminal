@@ -60,7 +60,11 @@ from app.services.role_resolver import (
     PROVIDER_TELEGRAM,
 )
 from app.services.telegram_group import create_one_time_invite_link, send_dm
-from app.services.telegram_attribution import acq_from_telegram_start_param
+from app.services.telegram_attribution import (
+    acq_from_telegram_start_param,
+    referral_code_from_start_param,
+)
+from app.services.referral_service import ensure_referral_code
 from app.services.telegram_bot_onboarding import (
     command_from_text,
     reply_for_command,
@@ -373,6 +377,11 @@ async def _issue_telegram_session(
     # --- Track login + geo ---
     track_user_login(db, user, commit=True, **location_from_request(request))
 
+    try:
+        ensure_referral_code(db, user)
+    except Exception:
+        logger.exception("auto-provision referral code failed telegram user=%s", user.id)
+
     tokens = create_tokens(user.id, user.email)
 
     return TokenResponse(
@@ -487,6 +496,8 @@ async def telegram_webapp_login(
     if acq is None and start_param:
         acq = acq_from_telegram_start_param(start_param)
 
+    referral_code = payload.referral_code or referral_code_from_start_param(start_param)
+
     data = TelegramLogin(
         id=int(tg_user["id"]),
         first_name=tg_user.get("first_name") or "Telegram",
@@ -496,7 +507,7 @@ async def telegram_webapp_login(
         auth_date=int(fields["auth_date"]),
         # Already authenticated above; the shared path never reads this.
         hash="webapp",
-        referral_code=payload.referral_code,
+        referral_code=referral_code,
         acq=acq,
     )
     return await _issue_telegram_session(data, request, db)

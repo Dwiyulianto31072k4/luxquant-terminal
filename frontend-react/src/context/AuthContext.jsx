@@ -2,7 +2,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { authApi } from "../services/authApi";
 import { clearAutotradeAuth, syncCryptobotAuth } from "../services/autotradeApi";
-import { getStoredRef, clearStoredRef } from "../utils/referralStorage";
+import { getStoredRef, clearStoredRef, saveRef } from "../utils/referralStorage";
+import { referralCodeFromStartParam } from "../utils/telegramCampaign";
 import { openTelegramAuth } from "../utils/telegramLoader";
 import { getStoredAcq } from "../utils/acqAttribution";
 import { trackFunnel } from "../utils/funnelAnalytics";
@@ -255,6 +256,12 @@ export const AuthProvider = ({ children }) => {
       throw new Error(message);
     }
     try {
+      const startParam =
+        typeof window !== "undefined"
+          ? window.Telegram?.WebApp?.initDataUnsafe?.start_param
+          : null;
+      const fromStart = referralCodeFromStartParam(startParam);
+      if (fromStart) saveRef(fromStart);
       const referralCode = getStoredRef();
       const acq = getStoredAcq();
       const result = await authApi.telegramWebAppLogin(initData, referralCode, acq);

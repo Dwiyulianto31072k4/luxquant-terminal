@@ -184,11 +184,11 @@ def _referral_reminder_message(user, code, advocate):
 
     return (
         f"Hi {username},\n\n{lead}\n\n"
-        "If someone is already asking you about LuxQuant, you can send them this link. "
-        "They receive the referral discount and your reward is tracked automatically after payment.\n\n"
+        "Share it. They join free and verify the public record. "
+        "You earn USDT (10% of what they pay) and 3 friends who actually use LuxQuant unlock 7 days of full access.\n\n"
         f"Your link: {link}\n"
-        f"Referral dashboard: {portal}\n\n"
-        "No pressure — we only send this referral reminder occasionally. "
+        f"Telegram Mini App: https://t.me/LuxQuantTerminalBot/terminal?startapp=lq1r_{(code.code or '').lower()}\n"
+        f"Dashboard: {portal}\n\n"
         "Reply STOP if you do not want referral reminders."
     )
 
@@ -277,6 +277,7 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             "last_shared_at": code.last_shared_at,
             "referred": 0,
             "activated": 0,
+            "qualified": 0,
             "subscribed": 0,
             "payments": 0,
             "revenue": 0.0,
@@ -304,6 +305,7 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
         if advocate:
             advocate["referred"] += 1
             advocate["activated"] += int(bool(use.first_login_at) or use.status != "pending")
+            advocate["qualified"] += int(bool(use.qualified_at))
             advocate["subscribed"] += int(confirmed_payments > 0)
             advocate["payments"] += confirmed_payments
             advocate["revenue"] += revenue
@@ -429,6 +431,7 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             "tracked_shares": sum(a["shares"] for a in advocates),
             "referred": total_referred,
             "activated": total_activated,
+            "qualified": sum(a.get("qualified", 0) for a in advocates),
             "subscribed": total_subscribed,
             "activation_rate": (total_activated / total_referred * 100) if total_referred else 0,
             "paid_rate": (total_subscribed / total_referred * 100) if total_referred else 0,

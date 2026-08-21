@@ -77,6 +77,7 @@ export function startDestination(startParam) {
   const campaign = parseLuxQuantStartParam(s);
   if (campaign) {
     if (campaign.medium === "auth_fallback") return "/home";
+    if (campaign.medium === "referral") return "/performance";
     return "/performance";
   }
   const key = KEYS.find((k) => s === k || s.endsWith(`_${k}`));

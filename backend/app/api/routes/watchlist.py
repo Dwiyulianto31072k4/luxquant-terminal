@@ -144,6 +144,12 @@ def add_to_watchlist(
         {"user_id": current_user.id, "signal_id": data.signal_id}
     )
     db.commit()
+
+    try:
+        from app.services.referral_viral import evaluate_referral_qualification
+        evaluate_referral_qualification(db, current_user, commit=True)
+    except Exception:
+        pass
     
     return {"message": "Signal ditambahkan ke watchlist", "signal_id": data.signal_id}
 

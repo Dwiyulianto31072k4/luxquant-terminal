@@ -1,127 +1,147 @@
 // src/locales/referral.js
 
 export const referralEn = {
-  title: "Referral Program",
-  subtitle: "Earn commissions by inviting friends to LuxQuant",
+  chip: "Earn USDT",
+  chip_full: "Invite · Earn USDT",
 
-  // Code section
-  your_code: "Your Referral Code",
-  generate: "Generate Code",
-  generating: "Generating...",
-  no_code_yet: "You don't have a referral code yet",
-  custom_code: "Custom code (optional)",
-  copy_code: "Copy Code",
-  copy_link: "Copy Link",
+  title: "Invite friends. Earn USDT.",
+  subtitle:
+    "They join free and verify the public record. You earn 10% in USDT when they subscribe — and 3 friends who actually use LuxQuant unlock 7 days of full access.",
+
+  copy_link: "Copy link",
   copied: "Copied!",
-  share_link: "Share Link",
-  qr_code: "QR Code",
+  share: "Share",
+  share_whatsapp: "WhatsApp",
+  share_telegram: "Telegram",
+  share_x: "Share on X",
+  copy_code: "Copy code",
+  link_qr: "Link & QR",
   download_qr: "Download QR",
+  telegram_app: "Telegram Mini App",
 
-  // Stats
-  stats: "Performance",
-  total_referrals: "Total Referrals",
-  confirmed: "Confirmed",
-  pending: "Pending",
-  total_earned: "Total Earned",
-  available: "Available Balance",
-  paid_out: "Paid Out",
+  earn_usdt: "Earn USDT",
+  earn_usdt_body: "10% of every confirmed payment from people you invite, including renewals.",
+  available: "Available",
+  request_cashout: "Request cashout",
 
-  // How it works
-  how_it_works: "How It Works",
-  step1_title: "Share Your Code",
-  step1_desc: "Share your referral link or code with friends",
-  step2_title: "They Subscribe",
-  step2_desc: "They get a discount on their first subscription",
-  step3_title: "You Earn",
-  step3_desc: "You receive commission when they pay",
+  unlock_access: "Unlock access",
+  unlock_body: "3 friends who activate (not just sign up) unlock 7 days of full Terminal access.",
+  qualified: "qualified",
+  of_target: "of {{n}} toward 7 days",
 
-  // Recent referrals
-  recent: "Recent Referrals",
-  no_referrals: "No referrals yet. Start sharing your code!",
-  user: "User",
-  commission: "Commission",
-  status: "Status",
-  date: "Date",
-  status_pending: "Pending",
-  status_confirmed: "Confirmed",
-  status_paid: "Paid",
+  how_title: "How it works",
+  step1_title: "Share your link",
+  step1_desc: "WhatsApp, Telegram, or X — one tap.",
+  step2_title: "They join free",
+  step2_desc: "They verify a real published call. No payment required to start.",
+  step3_title: "You earn",
+  step3_desc: "USDT when they subscribe. 3 active friends unlock 7 days for you.",
 
-  // Payout
-  payout: "Withdraw",
-  payout_title: "Withdraw Commission",
-  payout_amount: "Amount (USDT)",
-  payout_wallet: "Wallet Address",
-  payout_network: "Network",
-  payout_submit: "Submit Withdrawal",
-  payout_processing: "Processing...",
-  payout_min: "Minimum withdrawal: $5 USDT",
-  payout_history: "Withdrawal History",
-  no_payouts: "No withdrawals yet",
+  estimator_title: "If they subscribe",
+  estimator_monthly: "Monthly $50",
+  estimator_annual: "Annual $400",
+  estimator_lifetime: "Lifetime $1,000",
+  you_earn: "You earn",
 
-  // Info badges
-  discount_label: "discount for new users",
-  commission_label: "commission for you",
+  scripts_title: "Ready to send",
+  script_proof: "Proof",
+  script_win: "A winning call",
+  script_money: "We both win",
+  script_proof_text:
+    "LuxQuant publishes every call since December 2023 — verify the record yourself. Join free with my link:",
+  script_money_text:
+    "I earn USDT when you subscribe. You get 10% off your first payment. We both win:",
+
+  people_title: "People you invited",
+  no_people: "No invites yet. Share your link — that's the whole job.",
+  status_pending: "Signed up",
+  status_active: "Active",
+  status_qualified: "Qualified",
+  status_subscribed: "Subscribed",
+  status_churned: "Churned",
+  status_cancelled: "Cancelled",
+
+  earnings_title: "Your USDT",
+  lifetime_earned: "Lifetime earned",
+  this_month: "This month",
+  cashouts: "Cashouts",
+
+  privacy:
+    "When someone uses your link, their username, avatar, signup date, and login activity are visible to you.",
+
+  banner_title: "Invited by @{{name}}",
+  banner_body: "Join free and verify the public record. You also get 10% off if you later subscribe.",
 };
 
 export const referralZh = {
-  title: "推荐计划",
-  subtitle: "邀请朋友加入 LuxQuant 赚取佣金",
+  chip: "赚取 USDT",
+  chip_full: "邀请 · 赚取 USDT",
 
-  // Code section
-  your_code: "您的推荐代码",
-  generate: "生成代码",
-  generating: "生成中...",
-  no_code_yet: "您还没有推荐代码",
-  custom_code: "自定义代码（可选）",
-  copy_code: "复制代码",
+  title: "邀请好友，赚取 USDT。",
+  subtitle:
+    "他们免费加入并核验公开记录。他们订阅后你获得 10% USDT，3 位真正使用产品的好友可为你解锁 7 天完整权限。",
+
   copy_link: "复制链接",
-  copied: "已复制！",
-  share_link: "分享链接",
-  qr_code: "二维码",
+  copied: "已复制",
+  share: "分享",
+  share_whatsapp: "WhatsApp",
+  share_telegram: "Telegram",
+  share_x: "分享到 X",
+  copy_code: "复制代码",
+  link_qr: "链接和二维码",
   download_qr: "下载二维码",
+  telegram_app: "Telegram 小程序",
 
-  // Stats
-  stats: "数据表现",
-  total_referrals: "总推荐",
-  confirmed: "已确认",
-  pending: "待确认",
-  total_earned: "总收入",
-  available: "可用余额",
-  paid_out: "已提取",
+  earn_usdt: "赚取 USDT",
+  earn_usdt_body: "被邀请人每笔确认付款（含续费）的 10%。",
+  available: "可提现",
+  request_cashout: "申请提现",
 
-  // How it works
-  how_it_works: "如何运作",
-  step1_title: "分享您的代码",
-  step1_desc: "将推荐链接或代码分享给朋友",
-  step2_title: "他们订阅",
-  step2_desc: "他们首次订阅可获折扣",
-  step3_title: "您赚取佣金",
-  step3_desc: "他们付款后您将获得佣金",
+  unlock_access: "解锁权限",
+  unlock_body: "3 位完成激活（不只是注册）的好友，可为你解锁 7 天完整 Terminal。",
+  qualified: "已激活",
+  of_target: "距 7 天还差 {{n}} 人",
 
-  // Recent referrals
-  recent: "最近推荐",
-  no_referrals: "暂无推荐。开始分享您的代码吧！",
-  user: "用户",
-  commission: "佣金",
-  status: "状态",
-  date: "日期",
-  status_pending: "待确认",
-  status_confirmed: "已确认",
-  status_paid: "已支付",
+  how_title: "如何运作",
+  step1_title: "分享你的链接",
+  step1_desc: "WhatsApp、Telegram 或 X，一键完成。",
+  step2_title: "他们免费加入",
+  step2_desc: "核验一笔已公开的真实信号，无需先付款。",
+  step3_title: "你获得奖励",
+  step3_desc: "他们订阅你赚 USDT；3 位活跃好友为你解锁 7 天。",
 
-  // Payout
-  payout: "提取",
-  payout_title: "提取佣金",
-  payout_amount: "金额 (USDT)",
-  payout_wallet: "钱包地址",
-  payout_network: "网络",
-  payout_submit: "提交提现",
-  payout_processing: "处理中...",
-  payout_min: "最低提现：$5 USDT",
-  payout_history: "提现记录",
-  no_payouts: "暂无提现记录",
+  estimator_title: "如果他们订阅",
+  estimator_monthly: "月付 $50",
+  estimator_annual: "年付 $400",
+  estimator_lifetime: "终身 $1,000",
+  you_earn: "你获得",
 
-  // Info badges
-  discount_label: "新用户折扣",
-  commission_label: "您的佣金",
+  scripts_title: "现成文案",
+  script_proof: "业绩",
+  script_win: "一笔盈利",
+  script_money: "双赢",
+  script_proof_text:
+    "LuxQuant 自 2023 年 12 月起公开每一笔信号——用我的链接免费核验：",
+  script_money_text:
+    "你订阅我赚 USDT，你首次付款享 9 折。双赢：",
+
+  people_title: "你邀请的人",
+  no_people: "还没有邀请。分享链接即可。",
+  status_pending: "已注册",
+  status_active: "活跃",
+  status_qualified: "已激活",
+  status_subscribed: "已订阅",
+  status_churned: "流失",
+  status_cancelled: "已取消",
+
+  earnings_title: "你的 USDT",
+  lifetime_earned: "累计收益",
+  this_month: "本月",
+  cashouts: "提现",
+
+  privacy:
+    "有人使用你的链接时，其用户名、头像、注册日期和登录活动对你可见。",
+
+  banner_title: "由 @{{name}} 邀请",
+  banner_body: "免费加入并核验公开记录。之后订阅还可享 9 折。",
 };

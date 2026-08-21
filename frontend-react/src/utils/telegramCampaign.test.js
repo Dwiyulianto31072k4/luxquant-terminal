@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   __TEST__,
+  buildReferralMiniAppUrl,
   buildTelegramFallbackUrl,
   buildTelegramMiniAppUrl,
   buildTelegramStartParam,
   buildTelegramWebCampaignUrl,
   parseLuxQuantStartParam,
+  referralCodeFromStartParam,
   telegramCampaignSlug,
 } from "./telegramCampaign";
 
@@ -68,5 +70,17 @@ describe("telegram campaign payloads", () => {
 
   it("normalizes labels for links and dashboards", () => {
     expect(telegramCampaignSlug("  VIP / Proof #1  ")).toBe("vip-proof-1");
+  });
+
+  it("encodes a referral Mini App start_param", () => {
+    const url = buildReferralMiniAppUrl("LUXQUANTADMIN");
+    expect(url).toContain("startapp=lq1r_luxquantadmin");
+    expect(referralCodeFromStartParam("lq1r_luxquantadmin")).toBe("LUXQUANTADMIN");
+    expect(parseLuxQuantStartParam("lq1r_luxquantadmin")).toEqual({
+      source: "telegram",
+      medium: "referral",
+      campaign: "luxquantadmin",
+      content: null,
+    });
   });
 });

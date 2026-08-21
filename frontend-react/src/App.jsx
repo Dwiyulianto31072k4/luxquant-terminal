@@ -80,6 +80,7 @@ import { UserMenu } from "./components/auth";
 import { PremiumModal } from "./components/subscription";
 import NotificationBell from "./components/NotificationBell";
 import MoreMenuDropdown from "./components/MoreMenuDropdown";
+import EarnUsdtChip from "./components/referral/EarnUsdtChip";
 import { LoadingScreen, PageSkeleton } from "./components/ui/Loaders";
 import ErrorBoundary, { RouteErrorBoundary } from "./components/ErrorBoundary";
 import useHeaderMetrics from "./hooks/useHeaderMetrics";
@@ -654,9 +655,9 @@ function AppShell({ children }) {
     },
     {
       path: "/referral",
-      label: "Referral",
+      label: "Invite · Earn USDT",
       icon: "🎟️",
-      description: "Earn commissions by inviting friends",
+      description: "Earn USDT when friends subscribe",
     },
     ...(isAdmin
       ? [
@@ -862,6 +863,10 @@ function AppShell({ children }) {
 
             {/* RIGHT SIDE */}
             <div className="flex items-center gap-1.5 lg:gap-2">
+              <EarnUsdtChip
+                active={isActive("/referral")}
+                onClick={() => handleNav("/referral")}
+              />
               {/* EN/ZH toggle — Flowscan filter pill */}
               <div className="flex items-center gap-0.5 p-0.5 mr-1 rounded-sm bg-ink/[0.03] border border-ink/[0.06]">
                 {["en", "zh"].map((lang) => (
@@ -910,6 +915,19 @@ function AppShell({ children }) {
         </div>
         <div className="flex max-h-[calc(72vh-1.5rem)] flex-col">
           <nav className="flex-1 py-3 pb-8 px-3 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <button
+              type="button"
+              onClick={() => handleNav("/referral")}
+              className="mb-3 flex w-full items-center justify-between rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-left"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-accent">Invite · Earn USDT</span>
+                <span className="mt-0.5 block text-[11px] text-text-muted">
+                  10% when they subscribe · 3 active friends unlock 7 days
+                </span>
+              </span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">Open</span>
+            </button>
             {/* ═══════════ ADMIN SECTION (top priority for admins) ═══════════ */}
             {isAdmin && (
               <>
@@ -1284,6 +1302,20 @@ function AppShell({ children }) {
             </div>
 
             <SidebarItem
+              active={isActive("/referral")}
+              path="/referral"
+              onClick={() => handleNav("/referral")}
+              label="Invite · Earn USDT"
+              icon={
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
+                />
+              }
+            />
+            <SidebarItem
               active={isActive("/watchlist")}
               path="/watchlist"
               onClick={() => handleNav("/watchlist")}
@@ -1295,20 +1327,6 @@ function AppShell({ children }) {
                   strokeLinejoin="round"
                   strokeWidth={1.5}
                   d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                />
-              }
-            />
-            <SidebarItem
-              active={isActive("/referral")}
-              path="/referral"
-              onClick={() => handleNav("/referral")}
-              label="Referral"
-              icon={
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
                 />
               }
             />

@@ -26,6 +26,7 @@ import { PREMIUM_REQUIRED } from "../../../../utils/routeAccess";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { CTA } from "../landingCopy";
 import { PrimaryButton, SecondaryButton } from "./shared/LandingButtons";
+import EarnUsdtChip from "../../../referral/EarnUsdtChip";
 
 // Compact appearance picker for the landing header (admin-gated while theming
 // is in preview). Three swatches — click to switch the whole site live.
@@ -340,6 +341,10 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               </svg>
             </button>
 
+            <EarnUsdtChip
+              compact
+              onClick={() => goFeature("/referral")}
+            />
             {!isAuthenticated && (
               <button
                 type="button"

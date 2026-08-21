@@ -8,6 +8,7 @@ Mini App. Telegram's signed initData preserves ``start_param`` instead. The
     lq1p_<campaign>_<creative>   paid Telegram traffic
     lq1c_<campaign>_<content>    owned Telegram channel traffic
     lq1f_login_redirect          popup/auth rescue
+    lq1r_<CODE>                  organic referral (code looked up case-insensitive)
 
 Legacy ``<event>_<coin>_<cta>`` payloads remain supported unchanged.
 """
@@ -22,6 +23,7 @@ _MEDIUM_BY_PREFIX = {
     "lq1p": "paid_social",
     "lq1c": "channel",
     "lq1f": "auth_fallback",
+    "lq1r": "referral",
 }
 
 _LEGACY_EVENTS = (
@@ -74,4 +76,15 @@ def acq_from_telegram_start_param(start_param: object) -> Optional[AcqPayload]:
     )
 
 
-__all__ = ["acq_from_telegram_start_param"]
+def referral_code_from_start_param(start_param: object) -> Optional[str]:
+    """Extract a referral code from ``lq1r_<CODE>``. None for every other payload."""
+    raw = str(start_param or "").strip()
+    if len(raw) < 6:
+        return None
+    if not raw.lower().startswith("lq1r_"):
+        return None
+    code = raw[5:].strip()
+    return code.upper() if code else None
+
+
+__all__ = ["acq_from_telegram_start_param", "referral_code_from_start_param"]

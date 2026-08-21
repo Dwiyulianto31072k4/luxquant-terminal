@@ -129,7 +129,8 @@ def apply_referral_to_user(
     )
     db.add(use)
 
-    # Note: times_used NOT incremented here — di-increment saat payment confirmed.
+    # Signups (not payments) — times_used still only moves on first confirmed pay.
+    referral.signup_count = (referral.signup_count or 0) + 1
 
     if commit:
         db.commit()
@@ -211,3 +212,9 @@ def track_user_login(
     if commit:
         db.commit()
         db.refresh(user)
+
+    try:
+        from app.services.referral_viral import evaluate_referral_qualification
+        evaluate_referral_qualification(db, user, commit=commit)
+    except Exception:
+        logger.exception("referral qualification on login failed user=%s", user.id)

@@ -52,6 +52,7 @@ from app.schemas.referral import (
     ReferralFunnelResponse,
     ReferralEarningsResponse,
     ReferralStatsResponse,
+    ReferralEstimator,
     RefereeItem,
     RefereeListResponse,
     TrackShareRequest,
@@ -71,8 +72,10 @@ from app.services.referral_helpers import (
 )
 from app.services.referral_service import (
     build_share_link,
+    build_telegram_share_link,
     build_qr_url,
     generate_unique_code,
+    ensure_referral_code,
     is_code_taken,
     generate_qr_png,
     calculate_funnel,
@@ -118,9 +121,11 @@ def _enrich_code(code_obj: ReferralCode) -> dict:
         "expires_at": code_obj.expires_at,
         "created_at": code_obj.created_at,
         "share_link": build_share_link(code_obj.code),
+        "telegram_share_link": build_telegram_share_link(code_obj.code),
         "qr_url": build_qr_url(code_obj.code),
         "share_count": getattr(code_obj, 'share_count', 0) or 0,
         "qr_count": getattr(code_obj, 'qr_count', 0) or 0,
+        "signup_count": getattr(code_obj, 'signup_count', 0) or 0,
         "last_shared_at": getattr(code_obj, 'last_shared_at', None),
     }
 
@@ -134,20 +139,8 @@ def get_my_code(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Return user's active referral code, atau None kalau belum generate."""
-    code = (
-        db.query(ReferralCode)
-        .filter(
-            ReferralCode.user_id == current_user.id,
-            ReferralCode.is_active == True,
-        )
-        .order_by(ReferralCode.created_at.desc())
-        .first()
-    )
-
-    if not code:
-        return None
-
+    """Return user's active referral code. Auto-provisions if missing."""
+    code = ensure_referral_code(db, current_user)
     return ReferralCodeResponse(**_enrich_code(code))
 
 
@@ -211,16 +204,8 @@ def get_stats(
 ):
     """One-shot stats endpoint untuk dashboard ReferralPage."""
 
-    code_obj = (
-        db.query(ReferralCode)
-        .filter(
-            ReferralCode.user_id == current_user.id,
-            ReferralCode.is_active == True,
-        )
-        .order_by(ReferralCode.created_at.desc())
-        .first()
-    )
-    code_data = ReferralCodeResponse(**_enrich_code(code_obj)) if code_obj else None
+    code_obj = ensure_referral_code(db, current_user)
+    code_data = ReferralCodeResponse(**_enrich_code(code_obj))
 
     funnel_data = calculate_funnel(db, current_user.id)
     earnings_data = calculate_earnings(db, current_user)
@@ -228,11 +213,18 @@ def get_stats(
     recent_items, _total = get_referee_list(db, current_user.id, page=1, page_size=5)
     recent_referees = [RefereeItem(**item) for item in recent_items]
 
+    pct = float(code_obj.commission_pct or 10)
     return ReferralStatsResponse(
         code=code_data,
         funnel=ReferralFunnelResponse(**funnel_data),
         earnings=ReferralEarningsResponse(**earnings_data),
         recent_referees=recent_referees,
+        estimator=ReferralEstimator(
+            commission_pct=pct,
+            monthly_usdt=round(50 * pct / 100, 2),
+            annual_usdt=round(400 * pct / 100, 2),
+            lifetime_usdt=round(1000 * pct / 100, 2),
+        ),
     )
 
 

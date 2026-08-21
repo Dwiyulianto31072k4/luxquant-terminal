@@ -55,10 +55,10 @@ export default function ReferralBanner({ className = "" }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold" style={{ color: "rgb(var(--accent-text))" }}>
-          Referred by @{username}
+          Invited by @{username}
         </p>
         <p className="text-xs mt-0.5" style={{ color: "rgb(var(--fg-secondary))" }}>
-          You'll get {discount}% off your first subscription. Sign in below to claim it.
+          Join free and verify the public record. You also get {discount}% off if you later subscribe.
         </p>
       </div>
     </div>

@@ -17,6 +17,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import Seo from "../../Seo";
 import { saveRefFromURL } from "../../../utils/referralStorage";
+import ReferralBanner from "../../auth/ReferralBanner";
 import { trackFunnel } from "../../../utils/funnelAnalytics";
 import { landingFaqJsonLd } from "../../../content/faq";
 import useLandingData from "./useLandingData";
@@ -174,7 +175,7 @@ export default function LandingPageV2() {
               width: 512,
               height: 512,
             },
-            sameAs: ["https://x.com/luxquantcrypto", "https://t.me/LuxQuantSignal"],
+            sameAs: ["https://x.com/luxquantapp", "https://t.me/LuxQuantSignal"],
             knowsAbout: [
               "cryptocurrency trading",
               "algorithmic trading signals",
@@ -192,6 +193,11 @@ export default function LandingPageV2() {
       <div aria-hidden="true" className="lux-warm-page pointer-events-none absolute inset-0 z-0" />
 
       <HeaderV2 onNav={scrollTo} activeId={activeId} />
+      <div className="pointer-events-none fixed inset-x-0 top-[4.75rem] z-40 flex justify-center px-4 lg:top-[5.25rem]">
+        <div className="pointer-events-auto w-full max-w-xl">
+          <ReferralBanner />
+        </div>
+      </div>
       <main id="main">
         {/* Conversion order: proof → free CTA → how it works → product → depth */}
         <HeroSlider onNav={scrollTo} gainers={topGainers} onSlideChange={onHeroSlideChange} />

@@ -10,6 +10,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { isMiniApp } from "../utils/telegramWebApp";
 import { startDestination, parseStartParam } from "../utils/miniAppStart";
 import { trackFunnel } from "../utils/funnelAnalytics";
+import { referralCodeFromStartParam } from "../utils/telegramCampaign";
+import { saveRef } from "../utils/referralStorage";
 
 const ONCE_KEY = "lq_miniapp_start_routed";
 
@@ -30,6 +32,9 @@ const MiniAppStartRoute = () => {
 
     const startParam =
       window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
+
+    const refCode = referralCodeFromStartParam(startParam);
+    if (refCode) saveRef(refCode);
 
     // Report the arrival, the same way a web arrival reports itself.
     //

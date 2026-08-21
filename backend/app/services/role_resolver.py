@@ -36,6 +36,7 @@ SOURCE_ADMIN = "admin"
 SOURCE_PAYMENT = "payment"
 SOURCE_TELEGRAM_VIP = "telegram_vip"
 SOURCE_DISCORD_PREMIUM = "discord_premium"
+SOURCE_REFERRAL_REWARD = "referral_reward"
 
 # Provider constants (passed to is_role_protected)
 PROVIDER_TELEGRAM = "telegram"
@@ -90,6 +91,11 @@ def is_role_protected(user: User, current_provider: Optional[str] = None) -> boo
 
     # Payment: PROTECTED selama belum expired
     if source == SOURCE_PAYMENT:
+        return _has_unexpired_subscription(user)
+
+    # Invite unlock: PROTECTED while the time-boxed grant is still live.
+    # Expiry worker (not OAuth) is what returns the user to free.
+    if source == SOURCE_REFERRAL_REWARD:
         return _has_unexpired_subscription(user)
 
     # Telegram VIP: PROTECTED dari NON-Telegram providers

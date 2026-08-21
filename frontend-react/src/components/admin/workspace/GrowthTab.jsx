@@ -317,6 +317,11 @@ const Overview = ({ data }) => {
               tone="accent"
             />
             <MiniStat
+              label="Qualified"
+              value={num(attr.referral?.summary?.qualified)}
+              tone="accent"
+            />
+            <MiniStat
               label="Paid"
               value={num(attr.referral?.summary?.subscribed)}
               tone="profit"

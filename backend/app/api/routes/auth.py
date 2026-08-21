@@ -44,6 +44,7 @@ from app.services.referral_helpers import (
     apply_referral_to_user,
     track_user_login,
 )
+from app.services.referral_service import ensure_referral_code
 from app.services.role_resolver import resolve_role_for_google
 from app.services.acq_helpers import apply_acq_to_user
 from app.services.geo_helpers import location_from_request, apply_request_geo_to_user
@@ -183,6 +184,10 @@ def google_login(
 
     # ─── Track login + geo (CF-IPCountry) ───
     track_user_login(db, user, commit=True, **location_from_request(request))
+    try:
+        ensure_referral_code(db, user)
+    except Exception:
+        logger.exception("auto-provision referral code failed google user=%s", user.id)
 
     tokens = create_tokens(user.id, user.email)
 
@@ -481,6 +486,10 @@ async def google_callback(
         db.refresh(user)
 
     track_user_login(db, user, commit=True, **location_from_request(request))
+    try:
+        ensure_referral_code(db, user)
+    except Exception:
+        logger.exception("auto-provision referral code failed google redirect user=%s", user.id)
 
     tokens = create_tokens(user.id, user.email)
     cryptobot_token = create_cryptobot_exchange_token(user)

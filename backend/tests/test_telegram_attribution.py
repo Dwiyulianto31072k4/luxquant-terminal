@@ -28,3 +28,18 @@ def test_legacy_closed_win_payload_stays_compatible():
 
 def test_blank_payload_is_ignored():
     assert acq_from_telegram_start_param("") is None
+
+
+def test_referral_start_param():
+    from app.services.telegram_attribution import referral_code_from_start_param
+
+    acq = acq_from_telegram_start_param("lq1r_LUXQUANTADMIN")
+    assert acq is not None
+    assert acq.source == "telegram"
+    assert acq.medium == "referral"
+    assert acq.campaign == "luxquantadmin"
+
+    assert referral_code_from_start_param("lq1r_LUXQUANTADMIN") == "LUXQUANTADMIN"
+    assert referral_code_from_start_param("lq1r_luxq-gnuev7gd") == "LUXQ-GNUEV7GD"
+    assert referral_code_from_start_param("lq1p_aug_proof") is None
+    assert referral_code_from_start_param("") is None
