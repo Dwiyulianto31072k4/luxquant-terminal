@@ -1,6 +1,6 @@
-// GrowthTab — signals-led revenue, retention, and referral operating system.
+// GrowthTab — revenue, retention, and referral operating desk.
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, useId } from "react";
 import { workspaceApi } from "../../../services/workspaceApi";
 import {
   StatTile,
@@ -36,8 +36,25 @@ const fmtDate = (iso, withTime = false) => {
 };
 const monthLabel = (m) =>
   m
-    ? new Date(`${m}-01T00:00:00Z`).toLocaleDateString("en", { month: "short" })
+    ? new Date(`${m}-01T00:00:00Z`).toLocaleDateString("en", {
+        month: "short",
+        timeZone: "UTC",
+      })
     : "";
+const monthYear = (m) =>
+  m
+    ? `${monthLabel(m)} '${String(
+        new Date(`${m}-01T00:00:00Z`).getUTCFullYear(),
+      ).slice(-2)}`
+    : "";
+
+const niceCeil = (max) => {
+  if (max <= 1) return 1;
+  const mag = 10 ** Math.floor(Math.log10(max));
+  const n = max / mag;
+  const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return step * mag;
+};
 
 const SOURCE_LABEL = {
   payment: "On-chain payment",
@@ -47,11 +64,12 @@ const SOURCE_LABEL = {
   telegram_vip: "Telegram VIP",
   discord_premium: "Discord premium",
   manual: "Manual payment",
+  referral_reward: "Invite unlock",
 };
 
 const REMINDER_STATE = {
   eligible: ["Ready", "border-profit/25 bg-profit/10 text-profit"],
-  cooldown: ["Cooldown", "border-blue-500/20 bg-blue-500/10 text-blue-600"],
+  cooldown: ["Cooldown", "border-ink/15 bg-ink/[0.04] text-text-muted"],
   recently_shared: [
     "Shared recently",
     "border-profit/20 bg-profit/5 text-profit",
@@ -63,10 +81,50 @@ const REMINDER_STATE = {
   paused: ["Paused", "border-ink/10 bg-ink/[0.03] text-text-muted"],
 };
 
+const NODE_COLOR = {
+  subscribed: "rgb(var(--pos))",
+  qualified: "rgb(var(--accent))",
+  active: "rgb(var(--accent) / 0.7)",
+  pending: "rgb(var(--fg-muted))",
+  churned: "rgb(var(--neg))",
+  cancelled: "rgb(var(--neg))",
+  refunded: "rgb(var(--neg))",
+};
+
+const nodeFill = (row) => {
+  if (row?.payments) return NODE_COLOR.subscribed;
+  if (row?.qualified) return NODE_COLOR.qualified;
+  return NODE_COLOR[row?.status] || NODE_COLOR.active;
+};
+
+const nodeLabel = (row) => {
+  if (row?.payments) return "Paid";
+  if (row?.qualified) return "Qualified";
+  if (row?.status === "pending") return "Pending";
+  if (row?.status === "churned" || row?.status === "cancelled") return "Churned";
+  return "Active";
+};
+
+const useWidth = () => {
+  const ref = useRef(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(([e]) =>
+      setW(Math.floor(e.contentRect.width)),
+    );
+    ro.observe(el);
+    setW(Math.floor(el.getBoundingClientRect().width));
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w];
+};
+
 const Panel = ({ title, sub, children, right, className = "" }) => (
   <Surface variant="premium" hover={false} padding="p-5" className={className}>
     <div className="mb-4 flex items-start justify-between gap-3">
-      <div>
+      <div className="min-w-0">
         <h3 className="text-[14px] font-semibold tracking-tight text-text-primary">
           {title}
         </h3>
@@ -122,59 +180,146 @@ const fillMonths = (trend, months = 12) => {
   const now = new Date();
   const out = [];
   for (let i = months - 1; i >= 0; i -= 1) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const d = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
+    );
     const key = d.toISOString().slice(0, 7);
-    out.push(map[key] || { month: key, revenue: 0, count: 0 });
+    out.push(
+      map[key] || {
+        month: key,
+        revenue: 0,
+        count: 0,
+        referred: 0,
+        paid: 0,
+        qualified: 0,
+        activated: 0,
+      },
+    );
   }
   return out;
 };
 
 const RevenueTrend = ({ trend }) => {
-  const series = fillMonths(trend);
-  const max = Math.max(...series.map((t) => Number(t.revenue) || 0), 1);
+  const [ref, w] = useWidth();
   const [hover, setHover] = useState(null);
-  const w = 640;
-  const h = 196;
-  const pad = { l: 8, r: 8, t: 18, b: 28 };
-  const innerW = w - pad.l - pad.r;
-  const innerH = h - pad.t - pad.b;
-  const gap = innerW / series.length;
-  const barW = Math.max(gap * 0.55, 8);
+  const gid = useId().replace(/:/g, "");
+  const series = fillMonths(trend);
+  const max = Math.max(...series.map((t) => Number(t.revenue) || 0), 0);
+  const ceil = niceCeil(max || 1);
+  const H = 220;
+  const PAD = { l: 44, r: 12, t: 22, b: 28 };
+  const plotW = Math.max((w || 640) - PAD.l - PAD.r, 40);
+  const plotH = H - PAD.t - PAD.b;
+  const n = series.length;
+  const bw = n ? plotW / n : 0;
+  const barW = Math.max(bw * 0.52, 6);
+  const xAt = (i) => PAD.l + bw * i + bw / 2;
+  const yAt = (v) => PAD.t + plotH - (v / ceil) * plotH;
+  const area = series
+    .map((t, i) => `${i ? "L" : "M"}${xAt(i)},${yAt(Number(t.revenue) || 0)}`)
+    .join(" ");
+  const areaClosed = n
+    ? `${area} L${xAt(n - 1)},${PAD.t + plotH} L${xAt(0)},${PAD.t + plotH} Z`
+    : "";
+  const onMove = (e) => {
+    if (!n || !bw) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - PAD.l;
+    const i = Math.floor(x / bw);
+    setHover(i >= 0 && i < n ? i : null);
+  };
+  const hp = hover != null ? series[hover] : null;
+  const peak = series.reduce(
+    (best, t, i) =>
+      Number(t.revenue) > Number(best.revenue) ? { ...t, i } : best,
+    { revenue: -1, i: -1 },
+  );
 
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-48 w-full" role="img" aria-label="Monthly confirmed revenue">
-        {[0.25, 0.5, 0.75, 1].map((g) => (
-          <line
-            key={g}
-            x1={pad.l}
-            x2={w - pad.r}
-            y1={pad.t + innerH * (1 - g)}
-            y2={pad.t + innerH * (1 - g)}
-            stroke="rgb(var(--ink) / 0.08)"
-            strokeWidth="1"
+    <div ref={ref} className="relative">
+      <svg
+        width={w || 640}
+        height={H}
+        className="block w-full select-none"
+        role="img"
+        aria-label="Monthly confirmed revenue"
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}
+      >
+        <defs>
+          <linearGradient id={`revFill-${gid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity="0.32" />
+            <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 0.5, 1].map((t) => {
+          const y = PAD.t + plotH - t * plotH;
+          return (
+            <g key={t}>
+              <line
+                x1={PAD.l}
+                x2={(w || 640) - PAD.r}
+                y1={y}
+                y2={y}
+                stroke="rgb(var(--ink) / 0.08)"
+              />
+              <text
+                x={PAD.l - 8}
+                y={y + 3}
+                textAnchor="end"
+                fill="rgb(var(--fg-muted))"
+                fontSize="9"
+              >
+                {t === 0 ? "0" : usd(ceil * t)}
+              </text>
+            </g>
+          );
+        })}
+        {areaClosed && (
+          <path d={areaClosed} fill={`url(#revFill-${gid})`} />
+        )}
+        {n > 1 && (
+          <path
+            d={area}
+            fill="none"
+            stroke="rgb(var(--accent))"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+            strokeLinecap="round"
           />
-        ))}
+        )}
         {series.map((t, i) => {
           const rev = Number(t.revenue) || 0;
-          const bh = Math.max((rev / max) * innerH, rev > 0 ? 4 : 0);
-          const x = pad.l + i * gap + (gap - barW) / 2;
-          const y = pad.t + innerH - bh;
+          const bh = (rev / ceil) * plotH;
+          const x = xAt(i) - barW / 2;
+          const y = PAD.t + plotH - bh;
+          const active = hover == null || hover === i;
           return (
             <g key={t.month}>
               <rect
                 x={x}
-                y={y}
+                y={rev ? y : PAD.t + plotH - 2}
                 width={barW}
-                height={bh}
+                height={rev ? Math.max(bh, 3) : 2}
                 rx="3"
-                fill={hover === i ? "rgb(var(--accent))" : "rgb(var(--accent) / 0.72)"}
-                onMouseEnter={() => setHover(i)}
-                onMouseLeave={() => setHover(null)}
+                fill="rgb(var(--accent))"
+                opacity={rev ? (active ? 0.92 : 0.28) : 0.18}
               />
+              {peak.i === i && rev > 0 && hover == null && (
+                <text
+                  x={xAt(i)}
+                  y={y - 6}
+                  textAnchor="middle"
+                  fill="rgb(var(--fg))"
+                  fontSize="10"
+                  fontWeight="700"
+                >
+                  {usd(rev)}
+                </text>
+              )}
               <text
-                x={x + barW / 2}
-                y={h - 8}
+                x={xAt(i)}
+                y={H - 8}
                 textAnchor="middle"
                 fill="rgb(var(--fg-muted))"
                 fontSize="9"
@@ -184,111 +329,403 @@ const RevenueTrend = ({ trend }) => {
             </g>
           );
         })}
+        {hover != null && hp && (
+          <line
+            x1={xAt(hover)}
+            x2={xAt(hover)}
+            y1={PAD.t}
+            y2={PAD.t + plotH}
+            stroke="rgb(var(--ink) / 0.18)"
+            strokeDasharray="3 3"
+          />
+        )}
       </svg>
-      {hover != null && series[hover] && (
-        <div className="pointer-events-none absolute right-1 top-0 rounded-md border border-ink/10 bg-surface-raised px-2 py-1 text-[10px] text-text-primary shadow-sm">
-          <span className="font-semibold">{usd(series[hover].revenue)}</span>
-          <span className="ml-1.5 text-text-muted">
-            {series[hover].count} pay · {monthLabel(series[hover].month)}
-          </span>
+      {hp && (
+        <div className="pointer-events-none absolute right-1 top-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 text-[10px] text-text-primary shadow-sm">
+          <p className="font-semibold">{usd(hp.revenue)}</p>
+          <p className="text-text-muted">
+            {num(hp.count)} pay · {monthYear(hp.month)}
+          </p>
         </div>
       )}
     </div>
   );
 };
 
-const STATUS_COLOR = {
-  subscribed: "rgb(var(--pos))",
-  qualified: "rgb(var(--accent))",
-  active: "rgb(var(--accent) / 0.55)",
-  pending: "rgb(var(--fg-muted))",
-  churned: "rgb(var(--neg))",
-  cancelled: "rgb(var(--neg))",
-};
-
-const ReferralGraph = ({ relationships }) => {
-  const rows = relationships || [];
-  const hubs = useMemo(() => {
-    const map = new Map();
-    rows.forEach((r) => {
-      const id = r.referrer_id;
-      if (!map.has(id)) {
-        map.set(id, {
-          id,
-          name: r.referrer_username,
-          kids: [],
-        });
-      }
-      map.get(id).kids.push(r);
-    });
-    return [...map.values()].sort((a, b) => b.kids.length - a.kids.length);
-  }, [rows]);
-
+const SourceMix = ({ bySource }) => {
+  const gid = useId().replace(/:/g, "");
+  const rows = bySource || [];
+  const total = rows.reduce((n, s) => n + Number(s.revenue || 0), 0);
+  const maxRev = Math.max(...rows.map((s) => Number(s.revenue) || 0), 1);
   if (!rows.length) {
     return (
       <p className="py-8 text-center text-[11px] text-text-muted">
-        No referral relationships yet. Graph fills as invites convert.
+        No source data.
+      </p>
+    );
+  }
+  const r = 54;
+  const c = 2 * Math.PI * r;
+  let acc = 0;
+  const slices = rows.map((s, i) => {
+    const share = total ? Number(s.revenue || 0) / total : 0;
+    const dash = share * c;
+    const offset = acc;
+    acc += dash;
+    const opacity = 0.95 - i * 0.12;
+    return { ...s, share, dash, offset, opacity: Math.max(opacity, 0.35) };
+  });
+
+  return (
+    <div className="flex items-start gap-4">
+      <svg width="140" height="140" viewBox="0 0 140 140" className="shrink-0">
+        <circle
+          cx="70"
+          cy="70"
+          r={r}
+          fill="none"
+          stroke="rgb(var(--ink) / 0.08)"
+          strokeWidth="16"
+        />
+        {slices.map((s) => (
+          <circle
+            key={s.source}
+            cx="70"
+            cy="70"
+            r={r}
+            fill="none"
+            stroke="rgb(var(--accent))"
+            strokeWidth="16"
+            strokeDasharray={`${s.dash} ${c - s.dash}`}
+            strokeDashoffset={-s.offset}
+            strokeOpacity={s.opacity}
+            transform="rotate(-90 70 70)"
+          />
+        ))}
+        <text
+          x="70"
+          y="66"
+          textAnchor="middle"
+          fill="rgb(var(--fg))"
+          fontSize="13"
+          fontWeight="700"
+        >
+          {usd(total)}
+        </text>
+        <text
+          x="70"
+          y="82"
+          textAnchor="middle"
+          fill="rgb(var(--fg-muted))"
+          fontSize="8"
+        >
+          attributed
+        </text>
+      </svg>
+      <div className="min-w-0 flex-1 space-y-2">
+        {slices.map((s) => (
+          <div key={s.source} className="flex items-center gap-2.5">
+            <div className="w-[7.5rem] min-w-0 shrink-0">
+              <p className="truncate text-[11px] font-medium text-text-primary">
+                {SOURCE_LABEL[s.source] || s.source}
+              </p>
+              <p className="text-[9px] text-text-muted">
+                {num(s.users)} · {pct(s.share * 100)}
+              </p>
+            </div>
+            <Bar3D pct={(Number(s.revenue) / maxRev) * 100} heightClass="h-2" />
+            <span className="w-14 text-right text-[11px] font-bold tabular-nums text-text-primary">
+              {usd(s.revenue)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <span className="sr-only">{gid}</span>
+    </div>
+  );
+};
+
+const groupHubs = (relationships) => {
+  const map = new Map();
+  (relationships || []).forEach((r) => {
+    const id = r.referrer_id;
+    if (!map.has(id)) {
+      map.set(id, {
+        id,
+        name: r.referrer_username,
+        role: r.referrer_role,
+        kids: [],
+      });
+    }
+    map.get(id).kids.push(r);
+  });
+  return [...map.values()].sort((a, b) => b.kids.length - a.kids.length);
+};
+
+const ReferralConstellation = ({
+  relationships,
+  focusId,
+  onFocus,
+  compact = false,
+}) => {
+  const [ref, w] = useWidth();
+  const [hover, setHover] = useState(null);
+  const hubs = useMemo(() => groupHubs(relationships), [relationships]);
+  const H = compact ? 280 : 390;
+
+  if (!hubs.length) {
+    return (
+      <p className="py-10 text-center text-[11px] text-text-muted">
+        No referral relationships yet. The graph fills as invites convert.
       </p>
     );
   }
 
-  const w = 720;
-  const h = 280;
-  const left = 118;
-  const right = 560;
-  const shown = hubs.slice(0, 8);
-  const hubY = (i) => 28 + (i * (h - 48)) / Math.max(shown.length - 1, 1);
+  const shown = focusId ? hubs.filter((h) => h.id === focusId) : hubs.slice(0, 8);
+  const layoutHubs = shown.length ? shown : hubs.slice(0, 1);
+  const width = Math.max(w || 720, 320);
+  const totalKids = layoutHubs.reduce((n, h) => n + h.kids.length, 0);
+  const dominant = layoutHubs[0];
+  const star = !focusId && dominant && dominant.kids.length >= Math.max(totalKids * 0.45, 4);
 
-  let leafIndex = 0;
-  const leafTotal = shown.reduce((n, hub) => n + hub.kids.length, 0);
-  const leaves = shown.flatMap((hub, hi) => {
-    const hy = hubY(hi);
-    return hub.kids.map((kid) => {
-      const t = leafTotal <= 1 ? 0.5 : leafIndex / (leafTotal - 1);
-      leafIndex += 1;
-      const y = 20 + t * (h - 40);
-      return { hub, kid, hy, y, color: STATUS_COLOR[kid.status] || STATUS_COLOR.active };
+  const nodes = [];
+  if (star) {
+    const cx = width * 0.56;
+    const cy = H * 0.5;
+    const rx = Math.min(width * 0.28, 210);
+    const ry = Math.min(H * 0.38, 155);
+    nodes.push({
+      kind: "hub",
+      hub: dominant,
+      x: cx,
+      y: cy,
+      r: 18 + Math.min(Math.sqrt(dominant.kids.length) * 2.2, 10),
     });
-  });
+    dominant.kids.forEach((kid, i) => {
+      const a = -Math.PI / 2 + (i / dominant.kids.length) * Math.PI * 2;
+      const ring = 1 + (i % 3) * 0.09;
+      nodes.push({
+        kind: "kid",
+        hub: dominant,
+        kid,
+        x: cx + rx * ring * Math.cos(a),
+        y: cy + ry * ring * Math.sin(a),
+        r: kid.payments ? 6.5 : 4.4,
+      });
+    });
+    layoutHubs.slice(1).forEach((hub, hi) => {
+      const hx = 78;
+      const hy = 48 + hi * Math.min((H - 70) / Math.max(layoutHubs.length - 1, 1), 72);
+      nodes.push({ kind: "hub", hub, x: hx, y: hy, r: 8 + Math.min(hub.kids.length, 6) });
+      hub.kids.forEach((kid, i) => {
+        const a = -0.4 + (i / Math.max(hub.kids.length, 1)) * 1.2;
+        nodes.push({
+          kind: "kid",
+          hub,
+          kid,
+          x: hx + 36 * Math.cos(a),
+          y: hy + 28 * Math.sin(a),
+          r: 3.4,
+        });
+      });
+    });
+  } else {
+    const cols = layoutHubs.length === 1 ? 1 : layoutHubs.length <= 2 ? 2 : 3;
+    layoutHubs.forEach((hub, hi) => {
+      const col = hi % cols;
+      const row = Math.floor(hi / cols);
+      const rows = Math.ceil(layoutHubs.length / cols);
+      const cx =
+        cols === 1 ? width * 0.5 : (width * (col + 0.5)) / cols;
+      const cy = (H * (row + 0.5)) / rows;
+      const radius = Math.min(
+        36 + hub.kids.length * 7,
+        cols === 1 ? Math.min(width, H) * 0.36 : 88,
+      );
+      nodes.push({
+        kind: "hub",
+        hub,
+        x: cx,
+        y: cy,
+        r: 12 + Math.min(Math.sqrt(hub.kids.length) * 2, 10),
+      });
+      hub.kids.forEach((kid, i) => {
+        const a = -Math.PI / 2 + (i / Math.max(hub.kids.length, 1)) * Math.PI * 2;
+        nodes.push({
+          kind: "kid",
+          hub,
+          kid,
+          x: cx + radius * Math.cos(a),
+          y: cy + radius * 0.78 * Math.sin(a),
+          r: kid.payments ? 6 : 4,
+        });
+      });
+    });
+  }
+
+  const hubNodes = nodes.filter((n) => n.kind === "hub");
+  const kidNodes = nodes.filter((n) => n.kind === "kid");
+  const hoverNode =
+    hover == null ? null : nodes.find((n, i) => i === hover) || null;
+  const dimFor = (node) => {
+    if (!hoverNode) return 1;
+    if (hoverNode.kind === "hub")
+      return node.hub.id === hoverNode.hub.id ? 1 : 0.18;
+    if (node.kind === "hub") return node.hub.id === hoverNode.hub.id ? 1 : 0.18;
+    return node.kid?.id === hoverNode.kid?.id ||
+      node.hub.id === hoverNode.hub.id
+      ? 1
+      : 0.14;
+  };
 
   return (
     <div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-64 w-full" role="img" aria-label="Referrer to referee graph">
-        {leaves.map((n) => (
-          <path
-            key={n.kid.id}
-            d={`M ${left} ${n.hy} C ${(left + right) / 2} ${n.hy}, ${(left + right) / 2} ${n.y}, ${right} ${n.y}`}
-            fill="none"
-            stroke={n.color}
-            strokeOpacity="0.45"
-            strokeWidth="1.2"
-          />
-        ))}
-        {shown.map((hub, i) => {
-          const y = hubY(i);
-          const r = Math.min(16, 7 + Math.sqrt(hub.kids.length) * 2.4);
-          return (
-            <g key={hub.id}>
-              <circle cx={left} cy={y} r={r} fill="rgb(var(--accent))" />
-              <text x={left - r - 8} y={y + 3} textAnchor="end" fill="rgb(var(--fg))" fontSize="10" fontWeight="600">
-                @{hub.name}
+      {!compact && hubs.length > 1 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => onFocus?.(null)}
+            className={`rounded-md border px-2 py-1 text-[10px] font-semibold ${
+              !focusId
+                ? "border-accent/30 bg-accent/10 text-text-primary"
+                : "border-ink/[0.08] text-text-muted hover:text-text-primary"
+            }`}
+          >
+            All hubs · {num(hubs.length)}
+          </button>
+          {hubs.slice(0, 8).map((h) => (
+            <button
+              key={h.id}
+              type="button"
+              onClick={() => onFocus?.(focusId === h.id ? null : h.id)}
+              className={`rounded-md border px-2 py-1 text-[10px] font-semibold ${
+                focusId === h.id
+                  ? "border-accent/30 bg-accent/10 text-text-primary"
+                  : "border-ink/[0.08] text-text-muted hover:text-text-primary"
+              }`}
+            >
+              @{h.name} · {h.kids.length}
+            </button>
+          ))}
+        </div>
+      )}
+      <div ref={ref} className="relative">
+        <svg
+          width={width}
+          height={H}
+          className="block w-full"
+          role="img"
+          aria-label="Referrer to referee constellation"
+        >
+          {kidNodes.map((n) => {
+            const hub = hubNodes.find((h) => h.hub.id === n.hub.id);
+            if (!hub) return null;
+            return (
+              <path
+                key={`e-${n.kid.id}`}
+                d={`M ${hub.x} ${hub.y} Q ${(hub.x + n.x) / 2} ${(hub.y + n.y) / 2 - 12}, ${n.x} ${n.y}`}
+                fill="none"
+                stroke={nodeFill(n.kid)}
+                strokeOpacity={0.28 * dimFor(n) + 0.08}
+                strokeWidth="1.15"
+              />
+            );
+          })}
+          {hubNodes.map((n) => (
+            <g
+              key={`h-${n.hub.id}`}
+              opacity={dimFor(n)}
+              onMouseEnter={() => setHover(nodes.indexOf(n))}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => onFocus?.(focusId === n.hub.id ? null : n.hub.id)}
+              className="cursor-pointer"
+            >
+              <circle
+                cx={n.x}
+                cy={n.y}
+                r={n.r + 7}
+                fill="rgb(var(--accent) / 0.12)"
+              />
+              <circle cx={n.x} cy={n.y} r={n.r} fill="rgb(var(--accent))" />
+              <text
+                x={n.x}
+                y={n.y - n.r - 10}
+                textAnchor="middle"
+                fill="rgb(var(--fg))"
+                fontSize="11"
+                fontWeight="700"
+              >
+                @{n.hub.name}
               </text>
-              <text x={left - r - 8} y={y + 14} textAnchor="end" fill="rgb(var(--fg-muted))" fontSize="8">
-                {hub.kids.length} invited
+              <text
+                x={n.x}
+                y={n.y + 4}
+                textAnchor="middle"
+                fill="rgb(var(--surface))"
+                fontSize="9"
+                fontWeight="700"
+              >
+                {n.hub.kids.length}
               </text>
             </g>
-          );
-        })}
-        {leaves.map((n) => (
-          <circle key={`d-${n.kid.id}`} cx={right} cy={n.y} r={3.2} fill={n.color} />
-        ))}
-        <text x={right + 12} y={24} fill="rgb(var(--fg-muted))" fontSize="9">
-          referees
-        </text>
-      </svg>
+          ))}
+          {kidNodes.map((n) => (
+            <g
+              key={`k-${n.kid.id}`}
+              opacity={dimFor(n)}
+              onMouseEnter={() => setHover(nodes.indexOf(n))}
+              onMouseLeave={() => setHover(null)}
+              className="cursor-default"
+            >
+              <circle cx={n.x} cy={n.y} r={n.r} fill={nodeFill(n.kid)} />
+              {(focusId || n.kid.payments || n.hub.kids.length <= 10) && (
+                <text
+                  x={n.x + n.r + 5}
+                  y={n.y + 3}
+                  fill="rgb(var(--fg-muted))"
+                  fontSize="8"
+                >
+                  @{n.kid.referred_username}
+                </text>
+              )}
+            </g>
+          ))}
+        </svg>
+        {hoverNode && (
+          <div className="pointer-events-none absolute right-1 top-1 max-w-[220px] rounded-lg border border-ink/10 bg-surface-raised px-2.5 py-2 text-[10px] shadow-sm">
+            {hoverNode.kind === "hub" ? (
+              <>
+                <p className="font-semibold text-text-primary">
+                  @{hoverNode.hub.name}
+                </p>
+                <p className="text-text-muted">
+                  {num(hoverNode.hub.kids.length)} invited ·{" "}
+                  {num(hoverNode.hub.kids.filter((k) => k.payments).length)} paid
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold text-text-primary">
+                  @{hoverNode.kid.referred_username}
+                </p>
+                <p className="text-text-muted">
+                  via @{hoverNode.hub.name} · {nodeLabel(hoverNode.kid)}
+                </p>
+                <p className="mt-0.5 tabular-nums text-text-primary">
+                  {usd(hoverNode.kid.revenue)} · {usd2(hoverNode.kid.commission)}{" "}
+                  reward
+                </p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
       <div className="mt-2 flex flex-wrap gap-3 text-[9px] uppercase tracking-wider text-text-muted">
         <span className="inline-flex items-center gap-1.5">
-          <i className="inline-block h-2 w-2 rounded-full bg-accent" /> Active
+          <i className="inline-block h-2 w-2 rounded-full bg-accent" /> Advocate
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <i className="inline-block h-2 w-2 rounded-full bg-accent/70" /> Active
         </span>
         <span className="inline-flex items-center gap-1.5">
           <i className="inline-block h-2 w-2 rounded-full bg-profit" /> Paid
@@ -301,33 +738,216 @@ const ReferralGraph = ({ relationships }) => {
   );
 };
 
-const SourceTable = ({ bySource }) => {
-  const maxRev = Math.max(...bySource.map((s) => s.revenue), 1);
-  if (!bySource.length)
-    return (
-      <p className="py-4 text-center text-[11px] text-text-muted">
-        No source data.
-      </p>
-    );
+const ReferralFunnel = ({ summary }) => {
+  const stages = [
+    {
+      label: "Tracked shares",
+      value: summary.tracked_shares || 0,
+      sub: "intent events",
+    },
+    {
+      label: "Referred",
+      value: summary.referred || 0,
+      sub: "server-side links",
+    },
+    {
+      label: "Activated",
+      value: summary.activated || 0,
+      sub: pct(summary.activation_rate),
+    },
+    {
+      label: "Qualified",
+      value: summary.qualified || 0,
+      sub: "2 of 3 signals",
+    },
+    {
+      label: "Paid",
+      value: summary.subscribed || 0,
+      sub: pct(summary.paid_rate),
+    },
+  ];
+  const top = stages[0]?.value || 0;
   return (
-    <div className="space-y-2.5">
-      {bySource.map((s) => (
-        <div key={s.source} className="flex items-center gap-3">
-          <div className="w-28 min-w-0 shrink-0">
-            <p className="truncate text-[11.5px] font-medium text-text-primary">
-              {SOURCE_LABEL[s.source] || s.source}
+    <div>
+      {stages.map((s, i) => {
+        const prev = i === 0 ? null : stages[i - 1].value;
+        const lost = prev == null ? null : Math.max(prev - s.value, 0);
+        const width = top > 0 ? Math.max((s.value / top) * 100, s.value > 0 ? 1.5 : 0) : 0;
+        return (
+          <div
+            key={s.label}
+            className="flex items-center gap-2 border-t border-ink/[0.05] py-2 first:border-t-0 sm:gap-3"
+          >
+            <p className="w-24 shrink-0 text-[10px] font-medium uppercase leading-tight tracking-wider text-text-muted sm:w-32">
+              {s.label}
             </p>
-            <p className="text-[9px] text-text-muted">{num(s.users)} users</p>
+            <div className="min-w-0 flex-1">
+              <div
+                className={`h-6 rounded-r-[4px] ${i === stages.length - 1 ? "bg-profit/70" : "bg-accent/75"}`}
+                style={{ width: `${width}%` }}
+              />
+            </div>
+            <p className="w-12 shrink-0 text-right text-[13px] font-bold tabular-nums text-text-primary sm:w-16">
+              {num(s.value)}
+            </p>
+            <div className="w-20 shrink-0 text-right sm:w-28">
+              <p className="text-[10px] leading-tight text-text-muted">{s.sub}</p>
+              {lost != null && lost > 0 && (
+                <p className="text-[10px] leading-tight text-loss">−{num(lost)} lost</p>
+              )}
+            </div>
           </div>
-          <Bar3D pct={(s.revenue / maxRev) * 100} heightClass="h-2" />
-          <span className="w-16 text-right text-[12px] font-bold tabular-nums text-text-primary">
-            {usd(s.revenue)}
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
+
+const ActivityTrend = ({ trend }) => {
+  const [ref, w] = useWidth();
+  const [hover, setHover] = useState(null);
+  const series = fillMonths(trend).map((t) => ({
+    month: t.month,
+    referred: Number(t.referred) || 0,
+    paid: Number(t.paid) || 0,
+    qualified: Number(t.qualified) || 0,
+  }));
+  const max = Math.max(
+    ...series.map((t) => Math.max(t.referred, t.paid, t.qualified)),
+    1,
+  );
+  const ceil = niceCeil(max);
+  const H = 168;
+  const PAD = { l: 28, r: 8, t: 12, b: 24 };
+  const plotW = Math.max((w || 480) - PAD.l - PAD.r, 40);
+  const plotH = H - PAD.t - PAD.b;
+  const n = series.length;
+  const bw = n ? plotW / n : 0;
+  const xAt = (i) => PAD.l + bw * i + bw / 2;
+  const onMove = (e) => {
+    if (!n || !bw) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - PAD.l;
+    const i = Math.floor(x / bw);
+    setHover(i >= 0 && i < n ? i : null);
+  };
+  const hp = hover != null ? series[hover] : null;
+
+  return (
+    <div ref={ref} className="relative">
+      <svg
+        width={w || 480}
+        height={H}
+        className="block w-full select-none"
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}
+      >
+        {[0, 0.5, 1].map((t) => {
+          const y = PAD.t + plotH - t * plotH;
+          return (
+            <g key={t}>
+              <line
+                x1={PAD.l}
+                x2={(w || 480) - PAD.r}
+                y1={y}
+                y2={y}
+                stroke="rgb(var(--ink) / 0.08)"
+              />
+              <text
+                x={PAD.l - 6}
+                y={y + 3}
+                textAnchor="end"
+                fill="rgb(var(--fg-muted))"
+                fontSize="8"
+              >
+                {Math.round(ceil * t)}
+              </text>
+            </g>
+          );
+        })}
+        {series.map((t, i) => {
+          const gap = bw > 8 ? 3 : 1;
+          const group = Math.max(bw - gap, 2);
+          const x = PAD.l + bw * i + gap / 2;
+          const referredH = (t.referred / ceil) * plotH;
+          const paidH = (t.paid / ceil) * plotH;
+          return (
+            <g key={t.month} opacity={hover == null || hover === i ? 1 : 0.3}>
+              <rect
+                x={x}
+                y={PAD.t + plotH - referredH}
+                width={group * 0.58}
+                height={Math.max(referredH, t.referred ? 2 : 0)}
+                rx="2"
+                fill="rgb(var(--accent) / 0.7)"
+              />
+              <rect
+                x={x + group * 0.6}
+                y={PAD.t + plotH - paidH}
+                width={group * 0.38}
+                height={Math.max(paidH, t.paid ? 2 : 0)}
+                rx="2"
+                fill="rgb(var(--pos) / 0.85)"
+              />
+              <text
+                x={xAt(i)}
+                y={H - 6}
+                textAnchor="middle"
+                fill="rgb(var(--fg-muted))"
+                fontSize="8"
+              >
+                {monthLabel(t.month)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      {hp && (
+        <div className="pointer-events-none absolute right-1 top-0 rounded-md border border-ink/10 bg-surface-raised px-2 py-1 text-[10px] shadow-sm">
+          <span className="font-semibold text-text-primary">
+            {num(hp.referred)} referred
+          </span>
+          <span className="ml-1.5 text-profit">{num(hp.paid)} paid</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ConcentrationBar = ({ concentration, summary }) => {
+  const share = Number(concentration?.top1_share || 0);
+  if (!concentration?.top1_username) return null;
+  return (
+    <div className="rounded-xl border border-accent/20 bg-accent/[0.05] px-3.5 py-3">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <p className="text-[11px] text-text-muted">
+          Network is concentrated on{" "}
+          <span className="font-semibold text-text-primary">
+            @{concentration.top1_username}
+          </span>
+        </p>
+        <p className="text-[11px] font-bold tabular-nums text-text-primary">
+          {num(concentration.top1_referred)} / {num(summary.referred)} · {pct(share)}
+        </p>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-ink/[0.06]">
+        <div
+          className="h-full rounded-full bg-accent"
+          style={{ width: `${Math.max(Math.min(share, 100), share ? 3 : 0)}%` }}
+        />
+      </div>
+      <p className="mt-1.5 text-[10px] text-text-muted">
+        Top 3 advocates hold {pct(concentration.top3_share)} of referred accounts
+        {concentration.top3_revenue
+          ? ` and ${usd(concentration.top3_revenue)} of referral revenue`
+          : ""}
+        .
+      </p>
+    </div>
+  );
+};
+
+const SourceTable = ({ bySource }) => <SourceMix bySource={bySource} />;
 
 const ChurnRisk = ({ risk }) => {
   if (!risk.length) {
@@ -370,11 +990,13 @@ const ChurnRisk = ({ risk }) => {
   );
 };
 
-const Overview = ({ data }) => {
+const Overview = ({ data, onOpenReferrals }) => {
   const rev = data?.revenue || {};
   const rec = data?.recurring || {};
   const churn = data?.churn || {};
   const attr = data?.attribution || {};
+  const referral = attr.referral || {};
+  const summary = referral.summary || {};
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
@@ -382,14 +1004,16 @@ const Overview = ({ data }) => {
           label="Total Revenue"
           value={usd(rev.total)}
           Icon={TrendingUpIcon}
-          accent="muted"
+          accent="amber"
+          emphasis
           sub={`${num(rev.payment_count)} payments`}
+          trend={(rev.trend || []).map((t) => Number(t.revenue) || 0)}
         />
         <StatTile
           label="Revenue · 30d"
           value={usd(rev.last_30d)}
           Icon={TrendingUpIcon}
-          accent="muted"
+          accent="amber"
           sub={
             rev.mom_pct == null
               ? "vs prev 30d"
@@ -421,73 +1045,87 @@ const Overview = ({ data }) => {
           label="Paying Users"
           value={num(rev.paying_customers)}
           Icon={UsersIcon}
-          accent="muted"
+          accent="green"
         />
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-5">
         <Panel
           title="Revenue trend"
-          sub="Confirmed revenue, last 12 months"
-          className="lg:col-span-2"
+          sub="Confirmed revenue, last 12 months — empty months stay on the axis"
+          className="lg:col-span-3"
         >
           <RevenueTrend trend={rev.trend || []} />
         </Panel>
-        <Panel title="Retention" sub="Subscription health, last 30 days">
-          <div className="grid grid-cols-2 gap-2.5">
-            <MiniStat
-              label="Active Subs"
-              value={num(churn.active_subs)}
-              tone="profit"
-            />
-            <MiniStat
-              label="Lapsed · 30d"
-              value={num(churn.lapsed_30d)}
-              tone="loss"
-            />
-            <MiniStat
-              label="Churn Rate"
-              value={pct(churn.churn_rate)}
-              tone="accent"
-            />
-            <MiniStat label="Payments · 30d" value={num(churn.payments_30d)} />
-          </div>
-        </Panel>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Revenue by source" sub="Where paying members come from">
+        <Panel
+          title="Revenue mix"
+          sub="Where paying members come from"
+          className="lg:col-span-2"
+        >
           <SourceTable bySource={attr.by_source || []} />
         </Panel>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-5">
         <Panel
-          title="Referral pulse"
-          sub="The detailed engine now lives beside this overview"
+          title="Referral network"
+          sub="Gold hubs are advocates. Orbiting dots are people they invited."
+          className="lg:col-span-3"
+          right={
+            <button
+              type="button"
+              onClick={onOpenReferrals}
+              className="rounded-md border border-ink/[0.08] px-2 py-1 text-[10px] font-semibold text-text-muted hover:text-text-primary"
+            >
+              Open engine
+            </button>
+          }
         >
-          <div className="grid grid-cols-2 gap-2.5">
-            <MiniStat
-              label="Advocates"
-              value={num(attr.referral?.summary?.advocates)}
-            />
-            <MiniStat
-              label="Referred"
-              value={num(attr.referral?.summary?.referred)}
-              tone="accent"
-            />
-            <MiniStat
-              label="Qualified"
-              value={num(attr.referral?.summary?.qualified)}
-              tone="accent"
-            />
-            <MiniStat
-              label="Paid"
-              value={num(attr.referral?.summary?.subscribed)}
-              tone="profit"
-            />
-            <MiniStat
-              label="Referral Revenue"
-              value={usd(attr.referral?.summary?.revenue)}
-              tone="profit"
-            />
-          </div>
+          <ReferralConstellation
+            relationships={referral.relationships || []}
+            compact
+          />
         </Panel>
+        <div className="space-y-4 lg:col-span-2">
+          <Panel title="Retention" sub="Subscription health, last 30 days">
+            <div className="grid grid-cols-2 gap-2.5">
+              <MiniStat
+                label="Active Subs"
+                value={num(churn.active_subs)}
+                tone="profit"
+              />
+              <MiniStat
+                label="Lapsed · 30d"
+                value={num(churn.lapsed_30d)}
+                tone="loss"
+              />
+              <MiniStat
+                label="Churn Rate"
+                value={pct(churn.churn_rate)}
+                tone="accent"
+              />
+              <MiniStat label="Payments · 30d" value={num(churn.payments_30d)} />
+            </div>
+          </Panel>
+          <Panel title="Referral pulse" sub="Loop health from the live graph">
+            <div className="grid grid-cols-2 gap-2.5">
+              <MiniStat label="Advocates" value={num(summary.advocates)} />
+              <MiniStat
+                label="Referred"
+                value={num(summary.referred)}
+                tone="accent"
+              />
+              <MiniStat
+                label="Qualified"
+                value={num(summary.qualified)}
+                tone="accent"
+              />
+              <MiniStat
+                label="Paid"
+                value={num(summary.subscribed)}
+                tone="profit"
+              />
+            </div>
+          </Panel>
+        </div>
       </div>
       <Panel
         title="Churn risk"
@@ -495,61 +1133,6 @@ const Overview = ({ data }) => {
       >
         <ChurnRisk risk={data?.health?.churn_risk || []} />
       </Panel>
-    </div>
-  );
-};
-
-const ReferralFunnel = ({ summary }) => {
-  const stages = [
-    ["Tracked shares", summary.tracked_shares, null],
-    [
-      "Referred accounts",
-      summary.referred,
-      summary.tracked_shares
-        ? (summary.referred / summary.tracked_shares) * 100
-        : 0,
-    ],
-    ["Activated", summary.activated, summary.activation_rate],
-    [
-      "Qualified",
-      summary.qualified || 0,
-      summary.referred ? ((summary.qualified || 0) / summary.referred) * 100 : 0,
-    ],
-    ["Paid", summary.subscribed, summary.paid_rate],
-  ];
-  const max = Math.max(...stages.map((s) => s[1]), 1);
-  return (
-    <div className="space-y-3">
-      {stages.map(([label, value, rate], i) => (
-        <div key={label}>
-          <div className="mb-1 flex items-center justify-between text-[10px]">
-            <span className="font-semibold uppercase tracking-wider text-text-muted">
-              {label}
-            </span>
-            <span className="font-bold tabular-nums text-text-primary">
-              {num(value)}{" "}
-              {rate != null && (
-                <span className="ml-1 font-normal text-text-muted">
-                  · {pct(rate)}
-                </span>
-              )}
-            </span>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-ink/[0.05]">
-            <div
-              className={`h-full rounded-full ${i === stages.length - 1 ? "bg-profit" : "bg-accent/65"}`}
-              style={{
-                width: `${Math.max((value / max) * 100, value ? 3 : 0)}%`,
-              }}
-            />
-          </div>
-        </div>
-      ))}
-      <p className="rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-3 py-2 text-[10px] leading-relaxed text-text-muted">
-        Share is an intent event from the referral page; referred, activated,
-        and paid are server-side relationships. Paid rate uses referred accounts
-        as its denominator.
-      </p>
     </div>
   );
 };
@@ -918,7 +1501,7 @@ const AdvocateTable = ({ selectedId, onSelect, onResume, refreshToken }) => {
             <Spinner size={16} />
           </div>
         )}
-        <table className="w-full min-w-[930px] text-left">
+        <table className="w-full min-w-[980px] text-left">
           <thead className="bg-ink/[0.025] text-[8.5px] uppercase tracking-wider text-text-muted">
             <tr>
               <th className="w-12 px-3 py-2.5 text-center">#</th>
@@ -927,6 +1510,7 @@ const AdvocateTable = ({ selectedId, onSelect, onResume, refreshToken }) => {
               <th className="text-right">Shares</th>
               <th className="text-right">Referred</th>
               <th className="text-right">Active</th>
+              <th className="text-right">Qualified</th>
               <th className="text-right">Paid</th>
               <th className="text-right">Revenue</th>
               <th className="text-right">Reward</th>
@@ -972,6 +1556,9 @@ const AdvocateTable = ({ selectedId, onSelect, onResume, refreshToken }) => {
                 <td className="text-right tabular-nums text-text-muted">
                   {num(a.activated)}
                 </td>
+                <td className="text-right tabular-nums text-accent-text">
+                  {num(a.qualified)}
+                </td>
                 <td className="text-right font-semibold tabular-nums text-profit">
                   {num(a.subscribed)}
                 </td>
@@ -1002,7 +1589,7 @@ const AdvocateTable = ({ selectedId, onSelect, onResume, refreshToken }) => {
             ))}
             {!result.items.length && !loading && (
               <tr>
-                <td colSpan="10" className="py-12 text-center text-[11px] text-text-muted">
+                <td colSpan="11" className="py-12 text-center text-[11px] text-text-muted">
                   No advocates match this filter combination.
                 </td>
               </tr>
@@ -1063,7 +1650,7 @@ const RelationshipLedger = ({ relationships, advocate }) => {
         </div>
       )}
       <div className="max-h-80 overflow-auto rounded-xl border border-ink/[0.06]">
-        <table className="w-full min-w-[720px] text-left">
+        <table className="w-full min-w-[820px] text-left">
           <thead className="sticky top-0 bg-surface-raised text-[8.5px] uppercase tracking-wider text-text-muted">
             <tr>
               <th className="px-3 py-2.5">Referrer</th>
@@ -1087,14 +1674,23 @@ const RelationshipLedger = ({ relationships, advocate }) => {
                     </p>
                     <p className="text-[8.5px] text-text-muted">
                       last active {fmtDate(r.last_active_at)}
+                      {r.referred_role ? ` · ${r.referred_role}` : ""}
                     </p>
                   </div>
                 </td>
                 <td>
                   <span
-                    className={`rounded-md border px-1.5 py-0.5 text-[8.5px] font-bold ${r.status === "refunded" ? "border-loss/20 bg-loss/10 text-loss" : r.payments ? "border-profit/20 bg-profit/10 text-profit" : "border-accent/20 bg-accent/5 text-accent-text"}`}
+                    className={`rounded-md border px-1.5 py-0.5 text-[8.5px] font-bold ${
+                      r.status === "refunded" || r.status === "churned"
+                        ? "border-loss/20 bg-loss/10 text-loss"
+                        : r.payments
+                          ? "border-profit/20 bg-profit/10 text-profit"
+                          : r.qualified
+                            ? "border-accent/25 bg-accent/10 text-accent-text"
+                            : "border-accent/20 bg-accent/5 text-accent-text"
+                    }`}
                   >
-                    {r.status}
+                    {r.qualified && !r.payments ? "qualified" : r.status}
                   </span>
                 </td>
                 <td className="text-text-muted">{fmtDate(r.joined_at)}</td>
@@ -1131,12 +1727,25 @@ const RelationshipLedger = ({ relationships, advocate }) => {
 const ReferralEngine = ({ referral, onSend, onPause, sending }) => {
   const summary = referral?.summary || {};
   const [selected, setSelected] = useState(null);
+  const [focusId, setFocusId] = useState(null);
   const quality = referral?.data_quality || {};
+  const velocity = referral?.velocity || {};
+  const concentration = referral?.concentration || {};
   const anomalyCount =
     Number(quality.user_without_use || 0) +
     Number(quality.referrer_mismatch || 0) +
     Number(quality.code_use_mismatch || 0) +
     Number(quality.refunded_commission || 0);
+
+  const selectAdvocate = (advocate) => {
+    const next =
+      selected?.user_id === advocate.user_id ? null : advocate;
+    setSelected(next);
+    setFocusId(next ? next.user_id : null);
+  };
+  const focusedHub = (referral?.top_hubs || []).find((h) => h.user_id === focusId);
+  const ledgerAdvocate = selected || focusedHub || null;
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-accent/15 bg-gradient-to-br from-accent/[0.07] via-surface-raised to-surface-raised p-4">
@@ -1146,12 +1755,11 @@ const ReferralEngine = ({ referral, onSend, onPause, sending }) => {
               Referral growth loop
             </p>
             <h3 className="mt-1 text-[17px] font-semibold text-text-primary">
-              Turn trusted users into measurable distribution
+              Who invited whom, and what that invitation became
             </h3>
             <p className="mt-1 max-w-2xl text-[10.5px] text-text-muted">
-              Shares create acquisition; relationships measure activation and
-              paid value; guarded reminders reactivate advocates without
-              blasting everyone.
+              Gold hubs are advocates. Orbiting dots are referred accounts.
+              Paid nodes light green. Click a hub to isolate its graph.
             </p>
           </div>
           <span
@@ -1163,12 +1771,6 @@ const ReferralEngine = ({ referral, onSend, onPause, sending }) => {
           </span>
         </div>
       </div>
-      <Panel
-        title="Referral graph"
-        sub="Who invited whom — gold hubs are advocates, dots on the right are referees"
-      >
-        <ReferralGraph relationships={referral?.relationships || []} />
-      </Panel>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile
           label="Advocates"
@@ -1181,45 +1783,97 @@ const ReferralEngine = ({ referral, onSend, onPause, sending }) => {
           label="Referred"
           value={num(summary.referred)}
           Icon={UsersIcon}
-          accent="muted"
+          accent="amber"
           sub="server-side links"
         />
         <StatTile
           label="Qualified"
           value={num(summary.qualified)}
           Icon={TrendingUpIcon}
-          accent="muted"
+          accent="amber"
           sub={`${num(summary.unlock_days)} unlock days`}
         />
         <StatTile
           label="Paid"
           value={num(summary.subscribed)}
           Icon={CrownIcon}
-          accent="muted"
+          accent="green"
           sub={`${pct(summary.paid_rate)} of referred`}
         />
         <StatTile
           label="Referral Revenue"
           value={usd(summary.revenue)}
           Icon={TrendingUpIcon}
-          accent="muted"
+          accent="amber"
           sub="confirmed payments"
         />
         <StatTile
           label="Rewards Earned"
           value={usd2(summary.commission)}
           Icon={CrownIcon}
-          accent="muted"
+          accent="green"
           sub="advocate credit"
         />
       </div>
+      <Panel
+        title="Referral constellation"
+        sub="Each gold hub is an advocate. Dots on the orbit are the people they brought in."
+      >
+        <ReferralConstellation
+          relationships={referral?.relationships || []}
+          focusId={focusId}
+          onFocus={(id) => {
+            setFocusId(id);
+            if (!id) setSelected(null);
+          }}
+        />
+      </Panel>
+      <ConcentrationBar concentration={concentration} summary={summary} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel
           title="Referral funnel"
-          sub="From share intent to confirmed payment"
+          sub="From share intent to confirmed payment — widths relative to shares"
         >
           <ReferralFunnel summary={summary} />
         </Panel>
+        <Panel
+          title="Invite activity"
+          sub="Referred accounts vs paid conversions, last 12 months"
+        >
+          <ActivityTrend trend={referral?.activity_trend || []} />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <MiniStat
+              label="Days to activate"
+              value={
+                velocity.median_days_to_activate == null
+                  ? "—"
+                  : `${velocity.median_days_to_activate}d`
+              }
+              sub={
+                velocity.avg_days_to_activate == null
+                  ? "median"
+                  : `avg ${velocity.avg_days_to_activate}d`
+              }
+              tone="accent"
+            />
+            <MiniStat
+              label="Days to pay"
+              value={
+                velocity.median_days_to_pay == null
+                  ? "—"
+                  : `${velocity.median_days_to_pay}d`
+              }
+              sub={
+                velocity.avg_days_to_pay == null
+                  ? "median"
+                  : `avg ${velocity.avg_days_to_pay}d · ${num(velocity.paid_sample)} paid`
+              }
+              tone="profit"
+            />
+          </div>
+        </Panel>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
         <Panel
           title="What needs attention"
           sub="The current constraint, calculated from live data"
@@ -1256,6 +1910,32 @@ const ReferralEngine = ({ referral, onSend, onPause, sending }) => {
             </div>
           </div>
         </Panel>
+        <Panel title="Referred mix" sub="Current role of people who joined via invite">
+          {(referral?.role_mix || []).length ? (
+            <div className="space-y-2.5">
+              {(referral.role_mix || []).map((row) => {
+                const share = summary.referred
+                  ? (row.count / summary.referred) * 100
+                  : 0;
+                return (
+                  <div key={row.role} className="flex items-center gap-3">
+                    <p className="w-24 shrink-0 text-[11px] font-medium capitalize text-text-primary">
+                      {row.role}
+                    </p>
+                    <Bar3D pct={share} heightClass="h-2" />
+                    <span className="w-16 text-right text-[11px] tabular-nums text-text-muted">
+                      {num(row.count)} · {pct(share)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-[11px] text-text-muted">
+              No referred accounts yet.
+            </p>
+          )}
+        </Panel>
       </div>
       <ReminderCenter
         reminders={referral?.reminders}
@@ -1265,15 +1945,13 @@ const ReferralEngine = ({ referral, onSend, onPause, sending }) => {
       />
       <AdvocateTable
         selectedId={selected?.user_id}
-        onSelect={(advocate) =>
-          setSelected(selected?.user_id === advocate.user_id ? null : advocate)
-        }
+        onSelect={selectAdvocate}
         onResume={(a) => onPause(a, false)}
         refreshToken={referral}
       />
       <RelationshipLedger
         relationships={referral?.relationships || []}
-        advocate={selected}
+        advocate={ledgerAdvocate}
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel
@@ -1479,7 +2157,7 @@ export const GrowthTab = () => {
         </div>
       )}
       {view === "overview" ? (
-        <Overview data={data} />
+        <Overview data={data} onOpenReferrals={() => setView("referrals")} />
       ) : (
         <ReferralEngine
           referral={referral}

@@ -217,14 +217,17 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
 
     referred_ids = [u.referred_id for u in uses]
     REV = func.coalesce(Payment.final_amount, Payment.amount_usdt)
+    PAID_AT = func.coalesce(Payment.verified_at, Payment.created_at)
     revenue_by_user = {}
     confirmed_payments_by_user = {}
+    first_paid_at = {}
     if referred_ids:
         paid_rows = (
             db.query(
                 Payment.user_id,
                 func.coalesce(func.sum(REV), 0),
                 func.count(Payment.id),
+                func.min(PAID_AT),
             )
             .filter(
                 Payment.status == "confirmed",
@@ -234,8 +237,9 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             .group_by(Payment.user_id)
             .all()
         )
-        revenue_by_user = {uid: float(amount or 0) for uid, amount, _count in paid_rows}
-        confirmed_payments_by_user = {uid: int(count or 0) for uid, _amount, count in paid_rows}
+        revenue_by_user = {uid: float(amount or 0) for uid, amount, _count, _ts in paid_rows}
+        confirmed_payments_by_user = {uid: int(count or 0) for uid, _amount, count, _ts in paid_rows}
+        first_paid_at = {uid: ts for uid, _amount, _count, ts in paid_rows if ts}
 
     payment_ids = [u.payment_id for u in uses if u.payment_id]
     payment_by_id = {
@@ -319,8 +323,10 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             "id": use.id,
             "referrer_id": use.referrer_id,
             "referrer_username": referrer.username if referrer else f"#{use.referrer_id}",
+            "referrer_role": referrer.role if referrer else None,
             "referred_id": use.referred_id,
             "referred_username": referred.username if referred else f"#{use.referred_id}",
+            "referred_role": referred.role if referred else None,
             "status": "refunded" if payment_state == "refunded" else use.status,
             "relationship_status": use.status,
             "payment_status": payment_state,
@@ -328,7 +334,9 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             "activated_at": use.first_login_at,
             "qualified": bool(use.qualified_at),
             "qualified_at": use.qualified_at,
+            "reward_days": int(use.reward_days_granted or 0),
             "last_active_at": (referred.last_active_at or referred.last_login_at) if referred else None,
+            "first_paid_at": first_paid_at.get(use.referred_id),
             "payments": confirmed_payments,
             "historical_payments": int(use.total_payments or 0),
             "revenue": revenue,
@@ -427,6 +435,77 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             "created_at": event.created_at,
         })
 
+    monthly = {}
+    activate_days = []
+    pay_days = []
+    role_mix = {}
+    for use in uses:
+        created = _aware(use.created_at)
+        key = created.strftime("%Y-%m") if created else ""
+        bucket = monthly.setdefault(
+            key, {"referred": 0, "activated": 0, "qualified": 0, "paid": 0, "revenue": 0.0}
+        )
+        bucket["referred"] += 1
+        activated = bool(use.first_login_at) or use.status != "pending"
+        if activated:
+            bucket["activated"] += 1
+        if use.qualified_at:
+            bucket["qualified"] += 1
+        paid = confirmed_payments_by_user.get(use.referred_id, 0) > 0
+        if paid:
+            bucket["paid"] += 1
+            bucket["revenue"] += revenue_by_user.get(use.referred_id, 0.0)
+        login_at = _aware(use.first_login_at)
+        if created and login_at:
+            activate_days.append(max(0, (login_at - created).days))
+        paid_ts = _aware(first_paid_at.get(use.referred_id))
+        if created and paid_ts:
+            pay_days.append(max(0, (paid_ts - created).days))
+        referred_user = users.get(use.referred_id)
+        role_key = (referred_user.role if referred_user else None) or "unknown"
+        role_mix[role_key] = role_mix.get(role_key, 0) + 1
+
+    def _avg(xs):
+        return round(sum(xs) / len(xs), 1) if xs else None
+
+    def _median(xs):
+        if not xs:
+            return None
+        ordered = sorted(xs)
+        mid = len(ordered) // 2
+        if len(ordered) % 2:
+            return float(ordered[mid])
+        return round((ordered[mid - 1] + ordered[mid]) / 2, 1)
+
+    activity_trend = []
+    cursor = (now.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=365)).replace(day=1)
+    empty_month = {"referred": 0, "activated": 0, "qualified": 0, "paid": 0, "revenue": 0.0}
+    while cursor <= now:
+        key = cursor.strftime("%Y-%m")
+        activity_trend.append({"month": key, **(monthly.get(key) or empty_month)})
+        if cursor.month == 12:
+            cursor = cursor.replace(year=cursor.year + 1, month=1)
+        else:
+            cursor = cursor.replace(month=cursor.month + 1)
+
+    producing = [a for a in advocates if a["referred"] > 0]
+    top1 = producing[0] if producing else None
+    top3_referred = sum(a["referred"] for a in producing[:3])
+    top3_revenue = sum(a["revenue"] for a in producing[:3])
+    top_hubs = [
+        {
+            "user_id": a["user_id"],
+            "username": a["username"],
+            "referred": a["referred"],
+            "activated": a["activated"],
+            "qualified": a["qualified"],
+            "subscribed": a["subscribed"],
+            "revenue": a["revenue"],
+            "commission": a["commission"],
+        }
+        for a in producing[:8]
+    ]
+
     return {
         "summary": {
             "advocates": len(advocates),
@@ -441,6 +520,26 @@ def _build_referral_ops(db: Session, now: datetime) -> dict:
             "revenue": sum(a["revenue"] for a in advocates),
             "commission": sum(a["commission"] for a in advocates),
         },
+        "velocity": {
+            "avg_days_to_activate": _avg(activate_days),
+            "median_days_to_activate": _median(activate_days),
+            "avg_days_to_pay": _avg(pay_days),
+            "median_days_to_pay": _median(pay_days),
+            "activated_sample": len(activate_days),
+            "paid_sample": len(pay_days),
+        },
+        "concentration": {
+            "producing_advocates": len(producing),
+            "top1_username": top1["username"] if top1 else None,
+            "top1_referred": top1["referred"] if top1 else 0,
+            "top1_share": (top1["referred"] / total_referred * 100) if top1 and total_referred else 0,
+            "top3_referred": top3_referred,
+            "top3_share": (top3_referred / total_referred * 100) if total_referred else 0,
+            "top3_revenue": top3_revenue,
+        },
+        "role_mix": [{"role": k, "count": v} for k, v in sorted(role_mix.items(), key=lambda x: -x[1])],
+        "activity_trend": activity_trend,
+        "top_hubs": top_hubs,
         "advocates": advocates,
         "relationships": relationships,
         "reminders": {
