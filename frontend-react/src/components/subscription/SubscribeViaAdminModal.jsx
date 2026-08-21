@@ -15,10 +15,11 @@ const TelegramGlyph = ({ className }) => (
   </svg>
 );
 
-const SubscribeViaAdminModal = ({ isOpen, onClose, plan, paymentId = null }) => {
+const SubscribeViaAdminModal = ({ isOpen, onClose, plan, paymentId = null, intent = "pay" }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [copied, setCopied] = useState(false);
+  const isAgent = intent === "agent";
 
   const duration = plan?.duration_days
     ? t("pricing.admin_duration_days", { days: plan.duration_days })
@@ -35,7 +36,7 @@ const SubscribeViaAdminModal = ({ isOpen, onClose, plan, paymentId = null }) => 
         ? t("pricing.admin_referral_line", { code: user.referral_code_used })
         : ""
     }${paymentId ? t("pricing.admin_invoice_line", { id: paymentId }) : ""}`;
-    return t("pricing.admin_msg", {
+    return t(isAgent ? "pricing.agent_msg" : "pricing.admin_msg", {
       plan: planName,
       price,
       duration,
@@ -43,7 +44,7 @@ const SubscribeViaAdminModal = ({ isOpen, onClose, plan, paymentId = null }) => 
       email,
       extra,
     });
-  }, [plan, user, paymentId, duration, t]);
+  }, [plan, user, paymentId, duration, t, isAgent]);
 
   const [message, setMessage] = useState(defaultMessage);
 
@@ -78,12 +79,14 @@ const SubscribeViaAdminModal = ({ isOpen, onClose, plan, paymentId = null }) => 
       </span>
       <div className="min-w-0">
         <p className="mb-0.5 text-[9.5px] font-bold uppercase tracking-[0.18em] text-text-muted">
-          {t("pricing.admin_eyebrow")}
+          {t(isAgent ? "pricing.agent_eyebrow" : "pricing.admin_eyebrow")}
         </p>
         <h2 className="text-base font-bold tracking-tight text-text-primary sm:text-lg">
-          {t("pricing.admin_title")}
+          {t(isAgent ? "pricing.agent_title" : "pricing.admin_title")}
         </h2>
-        <p className="text-[11px] text-text-muted">{t("pricing.admin_sub")}</p>
+        <p className="text-[11px] text-text-muted">
+          {t(isAgent ? "pricing.agent_sub" : "pricing.admin_sub")}
+        </p>
       </div>
     </div>
   );

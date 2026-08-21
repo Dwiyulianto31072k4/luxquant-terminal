@@ -1,7 +1,5 @@
 // src/components/subscription/PricingPage.jsx
-// Calm pricing — Claude / ChatGPT / Kimi: one product, three billing cycles.
-// Unique invoice / upgrade / Telegram assisted-pay flows unchanged.
-// "Pay with admin" is not shown on public cards.
+// Efficient pricing: short cards, mobile one-plan picker, Agent as Annual+ request.
 
 import Seo from "../Seo";
 import { useState, useEffect, useMemo } from "react";
@@ -34,10 +32,12 @@ function FaqItem({ q, a }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-4 py-5 text-left"
+        className="flex w-full items-center justify-between gap-4 py-4 text-left"
         aria-expanded={open}
       >
-        <span className="text-[15px] font-medium tracking-tight text-text-primary/90">{q}</span>
+        <span className="text-[14px] font-medium tracking-tight text-text-primary/90 sm:text-[15px]">
+          {q}
+        </span>
         <span
           className={`shrink-0 text-text-primary/30 transition-transform duration-200 ${open ? "rotate-45" : ""}`}
           aria-hidden
@@ -49,20 +49,94 @@ function FaqItem({ q, a }) {
         className={`grid transition-[grid-template-rows] duration-200 ease-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
         <div className="overflow-hidden">
-          <p className="pb-5 text-[14px] leading-relaxed text-text-primary/50">{a}</p>
+          <p className="pb-4 text-[13px] leading-relaxed text-text-primary/50 sm:text-[14px]">{a}</p>
         </div>
       </div>
     </div>
   );
 }
 
-function SkeletonCards() {
+function PlanCard({
+  title,
+  desc,
+  price,
+  suffix,
+  meta,
+  features,
+  cta,
+  onCta,
+  disabled,
+  recommended,
+  current,
+  busy,
+  mutedChecks,
+}) {
   return (
-    <div className="mx-auto grid max-w-5xl gap-px overflow-hidden rounded-2xl border border-ink/[0.06] bg-ink/[0.04] sm:grid-cols-2 lg:grid-cols-4">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="h-[420px] animate-pulse bg-surface-raised/80" />
-      ))}
-    </div>
+    <article
+      className={`relative flex h-full flex-col px-5 py-6 sm:px-6 sm:py-7 ${
+        recommended && !current ? "bg-accent/[0.04] ring-1 ring-inset ring-accent/30" : ""
+      } ${current ? "bg-profit/[0.03]" : ""}`}
+    >
+      <div className="mb-5">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-[15px] font-medium text-text-primary/90">{title}</h2>
+          {recommended && !current && (
+            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-accent">
+              {meta?.recommendedLabel}
+            </span>
+          )}
+          {current && (
+            <span className="text-[11px] font-medium text-profit/90">{meta?.currentLabel}</span>
+          )}
+        </div>
+        <p className="mt-1 text-[12px] leading-snug text-text-primary/40">{desc}</p>
+      </div>
+
+      <div className="mb-5">
+        <div className="flex items-baseline gap-1">
+          <span className="text-[13px] text-text-primary/30">$</span>
+          <span
+            className="text-[2.35rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums sm:text-[2.5rem]"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            {price}
+          </span>
+          {suffix ? (
+            <span className="ml-0.5 text-[11px] text-text-primary/35">{suffix}</span>
+          ) : null}
+        </div>
+        {meta?.line ? (
+          <p className="mt-1.5 text-[12px] text-text-primary/40">{meta.line}</p>
+        ) : null}
+      </div>
+
+      <ul className="mb-6 flex-1 space-y-2.5">
+        {features.map((f) => (
+          <li key={f} className="flex gap-2 text-[13px] leading-snug text-text-primary/55">
+            <Check
+              className="mt-0.5 h-3.5 w-3.5 shrink-0"
+              tone={mutedChecks ? "rgb(var(--ink) / 0.25)" : "rgb(var(--accent) / 0.85)"}
+            />
+            {f}
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        onClick={onCta}
+        disabled={disabled || busy}
+        className={`mt-auto w-full rounded-lg py-2.5 text-[13px] font-medium transition disabled:cursor-default active:scale-[0.99] ${
+          current
+            ? "border border-profit/25 bg-profit/[0.06] text-profit/90"
+            : recommended
+              ? "bg-accent text-accent-fg hover:brightness-105"
+              : "border border-ink/[0.12] text-text-primary/85 hover:border-ink/25 hover:bg-ink/[0.03]"
+        }`}
+      >
+        {cta}
+      </button>
+    </article>
   );
 }
 
@@ -75,6 +149,8 @@ const PricingPage = () => {
   const [creating, setCreating] = useState(false);
   const [subStatus, setSubStatus] = useState(null);
   const [adminModalPlan, setAdminModalPlan] = useState(null);
+  const [adminIntent, setAdminIntent] = useState("pay");
+  const [mobileId, setMobileId] = useState("yearly");
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -158,17 +234,18 @@ const PricingPage = () => {
     }
   };
 
-  const handlePayAnotherWay = (plan) => {
+  const openAssisted = (plan, intent = "pay") => {
     trackGrowth("plan_selected", {
-      source: "pricing_page:assisted",
+      source: intent === "agent" ? "pricing_page:agent" : "pricing_page:assisted",
       entity_type: "subscription_plan",
       entity_id: plan?.id,
-      meta: { plan_name: plan?.name, price_usdt: Number(plan?.price_usdt) },
+      meta: { plan_name: plan?.name, price_usdt: Number(plan?.price_usdt), intent },
     });
     if (!isAuthenticated) {
       navigate("/login", { state: { from: "/pricing" } });
       return;
     }
+    setAdminIntent(intent);
     setAdminModalPlan(plan || sortedPlans.find((p) => p.name === "yearly") || sortedPlans[0]);
   };
 
@@ -202,16 +279,25 @@ const PricingPage = () => {
   };
 
   const getPriceSuffix = (plan) => {
-    if (plan.name === "yearly") return t("pricing.per_year");
-    if (plan.name === "monthly") return t("pricing.per_month");
-    return t("pricing.one_time");
+    if (plan.name === "yearly") return "USDT";
+    if (plan.name === "monthly") return "USDT";
+    return "USDT";
   };
 
-  const getMonthlyEquiv = (plan) => {
-    if (plan.name !== "yearly" || !plan.price_usdt) return null;
-    const m = Number(plan.price_usdt) / 12;
-    if (!Number.isFinite(m)) return null;
-    return m % 1 === 0 ? String(m) : m.toFixed(1);
+  const getMetaLine = (plan) => {
+    if (plan.name === "yearly") {
+      const m = Number(plan.price_usdt) / 12;
+      const equiv = Number.isFinite(m) ? (m % 1 === 0 ? String(m) : m.toFixed(1)) : null;
+      return [
+        t("pricing.per_year"),
+        equiv ? t("pricing.equiv_month", { price: equiv }) : null,
+        t("pricing.yearly_save"),
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    if (plan.name === "monthly") return t("pricing.per_month");
+    return t("pricing.one_time");
   };
 
   const getButtonLabel = (plan) => {
@@ -232,25 +318,33 @@ const PricingPage = () => {
     getPlanLabel({ name: subStatus?.plan_name, label: subStatus?.plan_label }) ||
     t("pricing.premium");
 
-  const getFeatures = (plan) => [
-    t("pricing.feat_everything_free"),
-    t("pricing.feat_signals"),
-    t("pricing.feat_market"),
-    t("pricing.feat_autotrade"),
-    t("pricing.feat_onchain"),
-    t("pricing.feat_ai"),
-    plan.name === "monthly"
-      ? t("pricing.feat_basic_support")
-      : plan.name === "lifetime"
-        ? t("pricing.feat_lifetime")
-        : t("pricing.feat_support"),
-  ];
+  const getFeatures = (plan) => {
+    if (plan.name === "monthly") {
+      return [
+        t("pricing.feat_signals"),
+        t("pricing.feat_market"),
+        t("pricing.feat_onchain_ai"),
+        t("pricing.feat_basic_support"),
+      ];
+    }
+    if (plan.name === "yearly") {
+      return [
+        t("pricing.feat_everything_monthly"),
+        t("pricing.feat_support"),
+        t("pricing.feat_requests"),
+      ];
+    }
+    return [
+      t("pricing.feat_everything_yearly"),
+      t("pricing.feat_vip_support"),
+      t("pricing.feat_lifetime"),
+    ];
+  };
 
   const freeFeatures = [
     t("pricing.free_feat_1"),
     t("pricing.free_feat_2"),
     t("pricing.free_feat_3"),
-    t("pricing.free_feat_4"),
   ];
 
   const faqs = [
@@ -285,24 +379,6 @@ const PricingPage = () => {
         lifetime: true,
       },
       {
-        id: "autotrade",
-        label: t("pricing.compare_autotrade"),
-        hint: t("pricing.compare_autotrade_hint"),
-        free: false,
-        monthly: true,
-        yearly: true,
-        lifetime: true,
-      },
-      {
-        id: "analytics",
-        label: t("pricing.compare_analytics"),
-        hint: t("pricing.compare_analytics_hint"),
-        free: "partial",
-        monthly: true,
-        yearly: true,
-        lifetime: true,
-      },
-      {
         id: "onchain",
         label: t("pricing.compare_onchain"),
         hint: t("pricing.compare_onchain_hint"),
@@ -321,13 +397,22 @@ const PricingPage = () => {
         lifetime: true,
       },
       {
-        id: "performance",
-        label: t("pricing.compare_performance"),
-        hint: t("pricing.compare_performance_hint"),
+        id: "analytics",
+        label: t("pricing.compare_analytics"),
+        hint: t("pricing.compare_analytics_hint"),
         free: "partial",
         monthly: true,
         yearly: true,
         lifetime: true,
+      },
+      {
+        id: "autotrade",
+        label: t("pricing.compare_autotrade"),
+        hint: t("pricing.compare_autotrade_hint"),
+        free: false,
+        monthly: false,
+        yearly: t("pricing.compare_requests_yes"),
+        lifetime: t("pricing.compare_requests_yes"),
       },
       {
         id: "support",
@@ -336,14 +421,6 @@ const PricingPage = () => {
         monthly: t("pricing.compare_support_std"),
         yearly: t("pricing.compare_support_prio"),
         lifetime: t("pricing.compare_support_vip"),
-      },
-      {
-        id: "updates",
-        label: t("pricing.compare_updates"),
-        free: false,
-        monthly: t("pricing.compare_updates_sub"),
-        yearly: t("pricing.compare_updates_sub"),
-        lifetime: t("pricing.compare_updates_life"),
       },
     ],
     [t]
@@ -368,10 +445,10 @@ const PricingPage = () => {
     return { kind: "text", text: String(v) };
   };
 
-  const trustPillars = [
-    { title: t("pricing.trust_since"), body: t("pricing.trust_since_body") },
-    { title: t("pricing.trust_pay"), body: t("pricing.trust_pay_body") },
-    { title: t("pricing.trust_keys"), body: t("pricing.trust_keys_body") },
+  const trustChips = [
+    t("pricing.trust_since"),
+    t("pricing.trust_pay"),
+    t("pricing.trust_keys"),
   ];
 
   const howSteps = [
@@ -380,11 +457,57 @@ const PricingPage = () => {
     { n: "3", title: t("pricing.how_3_title"), body: t("pricing.how_3_body") },
   ];
 
-  const cardBase = "relative flex flex-col px-6 py-8 sm:px-7 sm:py-9 bg-transparent";
+  const yearlyPlan = sortedPlans.find((p) => p.name === "yearly");
+  const cardMeta = {
+    recommendedLabel: t("pricing.recommended"),
+    currentLabel: t("pricing.current_plan"),
+  };
+
+  const freeCard = (
+    <PlanCard
+      title={t("pricing.free_name")}
+      desc={t("pricing.free_desc")}
+      price={t("pricing.free_price")}
+      features={freeFeatures}
+      cta={t("pricing.free_cta")}
+      onCta={() => navigate(isAuthenticated ? "/" : "/login")}
+      mutedChecks
+      meta={{ line: t("pricing.free_forever"), ...cardMeta }}
+    />
+  );
+
+  const renderPaid = (plan) => {
+    const recommended = isRecommended(plan.name);
+    const current = isCurrentPlan(plan);
+    return (
+      <PlanCard
+        key={plan.id}
+        title={getPlanLabel(plan)}
+        desc={getPlanDesc(plan)}
+        price={plan.price_usdt}
+        suffix={getPriceSuffix(plan)}
+        features={getFeatures(plan)}
+        cta={
+          creating && selectedPlan === plan.id ? t("pricing.processing") : getButtonLabel(plan)
+        }
+        onCta={() => handleSubscribe(plan)}
+        disabled={creating || current}
+        busy={creating && selectedPlan === plan.id}
+        recommended={recommended}
+        current={current}
+        meta={{ line: getMetaLine(plan), ...cardMeta }}
+      />
+    );
+  };
+
+  const paidCards = sortedPlans.map((plan) => renderPaid(plan));
+
+  const mobilePlan =
+    mobileId === "free" ? null : sortedPlans.find((p) => p.name === mobileId) || yearlyPlan;
 
   const shellPad = embedded
-    ? "relative z-10 mx-auto max-w-5xl px-0 pb-10 pt-1"
-    : "relative z-10 mx-auto max-w-5xl px-4 pb-28 pt-14 sm:px-6 sm:pt-20 lg:pt-24";
+    ? "relative z-10 mx-auto max-w-5xl px-0 pb-8 pt-1"
+    : "relative z-10 mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6 sm:pt-14 lg:pt-16";
 
   return (
     <div className={embedded ? "relative" : "relative min-h-screen"}>
@@ -436,21 +559,20 @@ const PricingPage = () => {
       )}
 
       <div className={shellPad}>
-        <header className={`mx-auto max-w-2xl text-center ${embedded ? "mb-8" : "mb-12 sm:mb-16"}`}>
-          <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary/35">
+        <header className={`mx-auto max-w-xl text-center ${embedded ? "mb-6" : "mb-8 sm:mb-10"}`}>
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary/35">
             {t("pricing.hero_eyebrow")}
           </p>
           <h1
-            className={`font-semibold leading-[1.15] tracking-[-0.02em] text-text-primary ${
-              embedded ? "text-[1.65rem] sm:text-[2rem]" : "text-[2rem] sm:text-[2.75rem] lg:text-[3.15rem]"
+            className={`font-semibold leading-[1.12] tracking-[-0.03em] text-text-primary ${
+              embedded ? "text-[1.55rem] sm:text-[1.85rem]" : "text-[1.85rem] sm:text-[2.45rem] lg:text-[2.75rem]"
             }`}
             style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
           >
-            {t("pricing.hero_title_line1")}
-            <br />
+            {t("pricing.hero_title_line1")}{" "}
             <span className="text-text-primary/50">{t("pricing.hero_title_line2")}</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-text-primary/50 sm:text-base">
+          <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-text-primary/50 sm:text-[15px]">
             {isPremium
               ? `${t("pricing.subscribing_to")} ${getCurrentPlanLabel()}${
                   subStatus?.days_remaining != null
@@ -459,238 +581,141 @@ const PricingPage = () => {
                 }`
               : t("pricing.hero_subtitle")}
           </p>
+          {!isPremium && (
+            <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.12em] text-text-primary/35">
+              {trustChips.map((c, i) => (
+                <span key={c} className="inline-flex items-center gap-3">
+                  {i > 0 ? <span className="text-text-primary/20">·</span> : null}
+                  {c}
+                </span>
+              ))}
+            </p>
+          )}
         </header>
 
-        {!isPremium && (
-          <ul
-            className={`mx-auto grid max-w-5xl gap-8 sm:grid-cols-3 ${embedded ? "mb-10" : "mb-14 sm:mb-16"}`}
-          >
-            {trustPillars.map((p) => (
-              <li key={p.title} className="text-left sm:text-center">
-                <p className="text-[13px] font-medium text-text-primary/85">{p.title}</p>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-text-primary/40">{p.body}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-
         {loading ? (
-          <SkeletonCards />
+          <div className="mx-auto h-[340px] max-w-5xl animate-pulse rounded-2xl border border-ink/[0.06] bg-ink/[0.04]" />
         ) : loadError ? (
-          <div className="mx-auto max-w-sm py-16 text-center">
+          <div className="mx-auto max-w-sm py-12 text-center">
             <p className="text-sm text-text-primary/50">{t("pricing.load_error")}</p>
             <button
               type="button"
               onClick={loadData}
-              className="mt-5 text-sm text-accent underline-offset-4 hover:underline"
+              className="mt-4 text-sm text-accent underline-offset-4 hover:underline"
             >
               {t("pricing.retry")}
             </button>
           </div>
         ) : (
           <>
-            <p className="mb-4 text-center text-[12px] text-text-primary/35">
-              {t("pricing.same_product")}
-            </p>
-
-            <div className="overflow-hidden rounded-2xl border border-ink/[0.08] bg-ink/[0.015] backdrop-blur-[2px]">
-              <div className="grid divide-y divide-ink/[0.06] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
-                <article className={cardBase}>
-                  <div className="mb-8">
-                    <h2 className="text-[15px] font-medium text-text-primary/90">
-                      {t("pricing.free_name")}
-                    </h2>
-                    <p className="mt-1 text-[13px] text-text-primary/35">{t("pricing.free_desc")}</p>
-                  </div>
-                  <div className="mb-8">
-                    <div className="flex items-baseline gap-0.5">
-                      <span className="text-sm text-text-primary/30">$</span>
-                      <span
-                        className="text-[2.75rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-                      >
-                        {t("pricing.free_price")}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[12px] text-text-primary/30">{t("pricing.free_forever")}</p>
-                  </div>
-                  <ul className="mb-10 flex-1 space-y-3">
-                    {freeFeatures.map((f) => (
-                      <li
-                        key={f}
-                        className="flex gap-2.5 text-[13px] leading-snug text-text-primary/45"
-                      >
-                        <Check
-                          className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                          tone="rgb(var(--ink) / 0.25)"
-                        />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => navigate(isAuthenticated ? "/" : "/login")}
-                    className="mt-auto w-full rounded-lg border border-ink/[0.1] py-2.5 text-[13px] font-medium text-text-primary/70 transition hover:border-ink/20 hover:text-text-primary"
-                  >
-                    {t("pricing.free_cta")}
-                  </button>
-                </article>
-
-                {sortedPlans.map((plan) => {
-                  const recommended = isRecommended(plan.name);
-                  const current = isCurrentPlan(plan);
-                  const features = getFeatures(plan);
-                  const equiv = getMonthlyEquiv(plan);
-
+            {/* Mobile — one plan at a time */}
+            <div className="lg:hidden">
+              <div
+                className="mb-3 grid grid-cols-4 gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-1"
+                role="tablist"
+                aria-label={t("pricing.hero_eyebrow")}
+              >
+                {includeTabs.map((tab) => {
+                  const active = mobileId === tab.id;
                   return (
-                    <article
-                      key={plan.id}
-                      className={`${cardBase} ${
-                        recommended && !current ? "bg-accent/[0.035] ring-1 ring-inset ring-accent/30" : ""
-                      } ${current ? "bg-profit/[0.03]" : ""}`}
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setMobileId(tab.id)}
+                      className={`rounded-lg py-2.5 text-[11px] font-medium ${
+                        active
+                          ? "bg-ink text-ink-inv shadow-sm"
+                          : "text-text-primary/45 hover:text-text-primary/75"
+                      }`}
                     >
-                      <div className="mb-8">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <h2 className="text-[15px] font-medium text-text-primary/90">
-                            {getPlanLabel(plan)}
-                          </h2>
-                          {recommended && !current && (
-                            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-accent">
-                              {t("pricing.recommended")}
-                            </span>
-                          )}
-                          {current && (
-                            <span className="text-[11px] font-medium text-profit/90">
-                              {t("pricing.current_plan")}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1 text-[13px] text-text-primary/35">{getPlanDesc(plan)}</p>
-                      </div>
-
-                      <div className="mb-8">
-                        <div className="flex items-baseline gap-0.5">
-                          <span className="text-sm text-text-primary/30">$</span>
-                          <span
-                            className="text-[2.75rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
-                            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-                          >
-                            {plan.price_usdt}
-                          </span>
-                          <span className="ml-1 text-[12px] text-text-primary/30">USDT</span>
-                        </div>
-                        <p className="mt-2 text-[12px] text-text-primary/30">
-                          {getPriceSuffix(plan)}
-                          {equiv ? (
-                            <span className="text-text-primary/40">
-                              {" "}
-                              · {t("pricing.equiv_month", { price: equiv })}
-                            </span>
-                          ) : null}
-                          {plan.name === "yearly" ? (
-                            <span className="text-text-primary/45">
-                              {" "}
-                              · {t("pricing.yearly_save")}
-                            </span>
-                          ) : null}
-                        </p>
-                      </div>
-
-                      <ul className="mb-10 flex-1 space-y-3">
-                        {features.map((f) => (
-                          <li
-                            key={f}
-                            className="flex gap-2.5 text-[13px] leading-snug text-text-primary/55"
-                          >
-                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSubscribe(plan)}
-                        disabled={creating || current}
-                        className={`mt-auto w-full rounded-lg py-2.5 text-[13px] font-medium transition disabled:cursor-default active:scale-[0.99] ${
-                          current
-                            ? "border border-profit/25 bg-profit/[0.06] text-profit/90"
-                            : recommended
-                              ? "bg-accent text-accent-fg hover:brightness-105"
-                              : "border border-ink/[0.12] text-text-primary/85 hover:border-ink/25 hover:bg-ink/[0.03]"
-                        }`}
-                      >
-                        {creating && selectedPlan === plan.id
-                          ? t("pricing.processing")
-                          : getButtonLabel(plan)}
-                      </button>
-                    </article>
+                      {tab.label}
+                    </button>
                   );
                 })}
               </div>
+              <div className="overflow-hidden rounded-2xl border border-ink/[0.08] bg-ink/[0.015]">
+                {mobileId === "free" ? freeCard : mobilePlan ? renderPaid(mobilePlan) : null}
+              </div>
             </div>
 
-            <p className="mx-auto mt-8 max-w-xl text-center text-[13px] leading-relaxed text-text-primary/35">
-              {t("pricing.payment_desc")}{" "}
-              <span className="text-text-primary/50">
-                {t("pricing.trust_cancel")} · {t("pricing.trust_secure")}
-              </span>
+            {/* Desktop — four compact columns */}
+            <div className="hidden overflow-hidden rounded-2xl border border-ink/[0.08] bg-ink/[0.015] lg:block">
+              <div className="grid grid-cols-4 divide-x divide-ink/[0.06]">
+                {freeCard}
+                {paidCards}
+              </div>
+            </div>
+
+            <p className="mx-auto mt-4 max-w-xl text-center text-[12px] leading-relaxed text-text-primary/35">
+              {t("pricing.same_product")} {t("pricing.payment_desc")}
             </p>
 
-            <section className={`mx-auto max-w-3xl ${embedded ? "mt-14" : "mt-20 sm:mt-24"}`}>
+            <div className="mx-auto mt-6 flex max-w-xl flex-col items-center gap-2 rounded-xl border border-ink/[0.07] px-4 py-3.5 text-center sm:px-6">
+              <p className="text-[13px] leading-relaxed text-text-primary/60">{t("pricing.agent_note")}</p>
+              <button
+                type="button"
+                onClick={() => openAssisted(yearlyPlan, "agent")}
+                className="text-[13px] font-medium text-accent underline-offset-4 hover:underline"
+              >
+                {t("pricing.agent_note_cta")}
+                <span className="ml-1.5 text-[11px] font-normal text-text-primary/35">
+                  {t("pricing.agent_yearly_only")}
+                </span>
+              </button>
+            </div>
+
+            <section className={`mx-auto max-w-3xl ${embedded ? "mt-12" : "mt-14 sm:mt-16"}`}>
               <h2
-                className="mb-2 text-center text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
+                className="mb-1 text-center text-lg font-semibold tracking-tight text-text-primary sm:text-xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {t("pricing.how_title")}
               </h2>
-              <p className="mb-10 text-center text-[14px] text-text-primary/40">
+              <p className="mb-6 text-center text-[13px] text-text-primary/40">
                 {t("pricing.how_subtitle")}
               </p>
-              <ol className="grid gap-8 sm:grid-cols-3">
+              <ol className="grid gap-5 sm:grid-cols-3 sm:gap-6">
                 {howSteps.map((s) => (
-                  <li key={s.n} className="text-left">
-                    <span
-                      className="font-mono text-[11px] text-text-primary/30"
-                      aria-hidden
-                    >
+                  <li key={s.n} className="flex gap-3 sm:block">
+                    <span className="font-mono text-[11px] text-text-primary/30" aria-hidden>
                       {s.n}
                     </span>
-                    <p className="mt-2 text-[14px] font-medium text-text-primary/85">{s.title}</p>
-                    <p className="mt-1.5 text-[13px] leading-relaxed text-text-primary/40">{s.body}</p>
+                    <div>
+                      <p className="text-[14px] font-medium text-text-primary/85">{s.title}</p>
+                      <p className="mt-1 text-[12px] leading-relaxed text-text-primary/40 sm:text-[13px]">
+                        {s.body}
+                      </p>
+                    </div>
                   </li>
                 ))}
               </ol>
+              <p className="mt-6 text-center text-[13px] text-text-primary/40">
+                {t("pricing.pay_other_title")}{" "}
+                <button
+                  type="button"
+                  onClick={() => openAssisted(yearlyPlan, "pay")}
+                  className="font-medium text-accent underline-offset-4 hover:underline"
+                >
+                  {t("pricing.pay_other_cta")}
+                </button>
+              </p>
             </section>
 
-            <div className="mx-auto mt-12 max-w-xl rounded-xl border border-ink/[0.07] px-5 py-4 text-center sm:px-8">
-              <p className="text-[14px] font-medium text-text-primary/80">
-                {t("pricing.pay_other_title")}
-              </p>
-              <p className="mt-1 text-[13px] text-text-primary/40">{t("pricing.pay_other_body")}</p>
-              <button
-                type="button"
-                onClick={() => handlePayAnotherWay(sortedPlans.find((p) => p.name === "yearly"))}
-                className="mt-3 text-[13px] font-medium text-accent underline-offset-4 hover:underline"
-              >
-                {t("pricing.pay_other_cta")}
-              </button>
-            </div>
-
-            <section className={`mx-auto max-w-lg ${embedded ? "mt-14" : "mt-20 sm:mt-24"}`}>
+            <section className={`mx-auto max-w-lg ${embedded ? "mt-12" : "mt-14 sm:mt-16"}`}>
               <h2
-                className="mb-2 text-center text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
+                className="mb-1 text-center text-lg font-semibold tracking-tight text-text-primary sm:text-xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {t("pricing.compare_title")}
               </h2>
-              <p className="mb-8 text-center text-[14px] text-text-primary/40">
+              <p className="mb-5 text-center text-[13px] text-text-primary/40">
                 {t("pricing.compare_subtitle")}
               </p>
 
               <div
-                className="mb-6 grid grid-cols-4 gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-1"
+                className="mb-4 grid grid-cols-4 gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-1"
                 role="tablist"
                 aria-label={t("pricing.compare_title")}
               >
@@ -722,27 +747,30 @@ const PricingPage = () => {
                   return (
                     <li
                       key={row.id}
-                      className="flex items-start justify-between gap-4 px-4 py-3.5 sm:px-5"
+                      className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5"
                     >
                       <span className="min-w-0">
                         <span className="block text-[13px] text-text-primary/70 sm:text-[14px]">
                           {row.label}
                         </span>
                         {row.hint ? (
-                          <span className="mt-0.5 block text-[12px] leading-snug text-text-primary/35">
+                          <span className="mt-0.5 hidden text-[12px] leading-snug text-text-primary/35 sm:block">
                             {row.hint}
                           </span>
                         ) : null}
                       </span>
-                      <span className="shrink-0 pt-0.5 text-right">
+                      <span className="shrink-0 text-right">
                         {v.kind === "yes" && (
-                          <span className="inline-flex items-center gap-1.5 text-[12px] text-accent">
+                          <span className="inline-flex items-center text-accent">
                             <Check className="h-3.5 w-3.5" />
                             <span className="sr-only">{t("pricing.included")}</span>
                           </span>
                         )}
                         {v.kind === "no" && (
-                          <span className="text-[13px] text-text-primary/20" aria-label={t("pricing.not_included")}>
+                          <span
+                            className="text-[13px] text-text-primary/20"
+                            aria-label={t("pricing.not_included")}
+                          >
                             —
                           </span>
                         )}
@@ -757,15 +785,14 @@ const PricingPage = () => {
                   );
                 })}
               </ul>
-
-              <p className="mt-4 text-center text-[12px] leading-relaxed text-text-primary/30">
+              <p className="mt-3 text-center text-[12px] leading-relaxed text-text-primary/30">
                 {t("pricing.compare_note")}
               </p>
             </section>
 
-            <section className={`mx-auto max-w-xl ${embedded ? "mt-14" : "mt-20 sm:mt-24"}`}>
+            <section className={`mx-auto max-w-xl ${embedded ? "mt-12" : "mt-14 sm:mt-16"}`}>
               <h2
-                className="mb-8 text-center text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
+                className="mb-5 text-center text-lg font-semibold tracking-tight text-text-primary sm:text-xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {t("pricing.faq_title")}
@@ -778,7 +805,7 @@ const PricingPage = () => {
             </section>
 
             {!embedded && (
-              <div className="mt-16 text-center">
+              <div className="mt-12 text-center">
                 <button
                   type="button"
                   onClick={() => navigate("/")}
@@ -796,6 +823,7 @@ const PricingPage = () => {
         isOpen={!!adminModalPlan}
         onClose={() => setAdminModalPlan(null)}
         plan={adminModalPlan}
+        intent={adminIntent}
       />
     </div>
   );

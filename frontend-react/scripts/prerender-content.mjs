@@ -358,7 +358,7 @@ async function main() {
     path: "/pricing",
     title: "Pricing & Plans — LuxQuant Terminal",
     description:
-      "Free Pulse, Bitcoin, and public track record. Paid plans unlock live signal levels, Agent, on-chain intelligence, and research. USDT on-chain, no auto-renewal.",
+      "Free Pulse, Bitcoin, and public track record. Paid plans unlock live signal levels, on-chain intelligence, and research. Agent on request with Annual or Lifetime. USDT on-chain, no auto-renewal.",
     jsonLd: [
       breadcrumbLd([{ label: "Home", to: "/" }, { label: "Pricing", self: "/pricing" }]),
       {
@@ -382,10 +382,11 @@ async function main() {
     body:
       crumb([{ label: "Home", to: "/" }, { label: "Pricing" }]) +
       `<h1>Pricing</h1>` +
-      `<p>Full access to the terminal. Billed monthly, annually, or once. Start free with Pulse, Bitcoin, and the public record. Paid plans unlock live signal levels, Agent, on-chain context, and research — the same product on every paid plan.</p>` +
+      `<p>Live levels. Pick how you pay. Start free with Pulse, Bitcoin, and the public record. Paid plans unlock live signal levels, on-chain context, and research — the same terminal on every paid plan. Agent (automation) is available on request with Annual or Lifetime.</p>` +
       `<ul>` +
       `<li><strong>Free</strong> — Pulse, Bitcoin, Markets, News, journal, and the public track record.</li>` +
-      `<li><strong>Paid</strong> — live signal levels, Called overlay, Agent (you hold the keys), on-chain intelligence, AI research.</li>` +
+      `<li><strong>Paid</strong> — live signal levels, Called overlay, on-chain intelligence, AI research.</li>` +
+      `<li><strong>Annual+</strong> — special requests including Agent, on request.</li>` +
       `<li><strong>Payment</strong> — USDT on BNB Smart Chain (BEP-20). Unique address per invoice. Verified on-chain. No auto-renewal, no card on file.</li>` +
       `</ul>` +
       `<p><a href="/login">Create free account</a> · <a href="/">Back to homepage</a> · <a href="/learn">Glossary</a></p>`,

@@ -109,13 +109,28 @@ const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
     if (plan.name === "lifetime") return t("pricing.get_lifetime");
     return t("pricing.select_plan");
   };
-  const getFeatures = () => [
-    t("pricing.feat_signals"),
-    t("pricing.feat_market"),
-    t("pricing.feat_autotrade"),
-    t("pricing.feat_onchain"),
-    t("pricing.feat_ai"),
-  ];
+  const getFeatures = (plan) => {
+    if (plan.name === "monthly") {
+      return [
+        t("pricing.feat_signals"),
+        t("pricing.feat_market"),
+        t("pricing.feat_onchain_ai"),
+        t("pricing.feat_basic_support"),
+      ];
+    }
+    if (plan.name === "yearly") {
+      return [
+        t("pricing.feat_everything_monthly"),
+        t("pricing.feat_support"),
+        t("pricing.feat_requests"),
+      ];
+    }
+    return [
+      t("pricing.feat_everything_yearly"),
+      t("pricing.feat_vip_support"),
+      t("pricing.feat_lifetime"),
+    ];
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -190,7 +205,7 @@ const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
                   </div>
 
                   <ul className="mb-7 flex-1 space-y-2.5">
-                    {getFeatures().map((f) => (
+                    {getFeatures(plan).map((f) => (
                       <li
                         key={f}
                         className="flex gap-2.5 text-[12.5px] leading-snug text-text-primary/55"
@@ -227,7 +242,10 @@ const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
         </div>
       )}
 
-      <p className="mt-6 text-center text-[11.5px] text-text-primary/35">
+      <p className="mt-5 text-center text-[12px] leading-relaxed text-text-primary/45">
+        {t("pricing.agent_note")}
+      </p>
+      <p className="mt-4 text-center text-[11.5px] text-text-primary/35">
         {[t("pricing.usdt_bep20"), t("pricing.auto_verify"), t("pricing.trust_cancel")].join(" · ")}
       </p>
       <p className="mt-2 text-center">
