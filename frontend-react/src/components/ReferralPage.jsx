@@ -8,9 +8,13 @@ import { buildReferralMiniAppUrl } from "../utils/telegramCampaign";
 
 import CashoutRequestModal from "./referral/CashoutRequestModal";
 import CashoutHistoryList from "./referral/CashoutHistoryList";
+import { UsdtCoin, UsdtCoinStack } from "./referral/UsdtCoin";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
 import { useDialog } from "../hooks/useDialog";
+
+const BTN =
+  "inline-flex h-10 items-center justify-center rounded-md border border-ink/12 bg-surface-raised px-4 text-xs font-semibold text-text-primary transition-colors hover:border-ink/20 hover:bg-ink/[0.05]";
 
 const CopyButton = ({ text, label, onCopied, className = "" }) => {
   const [copied, setCopied] = useState(false);
@@ -29,10 +33,8 @@ const CopyButton = ({ text, label, onCopied, className = "" }) => {
     <button
       type="button"
       onClick={handleCopy}
-      className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${
-        copied
-          ? "border-profit/25 bg-profit/10 text-profit"
-          : "border-transparent bg-accent text-accent-fg hover:opacity-90"
+      className={`${BTN} ${
+        copied ? "border-profit/25 bg-profit/10 text-profit hover:bg-profit/10" : ""
       } ${className}`}
     >
       {copied ? t("referral.copied") : label}
@@ -302,30 +304,32 @@ const ReferralPage = () => {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-      {/* HERO — offer, not QR */}
+      {/* HERO — offer + USDT */}
       <section className="overflow-hidden rounded-2xl border border-accent/20 bg-surface-raised p-5 sm:p-8">
-        <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
-          {t("referral.chip_full")}
-        </p>
-        <h1 className="max-w-xl text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
-          {t("referral.title")}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base">
-          {t("referral.subtitle")}
-        </p>
+        <div className="flex items-start justify-between gap-6">
+          <div className="min-w-0 flex-1">
+            <p className="mb-2 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+              <UsdtCoin size={14} />
+              {t("referral.chip_full")}
+            </p>
+            <h1 className="max-w-xl text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
+              {t("referral.title")}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base">
+              {t("referral.subtitle")}
+            </p>
+          </div>
+          <UsdtCoin size={56} className="mt-1 shrink-0 sm:hidden" />
+          <UsdtCoinStack className="hidden shrink-0 sm:block" />
+        </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
           <CopyButton
             text={shareLink}
             label={t("referral.copy_link")}
             onCopied={() => handleShareTracked("copy_link")}
-            className="px-4 py-2.5"
           />
-          <button
-            type="button"
-            onClick={shareNative}
-            className="rounded-md border border-ink/12 bg-ink/[0.03] px-4 py-2.5 text-xs font-semibold text-text-primary hover:bg-ink/[0.06]"
-          >
+          <button type="button" onClick={shareNative} className={BTN}>
             {t("referral.share")}
           </button>
           <button
@@ -336,7 +340,7 @@ const ReferralPage = () => {
                 `https://wa.me/?text=${encodeURIComponent(`${SCRIPT_PROOF("")} ${shareLink}`)}`,
               )
             }
-            className="rounded-md border border-ink/12 bg-ink/[0.03] px-4 py-2.5 text-xs font-semibold text-text-primary hover:bg-ink/[0.06]"
+            className={BTN}
           >
             {t("referral.share_whatsapp")}
           </button>
@@ -345,7 +349,7 @@ const ReferralPage = () => {
             onClick={() =>
               shareTo("telegram", `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(SCRIPT_PROOF(""))}`)
             }
-            className="rounded-md border border-ink/12 bg-ink/[0.03] px-4 py-2.5 text-xs font-semibold text-text-primary hover:bg-ink/[0.06]"
+            className={BTN}
           >
             {t("referral.share_telegram")}
           </button>
@@ -357,7 +361,7 @@ const ReferralPage = () => {
                 `https://twitter.com/intent/tweet?text=${encodeURIComponent(SCRIPT_PROOF(""))}&url=${encodeURIComponent(shareLink)}`,
               )
             }
-            className="rounded-md border border-ink/12 bg-ink/[0.03] px-4 py-2.5 text-xs font-semibold text-text-primary hover:bg-ink/[0.06]"
+            className={BTN}
           >
             {t("referral.share_x")}
           </button>
@@ -424,29 +428,34 @@ const ReferralPage = () => {
       {/* Dual reward — free = VIP */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-accent/20 bg-surface-raised p-5">
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
-            {t("referral.earn_usdt")}
-          </p>
-          <p className="mt-2 text-sm text-text-muted">{t("referral.earn_usdt_body")}</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+                <UsdtCoin size={14} />
+                {t("referral.earn_usdt")}
+              </p>
+              <p className="mt-2 text-sm text-text-muted">{t("referral.earn_usdt_body")}</p>
+            </div>
+            <UsdtCoin size={48} className="shrink-0" />
+          </div>
           {hasEarnings ? (
             <div className="mt-4 flex items-end justify-between gap-3">
               <div>
                 <p className="font-mono text-[10px] uppercase text-text-muted">{t("referral.available")}</p>
-                <p className="font-mono text-3xl font-semibold tabular-nums text-accent">${available.toFixed(2)}</p>
+                <p className="font-mono text-3xl font-semibold tabular-nums text-accent">
+                  ${available.toFixed(2)} <span className="text-sm font-semibold">USDT</span>
+                </p>
               </div>
               {canCashout && (
-                <button
-                  type="button"
-                  onClick={() => setShowCashoutModal(true)}
-                  className="rounded-md bg-accent px-3 py-2 text-xs font-semibold text-accent-fg"
-                >
+                <button type="button" onClick={() => setShowCashoutModal(true)} className={BTN}>
                   {t("referral.request_cashout")}
                 </button>
               )}
             </div>
           ) : (
-            <p className="mt-4 font-mono text-sm text-text-secondary">
-              {t("referral.you_earn")} ${estimator.monthly_usdt} · ${estimator.annual_usdt} · ${estimator.lifetime_usdt}
+            <p className="mt-4 font-mono text-sm font-semibold text-accent">
+              {t("referral.you_earn")} ${estimator.monthly_usdt} · ${estimator.annual_usdt} · $
+              {estimator.lifetime_usdt} USDT
             </p>
           )}
         </div>
@@ -495,11 +504,14 @@ const ReferralPage = () => {
             { label: t("referral.estimator_lifetime"), value: estimator.lifetime_usdt },
           ].map((row) => (
             <div key={row.label} className="rounded-lg border border-ink/[0.06] bg-ink/[0.02] p-3 text-center">
+              <div className="mb-1 flex justify-center">
+                <UsdtCoin size={22} />
+              </div>
               <p className="text-[10px] font-medium text-text-muted">{row.label}</p>
               <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-accent sm:text-2xl">
                 ${row.value}
               </p>
-              <p className="text-[10px] text-text-muted">{t("referral.you_earn")}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent">USDT</p>
             </div>
           ))}
         </div>

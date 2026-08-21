@@ -1,21 +1,31 @@
-// Gold header CTA — visible to guests, free, and VIP.
+import { UsdtCoin } from "./UsdtCoin";
+
+// Same chrome as header nav items (rounded-md, underline when active).
 export default function EarnUsdtChip({ onClick, active = false, compact = false }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label="Invite friends and earn USDT"
-      className={`relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[11px] font-semibold tracking-tight transition-colors sm:px-3 sm:text-[12px] ${
+      className={`relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
         active
-          ? "border-accent/40 bg-accent text-accent-fg"
-          : "border-accent/30 bg-accent/10 text-accent hover:bg-accent/15"
+          ? "border-transparent text-text-primary"
+          : "border-transparent text-text-secondary hover:border-ink/[0.1] hover:bg-ink/[0.06] hover:text-text-primary"
       }`}
     >
-      {!compact && (
-        <span className="hidden sm:inline font-medium opacity-80">Invite</span>
+      <UsdtCoin size={16} />
+      {compact ? (
+        <span>Earn USDT</span>
+      ) : (
+        <>
+          <span className="hidden sm:inline">Invite</span>
+          <span className="hidden sm:inline opacity-40">·</span>
+          <span>Earn USDT</span>
+        </>
       )}
-      {!compact && <span className="hidden sm:inline opacity-50">·</span>}
-      <span>Earn USDT</span>
+      {active && (
+        <span className="absolute inset-x-3 -bottom-[17px] hidden h-[2.5px] rounded-full bg-accent lg:block" />
+      )}
     </button>
   );
 }
