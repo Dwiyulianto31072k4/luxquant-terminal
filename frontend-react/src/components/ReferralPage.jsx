@@ -233,8 +233,10 @@ const ReferralPage = () => {
   const shareLink = code?.share_link || "";
   const tgLink = code?.telegram_share_link || (code?.code ? buildReferralMiniAppUrl(code.code) : "");
   const qualified = funnel?.qualified || 0;
-  const nextAt = funnel?.next_reward_at || 3;
-  const progressPct = Math.min(100, (qualified / Math.max(nextAt, 1)) * 100);
+  const paid = funnel?.paid || 0;
+  const needUse = funnel?.unlock_qualified_need || 3;
+  const needPaid = funnel?.unlock_paid_need || 1;
+  const unlockDone = Boolean(funnel?.unlock_complete);
   const hasEarnings = (earnings?.lifetime_earned || 0) > 0;
   const available = earnings?.available_balance || 0;
   const canCashout = Boolean(cashoutBalance?.can_request_cashout);
@@ -487,16 +489,36 @@ const ReferralPage = () => {
             {t("referral.unlock_access")}
           </p>
           <p className="mt-2 text-sm text-text-muted">{t("referral.unlock_body")}</p>
-          <div className="mt-4">
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <span className="font-mono text-2xl font-semibold tabular-nums text-text-primary">
-                {qualified}
-                <span className="text-sm font-medium text-text-muted"> / {nextAt}</span>
-              </span>
-              <span className="text-[11px] text-text-muted">{t("referral.qualified")}</span>
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="mb-1 flex items-baseline justify-between">
+                <span className="font-mono text-xl font-semibold tabular-nums text-text-primary">
+                  {qualified}
+                  <span className="text-sm font-medium text-text-muted"> / {needUse}</span>
+                </span>
+                <span className="text-[11px] text-text-muted">{t("referral.unlock_use")}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-ink/[0.06]">
+                <div
+                  className="h-full rounded-full bg-accent transition-all"
+                  style={{ width: `${Math.min(100, (qualified / Math.max(needUse, 1)) * 100)}%` }}
+                />
+              </div>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-ink/[0.06]">
-              <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${progressPct}%` }} />
+            <div>
+              <div className="mb-1 flex items-baseline justify-between">
+                <span className="font-mono text-xl font-semibold tabular-nums text-text-primary">
+                  {paid}
+                  <span className="text-sm font-medium text-text-muted"> / {needPaid}</span>
+                </span>
+                <span className="text-[11px] text-text-muted">{t("referral.unlock_subscribe")}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-ink/[0.06]">
+                <div
+                  className={`h-full rounded-full transition-all ${unlockDone ? "bg-profit" : "bg-profit/70"}`}
+                  style={{ width: `${Math.min(100, (paid / Math.max(needPaid, 1)) * 100)}%` }}
+                />
+              </div>
             </div>
           </div>
         </div>

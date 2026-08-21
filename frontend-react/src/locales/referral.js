@@ -6,7 +6,7 @@ export const referralEn = {
 
   title: "Invite friends. Earn USDT.",
   subtitle:
-    "They join free and verify the public record. You earn 10% in USDT when they subscribe — and 3 friends who actually use LuxQuant unlock 7 days of full access.",
+    "They join free and verify the public record. You earn 10% in USDT when they subscribe. 3 friends who use LuxQuant plus 1 who subscribes unlock 7 days of full access.",
 
   copy_link: "Copy link",
   copied: "Copied!",
@@ -25,7 +25,9 @@ export const referralEn = {
   request_cashout: "Request cashout",
 
   unlock_access: "Unlock access",
-  unlock_body: "3 friends who activate (not just sign up) unlock 7 days of full Terminal access.",
+  unlock_body: "3 friends who actually use LuxQuant, plus 1 who subscribes — 4 people. That unlocks 7 days of full Terminal access for you.",
+  unlock_use: "use LuxQuant",
+  unlock_subscribe: "subscribe",
   qualified: "qualified",
   of_target: "of {{n}} toward 7 days",
 
@@ -35,7 +37,7 @@ export const referralEn = {
   step2_title: "They join free",
   step2_desc: "They verify a real published call. No payment required to start.",
   step3_title: "You earn",
-  step3_desc: "USDT when they subscribe. 3 active friends unlock 7 days for you.",
+  step3_desc: "USDT when they subscribe. 3 who use + 1 who pays unlock 7 days for you.",
 
   estimator_title: "If they subscribe",
   estimator_monthly: "Monthly $50",
@@ -79,7 +81,7 @@ export const referralZh = {
 
   title: "邀请好友，赚取 USDT。",
   subtitle:
-    "他们免费加入并核验公开记录。他们订阅后你获得 10% USDT，3 位真正使用产品的好友可为你解锁 7 天完整权限。",
+    "他们免费加入并核验公开记录。他们订阅后你获得 10% USDT。3 位真正使用产品的好友外加 1 位订阅者，可为你解锁 7 天完整权限。",
 
   copy_link: "复制链接",
   copied: "已复制",
@@ -98,7 +100,9 @@ export const referralZh = {
   request_cashout: "申请提现",
 
   unlock_access: "解锁权限",
-  unlock_body: "3 位完成激活（不只是注册）的好友，可为你解锁 7 天完整 Terminal。",
+  unlock_body: "3 位真正使用产品的好友，外加 1 位订阅者——共 4 人，可为你解锁 7 天完整 Terminal。",
+  unlock_use: "使用产品",
+  unlock_subscribe: "订阅",
   qualified: "已激活",
   of_target: "距 7 天还差 {{n}} 人",
 
@@ -108,7 +112,7 @@ export const referralZh = {
   step2_title: "他们免费加入",
   step2_desc: "核验一笔已公开的真实信号，无需先付款。",
   step3_title: "你获得奖励",
-  step3_desc: "他们订阅你赚 USDT；3 位活跃好友为你解锁 7 天。",
+  step3_desc: "他们订阅你赚 USDT；3 位使用者 + 1 位付费解锁 7 天。",
 
   estimator_title: "如果他们订阅",
   estimator_monthly: "月付 $50",

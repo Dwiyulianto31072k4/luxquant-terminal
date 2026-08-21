@@ -163,11 +163,15 @@ class ReferralFunnelResponse(BaseModel):
     """Funnel breakdown: signup → active → subscribed → churned"""
     signed_up: int        # Total referee yang apply code
     active: int           # Yang udah login min 1x
-    subscribed: int       # Yang udah bayar min 1x
+    subscribed: int       # Yang udah bayar min 1x (status, includes refunded)
+    paid: int = 0         # Distinct referees with a live confirmed payment
     churned: int          # Subscription expired & ga renew
     qualified: int = 0
     reward_days_granted: int = 0
     next_reward_at: int = 3
+    unlock_qualified_need: int = 3
+    unlock_paid_need: int = 1
+    unlock_complete: bool = False
 
     # Conversion rates (helper, frontend bisa display %)
     activation_rate: float = 0       # active / signed_up

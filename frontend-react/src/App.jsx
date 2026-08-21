@@ -923,7 +923,7 @@ function AppShell({ children }) {
               <span>
                 <span className="block text-sm font-semibold text-accent">Invite · Earn USDT</span>
                 <span className="mt-0.5 block text-[11px] text-text-muted">
-                  10% when they subscribe · 3 active friends unlock 7 days
+                  10% when they subscribe · 3 who use + 1 who pays unlock 7 days
                 </span>
               </span>
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">Open</span>

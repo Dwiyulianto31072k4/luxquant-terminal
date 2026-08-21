@@ -185,7 +185,7 @@ def _referral_reminder_message(user, code, advocate):
     return (
         f"Hi {username},\n\n{lead}\n\n"
         "Share it. They join free and verify the public record. "
-        "You earn USDT (10% of what they pay) and 3 friends who actually use LuxQuant unlock 7 days of full access.\n\n"
+        "You earn USDT (10% of what they pay). 3 friends who actually use LuxQuant plus 1 who subscribes unlock 7 days of full access.\n\n"
         f"Your link: {link}\n"
         f"Telegram Mini App: https://t.me/LuxQuantTerminalBot/terminal?startapp=lq1r_{(code.code or '').lower()}\n"
         f"Dashboard: {portal}\n\n"

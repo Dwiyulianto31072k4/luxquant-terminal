@@ -214,6 +214,14 @@ def process_commission_for_payment(
 
     db.flush()
 
+    try:
+        from app.services.referral_viral import sync_referrer_grant_best_effort
+        sync_referrer_grant_best_effort(db, use)
+    except Exception:
+        logger.exception(
+            "referral unlock sync after commission failed payment=%s", payment.id
+        )
+
     logger.info(
         f"💸 Commission credited: referrer user_id={referrer.id} "
         f"+{commission_amount} USDT (new balance: {new_balance}) "

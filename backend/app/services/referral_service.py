@@ -198,23 +198,41 @@ def calculate_funnel(db: Session, referrer_id: int) -> dict:
         or 0
     )
 
+    from app.services.referral_viral import (
+        UNLOCK_AT,
+        UNLOCK_PAID,
+        _paid_count,
+        _unlock_pool_count,
+    )
+
+    paid = _paid_count(db, referrer_id)
+    pool = _unlock_pool_count(db, referrer_id)
+
     activation_rate = (active_total / signed_up * 100) if signed_up > 0 else 0
     subscription_rate = (subscribed_total / active_total * 100) if active_total > 0 else 0
 
-    next_at = 3
-    if qualified >= 10:
+    next_at = UNLOCK_AT
+    if int(reward_days) > 0 and qualified >= 10:
         next_at = qualified + 1
-    elif qualified >= 3:
+    elif int(reward_days) > 0:
         next_at = 10
 
     return {
         "signed_up": signed_up,
         "active": active_total,
         "subscribed": subscribed_total,
+        "paid": int(paid),
         "churned": churned,
         "qualified": int(qualified),
         "reward_days_granted": int(reward_days),
         "next_reward_at": int(next_at),
+        "unlock_qualified_need": UNLOCK_AT,
+        "unlock_paid_need": UNLOCK_PAID,
+        "unlock_complete": (
+            int(qualified) >= UNLOCK_AT
+            and int(paid) >= UNLOCK_PAID
+            and int(pool) >= (UNLOCK_AT + UNLOCK_PAID)
+        ),
         "activation_rate": round(activation_rate, 1),
         "subscription_rate": round(subscription_rate, 1),
     }
