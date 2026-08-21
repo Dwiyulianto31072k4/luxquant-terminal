@@ -358,7 +358,7 @@ async function main() {
     path: "/pricing",
     title: "Pricing & Plans — LuxQuant Terminal",
     description:
-      "Compare LuxQuant Terminal plans. Free tier to start; premium unlocks algorithmic signals, AutoTrade, on-chain intelligence, and AI research.",
+      "Free Pulse, Bitcoin, and public track record. Paid plans unlock live signal levels, Agent, on-chain intelligence, and research. USDT on-chain, no auto-renewal.",
     jsonLd: [
       breadcrumbLd([{ label: "Home", to: "/" }, { label: "Pricing", self: "/pricing" }]),
       {
@@ -366,7 +366,7 @@ async function main() {
         "@type": "Product",
         name: "LuxQuant Terminal",
         description:
-          "Quantitative crypto trading terminal with algorithmic signals, AutoTrade, on-chain intelligence, and AI research.",
+          "Quantitative crypto market-intelligence terminal: live signal levels, Agent, on-chain intelligence, and research.",
         brand: { "@type": "Brand", name: "LuxQuant" },
         image: `${SITE}/logo-512.png`,
         url: `${SITE}/pricing`,
@@ -374,20 +374,21 @@ async function main() {
           "@type": "AggregateOffer",
           lowPrice: "0",
           priceCurrency: "USD",
-          offerCount: "3",
+          offerCount: "4",
           availability: "https://schema.org/InStock",
         },
       },
     ],
     body:
       crumb([{ label: "Home", to: "/" }, { label: "Pricing" }]) +
-      `<h1>Pricing &amp; Plans</h1>` +
-      `<p>LuxQuant Terminal pricing: start free, upgrade when you need full signals, AutoTrade, on-chain intelligence, and AI research.</p>` +
+      `<h1>Pricing</h1>` +
+      `<p>Full access to the terminal. Billed monthly, annually, or once. Start free with Pulse, Bitcoin, and the public record. Paid plans unlock live signal levels, Agent, on-chain context, and research — the same product on every paid plan.</p>` +
       `<ul>` +
-      `<li><strong>Free tier</strong> — explore the product and core market views.</li>` +
-      `<li><strong>Premium</strong> — algorithmic signals, AutoTrade, on-chain, AI research.</li>` +
+      `<li><strong>Free</strong> — Pulse, Bitcoin, Markets, News, journal, and the public track record.</li>` +
+      `<li><strong>Paid</strong> — live signal levels, Called overlay, Agent (you hold the keys), on-chain intelligence, AI research.</li>` +
+      `<li><strong>Payment</strong> — USDT on BNB Smart Chain (BEP-20). Unique address per invoice. Verified on-chain. No auto-renewal, no card on file.</li>` +
       `</ul>` +
-      `<p><a href="/login">Create account</a> · <a href="/">Back to homepage</a> · <a href="/learn">Glossary</a></p>`,
+      `<p><a href="/login">Create free account</a> · <a href="/">Back to homepage</a> · <a href="/learn">Glossary</a></p>`,
   });
 
   // ── Status ──
