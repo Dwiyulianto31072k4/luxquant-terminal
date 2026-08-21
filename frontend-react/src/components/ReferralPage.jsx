@@ -14,7 +14,31 @@ import { Skeleton, ShimmerStyles } from "./ui/Loaders";
 import { useDialog } from "../hooks/useDialog";
 
 const BTN =
-  "inline-flex h-10 items-center justify-center rounded-md border border-ink/12 bg-surface-raised px-4 text-xs font-semibold text-text-primary transition-colors hover:border-ink/20 hover:bg-ink/[0.05]";
+  "inline-flex h-10 items-center justify-center gap-2 rounded-md border border-ink/12 bg-surface-raised px-3 text-xs font-semibold text-text-primary transition-colors hover:border-ink/20 hover:bg-ink/[0.05]";
+
+const IconShare = () => (
+  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5" />
+  </svg>
+);
+const IconWhatsApp = () => (
+  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.5 14.4c-.3-.1-1.8-.9-2-.9s-.5-.1-.7.2-.8.9-1 1.1-.4.2-.7.1a8.1 8.1 0 0 1-2.4-1.5 8.8 8.8 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.3.3-.5s0-.4 0-.5l-.9-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4s-1 1-1 2.5 1.1 2.9 1.2 3.1a13.4 13.4 0 0 0 5.1 5c.7.3 1.3.4 1.8.3s1.6-.7 1.8-1.3.2-1.2.1-1.3-.3-.2-.6-.3zM12.1 21.5h-.1A9.5 9.5 0 0 1 5.2 4.8a9.5 9.5 0 0 1 13.5 13.4 9.5 9.5 0 0 1-6.6 3.3zm8.2-17.6A11.5 11.5 0 1 0 12 23.5l.2-.1 4.3 1.1-1.2-4.1A11.5 11.5 0 0 0 20.3 3.9z" />
+  </svg>
+);
+const IconTelegram = () => (
+  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M21.2 3.4 2.9 10.5c-1.3.5-1.2 1.2-.2 1.5l4.7 1.5 10.8-6.8c.5-.3 1-.1.6.2l-8.8 7.9-.3 4.7c.5 0 .7-.2 1-.5l2.4-2.3 5 3.7c.9.5 1.6.2 1.8-.9l3.3-15.5c.3-1.4-.5-2-1.5-1.6z" />
+  </svg>
+);
+const IconX = () => (
+  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 const CopyButton = ({ text, label, onCopied, className = "" }) => {
   const [copied, setCopied] = useState(false);
@@ -302,20 +326,20 @@ const ReferralPage = () => {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 pb-8 sm:space-y-6 sm:px-6 sm:py-6">
       {/* HERO — QR + offer */}
-      <section className="overflow-hidden rounded-2xl border border-accent/20 bg-surface-raised p-5 sm:p-7">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[auto_1fr] lg:items-start">
+      <section className="rounded-2xl border border-accent/20 bg-surface-raised p-5 sm:p-7">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[auto_1fr] lg:items-start lg:gap-8">
           {code && (
             <div className="flex flex-col items-center gap-3">
-              <div className="overflow-hidden rounded-lg border border-ink/10 bg-white p-2">
+              <div className="rounded-lg border border-ink/10 bg-white p-2">
                 <img
                   src={`${code.qr_url}?v=${encodeURIComponent(code.created_at || code.code)}`}
                   alt={`QR for ${code.code}`}
                   className="block h-40 w-40 sm:h-48 sm:w-48"
                 />
               </div>
-              <button type="button" onClick={handleDownloadQR} className={BTN}>
+              <button type="button" onClick={handleDownloadQR} className={`${BTN} w-full max-w-[12.5rem]`}>
                 {t("referral.download_qr")}
               </button>
             </div>
@@ -329,43 +353,54 @@ const ReferralPage = () => {
             <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
               {t("referral.title")}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-text-muted sm:text-base">
               {t("referral.subtitle")}
             </p>
 
             {code && (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xl font-semibold tracking-wider text-accent sm:text-2xl">
+              <div className="mt-5">
+                <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-text-muted">
+                  {t("referral.copy_code")}
+                </p>
+                <p className="break-all font-mono text-xl font-semibold tracking-wider text-accent sm:text-2xl">
                   {code.code}
-                </span>
-                <CopyButton
-                  text={code.code}
-                  label={t("referral.copy_code")}
-                  onCopied={() => handleShareTracked("copy_link")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowGenerateModal(true)}
-                  className="text-[11px] text-text-muted underline-offset-2 hover:underline"
-                >
-                  Customize
-                </button>
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <CopyButton
+                    text={code.code}
+                    label={t("referral.copy_code")}
+                    onCopied={() => handleShareTracked("copy_link")}
+                    className="w-full"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowGenerateModal(true)}
+                    className={`${BTN} w-full`}
+                  >
+                    Customize
+                  </button>
+                </div>
               </div>
             )}
 
-            <div className="mt-3 flex items-center gap-2">
-              <div className="min-w-0 flex-1 truncate rounded-md border border-ink/12 bg-ink/[0.03] px-3 py-2.5 font-mono text-xs text-text-secondary">
+            <div className="mt-4">
+              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-text-muted">
+                {t("referral.copy_link")}
+              </p>
+              <div className="rounded-md border border-ink/12 bg-ink/[0.03] px-3 py-2.5 font-mono text-xs leading-relaxed text-text-secondary break-all">
                 {shareLink}
               </div>
               <CopyButton
                 text={shareLink}
                 label={t("referral.copy_link")}
                 onCopied={() => handleShareTracked("copy_link")}
+                className="mt-2 w-full sm:w-auto"
               />
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" onClick={shareNative} className={BTN}>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <button type="button" onClick={shareNative} className={`${BTN} w-full`}>
+                <IconShare />
                 {t("referral.share")}
               </button>
               <button
@@ -376,8 +411,9 @@ const ReferralPage = () => {
                     `https://wa.me/?text=${encodeURIComponent(`${SCRIPT_PROOF("")} ${shareLink}`)}`,
                   )
                 }
-                className={BTN}
+                className={`${BTN} w-full`}
               >
+                <IconWhatsApp />
                 {t("referral.share_whatsapp")}
               </button>
               <button
@@ -388,8 +424,9 @@ const ReferralPage = () => {
                     `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(SCRIPT_PROOF(""))}`,
                   )
                 }
-                className={BTN}
+                className={`${BTN} w-full`}
               >
+                <IconTelegram />
                 {t("referral.share_telegram")}
               </button>
               <button
@@ -400,9 +437,10 @@ const ReferralPage = () => {
                     `https://twitter.com/intent/tweet?text=${encodeURIComponent(SCRIPT_PROOF(""))}&url=${encodeURIComponent(shareLink)}`,
                   )
                 }
-                className={BTN}
+                className={`${BTN} w-full`}
               >
-                {t("referral.share_x")}
+                <IconX />
+                X
               </button>
             </div>
           </div>
@@ -487,15 +525,15 @@ const ReferralPage = () => {
             { label: t("referral.estimator_annual"), value: estimator.annual_usdt },
             { label: t("referral.estimator_lifetime"), value: estimator.lifetime_usdt },
           ].map((row) => (
-            <div key={row.label} className="rounded-lg border border-ink/[0.06] bg-ink/[0.02] p-3 text-center">
+            <div key={row.label} className="rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-1.5 py-3 text-center sm:p-3">
               <div className="mb-1 flex justify-center">
                 <UsdtCoin size={22} />
               </div>
-              <p className="text-[10px] font-medium text-text-muted">{row.label}</p>
-              <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-accent sm:text-2xl">
+              <p className="px-0.5 text-[9px] font-medium leading-tight text-text-muted sm:text-[10px]">{row.label}</p>
+              <p className="mt-1 font-mono text-base font-semibold tabular-nums text-accent sm:text-2xl">
                 ${row.value}
               </p>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent">USDT</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-accent sm:text-[10px]">USDT</p>
             </div>
           ))}
         </div>
@@ -519,7 +557,7 @@ const ReferralPage = () => {
 
       {/* Share kit */}
       <section className="rounded-xl border border-ink/[0.08] bg-surface-raised p-5 sm:p-6">
-        <h2 className="mb-3 text-sm font-semibold text-text-primary">{t("referral.scripts_title")}</h2>
+        <h2 className="mb-3 text-sm font-semibold leading-snug text-text-primary">{t("referral.scripts_title")}</h2>
         <div className="mb-3 flex gap-1">
           {["proof", "money"].map((id) => (
             <button
@@ -541,7 +579,7 @@ const ReferralPage = () => {
           text={scriptText}
           label={t("referral.copy_link")}
           onCopied={() => handleShareTracked("copy_link")}
-          className="mt-3"
+          className="mt-3 w-full sm:w-auto"
         />
       </section>
 
