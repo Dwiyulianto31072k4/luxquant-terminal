@@ -8,7 +8,7 @@ import { buildReferralMiniAppUrl } from "../utils/telegramCampaign";
 
 import CashoutRequestModal from "./referral/CashoutRequestModal";
 import CashoutHistoryList from "./referral/CashoutHistoryList";
-import { UsdtCoin, UsdtCoinStack } from "./referral/UsdtCoin";
+import { UsdtCoin } from "./referral/UsdtCoin";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
 import { useDialog } from "../hooks/useDialog";
@@ -162,7 +162,6 @@ const ReferralPage = () => {
   const [refereesPage, setRefereesPage] = useState({ items: [], total: 0, page: 1, has_more: false });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("overview");
-  const [showQr, setShowQr] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [refereesPageNum, setRefereesPageNum] = useState(1);
   const [cashoutBalance, setCashoutBalance] = useState(null);
@@ -304,125 +303,110 @@ const ReferralPage = () => {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-      {/* HERO — offer + USDT */}
-      <section className="overflow-hidden rounded-2xl border border-accent/20 bg-surface-raised p-5 sm:p-8">
-        <div className="flex items-start justify-between gap-6">
-          <div className="min-w-0 flex-1">
+      {/* HERO — QR + offer */}
+      <section className="overflow-hidden rounded-2xl border border-accent/20 bg-surface-raised p-5 sm:p-7">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[auto_1fr] lg:items-start">
+          {code && (
+            <div className="flex flex-col items-center gap-3">
+              <div className="overflow-hidden rounded-lg border border-ink/10 bg-white p-2">
+                <img
+                  src={`${code.qr_url}?v=${encodeURIComponent(code.created_at || code.code)}`}
+                  alt={`QR for ${code.code}`}
+                  className="block h-40 w-40 sm:h-48 sm:w-48"
+                />
+              </div>
+              <button type="button" onClick={handleDownloadQR} className={BTN}>
+                {t("referral.download_qr")}
+              </button>
+            </div>
+          )}
+
+          <div className="min-w-0">
             <p className="mb-2 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
-              <UsdtCoin size={14} />
+              <UsdtCoin size={16} />
               {t("referral.chip_full")}
             </p>
-            <h1 className="max-w-xl text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
               {t("referral.title")}
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base">
               {t("referral.subtitle")}
             </p>
-          </div>
-          <UsdtCoin size={56} className="mt-1 shrink-0 sm:hidden" />
-          <UsdtCoinStack className="hidden shrink-0 sm:block" />
-        </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          <CopyButton
-            text={shareLink}
-            label={t("referral.copy_link")}
-            onCopied={() => handleShareTracked("copy_link")}
-          />
-          <button type="button" onClick={shareNative} className={BTN}>
-            {t("referral.share")}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              shareTo(
-                "whatsapp",
-                `https://wa.me/?text=${encodeURIComponent(`${SCRIPT_PROOF("")} ${shareLink}`)}`,
-              )
-            }
-            className={BTN}
-          >
-            {t("referral.share_whatsapp")}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              shareTo("telegram", `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(SCRIPT_PROOF(""))}`)
-            }
-            className={BTN}
-          >
-            {t("referral.share_telegram")}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              shareTo(
-                "twitter",
-                `https://twitter.com/intent/tweet?text=${encodeURIComponent(SCRIPT_PROOF(""))}&url=${encodeURIComponent(shareLink)}`,
-              )
-            }
-            className={BTN}
-          >
-            {t("referral.share_x")}
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowQr((v) => !v)}
-          className="mt-4 text-[11px] font-medium text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
-        >
-          {showQr ? "Hide link & QR" : t("referral.link_qr")}
-        </button>
-
-        {showQr && code && (
-          <div className="mt-4 grid gap-4 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-4 sm:grid-cols-[auto_1fr]">
-            <img
-              src={`${code.qr_url}?v=${encodeURIComponent(code.created_at || code.code)}`}
-              alt={`QR for ${code.code}`}
-              className="mx-auto h-36 w-36 rounded-lg border border-ink/10 bg-surface-secondary"
-            />
-            <div className="min-w-0 space-y-3">
-              <div>
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-text-muted">
-                  {t("referral.copy_code")}
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-xl font-semibold tracking-wider text-accent">{code.code}</span>
-                  <CopyButton text={code.code} label={t("referral.copy_code")} onCopied={() => handleShareTracked("copy_link")} />
-                  <button
-                    type="button"
-                    onClick={() => setShowGenerateModal(true)}
-                    className="text-[11px] text-text-muted underline-offset-2 hover:underline"
-                  >
-                    Customize
-                  </button>
-                </div>
+            {code && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xl font-semibold tracking-wider text-accent sm:text-2xl">
+                  {code.code}
+                </span>
+                <CopyButton
+                  text={code.code}
+                  label={t("referral.copy_code")}
+                  onCopied={() => handleShareTracked("copy_link")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowGenerateModal(true)}
+                  className="text-[11px] text-text-muted underline-offset-2 hover:underline"
+                >
+                  Customize
+                </button>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1 truncate rounded-lg border border-ink/10 bg-surface-secondary px-3 py-2 font-mono text-xs text-text-secondary">
-                  {shareLink}
-                </div>
-                <CopyButton text={shareLink} label={t("referral.copy_link")} onCopied={() => handleShareTracked("copy_link")} />
+            )}
+
+            <div className="mt-3 flex items-center gap-2">
+              <div className="min-w-0 flex-1 truncate rounded-md border border-ink/12 bg-ink/[0.03] px-3 py-2.5 font-mono text-xs text-text-secondary">
+                {shareLink}
               </div>
-              {tgLink && (
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1 truncate rounded-lg border border-ink/10 bg-surface-secondary px-3 py-2 font-mono text-xs text-text-secondary">
-                    {tgLink}
-                  </div>
-                  <CopyButton text={tgLink} label={t("referral.telegram_app")} onCopied={() => handleShareTracked("telegram")} />
-                </div>
-              )}
+              <CopyButton
+                text={shareLink}
+                label={t("referral.copy_link")}
+                onCopied={() => handleShareTracked("copy_link")}
+              />
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={shareNative} className={BTN}>
+                {t("referral.share")}
+              </button>
               <button
                 type="button"
-                onClick={handleDownloadQR}
-                className="text-xs font-semibold text-accent"
+                onClick={() =>
+                  shareTo(
+                    "whatsapp",
+                    `https://wa.me/?text=${encodeURIComponent(`${SCRIPT_PROOF("")} ${shareLink}`)}`,
+                  )
+                }
+                className={BTN}
               >
-                {t("referral.download_qr")}
+                {t("referral.share_whatsapp")}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  shareTo(
+                    "telegram",
+                    `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(SCRIPT_PROOF(""))}`,
+                  )
+                }
+                className={BTN}
+              >
+                {t("referral.share_telegram")}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  shareTo(
+                    "twitter",
+                    `https://twitter.com/intent/tweet?text=${encodeURIComponent(SCRIPT_PROOF(""))}&url=${encodeURIComponent(shareLink)}`,
+                  )
+                }
+                className={BTN}
+              >
+                {t("referral.share_x")}
               </button>
             </div>
           </div>
-        )}
+        </div>
       </section>
 
       {/* Dual reward — free = VIP */}
