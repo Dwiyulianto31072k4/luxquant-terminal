@@ -36,12 +36,12 @@ import {
   SORT_LABELS as SORT_FIELD_LABELS,
   toggleSortLevel,
 } from "../utils/signalSort";
-import FreeSignalsGuide, {
+import {
   DESK_ID,
   FINISHED_ID,
+  FreeDeskStrip,
   FreeScrollCue,
   RECENT_ID,
-  scrollToSignalsStop,
   VipToolsPreview,
 } from "./FreeSignalsGuide";
 
@@ -331,83 +331,6 @@ const LockedKpi = ({ label, value, sub, edge, onUnlock }) => (
   </button>
 );
 
-// Names the tier before the reader interprets its limits as the product being
-// thin. Dismissible per session: read once, then out of the way.
-const FreeTierNotice = ({ onUpgrade, onWalkthrough }) => {
-  const [hidden, setHidden] = useState(() => {
-    try {
-      return sessionStorage.getItem("lq:signals:free-notice") === "1";
-    } catch {
-      return false;
-    }
-  });
-  if (hidden) return null;
-  const dismiss = () => {
-    try {
-      sessionStorage.setItem("lq:signals:free-notice", "1");
-    } catch {
-      /* private mode — the notice simply returns next load */
-    }
-    setHidden(true);
-  };
-  return (
-    <div
-      className="flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:gap-x-3"
-      style={{
-        borderColor: "rgb(var(--accent) / 0.28)",
-        background: "rgb(var(--accent) / 0.06)",
-      }}
-    >
-      <div className="min-w-0 flex-1">
-        <span
-          className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
-          style={{ color: "rgb(var(--accent-text))" }}
-        >
-          Free version
-        </span>
-        <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">
-          Compass is the desk pulse. Next: a recent VIP call you can check on a
-          chart, then finished calls with proof. Live running calls open with VIP.
-        </p>
-      </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={onWalkthrough}
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/10 bg-surface-raised px-3.5 py-1.5 text-[11.5px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
-        >
-          Show me a recent call
-          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M6 9l6 6 6-6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-        <button
-          type="button"
-          onClick={onUpgrade}
-          className="shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[11.5px] font-semibold transition-all hover:brightness-110"
-          style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
-        >
-          See VIP
-        </button>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Dismiss"
-          className="shrink-0 rounded-md px-1.5 py-1 text-[13px] leading-none text-text-muted transition-colors hover:text-text-primary"
-        >
-          &times;
-        </button>
-      </div>
-    </div>
-  );
-};
-
 const KpiCell = ({ label, value, valueColor = "text-text-primary", sub, edge }) => (
   <div
     className={`min-w-0 px-3.5 py-3 sm:px-5 sm:py-3.5 ${edge ? "" : "border-l border-ink/[0.06]"}`}
@@ -581,7 +504,6 @@ const SignalsPage = () => {
   const navigate = useNavigate();
   // Every blurred number is a button, and they all lead here.
   const goPricing = () => navigate("/pricing?src=signals_locked");
-  const [guideNonce, setGuideNonce] = useState(0);
   const tabScrollRef = useRef(null); // horizontal scroll tab bar (day tabs)
   // Multi-level sort chain: [{ field, order }, ...] — primary first.
   const [sorts, setSorts] = useState(() => [...DEFAULT_SORTS]);
@@ -1540,17 +1462,13 @@ const SignalsPage = () => {
     { value: "volume", label: "Volume 24H" },
   ];
 
-  const goWalkthrough = () => {
-    setGuideNonce((n) => n + 1);
-    window.setTimeout(() => {
-      scrollToSignalsStop(vipSamples.length ? RECENT_ID : FINISHED_ID);
-    }, 40);
-  };
-
   return (
-    <div className={`space-y-4 ${isSubscriber ? "pb-10" : "pb-32 lg:pb-24"}`}>
+    <div className="space-y-4 pb-10">
+      {!isSubscriber && entitlementKnown && (
+        <FreeDeskStrip hasRecent={vipSamples.length > 0} onUpgrade={goPricing} />
+      )}
       {/* ── SIGNALS DESK — command center (title + KPI + BTC in one board) ── */}
-      <header id={DESK_ID} className="scroll-mt-28 space-y-3">
+      <header id={DESK_ID} className="scroll-mt-32 space-y-3">
         {/* Title row — slim, no brochure subtitle */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -1603,12 +1521,6 @@ const SignalsPage = () => {
             </div>
           </div>
         </div>
-
-        {!isSubscriber && entitlementKnown && (
-          <div className="mb-3">
-            <FreeTierNotice onUpgrade={goPricing} onWalkthrough={goWalkthrough} />
-          </div>
-        )}
 
         {/* Unified desk board: KPIs + embedded Compass */}
         <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
@@ -1689,11 +1601,7 @@ const SignalsPage = () => {
 
         {!isSubscriber && entitlementKnown && (
           <FreeScrollCue
-            label={
-              vipSamples.length
-                ? "Next · a recent VIP call you can check"
-                : "Next · finished calls you can verify"
-            }
+            label={vipSamples.length ? "Recent call" : "Finished calls"}
             targetId={vipSamples.length ? RECENT_ID : FINISHED_ID}
           />
         )}
@@ -2005,74 +1913,43 @@ const SignalsPage = () => {
         <>
           <div
             id={RECENT_ID}
-            className="scroll-mt-28 overflow-hidden rounded-xl border"
+            className="scroll-mt-32 overflow-hidden rounded-xl border"
             style={{
               borderColor: "rgb(var(--accent) / 0.35)",
               background: "rgb(var(--accent) / 0.04)",
             }}
           >
             <div
-              className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               style={{ background: "rgb(var(--accent) / 0.10)" }}
             >
               <div className="min-w-0">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span
-                    className="rounded-md px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em]"
-                    style={{
-                      background: "rgb(var(--accent) / 0.2)",
-                      color: "rgb(var(--accent-text))",
-                    }}
-                  >
-                    2 · Example
-                  </span>
-                  <p
-                    className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
-                    style={{ color: "rgb(var(--accent-text))" }}
-                  >
-                    A recent VIP call
-                  </p>
-                </div>
-                <p className="text-[13px] font-semibold text-text-primary">
-                  This is a real recent call — the way a subscriber sees it.
+                <p
+                  className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+                  style={{ color: "rgb(var(--accent-text))" }}
+                >
+                  2 · Recent VIP call
                 </p>
-                <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
-                  Every column, every level, every score. Tap a row to check it
-                  against a chart. Scroll on for finished calls you can verify too.
+                <p className="mt-0.5 text-[13px] font-semibold text-text-primary">
+                  A real recent call, the way a subscriber sees it. Tap a row to check the chart.
                 </p>
               </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => scrollToSignalsStop(FINISHED_ID)}
-                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/10 bg-surface-raised px-3.5 py-2 text-[12px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
-                >
-                  Finished calls
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path
-                      d="M6 9l6 6 6-6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={goPricing}
-                  className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
-                  style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
-                >
-                  See it live
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={goPricing}
+                className="shrink-0 self-start whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all hover:brightness-110 sm:self-auto"
+                style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+              >
+                See it live
+              </button>
             </div>
 
             <SignalsTable
               signals={vipSamples}
               loading={false}
               isSubscriber
+              teaser
+              hideColumnsMenu
               preferBestPrice
               onRowClick={(sig) => openSignal(sig, "trade")}
               sortBy="created_at"
@@ -2095,18 +1972,8 @@ const SignalsPage = () => {
               signalTags={signalTags}
             />
           </div>
-          <FreeScrollCue
-            label="Next · finished calls that already hit target"
-            targetId={FINISHED_ID}
-          />
+          <FreeScrollCue label="Finished calls" targetId={FINISHED_ID} />
         </>
-      )}
-
-      {!isSubscriber && entitlementKnown && (
-        <VipToolsPreview
-          onUnlock={goPricing}
-          onSeeCall={() => scrollToSignalsStop(FINISHED_ID)}
-        />
       )}
 
       {/* FILTER CONSOLE */}
@@ -3017,16 +2884,13 @@ const SignalsPage = () => {
       )}
 
       {!error && (
-        <div id={FINISHED_ID} className="scroll-mt-28">
+        <div id={FINISHED_ID} className="scroll-mt-32">
         <SignalsTable
           signals={signals}
           loading={loading}
           isSubscriber={isSubscriber}
           onSubscribe={goPricing}
           hiddenCount={hiddenCount}
-          onGuideBack={
-            vipSamples.length ? () => scrollToSignalsStop(RECENT_ID) : null
-          }
           // A free account only ever sees finished calls, so the live chart is
           // the wrong landing tab for every one of them.
           onRowClick={(sig) => openSignal(sig, isSubscriber ? "chart" : "trade")}
@@ -3061,12 +2925,7 @@ const SignalsPage = () => {
       )}
 
       {!isSubscriber && entitlementKnown && (
-        <FreeSignalsGuide
-          enabled
-          hasRecent={vipSamples.length > 0}
-          onUpgrade={goPricing}
-          restartNonce={guideNonce}
-        />
+        <VipToolsPreview onUnlock={goPricing} />
       )}
 
       {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}

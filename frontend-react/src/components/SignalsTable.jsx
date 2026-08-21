@@ -411,6 +411,7 @@ const SignalsTable = ({
   // when the coin is still printing a new high.
   preferBestPrice = false,
   onGuideBack = null,
+  teaser = false,
 }) => {
   const { t } = useTranslation();
 
@@ -1289,16 +1290,20 @@ const SignalsTable = ({
             </div>
           </button>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <div className="px-1.5" onClick={(e) => e.stopPropagation()}>
-              <CompareBox signal={signal} size={18} />
-            </div>
-            <div onClick={(e) => e.stopPropagation()}>
-              <StarButton
-                signalId={signal.signal_id}
-                isStarred={watchlistIds.includes(signal.signal_id)}
-                onToggle={handleStarToggle}
-              />
-            </div>
+            {!teaser ? (
+              <>
+                <div className="px-1.5" onClick={(e) => e.stopPropagation()}>
+                  <CompareBox signal={signal} size={18} />
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <StarButton
+                    signalId={signal.signal_id}
+                    isStarred={watchlistIds.includes(signal.signal_id)}
+                    onToggle={handleStarToggle}
+                  />
+                </div>
+              </>
+            ) : null}
             <button
               onClick={toggle}
               aria-label={open ? "Collapse" : "Expand"}
@@ -1615,7 +1620,7 @@ const SignalsTable = ({
                 color: "rgb(var(--accent-text))",
               }}
             >
-              {onGuideBack ? "3 · Example" : "Example"}
+              Finished sample
             </span>
             <p
               className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
@@ -1635,24 +1640,6 @@ const SignalsTable = ({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {onGuideBack ? (
-            <button
-              type="button"
-              onClick={onGuideBack}
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/10 bg-surface-raised px-3.5 py-2 text-[12px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
-            >
-              Recent call
-              <svg className="h-3.5 w-3.5 rotate-180" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M6 9l6 6 6-6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          ) : null}
           <button
             type="button"
             onClick={onSubscribe}
@@ -1676,7 +1663,9 @@ const SignalsTable = ({
             <FreeTapeBanner />
           </div>
         ) : null}
-        {/* Mobile toolbar — Fields (not desktop Columns) */}
+        {/* Mobile toolbar — Fields (not desktop Columns). Hidden on the
+            3-row VIP teaser: the parent already named the sample. */}
+        {!teaser ? (
         <div className="mb-2.5 flex items-center justify-between gap-2 px-0.5">
           <div className="min-w-0">
             <p className="text-[12.5px] font-medium text-text-primary">Signals</p>
@@ -1715,6 +1704,7 @@ const SignalsTable = ({
             ) : null}
           </button>
         </div>
+        ) : null}
 
         {loading ? (
           <MobileLoadingSkeleton />
@@ -1754,6 +1744,7 @@ const SignalsTable = ({
         {/* Gate-style shell: soft rounded card, toolbar inside, horizontal scroll only. */}
         {/* No overflow-hidden on the shell — ColumnsMenu dropdown must paint outside. */}
         <div className="relative rounded-xl border border-ink/[0.07] bg-surface-raised">
+          {!teaser ? (
           <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <span className="text-[12.5px] font-medium text-text-primary">Signals</span>
@@ -1782,6 +1773,7 @@ const SignalsTable = ({
               <ColumnsMenu visibleCols={visibleCols} onToggle={toggleCol} onReset={resetCols} />
             )}
           </div>
+          ) : null}
 
           {!isSubscriber && hiddenCount > 0 ? (
             <div className="border-b border-ink/[0.06] p-3">
@@ -1799,37 +1791,49 @@ const SignalsTable = ({
  /* Sticky thead skipped inside overflow-x-auto — see prior notes. */
 
  /* Frozen identity columns (compare / star / pair) so sideways scroll never
-    loses row identity — opaque bg so body cells don't bleed through. */
+    loses row identity — opaque bg so body cells don't bleed through.
+    .sig-teaser drops compare/star, so pair is column 1. */
  .sig-t tbody tr { background: rgb(var(--surface-raised)); }
  .sig-t tbody tr:hover { background: color-mix(in srgb, rgb(var(--ink)) 3.5%, rgb(var(--surface-raised))); }
- .sig-t th:nth-child(1), .sig-t td:nth-child(1),
- .sig-t th:nth-child(2), .sig-t td:nth-child(2),
- .sig-t th:nth-child(3), .sig-t td:nth-child(3) {
+ .sig-t:not(.sig-teaser) th:nth-child(1), .sig-t:not(.sig-teaser) td:nth-child(1),
+ .sig-t:not(.sig-teaser) th:nth-child(2), .sig-t:not(.sig-teaser) td:nth-child(2),
+ .sig-t:not(.sig-teaser) th:nth-child(3), .sig-t:not(.sig-teaser) td:nth-child(3) {
    position: sticky;
    background: inherit;
    z-index: 1;
  }
- .sig-t th:nth-child(1), .sig-t td:nth-child(1) {
+ .sig-t:not(.sig-teaser) th:nth-child(1), .sig-t:not(.sig-teaser) td:nth-child(1) {
    width: 42px;
    padding-left: 14px !important;
    padding-right: 8px !important;
+   left: 0;
  }
- .sig-t th:nth-child(2), .sig-t td:nth-child(2) {
+ .sig-t:not(.sig-teaser) th:nth-child(2), .sig-t:not(.sig-teaser) td:nth-child(2) {
    width: 38px;
    padding-left: 6px !important;
    padding-right: 6px !important;
+   left: 42px;
  }
- .sig-t th:nth-child(1), .sig-t td:nth-child(1) { left: 0; }
- .sig-t th:nth-child(2), .sig-t td:nth-child(2) { left: 42px; }
- .sig-t th:nth-child(3), .sig-t td:nth-child(3) { left: 80px; }
- .sig-t thead th:nth-child(1),
- .sig-t thead th:nth-child(2),
- .sig-t thead th:nth-child(3) {
+ .sig-t:not(.sig-teaser) th:nth-child(3), .sig-t:not(.sig-teaser) td:nth-child(3) {
+   left: 80px;
+   box-shadow: 1px 0 0 rgb(var(--ink) / 0.07);
+ }
+ .sig-t:not(.sig-teaser) thead th:nth-child(1),
+ .sig-t:not(.sig-teaser) thead th:nth-child(2),
+ .sig-t:not(.sig-teaser) thead th:nth-child(3) {
    z-index: 3;
    background: rgb(var(--surface-raised));
  }
- .sig-t th:nth-child(3), .sig-t td:nth-child(3) {
+ .sig-t.sig-teaser th:nth-child(1), .sig-t.sig-teaser td:nth-child(1) {
+   position: sticky;
+   left: 0;
+   background: inherit;
+   z-index: 1;
    box-shadow: 1px 0 0 rgb(var(--ink) / 0.07);
+ }
+ .sig-t.sig-teaser thead th:nth-child(1) {
+   z-index: 3;
+   background: rgb(var(--surface-raised));
  }
  .sig-t tbody tr:focus-visible {
    outline: 1px solid rgb(var(--accent));
@@ -1841,15 +1845,19 @@ const SignalsTable = ({
  .sig-t tbody tr:focus-within .sig-share-btn { opacity: 1; }
  `}</style>
           <div className="overflow-x-auto">
-            <table className={`sig-t sig-${density} w-full min-w-[980px] border-collapse text-left whitespace-nowrap`}>
+            <table className={`sig-t sig-${density} ${teaser ? "sig-teaser" : ""} w-full min-w-[980px] border-collapse text-left whitespace-nowrap`}>
               <thead>
                 <tr className="border-b border-ink/[0.07] text-text-muted">
+                  {!teaser ? (
+                    <>
                   <th className="w-11 text-center">
                     <span className="sr-only">Compare</span>
                   </th>
                   <th className="w-10 text-center">
                     <span className="sr-only">Watchlist</span>
                   </th>
+                    </>
+                  ) : null}
                   <SortableHeader field="pair" label="Pair" />
                   {effectiveCols.current_price && (
                     <SortableHeader
@@ -2005,6 +2013,8 @@ const SignalsTable = ({
                         aria-label={`Open ${signal.pair} signal`}
                         className="group cursor-pointer border-b border-ink/[0.045] transition-colors last:border-0"
                       >
+                        {!teaser ? (
+                          <>
                         <td
                           className="text-center"
                           onClick={(e) => e.stopPropagation()}
@@ -2019,6 +2029,8 @@ const SignalsTable = ({
                             onToggle={handleStarToggle}
                           />
                         </td>
+                          </>
+                        ) : null}
 
                         <td>
                           <div className="flex items-center gap-2.5">
