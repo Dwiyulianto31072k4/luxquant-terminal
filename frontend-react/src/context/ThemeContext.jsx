@@ -1,14 +1,25 @@
 // src/context/ThemeContext.jsx
-// In-app: Bright + Dark (Bright default).
-// Landing, login, register: always the Luxquant gold desk — not a user pref.
+//
+// Two separate appearance worlds, each with its own stored preference:
+//
+//   marketing (/, /login, /register) : Luxquant gold desk (default) or Dark
+//   in-app (everything else)         : Bright (default) or Dark
+//
+// They are kept in DIFFERENT storage keys on purpose. Sharing one key meant a
+// visitor picking Dark on the landing page silently dragged the logged-in app
+// out of Bright, and the fix for that was to remove the landing choice
+// altogether — which is what took Dark off the marketing pages.
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
 const APP_THEMES = ["bright", "dark"];
 const DEFAULT_APP_THEME = "bright";
-const MARKETING_THEME = "luxquant";
-const STORAGE_KEY = "lq-theme";
+const MARKETING_THEMES = ["luxquant", "dark"];
+const DEFAULT_MARKETING_THEME = "luxquant";
+
+const APP_STORAGE_KEY = "lq-theme";
+const MARKETING_STORAGE_KEY = "lq-theme-marketing";
 
 const THEME_COLOR = {
   luxquant: "#0a0506",
@@ -29,14 +40,13 @@ function isMarketingRoute(pathname) {
   return p === "/" || p === "/login" || p === "/register";
 }
 
-function normalizeAppTheme(raw) {
-  if (raw === "luxquant") return DEFAULT_APP_THEME;
-  return APP_THEMES.includes(raw) ? raw : null;
+function normalize(raw, allowed) {
+  return allowed.includes(raw) ? raw : null;
 }
 
-function readStored() {
+function readStored(key, allowed) {
   try {
-    return normalizeAppTheme(localStorage.getItem(STORAGE_KEY));
+    return normalize(localStorage.getItem(key), allowed);
   } catch {
     return null;
   }
@@ -45,11 +55,16 @@ function readStored() {
 export const ThemeProvider = ({ children }) => {
   const location = useLocation();
   const marketing = isMarketingRoute(location.pathname);
-  const [theme, setThemeState] = useState(() => readStored() || DEFAULT_APP_THEME);
 
-  const displayTheme = marketing ? MARKETING_THEME : APP_THEMES.includes(theme) ? theme : DEFAULT_APP_THEME;
-  const selectableThemes = marketing ? [MARKETING_THEME] : APP_THEMES;
-  const canSwitchTheme = !marketing;
+  const [appTheme, setAppTheme] = useState(
+    () => readStored(APP_STORAGE_KEY, APP_THEMES) || DEFAULT_APP_THEME
+  );
+  const [marketingTheme, setMarketingTheme] = useState(
+    () => readStored(MARKETING_STORAGE_KEY, MARKETING_THEMES) || DEFAULT_MARKETING_THEME
+  );
+
+  const displayTheme = marketing ? marketingTheme : appTheme;
+  const selectableThemes = marketing ? MARKETING_THEMES : APP_THEMES;
 
   useEffect(() => {
     document.documentElement.dataset.theme = displayTheme;
@@ -59,23 +74,26 @@ export const ThemeProvider = ({ children }) => {
     } catch {
       /* ignore */
     }
-    // Persist the in-app choice only. Never write luxquant into storage —
-    // that would fight Bright as the logged-in default.
-    if (!marketing) {
-      try {
-        localStorage.setItem(STORAGE_KEY, displayTheme);
-      } catch {
-        /* ignore */
-      }
+    // Persist into the bucket the current route belongs to, never the other one.
+    try {
+      localStorage.setItem(
+        marketing ? MARKETING_STORAGE_KEY : APP_STORAGE_KEY,
+        displayTheme
+      );
+    } catch {
+      /* ignore quota / private-mode errors */
     }
   }, [displayTheme, marketing]);
 
   const setTheme = useCallback(
     (next) => {
-      if (marketing) return;
-      const n = normalizeAppTheme(next);
-      if (!n) return;
-      setThemeState(n);
+      if (marketing) {
+        const n = normalize(next, MARKETING_THEMES);
+        if (n) setMarketingTheme(n);
+        return;
+      }
+      const n = normalize(next, APP_THEMES);
+      if (n) setAppTheme(n);
     },
     [marketing]
   );
@@ -84,8 +102,9 @@ export const ThemeProvider = ({ children }) => {
     theme: displayTheme,
     setTheme,
     themes: selectableThemes,
-    allThemes: APP_THEMES,
-    canSwitchTheme,
+    allThemes: selectableThemes,
+    canSwitchTheme: true,
+    isMarketingSurface: marketing,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

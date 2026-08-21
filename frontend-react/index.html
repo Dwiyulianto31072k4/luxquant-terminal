@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0506" />
 
-    <!-- Theme anti-flash: landing/login/register always Luxquant gold desk.
-         In-app: Bright (default) or Dark. Old "luxquant" storage → Bright. -->
+    <!-- Theme anti-flash. Two independent preferences, matching ThemeContext:
+         landing/login/register = Luxquant (default) or Dark, in `lq-theme-marketing`;
+         in-app = Bright (default) or Dark, in `lq-theme`. -->
     <script>
       (function () {
         try {
@@ -14,7 +15,8 @@
           var marketing = path === '/' || path === '/login' || path === '/register';
           var theme;
           if (marketing) {
-            theme = 'luxquant';
+            var m = localStorage.getItem('lq-theme-marketing');
+            theme = m === 'dark' ? 'dark' : 'luxquant';
           } else {
             var t = localStorage.getItem('lq-theme');
             if (t === 'luxquant') t = 'bright';

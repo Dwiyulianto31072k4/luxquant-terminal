@@ -7,6 +7,7 @@ import { ensureTelegram } from "../../utils/telegramLoader";
 import TelegramRescuePanel, { TelegramMiniAppLink } from "./TelegramRescuePanel";
 import { inMiniAppContext, inTelegramWebView } from "../../utils/telegramWebApp";
 import LeftBrandPanel, { AssetCoins } from "./LeftBrandPanel";
+import MarketingThemeSwitch from "../MarketingThemeSwitch";
 import ReferralBanner from "./ReferralBanner";
 import { stashPostLoginRedirect, consumePostLoginRedirect } from "../../utils/postLoginRedirect";
 import { trackFunnel } from "../../utils/funnelAnalytics";
@@ -379,6 +380,9 @@ const LoginPage = () => {
  .lq-card-enter { animation: none !important; }
  }
  `}</style>
+
+        {/* Appearance — Luxquant or Dark, same choice the landing header sets */}
+        <MarketingThemeSwitch className="absolute top-4 right-4 sm:top-8 sm:right-8 lg:top-6 lg:right-6 z-30" />
 
         {/* LOGO MOBILE */}
         <div className="lg:hidden absolute top-4 left-4 sm:top-8 sm:left-8 flex items-center gap-2.5 z-30">

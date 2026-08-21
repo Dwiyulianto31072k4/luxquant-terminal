@@ -31,15 +31,17 @@ import EarnUsdtChip from "../../../referral/EarnUsdtChip";
 // Compact appearance picker for the landing header (admin-gated while theming
 // is in preview). Three swatches — click to switch the whole site live.
 const THEME_SWATCH = {
+  luxquant: "linear-gradient(145deg,#1a0a0c 0%,#3d1a12 55%,#e0b25c 150%)",
   dark: "linear-gradient(145deg,#050506 0%,#18181b 60%,#8a8a96 165%)",
   bright: "linear-gradient(145deg,#ffffff 0%,#eceef2 45%,#f0b90b 170%)",
 };
+const THEME_LABEL = { luxquant: "Luxquant", dark: "Dark", bright: "Bright" };
 function LandingThemePicker() {
   const { theme, setTheme, canSwitchTheme, themes } = useTheme();
   if (!canSwitchTheme) return null;
-  const opts = (themes || ["bright", "dark"]).map((k) => ({
+  const opts = (themes || ["luxquant", "dark"]).map((k) => ({
     k,
-    label: k === "dark" ? "Dark" : "Bright",
+    label: THEME_LABEL[k] || k,
   }));
   return (
     <div
