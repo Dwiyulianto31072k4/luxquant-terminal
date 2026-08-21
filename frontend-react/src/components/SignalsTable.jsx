@@ -410,6 +410,7 @@ const SignalsTable = ({
   // Showcase / teaser: Price = max(live, recorded peak). Live only wins
   // when the coin is still printing a new high.
   preferBestPrice = false,
+  onGuideBack = null,
 }) => {
   const { t } = useTranslation();
 
@@ -1596,9 +1597,85 @@ const SignalsTable = ({
     );
   };
 
+  const FreeTapeBanner = () =>
+    !isSubscriber && hiddenCount > 0 ? (
+      <div
+        className="flex flex-col gap-3 rounded-xl border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+        style={{
+          borderColor: "rgb(var(--accent) / 0.22)",
+          background: "rgb(var(--accent) / 0.06)",
+        }}
+      >
+        <div className="min-w-0">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <span
+              className="rounded-md px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em]"
+              style={{
+                background: "rgb(var(--accent) / 0.2)",
+                color: "rgb(var(--accent-text))",
+              }}
+            >
+              {onGuideBack ? "3 · Example" : "Example"}
+            </span>
+            <p
+              className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: "rgb(var(--accent-text))" }}
+            >
+              Free view · finished calls
+            </p>
+          </div>
+          <p className="text-[13px] font-semibold text-text-primary">
+            These already hit their target — timestamped, and yours to verify.
+          </p>
+          <p className="mt-1 text-[11.5px] leading-relaxed text-text-muted">
+            Open any row for the proof on a chart.{" "}
+            <span className="font-medium text-text-primary">
+              Calls still running are on the subscribers&rsquo; side.
+            </span>
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {onGuideBack ? (
+            <button
+              type="button"
+              onClick={onGuideBack}
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/10 bg-surface-raised px-3.5 py-2 text-[12px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
+            >
+              Recent call
+              <svg className="h-3.5 w-3.5 rotate-180" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M6 9l6 6 6-6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onSubscribe}
+            className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
+            style={{
+              background: "rgb(var(--accent))",
+              color: "rgb(var(--accent-fg))",
+            }}
+          >
+            See what&rsquo;s running
+          </button>
+        </div>
+      </div>
+    ) : null;
+
   return (
     <>
       <div className="lg:hidden">
+        {!isSubscriber && hiddenCount > 0 ? (
+          <div className="mb-3">
+            <FreeTapeBanner />
+          </div>
+        ) : null}
         {/* Mobile toolbar — Fields (not desktop Columns) */}
         <div className="mb-2.5 flex items-center justify-between gap-2 px-0.5">
           <div className="min-w-0">
@@ -1706,51 +1783,11 @@ const SignalsTable = ({
             )}
           </div>
 
-          {/* The wall, stated as a number rather than a claim. It is live, it
-              moves on its own, and it says the true thing: what is missing is
-              not detail, it is everything currently running. */}
-          {!isSubscriber && hiddenCount > 0 && (
-            <div
-              className="flex flex-col gap-3 border-b border-ink/[0.06] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
-              style={{ background: "rgb(var(--accent) / 0.06)" }}
-            >
-              <div className="min-w-0">
-                <p
-                  className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
-                  style={{ color: "rgb(var(--accent-text))" }}
-                >
-                  Free view · a sample of the desk
-                </p>
-                <p className="text-[13px] font-semibold text-text-primary">
-                  These are recent calls that have reached their target — finished,
-                  timestamped, and yours to verify.{" "}
-                  <span style={{ color: "rgb(var(--accent-text))" }}>
-                    The ones still running are on the subscribers&rsquo; side.
-                  </span>
-                </p>
-                <p className="mt-1 text-[11.5px] leading-relaxed text-text-muted">
-                  We leave the finished ones open so anyone can check our work against a
-                  chart. Subscribers follow the same calls{" "}
-                  <span className="font-medium text-text-primary">
-                    from the entry, while they are still moving
-                  </span>{" "}
-                  — with the win rate, edge score, BTC alignment, risk and verdict this
-                  view leaves out.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onSubscribe}
-                className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
-                style={{
-                  background: "rgb(var(--accent))",
-                  color: "rgb(var(--accent-fg))",
-                }}
-              >
-                See what&rsquo;s running
-              </button>
+          {!isSubscriber && hiddenCount > 0 ? (
+            <div className="border-b border-ink/[0.06] p-3">
+              <FreeTapeBanner />
             </div>
-          )}
+          ) : null}
 
           <style>{`
  .sig-t td, .sig-t th { transition: padding .18s ease; vertical-align: middle; }

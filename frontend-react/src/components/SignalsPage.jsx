@@ -36,6 +36,14 @@ import {
   SORT_LABELS as SORT_FIELD_LABELS,
   toggleSortLevel,
 } from "../utils/signalSort";
+import FreeSignalsGuide, {
+  DESK_ID,
+  FINISHED_ID,
+  FreeScrollCue,
+  RECENT_ID,
+  scrollToSignalsStop,
+  VipToolsPreview,
+} from "./FreeSignalsGuide";
 
 
 
@@ -323,70 +331,9 @@ const LockedKpi = ({ label, value, sub, edge, onUnlock }) => (
   </button>
 );
 
-// Stands in for a research panel a free account cannot open. It says what the
-// panel does and what it is for, because a benefit converts and a greyed-out
-// control panel just frustrates.
-const ProLock = ({ eyebrow, title, blurb, points = [], onUnlock }) => (
-  <div
-    className="overflow-hidden rounded-xl border border-ink/[0.07]"
-    style={{ background: "rgb(var(--accent) / 0.05)" }}
-  >
-    <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-      <div className="min-w-0">
-        <div className="mb-1.5 flex items-center gap-2">
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            style={{ color: "rgb(var(--accent-text))" }}
-            aria-hidden="true"
-          >
-            <rect x="4" y="10" width="16" height="11" rx="2" />
-            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-          </svg>
-          <span
-            className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
-            style={{ color: "rgb(var(--accent-text))" }}
-          >
-            {eyebrow}
-          </span>
-        </div>
-        <p className="text-[13.5px] font-semibold text-text-primary">{title}</p>
-        <p className="mt-1 max-w-2xl text-[11.5px] leading-relaxed text-text-muted">
-          {blurb}
-        </p>
-        {points.length > 0 && (
-          <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
-            {points.map((pt) => (
-              <li
-                key={pt}
-                className="flex items-center gap-1.5 text-[11px] text-text-muted"
-              >
-                <span style={{ color: "rgb(var(--accent-text))" }}>&#10003;</span>
-                {pt}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={onUnlock}
-        className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
-        style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
-      >
-        Take a look
-      </button>
-    </div>
-  </div>
-);
-
 // Names the tier before the reader interprets its limits as the product being
 // thin. Dismissible per session: read once, then out of the way.
-const FreeTierNotice = ({ onUpgrade }) => {
+const FreeTierNotice = ({ onUpgrade, onWalkthrough }) => {
   const [hidden, setHidden] = useState(() => {
     try {
       return sessionStorage.getItem("lq:signals:free-notice") === "1";
@@ -405,38 +352,58 @@ const FreeTierNotice = ({ onUpgrade }) => {
   };
   return (
     <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-4 py-2.5"
+      className="flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:gap-x-3"
       style={{
         borderColor: "rgb(var(--accent) / 0.28)",
         background: "rgb(var(--accent) / 0.06)",
       }}
     >
-      <span
-        className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
-        style={{ color: "rgb(var(--accent-text))" }}
-      >
-        Free version
-      </span>
-      <span className="min-w-0 flex-1 text-[12px] leading-relaxed text-text-muted">
-        No active subscription — you&rsquo;re seeing calls that already finished.
-        The ones running right now, and the desk tools around them, open with VIP.
-      </span>
-      <button
-        type="button"
-        onClick={onUpgrade}
-        className="shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[11.5px] font-semibold transition-all hover:brightness-110"
-        style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
-      >
-        See VIP
-      </button>
-      <button
-        type="button"
-        onClick={dismiss}
-        aria-label="Dismiss"
-        className="shrink-0 rounded-md px-1.5 py-1 text-[13px] leading-none text-text-muted transition-colors hover:text-text-primary"
-      >
-        &times;
-      </button>
+      <div className="min-w-0 flex-1">
+        <span
+          className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: "rgb(var(--accent-text))" }}
+        >
+          Free version
+        </span>
+        <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">
+          Compass is the desk pulse. Next: a recent VIP call you can check on a
+          chart, then finished calls with proof. Live running calls open with VIP.
+        </p>
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={onWalkthrough}
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/10 bg-surface-raised px-3.5 py-1.5 text-[11.5px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
+        >
+          Show me a recent call
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+              d="M6 9l6 6 6-6"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={onUpgrade}
+          className="shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[11.5px] font-semibold transition-all hover:brightness-110"
+          style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+        >
+          See VIP
+        </button>
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Dismiss"
+          className="shrink-0 rounded-md px-1.5 py-1 text-[13px] leading-none text-text-muted transition-colors hover:text-text-primary"
+        >
+          &times;
+        </button>
+      </div>
     </div>
   );
 };
@@ -614,6 +581,7 @@ const SignalsPage = () => {
   const navigate = useNavigate();
   // Every blurred number is a button, and they all lead here.
   const goPricing = () => navigate("/pricing?src=signals_locked");
+  const [guideNonce, setGuideNonce] = useState(0);
   const tabScrollRef = useRef(null); // horizontal scroll tab bar (day tabs)
   // Multi-level sort chain: [{ field, order }, ...] — primary first.
   const [sorts, setSorts] = useState(() => [...DEFAULT_SORTS]);
@@ -1572,10 +1540,17 @@ const SignalsPage = () => {
     { value: "volume", label: "Volume 24H" },
   ];
 
+  const goWalkthrough = () => {
+    setGuideNonce((n) => n + 1);
+    window.setTimeout(() => {
+      scrollToSignalsStop(vipSamples.length ? RECENT_ID : FINISHED_ID);
+    }, 40);
+  };
+
   return (
-    <div className="space-y-4 pb-10">
+    <div className={`space-y-4 ${isSubscriber ? "pb-10" : "pb-32 lg:pb-24"}`}>
       {/* ── SIGNALS DESK — command center (title + KPI + BTC in one board) ── */}
-      <header className="space-y-3">
+      <header id={DESK_ID} className="scroll-mt-28 space-y-3">
         {/* Title row — slim, no brochure subtitle */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -1631,7 +1606,7 @@ const SignalsPage = () => {
 
         {!isSubscriber && entitlementKnown && (
           <div className="mb-3">
-            <FreeTierNotice onUpgrade={goPricing} />
+            <FreeTierNotice onUpgrade={goPricing} onWalkthrough={goWalkthrough} />
           </div>
         )}
 
@@ -1711,6 +1686,17 @@ const SignalsPage = () => {
             <CompassSnapshot embedded />
           </div>
         </div>
+
+        {!isSubscriber && entitlementKnown && (
+          <FreeScrollCue
+            label={
+              vipSamples.length
+                ? "Next · a recent VIP call you can check"
+                : "Next · finished calls you can verify"
+            }
+            targetId={vipSamples.length ? RECENT_ID : FINISHED_ID}
+          />
+        )}
       </header>
 
       {/* ── COIN FLOW INTENSITY — tabel tipis + data call LuxQuant, default tertutup ── */}
@@ -2014,6 +2000,114 @@ const SignalsPage = () => {
             </div>
           );
         })()}
+
+      {!isSubscriber && vipSamples.length > 0 && (
+        <>
+          <div
+            id={RECENT_ID}
+            className="scroll-mt-28 overflow-hidden rounded-xl border"
+            style={{
+              borderColor: "rgb(var(--accent) / 0.35)",
+              background: "rgb(var(--accent) / 0.04)",
+            }}
+          >
+            <div
+              className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+              style={{ background: "rgb(var(--accent) / 0.10)" }}
+            >
+              <div className="min-w-0">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span
+                    className="rounded-md px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em]"
+                    style={{
+                      background: "rgb(var(--accent) / 0.2)",
+                      color: "rgb(var(--accent-text))",
+                    }}
+                  >
+                    2 · Example
+                  </span>
+                  <p
+                    className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+                    style={{ color: "rgb(var(--accent-text))" }}
+                  >
+                    A recent VIP call
+                  </p>
+                </div>
+                <p className="text-[13px] font-semibold text-text-primary">
+                  This is a real recent call — the way a subscriber sees it.
+                </p>
+                <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
+                  Every column, every level, every score. Tap a row to check it
+                  against a chart. Scroll on for finished calls you can verify too.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollToSignalsStop(FINISHED_ID)}
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/10 bg-surface-raised px-3.5 py-2 text-[12px] font-semibold text-text-primary transition-colors hover:bg-ink/[0.04]"
+                >
+                  Finished calls
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M6 9l6 6 6-6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={goPricing}
+                  className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
+                  style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+                >
+                  See it live
+                </button>
+              </div>
+            </div>
+
+            <SignalsTable
+              signals={vipSamples}
+              loading={false}
+              isSubscriber
+              preferBestPrice
+              onRowClick={(sig) => openSignal(sig, "trade")}
+              sortBy="created_at"
+              sortOrder="desc"
+              sorts={sorts}
+              onSort={() => {}}
+              page={1}
+              totalPages={1}
+              totalSignals={vipSamples.length}
+              countLabel="sample of what you get as a subscriber"
+              rowHint="Detail"
+              onPageChange={() => {}}
+              allPairs={vipSamples.map((x) => x.pair)}
+              coinIntel={vipSampleIntel}
+              verdictByPair={{}}
+              currentFlow={currentFlow}
+              tagWrMap={tagWrMap}
+              runnerTagSet={runnerTagSet}
+              edgeScoreMap={edgeScoreMap}
+              signalTags={signalTags}
+            />
+          </div>
+          <FreeScrollCue
+            label="Next · finished calls that already hit target"
+            targetId={FINISHED_ID}
+          />
+        </>
+      )}
+
+      {!isSubscriber && entitlementKnown && (
+        <VipToolsPreview
+          onUnlock={goPricing}
+          onSeeCall={() => scrollToSignalsStop(FINISHED_ID)}
+        />
+      )}
 
       {/* FILTER CONSOLE */}
       <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-4">
@@ -2599,15 +2693,7 @@ const SignalsPage = () => {
       </div>
 
       {/* Quick path recipes (English) — opt-in shortlists */}
-      {!isSubscriber ? (
-        <ProLock
-          eyebrow="Subscribers only · Quick path"
-          title="When there are more calls than time, this picks first"
-          blurb="Choose how you want to trade today — the strongest setups, the ones hunting a full take-profit, or the careful ones — and the desk reorders itself around that."
-          points={["Strongest setups", "Hunt full TP", "Caution first", "Save your own views"]}
-          onUnlock={goPricing}
-        />
-      ) : (
+      {isSubscriber && (
       <EdgeRecipesBar
         tagWr={tagWr}
         selectedTags={selectedTags}
@@ -2709,15 +2795,7 @@ const SignalsPage = () => {
       />
 
       {/* Edge playbook — knowledge graph + multi-filter (default collapsed) */}
-      {!isSubscriber ? (
-        <ProLock
-          eyebrow="Subscribers only · Edge playbook"
-          title="Which setups have actually been paying"
-          blurb="Every setup we have ever tagged, scored on how often it won and how far it ran — so you can follow only the conditions you already trust."
-          points={["Win rate per setup", "Stack multiple conditions", "Sort by Edge Score"]}
-          onUnlock={goPricing}
-        />
-      ) : (
+      {isSubscriber && (
       <EdgePlaybook
         defaultOpen={false}
         tagWr={tagWr}
@@ -2812,15 +2890,7 @@ const SignalsPage = () => {
       )}
 
       {/* Learn from past (tag era) → rank open by Edge Score (default collapsed) */}
-      {!isSubscriber ? (
-        <ProLock
-          eyebrow="Subscribers only · Learn from the past"
-          title="How today's calls compare to the ones before them"
-          blurb="The whole history, pointed at what is open right now — so you can see which of today's calls look like the ones that ran, and which look like the ones that did not."
-          points={["Rank open calls by Edge", "Full per-setup numbers", "Pattern reliability"]}
-          onUnlock={goPricing}
-        />
-      ) : (
+      {isSubscriber && (
       <EdgeCorrelationPanel
         defaultOpen={false}
         deskSignals={allSignals}
@@ -2946,84 +3016,17 @@ const SignalsPage = () => {
         </div>
       )}
 
-      {!isSubscriber && vipSamples.length > 0 && (
-        <div
-          className="overflow-hidden rounded-xl border"
-          style={{
-            borderColor: "rgb(var(--accent) / 0.35)",
-            background: "rgb(var(--accent) / 0.04)",
-          }}
-        >
-          <div
-            className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-            style={{ background: "rgb(var(--accent) / 0.10)" }}
-          >
-            <div className="min-w-0">
-              <p
-                className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
-                style={{ color: "rgb(var(--accent-text))" }}
-              >
-                A recent VIP call · open for you to check
-              </p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">
-                This is what a subscriber sees — every column, every level, every
-                score, nothing held back. A few of our recent calls, left open so you
-                can check any of them against a chart yourself.{" "}
-                <span className="font-medium text-text-primary">
-                  Click any row to see the proof, transparently.
-                </span>
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={goPricing}
-              className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
-              style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
-            >
-              See it live
-            </button>
-          </div>
-
-          {/* The real component, forced into subscriber mode. Showing the actual
-              table beats any mock-up of it: the prospect is looking at the
-              product, not at a picture of the product. */}
-          <SignalsTable
-            signals={vipSamples}
-            loading={false}
-            isSubscriber
-            preferBestPrice
-            onRowClick={(sig) => openSignal(sig, "trade")}
-            sortBy="created_at"
-            sortOrder="desc"
-            sorts={sorts}
-            onSort={() => {}}
-            page={1}
-            totalPages={1}
-            totalSignals={vipSamples.length}
-            countLabel="sample of what you get as a subscriber"
-            rowHint="Detail"
-            onPageChange={() => {}}
-            allPairs={vipSamples.map((x) => x.pair)}
-            coinIntel={vipSampleIntel}
-            // Empty on purpose: with no cached verdict, the table derives one
-            // from the win rate above via classifyCoin.
-            verdictByPair={{}}
-            currentFlow={currentFlow}
-            tagWrMap={tagWrMap}
-            runnerTagSet={runnerTagSet}
-            edgeScoreMap={edgeScoreMap}
-            signalTags={signalTags}
-          />
-        </div>
-      )}
-
       {!error && (
+        <div id={FINISHED_ID} className="scroll-mt-28">
         <SignalsTable
           signals={signals}
           loading={loading}
           isSubscriber={isSubscriber}
           onSubscribe={goPricing}
           hiddenCount={hiddenCount}
+          onGuideBack={
+            vipSamples.length ? () => scrollToSignalsStop(RECENT_ID) : null
+          }
           // A free account only ever sees finished calls, so the live chart is
           // the wrong landing tab for every one of them.
           onRowClick={(sig) => openSignal(sig, isSubscriber ? "chart" : "trade")}
@@ -3053,6 +3056,16 @@ const SignalsPage = () => {
               setWatchlistSignals((prev) => prev.filter((s) => s.signal_id !== signalId));
             refreshWatchlist();
           }}
+        />
+        </div>
+      )}
+
+      {!isSubscriber && entitlementKnown && (
+        <FreeSignalsGuide
+          enabled
+          hasRecent={vipSamples.length > 0}
+          onUpgrade={goPricing}
+          restartNonce={guideNonce}
         />
       )}
 

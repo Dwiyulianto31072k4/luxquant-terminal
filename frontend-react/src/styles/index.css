@@ -1340,6 +1340,20 @@ textarea:focus-visible {
   animation: lq-tap-cue 2.2s ease-in-out infinite;
 }
 
+/* Brief gold ring when the free-desk walkthrough lands on a section. */
+@keyframes lq-guide-hit {
+  0% { box-shadow: 0 0 0 0 rgb(var(--accent) / 0.45); }
+  100% { box-shadow: 0 0 0 10px rgb(var(--accent) / 0); }
+}
+.lq-guide-hit {
+  animation: lq-guide-hit 1.35s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lq-guide-hit {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lq-tap-cue {
     animation: none;
