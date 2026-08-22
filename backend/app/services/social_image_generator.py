@@ -1585,9 +1585,14 @@ def _compose_editorial_card(
         # calls; the old chain fell back to "Daily news at", which quietly
         # turned the poster back into a news brand on exactly the cards where
         # space was tightest.
+        # Measured on a 1080-wide card: the full lead needs ~718px and only
+        # ~340-500px is free once the logo lockup is placed, so the rungs are
+        # spaced to actually land somewhere useful instead of falling straight
+        # past every one of them to the shortest.
         (c for c in (CARD_CTA_LEAD,
                      "Algo-backed calls, news and 20+ tools at",
-                     "Algo-backed calls and 20+ market tools at",
+                     "Algo-backed calls and 20+ tools at",
+                     "Algo-backed calls + 20+ tools at",
                      "Algo-backed crypto calls at")
          if sd.textlength(c, font=f_cta) <= room),
         "Algo-backed crypto calls at",
