@@ -2667,3 +2667,13 @@ textarea:focus-visible {
   padding-top: 0.25rem;
   box-shadow: 0 6px 10px -10px rgb(var(--scrim) / 0.5);
 }
+
+/* Where a sticky side rail inside AI Research has to start: below the app
+   header AND below the tab bar pinned to it, plus the grid gap. The tab strip
+   is 0.25rem padding + py-3 either side of a 13.5px label + its rule ≈ 49px;
+   it is set here rather than measured because this file is the only place its
+   height is decided — change one, change the other. */
+:root {
+  --lq-ai-tabs-h: 49px;
+  --lq-ai-rail-top: calc(var(--lq-header-h, 57px) + var(--lq-ai-tabs-h) + 1rem);
+}

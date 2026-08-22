@@ -512,9 +512,14 @@ export const SignalBar = ({ label, direction, strength = 0, weight, detail }) =>
       </div>
       <div className="mt-1.5 flex items-center justify-between gap-2">
         <span className="truncate font-mono text-[10px] text-text-muted">{detail || ""}</span>
+        {/* "w 0.90" was unexplained jargon sitting next to a price. The word
+            costs four characters and the detail beside it already truncates. */}
         {weight != null && (
-          <span className="shrink-0 font-mono text-[10px] text-text-muted">
-            w {Number(weight).toFixed(2)}
+          <span
+            className="shrink-0 font-mono text-[10px] text-text-muted"
+            title="How much this driver counts toward the verdict"
+          >
+            weight {Number(weight).toFixed(2)}
           </span>
         )}
       </div>

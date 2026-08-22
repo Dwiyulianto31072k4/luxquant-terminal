@@ -21,14 +21,6 @@ import {
   dirMeta,
 } from "./_ui";
 
-const tier = (c) => {
-  const v = Number(c);
-  if (!isFinite(v)) return "—";
-  if (v >= 70) return "Strong confidence";
-  if (v >= 50) return "Moderate confidence";
-  return "Low confidence";
-};
-
 const getRows = (data) => data?.report?.evidence_matrix?.rows || [];
 const rowScore = (row, h) => row?.horizons?.[h] || {};
 const readable = (v) => {
@@ -68,27 +60,26 @@ const VerdictHero = ({ horizon, verdict, note }) => {
             >
               {dir.arrow}
             </span>
-            <div>
-              <span className="block text-[30px] font-bold leading-none tracking-tight md:text-[38px]">
-                {dir.label}
-              </span>
-              <span className="mt-1 block font-mono text-[12px] tracking-wide text-text-muted">
-                {tier(conf)}
-                {isFinite(conf) ? ` · ${conf}%` : ""}
-              </span>
-            </div>
+            {/* Direction only. The confidence number belongs to the gauge and
+                is stated there once — this card used to print it four times
+                (here, in the dial, under the dial, and in the caption), and two
+                of those disagreed: the local tier() called 65% "Moderate" while
+                the dial's confLevel() called the same 65% "High", a centimetre
+                apart. One classifier now, the shared one. */}
+            <span className="block text-[30px] font-bold leading-none tracking-tight md:text-[38px]">
+              {dir.label}
+            </span>
           </div>
           {note && (
-            <p className="mt-4 max-w-[58ch] text-[13.5px] leading-relaxed text-text-muted">
+            <p className="mt-4 max-w-[58ch] text-[13.5px] leading-relaxed text-text-secondary">
               {note}
             </p>
           )}
         </div>
         <div className="flex w-full shrink-0 flex-col items-center gap-2 md:w-auto md:pt-1">
           <StanceGauge value={conf} dir={verdict?.direction} size={150} />
-          <p className="max-w-[200px] text-center text-[10.5px] leading-4 text-text-muted">
-            {isFinite(conf) ? `${tier(conf)} · ${conf}%` : "Confidence"} — how aligned the{" "}
-            {horizon.toLowerCase()} drivers are.
+          <p className="max-w-[190px] text-center text-[10.5px] leading-4 text-text-muted">
+            How aligned the {horizon.toLowerCase()} drivers are with each other.
           </p>
         </div>
       </div>
@@ -117,7 +108,12 @@ const RowMetrics = ({ rows, _horizon = "72h" }) => (
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
               {r.evidence.slice(0, 6).map((it, i) => (
                 <div key={i} className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[12px] text-text-secondary">{it.metric}</span>
+                  {/* The payload carries snake_case column names
+                      (top_trader_position, funding_rate) and they were being
+                      printed at the user verbatim. */}
+                  <span className="truncate text-[12px] text-text-secondary">
+                    {readable(it.metric)}
+                  </span>
                   <Num className="text-[12px] text-text-primary">{it.value ?? "—"}</Num>
                 </div>
               ))}
@@ -184,7 +180,7 @@ export default function LongerView({ data }) {
                       weight={s.weight}
                       detail={
                         r.evidence?.[0]
-                          ? `${r.evidence[0].metric}: ${r.evidence[0].value ?? "—"}`
+                          ? `${readable(r.evidence[0].metric)}: ${r.evidence[0].value ?? "—"}`
                           : r.rationale
                       }
                     />
@@ -199,7 +195,10 @@ export default function LongerView({ data }) {
           </div>
 
           <div className="min-w-0 space-y-4 xl:col-span-4">
-            <div className="space-y-4 xl:sticky xl:top-[64px]">
+            {/* Clears the app header AND the tab bar now pinned beneath it.
+                64px cleared neither once the tabs became sticky — the rail
+                parked itself behind them. */}
+            <div className="space-y-4 xl:sticky xl:top-[var(--lq-ai-rail-top)]">
               {zones.length > 0 && (
                 <Card className="p-5">
                   <SectionHeader label="Swing zones to watch" />
@@ -250,7 +249,10 @@ export default function LongerView({ data }) {
           </div>
 
           <div className="min-w-0 space-y-4 xl:col-span-4">
-            <div className="space-y-4 xl:sticky xl:top-[64px]">
+            {/* Clears the app header AND the tab bar now pinned beneath it.
+                64px cleared neither once the tabs became sticky — the rail
+                parked itself behind them. */}
+            <div className="space-y-4 xl:sticky xl:top-[var(--lq-ai-rail-top)]">
               <Card className="p-5">
                 <SectionHeader
                   label="Cycle position"
