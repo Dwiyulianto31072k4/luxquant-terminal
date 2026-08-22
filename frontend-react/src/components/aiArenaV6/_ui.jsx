@@ -264,18 +264,22 @@ export const highlightPrices = (text) => {
   );
 };
 
-// KPI stat card — Terminal monochrome desk (medium weight, solid borders)
+// KPI stat card.
+//
+// One treatment for every card, deliberately. The tones used to split a single
+// row into two card systems — three grey-filled boxes next to a green-tinted
+// and a red-tinted one — which reads as though the last two are a different
+// kind of object. They are not; they are the same measurement.
+//
+// The colour that means something is the NUMBER, and it says the same thing
+// once instead of twice. A tinted panel behind an already-green figure is
+// redundant encoding, and on the white desk those tints are the wash that
+// makes a page look like a dashboard template.
 export const StatCard = ({ label, value, detail, tone = "neutral", big = false }) => {
-  const tones = {
-    neutral: "border-ink/[0.08] bg-surface-secondary",
-    gold: "border-ink/[0.1] bg-surface-secondary",
-    up: "border-profit/25 bg-profit/[0.07]",
-    down: "border-loss/25 bg-loss/[0.07]",
-  };
   const valueTone =
     tone === "up" ? "text-profit" : tone === "down" ? "text-loss" : "text-text-primary";
   return (
-    <div className={`rounded-lg border p-3.5 md:p-4 ${tones[tone] || tones.neutral}`}>
+    <div className="rounded-lg border border-ink/[0.09] bg-surface-raised p-3.5 md:p-4">
       <div className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted">
         {label}
       </div>
@@ -536,16 +540,21 @@ export const OutcomeBar = ({ segments = [] }) => {
           ) : null
         )}
       </div>
+      {/* The bar already skips empty segments; the legend used not to, so it
+          printed "Stale 0 · Ambiguous 0" next to a bar that showed neither.
+          A key should describe what is on screen. */}
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-        {segments.map((s) => (
-          <span
-            key={s.label}
-            className="inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted"
-          >
-            <span className="h-2 w-2 rounded-[3px]" style={{ background: s.hex }} />
-            {s.label} <span className="text-text-primary">{s.value}</span>
-          </span>
-        ))}
+        {segments
+          .filter((s) => Number(s.value) > 0)
+          .map((s) => (
+            <span
+              key={s.label}
+              className="inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted"
+            >
+              <span className="h-2 w-2 rounded-[3px]" style={{ background: s.hex }} />
+              {s.label} <span className="text-text-primary">{s.value}</span>
+            </span>
+          ))}
       </div>
     </div>
   );

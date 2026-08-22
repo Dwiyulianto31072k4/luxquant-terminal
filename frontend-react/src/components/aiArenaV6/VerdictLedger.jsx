@@ -74,7 +74,9 @@ function buildProjected(item) {
 function buildResult(item) {
   const resolution = item.resolution;
   if (!resolution) {
-    return { label: "Pending", meta: "Waiting for first barrier", tone: "PENDING" };
+    // No meta: the chip already reads "Pending", and a constant second line
+    // saying the same thing ran down every unresolved row in the table.
+    return { label: "Pending", meta: null, tone: "PENDING" };
   }
   const move = asPercent(resolution.mfe_pct ?? resolution.mae_pct);
   return {
@@ -184,8 +186,10 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               which barrier resolved first, and why that result matters.
             </p>
           </div>
-          {/* Hit-rate donut — Terminal desk card */}
-          <div className="flex items-center gap-4 rounded-lg border border-ink/[0.08] bg-surface-secondary px-4 py-3">
+          {/* Hit-rate donut. Hairline only — a filled panel here sat heavier
+              than the five KPI cards below it and pulled the eye away from
+              the headline it is supposed to summarise. */}
+          <div className="flex items-center gap-4 rounded-lg border border-ink/[0.09] px-4 py-3">
             <Donut
               size={112}
               thickness={11}
@@ -316,7 +320,12 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                     <div className="truncate font-mono text-xs text-text-primary">
                       {item.report_id || "-"}
                     </div>
-                    <div className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
+                    {/* Kept for support lookups, but lowercase and untracked —
+                        as set it was a shouting truncated duplicate. */}
+                    <div
+                      className="mt-1 truncate font-mono text-[10px] text-text-muted"
+                      title={item.projection_id || undefined}
+                    >
                       {item.projection_id || "-"}
                     </div>
                   </td>
@@ -350,9 +359,16 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                     <p className="text-[13px] leading-6 text-text-secondary">
                       {highlightPrices(buildExplanation(item))}
                     </p>
+                    {/* Advisory, not a loss. Red is this desk's colour for
+                        money lost, and spending it on "things to watch" made
+                        every unresolved row read as a failure. An amber rule
+                        carries caution without the alarm. */}
                     {!!(item.key_risks || []).length && !item.resolution && (
-                      <div className="mt-2 text-[11px] leading-5 text-loss/70">
-                        Watch: {item.key_risks.slice(0, 2).join(" · ")}
+                      <div className="mt-2 border-l-2 border-warning/50 pl-2.5 text-[11px] leading-5 text-text-muted">
+                        <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+                          Watch
+                        </span>{" "}
+                        {item.key_risks.slice(0, 2).join(" · ")}
                       </div>
                     )}
                   </td>
@@ -422,8 +438,11 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               </p>
 
               {!!(item.key_risks || []).length && !item.resolution && (
-                <div className="mt-2 text-[11px] leading-5 text-loss/70">
-                  Watch: {item.key_risks.slice(0, 2).join(" · ")}
+                <div className="mt-2 border-l-2 border-warning/50 pl-2.5 text-[11px] leading-5 text-text-muted">
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+                    Watch
+                  </span>{" "}
+                  {item.key_risks.slice(0, 2).join(" · ")}
                 </div>
               )}
             </div>
