@@ -14,6 +14,8 @@
 // ════════════════════════════════════════════════════════════════
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import useShariahFilter from "../../hooks/useShariahFilter";
+import ShariahFilterNotice from "../ShariahFilterNotice";
 import CoinLogo from "../CoinLogo";
 import { useUiPrefs } from "../../hooks/useUiPrefs";
 import { DisplaySettings, TERMINAL_DISPLAY_DEFAULTS } from "./DisplaySettings";
@@ -504,9 +506,15 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
     );
   const [on, setOn] = useState({});
   const toggle = (k) => setOn((o) => ({ ...o, [k]: !o[k] }));
+  const shariah = useShariahFilter();
+  const shariahHidden = shariah.enabled
+    ? view.length - shariah.filter(view, (s) => s.pair).length
+    : 0;
 
   const cards = useMemo(() => {
-    let out = view.filter((s) => s.v3?.tags);
+    // Same screening filter Signals applies, from the same shared map, so a
+    // coin can never be hidden on one desk and shown on the other.
+    let out = shariah.filter(view, (s) => s.pair).filter((s) => s.v3?.tags);
     CONF_FILTERS.forEach(([k, , pred]) => {
       if (on[k]) out = out.filter((s) => pred(s.v3.tags || []));
     });
@@ -517,7 +525,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
         rankOf(b.v3?.tags, pairFc[b.pair], ps[b.pair]) -
         rankOf(a.v3?.tags, pairFc[a.pair], ps[a.pair])
     );
-  }, [view, on, postsignal, pairFc]);
+  }, [view, on, postsignal, pairFc, shariah]);
 
   const stats = useMemo(() => {
     const withV3 = view.filter((s) => s.v3?.tags?.length);
@@ -684,6 +692,13 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
           </div>
         </div>
       )}
+
+      <ShariahFilterNotice
+        hidden={shariahHidden}
+        total={view.length}
+        strict={shariah.strict}
+        className="mb-1"
+      />
 
       <div className="flex items-center gap-1 flex-wrap">
         {CONF_FILTERS.map(([k, label]) => (

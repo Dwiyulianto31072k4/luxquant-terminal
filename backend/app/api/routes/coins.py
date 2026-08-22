@@ -198,6 +198,39 @@ async def get_coin_stats():
         raise HTTPException(status_code=500, detail=f"Failed to fetch stats: {e}")
 
 
+@router.get("/shariah/map")
+async def get_shariah_map():
+    """Every pair's screening status in one call — `{pair: status}`.
+
+    Signals and the Terminal filter whole lists against this. Fetching
+    /coins/{pair} per row would be ~900 requests to draw one page, so the
+    filter has to be able to ask once.
+
+    `override_status` wins where an admin has set it, exactly as the per-pair
+    endpoint does — a list and a card must never disagree about a coin.
+
+    NOTE: declared BEFORE /{pair} on purpose. FastAPI matches in definition
+    order, so a later declaration would be shadowed by the path parameter and
+    this would answer as pair="shariah".
+    """
+    try:
+        with engine.begin() as conn:
+            rows = conn.execute(text("""
+                SELECT pair, COALESCE(override_status, status) AS status
+                  FROM coin_shariah
+            """)).fetchall()
+        statuses = {r[0]: r[1] for r in rows}
+        counts: dict[str, int] = {}
+        for value in statuses.values():
+            counts[value] = counts.get(value, 0) + 1
+        return {"statuses": statuses, "counts": counts, "total": len(statuses)}
+    except Exception:
+        # The table is newer than this route. Where the migration has not run,
+        # the feature disappears quietly rather than 500-ing a page that only
+        # wanted to draw a list.
+        return {"statuses": {}, "counts": {}, "total": 0}
+
+
 @router.get("/{pair}", response_model=CoinCategoryResponse)
 async def get_coin_by_pair(pair: str):
     """

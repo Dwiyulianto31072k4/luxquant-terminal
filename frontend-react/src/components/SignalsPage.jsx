@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import useShariahFilter from "../hooks/useShariahFilter";
+import ShariahFilterNotice from "./ShariahFilterNotice";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SignalsTable from "./SignalsTable";
@@ -990,6 +992,9 @@ const SignalsPage = () => {
   // Signals tabs. created_at is ISO; first 10 chars are the UTC date.
   const signalUtcYmd = (iso) => (iso ? String(iso).slice(0, 10) : "");
 
+  // Shariah screening filter — no-op unless the user switched it on.
+  const shariah = useShariahFilter();
+
   // Signals passing every filter EXCEPT the tag filter — used to compute
   // dynamic per-tag counts (how many currently-visible signals carry each tag)
   // and to decide which chips to show. Tag filter itself is excluded so counts
@@ -1268,7 +1273,7 @@ const SignalsPage = () => {
     }
   };
 
-  const { signals, totalPages, totalSignals } = useMemo(() => {
+  const { signals, totalPages, totalSignals, shariahHidden } = useMemo(() => {
     // Watchlist mode: sumbernya data watchlist penuh (lintas-tanggal), BUKAN allSignals
     // (yang cuma 7 hari). Objek watchlist lebih ramping → merge dgn allSignals (by
     // signal_id) supaya kolom MCAP / BTC Corr / dll tetap terisi untuk sinyal yang
@@ -1283,6 +1288,14 @@ const SignalsPage = () => {
     } else {
       filtered = [...allSignals];
     }
+
+    // Shariah screening, applied before every other filter so the date tabs,
+    // tag counts and pagination all describe the list actually on screen.
+    // Counted here rather than derived later: the banner has to say how many
+    // signals it removed, and that number only exists at this moment.
+    const beforeShariah = filtered.length;
+    filtered = shariah.filter(filtered, (s) => s.pair);
+    const shariahHidden = beforeShariah - filtered.length;
 
     if (searchPair) {
       filtered = filtered.filter((s) => pairMatchesQuery(s.pair, searchPair));
@@ -1392,9 +1405,10 @@ const SignalsPage = () => {
     const safePage = Math.min(page, pages);
     const start = (safePage - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
-    return { signals: paged, totalPages: pages, totalSignals: total };
+    return { signals: paged, totalPages: pages, totalSignals: total, shariahHidden };
   }, [
     allSignals,
+    shariah,
     searchPair,
     statusFilter,
     riskFilter,
@@ -1975,6 +1989,14 @@ const SignalsPage = () => {
           <FreeScrollCue label="Finished calls" targetId={FINISHED_ID} />
         </>
       )}
+
+      {/* Sits above the filter console, because it explains why the list is
+          shorter than the counts on the date tabs suggest. */}
+      <ShariahFilterNotice
+        hidden={shariahHidden}
+        total={allSignals.length}
+        strict={shariah.strict}
+      />
 
       {/* FILTER CONSOLE */}
       <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-4">
