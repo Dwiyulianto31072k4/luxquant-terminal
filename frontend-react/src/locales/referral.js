@@ -4,6 +4,11 @@ export const referralEn = {
   chip: "Earn USDT",
   chip_full: "Invite · Earn USDT",
 
+  // Two separate mechanics — the commission and the unlock. They were run
+  // together on one line with a middot and were unreadable at 11px.
+  sheet_earn: "Earn 10% in USDT when a friend subscribes",
+  sheet_unlock: "3 who use + 1 who pays unlocks 7 days for you",
+
   title: "Invite friends. Earn USDT.",
   subtitle:
     "They join free and verify the public record. You earn 10% in USDT when they subscribe. 3 friends who use LuxQuant plus 1 who subscribes unlock 7 days of full access.",
@@ -78,6 +83,9 @@ export const referralEn = {
 export const referralZh = {
   chip: "赚取 USDT",
   chip_full: "邀请 · 赚取 USDT",
+
+  sheet_earn: "好友订阅，你赚取 10% USDT",
+  sheet_unlock: "3 位使用者 + 1 位付费，为你解锁 7 天",
 
   title: "邀请好友，赚取 USDT。",
   subtitle:

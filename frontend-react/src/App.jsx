@@ -81,6 +81,7 @@ import { PremiumModal } from "./components/subscription";
 import NotificationBell from "./components/NotificationBell";
 import MoreMenuDropdown from "./components/MoreMenuDropdown";
 import EarnUsdtChip from "./components/referral/EarnUsdtChip";
+import { UsdtCoin } from "./components/referral/UsdtCoin";
 import { LoadingScreen, PageSkeleton } from "./components/ui/Loaders";
 import ErrorBoundary, { RouteErrorBoundary } from "./components/ErrorBoundary";
 import useHeaderMetrics from "./hooks/useHeaderMetrics";
@@ -902,18 +903,46 @@ function AppShell({ children }) {
         </div>
         <div className="flex max-h-[calc(72vh-1.5rem)] flex-col">
           <nav className="flex-1 py-3 pb-8 px-3 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {/* Same offer as the header chip, so it gets the same treatment:
+                a raised neutral card, not a tinted one. Gold is reserved for
+                interactive state in this desk, and a washed gold container on
+                the white theme goes muddy. The Tether mark carries the colour,
+                and the two mechanics get a line each instead of being run
+                together with a middot at 11px. */}
             <button
               type="button"
               onClick={() => handleNav("/referral")}
-              className="mb-3 flex w-full items-center justify-between rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-left"
+              className="lq-earn-card mb-3 flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left"
             >
-              <span>
-                <span className="block text-sm font-semibold text-accent">Invite · Earn USDT</span>
-                <span className="mt-0.5 block text-[11px] text-text-muted">
-                  10% when they subscribe · 3 who use + 1 who pays unlock 7 days
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/[0.04]">
+                <UsdtCoin size={22} />
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13.5px] font-semibold tracking-tight text-text-primary">
+                  {t("referral.chip_full", "Invite · Earn USDT")}
+                </span>
+                <span className="mt-0.5 block text-[11.5px] leading-snug text-text-secondary">
+                  {t("referral.sheet_earn", "Earn 10% in USDT when a friend subscribes")}
+                </span>
+                {/* Secondary, not muted: --fg-muted lands near 2.9:1 on the
+                    dark desk's raised surface, and this line carries a real
+                    rule. Hierarchy comes from size, not from fading it out. */}
+                <span className="mt-px block text-[11px] leading-snug text-text-secondary/80">
+                  {t("referral.sheet_unlock", "3 who use + 1 who pays unlocks 7 days for you")}
                 </span>
               </span>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">Open</span>
+
+              <svg
+                className="h-4 w-4 shrink-0 text-text-muted"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
             </button>
             {/* ═══════════ ADMIN SECTION (top priority for admins) ═══════════ */}
             {isAdmin && (
