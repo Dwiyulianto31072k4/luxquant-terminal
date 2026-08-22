@@ -584,8 +584,12 @@ CARD_BASE_DARK = (10, 5, 6)      # #0A0506 — the cards' floor colour
 # Cream over the scrim must clear this. The cards sit near 17:1 on their own
 # background; 9:1 keeps that character while leaving dark photos untouched.
 CARD_CONTRAST_FLOOR = 9.0
+# The news poster leads with the product, not the news. News is a commodity —
+# it is the reach, not the reason to come. The calls are what the site sells,
+# so they are named first even on a news card. "20+ market tools" is counted
+# from the Terminal nav (27 labels), not estimated.
 CARD_CTA_LEAD = os.environ.get(
-    "SOCIAL_CTA_LEAD", "Read daily crypto & finance news at"
+    "SOCIAL_CTA_LEAD", "Use algo-backed calls, 24/7 news and 20+ market tools at"
 )
 CARD_DOMAIN = os.environ.get("SOCIAL_CARD_DOMAIN", "luxquant.tw")
 # Same guard as the link builder: SOCIAL_CARD_HANDLE naming a retired account
@@ -1577,10 +1581,16 @@ def _compose_editorial_card(
     room = (width - CARD_MARGIN
             - (lock_w + CARD_MARGIN + 44 if lock_w else CARD_MARGIN)) * ss - tail
     lead = next(
-        (c for c in (CARD_CTA_LEAD, "Read daily crypto news at",
-                     "Read the daily news at", "Daily news at")
+        # Shrinking fallbacks for a narrow card. Each still leads with the
+        # calls; the old chain fell back to "Daily news at", which quietly
+        # turned the poster back into a news brand on exactly the cards where
+        # space was tightest.
+        (c for c in (CARD_CTA_LEAD,
+                     "Algo-backed calls, news and 20+ tools at",
+                     "Algo-backed calls and 20+ market tools at",
+                     "Algo-backed crypto calls at")
          if sd.textlength(c, font=f_cta) <= room),
-        "Daily news at",
+        "Algo-backed crypto calls at",
     )
 
     cta_row = (cta_y - strip_top) * ss
