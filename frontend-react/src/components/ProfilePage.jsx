@@ -20,6 +20,7 @@ import CountryCurrencyPicker from "./CountryCurrencyPicker";
 import VipGroupCard from "./VipGroupCard";
 import { ThemeAppearancePicker } from "./ThemeToggle";
 import LanguagePicker from "./LanguagePicker";
+import ShariahModePicker from "./ShariahModePicker";
 import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
 
 // ─── Lazy-load Google Identity Services — hanya saat dibutuhkan ───
@@ -670,6 +671,19 @@ const ProfilePage = () => {
             </div>
           </Section>
         ) : null}
+
+        {/* Shariah screening — off by default; see ShariahModePicker for why. */}
+        <Section id="shariah" title={t("userMenu.shariah", "Shariah screening")}>
+          <div className="p-5">
+            <p className="mb-4 text-[13px] leading-relaxed text-text-muted">
+              {t(
+                "profile.shariah_desc",
+                "Show a screening result on each coin, and choose how strictly to read it."
+              )}
+            </p>
+            <ShariahModePicker showHeading={false} />
+          </div>
+        </Section>
 
         {/* Language — set here and in the avatar menu; it used to be a
             permanent pill in the header, which is a lot of chrome for a

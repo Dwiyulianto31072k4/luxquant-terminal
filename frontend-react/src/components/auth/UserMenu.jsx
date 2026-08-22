@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import HelpSupportModal from "../HelpSupportModal";
 import { ThemeAppearancePicker } from "../ThemeToggle";
 import LanguagePicker from "../LanguagePicker";
+import ShariahModePicker from "../ShariahModePicker";
 import api from "../../services/authApi";
 
 const UserMenu = () => {
@@ -191,7 +192,7 @@ const UserMenu = () => {
             isClosing ? "um-exit" : "um-enter"
           }`}
         >
-          {panel === "appearance" || panel === "language" ? (
+          {panel === "appearance" || panel === "language" || panel === "shariah" ? (
             <>
               <div className="flex items-center gap-1 border-b border-ink/[0.06] px-2 py-2">
                 <button
@@ -204,12 +205,16 @@ const UserMenu = () => {
                   </svg>
                   {panel === "language"
                     ? t("userMenu.language", { defaultValue: "Language" })
-                    : t("userMenu.appearance", { defaultValue: "Appearance" })}
+                    : panel === "shariah"
+                      ? t("userMenu.shariah", { defaultValue: "Shariah screening" })
+                      : t("userMenu.appearance", { defaultValue: "Appearance" })}
                 </button>
               </div>
               <div className="max-h-[min(60vh,360px)] overflow-y-auto px-2 py-2">
                 {panel === "language" ? (
                   <LanguagePicker showHeading={false} />
+                ) : panel === "shariah" ? (
+                  <ShariahModePicker showHeading={false} />
                 ) : (
                   <ThemeAppearancePicker showHeading={false} variant="list" />
                 )}
@@ -310,6 +315,15 @@ const UserMenu = () => {
                     }
                   />
                 ) : null}
+                <Row
+                  label={t("userMenu.shariah", { defaultValue: "Shariah screening" })}
+                  onClick={() => setPanel("shariah")}
+                  trailing={
+                    <svg className="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  }
+                />
                 <Row
                   label={t("userMenu.language", { defaultValue: "Language" })}
                   onClick={() => setPanel("language")}

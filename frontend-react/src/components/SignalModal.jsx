@@ -10,6 +10,7 @@ import SignalLevelsChart from "./charts/SignalLevelsChart";
 import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 import ShariahCheckModal, { SHARIAH_META } from "./ShariahCheckModal";
+import useUiPrefs from "../hooks/useUiPrefs";
 import { useAuth } from "../context/AuthContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
@@ -76,10 +77,14 @@ const SignalModal = ({
   const [showCoinUtility, setShowCoinUtility] = useState(false);
 
   // ── Shariah Check ──────────────────────────────────────────────
-  // Masih di balik flag admin (Fase 2). Titik warna di tombol hanya isyarat;
-  // status, sumber, alasan, dan disclaimer-nya ada di dalam modal.
+  // Opt-in: admins always, plus anyone who has switched Shariah screening on
+  // in the avatar menu or on Profile. It stays off by default — a religious
+  // judgement is not something to show someone who did not ask for it.
+  // The dot on the button is only a hint; status, sources, reasons, the
+  // "not yet human-reviewed" badge and the disclaimer live inside the modal.
   const { user: authUser } = useAuth();
-  const shariahEnabled = authUser?.is_admin === true;
+  const { prefs: shariahPrefs } = useUiPrefs({ shariah_mode: false });
+  const shariahEnabled = authUser?.is_admin === true || shariahPrefs.shariah_mode === true;
   const [showShariah, setShowShariah] = useState(false);
   const [shariahStatus, setShariahStatus] = useState(null);
 

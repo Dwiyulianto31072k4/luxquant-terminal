@@ -90,6 +90,16 @@ UI_PREF_DEFAULTS = {
     "agent_live_ack": False,
     # Agent first-screen assistant disclaimer (not a product pitch).
     "agent_assistant_ack": False,
+    # ── Shariah screening ─────────────────────────────────────────
+    # Two booleans rather than one enum because this endpoint stores bool(v)
+    # by design — the whitelist is what keeps arbitrary values out of a JSONB
+    # column on `users`, and that guarantee is worth more than a tidier shape.
+    #   shariah_mode   — show the screening result on coins at all
+    #   shariah_strict — once on: count only "passed", not "disputed" as well.
+    # Both default OFF: nobody is shown a religious judgement they did not ask
+    # for, and the stricter reading is never assumed on someone's behalf.
+    "shariah_mode": False,
+    "shariah_strict": False,
 }
 
 
