@@ -2646,3 +2646,24 @@ textarea:focus-visible {
 [data-theme="dark"] .lq-ai {
   --fg-muted: 122 133 150;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AI Research tab bar — pinned under the app header.
+   ──────────────────────────────────────────────────────────────────────────
+   Needs its own opaque ground: on the dark desks the app header is
+   transparent until the page scrolls, and a see-through tab bar would let the
+   table run visibly beneath its labels. Solid --surface rather than a blur —
+   a blurred strip between two solid cards reads as a mistake, and frosted
+   chrome is the part of a 2020s interface that ages first.
+
+   The trailing fade is .edge-fade-r, which paints --surface, so the two agree
+   by construction when the strip scrolls horizontally on a phone.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lq-ai-tabs {
+  background-color: rgb(var(--surface));
+  /* Breathing room above the labels without the parent's full space-y gap, and
+     the shadow keeps content that scrolls underneath from touching the rule. */
+  padding-top: 0.25rem;
+  box-shadow: 0 6px 10px -10px rgb(var(--scrim) / 0.5);
+}

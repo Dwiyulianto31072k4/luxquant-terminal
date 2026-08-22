@@ -544,37 +544,60 @@ function MiniContextStrip({ report, onOpenOutlook }) {
   );
 }
 
-/** Text tabs — ChatGPT/Claude style, not a fat pill bar */
+/** Text tabs — six views of one subject, so tabs rather than a sidebar.
+ *
+ *  Terminal earns its sidebar with ~25 items across seven groups: those are
+ *  different subjects and need grouping to be navigable at all. These six are
+ *  the same subject seen from six angles, which is what tabs are for. A sidebar
+ *  here would spend ~230px of permanent width on six links, invent a grouping
+ *  level the content does not have, and turn into a drawer on mobile — strictly
+ *  worse than a strip you can swipe.
+ *
+ *  What was actually wrong was the anchoring, not the pattern. The bar floated
+ *  on the page background between two cards with nothing behind it, and it
+ *  scrolled away — on the Audit tab, several hundred rows away, so switching
+ *  view meant scrolling back to the top. It now pins under the app header.
+ */
 function WorkspacePills({ activeTab, onChange, tabs }) {
   return (
     <div
-      className="no-scrollbar -mx-1 flex gap-0.5 overflow-x-auto border-b border-ink/[0.08] px-1"
-      role="tablist"
-      aria-label="AI Research sections"
+      /* Bleeds to the container edges so page content passes *under* the bar
+         instead of beside it. --lq-header-h is measured live by
+         useHeaderMetrics, so this stays correct when the header height changes
+         (larger base font, iOS safe-area inset, a banner above it). */
+      className="lq-ai-tabs sticky z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8 xl:-mx-10 xl:px-10"
+      style={{ top: "var(--lq-header-h, 57px)" }}
     >
-      {tabs.map((tab) => {
-        const on = activeTab === tab.key;
-        return (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={on}
-            title={tab.description}
-            onClick={() => onChange(tab.key)}
-            className={`relative shrink-0 px-3 py-2.5 text-[13.5px] font-medium transition-colors ${
-              on
-                ? "text-text-primary"
-                : "text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            {tab.short || tab.label}
-            {on ? (
-              <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-text-primary" />
-            ) : null}
-          </button>
-        );
-      })}
+      <div
+        className="no-scrollbar edge-fade-r flex gap-0.5 overflow-x-auto border-b border-ink/[0.08]"
+        role="tablist"
+        aria-label="AI Research sections"
+      >
+        {tabs.map((tab) => {
+          const on = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              title={tab.description}
+              onClick={() => onChange(tab.key)}
+              className={`relative shrink-0 px-3 py-3 text-[13.5px] font-medium transition-colors ${
+                on ? "text-text-primary" : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              {tab.short || tab.label}
+              {/* Sits on the rule, not above it: the indicator and the divider
+                  are one line, which is what makes the active tab read as
+                  attached to the panel below rather than underlined. */}
+              {on ? (
+                <span className="absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-text-primary" />
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
