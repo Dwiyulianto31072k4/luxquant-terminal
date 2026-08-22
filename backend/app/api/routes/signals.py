@@ -1584,7 +1584,9 @@ async def get_coin_intel(
 # shared `x_posts` table. We surface the canonical tweet URL so the UI can link
 # straight to the original LuxQuant post (and drive traffic back to X).
 # ============================================
-_X_ACCOUNT_HANDLE = (os.getenv("X_ACCOUNT_HANDLE", "luxquantalgo") or "luxquantalgo").lstrip("@") or "luxquantalgo"
+# One resolver for the whole app — a retired handle in config is rejected
+# there, so this cannot drift back to a dead account. See app.core.x_links.
+from app.core.x_links import X_HANDLE as _X_ACCOUNT_HANDLE
 
 
 def _tweet_url_for_signal(db: Session, signal_id: str) -> Optional[str]:

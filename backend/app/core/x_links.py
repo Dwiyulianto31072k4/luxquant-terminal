@@ -28,7 +28,30 @@ try:
 except ValueError:
     X_CUTOVER = datetime(2026, 8, 18, tzinfo=timezone.utc)
 
-X_HANDLE = (os.getenv("X_ACCOUNT_HANDLE", "luxquantalgo") or "luxquantalgo").lstrip("@")
+# Handles this brand no longer posts from. A config still naming one of these
+# is stale by definition — @luxquantcrypto was suspended on 2026-08-18 and
+# @luxquantapp was retired with it — so honouring it produces links and card
+# footers pointing at accounts that never held the post.
+#
+# This guard exists because of a real failure: .env was corrected to
+# luxquantalgo on 2026-08-21 12:42, but the gunicorn master had started at
+# 06:12, and systemd only re-reads EnvironmentFile on *restart*. Every reload
+# after that faithfully carried the dead value, with nothing on the outside to
+# show it. Rejecting a known-dead handle makes that self-healing on reload
+# instead of needing a restart nobody can schedule.
+RETIRED_HANDLES = {"luxquantcrypto", "luxquantapp"}
+DEFAULT_HANDLE = "luxquantalgo"
+
+
+def resolve_handle(raw: Optional[str] = None) -> str:
+    """The handle to publish under — never a retired one, whatever config says."""
+    value = (raw if raw is not None else os.getenv("X_ACCOUNT_HANDLE") or "").strip().lstrip("@")
+    if not value or value.lower() in RETIRED_HANDLES:
+        return DEFAULT_HANDLE
+    return value
+
+
+X_HANDLE = resolve_handle()
 TG_CHANNEL = (os.getenv("TG_TARGET_CHANNEL", "LuxQuantSignal") or "LuxQuantSignal").lstrip("@")
 
 

@@ -588,7 +588,12 @@ CARD_CTA_LEAD = os.environ.get(
     "SOCIAL_CTA_LEAD", "Read daily crypto & finance news at"
 )
 CARD_DOMAIN = os.environ.get("SOCIAL_CARD_DOMAIN", "luxquant.tw")
-CARD_HANDLE = os.environ.get("SOCIAL_CARD_HANDLE", "@luxquantalgo")
+# Same guard as the link builder: SOCIAL_CARD_HANDLE naming a retired account
+# is stale config, and a card footer is the one place it would be burned into
+# a PNG and posted.
+from app.core.x_links import resolve_handle as _resolve_handle
+
+CARD_HANDLE = "@" + _resolve_handle(os.environ.get("SOCIAL_CARD_HANDLE"))
 # The lockup's box, shared by every card we publish. The nine render_*.py signal
 # cards already sit at these numbers (measured on the rendered PNGs, not read off
 # the CSS), so the news poster and the caption slide adopt them: in a 3-wide
