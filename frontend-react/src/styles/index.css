@@ -2445,3 +2445,173 @@ textarea:focus-visible {
     transition: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Earn USDT chip — the referral entry point in both headers.
+   ──────────────────────────────────────────────────────────────────────────
+   It used to be dressed as a nav item (transparent border, secondary text),
+   which is why nobody pressed it: it read as navigation, not as an offer. Most
+   of the fix is affordance, not motion — a real surface, a hairline, a hover
+   lift and a press response. Gold is this desk's interactive colour, so a gold
+   chip is the same language as every other button here; the Tether mark keeps
+   the green.
+
+   The motion is deliberately FINITE. Three considerations decided that:
+     · WCAG 2.2.2 (Level A) — motion that starts on its own and runs longer
+       than five seconds alongside other content needs a pause control. Each
+       burst here is 2.4s, so no control is owed.
+     · Habituation — a permanent loop stops being seen. Peripheral motion
+       works precisely because it is occasional.
+     · Banner blindness — anything that animates forever reads as an ad and
+       gets filtered out before it is even parsed.
+   So: three gentle breaths in the first half minute, then it rests for good.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lq-earn {
+  position: relative;
+  isolation: isolate;
+  /* No overflow:hidden here — the active underline sits outside the box, the
+     same 17px below as the header nav items. The sheen clips itself instead. */
+  border: 1px solid rgb(var(--accent) / 0.28);
+  background-color: rgb(var(--accent) / 0.08);
+  color: rgb(var(--fg));
+  transition:
+    transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.lq-earn[data-active="true"] {
+  border-color: rgb(var(--accent) / 0.45);
+  background-color: rgb(var(--accent) / 0.14);
+}
+
+.lq-earn:hover {
+  transform: translateY(-1px);
+  border-color: rgb(var(--accent) / 0.5);
+  background-color: rgb(var(--accent) / 0.16);
+  box-shadow: 0 4px 14px -6px rgb(var(--accent) / 0.5);
+}
+
+/* Bright desk. The same alphas that read clearly on the dark desks all but
+   vanish over white — measured at 7%/25% the chip was invisible in the app
+   header, which is where it matters most since Bright is the logged-in
+   default. Gold keeps its hue; only its weight changes. */
+[data-theme="bright"] .lq-earn {
+  border-color: rgb(var(--accent) / 0.6);
+  background-color: rgb(var(--accent) / 0.18);
+}
+
+[data-theme="bright"] .lq-earn[data-active="true"] {
+  border-color: rgb(var(--accent) / 0.78);
+  background-color: rgb(var(--accent) / 0.26);
+}
+
+[data-theme="bright"] .lq-earn:hover {
+  border-color: rgb(var(--accent) / 0.85);
+  background-color: rgb(var(--accent) / 0.3);
+  box-shadow: 0 4px 14px -6px rgb(var(--accent) / 0.65);
+}
+
+.lq-earn:active {
+  transform: translateY(0) scale(0.975);
+  box-shadow: none;
+  transition-duration: 90ms;
+}
+
+.lq-earn:focus-visible {
+  outline: 2px solid rgb(var(--accent) / 0.7);
+  outline-offset: 2px;
+}
+
+/* The sheen. A single band crossing the face — no colour of its own, just a
+   lift in luminance, so it reads the same on the gold desk and the white one. */
+.lq-earn__sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.lq-earn__sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgb(var(--accent) / 0.28) 48%,
+    rgb(var(--accent) / 0.05) 60%,
+    transparent 72%
+  );
+  transform: translateX(-110%);
+}
+
+/* One burst: the chip breathes up and back while the sheen crosses it once. */
+.lq-earn[data-cue="on"] {
+  animation: lq-earn-breathe 2400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lq-earn[data-cue="on"] .lq-earn__sheen::after {
+  animation: lq-earn-sheen 1400ms cubic-bezier(0.32, 0, 0.24, 1) 260ms;
+}
+
+@keyframes lq-earn-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  28% {
+    transform: translateY(-2.5px);
+  }
+  56% {
+    transform: translateY(0);
+  }
+  72% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes lq-earn-sheen {
+  0% {
+    opacity: 0;
+    transform: translateX(-110%);
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+}
+
+/* Hovering is the user's own attention — stop competing for it. */
+.lq-earn:hover[data-cue="on"],
+.lq-earn:hover[data-cue="on"] .lq-earn__sheen::after {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lq-earn,
+  .lq-earn:hover,
+  .lq-earn:active,
+  .lq-earn[data-cue="on"] {
+    transform: none;
+    animation: none;
+  }
+  /* The cue still lands, as a brightness change rather than movement. */
+  .lq-earn[data-cue="on"] {
+    border-color: rgb(var(--accent) / 0.75);
+  }
+  .lq-earn__sheen {
+    display: none;
+  }
+}
