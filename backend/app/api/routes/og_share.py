@@ -21,6 +21,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import text
 
 from app.core.database import engine
+from app.core.x_links import telegram_url, tweet_url
 
 router = APIRouter()
 
@@ -221,17 +222,25 @@ def og_signal_image(signal_id):
 
 @router.get("/og/signal/{signal_id}/tweet")
 def og_signal_tweet(signal_id):
-    """Return the X tweet URL for this signal's latest post (TP2+), if any."""
+    """Link to the public record of this signal's latest post (TP2+), if any.
+
+    Telegram first: it carried every one of these posts and, unlike the X
+    account that was suspended, it is still there. An X link is only offered for
+    posts published after the cutover — see app.core.x_links for why the old
+    tweet ids get no link at all.
+    """
     with engine.connect() as conn:
         row = conn.execute(
             text("""
-                SELECT tweet_id FROM x_posts
-                WHERE signal_id = :sid AND tweet_id IS NOT NULL
+                SELECT tweet_id, tg_message_id, created_at FROM x_posts
+                WHERE signal_id = :sid
+                  AND (tweet_id IS NOT NULL OR tg_message_id IS NOT NULL)
                 ORDER BY created_at DESC
                 LIMIT 1
             """),
             {"sid": signal_id},
         ).fetchone()
-    if not row or not row[0]:
+    if not row:
         return {"url": None}
-    return {"url": f"https://x.com/luxquantcrypto/status/{row[0]}"}
+    tweet_id, tg_message_id, created_at = row
+    return {"url": telegram_url(tg_message_id) or tweet_url(tweet_id, created_at)}

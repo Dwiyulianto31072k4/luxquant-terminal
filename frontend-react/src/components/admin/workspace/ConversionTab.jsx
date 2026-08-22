@@ -886,13 +886,13 @@ const sourceLabel = (raw) => {
 // The "— free" tail is on almost every free-row button, so it distinguishes
 // nothing and only costs width.
 const CTA_STYLE_LABELS = {
-  results: "See full results",
+  results: "See past signals",
   wr_coin: "Coin win rate",
   how_far: "How far winners run",
-  terminal: "Open free terminal",
+  terminal: "Open LuxQuant",
   record: "Open track record",
   one_tap: "Free account · record",
-  how_call: "How we call these",
+  how_call: "How the system picks these",
   ask_coin: "Message us about coin",
   why_coin: "Ask why we called it",
   q_coin: "Questions on coin?",
@@ -901,11 +901,11 @@ const CTA_STYLE_LABELS = {
   entries: "VIP — live entry + data",
   full_rt: "VIP: realtime data",
   next_live: "Join VIP — next run",
-  how_works: "See how it works",
+  how_works: "See how LuxQuant works",
   vip_what: "What VIP actually gets you",
-  vip_inside: "Inside VIP",
-  vip_gets: "What members get",
-  vip_see: "See what VIP gets",
+  vip_inside: "Join VIP — see the plans",
+  vip_gets: "What VIP costs",
+  vip_see: "Get every call — VIP",
 };
 const CTA_STYLES = Object.keys(CTA_STYLE_LABELS).sort((a, b) => b.length - a.length);
 

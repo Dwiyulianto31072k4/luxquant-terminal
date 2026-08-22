@@ -19,7 +19,7 @@ dicek ulang ke production. Kalau produk berubah, dokumen ini yang diupdate dulua
 | Asal | Built in Taiwan · Running Since 2023 |
 | Sinyal pertama | **27 Desember 2023, 13:25 UTC** (~950 hari jalan) |
 | Bahasa UI | English + 中文 (zh) |
-| X | `@luxquantcrypto` (~2.6K followers) |
+| X | `@luxquantalgo` (~2.6K followers) |
 | Telegram gratis | `t.me/LuxQuantSignal` |
 | Instagram | `@luxquant.tw`, `@dailyrekomcrypto` |
 

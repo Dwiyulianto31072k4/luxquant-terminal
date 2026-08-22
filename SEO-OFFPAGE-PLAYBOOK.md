@@ -6,7 +6,7 @@ Brand facts to reuse (keep consistent everywhere):
 - **Name:** LuxQuant Terminal · **URL:** https://luxquant.tw
 - **One-liner:** Quantitative crypto market intelligence — algorithmic signals, on-chain intelligence, risk scoring, and AI research.
 - **Proof:** Transparent track record since 2023 · overall win rate ~85% · free tier available.
-- **Socials:** X @luxquantcrypto · Telegram t.me/LuxQuantSignal · Instagram @luxquant.tw
+- **Socials:** X @luxquantalgo · Telegram t.me/LuxQuantSignal · Instagram @luxquant.tw
 
 ---
 

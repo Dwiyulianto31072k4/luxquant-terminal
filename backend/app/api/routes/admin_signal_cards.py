@@ -24,6 +24,8 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.x_links import tweet_url
+
 from app.api.deps import get_admin_user
 from app.core.database import get_db
 from app.models.user import User
@@ -236,7 +238,9 @@ def list_drafts(status: str = None, limit: int = 60,
         d["slide_urls"] = [f"/api/v1/admin/signal-cards/{r['id']}/image?n={i}"
                            for i in range(len(slides))]
         d["download_url"] = f"/api/v1/admin/signal-cards/{r['id']}/download"
-        d["tweet_url"] = f"https://x.com/luxquantcrypto/status/{r['tweet_id']}" if r["tweet_id"] else None
+        # No Telegram fallback here: signal_card_drafts stores no message id.
+        # Pre-cutover cards therefore get no link rather than a dead one.
+        d["tweet_url"] = tweet_url(r["tweet_id"], r.get("posted_at"))
         d.pop("image_path", None)
         d.pop("images_json", None)
         out.append(d)
