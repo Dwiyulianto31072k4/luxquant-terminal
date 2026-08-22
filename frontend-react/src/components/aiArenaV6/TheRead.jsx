@@ -16,6 +16,7 @@ import {
   Num,
   Hi,
   StanceGauge,
+  confLevel,
   LevelRail,
   SignalBar,
   fmtUsd,
@@ -26,15 +27,12 @@ import {
   humanizeTrigger,
 } from "./_ui";
 
-/* ── confidence tier ── */
-const tier = (c) => {
-  const v = Number(c);
-  if (!isFinite(v)) return "—";
-  if (v >= 70) return "Strong confidence";
-  if (v >= 50) return "Moderate confidence";
-  return "Low confidence";
-};
-const tierShort = (c) => tier(c).split(" ")[0].toLowerCase();
+/* ── confidence tier ──
+   Was a private copy with 70/50 thresholds while StanceGauge — in the very same
+   card — graded the number with the shared confLevel() at 65/45. The two
+   disagreed across the whole 65-69 band: "Moderate confidence · 65%" beside a
+   dial reading "65% HIGH CONFIDENCE". One classifier, app-wide. */
+const tierShort = (c) => confLevel(Number(c) || 0).short.toLowerCase();
 
 /* ── market-mode copy ── */
 const MODE = {
@@ -195,15 +193,12 @@ export default function TheRead({ data }) {
                   >
                     {dir.arrow}
                   </span>
-                  <div>
-                    <span className="block text-[34px] font-bold leading-none tracking-tight md:text-[46px]">
-                      {dir.label}
-                    </span>
-                    <span className="mt-1 block font-mono text-[12px] tracking-wide text-text-muted">
-                      {tier(conf)}
-                      {isFinite(conf) ? ` · ${conf}%` : ""}
-                    </span>
-                  </div>
+                  {/* Direction only — the gauge in this same card states the
+                      confidence, and stating it twice is what let the two
+                      drift apart in the first place. */}
+                  <span className="block text-[34px] font-bold leading-none tracking-tight md:text-[46px]">
+                    {dir.label}
+                  </span>
                 </div>
                 <p className="mt-5 max-w-[62ch] text-[14.5px] leading-[1.9] text-text-primary">
                   <span className="font-semibold text-text-primary">The full picture: </span>
