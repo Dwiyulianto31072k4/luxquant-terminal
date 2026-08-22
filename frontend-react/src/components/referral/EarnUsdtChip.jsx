@@ -35,14 +35,6 @@ function writeFlag(storage, key) {
   }
 }
 
-function prefersReducedMotion() {
-  try {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Runs the attention cue a few times, then stops for good.
  * Returns "on" while a burst is playing, otherwise "off".
@@ -84,7 +76,6 @@ function useAttentionCue(enabled) {
 
 // Same chrome as header nav items (rounded-md, underline when active).
 export default function EarnUsdtChip({ onClick, active = false, compact = false }) {
-  const [reduced] = useState(prefersReducedMotion);
   // Don't pitch the page the user is already standing on.
   const cue = useAttentionCue(!active);
 
@@ -98,9 +89,9 @@ export default function EarnUsdtChip({ onClick, active = false, compact = false 
     onClick?.(event);
   };
 
-  // Colour lives in .lq-earn rather than in utilities here: the gold has to
-  // carry different weight on the white desk than on the two dark ones, and one
-  // place to tune beats three sets of arbitrary alphas scattered through JSX.
+  // Colour and edge live in .lq-earn, drawn from --ink so one rule reads
+  // correctly on the white desk and the two dark ones. The only hue on this
+  // control is the Tether mark, which is the part that carries meaning.
   return (
     <button
       type="button"
@@ -108,12 +99,9 @@ export default function EarnUsdtChip({ onClick, active = false, compact = false 
       aria-label="Invite friends and earn USDT"
       data-cue={cue}
       data-active={active ? "true" : "false"}
-      className="lq-earn inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-medium"
+      className="lq-earn inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-semibold"
     >
-      {/* Purely decorative; the label above carries the meaning. */}
-      {reduced ? null : <span className="lq-earn__sheen" aria-hidden="true" />}
-
-      <span className="relative z-[2] inline-flex items-center gap-1.5">
+      <span className="inline-flex items-center gap-1.5">
         <UsdtCoin size={16} />
         {compact ? (
           <span>Earn USDT</span>
