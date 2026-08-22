@@ -89,7 +89,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
       {index < total - 1 && (
         <div
           className="absolute left-[15px] top-8 bottom-0 w-px"
-          style={{ backgroundColor: "rgba(245, 196, 81, 0.15)" }}
+          style={{ backgroundColor: "rgb(var(--accent) / 0.15)" }}
         />
       )}
 
@@ -114,7 +114,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
         <div className="flex items-center justify-between gap-3">
           <h3
             className={`text-base transition-colors ${
-              isOpen ? "text-text-primary" : "text-text-primary/80 group-hover:text-text-primary"
+              isOpen ? "text-text-primary" : "text-text-primary group-hover:text-text-primary"
             }`}
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
@@ -128,7 +128,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
               <span
                 className="text-[10px] font-mono px-1.5 py-0.5 rounded uppercase tracking-wider"
                 style={{
-                  backgroundColor: "rgba(245, 196, 81, 0.15)",
+                  backgroundColor: "rgb(var(--accent) / 0.15)",
                   color: "rgb(var(--accent-text))",
                 }}
                 title="AI flagged a concern about this step"
@@ -137,7 +137,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
               </span>
             )}
             <span
-              className="text-text-primary/40 font-mono text-xs transition-transform"
+              className="text-text-muted font-mono text-xs transition-transform"
               style={{
                 transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                 display: "inline-block",
@@ -155,20 +155,20 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
           {/* Observation */}
           {step.observation && (
             <div>
-              <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">
                 Observation
               </div>
-              <p className="text-sm text-text-primary/80 leading-relaxed">{step.observation}</p>
+              <p className="text-sm text-text-primary leading-relaxed">{step.observation}</p>
             </div>
           )}
 
           {/* Interpretation */}
           {step.interpretation && (
             <div>
-              <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">
                 Interpretation
               </div>
-              <p className="text-sm text-text-primary/75 leading-relaxed italic">
+              <p className="text-sm text-text-primary leading-relaxed italic">
                 {step.interpretation}
               </p>
             </div>
@@ -177,7 +177,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
           {/* Evidence chips with optional tooltip */}
           {step.evidence && step.evidence.length > 0 && (
             <div>
-              <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1.5">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1.5">
                 Evidence
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -185,7 +185,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
                   const termKey = lookupTermKey(ev);
                   const chip = (
                     <span
-                      className={`text-[11px] font-mono px-2 py-0.5 rounded bg-ink/5 border border-ink/10 text-text-primary/70 transition-colors ${
+                      className={`text-[11px] font-mono px-2 py-0.5 rounded bg-ink/5 border border-ink/10 text-text-secondary transition-colors ${
                         termKey
                           ? "cursor-help hover:bg-ink/10 border-b border-dotted border-ink/30"
                           : ""
@@ -221,19 +221,19 @@ function CritiqueBanner({ critique }) {
     approved: {
       label: "Approved",
       color: "rgb(var(--pos-text))",
-      bg: "rgba(34, 197, 94, 0.1)",
+      bg: "rgb(var(--pos) / 0.1)",
       icon: "✓",
     },
     approved_with_caveat: {
       label: "Approved with caveat",
       color: "rgb(var(--accent-text))",
-      bg: "rgba(245, 196, 81, 0.1)",
+      bg: "rgb(var(--accent) / 0.1)",
       icon: "⚠",
     },
     needs_revision: {
       label: "Needs revision",
       color: "rgb(var(--neg-text))",
-      bg: "rgba(239, 68, 68, 0.1)",
+      bg: "rgb(var(--neg) / 0.1)",
       icon: "⚠",
     },
   }[critique.decision] || {
@@ -265,7 +265,7 @@ function CritiqueBanner({ critique }) {
             </span>
           </div>
           {critique.suggested_caveat && (
-            <p className="text-sm text-text-primary/75 leading-relaxed">
+            <p className="text-sm text-text-primary leading-relaxed">
               {critique.suggested_caveat}
             </p>
           )}
@@ -274,7 +274,7 @@ function CritiqueBanner({ critique }) {
               {critique.concerns.map((c, idx) => (
                 <li
                   key={idx}
-                  className="text-xs text-text-primary/60 leading-relaxed pl-3 relative"
+                  className="text-xs text-text-secondary leading-relaxed pl-3 relative"
                 >
                   <span
                     className="absolute left-0 top-1.5 w-1 h-1 rounded-full"
@@ -302,7 +302,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-text-primary/90 mb-4"
+          className="text-2xl text-text-primary mb-4"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -313,7 +313,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
         </h2>
         <CritiqueBanner critique={critique} />
         <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-8 text-center">
-          <p className="text-text-primary/40 text-sm italic">
+          <p className="text-text-muted text-sm italic">
             Reasoning chain not available in this report
           </p>
         </div>
@@ -353,7 +353,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
       <div className="flex items-baseline justify-between mb-4">
         <div className="flex items-baseline gap-3">
           <h2
-            className="text-2xl text-text-primary/90"
+            className="text-2xl text-text-primary"
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
@@ -362,7 +362,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
           >
             AI Reasoning
           </h2>
-          <span className="text-xs font-mono text-text-primary/40">
+          <span className="text-xs font-mono text-text-muted">
             {reasoningChain.length} steps · LuxQuant AI
           </span>
         </div>
@@ -370,15 +370,15 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
           <button
             type="button"
             onClick={expandAll}
-            className="text-text-primary/50 hover:text-text-primary/80 transition-colors"
+            className="text-text-secondary hover:text-text-primary transition-colors"
           >
             expand all
           </button>
-          <span className="text-text-primary/20">·</span>
+          <span className="text-text-muted">·</span>
           <button
             type="button"
             onClick={collapseAll}
-            className="text-text-primary/50 hover:text-text-primary/80 transition-colors"
+            className="text-text-secondary hover:text-text-primary transition-colors"
           >
             collapse
           </button>
@@ -404,7 +404,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
       </div>
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-text-primary/30 font-mono">
+      <p className="mt-3 text-[11px] text-text-muted font-mono">
         Generated by LuxQuant AI · Multi-model reasoning pipeline
       </p>
 

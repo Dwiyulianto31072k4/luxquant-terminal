@@ -2600,3 +2600,49 @@ textarea:focus-visible {
     transform: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   .lq-well — a recessed panel inside a card (a metric row, an inset readout).
+   ──────────────────────────────────────────────────────────────────────────
+   These were written as `bg-scrim/10..25`. The direction is right — --scrim
+   darkens on every desk, which is what a recess needs, and unlike --ink it
+   does not invert — but the alphas were tuned against the dark desks, where
+   black-on-near-black needs 15-25% to show at all. The same 25% is slate-900
+   over white on the Bright desk: a solid grey slab across the card, which is
+   what the AI Research page was shipping since Bright became the logged-in
+   default. Magnitude has to be per-theme; the token alone cannot carry it.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lq-well {
+  background-color: rgb(var(--scrim) / 0.15);
+}
+
+.lq-well-soft {
+  background-color: rgb(var(--scrim) / 0.1);
+}
+
+[data-theme="bright"] .lq-well {
+  background-color: rgb(var(--scrim) / 0.045);
+}
+
+[data-theme="bright"] .lq-well-soft {
+  background-color: rgb(var(--scrim) / 0.028);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AI Research — a readable muted channel on the dark desk.
+   ──────────────────────────────────────────────────────────────────────────
+   `--fg-muted` on the dark desk is 94 102 115, which lands at 2.95:1 on
+   --surface-raised: fine for a decorative label, not for the small print this
+   page uses it for. 122 133 150 is the least it can be lifted to clear 4.5:1
+   (measured: 4.58:1 on raised, 5.18:1 on the page surface), keeping the same
+   hue so nothing else about the desk shifts.
+
+   Scoped to this page rather than changed on :root, because the token is used
+   app-wide and re-tuning every dark screen is not what was asked for here.
+   It is the right fix globally — treat this as the trial.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] .lq-ai {
+  --fg-muted: 122 133 150;
+}

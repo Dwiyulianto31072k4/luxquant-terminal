@@ -560,7 +560,7 @@ export default function PriceChart({ report }) {
 
       <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
-          <div className="mb-2 text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted/70">
+          <div className="mb-2 text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
             Select chart layers
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -574,7 +574,7 @@ export default function PriceChart({ report }) {
                   className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-[0.1em] transition ${
                     active
                       ? "border-ink/12 bg-accent/10 text-accent"
-                      : "border-ink/[0.06] bg-scrim/10 text-text-primary/35 hover:border-ink/[0.12] hover:text-text-primary/65"
+                      : "border-ink/[0.06] lq-well-soft text-text-muted hover:border-ink/[0.12] hover:text-text-secondary"
                   }`}
                 >
                   <span
@@ -586,7 +586,7 @@ export default function PriceChart({ report }) {
             })}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-ink/[0.06] bg-scrim/15 p-1.5 text-[10px] font-mono text-text-primary/45 lg:min-w-[390px]">
+        <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-ink/[0.06] lq-well p-1.5 text-[10px] font-mono text-text-muted lg:min-w-[390px]">
           <DataBasis label="Candles" value="Live BTC" detail={`${tf} OHLCV`} />
           <DataBasis
             label="Projection"
@@ -620,7 +620,7 @@ export default function PriceChart({ report }) {
               {label}
             </button>
           ))}
-          <span className="text-[10px] font-mono text-text-primary/30">
+          <span className="text-[10px] font-mono text-text-muted">
             {visibleMaCount}/4 active
           </span>
         </div>
@@ -740,7 +740,7 @@ export default function PriceChart({ report }) {
           href="https://www.tradingview.com/lightweight-charts/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[9px] text-text-muted/60 hover:text-text-muted transition-colors"
+          className="text-[9px] text-text-muted hover:text-text-muted transition-colors"
         >
           charts by TradingView
         </a>
@@ -752,7 +752,7 @@ export default function PriceChart({ report }) {
 function ProjectionPanel({ projection, lastPrice }) {
   if (!projection) {
     return (
-      <div className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-4 text-sm text-text-primary/45">
+      <div className="rounded-xl border border-ink/[0.06] lq-well p-4 text-sm text-text-muted">
         Projection detail is waiting for the latest Compass report.
       </div>
     );
@@ -760,7 +760,7 @@ function ProjectionPanel({ projection, lastPrice }) {
 
   const toneColor = directionColor(projection.direction);
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-xl border border-ink/[0.08] bg-scrim/15 p-4 md:grid-cols-[1.1fr_0.9fr]">
+    <div className="grid grid-cols-1 gap-3 rounded-xl border border-ink/[0.08] lq-well p-4 md:grid-cols-[1.1fr_0.9fr]">
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -777,12 +777,12 @@ function ProjectionPanel({ projection, lastPrice }) {
             <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-accent/75">
               {projection.horizonLabel}
             </div>
-            <h3 className="mt-0.5 text-xl font-semibold leading-tight text-text-primary/90">
+            <h3 className="mt-0.5 text-xl font-semibold leading-tight text-text-primary">
               {projection.title}
             </h3>
           </div>
         </div>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-text-primary/55">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-text-secondary">
           {highlightPrices(projection.explanation)}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -791,10 +791,10 @@ function ProjectionPanel({ projection, lastPrice }) {
               key={`${reason.label}-${index}`}
               className="rounded-md border border-ink/[0.06] bg-ink/[0.025] px-3 py-2"
             >
-              <div className="text-[9px] font-mono uppercase tracking-[0.12em] text-text-primary/30">
+              <div className="text-[9px] font-mono uppercase tracking-[0.12em] text-text-muted">
                 {reason.label}
               </div>
-              <div className="mt-1 text-xs leading-5 text-text-primary/65">{reason.value}</div>
+              <div className="mt-1 text-xs leading-5 text-text-secondary">{reason.value}</div>
             </div>
           ))}
         </div>
@@ -829,16 +829,16 @@ function ProjectionPanel({ projection, lastPrice }) {
 function ProjectionStat({ label, value, hint, tone }) {
   return (
     <div className="rounded-sm border border-ink/[0.04] bg-surface-secondary p-3">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
         {label}
       </div>
       <div
-        className="mt-1 font-mono text-lg font-semibold text-text-primary/90"
+        className="mt-1 font-mono text-lg font-semibold text-text-primary"
         style={{ color: tone ? directionColor(tone) : undefined }}
       >
         {value}
       </div>
-      {hint && <div className="mt-1 text-[10px] leading-4 text-text-primary/40">{hint}</div>}
+      {hint && <div className="mt-1 text-[10px] leading-4 text-text-muted">{hint}</div>}
     </div>
   );
 }
@@ -846,9 +846,9 @@ function ProjectionStat({ label, value, hint, tone }) {
 function DataBasis({ label, value, detail }) {
   return (
     <div className="rounded-md border border-ink/[0.05] bg-ink/[0.025] px-2.5 py-2">
-      <div className="text-[8px] uppercase tracking-[0.12em] text-text-primary/25">{label}</div>
-      <div className="mt-1 text-text-primary/75">{value}</div>
-      <div className="mt-0.5 text-[9px] text-text-primary/30">{detail}</div>
+      <div className="text-[8px] uppercase tracking-[0.12em] text-text-muted">{label}</div>
+      <div className="mt-1 text-text-primary">{value}</div>
+      <div className="mt-0.5 text-[9px] text-text-muted">{detail}</div>
     </div>
   );
 }
@@ -875,16 +875,16 @@ function ChartReadPanel({ read }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
             AI chart reasoning
           </div>
-          <h3 className="mt-1 text-lg font-semibold leading-tight text-text-primary/90 lg:text-xl">
+          <h3 className="mt-1 text-lg font-semibold leading-tight text-text-primary lg:text-xl">
             {read.title}
           </h3>
-          <p className="mt-2 text-sm leading-6 text-text-primary/55">{read.summary}</p>
+          <p className="mt-2 text-sm leading-6 text-text-secondary">{read.summary}</p>
         </div>
         <div
           className="rounded-lg border px-3 py-2 text-right font-mono"
           style={{ borderColor: `${toneColor}44`, background: `${toneColor}12` }}
         >
-          <div className="text-[8px] uppercase tracking-[0.14em] text-text-primary/35">Mode</div>
+          <div className="text-[8px] uppercase tracking-[0.14em] text-text-muted">Mode</div>
           <div className="mt-1 text-sm font-semibold" style={{ color: toneColor }}>
             {read.mode}
           </div>
@@ -897,7 +897,7 @@ function ChartReadPanel({ read }) {
             <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-accent/75">
               What to do with it
             </div>
-            <p className="mt-2 text-sm leading-6 text-text-primary/70">
+            <p className="mt-2 text-sm leading-6 text-text-secondary">
               {highlightPrices(read.tradePlan)}
             </p>
           </div>
@@ -919,14 +919,14 @@ function ChartReadPanel({ read }) {
       <div className="border-t border-ink/[0.06] p-4">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/30">
+            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
               Technical tape
             </div>
-            <p className="mt-1 text-xs text-text-primary/45">
+            <p className="mt-1 text-xs text-text-muted">
               These numbers explain whether the projected touch is clean, stretched, or noisy.
             </p>
           </div>
-          <div className="text-[10px] font-mono text-text-primary/30">
+          <div className="text-[10px] font-mono text-text-muted">
             Projection layer is the default view
           </div>
         </div>
@@ -943,25 +943,25 @@ function ChartReadPanel({ read }) {
 function MarketNumber({ item }) {
   return (
     <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.025] p-3">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
         {item.label}
       </div>
-      <div className="mt-1 font-mono text-base font-semibold tabular-nums text-text-primary/90">
+      <div className="mt-1 font-mono text-base font-semibold tabular-nums text-text-primary">
         {item.value}
       </div>
-      <div className="mt-1 text-[10px] leading-4 text-text-primary/45">{item.detail}</div>
+      <div className="mt-1 text-[10px] leading-4 text-text-muted">{item.detail}</div>
     </div>
   );
 }
 
 function ReasonRow({ item }) {
   return (
-    <div className="rounded-lg border border-ink/[0.06] bg-scrim/15 p-3">
+    <div className="rounded-lg border border-ink/[0.06] lq-well p-3">
       <div className="flex items-start gap-2">
         <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-sm bg-accent" />
         <div>
-          <div className="text-sm font-semibold text-text-primary/85">{item.title}</div>
-          <p className="mt-1 text-xs leading-5 text-text-primary/50">{item.body}</p>
+          <div className="text-sm font-semibold text-text-primary">{item.title}</div>
+          <p className="mt-1 text-xs leading-5 text-text-secondary">{item.body}</p>
         </div>
       </div>
     </div>
@@ -971,16 +971,16 @@ function ReasonRow({ item }) {
 function MetricExplain({ metric }) {
   return (
     <div className="rounded-sm border border-ink/[0.04] bg-surface-secondary p-3">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
         {metric.label}
       </div>
-      <div className="mt-1 font-mono text-sm font-semibold text-text-primary/90">
+      <div className="mt-1 font-mono text-sm font-semibold text-text-primary">
         {metric.value}
       </div>
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent/75">
         {metric.state}
       </div>
-      <p className="mt-1 text-[10px] leading-4 text-text-primary/45">{metric.reason}</p>
+      <p className="mt-1 text-[10px] leading-4 text-text-muted">{metric.reason}</p>
     </div>
   );
 }

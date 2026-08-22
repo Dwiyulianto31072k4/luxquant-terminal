@@ -86,7 +86,7 @@ const VerdictHero = ({ horizon, verdict, note }) => {
         </div>
         <div className="flex w-full shrink-0 flex-col items-center gap-2 md:w-auto md:pt-1">
           <StanceGauge value={conf} dir={verdict?.direction} size={150} />
-          <p className="max-w-[200px] text-center text-[10.5px] leading-4 text-text-muted/60">
+          <p className="max-w-[200px] text-center text-[10.5px] leading-4 text-text-muted">
             {isFinite(conf) ? `${tier(conf)} · ${conf}%` : "Confidence"} — how aligned the{" "}
             {horizon.toLowerCase()} drivers are.
           </p>
@@ -111,14 +111,14 @@ const RowMetrics = ({ rows, _horizon = "72h" }) => (
                 {r.label}
               </span>
               {r.rationale ? (
-                <span className="truncate text-[11px] text-text-muted/70">— {r.rationale}</span>
+                <span className="truncate text-[11px] text-text-muted">— {r.rationale}</span>
               ) : null}
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
               {r.evidence.slice(0, 6).map((it, i) => (
                 <div key={i} className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[12px] text-text-primary/65">{it.metric}</span>
-                  <Num className="text-[12px] text-text-primary/90">{it.value ?? "—"}</Num>
+                  <span className="truncate text-[12px] text-text-secondary">{it.metric}</span>
+                  <Num className="text-[12px] text-text-primary">{it.value ?? "—"}</Num>
                 </div>
               ))}
             </div>
@@ -151,7 +151,7 @@ export default function LongerView({ data }) {
           value={view}
           onChange={setView}
         />
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/50">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
           {view === "7d" ? "range-based" : "cycle backdrop"}
         </span>
       </div>
@@ -169,7 +169,7 @@ export default function LongerView({ data }) {
               <SectionHeader label="Swing drivers · 72h horizon" />
               <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                 {swing.length === 0 && (
-                  <p className="col-span-full py-6 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted/60">
+                  <p className="col-span-full py-6 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
                     No driver data
                   </p>
                 )}
@@ -191,7 +191,7 @@ export default function LongerView({ data }) {
                   );
                 })}
               </div>
-              <p className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted/80">
+              <p className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                 Supporting numbers
               </p>
               <RowMetrics rows={swing} />
@@ -213,7 +213,7 @@ export default function LongerView({ data }) {
                           ) : null}
                         </Num>
                         {z.why ? (
-                          <p className="mt-1 line-clamp-3 text-[10.5px] leading-snug text-text-muted/70">
+                          <p className="mt-1 line-clamp-3 text-[10.5px] leading-snug text-text-muted">
                             {z.why}
                           </p>
                         ) : null}

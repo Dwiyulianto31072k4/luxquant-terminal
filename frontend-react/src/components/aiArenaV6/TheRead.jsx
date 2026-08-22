@@ -152,27 +152,27 @@ export default function TheRead({ data }) {
             <span
               className={`rounded border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.12em] ${
                 isAnomaly
-                  ? "border-ink/15 bg-ink/[0.06] text-text-primary/80"
-                  : "border-ink/[0.1] bg-ink/[0.03] text-text-muted/70"
+                  ? "border-ink/15 bg-ink/[0.06] text-text-primary"
+                  : "border-ink/[0.1] bg-ink/[0.03] text-text-muted"
               }`}
             >
               {isAnomaly ? "Market-move trigger" : "Baseline read"}
             </span>
-            <span className="font-mono text-[9.5px] text-text-muted/50">
+            <span className="font-mono text-[9.5px] text-text-muted">
               generated {timeAgo(generatedAt)}
               {isFinite(genSecs)
                 ? ` · ${genSecs < 60 ? `${genSecs.toFixed(0)}s` : `${(genSecs / 60).toFixed(1)}m`} run`
                 : ""}
             </span>
           </div>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-text-primary/80">
+          <p className="mt-1.5 text-[13px] leading-relaxed text-text-primary">
             {whatChanged
               ? whatChanged
               : `The stance stays ${dir.label.toLowerCase()}${
                   isFinite(conf) ? ` at ${conf}%` : ""
                 } and the projected range is broadly unchanged since the previous read.`}
           </p>
-          <p className="mt-1.5 text-[11px] leading-[1.5] text-text-muted/55">
+          <p className="mt-1.5 text-[11px] leading-[1.5] text-text-muted">
             {isAnomaly
               ? `Trigger: ${triggerHuman || "a material market move"}. Reports are event-driven — a fresh read is produced only when price, volatility, or a key projection level actually moves, not on a fixed clock.`
               : "Event-driven: the model publishes a fresh read only when the market materially changes — a live monitor watches price, volatility, and the projection's key levels every couple of minutes."}
@@ -205,7 +205,7 @@ export default function TheRead({ data }) {
                     </span>
                   </div>
                 </div>
-                <p className="mt-5 max-w-[62ch] text-[14.5px] leading-[1.9] text-text-primary/90">
+                <p className="mt-5 max-w-[62ch] text-[14.5px] leading-[1.9] text-text-primary">
                   <span className="font-semibold text-text-primary">The full picture: </span>
                   BTC trades at{" "}
                   <Hi tone="white">
@@ -254,28 +254,28 @@ export default function TheRead({ data }) {
                 {drivers.length > 0 && (
                   <div className="w-full max-w-[280px] space-y-2.5 rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted/60">
+                      <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
                         Driver agreement
                       </span>
-                      <span className="font-mono text-[12px] tabular-nums text-text-primary/85">
+                      <span className="font-mono text-[12px] tabular-nums text-text-primary">
                         {aligned}/{drivers.length}
                       </span>
                     </div>
                     <div className="grid grid-cols-3 gap-1.5 text-center font-mono text-[12px] tabular-nums">
                       <div className="rounded-md border border-profit/15 bg-profit/[0.07] py-1.5">
                         <span className="text-profit">{bull}</span>
-                        <span className="ml-0.5 text-text-muted/50">↑</span>
+                        <span className="ml-0.5 text-text-muted">↑</span>
                       </div>
                       <div className="rounded-md border border-accent/15 bg-accent/[0.07] py-1.5">
                         <span className="text-accent">{flat}</span>
-                        <span className="ml-0.5 text-text-muted/50">→</span>
+                        <span className="ml-0.5 text-text-muted">→</span>
                       </div>
                       <div className="rounded-md border border-loss/15 bg-loss/[0.07] py-1.5">
                         <span className="text-loss">{bear}</span>
-                        <span className="ml-0.5 text-text-muted/50">↓</span>
+                        <span className="ml-0.5 text-text-muted">↓</span>
                       </div>
                     </div>
-                    <p className="text-center text-[10.5px] leading-4 text-text-muted/70">
+                    <p className="text-center text-[10.5px] leading-4 text-text-muted">
                       {isFinite(conf) ? `${conf}% confidence` : "Confidence"} — {aligned} of{" "}
                       {drivers.length} drivers point {dir.label.toLowerCase()}. Conflicting drivers
                       hold it back.
@@ -288,7 +288,7 @@ export default function TheRead({ data }) {
             {/* driver breakdown — each driver, its number, and why it reads that way */}
             {drivers.length > 0 && (
               <div className="mt-6 border-t border-ink/[0.06] pt-5">
-                <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted/80">
+                <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                   What's driving the read — and why
                 </p>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -304,7 +304,7 @@ export default function TheRead({ data }) {
                         className="min-w-0 rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-[13px] font-semibold text-text-primary/90">
+                          <span className="truncate text-[13px] font-semibold text-text-primary">
                             {r.label}
                           </span>
                           <span
@@ -316,8 +316,8 @@ export default function TheRead({ data }) {
 
                         {/* the actual number behind the call */}
                         {ev ? (
-                          <div className="mt-2 flex items-baseline justify-between gap-2 rounded-md border border-ink/[0.05] bg-scrim/25 px-2.5 py-1.5">
-                            <span className="truncate text-[11.5px] text-text-primary/60">
+                          <div className="mt-2 flex items-baseline justify-between gap-2 rounded-md border border-ink/[0.05] lq-well px-2.5 py-1.5">
+                            <span className="truncate text-[11.5px] text-text-secondary">
                               {ev.metric}
                             </span>
                             <Num className="shrink-0 text-[12.5px] text-text-primary">
@@ -328,7 +328,7 @@ export default function TheRead({ data }) {
 
                         {/* plain-language reasoning */}
                         {why ? (
-                          <p className="mt-2 text-[11.5px] leading-[1.5] text-text-muted/80">
+                          <p className="mt-2 text-[11.5px] leading-[1.5] text-text-muted">
                             {why}
                           </p>
                         ) : null}
@@ -353,7 +353,7 @@ export default function TheRead({ data }) {
             </p>
             <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
               {drivers.length === 0 && (
-                <p className="col-span-full py-6 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted/60">
+                <p className="col-span-full py-6 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
                   No driver data
                 </p>
               )}
@@ -377,7 +377,7 @@ export default function TheRead({ data }) {
             </div>
 
             {/* supporting numbers per driver */}
-            <p className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted/80">
+            <p className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
               Supporting numbers — per driver
             </p>
             <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
@@ -393,7 +393,7 @@ export default function TheRead({ data }) {
                           {r.label}
                         </span>
                         {r.rationale ? (
-                          <span className="truncate text-[11px] text-text-muted/70">
+                          <span className="truncate text-[11px] text-text-muted">
                             — {r.rationale}
                           </span>
                         ) : null}
@@ -401,10 +401,10 @@ export default function TheRead({ data }) {
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                         {r.evidence.slice(0, 6).map((it, i) => (
                           <div key={i} className="flex items-center justify-between gap-2">
-                            <span className="truncate text-[12px] text-text-primary/65">
+                            <span className="truncate text-[12px] text-text-secondary">
                               {it.metric}
                             </span>
-                            <Num className="text-[12px] text-text-primary/90">
+                            <Num className="text-[12px] text-text-primary">
                               {it.value ?? "—"}
                             </Num>
                           </div>
@@ -460,7 +460,7 @@ export default function TheRead({ data }) {
                         className="rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5"
                       >
                         <div className="mb-1.5 flex items-center justify-between gap-2">
-                          <span className="text-[13px] font-medium text-text-primary/90">
+                          <span className="text-[13px] font-medium text-text-primary">
                             {rk.title}
                           </span>
                           <Tag
@@ -478,7 +478,7 @@ export default function TheRead({ data }) {
                           </Tag>
                         </div>
                         {rk.threshold ? (
-                          <p className="rounded-md border border-ink/[0.06] bg-scrim/25 px-2.5 py-1.5 font-mono text-[11px] text-text-primary/70">
+                          <p className="rounded-md border border-ink/[0.06] lq-well px-2.5 py-1.5 font-mono text-[11px] text-text-secondary">
                             {rk.threshold}
                           </p>
                         ) : null}
@@ -553,7 +553,7 @@ export default function TheRead({ data }) {
                   <div className="flex items-baseline justify-between gap-2">
                     <Num className="text-[16px] text-profit">{fmtUsd(target)}</Num>
                     {target ? (
-                      <span className="font-mono text-[10px] text-text-muted/70">
+                      <span className="font-mono text-[10px] text-text-muted">
                         {pctFromSpot(target)}
                       </span>
                     ) : null}
@@ -575,7 +575,7 @@ export default function TheRead({ data }) {
                         ) : null}
                       </Num>
                       {z.why ? (
-                        <p className="mt-1 line-clamp-2 text-[10.5px] leading-snug text-text-muted/70">
+                        <p className="mt-1 line-clamp-2 text-[10.5px] leading-snug text-text-muted">
                           {z.why}
                         </p>
                       ) : null}
@@ -585,7 +585,7 @@ export default function TheRead({ data }) {
                   <div className="flex items-baseline justify-between gap-2">
                     <Num className="text-[16px] text-loss">{fmtUsd(invalidation)}</Num>
                     {invalidation ? (
-                      <span className="font-mono text-[10px] text-text-muted/70">
+                      <span className="font-mono text-[10px] text-text-muted">
                         {pctFromSpot(invalidation)}
                       </span>
                     ) : null}

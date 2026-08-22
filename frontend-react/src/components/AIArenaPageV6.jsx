@@ -50,7 +50,7 @@ function statusTone(status) {
   if (value === "degraded" || value === "stale") {
     return "border-accent/20 bg-accent/10 text-accent";
   }
-  return "border-ink/10 bg-ink/5 text-text-primary/45";
+  return "border-ink/10 bg-ink/5 text-text-muted";
 }
 
 function formatAge(timestamp) {
@@ -416,9 +416,9 @@ function ThesisBoard({ report }) {
             {Number.isFinite(btc) && btc > 0 ? (
               <span className="font-mono tabular-nums text-text-primary">{fmtUsd(btc)}</span>
             ) : null}
-            <span className="mx-1.5 text-text-muted/40">·</span>
+            <span className="mx-1.5 text-text-muted">·</span>
             <span>{formatAge(report?.timestamp)}</span>
-            <span className="mx-1.5 text-text-muted/40">·</span>
+            <span className="mx-1.5 text-text-muted">·</span>
             <span>{mode}</span>
           </p>
         </div>
@@ -481,14 +481,14 @@ function ThesisBoard({ report }) {
               <span className="font-medium text-text-secondary group-hover:text-text-primary">
                 {isAnomaly ? "Why this updated" : "What changed"}
               </span>
-              <span className="mx-1.5 text-text-muted/50">·</span>
+              <span className="mx-1.5 text-text-muted">·</span>
               {whyOpen ? (
                 <span className="text-text-secondary">{whyFull}</span>
               ) : (
                 <span>
                   {whyFull.slice(0, 110)}
                   {whyFull.length > 110 ? "…" : ""}{" "}
-                  <span className="text-text-primary/70 underline-offset-2 group-hover:underline">
+                  <span className="text-text-secondary underline-offset-2 group-hover:underline">
                     more
                   </span>
                 </span>
@@ -531,13 +531,13 @@ function MiniContextStrip({ report, onOpenOutlook }) {
       </span>
       {Number.isFinite(btc) && btc > 0 ? (
         <>
-          <span className="text-text-muted/40">·</span>
+          <span className="text-text-muted">·</span>
           <span className="font-mono tabular-nums text-text-primary">{fmtUsd(btc)}</span>
         </>
       ) : null}
-      <span className="text-text-muted/40">·</span>
+      <span className="text-text-muted">·</span>
       <span className="text-text-muted">{mode}</span>
-      <span className="text-text-muted/40">·</span>
+      <span className="text-text-muted">·</span>
       <span className="text-text-muted">{formatAge(report?.timestamp)}</span>
       <span className="ml-auto text-[12px] font-medium text-text-muted">Outlook →</span>
     </button>
@@ -637,7 +637,7 @@ function LoadingState() {
       {/* Status caption — Compass is generating, keep the context */}
       <div className="mt-6 flex items-center justify-center gap-2">
         <span className="h-1.5 w-1.5 rounded-full bg-ink/40 animate-pulse" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-primary/40">
+        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-muted">
           Building the latest Compass read…
         </span>
       </div>
@@ -649,14 +649,14 @@ function ErrorState({ error, onRetry }) {
   return (
     <div className="flex min-h-[45vh] items-center justify-center">
       <div className="max-w-md rounded-2xl border border-negative/15 bg-negative/[0.04] p-6 text-center">
-        <h3 className="text-lg font-medium text-text-primary/85">Compass read could not load</h3>
-        <p className="mt-2 text-sm leading-6 text-text-primary/45">
+        <h3 className="text-lg font-medium text-text-primary">Compass read could not load</h3>
+        <p className="mt-2 text-sm leading-6 text-text-muted">
           {error || "The latest market read is temporarily unavailable."}
         </p>
         <button
           type="button"
           onClick={onRetry}
-          className="mt-5 rounded-lg border border-ink/10 bg-ink/[0.04] px-4 py-2 text-sm text-text-primary/75 hover:bg-ink/[0.08]"
+          className="mt-5 rounded-lg border border-ink/10 bg-ink/[0.04] px-4 py-2 text-sm text-text-primary hover:bg-ink/[0.08]"
         >
           Try again
         </button>
@@ -1506,7 +1506,7 @@ export default function AIArenaPageV6() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-text-primary">
+      <div className="lq-ai min-h-screen text-text-primary">
         <div className="mx-auto max-w-[1760px] px-4 py-8 md:px-6 xl:px-10">
           <LoadingState />
         </div>
@@ -1516,7 +1516,7 @@ export default function AIArenaPageV6() {
 
   if (error && !report) {
     return (
-      <div className="min-h-screen text-text-primary">
+      <div className="lq-ai min-h-screen text-text-primary">
         <div className="mx-auto max-w-[1760px] px-4 py-8 md:px-6 xl:px-10">
           <ErrorState error={error} onRetry={() => loadAll(false)} />
         </div>
@@ -1574,7 +1574,7 @@ export default function AIArenaPageV6() {
           )}
 
           <footer className="pb-10 pt-2">
-            <p className="text-[12px] leading-relaxed text-text-muted/55">
+            <p className="text-[12px] leading-relaxed text-text-muted">
               Decision support only — not financial advice.
             </p>
           </footer>

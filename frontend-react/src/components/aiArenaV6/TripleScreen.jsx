@@ -31,8 +31,8 @@ function stateStyle(state) {
     return {
       label: upper,
       color: "rgb(var(--pos-text))",
-      bg: "rgba(34,197,94,0.08)",
-      border: "rgba(34,197,94,0.25)",
+      bg: "rgb(var(--pos) / 0.08)",
+      border: "rgb(var(--pos) / 0.25)",
       icon: "↑",
     };
   }
@@ -40,8 +40,8 @@ function stateStyle(state) {
     return {
       label: upper,
       color: "rgb(var(--neg-text))",
-      bg: "rgba(239,68,68,0.08)",
-      border: "rgba(239,68,68,0.25)",
+      bg: "rgb(var(--neg) / 0.08)",
+      border: "rgb(var(--neg) / 0.25)",
       icon: "↓",
     };
   }
@@ -49,8 +49,8 @@ function stateStyle(state) {
   return {
     label: upper || "—",
     color: "rgb(var(--accent-text))",
-    bg: "rgba(245,196,81,0.08)",
-    border: "rgba(245,196,81,0.25)",
+    bg: "rgb(var(--accent) / 0.08)",
+    border: "rgb(var(--accent) / 0.25)",
     icon: "→",
   };
 }
@@ -127,7 +127,7 @@ function TimeframeCard({ screen }) {
             {screen.timeframe}
           </div>
           {meta.metaphor && (
-            <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mt-0.5">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted mt-0.5">
               {meta.metaphor}
             </div>
           )}
@@ -150,11 +150,11 @@ function TimeframeCard({ screen }) {
       </div>
 
       {/* Note */}
-      {screen.note && <p className="text-xs text-text-primary/65 leading-relaxed">{screen.note}</p>}
+      {screen.note && <p className="text-xs text-text-secondary leading-relaxed">{screen.note}</p>}
 
       {/* Bottom metaphor */}
       {meta.desc && (
-        <p className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30 mt-3 pt-3 border-t border-ink/5">
+        <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted mt-3 pt-3 border-t border-ink/5">
           {meta.desc}
         </p>
       )}
@@ -170,7 +170,7 @@ export default function TripleScreen({ tripleScreen }) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-text-primary/90 mb-4"
+          className="text-2xl text-text-primary mb-4"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -180,7 +180,7 @@ export default function TripleScreen({ tripleScreen }) {
           Triple Screen
         </h2>
         <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-6 text-center">
-          <p className="text-text-primary/40 text-sm italic">No multi-timeframe data available</p>
+          <p className="text-text-muted text-sm italic">No multi-timeframe data available</p>
         </div>
       </section>
     );
@@ -200,7 +200,7 @@ export default function TripleScreen({ tripleScreen }) {
       <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-baseline gap-3">
           <h2
-            className="text-2xl text-text-primary/90"
+            className="text-2xl text-text-primary"
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
@@ -209,7 +209,7 @@ export default function TripleScreen({ tripleScreen }) {
           >
             Triple Screen
           </h2>
-          <span className="text-xs font-mono text-text-primary/40">Tide · Wave · Ripple</span>
+          <span className="text-xs font-mono text-text-muted">Tide · Wave · Ripple</span>
         </div>
         <span
           className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded font-semibold"
@@ -231,7 +231,7 @@ export default function TripleScreen({ tripleScreen }) {
       </div>
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-text-primary/30 font-mono">
+      <p className="mt-3 text-[11px] text-text-muted font-mono">
         Multi-timeframe alignment helps gauge whether short-term setups agree with the dominant
         trend
       </p>

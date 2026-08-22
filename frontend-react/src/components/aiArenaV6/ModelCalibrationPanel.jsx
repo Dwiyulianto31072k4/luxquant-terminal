@@ -9,17 +9,17 @@ const STAGE_STYLE = {
   initial_review: {
     label: "Initial review",
     color: "rgb(var(--accent-text))",
-    bg: "rgba(245,196,81,0.10)",
+    bg: "rgb(var(--accent) / 0.10)",
   },
   hold: {
     label: "Hold",
     color: "rgb(var(--neg-text))",
-    bg: "rgba(239,68,68,0.10)",
+    bg: "rgb(var(--neg) / 0.10)",
   },
   manual_review_ready: {
     label: "Manual review ready",
     color: "rgb(var(--pos-text))",
-    bg: "rgba(34,197,94,0.10)",
+    bg: "rgb(var(--pos) / 0.10)",
   },
 };
 
@@ -35,14 +35,14 @@ function formatPp(value) {
 
 function MetricCard({ label, value, note, tone = "#f5c451" }) {
   return (
-    <div className="rounded-lg border border-ink/[0.06] bg-scrim/20 p-3">
-      <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/35 mb-2">
+    <div className="rounded-lg border border-ink/[0.06] lq-well p-3">
+      <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-2">
         {label}
       </div>
       <div className="text-xl font-semibold font-mono tabular-nums" style={{ color: tone }}>
         {value}
       </div>
-      <div className="text-[10px] text-text-primary/40 mt-1">{note}</div>
+      <div className="text-[10px] text-text-muted mt-1">{note}</div>
     </div>
   );
 }
@@ -70,23 +70,23 @@ function GateRow({ gate }) {
         >
           {gate.passed ? "✓" : "·"}
         </span>
-        <span className="text-[11px] text-text-primary/60 truncate">{gate.label}</span>
+        <span className="text-[11px] text-text-secondary truncate">{gate.label}</span>
       </div>
-      <span className="text-[10px] font-mono text-text-primary/45 whitespace-nowrap">{value}</span>
+      <span className="text-[10px] font-mono text-text-muted whitespace-nowrap">{value}</span>
     </div>
   );
 }
 
 function SegmentTable({ segments }) {
   if (!segments?.length) {
-    return <div className="text-xs text-text-primary/35">No segment data yet.</div>;
+    return <div className="text-xs text-text-muted">No segment data yet.</div>;
   }
 
   return (
     <div className="w-full max-w-full overflow-x-auto">
       <table className="w-full min-w-[440px]">
         <thead>
-          <tr className="text-[9px] font-mono uppercase tracking-wider text-text-primary/30">
+          <tr className="text-[9px] font-mono uppercase tracking-wider text-text-muted">
             <th className="text-left py-2">Liquidity state</th>
             <th className="text-right py-2">Resolved</th>
             <th className="text-right py-2">Shadow n</th>
@@ -98,22 +98,22 @@ function SegmentTable({ segments }) {
         <tbody>
           {segments.map((segment) => (
             <tr key={segment.segment} className="border-t border-ink/[0.04] text-[11px]">
-              <td className="py-2 text-text-primary/60 capitalize">
+              <td className="py-2 text-text-secondary capitalize">
                 {segment.segment.replaceAll("_", " ")}
               </td>
-              <td className="py-2 text-right font-mono text-text-primary/45">
+              <td className="py-2 text-right font-mono text-text-muted">
                 {segment.resolved_total}
               </td>
-              <td className="py-2 text-right font-mono text-text-primary/60">
+              <td className="py-2 text-right font-mono text-text-secondary">
                 {segment.shadow_eligible}
               </td>
-              <td className="py-2 text-right font-mono text-text-primary/60">
+              <td className="py-2 text-right font-mono text-text-secondary">
                 {formatRate(segment.baseline_hit_rate)}
               </td>
-              <td className="py-2 text-right font-mono text-text-primary/60">
+              <td className="py-2 text-right font-mono text-text-secondary">
                 {formatRate(segment.shadow_hit_rate)}
               </td>
-              <td className="py-2 text-right font-mono text-text-primary/60">
+              <td className="py-2 text-right font-mono text-text-secondary">
                 {formatPp(segment.shadow_edge_pp)}
               </td>
             </tr>
@@ -138,10 +138,10 @@ function HorizonPanel({ horizon, data }) {
     <div className="min-w-0 rounded-xl border border-ink/[0.06] bg-ink/[0.015] p-4">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-primary/35">
+          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted">
             Horizon
           </div>
-          <div className="text-xl text-text-primary/90 font-medium">{horizon}</div>
+          <div className="text-xl text-text-primary font-medium">{horizon}</div>
         </div>
         <span
           className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded"
@@ -193,7 +193,7 @@ function HorizonPanel({ horizon, data }) {
       </div>
 
       <div className="mb-4">
-        <div className="flex items-center justify-between text-[10px] font-mono text-text-primary/40 mb-1.5">
+        <div className="flex items-center justify-between text-[10px] font-mono text-text-muted mb-1.5">
           <span>
             Shadow sample {readiness.eligible_sample || 0}/{robustTarget}
           </span>
@@ -205,23 +205,23 @@ function HorizonPanel({ horizon, data }) {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <div className="min-w-0 rounded-lg border border-ink/[0.05] bg-scrim/15 px-3">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/35 pt-3 pb-1">
+        <div className="min-w-0 rounded-lg border border-ink/[0.05] lq-well px-3">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted pt-3 pb-1">
             Activation gates
           </div>
           {(readiness.gates || []).map((gate) => (
             <GateRow key={gate.key} gate={gate} />
           ))}
         </div>
-        <div className="min-w-0 overflow-hidden rounded-lg border border-ink/[0.05] bg-scrim/15 px-3">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/35 pt-3 pb-1">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-ink/[0.05] lq-well px-3">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted pt-3 pb-1">
             Freshness segmentation
           </div>
           <SegmentTable segments={data?.segments?.liquidity_status} />
         </div>
       </div>
 
-      <div className="mt-3 text-[10px] font-mono text-text-primary/30">
+      <div className="mt-3 text-[10px] font-mono text-text-muted">
         Resolved baseline: {data?.resolved_total || 0} · shadow unavailable:{" "}
         {data?.shadow_ineligible || 0} · agreement {formatRate(data?.agreement?.agreement_rate)}
       </div>
@@ -238,7 +238,7 @@ export default function ModelCalibrationPanel({ data }) {
         <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent mb-2">
           Phase 5 · Model calibration
         </div>
-        <div className="text-sm text-text-primary/45">
+        <div className="text-sm text-text-muted">
           Calibration audit is temporarily unavailable.
         </div>
       </section>
@@ -253,15 +253,15 @@ export default function ModelCalibrationPanel({ data }) {
             <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent mb-1">
               Phase 5 · Model calibration
             </div>
-            <h2 className="text-xl md:text-2xl text-text-primary/90 font-medium">
+            <h2 className="text-xl md:text-2xl text-text-primary font-medium">
               Shadow Model Reliability
             </h2>
-            <p className="text-xs text-text-primary/45 mt-1 max-w-2xl leading-relaxed">
+            <p className="text-xs text-text-muted mt-1 max-w-2xl leading-relaxed">
               Fair comparison against the user-facing baseline on identical outcomes, segmented by
               source health. This audit cannot activate or replace the verdict.
             </p>
           </div>
-          <div className="flex gap-1 rounded-lg border border-ink/[0.06] bg-scrim/20 p-1">
+          <div className="flex gap-1 rounded-lg border border-ink/[0.06] lq-well p-1">
             {["24h", "72h"].map((item) => (
               <button
                 key={item}
@@ -270,7 +270,7 @@ export default function ModelCalibrationPanel({ data }) {
                 className="px-3 py-1.5 rounded-md text-[11px] font-mono transition-colors"
                 style={{
                   color: horizon === item ? "#f5c451" : "rgb(var(--ink) / .4)",
-                  backgroundColor: horizon === item ? "rgba(245,196,81,.10)" : "transparent",
+                  backgroundColor: horizon === item ? "rgb(var(--accent) / .10)" : "transparent",
                 }}
               >
                 {item}
@@ -282,7 +282,7 @@ export default function ModelCalibrationPanel({ data }) {
         <HorizonPanel horizon={horizon} data={data.horizons?.[horizon]} />
 
         <div className="mt-4 flex items-center justify-between gap-3 flex-wrap text-[10px] font-mono">
-          <span className="text-text-primary/30">
+          <span className="text-text-muted">
             Window {data.window_days}d · decision authority disabled
           </span>
           <span className="text-accent/70">

@@ -306,7 +306,7 @@ export default function MacroPulse() {
         {/* BTC reference card */}
         {btc && (
           <div className="bg-ink/[0.03] rounded-xl p-3 border border-ink/10">
-            <div className="text-[9px] uppercase tracking-widest text-text-primary/80 font-bold mb-1">
+            <div className="text-[9px] uppercase tracking-widest text-text-primary font-bold mb-1">
               BTC Reference
             </div>
             <div className="flex items-baseline justify-between gap-3">
@@ -333,7 +333,7 @@ export default function MacroPulse() {
           <div className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-1">
             Regime Snapshot
           </div>
-          <div className="text-[11px] text-text-primary/80 font-mono leading-relaxed">
+          <div className="text-[11px] text-text-primary font-mono leading-relaxed">
             {regime_detail || "—"}
           </div>
         </div>
@@ -343,7 +343,7 @@ export default function MacroPulse() {
       <div className="pt-4 border-t border-ink/5">
         <p className="text-[11px] text-text-muted leading-relaxed">{narrative}</p>
         {updated_at && (
-          <p className="text-[9px] text-text-muted/60 font-mono mt-2">
+          <p className="text-[9px] text-text-muted font-mono mt-2">
             Source: FRED + Binance · Updated {new Date(updated_at).toLocaleString()}
           </p>
         )}

@@ -60,14 +60,14 @@ function directionLabel(value) {
     .toUpperCase();
 }
 
-function SummaryCard({ label, value, note, tone = "text-text-primary/85" }) {
+function SummaryCard({ label, value, note, tone = "text-text-primary" }) {
   return (
-    <div className="min-w-0 rounded-xl border border-ink/[0.06] bg-scrim/15 p-3.5">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+    <div className="min-w-0 rounded-xl border border-ink/[0.06] lq-well p-3.5">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
         {label}
       </div>
       <div className={`mt-2 truncate text-lg font-mono font-semibold ${tone}`}>{value}</div>
-      <div className="mt-1 text-[10px] leading-relaxed text-text-primary/35">{note}</div>
+      <div className="mt-1 text-[10px] leading-relaxed text-text-muted">{note}</div>
     </div>
   );
 }
@@ -79,12 +79,12 @@ function HorizonCard({ horizon, data }) {
     <div className="min-w-0 rounded-xl border border-ink/[0.07] bg-ink/[0.02] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
             {horizon} outlook
           </div>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span
-              className={`text-xl font-semibold ${directionTone[data?.verdict_direction] || "text-text-primary/70"}`}
+              className={`text-xl font-semibold ${directionTone[data?.verdict_direction] || "text-text-secondary"}`}
             >
               {directionLabel(data?.verdict_direction)}
             </span>
@@ -101,23 +101,23 @@ function HorizonCard({ horizon, data }) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <div className="rounded-lg border border-ink/[0.05] bg-scrim/15 p-3">
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Evidence bias</div>
+        <div className="rounded-lg border border-ink/[0.05] lq-well p-3">
+          <div className="text-[9px] font-mono uppercase text-text-muted">Evidence bias</div>
           <div
-            className={`mt-1 text-sm font-mono ${directionTone[data?.evidence_bias] || "text-text-primary/55"}`}
+            className={`mt-1 text-sm font-mono ${directionTone[data?.evidence_bias] || "text-text-secondary"}`}
           >
             {directionLabel(data?.evidence_bias)}
           </div>
         </div>
-        <div className="rounded-lg border border-ink/[0.05] bg-scrim/15 p-3">
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Coverage</div>
-          <div className="mt-1 text-sm font-mono text-text-primary/75">
+        <div className="rounded-lg border border-ink/[0.05] lq-well p-3">
+          <div className="text-[9px] font-mono uppercase text-text-muted">Coverage</div>
+          <div className="mt-1 text-sm font-mono text-text-primary">
             {formatPct(data?.coverage)}
           </div>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-text-primary/40">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-text-muted">
         <span>
           {comparison === "aligned"
             ? "verdict aligned"
@@ -135,17 +135,17 @@ function HorizonCard({ horizon, data }) {
 function SourceCard({ source }) {
   const status = source?.status || "unavailable";
   return (
-    <div className="min-w-0 rounded-lg border border-ink/[0.05] bg-scrim/10 px-3 py-2.5">
+    <div className="min-w-0 rounded-lg border border-ink/[0.05] lq-well-soft px-3 py-2.5">
       <div className="flex min-w-0 items-center gap-2">
         <span
           className={`h-1.5 w-1.5 shrink-0 rounded-full ${sourceTone[status] || sourceTone.unavailable}`}
         />
-        <span className="truncate text-[11px] text-text-primary/65">{source.label}</span>
-        <span className="ml-auto shrink-0 text-[9px] font-mono uppercase text-text-primary/30">
+        <span className="truncate text-[11px] text-text-secondary">{source.label}</span>
+        <span className="ml-auto shrink-0 text-[9px] font-mono uppercase text-text-muted">
           {status}
         </span>
       </div>
-      <div className="mt-1 truncate pl-3.5 text-[9px] font-mono text-text-primary/25">
+      <div className="mt-1 truncate pl-3.5 text-[9px] font-mono text-text-muted">
         {source.provider} / {formatAge(source.age_seconds)}
       </div>
     </div>
@@ -183,7 +183,7 @@ export default function DecisionContextPanel({ data }) {
         <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent">
           Phase 6 / Evidence-first dashboard
         </div>
-        <p className="mt-2 text-sm text-text-primary/45">
+        <p className="mt-2 text-sm text-text-muted">
           Decision-context health is unavailable for this report.
         </p>
       </section>
@@ -202,10 +202,10 @@ export default function DecisionContextPanel({ data }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
             Phase 6 / Evidence-first dashboard
           </div>
-          <h2 className="mt-1 text-xl font-medium text-text-primary/90 md:text-2xl">
+          <h2 className="mt-1 text-xl font-medium text-text-primary md:text-2xl">
             Decision Context
           </h2>
-          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-text-primary/45">
+          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-text-muted">
             {data.summary}
           </p>
         </div>
@@ -246,12 +246,12 @@ export default function DecisionContextPanel({ data }) {
         <HorizonCard horizon="72h" data={data.horizons?.["72h"]} />
       </div>
 
-      <div className="mt-4 rounded-xl border border-ink/[0.06] bg-scrim/10 p-3.5">
+      <div className="mt-4 rounded-xl border border-ink/[0.06] lq-well-soft p-3.5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
             Source health at this report cycle
           </div>
-          <div className="text-[9px] font-mono text-text-primary/25">
+          <div className="text-[9px] font-mono text-text-muted">
             current age includes report age
           </div>
         </div>
@@ -263,8 +263,8 @@ export default function DecisionContextPanel({ data }) {
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <div className="min-w-0 rounded-xl border border-ink/[0.06] bg-scrim/10 p-4">
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
+        <div className="min-w-0 rounded-xl border border-ink/[0.06] lq-well-soft p-4">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
             Attention required
           </div>
           {issues.length ? (
@@ -278,8 +278,8 @@ export default function DecisionContextPanel({ data }) {
                       }`}
                     />
                     <div className="min-w-0">
-                      <div className="text-xs text-text-primary/70">{issue.title}</div>
-                      <div className="mt-1 break-words text-[10px] leading-relaxed text-text-primary/35">
+                      <div className="text-xs text-text-secondary">{issue.title}</div>
+                      <div className="mt-1 break-words text-[10px] leading-relaxed text-text-muted">
                         {issue.detail}
                       </div>
                     </div>
@@ -292,15 +292,15 @@ export default function DecisionContextPanel({ data }) {
           )}
         </div>
 
-        <div className="min-w-0 rounded-xl border border-ink/[0.06] bg-scrim/10 p-4">
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
+        <div className="min-w-0 rounded-xl border border-ink/[0.06] lq-well-soft p-4">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
             Changed since previous report
           </div>
           {changes.length ? (
             <div className="mt-2 divide-y divide-ink/[0.05]">
               {changes.slice(0, 5).map((change) => (
                 <div key={change.key} className="py-2.5">
-                  <div className="text-xs text-text-primary/70">{change.label}</div>
+                  <div className="text-xs text-text-secondary">{change.label}</div>
                   <div className="mt-1 break-words text-[10px] font-mono leading-relaxed text-accent/65">
                     <ChangeText change={change} />
                   </div>
@@ -308,7 +308,7 @@ export default function DecisionContextPanel({ data }) {
               ))}
             </div>
           ) : (
-            <div className="mt-3 text-xs text-text-primary/35">
+            <div className="mt-3 text-xs text-text-muted">
               No material evidence change was recorded.
             </div>
           )}

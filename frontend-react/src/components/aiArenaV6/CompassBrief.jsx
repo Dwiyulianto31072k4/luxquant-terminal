@@ -29,7 +29,7 @@ function badgeTone(status) {
   ) {
     return "border-accent/20 bg-accent/10 text-accent";
   }
-  return "border-ink/10 bg-ink/5 text-text-primary/45";
+  return "border-ink/10 bg-ink/5 text-text-muted";
 }
 
 function textTone(status) {
@@ -37,7 +37,7 @@ function textTone(status) {
   if (tone.includes("emerald")) return "text-profit";
   if (tone.includes("red")) return "text-loss";
   if (tone.includes("amber")) return "text-accent";
-  return "text-text-primary/75";
+  return "text-text-primary";
 }
 
 function Badge({ children, tone = "neutral" }) {
@@ -72,7 +72,7 @@ function SectionTitle({ eyebrow, title, children }) {
         <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
           {eyebrow}
         </div>
-        <h2 className="mt-1 text-xl font-medium text-text-primary/90 md:text-2xl">{title}</h2>
+        <h2 className="mt-1 text-xl font-medium text-text-primary md:text-2xl">{title}</h2>
       </div>
       {children}
     </div>
@@ -264,19 +264,19 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
           <h1 className="mt-3 max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.03em] text-text-primary md:text-5xl">
             {buildTraderHeadline(tactical)}
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-text-primary/55">
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-text-secondary">
             {buildTraderSummary(tactical, rows, contract)}
           </p>
           <div className="mt-5 rounded-2xl border border-ink/10 bg-accent/[0.055] p-4">
             <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-accent">
               Altcoin exposure guide
             </div>
-            <p className="mt-2 text-sm leading-6 text-text-primary/65">{exposure.text}</p>
+            <p className="mt-2 text-sm leading-6 text-text-secondary">{exposure.text}</p>
           </div>
         </div>
 
         <div className={cx(mutedCard, "p-5")}>
-          <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+          <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
             24h stance
           </div>
           <div className="mt-5 flex items-center gap-4">
@@ -284,7 +284,7 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
               {directionArrow(dir)}
             </span>
             <div>
-              <div className="text-4xl font-semibold text-text-primary/90">
+              <div className="text-4xl font-semibold text-text-primary">
                 {directionLabel(dir)}
               </div>
               <div className="mt-1 font-mono text-xl text-accent">
@@ -293,16 +293,16 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-3">
-              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+            <div className="rounded-xl border border-ink/[0.06] lq-well p-3">
+              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
                 72h
               </div>
               <div className={cx("mt-2 text-lg font-semibold", textTone(swing?.direction))}>
                 {directionLabel(swing?.direction)} {swing?.confidence ?? "-"}%
               </div>
             </div>
-            <div className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-3">
-              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+            <div className="rounded-xl border border-ink/[0.06] lq-well p-3">
+              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
                 Daily outlook
               </div>
               <div className={cx("mt-2 text-lg font-semibold", textTone(cycle?.direction))}>
@@ -323,8 +323,8 @@ function MetricPreviewCard({ row, horizon, onDetail }) {
     <div className={cx(mutedCard, "p-4")}>
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-medium text-text-primary/85">{row.label}</div>
-          <div className="mt-1 text-[10px] text-text-primary/35">{row.rationale}</div>
+          <div className="text-sm font-medium text-text-primary">{row.label}</div>
+          <div className="mt-1 text-[10px] text-text-muted">{row.rationale}</div>
         </div>
         <Badge tone={score.direction}>{readable(score.direction)}</Badge>
       </div>
@@ -332,18 +332,18 @@ function MetricPreviewCard({ row, horizon, onDetail }) {
         {metrics.slice(0, 4).map((item, index) => (
           <div
             key={`${item.metric}-${index}`}
-            className="rounded-lg border border-ink/[0.05] bg-scrim/15 p-2.5"
+            className="rounded-lg border border-ink/[0.05] lq-well p-2.5"
           >
-            <div className="truncate text-[9px] font-mono uppercase tracking-[0.12em] text-text-primary/30">
+            <div className="truncate text-[9px] font-mono uppercase tracking-[0.12em] text-text-muted">
               {item.metric}
             </div>
-            <div className="mt-1 truncate font-mono text-sm text-text-primary/80">
+            <div className="mt-1 truncate font-mono text-sm text-text-primary">
               {item.value ?? "-"}
             </div>
           </div>
         ))}
       </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-text-primary/35">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-text-muted">
         <span>strength {numberPct(score.strength)}</span>
         <span>score {signedScore(score.weighted_score)}</span>
         <button type="button" onClick={onDetail} className="text-accent hover:text-accent">
@@ -369,20 +369,20 @@ function NewsPreview({ eventRisk, onDetail }) {
             <Badge tone={eventRisk?.risk_level || "low"}>
               {readable(eventRisk?.risk_level || "low")} risk
             </Badge>
-            <p className="mt-3 text-sm leading-7 text-text-primary/55">
+            <p className="mt-3 text-sm leading-7 text-text-secondary">
               {eventRisk?.summary || "No major news/event warning is active for this read."}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className={cx(mutedCard, "p-3")}>
-                <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+                <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
                   Next 24h
                 </div>
-                <div className="mt-2 text-lg font-semibold text-text-primary/85">
+                <div className="mt-2 text-lg font-semibold text-text-primary">
                   {eventRisk?.windows?.next_24h?.event_count || 0} events
                 </div>
               </div>
               <div className={cx(mutedCard, "p-3")}>
-                <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+                <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
                   Confidence
                 </div>
                 <div className="mt-2 text-lg font-semibold text-accent">
@@ -395,13 +395,13 @@ function NewsPreview({ eventRisk, onDetail }) {
             {headlines.slice(0, 3).map((headline, index) => (
               <div
                 key={`${headline.title}-${index}`}
-                className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-3"
+                className="rounded-xl border border-ink/[0.06] lq-well p-3"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="text-sm text-text-primary/80">{headline.title}</div>
+                  <div className="text-sm text-text-primary">{headline.title}</div>
                   <Badge tone={headline.impact}>{headline.impact || "watch"}</Badge>
                 </div>
-                <div className="mt-1 text-[10px] font-mono text-text-primary/35">
+                <div className="mt-1 text-[10px] font-mono text-text-muted">
                   {headline.topic_label || "Market"} ·{" "}
                   {headline.age_seconds != null
                     ? `${Math.round(Number(headline.age_seconds) / 60)}m ago`
@@ -410,7 +410,7 @@ function NewsPreview({ eventRisk, onDetail }) {
               </div>
             ))}
             {!headlines.length && !events.length && (
-              <div className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-4 text-sm text-text-primary/45">
+              <div className="rounded-xl border border-ink/[0.06] lq-well p-4 text-sm text-text-muted">
                 No headline or scheduled event detail is available in this cycle.
               </div>
             )}
@@ -424,7 +424,7 @@ function NewsPreview({ eventRisk, onDetail }) {
 function ZoneList({ zones, currentPrice, onDetail }) {
   if (!zones?.length) {
     return (
-      <div className={cx(mutedCard, "p-4 text-sm text-text-primary/45")}>
+      <div className={cx(mutedCard, "p-4 text-sm text-text-muted")}>
         Key price areas are not available for this update.
       </div>
     );
@@ -444,16 +444,16 @@ function ZoneList({ zones, currentPrice, onDetail }) {
           return (
             <div key={`${zone.kind}-${index}`} className={cx(mutedCard, "p-4")}>
               <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+                <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
                   {kind}
                 </div>
                 {inside && <Badge tone="healthy">current</Badge>}
               </div>
-              <div className="font-mono text-base text-text-primary/85">
+              <div className="font-mono text-base text-text-primary">
                 {formatPriceRange(zone.price_low, zone.price_high)}
               </div>
               {zone.why && (
-                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-text-primary/45">
+                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-text-muted">
                   {zone.why}
                 </p>
               )}
@@ -474,7 +474,7 @@ function ZoneList({ zones, currentPrice, onDetail }) {
 function RiskList({ risks, onDetail }) {
   if (!risks?.length) {
     return (
-      <div className={cx(mutedCard, "p-4 text-sm text-text-primary/45")}>
+      <div className={cx(mutedCard, "p-4 text-sm text-text-muted")}>
         No major invalidation condition is highlighted in this update.
       </div>
     );
@@ -484,16 +484,16 @@ function RiskList({ risks, onDetail }) {
       {risks.slice(0, 3).map((risk, index) => (
         <div key={`${risk.title}-${index}`} className={cx(mutedCard, "p-4")}>
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-text-primary/85">{risk.title}</h3>
+            <h3 className="text-sm font-medium text-text-primary">{risk.title}</h3>
             <Badge tone={risk.severity}>{risk.severity || "watch"}</Badge>
           </div>
           {risk.threshold && (
-            <div className="rounded-lg border border-ink/[0.06] bg-scrim/20 px-3 py-2 font-mono text-[11px] leading-relaxed text-text-primary/65">
+            <div className="rounded-lg border border-ink/[0.06] lq-well px-3 py-2 font-mono text-[11px] leading-relaxed text-text-secondary">
               {risk.threshold}
             </div>
           )}
           {risk.why_matters && (
-            <p className="mt-2 text-xs leading-relaxed text-text-primary/40">{risk.why_matters}</p>
+            <p className="mt-2 text-xs leading-relaxed text-text-muted">{risk.why_matters}</p>
           )}
           <button
             type="button"
@@ -519,7 +519,7 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
         <div className="grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
           <div className="grid grid-cols-2 gap-3">
             <div className={cx(mutedCard, "p-4")}>
-              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
                 72h
               </div>
               <div className={cx("mt-2 text-2xl font-semibold", textTone(swing?.direction))}>
@@ -528,7 +528,7 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
               <div className="mt-1 font-mono text-accent">{swing?.confidence ?? "-"}%</div>
             </div>
             <div className={cx(mutedCard, "p-4")}>
-              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
                 Cycle
               </div>
               <div className={cx("mt-2 text-2xl font-semibold", textTone(cycle?.direction))}>
@@ -541,12 +541,12 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
             {cycleRows.map((row) => {
               const score = rowScore(row, "72h");
               return (
-                <div key={row.key} className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-3">
+                <div key={row.key} className="rounded-xl border border-ink/[0.06] lq-well p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-text-primary/80">{row.label}</div>
+                    <div className="text-sm text-text-primary">{row.label}</div>
                     <Badge tone={score.direction}>{readable(score.direction)}</Badge>
                   </div>
-                  <p className="mt-1 text-xs text-text-primary/40">{row.rationale}</p>
+                  <p className="mt-1 text-xs text-text-muted">{row.rationale}</p>
                 </div>
               );
             })}
@@ -571,7 +571,7 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
       <div className={cx(card, "p-5")}>
         <div className="grid gap-4 md:grid-cols-[0.75fr_1.25fr]">
           <div className={cx(mutedCard, "p-4")}>
-            <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+            <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
               Daily close model
             </div>
             <div className={cx("mt-3 text-3xl font-semibold", textTone(cycle?.direction))}>
@@ -580,19 +580,19 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
             <div className="mt-1 font-mono text-accent">
               {cycle?.confidence ?? "-"}% context confidence
             </div>
-            <p className="mt-4 text-sm leading-6 text-text-primary/48">
+            <p className="mt-4 text-sm leading-6 text-text-secondary">
               This block is the slow backdrop. It should help decide maximum exposure, not override
               the 24h tape. Daily outlook is best refreshed after the BTC daily candle closes.
             </p>
-            <div className="mt-4 rounded-xl border border-ink/[0.06] bg-scrim/20 p-3">
-              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
+            <div className="mt-4 rounded-xl border border-ink/[0.06] lq-well p-3">
+              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
                 Cadence
               </div>
-              <div className="mt-1 text-sm text-text-primary/68">
+              <div className="mt-1 text-sm text-text-secondary">
                 {refreshed ? "Fresh daily outlook" : "Reused daily outlook"}
               </div>
               {dailyOutlook?.source_report_id && (
-                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-text-primary/35">
+                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-text-muted">
                   Source {dailyOutlook.source_report_id}
                 </div>
               )}
@@ -600,11 +600,11 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {items.map((row) => (
-              <div key={row.key} className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-4">
+              <div key={row.key} className="rounded-xl border border-ink/[0.06] lq-well p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-text-primary/85">{row.label}</div>
-                    <p className="mt-1 text-xs leading-5 text-text-primary/42">{row.rationale}</p>
+                    <div className="text-sm font-medium text-text-primary">{row.label}</div>
+                    <p className="mt-1 text-xs leading-5 text-text-muted">{row.rationale}</p>
                   </div>
                   <Badge tone={(row.source_health || {}).status || "neutral"}>
                     {readable((row.source_health || {}).status || "context")}
@@ -616,10 +616,10 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
                       key={`${row.key}-${item.metric}-${index}`}
                       className="rounded-lg border border-ink/[0.05] bg-ink/[0.025] p-2.5"
                     >
-                      <div className="truncate text-[9px] font-mono uppercase tracking-[0.12em] text-text-primary/30">
+                      <div className="truncate text-[9px] font-mono uppercase tracking-[0.12em] text-text-muted">
                         {item.metric}
                       </div>
-                      <div className="mt-1 truncate font-mono text-xs text-text-primary/75">
+                      <div className="mt-1 truncate font-mono text-xs text-text-primary">
                         {item.value ?? "-"}
                       </div>
                     </div>
@@ -636,7 +636,7 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
 
 function DetailTabRail({ activeTab, onChange, tabs }) {
   return (
-    <div className="border-b border-ink/[0.06] bg-scrim/10 p-2">
+    <div className="border-b border-ink/[0.06] lq-well-soft p-2">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         {tabs.map((tab) => {
           const active = activeTab === tab.key;
@@ -649,7 +649,7 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
                 "group flex min-h-[64px] items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
                 active
                   ? "border-ink/35 bg-accent/12 text-text-primary shadow-[0_0_0_1px_rgb(var(--accent) / 0.06)_inset]"
-                  : "border-ink/[0.06] bg-ink/[0.018] text-text-primary/45 hover:border-ink/[0.12] hover:bg-ink/[0.045] hover:text-text-primary/75"
+                  : "border-ink/[0.06] bg-ink/[0.018] text-text-muted hover:border-ink/[0.12] hover:bg-ink/[0.045] hover:text-text-primary"
               )}
             >
               <span
@@ -657,16 +657,16 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border font-mono text-[11px] font-semibold",
                   active
                     ? "border-ink/35 bg-accent/14 text-accent"
-                    : "border-ink/[0.08] bg-scrim/15 text-text-primary/35 group-hover:text-text-primary/65"
+                    : "border-ink/[0.08] lq-well text-text-muted group-hover:text-text-secondary"
                 )}
               >
                 {tab.icon}
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-semibold text-text-primary/90">
+                <span className="block text-sm font-semibold text-text-primary">
                   {tab.label}
                 </span>
-                <span className="mt-0.5 block text-[10px] leading-4 text-text-primary/38">
+                <span className="mt-0.5 block text-[10px] leading-4 text-text-muted">
                   {tab.description}
                 </span>
               </span>
@@ -701,12 +701,12 @@ function Modal({ title, children, onClose }) {
             <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
               Detail breakdown
             </div>
-            <h3 className="mt-1 text-xl font-semibold text-text-primary/90">{title}</h3>
+            <h3 className="mt-1 text-xl font-semibold text-text-primary">{title}</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-ink/10 bg-ink/[0.04] px-3 py-2 text-sm text-text-primary/65 hover:bg-ink/[0.08]"
+            className="rounded-lg border border-ink/10 bg-ink/[0.04] px-3 py-2 text-sm text-text-secondary hover:bg-ink/[0.08]"
           >
             Close
           </button>
@@ -723,30 +723,30 @@ function EvidenceRowDetail({ row, horizon }) {
     <div className="rounded-xl border border-ink/[0.07] bg-ink/[0.025] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-base font-medium text-text-primary/85">{row.label}</div>
-          <p className="mt-1 text-xs leading-relaxed text-text-primary/45">{row.rationale}</p>
+          <div className="text-base font-medium text-text-primary">{row.label}</div>
+          <p className="mt-1 text-xs leading-relaxed text-text-muted">{row.rationale}</p>
         </div>
         <Badge tone={score.direction}>{readable(score.direction)}</Badge>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-4">
-        <div className="rounded-lg border border-ink/[0.05] bg-scrim/20 p-3">
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Strength</div>
-          <div className="mt-1 font-mono text-text-primary/80">{numberPct(score.strength)}</div>
+        <div className="rounded-lg border border-ink/[0.05] lq-well p-3">
+          <div className="text-[9px] font-mono uppercase text-text-muted">Strength</div>
+          <div className="mt-1 font-mono text-text-primary">{numberPct(score.strength)}</div>
         </div>
-        <div className="rounded-lg border border-ink/[0.05] bg-scrim/20 p-3">
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Weight</div>
-          <div className="mt-1 font-mono text-text-primary/80">
+        <div className="rounded-lg border border-ink/[0.05] lq-well p-3">
+          <div className="text-[9px] font-mono uppercase text-text-muted">Weight</div>
+          <div className="mt-1 font-mono text-text-primary">
             {Number(score.weight ?? 0).toFixed(2)}
           </div>
         </div>
-        <div className="rounded-lg border border-ink/[0.05] bg-scrim/20 p-3">
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Weighted score</div>
+        <div className="rounded-lg border border-ink/[0.05] lq-well p-3">
+          <div className="text-[9px] font-mono uppercase text-text-muted">Weighted score</div>
           <div className={cx("mt-1 font-mono", textTone(score.direction))}>
             {signedScore(score.weighted_score)}
           </div>
         </div>
-        <div className="rounded-lg border border-ink/[0.05] bg-scrim/20 p-3">
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Data health</div>
+        <div className="rounded-lg border border-ink/[0.05] lq-well p-3">
+          <div className="text-[9px] font-mono uppercase text-text-muted">Data health</div>
           <div className={cx("mt-1 font-mono", textTone(row.source_health?.status))}>
             {readable(row.source_health?.status)}
           </div>
@@ -756,11 +756,11 @@ function EvidenceRowDetail({ row, horizon }) {
         {(row.evidence || []).map((item, index) => (
           <div
             key={`${item.metric}-${index}`}
-            className="rounded-lg border border-ink/[0.05] bg-scrim/15 p-3"
+            className="rounded-lg border border-ink/[0.05] lq-well p-3"
           >
-            <div className="text-[10px] text-text-primary/35">{item.metric}</div>
-            <div className="mt-1 font-mono text-sm text-text-primary/80">{item.value ?? "-"}</div>
-            {item.note && <div className="mt-1 text-[10px] text-text-primary/35">{item.note}</div>}
+            <div className="text-[10px] text-text-muted">{item.metric}</div>
+            <div className="mt-1 font-mono text-sm text-text-primary">{item.value ?? "-"}</div>
+            {item.note && <div className="mt-1 text-[10px] text-text-muted">{item.note}</div>}
           </div>
         ))}
       </div>
@@ -777,25 +777,25 @@ function EvidenceModalContent({ report, horizon = "24h" }) {
       <div className="grid gap-3 md:grid-cols-4">
         <div className={cx(mutedCard, "p-3")}>
           {" "}
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Evidence bias</div>
+          <div className="text-[9px] font-mono uppercase text-text-muted">Evidence bias</div>
           <div className={cx("mt-2 text-lg font-semibold", textTone(summary.bias))}>
             {readable(summary.bias)}
           </div>
         </div>
         <div className={cx(mutedCard, "p-3")}>
           {" "}
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Score</div>
-          <div className="mt-2 font-mono text-text-primary/80">{signedScore(summary.score)}</div>
+          <div className="text-[9px] font-mono uppercase text-text-muted">Score</div>
+          <div className="mt-2 font-mono text-text-primary">{signedScore(summary.score)}</div>
         </div>
         <div className={cx(mutedCard, "p-3")}>
           {" "}
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Coverage</div>
-          <div className="mt-2 font-mono text-text-primary/80">{numberPct(summary.coverage)}</div>
+          <div className="text-[9px] font-mono uppercase text-text-muted">Coverage</div>
+          <div className="mt-2 font-mono text-text-primary">{numberPct(summary.coverage)}</div>
         </div>
         <div className={cx(mutedCard, "p-3")}>
           {" "}
-          <div className="text-[9px] font-mono uppercase text-text-primary/30">Conflicts</div>
-          <div className="mt-2 font-mono text-text-primary/80">{summary.conflict_count || 0}</div>
+          <div className="text-[9px] font-mono uppercase text-text-muted">Conflicts</div>
+          <div className="mt-2 font-mono text-text-primary">{summary.conflict_count || 0}</div>
         </div>
       </div>
       {rows.map((row) => (
@@ -815,12 +815,12 @@ function NewsModalContent({ eventRisk }) {
         <Badge tone={eventRisk?.risk_level || "low"}>
           {readable(eventRisk?.risk_level || "low")} risk
         </Badge>
-        <p className="mt-3 text-sm leading-7 text-text-primary/55">
+        <p className="mt-3 text-sm leading-7 text-text-secondary">
           {eventRisk?.summary || "No event-risk summary available."}
         </p>
       </div>
       <div>
-        <h4 className="mb-3 text-sm font-semibold text-text-primary/85">Relevant headlines</h4>
+        <h4 className="mb-3 text-sm font-semibold text-text-primary">Relevant headlines</h4>
         <div className="space-y-2">
           {headlines.map((headline, index) => (
             <a
@@ -828,13 +828,13 @@ function NewsModalContent({ eventRisk }) {
               href={headline.url || undefined}
               target="_blank"
               rel="noreferrer"
-              className="block rounded-xl border border-ink/[0.06] bg-scrim/15 p-4 hover:bg-ink/[0.04]"
+              className="block rounded-xl border border-ink/[0.06] lq-well p-4 hover:bg-ink/[0.04]"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="max-w-3xl text-sm text-text-primary/85">{headline.title}</div>
+                <div className="max-w-3xl text-sm text-text-primary">{headline.title}</div>
                 <Badge tone={headline.impact}>{headline.impact || "watch"}</Badge>
               </div>
-              <div className="mt-2 text-[10px] font-mono text-text-primary/35">
+              <div className="mt-2 text-[10px] font-mono text-text-muted">
                 {headline.source || "News"} · {headline.topic_label || "Market"} ·{" "}
                 {headline.age_seconds != null
                   ? `${Math.round(Number(headline.age_seconds) / 60)}m ago`
@@ -843,23 +843,23 @@ function NewsModalContent({ eventRisk }) {
             </a>
           ))}
           {!headlines.length && (
-            <div className="text-sm text-text-primary/45">No headline detail available.</div>
+            <div className="text-sm text-text-muted">No headline detail available.</div>
           )}
         </div>
       </div>
       <div>
-        <h4 className="mb-3 text-sm font-semibold text-text-primary/85">Scheduled events</h4>
+        <h4 className="mb-3 text-sm font-semibold text-text-primary">Scheduled events</h4>
         <div className="grid gap-2 md:grid-cols-2">
           {events.map((event, index) => (
             <div
               key={`${event.title}-${index}`}
-              className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-4"
+              className="rounded-xl border border-ink/[0.06] lq-well p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="text-sm text-text-primary/85">{event.title}</div>
+                <div className="text-sm text-text-primary">{event.title}</div>
                 <Badge tone={event.impact}>{event.impact || "watch"}</Badge>
               </div>
-              <div className="mt-2 text-[10px] font-mono text-text-primary/35">
+              <div className="mt-2 text-[10px] font-mono text-text-muted">
                 {event.country || "Global"} ·{" "}
                 {event.scheduled_at ? new Date(event.scheduled_at).toLocaleString() : "time n/a"}
                 {event.forecast ? ` · forecast ${event.forecast}` : ""}
@@ -867,13 +867,13 @@ function NewsModalContent({ eventRisk }) {
             </div>
           ))}
           {!events.length && (
-            <div className="text-sm text-text-primary/45">No scheduled event detail available.</div>
+            <div className="text-sm text-text-muted">No scheduled event detail available.</div>
           )}
         </div>
       </div>
       {!!topics.length && (
         <div>
-          <h4 className="mb-3 text-sm font-semibold text-text-primary/85">Topic mix</h4>
+          <h4 className="mb-3 text-sm font-semibold text-text-primary">Topic mix</h4>
           <div className="flex flex-wrap gap-2">
             {topics.map((topic) => (
               <Badge key={topic.topic} tone={topic.impact || "neutral"}>
@@ -898,20 +898,20 @@ function LiquidityModalContent({ report }) {
       {row ? (
         <EvidenceRowDetail row={row} horizon="24h" />
       ) : (
-        <div className="text-sm text-text-primary/45">Liquidity row is unavailable.</div>
+        <div className="text-sm text-text-muted">Liquidity row is unavailable.</div>
       )}
       {liquidityEntries.length > 0 && (
         <div className={cx(mutedCard, "p-4")}>
-          <h4 className="mb-3 text-sm font-semibold text-text-primary/85">
+          <h4 className="mb-3 text-sm font-semibold text-text-primary">
             Additional liquidity detail
           </h4>
           <div className="grid gap-2 md:grid-cols-2">
             {liquidityEntries.map(([key, value]) => (
-              <div key={key} className="rounded-lg border border-ink/[0.05] bg-scrim/15 p-3">
-                <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-primary/30">
+              <div key={key} className="rounded-lg border border-ink/[0.05] lq-well p-3">
+                <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-muted">
                   {readable(key)}
                 </div>
-                <div className="mt-1 break-words font-mono text-sm text-text-primary/75">
+                <div className="mt-1 break-words font-mono text-sm text-text-primary">
                   {typeof value === "object" ? JSON.stringify(value) : String(value)}
                 </div>
               </div>
@@ -987,7 +987,7 @@ export default function CompassBrief({ report, dashboardHealth, operationalHealt
             Event risk {readable(eventRisk?.risk_level || "low")}
           </Badge>
         </div>
-        <div className="text-[11px] font-mono text-text-primary/35">
+        <div className="text-[11px] font-mono text-text-muted">
           Updated {formatRelative(report.timestamp)}
         </div>
       </section>
@@ -1014,10 +1014,10 @@ export default function CompassBrief({ report, dashboardHealth, operationalHealt
             <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
               Detail workspace
             </div>
-            <h2 className="mt-1 text-xl font-medium text-text-primary/90 md:text-2xl">
+            <h2 className="mt-1 text-xl font-medium text-text-primary md:text-2xl">
               Open only the layer you need
             </h2>
-            <p className="mt-1 text-xs leading-5 text-text-primary/40">
+            <p className="mt-1 text-xs leading-5 text-text-muted">
               The main read stays short. Drill into drivers, levels, news, risk, or holder context
               only when needed.
             </p>
@@ -1093,16 +1093,16 @@ export default function CompassBrief({ report, dashboardHealth, operationalHealt
             {risks.map((risk, index) => (
               <div key={`${risk.title}-${index}`} className={cx(mutedCard, "p-4")}>
                 <div className="flex items-start justify-between gap-3">
-                  <h4 className="text-base font-medium text-text-primary/85">{risk.title}</h4>
+                  <h4 className="text-base font-medium text-text-primary">{risk.title}</h4>
                   <Badge tone={risk.severity}>{risk.severity || "watch"}</Badge>
                 </div>
                 {risk.threshold && (
-                  <div className="mt-3 rounded-lg border border-ink/[0.06] bg-scrim/20 px-3 py-2 font-mono text-sm text-text-primary/70">
+                  <div className="mt-3 rounded-lg border border-ink/[0.06] lq-well px-3 py-2 font-mono text-sm text-text-secondary">
                     {risk.threshold}
                   </div>
                 )}
                 {risk.why_matters && (
-                  <p className="mt-3 text-sm leading-7 text-text-primary/50">{risk.why_matters}</p>
+                  <p className="mt-3 text-sm leading-7 text-text-secondary">{risk.why_matters}</p>
                 )}
               </div>
             ))}

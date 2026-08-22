@@ -4,7 +4,7 @@ const directionTone = {
   bullish: "border-profit/20 bg-profit/10 text-profit",
   bearish: "border-negative/20 bg-negative/10 text-loss",
   neutral: "border-accent/20 bg-accent/10 text-accent",
-  unavailable: "border-ink/10 bg-ink/5 text-text-primary/35",
+  unavailable: "border-ink/10 bg-ink/5 text-text-muted",
 };
 
 const healthTone = {
@@ -61,7 +61,7 @@ function StrengthBar({ value, direction }) {
     direction === "bullish" ? "#34d399" : direction === "bearish" ? "#f87171" : "#f5c451";
   return (
     <div className="min-w-[92px]">
-      <div className="flex items-center justify-between text-[10px] font-mono text-text-primary/45 mb-1">
+      <div className="flex items-center justify-between text-[10px] font-mono text-text-muted mb-1">
         <span>{formatPct(safe)}</span>
       </div>
       <div className="h-1.5 rounded-full bg-ink/5 overflow-hidden">
@@ -75,13 +75,13 @@ function StrengthBar({ value, direction }) {
 }
 
 function EvidenceList({ evidence }) {
-  if (!evidence?.length) return <span className="text-text-primary/30">No usable evidence</span>;
+  if (!evidence?.length) return <span className="text-text-muted">No usable evidence</span>;
   return (
     <div className="space-y-1">
       {evidence.slice(0, 3).map((item, index) => (
         <div key={`${item.metric}-${index}`} className="text-[11px] leading-relaxed">
-          <span className="text-text-primary/40">{item.metric}: </span>
-          <span className="font-mono text-text-primary/75">{item.value}</span>
+          <span className="text-text-muted">{item.metric}: </span>
+          <span className="font-mono text-text-primary">{item.value}</span>
         </div>
       ))}
     </div>
@@ -92,7 +92,7 @@ function SourceHealth({ source, health }) {
   const status = health?.status || "unavailable";
   return (
     <div>
-      <div className="text-[11px] text-text-primary/60">{source}</div>
+      <div className="text-[11px] text-text-secondary">{source}</div>
       <div
         className={`mt-1 text-[9px] font-mono uppercase ${healthTone[status] || healthTone.unavailable}`}
       >
@@ -106,7 +106,7 @@ function SourceHealth({ source, health }) {
 function ChangeNote({ changes, horizon }) {
   const detail = changes?.horizons?.[horizon];
   if (!changes?.changed || !detail) {
-    return <span className="text-[9px] font-mono text-text-primary/25">unchanged</span>;
+    return <span className="text-[9px] font-mono text-text-muted">unchanged</span>;
   }
   const parts = [];
   if (detail.direction_from) parts.push(`${detail.direction_from} →`);
@@ -123,12 +123,12 @@ function ChangeNote({ changes, horizon }) {
 
 function SummaryCard({ label, value, note, tone = "text-text-primary" }) {
   return (
-    <div className="rounded-xl border border-ink/5 bg-scrim/10 p-3.5">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+    <div className="rounded-xl border border-ink/5 lq-well-soft p-3.5">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
         {label}
       </div>
       <div className={`mt-2 text-lg font-mono font-semibold ${tone}`}>{value}</div>
-      <div className="mt-1 text-[10px] text-text-primary/35">{note}</div>
+      <div className="mt-1 text-[10px] text-text-muted">{note}</div>
     </div>
   );
 }
@@ -154,7 +154,7 @@ export default function EvidenceMatrixPanel({ data }) {
   if (!data) {
     return (
       <section className="rounded-xl border border-ink/5 bg-ink/[0.02] p-5">
-        <p className="text-sm text-text-primary/50">
+        <p className="text-sm text-text-secondary">
           Evidence matrix will appear after the next Compass report.
         </p>
       </section>
@@ -168,13 +168,13 @@ export default function EvidenceMatrixPanel({ data }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/70 mb-1">
             Phase 4 · Evidence audit
           </div>
-          <h2 className="text-xl text-text-primary/90 font-medium">Transparent Evidence Matrix</h2>
-          <p className="text-xs text-text-primary/45 mt-1 max-w-2xl">
+          <h2 className="text-xl text-text-primary font-medium">Transparent Evidence Matrix</h2>
+          <p className="text-xs text-text-muted mt-1 max-w-2xl">
             Deterministic evidence by horizon, including source health, conflicts, and changes. This
             matrix audits the verdict and cannot override it.
           </p>
         </div>
-        <div className="inline-flex rounded-lg border border-ink/5 bg-scrim/20 p-1">
+        <div className="inline-flex rounded-lg border border-ink/5 lq-well p-1">
           {["24h", "72h"].map((item) => (
             <button
               key={item}
@@ -183,7 +183,7 @@ export default function EvidenceMatrixPanel({ data }) {
               className={`rounded-md px-3 py-1.5 text-[10px] font-mono uppercase transition-colors ${
                 horizon === item
                   ? "bg-accent/15 text-accent"
-                  : "text-text-primary/35 hover:text-text-primary/60"
+                  : "text-text-muted hover:text-text-secondary"
               }`}
             >
               {item}
@@ -231,7 +231,7 @@ export default function EvidenceMatrixPanel({ data }) {
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono">
-        <span className="text-text-primary/35">
+        <span className="text-text-muted">
           {changedRows} of {rows.length} layers changed materially since the previous report
         </span>
         <span className="text-accent/60">decision authority: disabled</span>
@@ -239,7 +239,7 @@ export default function EvidenceMatrixPanel({ data }) {
 
       <div className="hidden md:block overflow-x-auto rounded-xl border border-ink/5">
         <table className="w-full min-w-[920px] text-left">
-          <thead className="bg-ink/[0.025] text-[9px] font-mono uppercase tracking-wider text-text-primary/35">
+          <thead className="bg-ink/[0.025] text-[9px] font-mono uppercase tracking-wider text-text-muted">
             <tr>
               <th className="px-4 py-3">Layer</th>
               <th className="px-4 py-3">Condition</th>
@@ -260,8 +260,8 @@ export default function EvidenceMatrixPanel({ data }) {
                   }`}
                 >
                   <td className="px-4 py-3">
-                    <div className="text-sm text-text-primary/80">{row.label}</div>
-                    <div className="mt-1 text-[9px] font-mono uppercase text-text-primary/30">
+                    <div className="text-sm text-text-primary">{row.label}</div>
+                    <div className="mt-1 text-[9px] font-mono uppercase text-text-muted">
                       {row.role.replaceAll("_", " ")}
                     </div>
                   </td>
@@ -275,7 +275,7 @@ export default function EvidenceMatrixPanel({ data }) {
                   </td>
                   <td className="px-4 py-3">
                     <StrengthBar value={item.strength} direction={item.direction} />
-                    <div className="mt-1 text-[9px] font-mono text-text-primary/25">
+                    <div className="mt-1 text-[9px] font-mono text-text-muted">
                       weight {Number(item.weight || 0).toFixed(2)}
                     </div>
                   </td>
@@ -284,7 +284,7 @@ export default function EvidenceMatrixPanel({ data }) {
                   </td>
                   <td className="px-4 py-3 max-w-[280px]">
                     <EvidenceList evidence={row.evidence} />
-                    <div className="mt-2 text-[10px] text-text-primary/35 leading-relaxed">
+                    <div className="mt-2 text-[10px] text-text-muted leading-relaxed">
                       {row.rationale}
                     </div>
                   </td>
@@ -307,13 +307,13 @@ export default function EvidenceMatrixPanel({ data }) {
               className={`rounded-xl border p-4 ${
                 conflicts.has(row.key)
                   ? "border-accent/15 bg-accent/[0.025]"
-                  : "border-ink/5 bg-scrim/10"
+                  : "border-ink/5 lq-well-soft"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm text-text-primary/80">{row.label}</div>
-                  <div className="mt-1 text-[9px] font-mono uppercase text-text-primary/30">
+                  <div className="text-sm text-text-primary">{row.label}</div>
+                  <div className="mt-1 text-[9px] font-mono uppercase text-text-muted">
                     {row.role.replaceAll("_", " ")}
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export default function EvidenceMatrixPanel({ data }) {
               <div className="mt-4">
                 <EvidenceList evidence={row.evidence} />
               </div>
-              <div className="mt-3 text-[10px] text-text-primary/35 leading-relaxed">
+              <div className="mt-3 text-[10px] text-text-muted leading-relaxed">
                 {row.rationale}
               </div>
               <div className="mt-3">

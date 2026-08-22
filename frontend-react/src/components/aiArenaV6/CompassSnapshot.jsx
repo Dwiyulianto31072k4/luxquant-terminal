@@ -92,7 +92,7 @@ function LevelMeter({ spot, target, invalidation }) {
               className="mt-[7px] h-[11px] w-[11px] rounded-full border-2 bg-surface-raised"
               style={{ borderColor: m.hex }}
             />
-            <span className="mt-1 font-mono text-[9px] tabular-nums text-text-muted/60">
+            <span className="mt-1 font-mono text-[9px] tabular-nums text-text-muted">
               {m.sub}
             </span>
           </div>
@@ -103,7 +103,7 @@ function LevelMeter({ spot, target, invalidation }) {
           className="absolute top-0 flex -translate-x-1/2 flex-col items-center transition-[left] duration-1000 ease-out"
           style={{ left: x(s) }}
         >
-          <span className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.14em] text-text-primary/70">
+          <span className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.14em] text-text-secondary">
             <span className="relative flex h-[5px] w-[5px]">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
               <span className="relative inline-flex h-[5px] w-[5px] rounded-full bg-profit" />
@@ -294,7 +294,7 @@ export default function CompassSnapshot({ className = "" }) {
               {isFinite(conf) ? <span className="opacity-80">{conf}%</span> : null}
             </span>
             {spot ? (
-              <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[12px] tabular-nums text-text-primary/80">
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[12px] tabular-nums text-text-primary">
                 <span className="relative flex h-[5px] w-[5px]">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
                   <span className="relative inline-flex h-[5px] w-[5px] rounded-full bg-profit" />
@@ -302,7 +302,7 @@ export default function CompassSnapshot({ className = "" }) {
                 {fmtUsd(spot)}
               </span>
             ) : null}
-            <span className="hidden whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/50 lg:inline">
+            <span className="hidden whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted lg:inline">
               report {timeAgo(updated)}
             </span>
           </span>
@@ -340,7 +340,7 @@ export default function CompassSnapshot({ className = "" }) {
               {target && invalidation && spot ? (
                 <LevelMeter spot={spot} target={target} invalidation={invalidation} />
               ) : (
-                <p className="text-[12px] text-text-muted/70">
+                <p className="text-[12px] text-text-muted">
                   Projection levels are not available in the latest read.
                 </p>
               )}
@@ -367,7 +367,7 @@ export default function CompassSnapshot({ className = "" }) {
           {/* ── driver detail: the numbers behind the 24h call ── */}
           {drivers.length > 0 && (
             <div className="mt-3 border-t border-ink/[0.05] pt-3">
-              <div className="mb-2 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">
+              <div className="mb-2 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted">
                 What's driving it — 24h drivers
               </div>
               <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
@@ -381,7 +381,7 @@ export default function CompassSnapshot({ className = "" }) {
                       className="min-w-0 rounded-md border border-ink/[0.05] bg-surface-secondary px-2.5 py-2"
                     >
                       <div className="flex items-center justify-between gap-1">
-                        <span className="truncate font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted/60">
+                        <span className="truncate font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted">
                           {r.label}
                         </span>
                         <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>
@@ -392,17 +392,17 @@ export default function CompassSnapshot({ className = "" }) {
                         <span className={`font-mono text-[11px] font-semibold ${m.text}`}>
                           {m.label}
                         </span>
-                        <span className="font-mono text-[9px] tabular-nums text-text-muted/50">
+                        <span className="font-mono text-[9px] tabular-nums text-text-muted">
                           {strengthPct}%
                         </span>
                       </div>
                       {ev ? (
                         <div
-                          className="mt-1 truncate font-mono text-[9.5px] tabular-nums text-text-muted/60"
+                          className="mt-1 truncate font-mono text-[9.5px] tabular-nums text-text-muted"
                           title={`${ev.metric}: ${ev.value ?? "—"}`}
                         >
                           {ev.metric}:{" "}
-                          <span className="text-text-primary/85">{ev.value ?? "—"}</span>
+                          <span className="text-text-primary">{ev.value ?? "—"}</span>
                         </div>
                       ) : null}
                     </div>
@@ -419,12 +419,12 @@ export default function CompassSnapshot({ className = "" }) {
                 <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-text-muted">
                   {isAnomaly ? "Triggered by" : "Why updated"}
                 </span>
-                <p className="min-w-0 flex-1 text-[11px] leading-4 text-text-muted/80">
+                <p className="min-w-0 flex-1 text-[11px] leading-4 text-text-muted">
                   {whatChanged || (triggerHuman ? `${triggerHuman}.` : "")}
                 </p>
               </div>
               {whatChanged && triggerHuman ? (
-                <p className="mt-1 pl-[52px] font-mono text-[9.5px] leading-4 text-text-muted/60">
+                <p className="mt-1 pl-[52px] font-mono text-[9.5px] leading-4 text-text-muted">
                   {triggerHuman}
                 </p>
               ) : null}

@@ -30,8 +30,8 @@ function severityStyle(severity) {
     return {
       label: "High",
       color: "rgb(var(--neg-text))",
-      bg: "rgba(239,68,68,0.08)",
-      border: "rgba(239,68,68,0.3)",
+      bg: "rgb(var(--neg) / 0.08)",
+      border: "rgb(var(--neg) / 0.3)",
       icon: "▲",
       dots: 3,
     };
@@ -40,8 +40,8 @@ function severityStyle(severity) {
     return {
       label: "Medium",
       color: "rgb(var(--accent-text))",
-      bg: "rgba(245,196,81,0.08)",
-      border: "rgba(245,196,81,0.3)",
+      bg: "rgb(var(--accent) / 0.08)",
+      border: "rgb(var(--accent) / 0.3)",
       icon: "◆",
       dots: 2,
     };
@@ -97,7 +97,7 @@ function ScenarioCard({ scenario }) {
             {style.icon}
           </span>
           <h3
-            className="text-base text-text-primary/90 leading-tight"
+            className="text-base text-text-primary leading-tight"
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
@@ -123,7 +123,7 @@ function ScenarioCard({ scenario }) {
       {/* Threshold (the trigger condition) */}
       {scenario.threshold && (
         <div className="mb-3">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">
             Trigger
           </div>
           <div
@@ -142,10 +142,10 @@ function ScenarioCard({ scenario }) {
       {/* Why it matters */}
       {scenario.why_matters && (
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">
             Why it matters
           </div>
-          <p className="text-xs text-text-primary/70 leading-relaxed">{scenario.why_matters}</p>
+          <p className="text-xs text-text-secondary leading-relaxed">{scenario.why_matters}</p>
         </div>
       )}
     </div>
@@ -160,7 +160,7 @@ export default function RiskWatch({ riskScenarios }) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-text-primary/90 mb-4"
+          className="text-2xl text-text-primary mb-4"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -170,7 +170,7 @@ export default function RiskWatch({ riskScenarios }) {
           Risk Watch
         </h2>
         <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-6 text-center">
-          <p className="text-text-primary/40 text-sm italic">
+          <p className="text-text-muted text-sm italic">
             No specific risk scenarios identified
           </p>
         </div>
@@ -204,7 +204,7 @@ export default function RiskWatch({ riskScenarios }) {
       <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-baseline gap-3">
           <h2
-            className="text-2xl text-text-primary/90"
+            className="text-2xl text-text-primary"
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
@@ -213,7 +213,7 @@ export default function RiskWatch({ riskScenarios }) {
           >
             Risk Watch
           </h2>
-          <span className="text-xs font-mono text-text-primary/40">
+          <span className="text-xs font-mono text-text-muted">
             What would invalidate the verdict
           </span>
         </div>
@@ -226,7 +226,7 @@ export default function RiskWatch({ riskScenarios }) {
             <span style={{ color: "rgb(var(--accent-text))" }}>◆ {severityCounts.med} medium</span>
           )}
           {severityCounts.low > 0 && (
-            <span className="text-text-primary/50">• {severityCounts.low} low</span>
+            <span className="text-text-secondary">• {severityCounts.low} low</span>
           )}
         </div>
       </div>
@@ -239,7 +239,7 @@ export default function RiskWatch({ riskScenarios }) {
       </div>
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-text-primary/30 font-mono leading-relaxed">
+      <p className="mt-3 text-[11px] text-text-muted font-mono leading-relaxed">
         Risk scenarios are AI's own pre-mortem — what would have to change for the current verdict
         to be wrong. Useful for proactive monitoring.
       </p>

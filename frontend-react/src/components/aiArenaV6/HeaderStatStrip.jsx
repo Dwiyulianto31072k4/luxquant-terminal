@@ -269,7 +269,7 @@ export default function HeaderStatStrip({ data }) {
           </span>
           {deltaPart && (
             <>
-              <span className="text-text-muted/40">·</span>
+              <span className="text-text-muted">·</span>
               <span className={deltaPart.color} title="vs AI verdict price">
                 {fmtPct(deltaPart.pct)} vs verdict
               </span>
@@ -308,7 +308,7 @@ export default function HeaderStatStrip({ data }) {
             {c._customSub ? (
               c._customSub
             ) : c.sublabel ? (
-              <div className="text-[9px] text-text-muted/80 truncate leading-tight">
+              <div className="text-[9px] text-text-muted truncate leading-tight">
                 {c.sublabel}
               </div>
             ) : null}

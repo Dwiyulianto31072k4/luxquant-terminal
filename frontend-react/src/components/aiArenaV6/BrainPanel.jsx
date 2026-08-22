@@ -166,7 +166,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
           </button>
         ))}
       </div>
-      <div className="absolute left-2.5 top-2.5 z-10 max-w-[calc(100%-4rem)] rounded-md border border-ink/[0.07] bg-scrim/40 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/70 backdrop-blur">
+      <div className="absolute left-2.5 top-2.5 z-10 max-w-[calc(100%-4rem)] rounded-md border border-ink/[0.07] lq-well px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted backdrop-blur">
         <span className="md:hidden">drag · pinch · tap</span>
         <span className="hidden md:inline">drag to pan · scroll to zoom · click a node</span>
       </div>
@@ -406,7 +406,7 @@ export default function BrainPanel() {
   if (!data?.available) {
     return (
       <Card className="p-8 text-center">
-        <div className="text-lg font-semibold text-text-primary/80">
+        <div className="text-lg font-semibold text-text-primary">
           The brain vault is still empty
         </div>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-text-muted">
@@ -480,7 +480,7 @@ export default function BrainPanel() {
               selected={selected}
               onSelect={setSelected}
             />
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] text-text-muted/70">
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] text-text-muted">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.profit }} />{" "}
                 favor
@@ -533,18 +533,18 @@ export default function BrainPanel() {
                     </span>
                   </Tile>
                   <Tile label="Scope">
-                    <span className="font-mono text-[12px] text-text-primary/80">
+                    <span className="font-mono text-[12px] text-text-primary">
                       {pretty(selectedLesson.regime)}
                     </span>
                   </Tile>
                   <Tile label="Updated">
-                    <span className="font-mono text-[12px] text-text-primary/80">
+                    <span className="font-mono text-[12px] text-text-primary">
                       {selectedLesson.updated || "—"}
                     </span>
                   </Tile>
                 </div>
                 {linkedPostmortems.length > 0 && (
-                  <p className="mt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/60">
+                  <p className="mt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
                     {linkedPostmortems.length} linked postmortems in the vault
                   </p>
                 )}
@@ -574,7 +574,7 @@ export default function BrainPanel() {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[13px] font-semibold text-text-primary/90">
+                      <span className="truncate text-[13px] font-semibold text-text-primary">
                         {pretty(String(lesson.id).replace(/^(bias|flag)_/, ""))}
                       </span>
                       <Tag tone={STATUS_TONE[String(lesson.status)] || "muted"}>
@@ -594,7 +594,7 @@ export default function BrainPanel() {
                         style={{ width: `${100 - winPct}%`, background: COLOR.loss, opacity: 0.7 }}
                       />
                     </div>
-                    <div className="mt-1.5 flex items-center justify-between font-mono text-[10px] text-text-muted/70">
+                    <div className="mt-1.5 flex items-center justify-between font-mono text-[10px] text-text-muted">
                       <span>
                         {lesson.wins}W / {lesson.losses}L · n={lesson.evidence_n}
                       </span>
@@ -629,10 +629,10 @@ export default function BrainPanel() {
                     className="flex items-center justify-between gap-3 rounded-lg border border-ink/[0.05] bg-surface-secondary px-3 py-2.5"
                   >
                     <div className="min-w-0">
-                      <div className="truncate font-mono text-[11px] text-text-primary/75">
+                      <div className="truncate font-mono text-[11px] text-text-primary">
                         {pm.id}
                       </div>
-                      <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted/60">
+                      <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted">
                         {pretty(pm.bias)} · {pretty(pm.market_mode)}
                       </div>
                     </div>
@@ -640,7 +640,7 @@ export default function BrainPanel() {
                       <div className="font-mono text-[12px] tabular-nums text-loss">
                         {pm.progress_to_target_pct ?? 0}%
                       </div>
-                      <div className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted/50">
+                      <div className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted">
                         to target
                       </div>
                     </div>

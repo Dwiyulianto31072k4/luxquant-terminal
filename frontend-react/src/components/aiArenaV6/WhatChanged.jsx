@@ -19,7 +19,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-text-primary/90 mb-4"
+          className="text-2xl text-text-primary mb-4"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -29,7 +29,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
           What Changed
         </h2>
         <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-6 text-center">
-          <p className="text-text-primary/40 text-sm italic">
+          <p className="text-text-muted text-sm italic">
             No previous report to compare against
           </p>
         </div>
@@ -59,7 +59,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
       {/* Header */}
       <div className="flex items-baseline justify-between mb-4">
         <h2
-          className="text-2xl text-text-primary/90"
+          className="text-2xl text-text-primary"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -68,7 +68,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
         >
           What Changed
         </h2>
-        <span className="text-xs font-mono text-text-primary/40 uppercase tracking-wider">
+        <span className="text-xs font-mono text-text-muted uppercase tracking-wider">
           {sinceLabel}
         </span>
       </div>
@@ -78,8 +78,8 @@ export default function WhatChanged({ whatChanged, timestamp }) {
         className="rounded-xl p-5 relative overflow-hidden"
         style={{
           background:
-            "linear-gradient(135deg, rgba(245,196,81,0.04) 0%, rgb(var(--ink) / 0.02) 100%)",
-          border: "1px solid rgba(245,196,81,0.15)",
+            "linear-gradient(135deg, rgb(var(--accent) / 0.04) 0%, rgb(var(--ink) / 0.02) 100%)",
+          border: "1px solid rgb(var(--accent) / 0.15)",
         }}
       >
         {/* Decorative arrow icon */}
@@ -87,7 +87,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
           <div
             className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5"
             style={{
-              backgroundColor: "rgba(245,196,81,0.12)",
+              backgroundColor: "rgb(var(--accent) / 0.12)",
               color: "rgb(var(--accent-text))",
             }}
           >
@@ -105,12 +105,12 @@ export default function WhatChanged({ whatChanged, timestamp }) {
               <polyline points="12 5 19 12 12 19" />
             </svg>
           </div>
-          <p className="text-base text-text-primary/85 leading-relaxed flex-1">{whatChanged}</p>
+          <p className="text-base text-text-primary leading-relaxed flex-1">{whatChanged}</p>
         </div>
       </div>
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-text-primary/30 font-mono">
+      <p className="mt-3 text-[11px] text-text-muted font-mono">
         Diff produced by LuxQuant AI comparing previous and current verdicts
       </p>
     </section>

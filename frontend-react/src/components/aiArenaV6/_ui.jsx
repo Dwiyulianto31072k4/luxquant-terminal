@@ -191,7 +191,7 @@ export const SectionHeader = ({ label, right, className = "" }) => (
 
 export const Eyebrow = ({ children, className = "" }) => (
   <p
-    className={`font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70 ${className}`}
+    className={`font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted ${className}`}
   >
     {children}
   </p>
@@ -219,7 +219,7 @@ export const Tile = ({ label, children, className = "" }) => (
     className={`rounded-lg border border-ink/[0.05] bg-surface-secondary px-3.5 py-3 ${className}`}
   >
     {label && (
-      <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70">{label}</p>
+      <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted">{label}</p>
     )}
     <div className="mt-1.5">{children}</div>
   </div>
@@ -308,7 +308,7 @@ export const ConfidenceMeter = ({ value = 0, dir = "up" }) => {
           }}
         />
       </div>
-      <div className="mt-1.5 flex justify-between font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted/50">
+      <div className="mt-1.5 flex justify-between font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted">
         <span>Low</span>
         <span>Moderate</span>
         <span>High</span>
@@ -370,7 +370,7 @@ export const StanceGauge = ({ value = 0, dir = "up", size = 168 }) => {
         <div className={`font-mono text-3xl font-light tabular-nums ${meta.text}`}>
           {isFinite(Number(value)) ? `${Math.round(pct)}%` : "—"}
         </div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/60">
+        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
           {confLevel(pct).short} confidence
         </div>
       </div>
@@ -453,7 +453,7 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
                 {fmtUsd(row.price)}
               </div>
             </div>
-            <div className="shrink-0 font-mono text-[10px] tabular-nums text-text-muted/70">
+            <div className="shrink-0 font-mono text-[10px] tabular-nums text-text-muted">
               {row.sub}
             </div>
           </div>
@@ -471,7 +471,7 @@ export const SignalBar = ({ label, direction, strength = 0, weight, detail }) =>
   return (
     <div className="rounded-lg border border-ink/[0.05] bg-surface-secondary px-3.5 py-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="truncate text-[13px] font-medium text-text-primary/90">{label}</span>
+        <span className="truncate text-[13px] font-medium text-text-primary">{label}</span>
         <span className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] ${meta.text}`}>
           {meta.label} · {pct}%
         </span>
@@ -507,9 +507,9 @@ export const SignalBar = ({ label, direction, strength = 0, weight, detail }) =>
         )}
       </div>
       <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className="truncate font-mono text-[10px] text-text-muted/60">{detail || ""}</span>
+        <span className="truncate font-mono text-[10px] text-text-muted">{detail || ""}</span>
         {weight != null && (
-          <span className="shrink-0 font-mono text-[10px] text-text-muted/50">
+          <span className="shrink-0 font-mono text-[10px] text-text-muted">
             w {Number(weight).toFixed(2)}
           </span>
         )}
@@ -540,10 +540,10 @@ export const OutcomeBar = ({ segments = [] }) => {
         {segments.map((s) => (
           <span
             key={s.label}
-            className="inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted/70"
+            className="inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted"
           >
             <span className="h-2 w-2 rounded-[3px]" style={{ background: s.hex }} />
-            {s.label} <span className="text-text-primary/75">{s.value}</span>
+            {s.label} <span className="text-text-primary">{s.value}</span>
           </span>
         ))}
       </div>
@@ -579,7 +579,7 @@ export const GhostButton = ({ children, className = "", size = "md", ...rest }) 
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-ink/[0.1] bg-ink/[0.03] font-medium leading-none text-text-primary/70 transition hover:border-ink/20 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-ink/[0.1] bg-ink/[0.03] font-medium leading-none text-text-secondary transition hover:border-ink/20 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}
@@ -633,7 +633,7 @@ export const Donut = ({ segments = [], size = 150, thickness = 13, centerValue, 
           {centerValue}
         </span>
         {centerLabel && (
-          <span className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/70">
+          <span className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted">
             {centerLabel}
           </span>
         )}
@@ -645,7 +645,7 @@ export const Donut = ({ segments = [], size = 150, thickness = 13, centerValue, 
 /* ═══════════════ controls ═══════════════ */
 
 export const Segmented = ({ options, value, onChange }) => (
-  <div className="inline-flex gap-0.5 rounded-lg border border-ink/[0.07] bg-scrim/25 p-0.5">
+  <div className="inline-flex gap-0.5 rounded-lg border border-ink/[0.07] lq-well p-0.5">
     {options.map((o) => (
       <button
         key={o.value}
@@ -653,7 +653,7 @@ export const Segmented = ({ options, value, onChange }) => (
         className={`rounded-md px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
           value === o.value
             ? "bg-ink/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgb(var(--ink)_/_0.1)]"
-            : "text-text-muted/60 hover:text-text-primary"
+            : "text-text-muted hover:text-text-primary"
         }`}
       >
         {o.label}

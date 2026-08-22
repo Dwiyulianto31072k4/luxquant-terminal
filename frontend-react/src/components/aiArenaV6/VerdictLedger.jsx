@@ -215,7 +215,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                 Tracking{" "}
                 <span className="font-semibold text-text-primary">{stats.pending ?? 0}</span>
               </div>
-              <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted/55">
+              <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted">
                 Target-first schema
               </div>
             </div>
@@ -309,25 +309,25 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                   key={item.projection_id || item.report_id}
                   className="border-b border-ink/[0.045] transition hover:bg-ink/[0.03]"
                 >
-                  <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-text-muted/60">
+                  <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-text-muted">
                     {start + index + 1}
                   </td>
                   <td className="px-4 py-4 align-top">
-                    <div className="truncate font-mono text-xs text-text-primary/80">
+                    <div className="truncate font-mono text-xs text-text-primary">
                       {item.report_id || "-"}
                     </div>
-                    <div className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted/50">
+                    <div className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
                       {item.projection_id || "-"}
                     </div>
                   </td>
-                  <td className="px-4 py-4 align-top font-mono text-xs text-text-primary/60">
+                  <td className="px-4 py-4 align-top font-mono text-xs text-text-secondary">
                     {formatTimestamp(item.issued_at)}
                   </td>
                   <td className="px-4 py-4 align-top">
                     <div className={cx("text-sm font-semibold", biasTone(item.primary_bias))}>
                       {projected.title}
                     </div>
-                    <div className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-text-muted/50">
+                    <div className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-text-muted">
                       {projected.meta}
                     </div>
                   </td>
@@ -341,13 +341,13 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                       {result.label}
                     </span>
                     {result.meta && (
-                      <div className="mt-2 font-mono text-[10.5px] leading-4 text-text-muted/60">
+                      <div className="mt-2 font-mono text-[10.5px] leading-4 text-text-muted">
                         {result.meta}
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-4 align-top">
-                    <p className="text-[13px] leading-6 text-text-primary/60">
+                    <p className="text-[13px] leading-6 text-text-secondary">
                       {highlightPrices(buildExplanation(item))}
                     </p>
                     {!!(item.key_risks || []).length && !item.resolution && (
@@ -375,14 +375,14 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="font-mono text-[11px] tabular-nums text-text-muted/50">
+                  <span className="font-mono text-[11px] tabular-nums text-text-muted">
                     #{start + index + 1}
                   </span>
-                  <span className="truncate font-mono text-[11px] text-text-primary/70">
+                  <span className="truncate font-mono text-[11px] text-text-secondary">
                     {item.report_id || "-"}
                   </span>
                 </div>
-                <span className="shrink-0 font-mono text-[10px] text-text-muted/60">
+                <span className="shrink-0 font-mono text-[10px] text-text-muted">
                   {formatTimestamp(item.issued_at)}
                 </span>
               </div>
@@ -397,7 +397,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                   >
                     {projected.title}
                   </div>
-                  <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-text-muted/50">
+                  <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-text-muted">
                     {projected.meta}
                   </div>
                 </div>
@@ -412,12 +412,12 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               </div>
 
               {result.meta && (
-                <div className="mt-2 font-mono text-[10px] leading-4 text-text-muted/60">
+                <div className="mt-2 font-mono text-[10px] leading-4 text-text-muted">
                   {result.meta}
                 </div>
               )}
 
-              <p className="mt-2 text-[12.5px] leading-5 text-text-primary/55">
+              <p className="mt-2 text-[12.5px] leading-5 text-text-secondary">
                 {highlightPrices(buildExplanation(item))}
               </p>
 
@@ -433,7 +433,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
 
       {!visible.length && !loading && (
         <div className="p-10 text-center">
-          <div className="text-lg font-semibold text-text-primary/80">No evaluation rows yet</div>
+          <div className="text-lg font-semibold text-text-primary">No evaluation rows yet</div>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-text-muted">
             The next BTC Compass scenario will create a projection row here, then the resolver will
             mark it pending, hit, or invalidated based on the first barrier.
@@ -443,7 +443,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
 
       {/* ── footer / pagination ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] px-4 py-4 md:px-5">
-        <p className="max-w-2xl text-[11px] leading-5 text-text-muted/50">
+        <p className="max-w-2xl text-[11px] leading-5 text-text-muted">
           This table uses the new Compass 2.0 rulebook only. Old fixed-horizon history is not mixed
           into this scorecard.
         </p>
@@ -455,7 +455,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           >
             ← Prev
           </GhostButton>
-          <span className="font-mono text-[11px] tabular-nums text-text-muted/70">
+          <span className="font-mono text-[11px] tabular-nums text-text-muted">
             Page {page} / {pageCount}
           </span>
           <GhostButton
