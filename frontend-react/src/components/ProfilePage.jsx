@@ -19,6 +19,7 @@ import { ensureTelegram, openTelegramAuth } from "../utils/telegramLoader";
 import CountryCurrencyPicker from "./CountryCurrencyPicker";
 import VipGroupCard from "./VipGroupCard";
 import { ThemeAppearancePicker } from "./ThemeToggle";
+import LanguagePicker from "./LanguagePicker";
 import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
 
 // ─── Lazy-load Google Identity Services — hanya saat dibutuhkan ───
@@ -669,6 +670,21 @@ const ProfilePage = () => {
             </div>
           </Section>
         ) : null}
+
+        {/* Language — set here and in the avatar menu; it used to be a
+            permanent pill in the header, which is a lot of chrome for a
+            setting chosen once. */}
+        <Section id="language" title={t("userMenu.language", "Language")}>
+          <div className="p-5">
+            <p className="mb-4 text-[13px] leading-relaxed text-text-muted">
+              {t(
+                "profile.language_desc",
+                "The language LuxQuant is written in. Applies instantly, everywhere."
+              )}
+            </p>
+            <LanguagePicker showHeading={false} />
+          </div>
+        </Section>
 
         {/* Display preferences */}
         <Section

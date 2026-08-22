@@ -8,10 +8,11 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import HelpSupportModal from "../HelpSupportModal";
 import { ThemeAppearancePicker } from "../ThemeToggle";
+import LanguagePicker from "../LanguagePicker";
 import api from "../../services/authApi";
 
 const UserMenu = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, logout, isAuthenticated } = useAuth();
   const { canSwitchTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
@@ -190,7 +191,7 @@ const UserMenu = () => {
             isClosing ? "um-exit" : "um-enter"
           }`}
         >
-          {panel === "appearance" ? (
+          {panel === "appearance" || panel === "language" ? (
             <>
               <div className="flex items-center gap-1 border-b border-ink/[0.06] px-2 py-2">
                 <button
@@ -201,11 +202,17 @@ const UserMenu = () => {
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
-                  {t("userMenu.appearance", { defaultValue: "Appearance" })}
+                  {panel === "language"
+                    ? t("userMenu.language", { defaultValue: "Language" })
+                    : t("userMenu.appearance", { defaultValue: "Appearance" })}
                 </button>
               </div>
               <div className="max-h-[min(60vh,360px)] overflow-y-auto px-2 py-2">
-                <ThemeAppearancePicker showHeading={false} variant="list" />
+                {panel === "language" ? (
+                  <LanguagePicker showHeading={false} />
+                ) : (
+                  <ThemeAppearancePicker showHeading={false} variant="list" />
+                )}
               </div>
             </>
           ) : (
@@ -303,6 +310,20 @@ const UserMenu = () => {
                     }
                   />
                 ) : null}
+                <Row
+                  label={t("userMenu.language", { defaultValue: "Language" })}
+                  onClick={() => setPanel("language")}
+                  trailing={
+                    <span className="flex items-center gap-1.5 text-text-muted">
+                      <span className="font-mono text-[11px] uppercase tracking-wider">
+                        {i18n.language?.startsWith("zh") ? "中文" : "EN"}
+                      </span>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  }
+                />
                 <Row
                   label={t("userMenu.subs_billing", { defaultValue: "Subscription" })}
                   onClick={() => go("/pricing")}

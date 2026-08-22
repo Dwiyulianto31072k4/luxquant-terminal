@@ -486,7 +486,7 @@ const SidebarItem = ({
 // APP SHELL
 // ════════════════════════════════════════
 function AppShell({ children }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -867,22 +867,9 @@ function AppShell({ children }) {
                 active={isActive("/referral")}
                 onClick={() => handleNav("/referral")}
               />
-              {/* EN/ZH toggle — Flowscan filter pill */}
-              <div className="flex items-center gap-0.5 p-0.5 mr-1 rounded-sm bg-ink/[0.03] border border-ink/[0.06]">
-                {["en", "zh"].map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => i18n.changeLanguage(lang)}
-                    className={`px-2 py-1 font-mono text-[10px] uppercase tracking-wider rounded-sm transition-colors ${
-                      i18n.language?.startsWith(lang)
-                        ? "bg-ink/10 text-text-primary border border-ink/[0.08]"
-                        : "text-text-muted hover:text-text-primary border border-transparent"
-                    }`}
-                  >
-                    {lang.toUpperCase()}
-                  </button>
-                ))}
-              </div>
+              {/* Language moved to the avatar menu and Profile → it is set once,
+                  and permanent header chrome for it was crowding the controls
+                  people actually press, mobile especially. */}
               <NotificationBell />
               <UserMenu />
             </div>
