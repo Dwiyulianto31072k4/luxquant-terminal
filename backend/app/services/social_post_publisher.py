@@ -34,7 +34,52 @@ class PublishResult:
     error: Optional[str] = None
 
 
+# The site link, with the attribution the rest of the system now carries.
+# X shortens every href to t.co, so the query string costs the reader nothing
+# and costs us 23 characters flat however long it is.
+X_POST_LINK = (
+    "https://luxquant.tw/crypto-news"
+    "?utm_source=x&utm_medium=post&utm_campaign=social-news&utm_content=news-card"
+)
+
+
+def _compose_for_x(row: dict, limit: int = 280) -> str:
+    """A post written for X, not a Telegram caption cut down to fit.
+
+    The captions this pipeline generates run 900-1,500 characters because they
+    are written for Telegram. Truncating one to 280 put the ellipsis at about
+    character 277 and the CTA at character 934 — measured across all 14 drafts,
+    the link was cut off 14 times out of 14. Every one of them shipped a call to
+    action nobody could see.
+
+    So X gets the headline, which is already the one-line version of the story,
+    plus the link. That lands around 80-110 characters, which is also where this
+    account's own numbers say reach lives: posts under 120 characters measured
+    2.7x the reach of posts over 200.
+
+    Telegram keeps the long caption — see _publish_telegram. One text cannot
+    serve two platforms whose limits differ by a factor of four.
+    """
+    headline = (row.get("headline") or "").strip()
+    caption = (row.get("caption") or "").strip()
+    lead = headline or caption.split("\n", 1)[0].strip()
+
+    tags = " ".join((row.get("hashtags") or [])[:2]).strip()
+    parts = [p for p in (lead, X_POST_LINK, tags) if p]
+    text_value = "\n\n".join(parts)
+
+    if len(text_value) <= limit:
+        return text_value
+
+    # Trim the lead, never the link — losing the link is the failure this
+    # function exists to prevent.
+    fixed = "\n\n".join(p for p in (X_POST_LINK, tags) if p)
+    room = max(40, limit - len(fixed) - 2)
+    return f"{lead[:room].rstrip()}…\n\n{fixed}"[:limit]
+
+
 def _truncate_for_x(caption: str, hashtags: list[str], limit: int = 280) -> str:
+    """Kept for callers outside the news path; new code uses _compose_for_x."""
     caption = (caption or "").strip()
     tags = " ".join(hashtags[:4]).strip()
 
@@ -90,7 +135,7 @@ def _upload_x_media(auth, image_path: Optional[str]) -> Optional[str]:
 def _publish_x(row: dict) -> str:
     auth = _x_auth()
     media_id = _upload_x_media(auth, row.get("image_path"))
-    tweet_text = _truncate_for_x(row.get("caption") or row.get("headline") or "", row.get("hashtags") or [])
+    tweet_text = _compose_for_x(row)
 
     payload = {"text": tweet_text}
     if media_id:
