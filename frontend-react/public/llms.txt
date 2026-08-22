@@ -4,7 +4,7 @@
 Site: https://luxquant.tw
 Brand: LuxQuant / LuxQuant Terminal
 Founded: 2023
-Contact: https://x.com/luxquantapp · https://t.me/LuxQuantSignal
+Contact: https://x.com/luxquantalgo · https://t.me/LuxQuantSignal
 
 ## Primary pages
 - [Homepage](https://luxquant.tw/): Product overview, track-record proof, FAQ

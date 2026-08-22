@@ -108,7 +108,7 @@ def _publish_x(row: dict) -> str:
     tweet_id = resp.json().get("data", {}).get("id")
     if not tweet_id:
         raise RuntimeError("X tweet create did not return tweet id")
-    handle = os.getenv("X_ACCOUNT_HANDLE", "luxquantcrypto").lstrip("@") or "luxquantcrypto"
+    handle = os.getenv("X_ACCOUNT_HANDLE", "luxquantalgo").lstrip("@") or "luxquantalgo"
     return f"https://x.com/{handle}/status/{tweet_id}"
 
 

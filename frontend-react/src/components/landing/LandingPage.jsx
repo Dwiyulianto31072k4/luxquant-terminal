@@ -2445,7 +2445,7 @@ const LandingPage = () => {
 
                 {/* Twitter / X */}
                 <a
-                  href="https://x.com/luxquantcrypto"
+                  href="https://x.com/luxquantalgo"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-ink/[0.06] hover:border-ink/12 transition-all"
@@ -2464,7 +2464,7 @@ const LandingPage = () => {
                       Twitter / X
                     </p>
                     <p className="text-text-muted text-[11px] font-mono truncate">
-                      @luxquantcrypto
+                      @luxquantalgo
                     </p>
                   </div>
                   <svg

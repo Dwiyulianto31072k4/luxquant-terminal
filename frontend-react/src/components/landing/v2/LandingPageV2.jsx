@@ -175,7 +175,7 @@ export default function LandingPageV2() {
               width: 512,
               height: 512,
             },
-            sameAs: ["https://x.com/luxquantapp", "https://t.me/LuxQuantSignal"],
+            sameAs: ["https://x.com/luxquantalgo", "https://t.me/LuxQuantSignal"],
             knowsAbout: [
               "cryptocurrency trading",
               "algorithmic trading signals",

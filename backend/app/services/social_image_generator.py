@@ -588,7 +588,7 @@ CARD_CTA_LEAD = os.environ.get(
     "SOCIAL_CTA_LEAD", "Read daily crypto & finance news at"
 )
 CARD_DOMAIN = os.environ.get("SOCIAL_CARD_DOMAIN", "luxquant.tw")
-CARD_HANDLE = os.environ.get("SOCIAL_CARD_HANDLE", "@luxquantcrypto")
+CARD_HANDLE = os.environ.get("SOCIAL_CARD_HANDLE", "@luxquantalgo")
 # The lockup's box, shared by every card we publish. The nine render_*.py signal
 # cards already sit at these numbers (measured on the rendered PNGs, not read off
 # the CSS), so the news poster and the caption slide adopt them: in a 3-wide
