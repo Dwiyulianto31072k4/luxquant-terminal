@@ -1589,11 +1589,18 @@ def _compose_editorial_card(
         # ~340-500px is free once the logo lockup is placed, so the rungs are
         # spaced to actually land somewhere useful instead of falling straight
         # past every one of them to the shortest.
-        (c for c in (CARD_CTA_LEAD,
-                     "Algo-backed calls, news and 20+ tools at",
-                     "Algo-backed calls and 20+ tools at",
-                     "Algo-backed calls + 20+ tools at",
-                     "Algo-backed crypto calls at")
+        # Every rung keeps the word "news" until the very last one. Dropping it
+        # is fine on a signals card and wrong on a news card: the reader is
+        # looking at a news poster, and a CTA that never mentions news reads as
+        # though it belongs to a different post. Widths measured against the
+        # real font — room on a 1080 card is ~430-500px once the lockup is set.
+        (c for c in (CARD_CTA_LEAD,                                  # 718px
+                     "Algo-backed calls, news and 20+ tools at",     # 509px
+                     "Algo-backed calls, news + 20+ tools at",       # 481px
+                     "Calls, news and 20+ market tools at",          # 447px
+                     "Algo calls, news and 20+ tools at",            # 411px
+                     "Algo calls, news + 20+ tools at",              # 384px
+                     "Algo-backed crypto calls at")                  # 336px
          if sd.textlength(c, font=f_cta) <= room),
         "Algo-backed crypto calls at",
     )
