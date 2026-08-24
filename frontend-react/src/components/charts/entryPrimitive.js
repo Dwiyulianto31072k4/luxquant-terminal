@@ -82,17 +82,24 @@ class EntryPaneRenderer {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // ── the arrow at the entry point ────────────────────────────────────
-      // Below the price pointing up for a long, above it pointing down for a
+      // ── the arrow at the entry bar ──────────────────────────────────────
+      // Below the bar pointing up for a long, above it pointing down for a
       // short — the marker traders already read on every other platform.
       // A dot was tried first and was the wrong shape for the job: it sits
       // exactly on the ENTRY price line, which is the same gold, so it read as
       // a thicker piece of the line rather than a mark of its own.
-      const y = src._price == null ? null : series.priceToCoordinate(src._price);
       const up = src._dir !== "short";
       const sign = up ? 1 : -1;
-      // Measured from the price outwards, so the arrow never covers the candle
-      // it is pointing at.
+
+      // Anchored to the bar's low (or high, for a short) rather than to the
+      // entry price. The entry usually falls *inside* the bar that filled it,
+      // so anchoring to the price parked the arrow on top of the candle it is
+      // meant to point at and hid the very thing the reader came to see.
+      // Clearing the wick keeps the bar whole.
+      const anchor = up
+        ? src._low ?? src._price
+        : src._high ?? src._price;
+      const y = anchor == null ? null : series.priceToCoordinate(anchor);
       const tipY = y == null ? null : y + sign * 7;
       const headY = tipY == null ? null : tipY + sign * 8;
       const tailY = headY == null ? null : headY + sign * 7;
@@ -196,6 +203,8 @@ export class EntryPrimitive {
     this._price = null;
     this._stamp = "";
     this._dir = "long";
+    this._low = null;
+    this._high = null;
     this._color = "rgb(240,185,11)";
     this._labelText = "#101010";
     this._paneViews = [new EntryPaneView(this)];
@@ -215,16 +224,22 @@ export class EntryPrimitive {
   }
 
   /**
-   * @param {{time: number|null, price: number|null, stamp: string, dir: "long"|"short"}} entry
+   * @param {{time: number|null, price: number|null, stamp: string,
+   *   dir: "long"|"short", low: number|null, high: number|null}} entry
    *   `time` is the candle bucket the entry falls in, not the raw timestamp:
    *   the chart can only place a coordinate on a bar it actually has, and the
    *   bar containing the entry is the honest answer at any timeframe.
+   *   `low`/`high` are that bar's extremes — the arrow hangs off them so it
+   *   never covers the candle. `price` still positions nothing on its own; it
+   *   is the fallback when the bar is not in the loaded window.
    */
   setEntry(entry) {
     this._time = entry?.time ?? null;
     this._price = entry?.price ?? null;
     this._stamp = entry?.stamp || "";
     this._dir = entry?.dir === "short" ? "short" : "long";
+    this._low = entry?.low ?? null;
+    this._high = entry?.high ?? null;
     this._requestUpdate?.();
   }
 

@@ -413,17 +413,22 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
     // a bar boundary. Out of range on purpose stays unsnapped — the primitive
     // pins those to the edge and marks which way they lie, which is more
     // honest than drawing them on the first bar as if they happened there.
-    let bucket = null;
+    let bar = null;
     for (let i = candles.length - 1; i >= 0; i -= 1) {
       if (candles[i].time <= at) {
-        bucket = candles[i].time;
+        bar = candles[i];
         break;
       }
     }
 
     prim.setEntry({
-      time: bucket ?? at,
+      time: bar?.time ?? at,
       price: num(signal?.entry),
+      // The bar's extremes, so the arrow can hang off the candle instead of
+      // landing on it — an entry price nearly always sits inside the bar that
+      // filled it.
+      low: bar?.low ?? null,
+      high: bar?.high ?? null,
       // The stamp is the entry instant, not the bar it fell in, so it matches
       // the side panel to the minute.
       stamp: fmtLocalStamp(at),
