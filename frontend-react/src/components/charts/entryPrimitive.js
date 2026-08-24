@@ -89,15 +89,15 @@ class EntryPaneRenderer {
       // exactly on the ENTRY price line, which is the same gold, so it read as
       // a thicker piece of the line rather than a mark of its own.
       const y = src._price == null ? null : series.priceToCoordinate(src._price);
-      if (y != null && !offLeft && !offRight) {
-        const up = src._dir !== "short";
-        const sign = up ? 1 : -1;
-        // Measured from the price outwards, so the arrow never covers the
-        // candle it is pointing at.
-        const tipY = y + sign * 7;
-        const headY = tipY + sign * 8;
-        const tailY = headY + sign * 7;
+      const up = src._dir !== "short";
+      const sign = up ? 1 : -1;
+      // Measured from the price outwards, so the arrow never covers the candle
+      // it is pointing at.
+      const tipY = y == null ? null : y + sign * 7;
+      const headY = tipY == null ? null : tipY + sign * 8;
+      const tailY = headY == null ? null : headY + sign * 7;
 
+      if (y != null && !offLeft && !offRight) {
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(x, tipY);
@@ -120,13 +120,23 @@ class EntryPaneRenderer {
       }
 
       // ── the flag ────────────────────────────────────────────────────────
+      // It used to sit at the top of the pane, which put the word ENTRY a
+      // whole chart's height away from the point it names — on a tall pane the
+      // two read as unrelated. It travels with the arrow instead: just past
+      // the tail, so the label, the arrow and the price are one object.
       const text = offLeft ? `◀ ${FLAG_TEXT}` : offRight ? `${FLAG_TEXT} ▶` : FLAG_TEXT;
       const padX = 5;
       const boxW = ctx.measureText(text).width + padX * 2;
       const boxH = 15;
-      const boxY = 6;
-      // Flip to the other side rather than let the flag fall off the pane.
-      const boxX = x + 4 + boxW > mediaSize.width ? x - 4 - boxW : x + 4;
+
+      // Centred on the line under the arrow; falls back to mid-pane only when
+      // there is no price to anchor to.
+      const anchorY = tailY == null ? mediaSize.height / 2 : tailY + sign * 4;
+      const boxY = Math.min(
+        Math.max(anchorY - (up ? 0 : boxH), 2),
+        mediaSize.height - boxH - 2
+      );
+      const boxX = Math.min(Math.max(x - boxW / 2, 2), mediaSize.width - boxW - 2);
 
       ctx.fillStyle = src._color;
       panel(ctx, boxX, boxY, boxW, boxH, 2);
