@@ -82,27 +82,41 @@ class EntryPaneRenderer {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // ── the dot where the entry price crosses it ────────────────────────
-      // This lands exactly on the ENTRY price line, which is the same gold, so
-      // a plain gold dot disappears into it. The dark ring is what separates
-      // them: it reads as a pin on the line rather than a thicker piece of it.
+      // ── the arrow at the entry point ────────────────────────────────────
+      // Below the price pointing up for a long, above it pointing down for a
+      // short — the marker traders already read on every other platform.
+      // A dot was tried first and was the wrong shape for the job: it sits
+      // exactly on the ENTRY price line, which is the same gold, so it read as
+      // a thicker piece of the line rather than a mark of its own.
       const y = src._price == null ? null : series.priceToCoordinate(src._price);
       if (y != null && !offLeft && !offRight) {
-        ctx.fillStyle = withAlpha(src._color, 0.20);
-        ctx.beginPath();
-        ctx.arc(x, y, 7.5, 0, Math.PI * 2);
-        ctx.fill();
+        const up = src._dir !== "short";
+        const sign = up ? 1 : -1;
+        // Measured from the price outwards, so the arrow never covers the
+        // candle it is pointing at.
+        const tipY = y + sign * 7;
+        const headY = tipY + sign * 8;
+        const tailY = headY + sign * 7;
 
-        ctx.strokeStyle = withAlpha(src._labelText, 0.95);
-        ctx.lineWidth = 2.5;
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(x, y, 4.25, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.moveTo(x, tipY);
+        ctx.lineTo(x - 5.5, headY);
+        ctx.lineTo(x - 1.75, headY);
+        ctx.lineTo(x - 1.75, tailY);
+        ctx.lineTo(x + 1.75, tailY);
+        ctx.lineTo(x + 1.75, headY);
+        ctx.lineTo(x + 5.5, headY);
+        ctx.closePath();
 
+        // Outline in the on-accent ink so the arrow keeps its shape against a
+        // candle of any colour, including gold-on-gold over the entry line.
         ctx.fillStyle = src._color;
-        ctx.beginPath();
-        ctx.arc(x, y, 3.25, 0, Math.PI * 2);
+        ctx.strokeStyle = withAlpha(src._labelText, 0.9);
+        ctx.lineWidth = 1.25;
         ctx.fill();
+        ctx.stroke();
+        ctx.restore();
       }
 
       // ── the flag ────────────────────────────────────────────────────────
@@ -171,6 +185,7 @@ export class EntryPrimitive {
     this._time = null;
     this._price = null;
     this._stamp = "";
+    this._dir = "long";
     this._color = "rgb(240,185,11)";
     this._labelText = "#101010";
     this._paneViews = [new EntryPaneView(this)];
@@ -190,7 +205,7 @@ export class EntryPrimitive {
   }
 
   /**
-   * @param {{time: number|null, price: number|null, stamp: string}} entry
+   * @param {{time: number|null, price: number|null, stamp: string, dir: "long"|"short"}} entry
    *   `time` is the candle bucket the entry falls in, not the raw timestamp:
    *   the chart can only place a coordinate on a bar it actually has, and the
    *   bar containing the entry is the honest answer at any timeframe.
@@ -199,6 +214,7 @@ export class EntryPrimitive {
     this._time = entry?.time ?? null;
     this._price = entry?.price ?? null;
     this._stamp = entry?.stamp || "";
+    this._dir = entry?.dir === "short" ? "short" : "long";
     this._requestUpdate?.();
   }
 

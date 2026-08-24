@@ -6,7 +6,20 @@ import {
   LineStyle,
   CrosshairMode,
 } from "lightweight-charts";
-import { useChartDrawings, TOOLS, measureStats } from "./useChartDrawings";
+import { useChartDrawings, TOOLS, measureStats, FIB_LEVELS } from "./useChartDrawings";
+import {
+  IconCursor,
+  IconMeasure,
+  IconHLine,
+  IconVLine,
+  IconTrend,
+  IconRay,
+  IconRect,
+  IconFib,
+  IconMagnet,
+  IconUndo,
+  IconTrash,
+} from "./chartToolIcons";
 import { detectFVGs, partitionZones, MITIGATION } from "./fvg";
 import { FvgPrimitive } from "./fvgPrimitive";
 import { EntryPrimitive } from "./entryPrimitive";
@@ -31,6 +44,18 @@ const TF = [
   { key: "1h", label: "1H" },
   { key: "4h", label: "4H" },
   { key: "1d", label: "1D" },
+];
+
+const TOOL_BUTTONS = [
+  { k: TOOLS.CURSOR, Icon: IconCursor, title: "Pan / zoom (Esc)" },
+  { k: TOOLS.TREND, Icon: IconTrend, title: "Trend line — drag between two points" },
+  { k: TOOLS.RAY, Icon: IconRay, title: "Ray — drag, and it carries on to the right" },
+  { k: TOOLS.HLINE, Icon: IconHLine, title: "Horizontal line — click a price" },
+  { k: TOOLS.VLINE, Icon: IconVLine, title: "Vertical line — click a time" },
+  { sep: "shapes" },
+  { k: TOOLS.RECT, Icon: IconRect, title: "Rectangle — mark a zone" },
+  { k: TOOLS.FIB, Icon: IconFib, title: "Fib retracement — drag from swing to swing" },
+  { k: TOOLS.MEASURE, Icon: IconMeasure, title: "Measure a move — drag across the candles" },
 ];
 
 const cssRgb = (name, fallback) => {
@@ -99,6 +124,24 @@ const num = (v) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
+/**
+ * Long or short, from the levels themselves — no signal carries a side field.
+ *
+ * Read the stop first and the *far* target second. Never TP1: it can sit on or
+ * within a tick of the entry, and reading direction off it is what once made 70
+ * tie-signals report as shorts. Two other places in the app still do exactly
+ * that (SignalModal), which is a separate problem to this chart.
+ */
+const directionOf = (signal) => {
+  const entry = num(signal?.entry);
+  if (!entry) return "long";
+  const stop = num(signal?.stop1);
+  if (stop && stop !== entry) return stop < entry ? "long" : "short";
+  const far = num(signal?.target4) || num(signal?.target3) || num(signal?.target2);
+  if (far && far !== entry) return far > entry ? "long" : "short";
+  return "long";
+};
+
 /** Levels to draw, in the order they should win a collision. */
 const buildLevels = (signal, palette) => {
   const out = [];
@@ -132,6 +175,10 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
 
   const [interval, setInterval_] = useState("4h");
   const [candles, setCandles] = useState(null);
+  // The magnet needs the bar under the pointer on every pointermove; a ref
+  // keeps that lookup out of the drawing hook's dependency list.
+  const candlesRef = useRef(null);
+  candlesRef.current = candles;
   const [error, setError] = useState(null);
 
   // Fair Value Gaps. Off by default — this chart's job is the trade plan, and a
@@ -235,13 +282,15 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
   );
 
   const dp = decimalsFor(signal?.entry);
-  const { tool, setTool, shapes, draft, clear, toPixel, fmt } = useChartDrawings({
-    chartRef,
-    seriesRef: candleRef,
-    hostRef,
-    decimals: dp,
-    epoch: chartEpoch,
-  });
+  const { tool, setTool, shapes, draft, clear, undo, magnet, setMagnet, toPixel, fmt } =
+    useChartDrawings({
+      chartRef,
+      seriesRef: candleRef,
+      hostRef,
+      decimals: dp,
+      epoch: chartEpoch,
+      candlesRef,
+    });
 
   // While a drawing tool is armed, dragging must draw — not pan the chart.
   useEffect(() => {
@@ -370,6 +419,7 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
       // The stamp is the entry instant, not the bar it fell in, so it matches
       // the side panel to the minute.
       stamp: fmtLocalStamp(at),
+      dir: directionOf(signal),
     });
   }, [signal, candles, chartEpoch]);
 
@@ -413,12 +463,34 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
     // Only frame the chart the first time this pair/interval is drawn. The 20s
     // poll used to re-fit on every tick, so a user who had zoomed in was thrown
     // back to the full range every 20 seconds.
+    //
+    // Only fit once the host actually has a width. Fitting into a zero-width
+    // container computes a bar spacing for a pane that does not exist yet, and
+    // because the fit is once-per-key it is never corrected — the whole series
+    // ends up crushed into a corner for as long as the chart is open. Leaving
+    // the key unset here hands the job to the resize observer below.
     const fitKey = `${pair}:${interval}`;
-    if (fittedRef.current !== fitKey) {
+    if (fittedRef.current !== fitKey && hostRef.current?.clientWidth > 0) {
       chartRef.current?.timeScale().fitContent();
       fittedRef.current = fitKey;
     }
   }, [candles, signal, palette, pair, interval]);
+
+  // The first real size the host gets. Fires once per pair/interval and then
+  // stands down, so a user who has zoomed is never re-framed by a resize.
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => {
+      const fitKey = `${pair}:${interval}`;
+      if (fittedRef.current === fitKey || !candles?.length) return;
+      if (host.clientWidth <= 0) return;
+      chartRef.current?.timeScale().fitContent();
+      fittedRef.current = fitKey;
+    });
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, [pair, interval, candles, chartEpoch]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -438,8 +510,7 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
               {t.label}
             </button>
           ))}
-        </div>
-        <div className="flex items-center gap-1">
+          <span className="mx-1 h-4 w-px bg-ink/[0.10]" />
           <button
             type="button"
             onClick={toggleFvg}
@@ -448,7 +519,7 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
               "Solid = still open. Hatched = price closed through it, so the zone " +
               "has flipped and now acts as the opposite level."
             }
-            className={`mr-1 rounded px-2 py-1 font-mono text-[10px] leading-none transition-colors ${
+            className={`rounded px-2 py-1 font-mono text-[10px] leading-none transition-colors ${
               fvgOn
                 ? "bg-accent text-accent-fg"
                 : "text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
@@ -456,36 +527,6 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
           >
             FVG
           </button>
-          {[
-            { k: TOOLS.CURSOR, label: "✛", title: "Pan / zoom" },
-            { k: TOOLS.MEASURE, label: "⇔", title: "Measure a move — drag across the candles" },
-            { k: TOOLS.HLINE, label: "―", title: "Horizontal line — click a price" },
-            { k: TOOLS.TREND, label: "╱", title: "Trend line — drag between two points" },
-          ].map((b) => (
-            <button
-              key={b.k}
-              type="button"
-              title={b.title}
-              onClick={() => setTool(b.k)}
-              className={`h-6 w-6 rounded text-[12px] leading-none transition-colors ${
-                tool === b.k
-                  ? "bg-accent text-accent-fg"
-                  : "text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
-              }`}
-            >
-              {b.label}
-            </button>
-          ))}
-          {shapes.length > 0 && (
-            <button
-              type="button"
-              onClick={clear}
-              title="Clear drawings"
-              className="ml-1 rounded px-1.5 py-0.5 text-[10px] text-text-muted transition-colors hover:bg-ink/[0.06] hover:text-loss"
-            >
-              clear
-            </button>
-          )}
         </div>
         <div className="flex items-center gap-2.5 font-mono text-[10px] text-text-muted">
           <span className="flex items-center gap-1">
@@ -502,36 +543,218 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
 
       <div className="relative min-h-0 flex-1" style={{ height }}>
         <div ref={hostRef} className="absolute inset-0" />
+
+        {/* Tool rail. Sits over the plot the way every charting package puts
+            it, on the left because the price scale owns the right. It is the
+            only overlay that takes pointer events — the drawing surface below
+            needs the rest. */}
+        <div className="pointer-events-auto absolute left-1 top-1 z-10 flex flex-col gap-0.5 rounded-lg border border-ink/[0.08] bg-surface-raised/95 p-1 backdrop-blur-sm">
+          {TOOL_BUTTONS.map((b) =>
+            b.sep ? (
+              <span key={b.sep} className="my-0.5 h-px bg-ink/[0.08]" />
+            ) : (
+              <button
+                key={b.k}
+                type="button"
+                title={b.title}
+                aria-label={b.title}
+                aria-pressed={tool === b.k}
+                onClick={() => setTool(b.k)}
+                className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                  tool === b.k
+                    ? "bg-accent text-accent-fg"
+                    : "text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
+                }`}
+              >
+                <b.Icon />
+              </button>
+            )
+          )}
+
+          <span className="my-0.5 h-px bg-ink/[0.08]" />
+
+          <button
+            type="button"
+            title={
+              magnet
+                ? "Magnet on — drawings snap to the nearest open/high/low/close"
+                : "Magnet off — drawings land exactly where you click"
+            }
+            aria-label="Magnet"
+            aria-pressed={magnet}
+            onClick={() => setMagnet((m) => !m)}
+            className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+              magnet
+                ? "bg-accent/15 text-accent-text"
+                : "text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
+            }`}
+          >
+            <IconMagnet />
+          </button>
+
+          <button
+            type="button"
+            title="Undo last drawing (⌘Z)"
+            aria-label="Undo last drawing"
+            onClick={undo}
+            disabled={!shapes.length}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors enabled:hover:bg-ink/[0.06] enabled:hover:text-text-primary disabled:opacity-30"
+          >
+            <IconUndo />
+          </button>
+
+          <button
+            type="button"
+            title="Clear all drawings"
+            aria-label="Clear all drawings"
+            onClick={clear}
+            disabled={!shapes.length}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors enabled:hover:bg-ink/[0.06] enabled:hover:text-loss disabled:opacity-30"
+          >
+            <IconTrash />
+          </button>
+        </div>
         {/* Drawings live here, above the canvas. pointer-events stay off so the
             chart keeps its own crosshair and wheel zoom; the host element below
             is what listens for drawing gestures. */}
         <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
-          {[...shapes, ...(draft ? [{ ...draft, id: "draft" }] : [])].map((s) => {
-            if (s.type === TOOLS.HLINE) {
-              const p = toPixel({ time: s.time ?? 0, price: s.price });
-              const y = p ? p.y : candleRef.current?.priceToCoordinate(s.price);
+          {[...shapes, ...(draft ? [{ ...draft, id: "draft" }] : [])].map((sh) => {
+            const MONO = "JetBrains Mono, monospace";
+
+            if (sh.type === TOOLS.HLINE) {
+              const y = candleRef.current?.priceToCoordinate(sh.price);
               if (y == null) return null;
               return (
-                <g key={s.id}>
+                <g key={sh.id}>
                   <line x1="0" y1={y} x2="100%" y2={y} stroke={palette.text} strokeWidth="1" strokeDasharray="4 3" />
-                  <text x="6" y={y - 4} fill={palette.text} fontSize="10" fontFamily="JetBrains Mono, monospace">
-                    {fmt(s.price)}
+                  <text x="6" y={y - 4} fill={palette.text} fontSize="10" fontFamily={MONO}>
+                    {fmt(sh.price)}
                   </text>
                 </g>
               );
             }
-            const a = toPixel(s.a);
-            const b = toPixel(s.b);
-            if (!a || !b) return null;
-            if (s.type === TOOLS.TREND) {
+
+            if (sh.type === TOOLS.VLINE) {
+              const x = chartRef.current?.timeScale().timeToCoordinate(sh.time);
+              if (x == null) return null;
               return (
-                <line key={s.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={palette.accent} strokeWidth="1.5" />
+                <line
+                  key={sh.id}
+                  x1={x}
+                  y1="0"
+                  x2={x}
+                  y2="100%"
+                  stroke={palette.text}
+                  strokeWidth="1"
+                  strokeDasharray="4 3"
+                />
               );
             }
-            const st = measureStats(s.a, s.b);
+
+            const a = toPixel(sh.a);
+            const b = toPixel(sh.b);
+            if (!a || !b) return null;
+
+            if (sh.type === TOOLS.TREND) {
+              return (
+                <line key={sh.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={palette.accent} strokeWidth="1.5" />
+              );
+            }
+
+            if (sh.type === TOOLS.RAY) {
+              // Extend past the right edge along the same gradient. A ray that
+              // stopped where the drag stopped would just be a trend line.
+              const dx = b.x - a.x;
+              const far = dx === 0 ? a.x : 4000;
+              const t = dx === 0 ? 0 : (far - a.x) / dx;
+              return (
+                <line
+                  key={sh.id}
+                  x1={a.x}
+                  y1={a.y}
+                  x2={dx === 0 ? a.x : far}
+                  y2={dx === 0 ? 4000 : a.y + (b.y - a.y) * t}
+                  stroke={palette.accent}
+                  strokeWidth="1.5"
+                />
+              );
+            }
+
+            if (sh.type === TOOLS.RECT) {
+              return (
+                <rect
+                  key={sh.id}
+                  x={Math.min(a.x, b.x)}
+                  y={Math.min(a.y, b.y)}
+                  width={Math.abs(b.x - a.x)}
+                  height={Math.abs(b.y - a.y)}
+                  fill={palette.accent}
+                  fillOpacity="0.08"
+                  stroke={palette.accent}
+                  strokeWidth="1"
+                />
+              );
+            }
+
+            if (sh.type === TOOLS.FIB) {
+              // 0 sits at the end of the drag and 1 at the start, so dragging
+              // from a swing low up to a swing high puts 0 at the high — the
+              // convention every charting package uses for a retracement.
+              const left = Math.min(a.x, b.x);
+              const right = Math.max(a.x, b.x);
+              return (
+                <g key={sh.id}>
+                  {FIB_LEVELS.map((lv) => {
+                    const price = sh.b.price + (sh.a.price - sh.b.price) * lv;
+                    const y = candleRef.current?.priceToCoordinate(price);
+                    if (y == null) return null;
+                    const key = `${sh.id}-${lv}`;
+                    // 0.618 is the level people actually trade; the rest are
+                    // reference. Weighting them equally hides the one that matters.
+                    const strong = lv === 0.618 || lv === 0.5;
+                    return (
+                      <g key={key}>
+                        <line
+                          x1={left}
+                          y1={y}
+                          x2={right}
+                          y2={y}
+                          stroke={palette.accent}
+                          strokeOpacity={strong ? 0.95 : 0.5}
+                          strokeWidth={strong ? 1.4 : 1}
+                          strokeDasharray={strong ? "" : "3 3"}
+                        />
+                        <text
+                          x={left + 4}
+                          y={y - 3}
+                          fill={palette.accent}
+                          fillOpacity={strong ? 1 : 0.75}
+                          fontSize="9"
+                          fontFamily={MONO}
+                        >
+                          {lv.toFixed(3)} · {fmt(price)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  <line
+                    x1={a.x}
+                    y1={a.y}
+                    x2={b.x}
+                    y2={b.y}
+                    stroke={palette.accent}
+                    strokeOpacity="0.35"
+                    strokeWidth="1"
+                    strokeDasharray="2 3"
+                  />
+                </g>
+              );
+            }
+
+            const st = measureStats(sh.a, sh.b);
             const color = st?.up ? palette.pos : palette.neg;
             return (
-              <g key={s.id}>
+              <g key={sh.id}>
                 <rect
                   x={Math.min(a.x, b.x)}
                   y={Math.min(a.y, b.y)}
@@ -547,7 +770,7 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
                   y={Math.min(a.y, b.y) - 6}
                   fill={color}
                   fontSize="11"
-                  fontFamily="JetBrains Mono, monospace"
+                  fontFamily={MONO}
                   textAnchor="middle"
                 >
                   {st ? `${st.pct >= 0 ? "+" : ""}${st.pct.toFixed(2)}% · ${st.span}` : ""}
