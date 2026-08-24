@@ -142,20 +142,28 @@ const directionOf = (signal) => {
   return "long";
 };
 
-/** Levels to draw, in the order they should win a collision. */
+/**
+ * Levels to draw, in the order they should win a collision.
+ *
+ * All solid. Targets and stops used to be 1px dashed, which on a busy pane read
+ * as faint dotting and was easy to lose against the grid — these are the prices
+ * the whole card is about, so they get drawn like it. Entry stays a step
+ * heavier so the hierarchy survives everything else being solid too, and its
+ * arrow, flag and time line carry the rest of the distinction.
+ */
 const buildLevels = (signal, palette) => {
   const out = [];
   const entry = num(signal?.entry);
   if (entry) {
-    out.push({ price: entry, title: "ENTRY", color: palette.accent, width: 2, style: LineStyle.Solid });
+    out.push({ price: entry, title: "ENTRY", color: palette.accent, width: 3, style: LineStyle.Solid });
   }
   [1, 2, 3, 4].forEach((i) => {
     const p = num(signal?.[`target${i}`]);
-    if (p) out.push({ price: p, title: `TP${i}`, color: palette.pos, width: 1, style: LineStyle.Dashed });
+    if (p) out.push({ price: p, title: `TP${i}`, color: palette.pos, width: 2, style: LineStyle.Solid });
   });
   [1, 2].forEach((i) => {
     const p = num(signal?.[`stop${i}`]);
-    if (p) out.push({ price: p, title: `SL${i}`, color: palette.neg, width: 1, style: LineStyle.Dashed });
+    if (p) out.push({ price: p, title: `SL${i}`, color: palette.neg, width: 2, style: LineStyle.Solid });
   });
   return out;
 };
