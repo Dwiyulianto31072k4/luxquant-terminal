@@ -9,6 +9,7 @@ import {
 import { useChartDrawings, TOOLS, measureStats } from "./useChartDrawings";
 import { detectFVGs, partitionZones, MITIGATION } from "./fvg";
 import { FvgPrimitive } from "./fvgPrimitive";
+import { EntryPrimitive } from "./entryPrimitive";
 
 /**
  * The signal's own chart, with entry / TP1-4 / SL1-2 drawn on it.
@@ -49,6 +50,40 @@ const cssRgba = (name, alpha, fallback) => {
  * collapsed into one number and the labels became worthless. Derive the
  * precision from the price instead.
  */
+/**
+ * Timestamps come off the API as UTC seconds and lightweight-charts renders
+ * them as UTC. The side panel prints the same instant in the reader's own zone,
+ * so the two disagreed by the reader's offset — seven hours, for the report
+ * that surfaced this. These format in local time so the axis, the crosshair and
+ * the ENTRY stamp all agree with the panel.
+ */
+const fmtLocalStamp = (ts) =>
+  new Date(ts * 1000).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+/**
+ * Axis ticks get only as much detail as the tick's own weight calls for —
+ * printing a full date on every intraday tick is what makes an axis unreadable.
+ */
+const fmtLocalTick = (ts, tickMarkType) => {
+  const d = new Date(ts * 1000);
+  switch (tickMarkType) {
+    case 0: // Year
+      return String(d.getFullYear());
+    case 1: // Month
+      return d.toLocaleDateString("en-GB", { month: "short" });
+    case 2: // DayOfMonth
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    default: // Time / TimeWithSeconds
+      return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+};
+
 const decimalsFor = (p) => {
   const n = Math.abs(Number(p) || 0);
   if (n >= 1000) return 2;
@@ -58,12 +93,14 @@ const decimalsFor = (p) => {
   return 8;
 };
 
+/** A price, or null — zero and NaN are both "no level here". */
+const num = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 /** Levels to draw, in the order they should win a collision. */
 const buildLevels = (signal, palette) => {
-  const num = (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  };
   const out = [];
   const entry = num(signal?.entry);
   if (entry) {
@@ -129,6 +166,7 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
   }, [fvgOn, candles]);
 
   const fvgRef = useRef(null);
+  const entryRef = useRef(null);
 
   const pair = (signal?.pair || "").toUpperCase();
 
@@ -185,6 +223,11 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
       border: cssRgba("--ink", 0.12, "rgba(255,255,255,0.12)"),
       volUp: cssRgba("--pos", 0.35, "rgba(14,203,129,0.35)"),
       volDown: cssRgba("--neg", 0.35, "rgba(246,70,93,0.35)"),
+      crosshair: cssRgba("--ink", 0.38, "rgba(255,255,255,0.38)"),
+      crosshairLabel: cssRgb("--fg-secondary", "rgb(132,142,156)"),
+      // The entry flag's text sits on solid accent in every desk, so it needs
+      // the colour that reads against accent — not the page foreground.
+      onAccent: cssRgb("--accent-fg", "rgb(11,14,17)"),
     }),
     // theme is the trigger: the tokens themselves are read imperatively
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,13 +267,28 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
         fontSize: 11,
       },
       grid: { vertLines: { color: palette.grid }, horzLines: { color: palette.grid } },
+      // The crosshair used to be drawn in accent gold — the same gold as the
+      // ENTRY line and the entry stamp. Its time label therefore read as "the
+      // signal fired here", wherever the pointer happened to rest, and was
+      // reported twice as a clock bug. Gold is reserved for the entry now.
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: palette.accent, width: 1, style: LineStyle.Dashed, labelBackgroundColor: palette.accent },
-        horzLine: { color: palette.accent, width: 1, style: LineStyle.Dashed, labelBackgroundColor: palette.accent },
+        vertLine: { color: palette.crosshair, width: 1, style: LineStyle.Dashed, labelBackgroundColor: palette.crosshairLabel },
+        horzLine: { color: palette.crosshair, width: 1, style: LineStyle.Dashed, labelBackgroundColor: palette.crosshairLabel },
       },
+      // lightweight-charts renders timestamps in UTC unless told otherwise,
+      // while the side panel prints them in the reader's own zone. For anyone
+      // in WIB that put the axis seven hours behind the ENTRY stamp beside it,
+      // which is the mismatch users actually saw. Both now say local time.
+      localization: { timeFormatter: fmtLocalStamp },
       rightPriceScale: { borderColor: palette.border, scaleMargins: { top: 0.1, bottom: 0.26 } },
-      timeScale: { borderColor: palette.border, timeVisible: true, secondsVisible: false, rightOffset: 6 },
+      timeScale: {
+        borderColor: palette.border,
+        timeVisible: true,
+        secondsVisible: false,
+        rightOffset: 6,
+        tickMarkFormatter: fmtLocalTick,
+      },
     });
     chartRef.current = chart;
 
@@ -264,6 +322,10 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
     fvgRef.current.setColors({ bull: palette.pos, bear: palette.neg });
     candleRef.current.attachPrimitive(fvgRef.current);
 
+    entryRef.current = new EntryPrimitive();
+    entryRef.current.setColors({ color: palette.accent, labelText: palette.onAccent });
+    candleRef.current.attachPrimitive(entryRef.current);
+
     setChartEpoch((n) => n + 1);
 
     return () => {
@@ -272,9 +334,44 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
       candleRef.current = null;
       volRef.current = null;
       fvgRef.current = null;
+      entryRef.current = null;
       linesRef.current = [];
     };
   }, [palette]);
+
+  // Push the entry stamp. Re-runs on every timeframe change and every 20s
+  // refresh, so the marker follows the data instead of being placed once.
+  useEffect(() => {
+    const prim = entryRef.current;
+    if (!prim) return;
+
+    const at = signal?.created_at ? Math.floor(new Date(signal.created_at).getTime() / 1000) : null;
+    if (!at || !candles?.length) {
+      prim.setEntry({ time: null, price: null, stamp: "" });
+      return;
+    }
+
+    // Snap to the bar that contains the entry: the chart can only place a
+    // coordinate on a bar it holds, and at 4h the entry almost never lands on
+    // a bar boundary. Out of range on purpose stays unsnapped — the primitive
+    // pins those to the edge and marks which way they lie, which is more
+    // honest than drawing them on the first bar as if they happened there.
+    let bucket = null;
+    for (let i = candles.length - 1; i >= 0; i -= 1) {
+      if (candles[i].time <= at) {
+        bucket = candles[i].time;
+        break;
+      }
+    }
+
+    prim.setEntry({
+      time: bucket ?? at,
+      price: num(signal?.entry),
+      // The stamp is the entry instant, not the bar it fell in, so it matches
+      // the side panel to the minute.
+      stamp: fmtLocalStamp(at),
+    });
+  }, [signal, candles, chartEpoch]);
 
   // Push zones to the primitive whenever detection or the toggle changes. The
   // primitive owns the painting; this only hands it the data.
