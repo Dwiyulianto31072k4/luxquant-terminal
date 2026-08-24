@@ -3,10 +3,19 @@ import { SignalStatusContext, STATUS_META, timeAgo } from "../context/SignalStat
 import { LOCAL_COIN_LOGOS } from "../content/coinLogosLocal.generated";
 
 /**
- * CoinLogo — multi-source with fail-over.
- * v6: source order is now measured, not assumed. A 2026-07-29 audit probed all
- * 749 tracked symbols against every source with a real Referer, the way a
- * browser sends it:
+ * CoinLogo — local library first, CDN cascade only as a fallback.
+ *
+ * v8: a 2026-08-24 audit compared what we served against each coin's *verified*
+ * identity and found the cascade serving the wrong project outright —
+ * LiveCoinWatch returns AEROCHAIN for AERO, and a stranger's mark for HYPE and
+ * HYPER. A ticker is not an identity, so no ordering of ticker-keyed CDNs can
+ * fix this; the two-symbol override list only ever caught what someone noticed.
+ *
+ * So 571 symbols now ship locally (see scripts/build_coin_logos.py), each one
+ * either a curated mark from the backend's own library or a CoinGecko image
+ * accepted only after the Binance futures price matched CoinGecko's price for
+ * that id. The cascade below still serves the symbols with no proven identity,
+ * and its measured ordering is kept for them:
  *
  *   LiveCoinWatch 664/749 (88.7%)   OKX 472 (63.0%)   CoinCap 315 (42.1%)
  *   Binance CDN     0/749 ( 0.0%)   cryptocurrency-icons 110 (14.7%)
@@ -23,11 +32,12 @@ import { LOCAL_COIN_LOGOS } from "../content/coinLogosLocal.generated";
  */
 
 const CACHE_KEY = "lq:coin-logos";
-// 7: USDT/USDC used to derive an empty symbol and were cached as failures, and
-// HYPE was cached against the wrong project's image. Both are fixed below, but
-// a returning browser would keep serving its stored answer — the fix only
-// reaches anyone if the version moves with it.
-const CACHE_VERSION = 7;
+// 8: the local library grew from 31 symbols to 571, so most coins no longer
+// resolve through a CDN at all. Every browser that visited before today holds a
+// stored answer pointing at the old source — including the wrong-project images
+// this change exists to remove — and localStorage outlives a deploy. The fix
+// only reaches anyone if the version moves with it.
+const CACHE_VERSION = 8;
 // Long enough to keep genuinely-missing coins cheap, short enough that a
 // throttled load repairs itself the same day.
 const FAIL_TTL_MS = 6 * 60 * 60 * 1000;
@@ -98,12 +108,18 @@ const TICKER_ALIASES = { RAYSOL: "RAY" };
  * Only list a symbol here after looking at both images. A guess swaps one wrong
  * logo for another.
  */
-// WLD: LCW menyajikan kepala serigala untuk `wld.png` — token lain yang
-// bertiker sama. OKX menyajikan mark Worldcoin yang benar. Kedua gambar
-// sudah dibuka dan dibandingkan sebelum baris ini ditambahkan.
+// HYPE and WLD both ship locally now, so neither reaches this table any more.
+// It is kept for symbols with no proven identity, which cannot ship locally:
+// when one of those is caught serving the wrong project, naming the better
+// source here is still the only remedy available.
 const SOURCE_PREFERENCE = { HYPE: "okx", WLD: "okx" };
 
-const getLogoSources = (symbol) => {
+/**
+ * The URLs to try for a symbol, best first. Exported because a chart drawing an
+ * SVG <image> gets no error event to cascade on and so must pick one outright —
+ * it should pick the same first choice this component would, not rebuild the rule.
+ */
+export const getLogoSources = (symbol) => {
   const stripped = stripMultiplier(symbol);
   const base = TICKER_ALIASES[stripped] || stripped;
   const lower = base.toLowerCase();

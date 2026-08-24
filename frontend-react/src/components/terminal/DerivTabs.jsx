@@ -63,6 +63,7 @@ import {
   fmtAxis,
 } from "./vizShared";
 import { useSignalStatus } from "../../context/SignalStatusContext";
+import { getLogoSources } from "../CoinLogo";
 
 // join view pairs with the deriv blob → one row per unique pair
 function usePairRows(view, deriv, pairFc) {
@@ -966,11 +967,12 @@ const makeEndLabel = (sym, color, total) => {
       return null;
     const name = sym.replace(/USDT$/, "");
     // SVG <image> gives us no error event to cascade on, so this is a single
-    // shot — use the widest source. The 2026-07-29 audit put LiveCoinWatch at
-    // 664/749 tracked symbols against CoinCap's 315. Multiplier prefix is
-    // stripped longest-first so 1000000BOB resolves as BOB, not 000BOB.
+    // shot. It used to hardcode LiveCoinWatch, which meant this chart kept
+    // labelling AERO with AEROCHAIN's mark after CoinLogo had been corrected —
+    // the same URL built twice drifts apart. Take CoinLogo's first choice,
+    // which is now the identity-verified local file wherever we have one.
     const icon = name.replace(/^(1000000|1000|1M)(?=[A-Z])/, "").toLowerCase();
-    const url = `https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/${icon}.png`;
+    const url = getLogoSources(name)[0];
     const cid = `lqclip-${icon}`;
     const cx = x + 12,
       r = 7;
