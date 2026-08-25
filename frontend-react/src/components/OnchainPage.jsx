@@ -33,6 +33,7 @@ const ALERT_TYPES = [
   { key: "liquidation", label: "Liquidation" },
   { key: "position", label: "Position" },
   { key: "security", label: "Security" },
+  { key: "news", label: "News" },
 ];
 
 // ── Min USD preset chips ──
@@ -173,6 +174,7 @@ const typeStyle = (t) => {
     buy: profit,
     sell: danger,
     deposit: profit,
+    news: "bg-ink/[0.06] text-text-secondary",
   };
   return map[t] || neutral;
 };
@@ -760,6 +762,16 @@ const AlertAvatar = ({ alert }) => {
           className="h-full w-full object-cover"
           onError={() => setPhotoFailed(true)}
         />
+      ) : alert.alert_type === "news" ? (
+        // A headline has no coin and no chain to draw. Left to the fallbacks it
+        // showed a bare dot in the list and the letters "NEW" in the modal —
+        // the first three characters of its own type name.
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+          strokeLinecap="round" strokeLinejoin="round"
+          className="h-4 w-4 text-text-muted" aria-hidden="true">
+          <path d="M4 5h13v14H4z M17 9h3v8a2 2 0 0 1-3 1.7" />
+          <path d="M7 9h7M7 12h7M7 15h4" />
+        </svg>
       ) : (
         <span className={`h-2 w-2 rounded-full ${chainDot(alert.blockchain)}`} />
       )}
@@ -818,6 +830,9 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
       </div>
 
       <div className="flex min-w-[78px] shrink-0 flex-col items-end gap-0.5">
+        {/* A headline has no dollar figure. Printing "—" where the money goes
+            makes a real item look like a broken one, so the slot simply stays
+            empty and the timestamp moves up. */}
         {e.amount_usd ? (
           <span
             className={`font-mono text-[13px] font-semibold tabular-nums sm:text-[14px] ${
@@ -826,9 +841,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
           >
             {fmtUsd(e.amount_usd)}
           </span>
-        ) : (
-          <span className="font-mono text-[13px] text-text-muted">—</span>
-        )}
+        ) : null}
         <span className="font-mono text-[11px] tabular-nums text-text-muted">
           {timeAgo(e.created_at)}
         </span>
@@ -1042,7 +1055,10 @@ const AlertModal = ({ alert, onClose }) => {
   }, []);
 
   const showPhoto = e.image_url && !imageFailed;
-  const hasRoute = e.from_entity || e.to_entity;
+  // Both halves or neither. "From Binance → —" reads as a transfer that went
+  // nowhere; a headline with one side filled in by a stray regex reads as data
+  // we do not have.
+  const hasRoute = Boolean(e.from_entity && e.to_entity);
 
   const modalContent = (
     <div
@@ -1087,9 +1103,7 @@ const AlertModal = ({ alert, onClose }) => {
                     onError={() => setImageFailed(true)}
                   />
                 ) : (
-                  <span className="font-mono text-[13px] font-semibold text-text-muted">
-                    {typeLabel(e.alert_type).slice(0, 3)}
-                  </span>
+                  <AlertAvatar alert={e} />
                 )}
               </div>
 
@@ -1134,11 +1148,7 @@ const AlertModal = ({ alert, onClose }) => {
                         </p>
                       ) : null}
                     </>
-                  ) : (
-                    <p className="font-mono text-[28px] font-semibold tabular-nums text-text-muted">
-                      —
-                    </p>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1155,8 +1165,8 @@ const AlertModal = ({ alert, onClose }) => {
                   <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-text-muted">
                     From
                   </p>
-                  <p className="truncate text-[13px] font-medium text-text-primary">
-                    {e.from_entity || "—"}
+                  <p className="break-words text-[13px] font-medium text-text-primary">
+                    {e.from_entity}
                   </p>
                 </div>
                 <span className="hidden text-text-muted sm:block" aria-hidden="true">
@@ -1166,8 +1176,8 @@ const AlertModal = ({ alert, onClose }) => {
                   <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-text-muted">
                     To
                   </p>
-                  <p className="truncate text-[13px] font-medium text-text-primary">
-                    {e.to_entity || "—"}
+                  <p className="break-words text-[13px] font-medium text-text-primary">
+                    {e.to_entity}
                   </p>
                 </div>
               </div>
