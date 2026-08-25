@@ -603,13 +603,23 @@ function AppShell({ children }) {
     { path: "/crypto-news", label: "News" },
     { path: "/onchain", label: "On-Chain" },
     { path: "/bitcoin", label: t("nav.bitcoin") },
-    { path: "/markets", label: t("nav.markets") },
-    { path: "/journal", label: "Journal" },
   ];
 
   // Paths that live in More only (main nav already has Terminal + AI Research).
   // Used solely for the More trigger "active" underline.
   const moreMenuItems = [
+    {
+      path: "/markets",
+      label: t("nav.markets"),
+      icon: "📈",
+      description: "Prices, movers and pairs across the market",
+    },
+    {
+      path: "/journal",
+      label: "Journal",
+      icon: "📓",
+      description: "Your own trades, logged and reviewed",
+    },
     {
       path: "/money-flow",
       label: "Money Flow",
