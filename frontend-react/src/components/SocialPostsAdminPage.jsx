@@ -2208,6 +2208,56 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
 
   const [showPrompt, setShowPrompt] = useState(false);
   const [copiedCap, setCopiedCap] = useState(false);
+
+  // Whether the channel is reachable at all, asked once. A disabled button with
+  // a reason beats letting an admin discover a dead token by pressing it in
+  // front of a live channel.
+  const [tgChannel, setTgChannel] = useState(null);
+  const [tgSending, setTgSending] = useState(false);
+  const [tgError, setTgError] = useState(null);
+  const [tgSent, setTgSent] = useState(null);
+
+  useEffect(() => {
+    if (!post) return;
+    setTgError(null);
+    setTgSent(post.gen_meta?.telegram || null);
+    api
+      .get("/api/v1/admin/social-posts/telegram/status")
+      .then((r) => setTgChannel(r.data))
+      .catch(() => setTgChannel({ ready: false, reason: "unreachable" }));
+  }, [post]);
+
+  const sendTelegram = async (force = false) => {
+    setTgSending(true);
+    setTgError(null);
+    try {
+      const r = await api.post(
+        `/api/v1/admin/social-posts/${post.id}/send-telegram`,
+        null,
+        { params: { force } }
+      );
+      setTgSent(r.data.telegram);
+      if (onPostUpdated) {
+        onPostUpdated({ ...post, gen_meta: { ...(post.gen_meta || {}), telegram: r.data.telegram } });
+      }
+    } catch (e) {
+      const status = e?.response?.status;
+      const detail = e?.response?.data?.detail || "Could not send.";
+      // 409 is "already sent" — the one error worth offering a way past,
+      // since re-sending is sometimes exactly what is wanted.
+      if (status === 409 && !force) {
+        if (window.confirm(`${detail}\n\nSend it to the channel again?`)) {
+          setTgSending(false);
+          return sendTelegram(true);
+        }
+      } else {
+        setTgError(detail);
+      }
+    } finally {
+      setTgSending(false);
+    }
+  };
+
   if (!post) return null;
   const isXai = (post.image_mode || "").startsWith("ai_");
 
@@ -2425,6 +2475,10 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
             />
           </div>
 
+          {tgError && (
+            <p className="px-4 pt-2 text-[11px] text-loss">{tgError}</p>
+          )}
+
           {/* actions */}
           <div className="px-4 py-3 border-t border-ink/[0.08] flex items-center gap-x-3 gap-y-2 flex-wrap">
             <button
@@ -2467,6 +2521,43 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
               {copiedCap ? "copied ✓" : "copy caption"}
             </button>
             <div className="ml-auto flex items-center gap-2">
+              {tgSent ? (
+                <a
+                  href={tgSent.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (!tgSent.url) e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  title={`Sent ${new Date(tgSent.sent_at).toLocaleString()} by @${tgSent.sent_by}`}
+                  className="px-3 py-1.5 rounded text-[12px] font-medium bg-profit/12 text-profit border border-profit/25 inline-flex items-center gap-1.5"
+                >
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.4">
+                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  On Telegram
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled={tgSending || busy || (tgChannel && !tgChannel.ready)}
+                  onClick={() => sendTelegram(false)}
+                  title={
+                    tgChannel && !tgChannel.ready
+                      ? `Channel unavailable: ${tgChannel.reason}`
+                      : tgChannel?.title
+                        ? `Send to ${tgChannel.title}`
+                        : "Send to the Telegram channel"
+                  }
+                  className="px-3 py-1.5 rounded text-[12px] font-medium bg-accent/15 text-accent-text border border-accent/30 hover:bg-accent/25 disabled:opacity-40 transition-colors inline-flex items-center gap-1.5"
+                >
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 3L3 10.5l6 2.5m12-10l-6 18-3.5-7.5M21 3L9 13" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {tgSending ? "Sending…" : "Send to Telegram"}
+                </button>
+              )}
               {post.status !== "approved" && (
                 <button
                   disabled={busy || needsMaterials(post)}
