@@ -1145,6 +1145,20 @@ const ImageCard = ({ post, onOpen }) => {
             {waiting ? "UPLOAD ASSETS" : "NEEDS ASSETS"}
           </span>
         )}
+        {/* Sent to the channel. On the card, not only in the modal — the whole
+            point is seeing at a glance which drafts have already gone out,
+            without opening seventeen of them to find out. */}
+        {post.gen_meta?.telegram && (
+          <span
+            title={`Sent to Telegram ${new Date(post.gen_meta.telegram.sent_at).toLocaleString()} by @${post.gen_meta.telegram.sent_by}`}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[9px] tracking-wide bg-profit/20 text-profit border border-profit/30"
+          >
+            <svg viewBox="0 0 24 24" className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="3">
+              <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            TELEGRAM
+          </span>
+        )}
       </span>
     </button>
   );
