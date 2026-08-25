@@ -218,10 +218,12 @@ def _build_placeholders(user: User, db: Session) -> Dict[str, str]:
         if ref:
             referrer_username = ref.username
 
-    # Plan name approximation — from subscription_note or generic
+    # No longer an approximation: subscription_tier records exactly what they
+    # hold. The note is preferred only because an admin may have written
+    # something more specific into it.
     plan_name = user.subscription_note or (
-        "Lifetime" if user.role == "subscriber" and user.subscription_expires_at is None
-        else "Premium"
+        (user.subscription_tier or "").capitalize()
+        or ("Lifetime" if user.subscription_expires_at is None else "Member")
     )
 
     return {

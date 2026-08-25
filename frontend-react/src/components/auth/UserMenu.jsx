@@ -138,10 +138,21 @@ const UserMenu = () => {
         ? t("userMenu.vip_hint_link")
         : t("userMenu.vip_hint");
 
+  // Say what they hold, not which internal role row they sit on. This chip read
+  // "Premium" for every paying member — a word that named nothing after the
+  // roles were merged, and that told a monthly subscriber the same thing it
+  // told someone on lifetime. `subscription_tier` is the honest answer.
+  const TIER_LABELS = {
+    lifetime: t("userMenu.plan_lifetime", { defaultValue: "Lifetime" }),
+    yearly: t("userMenu.plan_yearly", { defaultValue: "Yearly" }),
+    monthly: t("userMenu.plan_monthly", { defaultValue: "Monthly" }),
+    custom: t("userMenu.plan_member", { defaultValue: "Member" }),
+  };
   const roleChip = isStaff
     ? t("userMenu.plan_admin", { defaultValue: "Admin" })
     : isPaid
-      ? t("userMenu.plan_premium", { defaultValue: "Premium" })
+      ? TIER_LABELS[user?.subscription_tier] ||
+        t("userMenu.plan_member", { defaultValue: "Member" })
       : t("userMenu.plan_free", { defaultValue: "Free" });
 
   return (

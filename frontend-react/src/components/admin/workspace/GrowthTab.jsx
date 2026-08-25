@@ -1414,7 +1414,6 @@ const AdvocateTable = ({ selectedId, onSelect, onResume, refreshToken }) => {
             options={[
               ["all", "All roles"],
               ["subscriber", "Subscriber"],
-              ["premium", "Premium"],
               ["free", "Free"],
             ]}
           />

@@ -700,11 +700,15 @@ function accessLabel(user, t) {
   const role = user?.role;
   if (role === "admin") return t("apiKeys.tier_admin", { defaultValue: "Admin" });
   if (role === "premium" || role === "subscriber") {
-    if (!user.subscription_expires_at)
+    // Every member is `subscriber` now, so the role can no longer tell these
+    // apart — the tier can. `premium` stays in the test only to recognise a
+    // stray un-migrated row.
+    const tier = user?.subscription_tier;
+    if (tier === "lifetime" || !user.subscription_expires_at)
       return t("apiKeys.tier_lifetime", { defaultValue: "Lifetime" });
-    return role === "subscriber"
-      ? t("apiKeys.tier_subscriber", { defaultValue: "Subscriber" })
-      : t("apiKeys.tier_premium", { defaultValue: "Premium" });
+    if (tier === "yearly") return t("apiKeys.tier_yearly", { defaultValue: "Yearly" });
+    if (tier === "monthly") return t("apiKeys.tier_monthly", { defaultValue: "Monthly" });
+    return t("apiKeys.tier_subscriber", { defaultValue: "Member" });
   }
   return t("apiKeys.tier_free", { defaultValue: "Free" });
 }
