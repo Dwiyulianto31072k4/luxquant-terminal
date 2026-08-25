@@ -31,6 +31,8 @@ from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.tier import tier_from_plan
+from app.services.manual_grant import apply_grant, compute_expiry, describe_duration
+from app.models.manual_payment_offer import ManualPaymentOffer
 from app.models.subscription import SubscriptionPlan, Payment
 from app.schemas.subscription import (
     PlanResponse,
@@ -714,4 +716,147 @@ def _payment_to_dict(p: Payment) -> dict:
         "created_at": p.created_at.isoformat() if p.created_at else None,
         "plan_name": p.plan.name if p.plan else None,
         "plan_label": p.plan.label if p.plan else None,
+    }
+
+
+# ════════════════════════════════════════════════════════════════════
+# CLAIM — the payer's side of an admin-created offer
+# ════════════════════════════════════════════════════════════════════
+#
+# The preview is readable without signing in, because the first thing someone
+# does with a link is open it — being bounced to a login screen with no idea
+# what is on the other side is how a legitimate link gets mistaken for a scam.
+# Accepting requires an account: the access has to attach to one.
+
+
+def _offer_or_404(db: Session, token: str) -> ManualPaymentOffer:
+    offer = db.query(ManualPaymentOffer).filter(ManualPaymentOffer.token == token).first()
+    if not offer:
+        raise HTTPException(status_code=404, detail="This link is not valid.")
+    return offer
+
+
+def _offer_public(offer: ManualPaymentOffer, plan) -> dict:
+    return {
+        "status": offer.status,
+        "reason": offer.claimable_reason(),
+        "plan_label": getattr(plan, "label", None),
+        "duration_label": describe_duration(plan, offer.duration_days),
+        "amount_usd": float(offer.amount_usd or 0),
+        "method": offer.method,
+        "method_label": offer.method_label,
+        "reference": offer.reference,
+        "expires_at": offer.expires_at.isoformat() if offer.expires_at else None,
+        "is_open": offer.user_id is None,
+    }
+
+
+@router.get("/claim/{token}")
+def preview_claim(token: str, db: Session = Depends(get_db)):
+    """What this link is worth, before anyone signs in."""
+    offer = _offer_or_404(db, token)
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == offer.plan_id).first()
+    return {"offer": _offer_public(offer, plan)}
+
+
+@router.post("/claim/{token}")
+def accept_claim(
+    token: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Attach the offer to the signed-in account."""
+    now = datetime.now(timezone.utc)
+
+    # Lock the row for the length of the claim. Two taps on a slow connection
+    # are the ordinary case, and without this both would pass the status check
+    # and produce two payments for one transfer.
+    offer = (
+        db.query(ManualPaymentOffer)
+        .filter(ManualPaymentOffer.token == token)
+        .with_for_update()
+        .first()
+    )
+    if not offer:
+        raise HTTPException(status_code=404, detail="This link is not valid.")
+
+    reason = offer.claimable_reason(now)
+    if reason == "already_claimed":
+        raise HTTPException(status_code=409, detail="This link has already been used.")
+    if reason == "cancelled":
+        raise HTTPException(status_code=410, detail="This link was cancelled. Ask support for a new one.")
+    if reason == "expired":
+        # Record what is already true, so the admin list stops advertising it.
+        if offer.status == "pending":
+            offer.status = "expired"
+            db.commit()
+        raise HTTPException(status_code=410, detail="This link has expired. Ask support for a new one.")
+    if reason:
+        raise HTTPException(status_code=410, detail="This link is no longer available.")
+
+    if offer.user_id is not None and offer.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="This link was issued for a different account. Sign in with the account it was sent to.",
+        )
+
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == offer.plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=500, detail="The plan behind this link no longer exists.")
+
+    duration_label = describe_duration(plan, offer.duration_days)
+    new_expires_at = compute_expiry(
+        current_user, plan, duration_days=offer.duration_days, effective_date=now
+    )
+
+    # The payment row is what puts this in the books; the claim is only how it
+    # reached the right account.
+    payment = Payment(
+        user_id=current_user.id,
+        plan_id=plan.id,
+        amount_usdt=offer.amount_usd,
+        final_amount=offer.amount_usd,
+        status="confirmed",
+        verified_at=now,
+        method=offer.method,
+        reference=offer.reference,
+        paid_currency=offer.paid_currency or "USD",
+        paid_amount=offer.paid_amount,
+        fx_rate=offer.fx_rate,
+        notes=(
+            f"[Offer #{offer.id} claimed {now.strftime('%Y-%m-%d %H:%M UTC')}]\n"
+            f"  Granted: {plan.label} ({duration_label})\n"
+            f"  Amount: ${offer.amount_usd}\n"
+            f"  Admin note: {offer.admin_note}"
+        ),
+    )
+    db.add(payment)
+    db.flush()
+
+    apply_grant(
+        current_user,
+        expires_at=new_expires_at,
+        granted_by_id=offer.created_by,
+        source="manual_admin_record",
+        note=f"Manual plan: {plan.label} ({duration_label})",
+        now=now,
+    )
+
+    offer.status = "claimed"
+    offer.claimed_at = now
+    offer.claimed_by = current_user.id
+    offer.payment_id = payment.id
+    db.commit()
+
+    logger.info(
+        f"🎟️  Offer #{offer.id} claimed by @{current_user.username} — "
+        f"{plan.label} ({duration_label}), payment #{payment.id}"
+    )
+    return {
+        "success": True,
+        "message": f"{plan.label} activated — {duration_label}.",
+        "expires_at": new_expires_at.isoformat() if new_expires_at else None,
+        "is_lifetime": new_expires_at is None,
+        "plan_label": plan.label,
+        "duration_label": duration_label,
     }

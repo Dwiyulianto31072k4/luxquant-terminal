@@ -159,4 +159,23 @@ export const financeApi = {
     });
     return response.data;
   },
+
+  // ── OFFERS — claim links for payments taken outside the web ──
+  createOffer: async (payload) => {
+    const response = await api.post("/api/v1/workspace/finance/manual-payment/offer", payload);
+    return response.data; // { success, offer: { claim_url, ... } }
+  },
+
+  listOffers: async (filters = {}) => {
+    const params = {};
+    if (filters.status) params.status = filters.status;
+    if (filters.limit) params.limit = filters.limit;
+    const response = await api.get("/api/v1/workspace/finance/offers", { params });
+    return response.data; // { offers: [...], total }
+  },
+
+  cancelOffer: async (offerId) => {
+    const response = await api.post(`/api/v1/workspace/finance/offers/${offerId}/cancel`);
+    return response.data;
+  },
 };

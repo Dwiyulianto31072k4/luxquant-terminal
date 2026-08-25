@@ -14,6 +14,7 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, Literal, Union
 from pydantic import BaseModel, Field, EmailStr, validator
+import os
 import re
 import logging
 
@@ -26,11 +27,26 @@ from app.models.wallet import ReceivingWallet
 from app.services.bscscan import fetch_tx_details
 from app.services.commission_service import reverse_commission_for_refund
 from app.services.tier import tier_from_dates
+from app.services.manual_grant import apply_grant, compute_expiry, describe_duration
+from app.models.manual_payment_offer import (
+    ManualPaymentOffer,
+    DEFAULT_TTL_DAYS,
+    STATUS_PENDING,
+    STATUS_CLAIMED,
+)
 
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/workspace/finance", tags=["finance"])
+
+
+def _site_base() -> str:
+    """Where a claim link points. Read per call rather than at import: a
+    `systemctl reload` re-execs the workers but does NOT re-read EnvironmentFile,
+    so a value frozen at import survives the deploy that was meant to change it.
+    """
+    return (os.getenv("FRONTEND_URL") or os.getenv("PUBLIC_SITE_URL") or "https://luxquant.tw").rstrip("/")
 
 MANUAL_EMAIL_DOMAIN = "manual.luxquant.tw"
 MIN_CONFIRMATIONS_WARN = 12
@@ -93,6 +109,11 @@ class ManualPaymentPayload(BaseModel):
     # User reference — exactly one of these must be set
     user_id: Optional[int] = None
     new_user: Optional[NewUserPayload] = None
+
+    # Override the plan's length. None = follow the plan; 0 = lifetime.
+    # Exists for the cases no plan row describes — a negotiated discount, or a
+    # few days of access while someone decides.
+    duration_days: Optional[int] = Field(None, ge=0, le=3650)
 
     # Admin acknowledges discrepancies (on-chain only)
     accept_amount_mismatch: bool = False
@@ -667,17 +688,13 @@ async def create_manual_payment(
         payment_date_was_overridden = False
 
     # ─── Compute new expiration (stack on existing if still active) ───
-    is_lifetime = plan.duration_days is None or plan.duration_days == 0
-    if is_lifetime:
-        new_expires_at = None
-    else:
-        existing_exp = getattr(user, "subscription_expires_at", None)
-        base = (
-            existing_exp
-            if (existing_exp and existing_exp > effective_date)
-            else effective_date
-        )
-        new_expires_at = base + timedelta(days=plan.duration_days)
+    # Shared with the offer-claim path so the two can never answer "how long"
+    # differently for the same plan and override.
+    new_expires_at = compute_expiry(
+        user, plan,
+        duration_days=data.duration_days,
+        effective_date=effective_date,
+    )
 
     # ─── Method display label (for audit note) ───
     _method_labels = {
@@ -774,21 +791,14 @@ async def create_manual_payment(
     db.add(payment)
 
     # ─── Grant subscription ───
-    user.role = "subscriber"
-    user.subscription_expires_at = new_expires_at
-    user.subscription_tier = tier_from_dates(now, new_expires_at)
-    # Access is (re)granted → clear any stale VIP grace so the worker won't
-    # send expiry reminders or kick this now-active/lifetime member.
-    if hasattr(user, "telegram_grace_until"):
-        user.telegram_grace_until = None
-    if hasattr(user, "subscription_granted_by"):
-        user.subscription_granted_by = admin.id
-    if hasattr(user, "subscription_granted_at"):
-        user.subscription_granted_at = now
-    if hasattr(user, "subscription_source"):
-        user.subscription_source = "manual_admin_record"
-    if hasattr(user, "subscription_note"):
-        user.subscription_note = f"Manual plan: {plan.label}"
+    apply_grant(
+        user,
+        expires_at=new_expires_at,
+        granted_by_id=admin.id,
+        source="manual_admin_record",
+        note=f"Manual plan: {plan.label} ({describe_duration(plan, data.duration_days)})",
+        now=now,
+    )
 
     db.commit()
     db.refresh(payment)
@@ -808,6 +818,168 @@ async def create_manual_payment(
         "payment": _serialize_row(payment, user, plan, wallet_map=wallet_map),
         "user_was_created": user_was_new,
     }
+
+
+# ════════════════════════════════════════════════════════════════════
+# OFFERS — record the payment, let the payer claim it
+# ════════════════════════════════════════════════════════════════════
+#
+# Recording a manual payment grants access immediately, which requires the
+# admin to already know the payer's web account. When they don't — the usual
+# case for someone who paid in a chat — an offer defers the last step to the
+# payer: they open a link while signed in and accept, and the access attaches
+# to the account they actually use.
+
+
+class OfferPayload(BaseModel):
+    plan_id: int
+    admin_note: str = Field(..., min_length=10)
+    amount_usd: Decimal = Field(..., gt=0)
+
+    method: Literal["onchain_bsc", "binance_uid", "bank_transfer", "other"] = "binance_uid"
+    method_label: Optional[str] = None
+    reference: Optional[str] = None
+    paid_currency: Optional[str] = None
+    paid_amount: Optional[Decimal] = None
+    fx_rate: Optional[Decimal] = None
+
+    # None = follow the plan; 0 = lifetime.
+    duration_days: Optional[int] = Field(None, ge=0, le=3650)
+
+    # Bind the link to one account when it is known. Leaving it null makes the
+    # link claimable by any signed-in holder — necessary when the admin has no
+    # idea which web account the payer uses, and the reason the TTL is short.
+    user_id: Optional[int] = None
+
+    ttl_days: int = Field(DEFAULT_TTL_DAYS, ge=1, le=90)
+
+
+def _offer_row(offer: ManualPaymentOffer, plan=None, bound_user=None) -> dict:
+    return {
+        "id": offer.id,
+        "token": offer.token,
+        "claim_url": f"{_site_base()}/claim/{offer.token}",
+        "status": offer.status,
+        "amount_usd": float(offer.amount_usd or 0),
+        "method": offer.method,
+        "method_label": offer.method_label,
+        "reference": offer.reference,
+        "duration_days": offer.duration_days,
+        "duration_label": describe_duration(plan, offer.duration_days) if plan else None,
+        "plan_id": offer.plan_id,
+        "plan_label": getattr(plan, "label", None),
+        "bound_user_id": offer.user_id,
+        "bound_username": getattr(bound_user, "username", None),
+        "is_open": offer.user_id is None,
+        "expires_at": offer.expires_at.isoformat() if offer.expires_at else None,
+        "claimed_at": offer.claimed_at.isoformat() if offer.claimed_at else None,
+        "claimed_by": offer.claimed_by,
+        "payment_id": offer.payment_id,
+        "admin_note": offer.admin_note,
+        "created_at": offer.created_at.isoformat() if offer.created_at else None,
+    }
+
+
+@router.post("/manual-payment/offer")
+def create_offer(
+    data: OfferPayload,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Create a claim link for a payment taken outside the web."""
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == data.plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    bound_user = None
+    if data.user_id is not None:
+        bound_user = db.query(User).filter(User.id == data.user_id).first()
+        if not bound_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+    if data.method == "other" and not (data.method_label or "").strip():
+        raise HTTPException(status_code=400, detail="method_label is required when method is 'other'")
+
+    offer = ManualPaymentOffer(
+        token=ManualPaymentOffer.new_token(),
+        created_by=admin.id,
+        user_id=data.user_id,
+        plan_id=plan.id,
+        duration_days=data.duration_days,
+        amount_usd=data.amount_usd,
+        method=data.method,
+        method_label=data.method_label,
+        reference=data.reference or (data.method_label if data.method == "other" else None),
+        paid_currency=(data.paid_currency or "USD").upper(),
+        paid_amount=data.paid_amount,
+        fx_rate=data.fx_rate,
+        admin_note=data.admin_note,
+        status=STATUS_PENDING,
+        expires_at=ManualPaymentOffer.default_expiry(data.ttl_days),
+    )
+    db.add(offer)
+    db.commit()
+    db.refresh(offer)
+
+    logger.info(
+        f"🎟️  Offer #{offer.id} created by @{admin.username} — plan {plan.label}, "
+        f"${data.amount_usd}, {describe_duration(plan, data.duration_days)}, "
+        f"{'bound to @' + bound_user.username if bound_user else 'OPEN link'}"
+    )
+    return {"success": True, "offer": _offer_row(offer, plan, bound_user)}
+
+
+@router.get("/offers")
+def list_offers(
+    status: Optional[str] = None,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Offers, newest first. Expired-but-still-pending rows are reported as
+    expired rather than pending — the row is only rewritten when someone tries
+    to use it, so the list would otherwise show a link that cannot be claimed."""
+    q = db.query(ManualPaymentOffer)
+    if status:
+        q = q.filter(ManualPaymentOffer.status == status)
+    offers = q.order_by(ManualPaymentOffer.created_at.desc()).limit(limit).all()
+
+    plans = {p.id: p for p in db.query(SubscriptionPlan).all()}
+    uids = {o.user_id for o in offers if o.user_id}
+    users = {u.id: u for u in db.query(User).filter(User.id.in_(uids)).all()} if uids else {}
+
+    now = datetime.now(timezone.utc)
+    rows = []
+    for o in offers:
+        row = _offer_row(o, plans.get(o.plan_id), users.get(o.user_id))
+        if o.status == STATUS_PENDING and o.expires_at and o.expires_at <= now:
+            row["status"] = "expired"
+        rows.append(row)
+    return {"offers": rows, "total": len(rows)}
+
+
+@router.post("/offers/{offer_id}/cancel")
+def cancel_offer(
+    offer_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Kill a link. A claimed offer stays claimed — the payment behind it is
+    real, and cancelling the link must not suggest otherwise."""
+    offer = db.query(ManualPaymentOffer).filter(ManualPaymentOffer.id == offer_id).first()
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    if offer.status == STATUS_CLAIMED:
+        raise HTTPException(
+            status_code=400,
+            detail="Already claimed. Refund or void the payment instead.",
+        )
+    offer.status = "cancelled"
+    offer.cancelled_at = datetime.now(timezone.utc)
+    offer.cancelled_by = admin.id
+    db.commit()
+    logger.info(f"🚫 Offer #{offer.id} cancelled by @{admin.username}")
+    return {"success": True, "offer_id": offer.id, "status": offer.status}
 
 
 # ════════════════════════════════════════════════════════════════════

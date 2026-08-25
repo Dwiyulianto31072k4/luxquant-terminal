@@ -34,6 +34,7 @@ import { LOGIN_REQUIRED, PREMIUM_REQUIRED } from "./utils/routeAccess";
 const OverviewPage = lazy(() => import("./components/OverviewPage"));
 const FooterV2 = lazy(() => import("./components/landing/v2/sections/FooterV2"));
 const SignalsPage = lazy(() => import("./components/SignalsPage"));
+const ClaimPage = lazy(() => import("./components/ClaimPage"));
 const SignalTerminalPage = lazy(() => import("./components/SignalTerminalPage"));
 const BitcoinPage = lazy(() => import("./components/BitcoinPage"));
 const MarketsPage = lazy(() => import("./components/MarketsPage"));
@@ -1537,6 +1538,17 @@ function App() {
 
                   {/* Auth */}
                   <Route path="/login" element={<LoginPageWrapper />} />
+                  {/* Claim links are opened by people who have just paid and are
+                      not necessarily signed in — the page itself decides what to
+                      show, so it must not sit behind a route guard. */}
+                  <Route
+                    path="/claim/:token"
+                    element={
+                      <Suspense fallback={<PageLoader />}>
+                        <ClaimPage />
+                      </Suspense>
+                    }
+                  />
                   <Route
                     path="/auth/google/callback"
                     element={

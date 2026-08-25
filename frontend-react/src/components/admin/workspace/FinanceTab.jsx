@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from "react";
 import { financeApi } from "../../../services/financeApi";
 import { PaymentDetailPanel } from "./PaymentDetailPanel";
 import { ManualPaymentModal } from "./ManualPaymentModal";
+import CreateOfferModal from "./CreateOfferModal";
 import { ConfirmModal } from "../users/ConfirmModal";
 
 import { FinanceStatsGrid } from "./finance/FinanceStatsGrid";
@@ -27,7 +28,7 @@ const PAGE_SIZE = 25;
 
 /* ── Header ───────────────────────────────────────────────────────── */
 
-const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
+const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment, onCreateOffer }) => {
   const hasStale = (stats?.stale_count ?? 0) > 0;
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -56,6 +57,16 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
         >
           <PlusIcon size={12} />
           Manual Payment
+        </button>
+
+        <button
+          type="button"
+          onClick={onCreateOffer}
+          className="flex items-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.1] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-primary transition hover:bg-ink/[0.14]"
+          title="Send the payer a link to claim their subscription themselves"
+        >
+          <PlusIcon size={12} />
+          Claim Link
         </button>
 
         {hasStale && (
@@ -189,6 +200,7 @@ export const FinanceTab = ({ onRefreshStats, initialSearch = "" }) => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [offerOpen, setOfferOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
 
   /* Toast */
@@ -379,6 +391,7 @@ export const FinanceTab = ({ onRefreshStats, initialSearch = "" }) => {
         stats={stats}
         onBulkCancelStale={handleBulkCancelStale}
         onAddManualPayment={() => setManualOpen(true)}
+        onCreateOffer={() => setOfferOpen(true)}
       />
 
       <FinanceStatsGrid
@@ -455,6 +468,11 @@ export const FinanceTab = ({ onRefreshStats, initialSearch = "" }) => {
         isOpen={manualOpen}
         onClose={() => setManualOpen(false)}
         onSuccess={handleManualPaymentSuccess}
+      />
+
+      <CreateOfferModal
+        isOpen={offerOpen}
+        onClose={() => setOfferOpen(false)}
       />
 
       {confirmModal && <ConfirmModal {...confirmModal} onClose={() => setConfirmModal(null)} />}
