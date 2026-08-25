@@ -10,6 +10,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+// `services/api` carries baseURL `/api/v1`, so paths here are relative to it.
+// The other instance (`services/authApi`) does not — writing an absolute
+// `/api/v1/...` path against this one produces `/api/v1/api/v1/...`.
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { loginUrl } from "../utils/postLoginRedirect";
@@ -64,7 +67,7 @@ export default function ClaimPage() {
   useEffect(() => {
     let alive = true;
     api
-      .get(`/api/v1/subscription/claim/${token}`)
+      .get(`/subscription/claim/${token}`)
       .then((r) => alive && setOffer(r.data.offer))
       .catch(() => alive && setNotFound(true))
       .finally(() => alive && setLoading(false));
@@ -77,7 +80,7 @@ export default function ClaimPage() {
     setAccepting(true);
     setError(null);
     try {
-      const r = await api.post(`/api/v1/subscription/claim/${token}`);
+      const r = await api.post(`/subscription/claim/${token}`);
       // The session in memory still says `free`; without this the app would
       // keep the upgrade wall up on the page they just paid to get past.
       await refreshUser();
