@@ -128,6 +128,25 @@ const parseAmountFromText = (text) => {
   return { amount_raw: null, amount_usd: null, token: null };
 };
 
+/**
+ * The body without its own headline repeated at the top.
+ *
+ * `title` is taken from the message's first line, so `raw_text` almost always
+ * opens with it — and Details then printed the headline the reader had just
+ * read, one line above.
+ */
+const bodyAfterTitle = (body, title) => {
+  if (!body || !title) return body;
+  const rest = (body.startsWith(title) ? body.slice(title.length) : body)
+    .replace(/^[\s—–-]+/, "")
+    .trim();
+  // What Whale Alert leaves behind is the bare word "Details" — its own link
+  // label. Strip the title and that is all that remains, so a Details panel
+  // appeared containing nothing but the word Details. Anything this short is
+  // residue, not content.
+  return rest.length >= 24 ? rest : "";
+};
+
 /** Merge API fields with text-recovered fallbacks for display. */
 const enrichAlert = (alert) => {
   if (!alert) return alert;
@@ -145,7 +164,7 @@ const enrichAlert = (alert) => {
     amount_raw,
     token,
     title_clean: cleanText(alert.title || ""),
-    raw_clean: cleanText(alert.raw_text || ""),
+    raw_clean: bodyAfterTitle(cleanText(alert.raw_text || ""), cleanText(alert.title || "")),
   };
 };
 
