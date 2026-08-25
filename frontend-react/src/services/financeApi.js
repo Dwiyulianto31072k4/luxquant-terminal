@@ -160,6 +160,13 @@ export const financeApi = {
     return response.data;
   },
 
+  // Active receiving wallets — drives the "where did it land" picker, so a
+  // wallet added in settings appears without a frontend change.
+  getReceivingWallets: async () => {
+    const response = await api.get("/api/v1/workspace/finance/receiving-wallets");
+    return response.data; // { wallets: [{ address, exchange_name, label, network }] }
+  },
+
   // ── OFFERS — claim links for payments taken outside the web ──
   createOffer: async (payload) => {
     const response = await api.post("/api/v1/workspace/finance/manual-payment/offer", payload);

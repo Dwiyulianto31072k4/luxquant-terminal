@@ -20,9 +20,11 @@ import { CheckCircleIcon, CopyIcon, SearchIcon, AlertTriangleIcon } from "../Ico
 import Modal from "../../ui/Modal";
 import { GoldButton, GhostButton } from "../../autotrade/AutoTradeUI";
 
-const METHODS = [
-  { id: "binance_uid", label: "Binance", hint: "UID or transfer reference" },
-  { id: "onchain_bsc", label: "On-chain", hint: "USDT on BSC" },
+// Non-exchange fallbacks. The exchange options themselves are not listed here
+// — they come from the receiving-wallet pool, so adding a venue in settings is
+// all it takes for it to appear in this picker with the right badge behind it.
+const FALLBACK_METHODS = [
+  { id: "onchain_bsc", label: "On-chain", hint: "USDT on BSC, no exchange" },
   { id: "bank_transfer", label: "Bank", hint: "Transfer reference" },
   { id: "other", label: "Other", hint: "OVO, GoPay, cash…" },
 ];
@@ -116,7 +118,9 @@ const Choice = ({ active, onClick, children, title }) => (
 export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
   const [plans, setPlans] = useState([]);
   const [planId, setPlanId] = useState("");
-  const [method, setMethod] = useState("binance_uid");
+  const [method, setMethod] = useState("exchange_transfer");
+  const [wallets, setWallets] = useState([]);
+  const [walletAddress, setWalletAddress] = useState("");
   const [methodLabel, setMethodLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
@@ -142,6 +146,15 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
         setPlanId((cur) => cur || (d.plans?.length ? String(d.plans[0].id) : ""));
       })
       .catch(() => setPlans([]));
+
+    financeApi
+      .getReceivingWallets()
+      .then((d) => {
+        const list = d.wallets || [];
+        setWallets(list);
+        setWalletAddress((cur) => cur || (list.length ? list[0].address : ""));
+      })
+      .catch(() => setWallets([]));
   }, [isOpen]);
 
   // Debounced — typing a name should not fire a request per keystroke.
@@ -171,7 +184,15 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
     return plan.is_lifetime ? "Lifetime" : `${plan.duration_days} days`;
   }, [duration, plan]);
 
-  const step1Done = Number(amount) > 0 && (method !== "other" || methodLabel.trim().length > 0);
+  const wallet = useMemo(
+    () => wallets.find((w) => w.address === walletAddress) || null,
+    [wallets, walletAddress]
+  );
+
+  const step1Done =
+    Number(amount) > 0 &&
+    (method !== "other" || methodLabel.trim().length > 0) &&
+    (method !== "exchange_transfer" || !!wallet);
   const step2Done = !!planId;
   const step3Done = note.trim().length >= 10;
   const canSubmit = step1Done && step2Done && step3Done && !busy;
@@ -203,6 +224,7 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
         amount_usd: Number(amount),
         method,
         method_label: method === "other" ? methodLabel.trim() : null,
+        wallet_address: method === "exchange_transfer" ? walletAddress : null,
         reference: reference.trim() || null,
         duration_days: duration === "" ? null : Number(duration),
         user_id: boundUser?.id ?? null,
@@ -274,6 +296,12 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
         <span style={{ color: "rgb(var(--ink) / 0.3)" }}>·</span>
         <span className="font-mono tabular-nums text-text-primary">
           ${Number(amount || 0).toFixed(2)}
+        </span>
+        <span style={{ color: "rgb(var(--ink) / 0.3)" }}>·</span>
+        <span style={{ color: "rgb(var(--fg-muted))" }}>
+          {method === "exchange_transfer"
+            ? wallet?.exchange_name || "no wallet"
+            : FALLBACK_METHODS.find((m) => m.id === method)?.label || method}
         </span>
         <span className="ml-auto" style={{ color: "rgb(var(--fg-muted))" }}>
           {boundUser ? `@${boundUser.username} only` : "anyone with the link"}
@@ -371,18 +399,33 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
           {/* ── 1 · what was paid ───────────────────────────────── */}
           <section>
             <StepHeader num={1} title="What was paid" complete={step1Done} />
-            <div className="grid grid-cols-4 gap-1.5">
-              {METHODS.map((m) => (
-                <Choice
-                  key={m.id}
-                  active={method === m.id}
-                  onClick={() => setMethod(m.id)}
-                  title={m.hint}
-                >
-                  {m.label}
-                </Choice>
-              ))}
-            </div>
+            <Field label="Where it landed">
+              <div className="grid grid-cols-3 gap-1.5">
+                {wallets.map((w) => (
+                  <Choice
+                    key={w.address}
+                    active={method === "exchange_transfer" && walletAddress === w.address}
+                    onClick={() => {
+                      setMethod("exchange_transfer");
+                      setWalletAddress(w.address);
+                    }}
+                    title={`${w.label || w.exchange_name} · ${w.network} · ${w.address}`}
+                  >
+                    {w.exchange_name}
+                  </Choice>
+                ))}
+                {FALLBACK_METHODS.map((m) => (
+                  <Choice
+                    key={m.id}
+                    active={method === m.id}
+                    onClick={() => setMethod(m.id)}
+                    title={m.hint}
+                  >
+                    {m.label}
+                  </Choice>
+                ))}
+              </div>
+            </Field>
 
             <div className="mt-2.5 grid grid-cols-2 gap-2.5">
               {method === "other" && (

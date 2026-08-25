@@ -820,6 +820,10 @@ def accept_claim(
         verified_at=now,
         method=offer.method,
         reference=offer.reference,
+        # Carries the exchange badge into the Finance list — it is derived from
+        # wallet_to, not from `method`.
+        wallet_to=offer.wallet_address,
+        network=offer.network,
         paid_currency=offer.paid_currency or "USD",
         paid_amount=offer.paid_amount,
         fx_rate=offer.fx_rate,

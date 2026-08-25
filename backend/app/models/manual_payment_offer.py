@@ -63,6 +63,12 @@ class ManualPaymentOffer(Base):
     paid_amount = Column(Numeric(24, 8), nullable=True)
     fx_rate = Column(Numeric(24, 8), nullable=True)
 
+    # Which receiving wallet the money landed in. The Finance list derives its
+    # exchange badge from `payments.wallet_to` → receiving_wallets.exchange_name,
+    # so without this a Gate.io or Indodax transfer arrives with no venue at all.
+    wallet_address = Column(String(64), nullable=True)
+    network = Column(String(16), nullable=True)
+
     admin_note = Column(Text, nullable=False)
 
     status = Column(String(16), nullable=False, default=STATUS_PENDING)

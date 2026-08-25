@@ -88,3 +88,13 @@ COMMENT ON COLUMN manual_payment_offers.user_id IS
     'NULL = link terbuka untuk siapa pun yang login. Terisi = terikat ke user itu.';
 
 COMMIT;
+-- Menyimpan wallet penerima pada penawaran, supaya baris `payments` hasil klaim
+-- membawa `wallet_to` — dari situlah daftar Finance mengambil badge bursanya
+-- (receiving_wallets.exchange_name). Tanpa ini, pembayaran lewat Gate.io atau
+-- Indodax masuk tanpa penanda bursa sama sekali.
+ALTER TABLE manual_payment_offers
+    ADD COLUMN IF NOT EXISTS wallet_address VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS network        VARCHAR(16);
+
+COMMENT ON COLUMN manual_payment_offers.wallet_address IS
+    'Alamat receiving_wallets tempat dana mendarat. Menentukan badge bursa di Finance.';

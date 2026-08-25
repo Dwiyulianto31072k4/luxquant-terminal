@@ -334,6 +334,33 @@ def list_exchanges(db: Session = Depends(get_db), admin: User = Depends(get_admi
 # PLANS — for manual-payment plan picker
 # ════════════════════════════════════════════════════════════════════
 
+@router.get("/receiving-wallets")
+def list_receiving_wallets(db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    """Active receiving wallets, for the "where did it land" picker.
+
+    Served from the pool rather than a hard-coded list so a wallet added in
+    settings shows up in the picker — and its exchange badge in the payments
+    list — without a code change.
+    """
+    rows = (
+        db.query(ReceivingWallet)
+        .filter(ReceivingWallet.is_active == True)  # noqa: E712
+        .order_by(ReceivingWallet.exchange_name)
+        .all()
+    )
+    return {
+        "wallets": [
+            {
+                "address": w.address,
+                "exchange_name": w.exchange_name,
+                "label": w.label,
+                "network": w.network,
+            }
+            for w in rows
+        ]
+    }
+
+
 @router.get("/plans")
 def list_plans(db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
     """All subscription plans (for admin manual-payment picker)."""
@@ -836,12 +863,21 @@ class OfferPayload(BaseModel):
     admin_note: str = Field(..., min_length=10)
     amount_usd: Decimal = Field(..., gt=0)
 
-    method: Literal["onchain_bsc", "binance_uid", "bank_transfer", "other"] = "binance_uid"
+    # `exchange_transfer` covers every venue in the receiving-wallet pool —
+    # Gate.io, Indodax, Bybit, MEXC, Huobi, Binance — with `wallet_address`
+    # saying which. Hard-coding one method per exchange would mean editing this
+    # file every time a wallet is added.
+    method: Literal[
+        "exchange_transfer", "onchain_bsc", "binance_uid", "bank_transfer", "other"
+    ] = "exchange_transfer"
     method_label: Optional[str] = None
     reference: Optional[str] = None
     paid_currency: Optional[str] = None
     paid_amount: Optional[Decimal] = None
     fx_rate: Optional[Decimal] = None
+
+    # Receiving wallet the transfer landed in. Validated against the pool.
+    wallet_address: Optional[str] = None
 
     # None = follow the plan; 0 = lifetime.
     duration_days: Optional[int] = Field(None, ge=0, le=3650)
@@ -863,6 +899,7 @@ def _offer_row(offer: ManualPaymentOffer, plan=None, bound_user=None) -> dict:
         "amount_usd": float(offer.amount_usd or 0),
         "method": offer.method,
         "method_label": offer.method_label,
+        "wallet_address": offer.wallet_address,
         "reference": offer.reference,
         "duration_days": offer.duration_days,
         "duration_label": describe_duration(plan, offer.duration_days) if plan else None,
@@ -900,6 +937,18 @@ def create_offer(
     if data.method == "other" and not (data.method_label or "").strip():
         raise HTTPException(status_code=400, detail="method_label is required when method is 'other'")
 
+    # Only addresses we actually control may be recorded — a typo here would
+    # attribute revenue to a wallet that is not ours.
+    wallet = None
+    if data.wallet_address:
+        wallet = db.query(ReceivingWallet).filter(
+            func.lower(ReceivingWallet.address) == data.wallet_address.lower()
+        ).first()
+        if not wallet:
+            raise HTTPException(status_code=400, detail="That wallet is not in the receiving pool.")
+    if data.method == "exchange_transfer" and not wallet:
+        raise HTTPException(status_code=400, detail="Pick which wallet the transfer landed in.")
+
     offer = ManualPaymentOffer(
         token=ManualPaymentOffer.new_token(),
         created_by=admin.id,
@@ -913,6 +962,8 @@ def create_offer(
         paid_currency=(data.paid_currency or "USD").upper(),
         paid_amount=data.paid_amount,
         fx_rate=data.fx_rate,
+        wallet_address=(wallet.address if wallet else None),
+        network=(wallet.network if wallet else None),
         admin_note=data.admin_note,
         status=STATUS_PENDING,
         expires_at=ManualPaymentOffer.default_expiry(data.ttl_days),
