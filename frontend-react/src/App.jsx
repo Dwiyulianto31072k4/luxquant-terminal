@@ -40,7 +40,9 @@ const BitcoinPage = lazy(() => import("./components/BitcoinPage"));
 const MarketsPage = lazy(() => import("./components/MarketsPage"));
 const ApiKeysPage = lazy(() => import("./components/ApiKeysPage"));
 const WatchlistTabs = lazy(() => import("./components/WatchlistTabs"));
-const TipsPage = lazy(() => import("./components/ResourcesPage"));
+const TipsPage = lazy(() => import("./components/TipsPage"));
+// The old Resources shelf — still the place to file and edit lessons.
+const ResourcesPage = lazy(() => import("./components/ResourcesPage"));
 const AdminWorkspacePage = lazy(() => import("./components/AdminWorkspacePage"));
 const MacroCalendarPage = lazy(() => import("./components/MacroCalendarPage"));
 const MoneyFlowPage = lazy(() => import("./components/MoneyFlowPage"));
@@ -593,6 +595,7 @@ function AppShell({ children }) {
   const navItems = [
     { path: "/home", label: t("nav.home") },
     { path: "/signals", label: t("nav.signals") },
+    { path: "/tips", label: t("nav.tips", { defaultValue: "Tutorials" }) },
     { path: "/terminal/scan", label: "Terminal", matchPrefix: "/terminal" },
     { path: "/agent", label: "Agent" },
     { path: "/ai-arena", label: "AI Research", matchPrefix: "/ai-arena" },
@@ -644,10 +647,10 @@ function AppShell({ children }) {
       description: t("desc.calendar"),
     },
     {
-      path: "/tips",
-      label: t("nav.tips"),
+      path: "/resources",
+      label: "Resource library",
       icon: "📚",
-      description: t("desc.tips"),
+      description: "Every article, video and PDF — including unfiled ones",
     },
     {
       path: "/watchlist",
@@ -1909,6 +1912,18 @@ function App() {
                       <RequireAuth>
                         <AppShell>
                           <TipsPage />
+                        </AppShell>
+                      </RequireAuth>
+                    }
+                  />
+                  {/* The old shelf. Still where lessons are filed and edited,
+                      and where anything without a track can still be found. */}
+                  <Route
+                    path="/resources"
+                    element={
+                      <RequireAuth>
+                        <AppShell>
+                          <ResourcesPage />
                         </AppShell>
                       </RequireAuth>
                     }

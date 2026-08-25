@@ -59,6 +59,19 @@ export const resourcesApi = {
     return res.data.counts || {};
   },
 
+  // ── Learn — the curriculum view over the same rows ──
+  tracks: async () => {
+    const res = await api.get(`${BASE}/learn/tracks`);
+    return res.data; // { tracks: [...], totals: {...}, signed_in }
+  },
+
+  setComplete: async (resourceId, done = true) => {
+    const res = await api.post(`${BASE}/learn/${resourceId}/complete`, null, {
+      params: { done },
+    });
+    return res.data;
+  },
+
   // Admin: fetch oEmbed / OG preview for a pasted URL.
   urlPreview: async (url) => {
     const res = await api.post(`${BASE}/url-preview`, { url });

@@ -161,6 +161,14 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
   const [excerpt, setExcerpt] = useState(resource?.excerpt || "");
   const [content, setContent] = useState(resource?.content || "");
   const [contentFormat, setContentFormat] = useState(resource?.content_format || "html");
+  const [track, setTrack] = useState(resource?.track || "");
+  const [orderIndex, setOrderIndex] = useState(
+    resource?.order_index != null ? String(resource.order_index) : "0"
+  );
+  const [level, setLevel] = useState(resource?.level || "");
+  const [estMinutes, setEstMinutes] = useState(
+    resource?.est_minutes != null ? String(resource.est_minutes) : ""
+  );
   const [category, setCategory] = useState(resource?.category || "General");
   const [newCategory, setNewCategory] = useState("");
   const [tags, setTags] = useState(resource?.tags || "");
@@ -253,6 +261,10 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
       fd.append("type", type);
       fd.append("title", title.trim());
       fd.append("excerpt", excerpt.trim());
+      fd.append("track", track);
+      fd.append("order_index", String(Number(orderIndex) || 0));
+      fd.append("level", level);
+      if (estMinutes) fd.append("est_minutes", String(Number(estMinutes) || 0));
       fd.append("category", newCategory.trim() || category || "General");
       fd.append("tags", tags.trim());
       fd.append("author_name", authorName.trim());
@@ -502,6 +514,66 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
               className={`${inputCls} resize-none`}
             />
           </Field>
+
+          {/* Curriculum — what decides whether this appears in Tutorials at
+              all, so it sits above the older taxonomy rather than below it. */}
+          <div
+            className="rounded-xl p-4"
+            style={{ background: "rgb(var(--accent) / 0.05)", border: "1px solid rgb(var(--accent) / 0.22)" }}
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+              <div className="sm:col-span-2">
+                <Field label="Tutorials track">
+                  <select
+                    value={track}
+                    onChange={(e) => setTrack(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">Not in Tutorials</option>
+                    <option value="start">Start here</option>
+                    <option value="read-a-call">Reading a call</option>
+                    <option value="numbers">What the numbers mean</option>
+                    <option value="tools">The tools</option>
+                    <option value="automation">Automation</option>
+                    <option value="account">Your account</option>
+                  </select>
+                </Field>
+              </div>
+              <Field label="Order">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={orderIndex}
+                  onChange={(e) => setOrderIndex(e.target.value.replace(/[^0-9]/g, ""))}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Level">
+                <select value={level} onChange={(e) => setLevel(e.target.value)} className={inputCls}>
+                  <option value="">—</option>
+                  <option value="basic">Basic</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </Field>
+            </div>
+            <p className="mt-2 text-[11px] text-text-muted">
+              Leave the track empty to keep this out of Tutorials. Order is low-to-high
+              within the track; reading time is worked out from the text unless you set one.
+            </p>
+            <div className="mt-3 sm:w-40">
+              <Field label="Minutes (optional)">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={estMinutes}
+                  onChange={(e) => setEstMinutes(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="auto"
+                  className={inputCls}
+                />
+              </Field>
+            </div>
+          </div>
 
           {/* Category + tags */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

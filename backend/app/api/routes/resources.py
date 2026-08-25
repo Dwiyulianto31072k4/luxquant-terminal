@@ -26,9 +26,27 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.api.deps import get_current_user, get_current_user_optional
 from app.models.user import User
-from app.models.resource import Resource
+from app.models.resource import Resource, ResourceProgress
+from app.services.learn import TRACKS, TRACK_SLUGS, LEVELS, estimate_minutes
 
 router = APIRouter(prefix="/resources", tags=["resources"])
+
+
+def _clean_track(value):
+    """An unknown track would file a lesson onto a shelf that is never
+    rendered — silently. Empty means "not in Tutorials", which is a real
+    answer; anything else must be a track we actually show."""
+    v = (value or "").strip()
+    if not v:
+        return None
+    if v not in TRACK_SLUGS:
+        raise HTTPException(status_code=400, detail=f"Unknown track '{v}'")
+    return v
+
+
+def _clean_level(value):
+    v = (value or "").strip().lower()
+    return v if v in LEVELS else None
 
 # ============ Config ============
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -62,6 +80,10 @@ class ResourceOut(BaseModel):
     embed_html: Optional[str] = None
     provider: Optional[str] = None
     category: str = "General"
+    track: Optional[str] = None
+    order_index: int = 0
+    level: Optional[str] = None
+    est_minutes: Optional[int] = None
     tags: Optional[str] = None
     author_name: Optional[str] = None
     reading_time: Optional[int] = None
@@ -379,6 +401,118 @@ async def serve_cover(filename: str):
     raise HTTPException(status_code=404, detail="Image not found")
 
 
+# ════════════════════════════════════════════════════════════════════
+# LEARN — the curriculum view over the same rows
+# ════════════════════════════════════════════════════════════════════
+#
+# Same table, different question. `/resources` answers "what do we have";
+# `/learn` answers "what should I read next, and how far am I". Only rows with
+# a `track` appear here, so filing a lesson is a deliberate act.
+
+
+def _lesson_row(r: Resource, done: bool = False) -> dict:
+    return {
+        "id": r.id,
+        "slug": r.slug,
+        "title": r.title,
+        "excerpt": r.excerpt,
+        "type": r.type,
+        "level": r.level,
+        "minutes": estimate_minutes(r.content, r.est_minutes),
+        "order_index": r.order_index or 0,
+        "cover_image": r.cover_image,
+        "cover_is_external": bool(r.cover_is_external),
+        "completed": done,
+    }
+
+
+@router.get("/learn/tracks")
+def learn_tracks(
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """Every track with its lessons, in order, plus this reader's progress.
+
+    One call rather than one per track: the overview page shows all of them at
+    once, and six round-trips to draw one screen is how a learning page starts
+    feeling slower than the thing it is teaching.
+    """
+    rows = (
+        db.query(Resource)
+        .filter(
+            Resource.track.isnot(None),
+            Resource.status == "published",
+            Resource.is_active == True,  # noqa: E712
+        )
+        .order_by(Resource.track, Resource.order_index, Resource.id)
+        .all()
+    )
+
+    done_ids = set()
+    if current_user:
+        done_ids = {
+            pid
+            for (pid,) in db.query(ResourceProgress.resource_id).filter(
+                ResourceProgress.user_id == current_user.id
+            )
+        }
+
+    by_track = {}
+    for r in rows:
+        by_track.setdefault(r.track, []).append(_lesson_row(r, r.id in done_ids))
+
+    tracks = []
+    total = done = 0
+    for meta in TRACKS:
+        lessons = by_track.get(meta["slug"], [])
+        finished = sum(1 for l in lessons if l["completed"])
+        total += len(lessons)
+        done += finished
+        tracks.append({
+            **meta,
+            "lessons": lessons,
+            "lesson_count": len(lessons),
+            "completed_count": finished,
+            "minutes": sum(l["minutes"] for l in lessons),
+        })
+
+    return {
+        "tracks": tracks,
+        "totals": {"lessons": total, "completed": done},
+        "signed_in": bool(current_user),
+    }
+
+
+@router.post("/learn/{resource_id}/complete")
+def mark_complete(
+    resource_id: int,
+    done: bool = Query(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tick or untick a lesson. Idempotent in both directions — a double tap on
+    a slow connection should not become an error the reader has to think about.
+    """
+    exists = db.query(Resource).filter(Resource.id == resource_id).first()
+    if not exists:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    row = (
+        db.query(ResourceProgress)
+        .filter(
+            ResourceProgress.user_id == current_user.id,
+            ResourceProgress.resource_id == resource_id,
+        )
+        .first()
+    )
+    if done and not row:
+        db.add(ResourceProgress(user_id=current_user.id, resource_id=resource_id))
+    elif not done and row:
+        db.delete(row)
+    db.commit()
+    return {"success": True, "resource_id": resource_id, "completed": done}
+
+
 @router.get("/{id_or_slug}", response_model=ResourceOut)
 def get_resource(
     id_or_slug: str,
@@ -438,6 +572,12 @@ async def create_resource(
     cover_url: str = Form(None),               # external cover (oEmbed thumbnail)
     resource_status: str = Form("published"),  # draft | published
     is_featured: bool = Form(False),
+    # ── Curriculum. Empty track keeps a row out of Tutorials entirely, which
+    #    is how the two legacy rows stay put until somebody files them. ──
+    track: str = Form(None),
+    order_index: int = Form(0),
+    level: str = Form(None),
+    est_minutes: int = Form(None),
     pdf_file: Optional[UploadFile] = File(None),
     cover_file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
@@ -488,6 +628,10 @@ async def create_resource(
         reading_time=reading_time,
         status="draft" if resource_status == "draft" else "published",
         is_featured=bool(is_featured),
+        track=_clean_track(track),
+        order_index=order_index or 0,
+        level=_clean_level(level),
+        est_minutes=est_minutes or None,
         created_by=current_user.id,
         published_at=now,
     )
@@ -514,6 +658,10 @@ def update_resource(
     cover_url: str = Form(None),
     resource_status: str = Form(None),
     is_featured: Optional[bool] = Form(None),
+    track: str = Form(None),
+    order_index: Optional[int] = Form(None),
+    level: str = Form(None),
+    est_minutes: Optional[int] = Form(None),
     pdf_file: Optional[UploadFile] = File(None),
     cover_file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
@@ -531,6 +679,14 @@ def update_resource(
         res.title = title.strip()
     if excerpt is not None:
         res.excerpt = excerpt.strip() or None
+    if track is not None:
+        res.track = _clean_track(track)
+    if order_index is not None:
+        res.order_index = order_index
+    if level is not None:
+        res.level = _clean_level(level)
+    if est_minutes is not None:
+        res.est_minutes = est_minutes or None
     if category is not None:
         res.category = category.strip() or "General"
     if tags is not None:

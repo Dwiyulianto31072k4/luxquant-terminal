@@ -42,6 +42,15 @@ class Resource(Base):
     embed_html = Column(Text, nullable=True)                    # cached oEmbed iframe (video)
     provider = Column(String(50), nullable=True)                # youtube | vimeo | twitter | web
 
+    # ── Curriculum (Learn) ──
+    # `track` is the shelf: an ordered path, not a format bucket. NULL keeps a
+    # row out of Learn entirely, which is what the two legacy rows do until
+    # somebody files them.
+    track = Column(String(40), nullable=True, index=True)
+    order_index = Column(Integer, default=0, nullable=False)
+    level = Column(String(16), nullable=True)          # basic | intermediate | advanced
+    est_minutes = Column(Integer, nullable=True)       # author override; else derived
+
     # ── Taxonomy & meta ──
     category = Column(String(100), default="General", index=True)
     tags = Column(Text, nullable=True)                          # comma-separated
@@ -61,3 +70,21 @@ class Resource(Base):
 
     def __repr__(self):
         return f"<Resource {self.type}:{self.title}>"
+
+
+class ResourceProgress(Base):
+    """One lesson, finished by one person.
+
+    Kept as its own table rather than a column on the user so the shape stays
+    honest: completion is per lesson, and the rows also answer "which lesson do
+    people abandon", which a boolean on the user could never.
+    """
+    __tablename__ = "resource_progress"
+
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    resource_id = Column(
+        Integer, ForeignKey("resources.id", ondelete="CASCADE"), primary_key=True
+    )
+    completed_at = Column(DateTime(timezone=True), server_default=func.now())
