@@ -41,13 +41,20 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# Telegram's hard cap for a photo caption. Past it, the text goes as a reply
-# rather than being cut mid-sentence — the same shape the channel already uses.
+# Telegram's hard cap for a photo caption. Past it the post goes out as text
+# with the poster as a large link preview above it, so it stays ONE message
+# instead of an image with the writing bolted on underneath.
 CAPTION_LIMIT = 1024
 TEXT_LIMIT = 4096
 
 # The worker that already posts to this channel, and therefore owns the token.
 XPOSTER_ENV = Path(os.getenv("XPOSTER_ENV_PATH", "/root/luxquant-x-poster/.env"))
+
+# Rendered posters are served from here, and the same directory is mounted
+# publicly at /api/v1/social-post-images — which is what lets a long post go out
+# as ONE message instead of a photo with the text bolted on underneath.
+ASSETS_DIR = Path(os.getenv("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts"))
+PUBLIC_BASE = (os.getenv("FRONTEND_URL") or "https://luxquant.tw").rstrip("/")
 
 API = "https://api.telegram.org"
 
@@ -106,6 +113,19 @@ def channel_status() -> dict:
         return {"ready": False, "reason": str(e)[:120]}
 
 
+def public_image_url(image_path: Optional[str]) -> Optional[str]:
+    """The poster's own https URL, or None if it is not under the served dir."""
+    if not image_path:
+        return None
+    try:
+        rel = os.path.relpath(image_path, ASSETS_DIR)
+    except ValueError:
+        return None
+    if rel.startswith(".."):
+        return None
+    return f"{PUBLIC_BASE}/api/v1/social-post-images/{rel}"
+
+
 def _api(token: str, method: str, **kw) -> dict:
     r = requests.post(f"{API}/bot{token}/{method}", timeout=60, **kw)
     try:
@@ -156,8 +176,35 @@ def send_post(row: dict) -> dict:
             "chat_id": chat, "with_image": True, "split": False,
         }
 
-    # Over the caption limit: photo first, full text as a reply to it. Truncating
-    # would cut a paragraph in half in front of 2k subscribers.
+    # ── Over the 1024-character caption cap ──────────────────────────────
+    # A photo plus a reply is two messages, and it reads as two: the image
+    # floats alone and the writing arrives quoting it. Instead, send the text —
+    # which may run to 4096 — and let the poster ride above it as a large link
+    # preview. One message, image on top, caption whole underneath.
+    #
+    # `url` does not have to appear in the text (Bot API 7.0), so nothing is
+    # added to the copy to make this work.
+    url = public_image_url(image_path)
+    if url:
+        try:
+            res = _api(token, "sendMessage", json={
+                "chat_id": chat,
+                "text": text[:TEXT_LIMIT],
+                "link_preview_options": {
+                    "url": url,
+                    "prefer_large_media": True,
+                    "show_above_text": True,
+                },
+            })
+            return {
+                "message_id": res["result"]["message_id"],
+                "chat_id": chat, "with_image": True, "split": False, "preview": True,
+            }
+        except RuntimeError as e:
+            # Older Bot API, or a preview Telegram declined to build. Falling
+            # through is better than failing: two messages beat none.
+            logger.warning("link-preview send failed, falling back to photo+reply: %s", e)
+
     with Path(image_path).open("rb") as fh:
         photo = _api(
             token, "sendPhoto",
