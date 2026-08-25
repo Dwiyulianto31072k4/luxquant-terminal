@@ -30,6 +30,7 @@ from app.services.notifier import create_notification, notification_exists
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
+from app.services.tier import tier_from_plan
 from app.models.subscription import SubscriptionPlan, Payment
 from app.schemas.subscription import (
     PlanResponse,
@@ -390,6 +391,11 @@ async def verify_payment(
         else:
             current_user.subscription_expires_at = None
 
+        # The plan they actually bought. An expiry date alone cannot tell monthly
+        # from yearly — both are just "a date in the future" — so the shape of the
+        # entitlement is recorded here rather than re-derived later from a span.
+        current_user.subscription_tier = tier_from_plan(plan)
+
         plan_label = plan.label if plan else "unknown"
         current_user.subscription_note = f"Plan: {plan_label}"
 
@@ -549,6 +555,7 @@ def get_my_subscription(
 
         if expires and expires < now:
             current_user.role = "free"
+            current_user.subscription_tier = None
             current_user.subscription_note = None
             db.commit()
             return base

@@ -48,6 +48,8 @@ from app.services.outreach_service import (
     get_reach_summary,
 )
 
+from app.services.tier import tier_from_dates
+
 # VIP group invite (Telegram) — used by /users/{id}/vip-invite
 from app.services.telegram_group import (
     create_one_time_invite_link,
@@ -600,6 +602,9 @@ def grant_subscription(
 
     user.role = 'subscriber'
     user.subscription_expires_at = expires_at
+    # Derived from the window the operator actually chose, so a 1_year grant
+    # reads as yearly rather than being re-guessed from a date span later.
+    user.subscription_tier = tier_from_dates(now, expires_at)
     # Source = identity used by role_resolver to determine role protection
     # saat user login/link via OAuth lain (Telegram/Discord/Google).
     # Lifetime grant -> 'lifetime' (protected selamanya).
@@ -657,6 +662,7 @@ def revoke_subscription(
     now = datetime.now(timezone.utc)
     user.role = 'free'
     user.subscription_expires_at = None
+    user.subscription_tier = None
     user.subscription_source = None  # jalur pencabutan resmi — bersihin source
     user.subscription_note = f"Revoked by admin (ID:{admin.id}) on {now.strftime('%Y-%m-%d %H:%M')}"
 
@@ -1041,6 +1047,7 @@ def cleanup_expired_subscriptions(
     downgraded = []
     for u in expired_users:
         u.role = 'free'
+        u.subscription_tier = None
         u.subscription_note = f"Auto-downgraded (expired {u.subscription_expires_at.strftime('%Y-%m-%d')})"
         downgraded.append(u.username)
 

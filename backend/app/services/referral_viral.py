@@ -26,6 +26,7 @@ from app.models.referral import (
     REFERRAL_STATUS_CANCELLED,
 )
 from app.models.user import User
+from app.services.tier import tier_from_days
 from app.services.role_resolver import (
     ACCESS_ROLES,
     SOURCE_ADMIN,
@@ -82,12 +83,16 @@ def grant_timeboxed_access(
         and user.subscription_expires_at
         and user.subscription_expires_at > now
     ):
+        # Extending an existing subscription: they are still on the plan they
+        # were on, just further out. Overwriting the tier here would relabel a
+        # yearly member as whatever the reward length happens to be.
         user.subscription_expires_at = user.subscription_expires_at + delta
         if user.subscription_source not in protected_keep_source:
             user.subscription_source = source
     else:
         user.role = "subscriber"
         user.subscription_expires_at = now + delta
+        user.subscription_tier = tier_from_days(days)
         user.subscription_source = source
         user.subscription_granted_at = now
         user.subscription_note = note or f"referral reward +{days}d"

@@ -223,6 +223,7 @@ class UserResponse(BaseModel):
     subscription_granted_at: Optional[datetime] = None
     subscription_note: Optional[str] = None
     subscription_source: Optional[str] = None  # ← v2.1
+    subscription_tier: Optional[str] = None    # lifetime | monthly | yearly | custom
     # ← Telegram VIP sync
     telegram_in_group: Optional[bool] = False
     telegram_grace_until: Optional[datetime] = None
@@ -276,6 +277,7 @@ class AdminUserResponse(BaseModel):
     subscription_granted_at: Optional[datetime] = None
     subscription_note: Optional[str] = None
     subscription_source: Optional[str] = None
+    subscription_tier: Optional[str] = None
 
     # Referral v2
     referred_by: Optional[int] = None

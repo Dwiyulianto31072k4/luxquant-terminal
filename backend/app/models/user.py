@@ -44,6 +44,12 @@ class User(Base):
     subscription_granted_at = Column(DateTime(timezone=True), nullable=True)
     subscription_note = Column(Text, nullable=True)
 
+    # Bentuk entitlement: lifetime | monthly | yearly | custom (NULL = tanpa akses).
+    # subscription_expires_at bilang KAPAN habis, subscription_source bilang DARI
+    # MANA, dan kolom ini bilang APA — expiry sendirian tidak bisa membedakan
+    # monthly dari yearly, keduanya cuma "tanggal di masa depan".
+    subscription_tier = Column(String(16), nullable=True)
+
     # ─── v2.1: Subscription source (cross-OAuth provider protection) ───
     # Values: lifetime | admin | payment | telegram_vip | discord_premium | legacy | NULL
     subscription_source = Column(String(30), nullable=True)
@@ -129,27 +135,30 @@ class User(Base):
     STAFF_ROLES = ('admin', 'co_admin', 'founder')
     VIEW_ONLY_STAFF_ROLES = ('co_admin', 'founder')
 
+    # Semua member sekarang ber-role 'subscriber'. Konstanta ini yang dipakai
+    # setiap gate, bukan literal — supaya menambah/mengubah role member cukup
+    # di satu tempat.
+    ACCESS_ROLES = ('subscriber', 'premium')  # 'premium' = cohort legacy, tinggal jejak
+
     @property
     def is_premium(self) -> bool:
-        if self.role in self.STAFF_ROLES:
-            return True
-        if self.role != 'premium':
-            return False
-        if self.subscription_expires_at is None:
-            return True
-        from datetime import datetime, timezone
-        return self.subscription_expires_at > datetime.now(timezone.utc)
+        """Alias historis dari has_active_access. Dulu ini `role != 'premium'`,
+        yang berarti selalu False untuk role 'subscriber' — dan itu mematikan
+        penjaga pembelian-ganda di subscription.py untuk SEMUA member yang bayar
+        lewat web. Sekarang keduanya menjawab pertanyaan yang sama."""
+        return self.has_active_access
 
     @property
     def has_active_access(self) -> bool:
         """True jika punya akses VIP aktif (staff / lifetime / belum expired).
 
-        Beda dengan is_premium: ini menerima role 'premium' MAUPUN 'subscriber'
-        supaya konsisten dengan user lama yang rolenya masih 'subscriber'.
+        Menerima 'subscriber' (semua member) dan 'premium' (cohort legacy
+        pre-webapp yang belum termigrasi). Masa berlaku ditentukan kolom
+        subscription_expires_at — NULL berarti lifetime — bukan nama role.
         """
         if self.role in self.STAFF_ROLES:
             return True
-        if self.role in ('premium', 'subscriber'):
+        if self.role in self.ACCESS_ROLES:
             if self.subscription_expires_at is None:
                 return True  # lifetime
             from datetime import datetime, timezone

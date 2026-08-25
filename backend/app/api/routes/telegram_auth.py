@@ -318,7 +318,9 @@ async def _issue_telegram_session(
         else:
             # Genuinely new user
             if is_legacy:
-                initial_role = 'premium'
+                # `subscriber` like everyone else — SOURCE_LEGACY is what marks
+                # the legacy cohort and carries its protection.
+                initial_role = 'subscriber'
                 initial_source = SOURCE_LEGACY
             elif is_vip_member:
                 initial_role = 'subscriber'

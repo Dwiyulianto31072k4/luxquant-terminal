@@ -345,6 +345,7 @@ async def _expire_and_start_grace(db, now):
             UPDATE users
             SET role = 'free',
                 subscription_source = NULL,
+                subscription_tier = NULL,
                 telegram_grace_until = CASE
                     WHEN telegram_in_group = TRUE THEN CAST(:grace AS timestamptz)
                     ELSE NULL

@@ -44,6 +44,8 @@ PROVIDER_DISCORD = "discord"
 PROVIDER_GOOGLE = "google"
 
 # Role yang dianggap "punya akses VIP" (untuk guard promote-only).
+# `premium` tinggal jejak cohort legacy yang belum termigrasi — semua tulisan
+# baru memakai `subscriber`. Dipertahankan supaya baris lama tetap dikenali.
 ACCESS_ROLES = ("subscriber", "premium")
 
 
@@ -141,8 +143,12 @@ def resolve_role_for_telegram(
         return _keep(user)
 
     # Legacy member (pre-webapp) → PROMOTE ke lifetime. Menang atas VIP biasa.
+    # Role-nya `subscriber` seperti semua member lain; yang menandai dia legacy
+    # (dan yang membawa proteksi lintas-provider) adalah SOURCE_LEGACY, bukan
+    # nama role. Dulu di sini `premium`, yang membuat orang mengira itu tier
+    # lebih tinggi padahal cuma cohort lama.
     if is_legacy:
-        return "premium", SOURCE_LEGACY
+        return "subscriber", SOURCE_LEGACY
 
     # Masih di group → (re)affirm telegram_vip.
     if is_vip_member:

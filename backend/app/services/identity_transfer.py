@@ -97,6 +97,7 @@ def align_entitlement(source: User, target: User) -> str | None:
     if src_rank > tgt_rank:
         target.role = source.role if source.role in ("subscriber", "premium") else "subscriber"
         target.subscription_expires_at = source.subscription_expires_at
+        target.subscription_tier = source.subscription_tier
         target.subscription_source = source.subscription_source
         target.subscription_granted_by = source.subscription_granted_by
         target.subscription_granted_at = source.subscription_granted_at
@@ -117,6 +118,7 @@ def align_entitlement(source: User, target: User) -> str | None:
     if not leftover and source.role in ("subscriber", "premium"):
         source.role = "free"
         source.subscription_expires_at = None
+        source.subscription_tier = None
         source.subscription_source = None
     return copied
 

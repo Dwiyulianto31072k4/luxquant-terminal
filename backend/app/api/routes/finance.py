@@ -25,6 +25,7 @@ from app.models.subscription import Payment, SubscriptionPlan
 from app.models.wallet import ReceivingWallet
 from app.services.bscscan import fetch_tx_details
 from app.services.commission_service import reverse_commission_for_refund
+from app.services.tier import tier_from_dates
 
 
 logger = logging.getLogger(__name__)
@@ -775,6 +776,7 @@ async def create_manual_payment(
     # ─── Grant subscription ───
     user.role = "subscriber"
     user.subscription_expires_at = new_expires_at
+    user.subscription_tier = tier_from_dates(now, new_expires_at)
     # Access is (re)granted → clear any stale VIP grace so the worker won't
     # send expiry reminders or kick this now-active/lifetime member.
     if hasattr(user, "telegram_grace_until"):
@@ -975,6 +977,7 @@ def approve_payment(
     user.role = 'subscriber'
     if hasattr(user, 'subscription_expires_at'):
         user.subscription_expires_at = new_expires_at
+    user.subscription_tier = tier_from_dates(now, new_expires_at)
     # Access is (re)granted → clear any stale VIP grace immediately.
     if hasattr(user, 'telegram_grace_until'):
         user.telegram_grace_until = None
@@ -1067,6 +1070,7 @@ def refund_payment(payment_id: int, data: PaymentActionPayload = PaymentActionPa
         user.role = 'free'
         if hasattr(user, 'subscription_expires_at'):
             user.subscription_expires_at = None
+        user.subscription_tier = None
 
     # Keep referral economics truthful: a refunded payment must not remain a
     # paid conversion or leave spendable commission behind. Idempotency lives
