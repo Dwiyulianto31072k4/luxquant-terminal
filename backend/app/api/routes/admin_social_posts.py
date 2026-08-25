@@ -32,6 +32,7 @@ from app.core.database import get_db
 from app.models.user import User
 from app.services.social_generation_job import get_job, start_job
 from app.services.social_news_worker import generate_drafts
+from app.services.social_telegram import channel_status, message_url, send_post
 from app.services.social_post_publisher import publish_ready_posts
 
 
@@ -386,6 +387,77 @@ def _get_post_row(db: Session, post_id: int):
     if not row:
         raise HTTPException(404, "social post not found")
     return dict(row)
+
+
+# ════════════════════════════════════════════════════════════════════
+# TELEGRAM — send one draft to the public channel, now
+# ════════════════════════════════════════════════════════════════════
+#
+# A second destination for the same draft, not a change of platform: the X
+# pipeline's `status` is left exactly where it was. What was sent is recorded
+# in `gen_meta.telegram` so the button can say "already sent" instead of
+# quietly posting a duplicate to two thousand subscribers.
+
+
+@router.get("/telegram/status")
+def telegram_channel_status(admin: User = Depends(get_admin_user)):
+    """Whether the channel is reachable, so the UI can disable the button with
+    a reason rather than letting an admin discover a missing token by pressing
+    it in front of a live channel."""
+    return channel_status()
+
+
+@router.post("/{post_id}/send-telegram")
+async def send_post_to_telegram(
+    post_id: int,
+    force: bool = False,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    row = db.execute(text("""
+        SELECT id, headline, caption, image_path, gen_meta
+        FROM social_posts WHERE id = :id
+    """), {"id": post_id}).mappings().first()
+    if not row:
+        raise HTTPException(404, "social post not found")
+
+    meta = dict(row["gen_meta"] or {})
+    already = meta.get("telegram")
+    if already and not force:
+        raise HTTPException(
+            409,
+            f"Already sent to Telegram on {already.get('sent_at', 'an earlier date')}. "
+            "Use force=true to send it again.",
+        )
+
+    # The upload is blocking and the image can be a megabyte; off the event loop
+    # it goes, or one send stalls every other request on this worker.
+    try:
+        sent = await run_in_threadpool(send_post, dict(row))
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+
+    url = message_url(sent.get("chat_id"), sent.get("message_id"))
+    meta["telegram"] = {
+        "message_id": sent.get("message_id"),
+        "chat_id": str(sent.get("chat_id")),
+        "url": url,
+        "with_image": sent.get("with_image"),
+        "split": sent.get("split"),
+        "sent_at": datetime.utcnow().isoformat() + "Z",
+        "sent_by": admin.username,
+    }
+    db.execute(
+        text("UPDATE social_posts SET gen_meta = :meta, updated_at = now() WHERE id = :id"),
+        {"id": post_id, "meta": json.dumps(meta)},
+    )
+    db.commit()
+
+    logger.info(
+        f"📨 Social post #{post_id} sent to Telegram by @{admin.username} "
+        f"(msg {sent.get('message_id')}, split={sent.get('split')})"
+    )
+    return {"ok": True, "telegram": meta["telegram"]}
 
 
 @router.get("/{post_id}/materials")
