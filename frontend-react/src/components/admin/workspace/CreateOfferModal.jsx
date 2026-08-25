@@ -1,16 +1,24 @@
 // src/components/admin/workspace/CreateOfferModal.jsx
-//
-// Record a payment taken outside the web and hand the payer a link to claim it.
+// ════════════════════════════════════════════════════════════════
+// Record a payment taken outside the web and hand the payer a link to
+// claim it themselves.
 //
 // Why this is separate from ManualPaymentModal rather than a mode inside it:
 // the two answer different questions. Recording applies access immediately and
 // therefore needs the admin to already know the payer's account. An offer
 // defers that to the payer, so the account picker becomes optional and a link
-// comes out the other end. Folding both into one flow would mean every step of
-// that modal asking "which mode am I in".
+// comes out the other end.
+//
+// It borrows that modal's vocabulary on purpose — same <Modal> shell, same
+// numbered steps, same Field/TextInput treatment — because an admin moving
+// between the two should not feel they have changed products.
+// ════════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from "react";
 import { financeApi } from "../../../services/financeApi";
+import { CheckCircleIcon, CopyIcon, SearchIcon, AlertTriangleIcon } from "../Icons";
+import Modal from "../../ui/Modal";
+import { GoldButton, GhostButton } from "../../autotrade/AutoTradeUI";
 
 const METHODS = [
   { id: "binance_uid", label: "Binance", hint: "UID or transfer reference" },
@@ -19,31 +27,91 @@ const METHODS = [
   { id: "other", label: "Other", hint: "OVO, GoPay, cash…" },
 ];
 
-// Presets cover what is asked for almost every time; the field underneath is
-// what the presets exist to make optional, not to replace — discounts and
-// "just a few days" are the reason this feature was built.
-const DURATION_PRESETS = [
-  { label: "Follow plan", value: "" },
-  { label: "7 days", value: "7" },
-  { label: "14 days", value: "14" },
-  { label: "30 days", value: "30" },
-  { label: "90 days", value: "90" },
-  { label: "1 year", value: "365" },
-  { label: "Lifetime", value: "0" },
+// Presets cover what is asked for almost every time. The field beside them is
+// the point of the feature, not a fallback — discounts and "just a few days"
+// match no plan row.
+const PRESETS = [
+  { label: "Plan", value: "", title: "Use the plan's own length" },
+  { label: "7d", value: "7" },
+  { label: "14d", value: "14" },
+  { label: "30d", value: "30" },
+  { label: "90d", value: "90" },
+  { label: "1y", value: "365" },
+  { label: "∞", value: "0", title: "Lifetime" },
 ];
 
-const Label = ({ children, hint }) => (
-  <div className="mb-1.5 flex items-baseline gap-2">
-    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-      {children}
+/* ── shared vocabulary with ManualPaymentModal ────────────────── */
+
+const StepHeader = ({ num, title, complete, hint }) => (
+  <div className="mb-2.5 flex items-center gap-2">
+    <span
+      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums"
+      style={{
+        background: complete ? "rgb(var(--pos) / 0.18)" : "rgb(var(--accent) / 0.16)",
+        color: complete ? "rgb(var(--pos-text))" : "rgb(var(--accent))",
+        border: `1px solid ${complete ? "rgb(var(--pos) / 0.32)" : "rgb(var(--accent) / 0.3)"}`,
+      }}
+    >
+      {complete ? "✓" : num}
     </span>
-    {hint && <span className="text-[10.5px] text-text-muted/70">{hint}</span>}
+    <h4 className="text-[10.5px] font-bold uppercase tracking-wider" style={{ color: "rgb(var(--fg))" }}>
+      {title}
+    </h4>
+    {hint && (
+      <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+        {hint}
+      </span>
+    )}
   </div>
 );
 
-const input =
-  "w-full rounded-lg border border-ink/15 bg-surface px-3 py-2 text-[13px] text-text-primary " +
-  "placeholder:text-text-muted/60 focus:border-accent/60 focus:outline-none focus:ring-1 focus:ring-accent/30";
+const Field = ({ label, hint, children }) => (
+  <div className="space-y-1">
+    <label
+      className="block text-[9.5px] font-semibold uppercase tracking-wider"
+      style={{ color: "rgb(var(--ink) / 0.5)" }}
+    >
+      {label}
+    </label>
+    {children}
+    {hint && (
+      <p className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+        {hint}
+      </p>
+    )}
+  </div>
+);
+
+const TextInput = ({ value, onChange, placeholder, mono, autoFocus, numeric }) => (
+  <input
+    type="text"
+    value={value}
+    onChange={(e) => onChange(numeric ? e.target.value.replace(/[^0-9]/g, "") : e.target.value)}
+    placeholder={placeholder}
+    autoFocus={autoFocus}
+    inputMode={numeric ? "numeric" : undefined}
+    className={`w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 ${mono ? "font-mono tabular-nums" : ""}`}
+    style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgb(var(--ink) / 0.1)" }}
+  />
+);
+
+const Choice = ({ active, onClick, children, title }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title={title}
+    className="rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors"
+    style={{
+      background: active ? "rgb(var(--accent) / 0.14)" : "rgb(var(--surface-secondary))",
+      border: `1px solid ${active ? "rgb(var(--accent) / 0.45)" : "rgb(var(--ink) / 0.1)"}`,
+      color: active ? "rgb(var(--accent))" : "rgb(var(--fg-muted))",
+    }}
+  >
+    {children}
+  </button>
+);
+
+/* ── the modal ────────────────────────────────────────────────── */
 
 export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
   const [plans, setPlans] = useState([]);
@@ -71,13 +139,12 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
       .getPlans()
       .then((d) => {
         setPlans(d.plans || []);
-        if (d.plans?.length && !planId) setPlanId(String(d.plans[0].id));
+        setPlanId((cur) => cur || (d.plans?.length ? String(d.plans[0].id) : ""));
       })
       .catch(() => setPlans([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Debounced so typing a name does not fire a request per keystroke.
+  // Debounced — typing a name should not fire a request per keystroke.
   useEffect(() => {
     if (!userQuery || userQuery.length < 2) {
       setUserResults([]);
@@ -104,9 +171,10 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
     return plan.is_lifetime ? "Lifetime" : `${plan.duration_days} days`;
   }, [duration, plan]);
 
-  const canSubmit =
-    planId && Number(amount) > 0 && note.trim().length >= 10 && !busy &&
-    (method !== "other" || methodLabel.trim().length > 0);
+  const step1Done = Number(amount) > 0 && (method !== "other" || methodLabel.trim().length > 0);
+  const step2Done = !!planId;
+  const step3Done = note.trim().length >= 10;
+  const canSubmit = step1Done && step2Done && step3Done && !busy;
 
   const reset = () => {
     setCreated(null);
@@ -119,6 +187,11 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
     setBoundUser(null);
     setUserQuery("");
     setMethodLabel("");
+  };
+
+  const closeAll = () => {
+    reset();
+    onClose();
   };
 
   const submit = async () => {
@@ -151,286 +224,325 @@ export default function CreateOfferModal({ isOpen, onClose, onCreated }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard blocked — the field below is selectable */
+      /* clipboard blocked — the link below is selectable */
     }
   };
 
-  if (!isOpen) return null;
+  const header = (
+    <div className="px-5 pt-5 pb-3">
+      <p
+        className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em]"
+        style={{ color: "rgb(var(--fg-muted))" }}
+      >
+        Finance · Off-web payment
+      </p>
+      <h3 className="mt-0.5 font-display text-base font-semibold tracking-tight text-text-primary">
+        {created ? "Link ready to send" : "Create claim link"}
+      </h3>
+      <p className="mt-0.5 text-[11.5px]" style={{ color: "rgb(var(--fg-muted))" }}>
+        {created
+          ? "Send this to whoever paid. Their access starts when they open it."
+          : "The payer activates it themselves, on the account they actually use."}
+      </p>
+    </div>
+  );
+
+  // A summary the admin reads before committing — the fields above are the
+  // inputs, this is the outcome, and they should not have to assemble it
+  // in their head from eight scattered controls.
+  const footer = created ? (
+    <div className="flex gap-2 px-5 py-4">
+      <GhostButton onClick={reset} className="flex-1">
+        Create another
+      </GhostButton>
+      <GoldButton onClick={closeAll} className="flex-1">
+        Done
+      </GoldButton>
+    </div>
+  ) : (
+    <div className="px-5 py-4">
+      <div
+        className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-3 py-2 text-[11.5px]"
+        style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgb(var(--ink) / 0.08)" }}
+      >
+        <span style={{ color: "rgb(var(--fg-muted))" }}>Grants</span>
+        <span className="font-semibold text-text-primary">{plan?.label || "—"}</span>
+        <span style={{ color: "rgb(var(--ink) / 0.3)" }}>·</span>
+        <span className="font-semibold" style={{ color: "rgb(var(--accent))" }}>
+          {durationLabel}
+        </span>
+        <span style={{ color: "rgb(var(--ink) / 0.3)" }}>·</span>
+        <span className="font-mono tabular-nums text-text-primary">
+          ${Number(amount || 0).toFixed(2)}
+        </span>
+        <span className="ml-auto" style={{ color: "rgb(var(--fg-muted))" }}>
+          {boundUser ? `@${boundUser.username} only` : "anyone with the link"}
+        </span>
+      </div>
+
+      {error && (
+        <p
+          className="mb-2.5 flex items-center gap-1.5 rounded-md px-3 py-2 text-[11px]"
+          style={{ background: "rgb(var(--neg) / 0.08)", color: "rgb(var(--neg-text))" }}
+        >
+          <AlertTriangleIcon size={11} />
+          {error}
+        </p>
+      )}
+
+      <GoldButton onClick={submit} disabled={!canSubmit} className="w-full">
+        {busy ? "Creating…" : "Create link"}
+      </GoldButton>
+    </div>
+  );
 
   return (
-    <div className="lq-scrim fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
-      <div className="w-full max-w-lg rounded-2xl border border-ink/10 bg-surface-raised shadow-xl">
-        <div className="flex items-center justify-between border-b border-ink/10 px-5 py-4">
-          <div>
-            <h3 className="text-[15px] font-semibold text-text-primary">
-              {created ? "Link ready" : "Create claim link"}
-            </h3>
-            <p className="mt-0.5 text-[11.5px] text-text-muted">
-              {created
-                ? "Send this to whoever paid. Access starts when they open it."
-                : "For a payment made in chat — the payer claims it themselves."}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              reset();
-              onClose();
-            }}
-            className="rounded-lg p-1.5 text-text-muted transition hover:bg-ink/[0.06] hover:text-text-primary"
-            aria-label="Close"
+    <Modal
+      isOpen={isOpen}
+      onClose={closeAll}
+      size="md"
+      padded={false}
+      header={header}
+      footer={footer}
+    >
+      {created ? (
+        <div className="space-y-4 px-5 pb-5">
+          <div
+            className="rounded-lg p-3.5"
+            style={{ background: "rgb(var(--accent) / 0.07)", border: "1px solid rgb(var(--accent) / 0.28)" }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {created ? (
-          <div className="px-5 py-5">
-            <div className="rounded-xl border border-accent/30 bg-accent/[0.06] p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                Claim link
-              </p>
-              <p className="mt-2 break-all font-mono text-[12px] text-text-primary">
-                {created.claim_url}
-              </p>
-              <button
-                type="button"
-                onClick={copy}
-                className="mt-3 rounded-lg bg-accent px-3 py-1.5 text-[11px] font-semibold text-accent-fg transition hover:brightness-95"
-              >
-                {copied ? "Copied" : "Copy link"}
-              </button>
-            </div>
-
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[12.5px]">
-              <dt className="text-text-muted">Plan</dt>
-              <dd className="text-right text-text-primary">{created.plan_label}</dd>
-              <dt className="text-text-muted">Access</dt>
-              <dd className="text-right text-text-primary">{created.duration_label}</dd>
-              <dt className="text-text-muted">Amount</dt>
-              <dd className="text-right font-mono text-text-primary">${created.amount_usd}</dd>
-              <dt className="text-text-muted">Claimable by</dt>
-              <dd className="text-right text-text-primary">
-                {created.bound_username ? `@${created.bound_username}` : "anyone with the link"}
-              </dd>
-              <dt className="text-text-muted">Link expires</dt>
-              <dd className="text-right text-text-primary">
-                {created.expires_at ? new Date(created.expires_at).toLocaleDateString() : "—"}
-              </dd>
-            </dl>
-
-            {created.is_open && (
-              <p className="mt-4 rounded-lg border border-ink/10 bg-ink/[0.04] px-3 py-2 text-[11.5px] leading-relaxed text-text-secondary">
-                This link is not tied to an account, so whoever opens it first gets the
-                subscription. Send it directly to the payer, and cancel it if it goes astray.
-              </p>
-            )}
-
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                onClick={reset}
-                className="flex-1 rounded-lg border border-ink/15 px-3 py-2 text-[12px] font-medium text-text-primary transition hover:bg-ink/[0.06]"
-              >
-                Create another
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  reset();
-                  onClose();
-                }}
-                className="flex-1 rounded-lg bg-ink/[0.1] px-3 py-2 text-[12px] font-medium text-text-primary transition hover:bg-ink/[0.14]"
-              >
-                Done
-              </button>
-            </div>
+            <p
+              className="text-[9.5px] font-semibold uppercase tracking-wider"
+              style={{ color: "rgb(var(--ink) / 0.5)" }}
+            >
+              Claim link
+            </p>
+            <p className="mt-1.5 break-all font-mono text-[11.5px] text-text-primary">
+              {created.claim_url}
+            </p>
+            <button
+              type="button"
+              onClick={copy}
+              className="mt-2.5 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors"
+              style={{
+                background: copied ? "rgb(var(--pos) / 0.16)" : "rgb(var(--accent))",
+                color: copied ? "rgb(var(--pos-text))" : "rgb(var(--accent-fg))",
+              }}
+            >
+              {copied ? <CheckCircleIcon size={11} /> : <CopyIcon size={11} />}
+              {copied ? "Copied" : "Copy link"}
+            </button>
           </div>
-        ) : (
-          <div className="space-y-4 px-5 py-5">
-            <div>
-              <Label>Paid via</Label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {METHODS.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setMethod(m.id)}
-                    title={m.hint}
-                    className={`rounded-lg border px-2 py-2 text-[11.5px] font-medium transition ${
-                      method === m.id
-                        ? "border-accent bg-accent/10 text-text-primary"
-                        : "border-ink/12 text-text-muted hover:bg-ink/[0.05]"
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
+
+          <dl className="text-[11.5px]">
+            {[
+              ["Plan", created.plan_label],
+              ["Access", created.duration_label],
+              ["Amount", `$${created.amount_usd}`],
+              ["Claimable by", created.bound_username ? `@${created.bound_username}` : "anyone with the link"],
+              [
+                "Link expires",
+                created.expires_at ? new Date(created.expires_at).toLocaleDateString() : "—",
+              ],
+            ].map(([k, v]) => (
+              <div
+                key={k}
+                className="flex items-baseline justify-between gap-4 py-1.5"
+                style={{ borderTop: "1px solid rgb(var(--ink) / 0.06)" }}
+              >
+                <dt style={{ color: "rgb(var(--fg-muted))" }}>{k}</dt>
+                <dd className="text-right font-medium text-text-primary">{v}</dd>
               </div>
+            ))}
+          </dl>
+
+          {created.is_open && (
+            <p
+              className="rounded-md px-3 py-2 text-[11px] leading-relaxed"
+              style={{ background: "rgb(var(--ink) / 0.04)", color: "rgb(var(--fg-secondary))" }}
+            >
+              Not tied to an account — whoever opens it first gets the subscription. Send it
+              straight to the payer, and cancel it if it goes astray.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-5 px-5 pb-5">
+          {/* ── 1 · what was paid ───────────────────────────────── */}
+          <section>
+            <StepHeader num={1} title="What was paid" complete={step1Done} />
+            <div className="grid grid-cols-4 gap-1.5">
+              {METHODS.map((m) => (
+                <Choice
+                  key={m.id}
+                  active={method === m.id}
+                  onClick={() => setMethod(m.id)}
+                  title={m.hint}
+                >
+                  {m.label}
+                </Choice>
+              ))}
             </div>
 
-            {method === "other" && (
-              <div>
-                <Label>Method name</Label>
-                <input
-                  className={input}
-                  value={methodLabel}
-                  onChange={(e) => setMethodLabel(e.target.value)}
-                  placeholder="OVO, GoPay, cash…"
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label hint="what they paid">Amount (USD)</Label>
-                <input
-                  className={input}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  inputMode="decimal"
-                  placeholder="45"
-                />
-              </div>
-              <div>
-                <Label>Reference</Label>
-                <input
-                  className={input}
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  placeholder="UID / tx / note"
-                />
-              </div>
+            <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+              {method === "other" && (
+                <div className="col-span-2">
+                  <Field label="Method name">
+                    <TextInput
+                      value={methodLabel}
+                      onChange={setMethodLabel}
+                      placeholder="OVO, GoPay, cash…"
+                    />
+                  </Field>
+                </div>
+              )}
+              <Field label="Amount (USD)">
+                <TextInput value={amount} onChange={setAmount} placeholder="45" mono autoFocus />
+              </Field>
+              <Field label="Reference">
+                <TextInput value={reference} onChange={setReference} placeholder="UID / tx / note" />
+              </Field>
             </div>
+          </section>
 
-            <div>
-              <Label>Plan</Label>
-              <select className={input} value={planId} onChange={(e) => setPlanId(e.target.value)}>
+          {/* ── 2 · what they get ───────────────────────────────── */}
+          <section>
+            <StepHeader num={2} title="What they get" complete={step2Done} hint={durationLabel} />
+            <Field label="Plan">
+              <select
+                value={planId}
+                onChange={(e) => setPlanId(e.target.value)}
+                className="w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1"
+                style={{
+                  background: "rgb(var(--surface-secondary))",
+                  border: "1px solid rgb(var(--ink) / 0.1)",
+                }}
+              >
                 {plans.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.label} — ${p.price_usdt}
                   </option>
                 ))}
               </select>
-            </div>
+            </Field>
 
-            <div>
-              <Label hint={`grants ${durationLabel}`}>Access length</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {DURATION_PRESETS.map((d) => (
-                  <button
-                    key={d.label}
-                    type="button"
-                    onClick={() => setDuration(d.value)}
-                    className={`rounded-lg border px-2.5 py-1.5 text-[11.5px] transition ${
-                      duration === d.value
-                        ? "border-accent bg-accent/10 text-text-primary"
-                        : "border-ink/12 text-text-muted hover:bg-ink/[0.05]"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-              <input
-                className={`${input} mt-2`}
-                value={duration}
-                onChange={(e) => setDuration(e.target.value.replace(/[^0-9]/g, ""))}
-                inputMode="numeric"
-                placeholder="or type any number of days"
-              />
-            </div>
-
-            <div>
-              <Label hint="optional — leave empty if you don't know their account">
-                Lock to account
-              </Label>
-              {boundUser ? (
-                <div className="flex items-center justify-between rounded-lg border border-ink/12 px-3 py-2">
-                  <span className="text-[12.5px] text-text-primary">
-                    @{boundUser.username}
-                    <span className="ml-2 text-text-muted">{boundUser.email}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setBoundUser(null)}
-                    className="text-[11px] text-text-muted underline hover:text-text-primary"
-                  >
-                    clear
-                  </button>
+            <div className="mt-2.5">
+              <Field label="Access length" hint="Overrides the plan — for discounts and short access.">
+                <div className="grid grid-cols-7 gap-1.5">
+                  {PRESETS.map((d) => (
+                    <Choice
+                      key={d.label}
+                      active={duration === d.value}
+                      onClick={() => setDuration(d.value)}
+                      title={d.title}
+                    >
+                      {d.label}
+                    </Choice>
+                  ))}
                 </div>
-              ) : (
-                <>
+                <div className="mt-1.5">
+                  <TextInput
+                    value={duration}
+                    onChange={setDuration}
+                    placeholder="or any number of days"
+                    numeric
+                    mono
+                  />
+                </div>
+              </Field>
+            </div>
+          </section>
+
+          {/* ── 3 · who can claim ───────────────────────────────── */}
+          <section>
+            <StepHeader
+              num={3}
+              title="Who can claim"
+              complete={step3Done}
+              hint={boundUser ? `@${boundUser.username}` : "open link"}
+            />
+
+            {boundUser ? (
+              <div
+                className="flex items-center justify-between rounded-md px-2.5 py-2"
+                style={{
+                  background: "rgb(var(--surface-secondary))",
+                  border: "1px solid rgb(var(--ink) / 0.1)",
+                }}
+              >
+                <span className="text-[11.5px] text-text-primary">
+                  @{boundUser.username}
+                  <span className="ml-2" style={{ color: "rgb(var(--fg-muted))" }}>
+                    {boundUser.email}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBoundUser(null)}
+                  className="text-[10.5px] underline"
+                  style={{ color: "rgb(var(--fg-muted))" }}
+                >
+                  clear
+                </button>
+              </div>
+            ) : (
+              <Field label="Lock to account" hint="Optional. Leave empty if you don't know their account.">
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 opacity-40">
+                    <SearchIcon size={11} />
+                  </span>
                   <input
-                    className={input}
+                    type="text"
                     value={userQuery}
                     onChange={(e) => setUserQuery(e.target.value)}
                     placeholder="Search username or email…"
+                    className="w-full rounded-md py-2 pl-7 pr-2.5 text-xs text-text-primary focus:outline-none focus:ring-1"
+                    style={{
+                      background: "rgb(var(--surface-secondary))",
+                      border: "1px solid rgb(var(--ink) / 0.1)",
+                    }}
                   />
-                  {userResults.length > 0 && (
-                    <div className="mt-1 max-h-36 overflow-y-auto rounded-lg border border-ink/12">
-                      {userResults.map((u) => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => {
-                            setBoundUser(u);
-                            setUserQuery("");
-                            setUserResults([]);
-                          }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] transition hover:bg-ink/[0.05]"
-                        >
-                          <span className="text-text-primary">@{u.username}</span>
-                          <span className="text-text-muted">{u.email}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label hint="days">Link valid for</Label>
-                <input
-                  className={input}
-                  value={ttlDays}
-                  onChange={(e) => setTtlDays(e.target.value.replace(/[^0-9]/g, ""))}
-                  inputMode="numeric"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label hint="min 10 characters — kept in the audit trail">Note</Label>
-              <textarea
-                className={`${input} min-h-[64px] resize-y`}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Paid 45 USDT via Binance UID 123456, agreed 30 days at a discount"
-              />
-            </div>
-
-            {error && (
-              <p className="rounded-lg border border-loss/30 bg-loss/[0.07] px-3 py-2 text-[12px] text-loss">
-                {error}
-              </p>
+                </div>
+                {userResults.length > 0 && (
+                  <div
+                    className="mt-1 max-h-32 overflow-y-auto rounded-md"
+                    style={{ border: "1px solid rgb(var(--ink) / 0.1)" }}
+                  >
+                    {userResults.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => {
+                          setBoundUser(u);
+                          setUserQuery("");
+                          setUserResults([]);
+                        }}
+                        className="flex w-full items-center justify-between px-2.5 py-1.5 text-left text-[11px] transition-colors hover:bg-ink/[0.05]"
+                      >
+                        <span className="text-text-primary">@{u.username}</span>
+                        <span style={{ color: "rgb(var(--fg-muted))" }}>{u.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </Field>
             )}
 
-            <button
-              type="button"
-              disabled={!canSubmit}
-              onClick={submit}
-              className="w-full rounded-lg bg-accent px-4 py-2.5 text-[12.5px] font-semibold text-accent-fg transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {busy ? "Creating…" : "Create link"}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+            <div className="mt-2.5 grid grid-cols-[88px_1fr] gap-2.5">
+              <Field label="Valid (days)">
+                <TextInput value={ttlDays} onChange={setTtlDays} numeric mono />
+              </Field>
+              <Field label="Note" hint="Min 10 characters — kept in the audit trail.">
+                <TextInput
+                  value={note}
+                  onChange={setNote}
+                  placeholder="Paid 45 USDT via Binance UID 123456, 30 days at a discount"
+                />
+              </Field>
+            </div>
+          </section>
+        </div>
+      )}
+    </Modal>
   );
 }
