@@ -74,9 +74,17 @@ const timeAgo = (iso) => {
 /** Strip the emoji spam some whale bots put at the start of every line. */
 const cleanText = (s) => {
   if (!s) return "";
+  // One pass, with the `u` flag. The literal-emoji class that used to follow
+  // was redundant — every character in it already falls inside the ranges
+  // above — and, lacking `u`, it matched surrogate *halves*: it turned 🙂 into
+  // a lone \ude42. Harmless only because the line above usually got there
+  // first.
   return s
-    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]+/gu, " ")
-    .replace(/[🚨📈📉💵🔥⚡💰🐋🐳🔔🔒🚪✅❌⚠️🔴🟢🟡]+/g, " ")
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+/gu, " ")
+    // The variation selector and ZWJ are *joiners*, not symbols. Sitting inside
+    // the class above they combined with the range edges; on their own they are
+    // just the residue left behind once the glyph they decorated is gone.
+    .replace(/[\u{FE0F}\u{200D}]/gu, "")
     .replace(/[ \t]{2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -136,15 +144,43 @@ const parseAmountFromText = (text) => {
  * read, one line above.
  */
 const bodyAfterTitle = (body, title) => {
-  if (!body || !title) return body;
-  const rest = (body.startsWith(title) ? body.slice(title.length) : body)
+  if (!body) return body;
+  const rest = (title && body.startsWith(title) ? body.slice(title.length) : body)
     .replace(/^[\s—–-]+/, "")
+    // Telegram shows "link" / "Details" as anchor text. The plain-text copy we
+    // store keeps the word and loses the href, so an article ends on a dangling
+    // "— link" that looks like markup that failed to render. A separator is
+    // required before it, so prose that genuinely ends in the word survives.
+    .replace(/\s*[—–-]\s*(link|details|source|read more)\s*$/i, "")
     .trim();
+  if (!title) return rest;
   // What Whale Alert leaves behind is the bare word "Details" — its own link
   // label. Strip the title and that is all that remains, so a Details panel
   // appeared containing nothing but the word Details. Anything this short is
   // residue, not content.
   return rest.length >= 24 ? rest : "";
+};
+
+/**
+ * Which layout an item wants — decided by what it actually carries, not by its
+ * label.
+ *
+ * The page was built for whale transfers, where the dollar figure IS the
+ * headline: a big number, a route, an explorer link. News arrived and was poured
+ * into that same mould, so a Goldman price-target story rendered with an empty
+ * money slot, half a sentence in the From box, and its article body inside a
+ * grey panel titled "Details" — a shape that says "some fields failed to load".
+ *
+ * Reading the content rather than the type also catches the cases a type can't:
+ * a transfer that never carried a parsable amount is, on screen, just writing,
+ * and laying it out as writing is honest about that.
+ */
+const alertShape = (e) => {
+  if (e?.alert_type === "news") return "news";
+  const hasMoney = Boolean(e?.amount_usd);
+  const hasRoute = Boolean(e?.from_entity && e?.to_entity);
+  if (!hasMoney && !hasRoute && !e?.token) return "news";
+  return "movement";
 };
 
 /** Merge API fields with text-recovered fallbacks for display. */
@@ -258,13 +294,19 @@ const IconClock = ({ className = "h-4 w-4" }) => (
 const IconTrend = ({ className = "h-4 w-4" }) => (
   <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
     <path d="M3.4 16.9a.85.85 0 0 1 0-1.2l5.05-5.05a.85.85 0 0 1 1.2 0l2.55 2.55 5.2-5.2H15.2a.85.85 0 0 1 0-1.7h5.1c.47 0 .85.38.85.85v5.1a.85.85 0 0 1-1.7 0V9.4l-5.9 5.9a.85.85 0 0 1-1.2 0L10.8 12.75 4.6 18.95a.85.85 0 0 1-1.2-1.05Z" />
-    <path d="M4.5 19.5h4.2a.75.75 0 0 0 0-1.5H6.06l3.2-3.2a.75.75 0 0 0-1.06-1.06L5 16.94V14.7a.75.75 0 0 0-1.5 0v4.05c0 .41.34.75.75.75Z" opacity="0.45" />
+    <path
+      d="M4.5 19.5h4.2a.75.75 0 0 0 0-1.5H6.06l3.2-3.2a.75.75 0 0 0-1.06-1.06L5 16.94V14.7a.75.75 0 0 0-1.5 0v4.05c0 .41.34.75.75.75Z"
+      opacity="0.45"
+    />
   </svg>
 );
 const IconWhale = ({ className = "h-4 w-4" }) => (
   <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
     <path d="M20.6 10.2c-.45-2.7-2.4-4.75-5.1-5.55-1.1-.35-2.25-.4-3.4-.2-1.95.35-3.7 1.4-4.95 2.95-.55.7-1 1.5-1.3 2.35-.25-.05-.5-.08-.75-.08-1.7 0-3.15 1.15-3.55 2.75-.15.55.3 1.1.9 1.1h1.15c.3 1.55 1.55 2.75 3.15 2.95v1.35c0 .4.35.75.75.75h1.1c.4 0 .75-.35.75-.75v-1.2h.9c.95 0 1.85-.3 2.55-.85.9.55 1.95.85 3.05.85h.1c2.85-.1 5.15-2.3 5.45-5.1.05-.4.05-.8 0-1.17Zm-13.35 2.55c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm5.6 1.85c-1.55 0-2.9-.9-3.5-2.2.7-.7 1.65-1.15 2.7-1.15 1.35 0 2.55.7 3.2 1.75-.6 1-1.7 1.6-2.4 1.6Zm5.55-2.35c-.4 0-.75-.35-.75-.75s.35-.75.75-.75.75.35.75.75-.35.75-.75.75Z" />
-    <path d="M8.2 7.1c.55-.85 1.3-1.55 2.2-2.05-.15-.55-.05-1.15.35-1.6.45-.5 1.2-.6 1.8-.3.35-1 .15-2.15-.6-2.9l-.15.15c.55.6.7 1.45.4 2.2-.55.1-1.05.45-1.3.95-.35.7-.15 1.55.45 2.05-.45.4-.85.9-1.15 1.45-.35-.05-.7-.05-1 .05Z" opacity="0.55" />
+    <path
+      d="M8.2 7.1c.55-.85 1.3-1.55 2.2-2.05-.15-.55-.05-1.15.35-1.6.45-.5 1.2-.6 1.8-.3.35-1 .15-2.15-.6-2.9l-.15.15c.55.6.7 1.45.4 2.2-.55.1-1.05.45-1.3.95-.35.7-.15 1.55.45 2.05-.45.4-.85.9-1.15 1.45-.35-.05-.7-.05-1 .05Z"
+      opacity="0.55"
+    />
   </svg>
 );
 const IconSearch = ({ className = "h-3.5 w-3.5" }) => (
@@ -469,9 +511,7 @@ const OnchainPage = () => {
         icon: <IconWhale className="h-3.5 w-3.5 text-accent" />,
         title: "Whale",
         value:
-          whaleThreshold >= 1e6
-            ? `$${(whaleThreshold / 1e6).toFixed(1)}M`
-            : fmtUsd(whaleThreshold),
+          whaleThreshold >= 1e6 ? `$${(whaleThreshold / 1e6).toFixed(1)}M` : fmtUsd(whaleThreshold),
         note: "p95 page",
         isGold: true,
       },
@@ -785,9 +825,16 @@ const AlertAvatar = ({ alert }) => {
         // A headline has no coin and no chain to draw. Left to the fallbacks it
         // showed a bare dot in the list and the letters "NEW" in the modal —
         // the first three characters of its own type name.
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
-          strokeLinecap="round" strokeLinejoin="round"
-          className="h-4 w-4 text-text-muted" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4 text-text-muted"
+          aria-hidden="true"
+        >
           <path d="M4 5h13v14H4z M17 9h3v8a2 2 0 0 1-3 1.7" />
           <path d="M7 9h7M7 12h7M7 15h4" />
         </svg>
@@ -801,6 +848,7 @@ const AlertAvatar = ({ alert }) => {
 const AlertRow = ({ alert, isHighlight, onClick }) => {
   const e = enrichAlert(alert);
   const title = e.title_clean || e.raw_clean?.slice(0, 140) || "—";
+  const isNews = alertShape(e) === "news";
 
   return (
     <div
@@ -815,7 +863,10 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
       }`}
     >
       {isHighlight && (
-        <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent" aria-hidden="true" />
+        <span
+          className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent"
+          aria-hidden="true"
+        />
       )}
 
       <AlertAvatar alert={e} />
@@ -837,21 +888,33 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
             </span>
           )}
           {e.source_name && (
-            <span className="hidden text-[11px] text-text-muted/70 md:inline">
+            /* For a transfer the source is trivia — the chain is the proof. For
+               a headline it is the whole basis for believing it, so it stops
+               hiding below md. */
+            <span
+              className={`text-[11px] text-text-muted/70 ${isNews ? "inline" : "hidden md:inline"}`}
+            >
               · {e.source_name}
             </span>
           )}
         </div>
 
-        <p className="line-clamp-1 text-[13px] leading-snug text-text-primary/90 transition-colors group-hover:text-text-primary">
+        {/* No dollar figure competing for the line means a headline can use the
+            room to actually be readable, instead of being clipped to one line
+            for symmetry with rows that have a number. */}
+        <p
+          className={`text-[13px] leading-snug text-text-primary/90 transition-colors group-hover:text-text-primary ${
+            isNews ? "line-clamp-2" : "line-clamp-1"
+          }`}
+        >
           {title}
         </p>
       </div>
 
-      <div className="flex min-w-[78px] shrink-0 flex-col items-end gap-0.5">
+      <div className={`flex shrink-0 flex-col items-end gap-0.5 ${isNews ? "" : "min-w-[78px]"}`}>
         {/* A headline has no dollar figure. Printing "—" where the money goes
-            makes a real item look like a broken one, so the slot simply stays
-            empty and the timestamp moves up. */}
+            makes a real item look like a broken one, so the slot is not
+            reserved at all and the timestamp takes the corner. */}
         {e.amount_usd ? (
           <span
             className={`font-mono text-[13px] font-semibold tabular-nums sm:text-[14px] ${
@@ -1054,6 +1117,200 @@ const SidebarSources = ({ stats, onSourceClick, activeSource }) => {
 // ════════════════════════════════════════════════════════════════
 // MODAL — coin logo + big amount highlight on every open
 // ════════════════════════════════════════════════════════════════
+// ── Blok yang dipakai kedua bentuk ──────────────────────────────────
+const AlertPhoto = ({ e, show, onError }) =>
+  show ? (
+    <div className="flex max-h-[min(42vh,320px)] items-center justify-center overflow-hidden rounded-xl border border-ink/[0.06] bg-surface">
+      <img
+        src={e.image_url}
+        alt=""
+        className="max-h-[min(42vh,320px)] w-full object-contain object-center"
+        onError={onError}
+      />
+    </div>
+  ) : null;
+
+const AlertLink = ({ href, label }) =>
+  href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[13px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
+    >
+      {label}
+      <span aria-hidden="true">↗</span>
+    </a>
+  ) : null;
+
+const MetaChips = ({ e }) => (
+  <>
+    {e.token && (
+      <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-fg">
+        ${e.token}
+      </span>
+    )}
+    {e.blockchain && (
+      <span className="inline-flex items-center gap-1 rounded-md bg-ink/[0.05] px-2 py-0.5 text-[11px] font-medium text-text-secondary">
+        <ChainMark chain={e.blockchain} size={12} />
+        <span className="capitalize">{e.blockchain}</span>
+      </span>
+    )}
+  </>
+);
+
+// ── Bentuk 1: pergerakan dana ───────────────────────────────────────
+// Angkanya ADALAH beritanya, jadi angkanya yang jadi jangkar visual.
+const MovementModalBody = ({ e, showPhoto, onImageError }) => {
+  // Both halves or neither. "From Binance → —" reads as a transfer that went
+  // nowhere; one side filled in by a stray regex reads as data we do not have.
+  const hasRoute = Boolean(e.from_entity && e.to_entity);
+
+  return (
+    <>
+      <div className="border-b border-ink/[0.06] bg-gradient-to-b from-ink/[0.03] to-transparent px-5 pb-5 pt-6 sm:px-6 sm:pt-7">
+        <div className="flex items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-ink/[0.08] bg-surface-raised shadow-sm sm:h-16 sm:w-16">
+            {e.token ? (
+              <CoinLogo pair={e.token} size={64} className="h-full w-full" />
+            ) : showPhoto ? (
+              <img
+                src={e.image_url}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={onImageError}
+              />
+            ) : (
+              <AlertAvatar alert={e} />
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1 pr-6">
+            <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+              <span
+                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${typeStyle(e.alert_type)}`}
+              >
+                {typeLabel(e.alert_type)}
+              </span>
+              <MetaChips e={e} />
+            </div>
+
+            <p className="text-[12px] text-text-muted">
+              {e.source_name || "Unknown source"}
+              {e.created_at ? ` · ${new Date(e.created_at).toLocaleString()}` : ""}
+            </p>
+
+            {e.amount_usd ? (
+              <div className="mt-3">
+                <p className="font-mono text-[32px] font-semibold leading-none tracking-tight text-accent tabular-nums sm:text-[36px]">
+                  {fmtUsd(e.amount_usd)}
+                </p>
+                {e.amount_raw && e.token ? (
+                  <p className="mt-1.5 font-mono text-[13px] tabular-nums text-text-secondary">
+                    {Number(e.amount_raw).toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
+                    {e.token}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 p-5 sm:p-6">
+        {e.title_clean ? (
+          <p className="text-[14px] leading-relaxed text-text-primary">{e.title_clean}</p>
+        ) : null}
+
+        {hasRoute && (
+          <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+            <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5">
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-text-muted">
+                From
+              </p>
+              <p className="break-words text-[13px] font-medium text-text-primary">
+                {e.from_entity}
+              </p>
+            </div>
+            <span className="hidden text-text-muted sm:block" aria-hidden="true">
+              →
+            </span>
+            <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5">
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-text-muted">
+                To
+              </p>
+              <p className="break-words text-[13px] font-medium text-text-primary">{e.to_entity}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Here the body genuinely IS supplementary — the figure above already
+            said the important thing — so a labelled panel is the right frame. */}
+        {e.raw_clean && e.raw_clean !== e.title_clean ? (
+          <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-text-muted">
+              Details
+            </p>
+            <p className="whitespace-pre-wrap break-words text-[12.5px] leading-relaxed text-text-secondary">
+              {e.raw_clean}
+            </p>
+          </div>
+        ) : null}
+
+        <AlertPhoto e={e} show={showPhoto} onError={onImageError} />
+        <AlertLink href={e.tx_url} label="View on Explorer" />
+      </div>
+    </>
+  );
+};
+
+// ── Bentuk 2: tulisan ───────────────────────────────────────────────
+// Tak ada angka untuk dijadikan jangkar, jadi JUDULNYA yang jadi jangkar.
+// Isinya mengalir sebagai prosa: sebuah artikel di dalam kotak berlabel
+// "Details" terbaca seperti keterangan tambahan, padahal itu isi utamanya.
+const NewsModalBody = ({ e, showPhoto, onImageError }) => (
+  <>
+    <div className="border-b border-ink/[0.06] px-5 pb-5 pt-6 sm:px-6 sm:pt-7">
+      <div className="flex items-center gap-3 pr-6">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
+          <AlertAvatar alert={e} />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-semibold text-text-primary">
+            {e.source_name || "Unknown source"}
+          </p>
+          <p className="text-[11.5px] text-text-muted">
+            {e.created_at ? new Date(e.created_at).toLocaleString() : ""}
+          </p>
+        </div>
+      </div>
+
+      {e.title_clean ? (
+        <h2 className="mt-4 text-[19px] font-semibold leading-snug tracking-tight text-text-primary sm:text-[21px]">
+          {e.title_clean}
+        </h2>
+      ) : null}
+
+      {(e.token || e.blockchain) && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <MetaChips e={e} />
+        </div>
+      )}
+    </div>
+
+    <div className="space-y-4 p-5 sm:p-6">
+      {e.raw_clean && e.raw_clean !== e.title_clean ? (
+        <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-text-secondary">
+          {e.raw_clean}
+        </p>
+      ) : null}
+
+      <AlertPhoto e={e} show={showPhoto} onError={onImageError} />
+      <AlertLink href={e.tx_url} label="Read the source" />
+    </div>
+  </>
+);
+
 const AlertModal = ({ alert, onClose }) => {
   const [imageFailed, setImageFailed] = useState(false);
   const e = useMemo(() => enrichAlert(alert), [alert]);
@@ -1074,10 +1331,8 @@ const AlertModal = ({ alert, onClose }) => {
   }, []);
 
   const showPhoto = e.image_url && !imageFailed;
-  // Both halves or neither. "From Binance → —" reads as a transfer that went
-  // nowhere; a headline with one side filled in by a stray regex reads as data
-  // we do not have.
-  const hasRoute = Boolean(e.from_entity && e.to_entity);
+  const isNews = alertShape(e) === "news";
+  const onImageError = () => setImageFailed(true);
 
   const modalContent = (
     <div
@@ -1108,135 +1363,11 @@ const AlertModal = ({ alert, onClose }) => {
         </button>
 
         <div className="overflow-y-auto">
-          {/* Hero: coin + amount — always present so every modal has a visual anchor */}
-          <div className="border-b border-ink/[0.06] bg-gradient-to-b from-ink/[0.03] to-transparent px-5 pb-5 pt-6 sm:px-6 sm:pt-7">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-ink/[0.08] bg-surface-raised shadow-sm sm:h-16 sm:w-16">
-                {e.token ? (
-                  <CoinLogo pair={e.token} size={64} className="h-full w-full" />
-                ) : showPhoto ? (
-                  <img
-                    src={e.image_url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    onError={() => setImageFailed(true)}
-                  />
-                ) : (
-                  <AlertAvatar alert={e} />
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1 pr-6">
-                <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-                  <span
-                    className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${typeStyle(e.alert_type)}`}
-                  >
-                    {typeLabel(e.alert_type)}
-                  </span>
-                  {e.token && (
-                    <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-fg">
-                      ${e.token}
-                    </span>
-                  )}
-                  {e.blockchain && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-ink/[0.05] px-2 py-0.5 text-[11px] font-medium text-text-secondary">
-                      <ChainMark chain={e.blockchain} size={12} />
-                      <span className="capitalize">{e.blockchain}</span>
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-[12px] text-text-muted">
-                  {e.source_name || "Unknown source"}
-                  {e.created_at ? ` · ${new Date(e.created_at).toLocaleString()}` : ""}
-                </p>
-
-                {/* Big amount highlight — the whole point of opening the modal */}
-                <div className="mt-3">
-                  {e.amount_usd ? (
-                    <>
-                      <p className="font-mono text-[32px] font-semibold leading-none tracking-tight text-accent tabular-nums sm:text-[36px]">
-                        {fmtUsd(e.amount_usd)}
-                      </p>
-                      {e.amount_raw && e.token ? (
-                        <p className="mt-1.5 font-mono text-[13px] tabular-nums text-text-secondary">
-                          {Number(e.amount_raw).toLocaleString(undefined, {
-                            maximumFractionDigits: 4,
-                          })}{" "}
-                          {e.token}
-                        </p>
-                      ) : null}
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4 p-5 sm:p-6">
-            {e.title_clean ? (
-              <p className="text-[14px] leading-relaxed text-text-primary">{e.title_clean}</p>
-            ) : null}
-
-            {hasRoute && (
-              <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5">
-                  <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-text-muted">
-                    From
-                  </p>
-                  <p className="break-words text-[13px] font-medium text-text-primary">
-                    {e.from_entity}
-                  </p>
-                </div>
-                <span className="hidden text-text-muted sm:block" aria-hidden="true">
-                  →
-                </span>
-                <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5">
-                  <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-text-muted">
-                    To
-                  </p>
-                  <p className="break-words text-[13px] font-medium text-text-primary">
-                    {e.to_entity}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {e.raw_clean && e.raw_clean !== e.title_clean ? (
-              <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5">
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-text-muted">
-                  Details
-                </p>
-                <p className="break-words whitespace-pre-wrap text-[12.5px] leading-relaxed text-text-secondary">
-                  {e.raw_clean}
-                </p>
-              </div>
-            ) : null}
-
-            {/* Photo fits the modal width; object-contain keeps aspect, never crops */}
-            {showPhoto ? (
-              <div className="flex max-h-[min(42vh,320px)] items-center justify-center overflow-hidden rounded-xl border border-ink/[0.06] bg-surface">
-                <img
-                  src={e.image_url}
-                  alt=""
-                  className="max-h-[min(42vh,320px)] w-full object-contain object-center"
-                  onError={() => setImageFailed(true)}
-                />
-              </div>
-            ) : null}
-
-            {e.tx_url ? (
-              <a
-                href={e.tx_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[13px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
-              >
-                View on Explorer
-                <span aria-hidden="true">↗</span>
-              </a>
-            ) : null}
-          </div>
+          {isNews ? (
+            <NewsModalBody e={e} showPhoto={showPhoto} onImageError={onImageError} />
+          ) : (
+            <MovementModalBody e={e} showPhoto={showPhoto} onImageError={onImageError} />
+          )}
         </div>
       </div>
     </div>
