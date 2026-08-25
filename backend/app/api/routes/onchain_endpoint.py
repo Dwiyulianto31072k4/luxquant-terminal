@@ -41,7 +41,10 @@ def get_onchain_feed(
 
     db = next(get_db_session())
     try:
-        conditions = []
+        # One row per event. Several channels report the same movement within
+        # seconds — 122 such pairs were sitting in the table — and the second
+        # sighting is kept as evidence but never shown twice.
+        conditions = ["duplicate_of IS NULL"]
         params = {}
 
         if alert_type:
@@ -133,41 +136,41 @@ def get_onchain_stats():
     db = next(get_db_session())
     try:
         # Total counts
-        total = db.execute(text("SELECT COUNT(*) FROM onchain_alerts")).scalar()
+        total = db.execute(text("SELECT COUNT(*) FROM onchain_alerts WHERE duplicate_of IS NULL")).scalar()
 
         # Last 24h
         last_24h = db.execute(text(
-            "SELECT COUNT(*) FROM onchain_alerts WHERE created_at > NOW() - INTERVAL '24 hours'"
+            "SELECT COUNT(*) FROM onchain_alerts WHERE duplicate_of IS NULL AND created_at > NOW() - INTERVAL '24 hours'"
         )).scalar()
 
         # Last hour
         last_1h = db.execute(text(
-            "SELECT COUNT(*) FROM onchain_alerts WHERE created_at > NOW() - INTERVAL '1 hour'"
+            "SELECT COUNT(*) FROM onchain_alerts WHERE duplicate_of IS NULL AND created_at > NOW() - INTERVAL '1 hour'"
         )).scalar()
 
         # By type
         by_type = db.execute(text(
-            "SELECT alert_type, COUNT(*) as cnt FROM onchain_alerts GROUP BY alert_type ORDER BY cnt DESC"
+            "SELECT alert_type, COUNT(*) as cnt FROM onchain_alerts WHERE duplicate_of IS NULL GROUP BY alert_type ORDER BY cnt DESC"
         )).mappings().all()
 
         # By source
         by_source = db.execute(text(
-            "SELECT source_name, COUNT(*) as cnt FROM onchain_alerts GROUP BY source_name ORDER BY cnt DESC"
+            "SELECT source_name, COUNT(*) as cnt FROM onchain_alerts WHERE duplicate_of IS NULL GROUP BY source_name ORDER BY cnt DESC"
         )).mappings().all()
 
         # By token (top 10)
         by_token = db.execute(text(
-            "SELECT token, COUNT(*) as cnt, SUM(amount_usd) as total_usd FROM onchain_alerts WHERE token IS NOT NULL GROUP BY token ORDER BY cnt DESC LIMIT 10"
+            "SELECT token, COUNT(*) as cnt, SUM(amount_usd) as total_usd FROM onchain_alerts WHERE duplicate_of IS NULL AND token IS NOT NULL GROUP BY token ORDER BY cnt DESC LIMIT 10"
         )).mappings().all()
 
         # By blockchain
         by_blockchain = db.execute(text(
-            "SELECT blockchain, COUNT(*) as cnt FROM onchain_alerts WHERE blockchain IS NOT NULL GROUP BY blockchain ORDER BY cnt DESC"
+            "SELECT blockchain, COUNT(*) as cnt FROM onchain_alerts WHERE duplicate_of IS NULL AND blockchain IS NOT NULL GROUP BY blockchain ORDER BY cnt DESC"
         )).mappings().all()
 
         # Largest recent (top 5 by USD)
         largest = db.execute(text(
-            "SELECT token, amount_usd, alert_type, source_name, created_at FROM onchain_alerts WHERE amount_usd IS NOT NULL ORDER BY amount_usd DESC LIMIT 5"
+            "SELECT token, amount_usd, alert_type, source_name, created_at FROM onchain_alerts WHERE duplicate_of IS NULL AND amount_usd IS NOT NULL ORDER BY amount_usd DESC LIMIT 5"
         )).mappings().all()
 
         result = {
