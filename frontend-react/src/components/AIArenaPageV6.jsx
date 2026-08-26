@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import TheRead from "./aiArenaV6/TheRead";
-import LongerView from "./aiArenaV6/LongerView";
 import {
   getChartData,
   getEventRisk,
@@ -1420,11 +1419,16 @@ export default function AIArenaPageV6() {
   const [operationalHealth, setOperationalHealth] = useState(null);
   const [ledger, setLedger] = useState(null);
   const [reportArchive, setReportArchive] = useState(null);
-  // Deep-linkable tabs: /ai-arena?tab=read|longer|evaluation|chart|archive
+  // Deep-linkable tabs: /ai-arena?tab=read|evaluation|chart|archive|brain
+  //
+  // "longer" is gone but still resolves — to Outlook, not to a blank pane.
+  // Old links exist in chats and bookmarks, and a dead tab key would have
+  // rendered a page with nothing on it.
   const [activeWorkspace, setActiveWorkspace] = useState(() => {
     try {
       const tab = new URLSearchParams(window.location.search).get("tab");
-      return ["read", "longer", "evaluation", "chart", "archive", "brain"].includes(tab)
+      if (tab === "longer") return "read";
+      return ["read", "evaluation", "chart", "archive", "brain"].includes(tab)
         ? tab
         : "read";
     } catch {
@@ -1555,12 +1559,6 @@ export default function AIArenaPageV6() {
         description: "24h direction, exposure guide, levels, and risk.",
       },
       {
-        key: "longer",
-        short: "Longer View",
-        label: "Longer View",
-        description: "Swing context and holder backdrop.",
-      },
-      {
         key: "chart",
         short: "Chart",
         label: "Projection Chart",
@@ -1645,7 +1643,6 @@ export default function AIArenaPageV6() {
 
         <main className="min-w-0 space-y-8">
           {activeWorkspace === "read" && <TheRead data={report} />}
-          {activeWorkspace === "longer" && <LongerView data={report} />}
           {activeWorkspace === "evaluation" && <VerdictLedger ledger={ledger} pageSize={8} />}
           {activeWorkspace === "chart" && <ChartPanel report={report} />}
           {activeWorkspace === "brain" && <BrainPanel />}
