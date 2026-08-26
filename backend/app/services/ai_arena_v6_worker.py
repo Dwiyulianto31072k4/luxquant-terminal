@@ -1313,6 +1313,9 @@ async def generate_v6_report(
                 # evidence.
                 "bearish_policy": _sd.get("bearish_policy"),
                 "suppressed_bearish": _sd.get("suppressed_bearish"),
+                # How much of the intended evidence actually reported in. A
+                # thin read should be visible in the record, not inferred.
+                "coverage": _sd.get("coverage"),
             }
             _sup = shadow_det.get("suppressed_bearish") or {}
             _log(f"Shadow det: 24h llm={shadow_det['tactical_24h']['llm']}/det={shadow_det['tactical_24h']['det']} "
@@ -1332,9 +1335,19 @@ async def generate_v6_report(
         from app.services import compass_percentile as _pc
 
         def _bg(key):
+            # bg_snapshot holds BGMetric dataclasses, not dicts. The first
+            # version of this only unwrapped dicts, so every lookup returned
+            # None and the history silently never grew — the exact class of
+            # quiet failure this recording exists to prevent, reproduced inside
+            # the fix for it. Handles both shapes now, since a snapshot
+            # rehydrated from a stored summary really is dicts.
             m = (bg_snapshot or {}).get(key)
+            if m is None:
+                return None
             if isinstance(m, dict):
                 m = m.get("value")
+            else:
+                m = getattr(m, "value", m)
             try:
                 return float(m)
             except (TypeError, ValueError):
