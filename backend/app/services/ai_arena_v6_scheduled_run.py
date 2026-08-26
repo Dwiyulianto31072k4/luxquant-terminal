@@ -32,6 +32,7 @@ import httpx
 from dotenv import load_dotenv
 
 from app.services.ai_arena_v6_worker import generate_v6_report
+from app.services import arena_breaker
 
 load_dotenv()
 
@@ -103,6 +104,15 @@ async def fetch_price_context() -> tuple[float, dict]:
 async def main(is_anomaly: bool = False, anomaly_reason: str | None = None) -> int:
     started_at = datetime.now(timezone.utc)
     mode = "ANOMALY" if is_anomaly else "SCHEDULED"
+
+    # Checked before anything is fetched. The expensive part of a doomed run is
+    # not the failed LLM call — it is the 23 upstream endpoints pulled to build
+    # the prompt that will never be sent.
+    tripped, why = arena_breaker.is_open()
+    if tripped:
+        logger.warning(f"=== AI Arena v6 {mode} run SKIPPED — breaker open: {why} ===")
+        return 0
+
     logger.info(f"=== AI Arena v6 {mode} run started at {started_at.isoformat()} ===")
 
     try:
@@ -123,9 +133,21 @@ async def main(is_anomaly: bool = False, anomaly_reason: str | None = None) -> i
             anomaly_reason=anomaly_reason,
         )
     except Exception as e:
+        reason = arena_breaker.classify(e)
+        if reason:
+            st = arena_breaker.trip(reason)
+            logger.error(
+                f"PIPELINE HALTED — {reason}. This does not recover by retrying: "
+                f"someone has to top up the provider account. Breaker open for "
+                f"{arena_breaker.COOLDOWN_SECONDS}s "
+                f"(consecutive trips: {st['consecutive']}). "
+                f"Reports will stay frozen at the last good one until then."
+            )
+            return 1
         logger.exception(f"Pipeline failed: {e}")
         return 1
 
+    arena_breaker.reset()
     elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
     logger.info(
         f"=== Run complete | {bundle.report_id} | "

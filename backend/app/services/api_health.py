@@ -268,17 +268,58 @@ async def _probe_discord(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeR
 
 
 async def _probe_openai(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
-    r = await client.get(
-        "https://api.openai.com/v1/models",
-        headers={"Authorization": f"Bearer {k['OPENAI_API_KEY']}"},
-    )
+    """Probe what the work needs, not just what the key is.
+
+    This used to check `GET /v1/models` alone. That endpoint answers **200 with
+    all 126 models on an account whose credit balance is zero** — so through the
+    whole four-day August 2026 outage this dashboard read "OK — key valid" while
+    every completion in the product returned 429 credit_balance_exhausted. The
+    reports stopped, Ask AI's cache stopped, and the one screen built to notice
+    showed green.
+
+    So the probe now spends one token. A billing wall is invisible to any
+    endpoint that does not bill, and a health check that cannot fail the way
+    production fails is decoration.
+    """
+    headers = {"Authorization": f"Bearer {k['OPENAI_API_KEY']}"}
+
+    r = await client.get("https://api.openai.com/v1/models", headers=headers)
     if r.status_code in (401, 403):
         return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
-    if r.status_code == 429:
-        return ProbeResult(WARN, "rate limited or quota exceeded")
-    r.raise_for_status()
-    n = len(r.json().get("data", []))
-    return ProbeResult(OK, f"key valid — {n} models", {"models": n})
+    if r.status_code != 429:
+        r.raise_for_status()
+    n = len(r.json().get("data", [])) if r.status_code == 200 else 0
+
+    # The real question: can this key still buy a completion? One token, so the
+    # check costs about two ten-millionths of a dollar.
+    c = await client.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers=headers,
+        json={
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": "."}],
+            "max_tokens": 1,
+        },
+    )
+    if c.status_code == 200:
+        return ProbeResult(OK, f"key valid, billing live — {n} models", {"models": n})
+
+    code = ""
+    try:
+        code = ((c.json() or {}).get("error") or {}).get("code") or ""
+    except ValueError:
+        pass
+
+    # Out of credit is not a transient rate limit. It stays broken until a human
+    # pays, so it must read DOWN and not WARN.
+    if code in ("credit_balance_exhausted", "insufficient_quota"):
+        return ProbeResult(DOWN, "OUT OF CREDIT — completions refused, top up billing",
+                           {"models": n, "error_code": code})
+    if c.status_code == 429:
+        return ProbeResult(WARN, "rate limited", {"models": n})
+    if c.status_code in (401, 403):
+        return ProbeResult(DOWN, f"key rejected on completion (HTTP {c.status_code})")
+    return ProbeResult(WARN, f"completions unhealthy (HTTP {c.status_code})", {"models": n})
 
 
 async def _probe_anthropic(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:

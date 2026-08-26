@@ -97,9 +97,70 @@ const MODE_LABEL = {
   CHOPPY_RANGE: "Range only",
 };
 
+/**
+ * Says out loud that the reading on screen is no longer current.
+ *
+ * The backend already knew. `dashboard_health.status` reads "unavailable" with
+ * the summary "too old or unavailable for a current market reading", and during
+ * the four-day August 2026 outage it said so on every request — while this page
+ * rendered a confident stance, a confidence percentage, and a BTC price that was
+ * 2.4% away from the market. The only thing separating the reader from that was
+ * the word "Check" in the corner, six characters wide.
+ *
+ * 24-41 people a day opened it and could not tell. So the staleness now sits
+ * where the reading is, at the reading's own size. A health field that renders
+ * only as a chip beside the content is not a health signal.
+ */
+function StaleNotice({ health }) {
+  const rep = health?.report;
+  const age = Number(rep?.age_seconds);
+  const max = Number(rep?.maximum_age_seconds);
+  if (!Number.isFinite(age) || !Number.isFinite(max) || age <= max) return null;
+
+  const hours = Math.floor(age / 3600);
+  const label = hours >= 48 ? `${Math.floor(hours / 24)} days` : `${hours} hours`;
+  const generated = rep?.generated_at ? new Date(rep.generated_at) : null;
+
+  return (
+    <div
+      role="status"
+      className="rounded-xl border border-ink/[0.12] bg-surface-raised px-4 py-3.5 shadow-[0_1px_3px_rgb(var(--scrim)_/_0.06)] sm:px-5"
+    >
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className="mt-[3px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-accent/40 text-[11px] font-bold text-accent"
+        >
+          !
+        </span>
+        <div className="min-w-0">
+          <p className="text-[14px] font-semibold text-text-primary">
+            This reading is {label} old — treat it as history, not as the market now.
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+            Reports are produced when the market moves, and none has been produced since{" "}
+            {generated ? generated.toLocaleString() : "the timestamp below"}. Every price,
+            level and percentage on this page is from that moment. The market has moved
+            since.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Claude/ChatGPT chrome — quiet title, no product switcher, no card soup */
 function PageHeader({ healthStatus, onRefresh, refreshing }) {
   const healthy = healthStatus === "healthy";
+  // "Check" told the reader nothing — not what to check, nor how bad it was.
+  // Name the actual state instead; the banner below carries the detail.
+  const label = healthy
+    ? "Healthy"
+    : healthStatus === "unavailable"
+      ? "Not current"
+      : healthStatus === "degraded"
+        ? "Degraded"
+        : "Check";
   return (
     <header className="flex items-center justify-between gap-3">
       <h1 className="font-display text-[22px] font-semibold tracking-tight text-text-primary sm:text-2xl">
@@ -112,7 +173,7 @@ function PageHeader({ healthStatus, onRefresh, refreshing }) {
           }`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${healthy ? "bg-profit" : "bg-accent"}`} />
-          {healthy ? "Healthy" : "Check"}
+          {label}
         </span>
         <button
           type="button"
@@ -1566,6 +1627,8 @@ export default function AIArenaPageV6() {
           onRefresh={() => loadAll(true)}
           refreshing={refreshing}
         />
+
+        <StaleNotice health={dashboardHealth} />
 
         {/* Full thesis only on Outlook; other tabs get a quiet one-line context */}
         {activeWorkspace === "read" ? (

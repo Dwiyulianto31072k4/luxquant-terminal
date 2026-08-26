@@ -536,6 +536,19 @@ class ReportBundleV6(BaseModel):
     # Shadow validation: deterministic direction recorded alongside LLM (not shown to user).
     shadow_deterministic: Optional[dict] = None
 
+    # ── Replay inputs ────────────────────────────────────────────────
+    # The fast-tape blocks that Stage 2's prompt is built from. Recorded
+    # because *nothing else* preserves them: an audit of 493 reports found
+    # layer_briefs, daily_outlook and the direction lock all stored, and these
+    # two stored nowhere — which made it impossible to re-run a candidate model
+    # on the exact inputs a past report saw. Price carries the largest weight in
+    # the direction score (0.45), so a replay missing it is not a replay.
+    #
+    # Kept out of the API response (see the /latest projection) — this is an
+    # evaluation record, not something a reader needs.
+    price_context: Optional[dict] = None
+    intraday_tape: Optional[dict] = None
+
     # Cost tracking
     cost_breakdown: dict  # {stage1: usd, stage2: usd, stage3: usd, total: usd}
 

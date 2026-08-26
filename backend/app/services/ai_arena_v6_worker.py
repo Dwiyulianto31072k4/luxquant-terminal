@@ -116,8 +116,34 @@ deepseek_client = AsyncOpenAI(
 )
 
 
+# Models already reported as unpriced, so the warning fires once per process
+# instead of on every run.
+_UNPRICED_SEEN: set[str] = set()
+
+
 def _estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
-    rates = COST_RATES.get(model, {"input": 0.0, "output": 0.0})
+    """Cost for one stage. A model missing from COST_RATES is LOUD, not free.
+
+    This used to be `COST_RATES.get(model, {"input": 0.0, "output": 0.0})`, which
+    priced any unlisted model at exactly $0.00 without a word. Since COST_RATES
+    is hand-maintained, swapping a stage's model — the ordinary way this code
+    changes — silently zeroed `total_cost_usd` from then on. Spend tracking is
+    the only warning this pipeline has before the API credits run out, and in
+    August 2026 they did: reports stopped for four days and nothing noticed.
+
+    Generation still proceeds, because a missing price is a bookkeeping fault
+    and not a reason to stop publishing. But it can no longer be invisible.
+    """
+    rates = COST_RATES.get(model)
+    if rates is None:
+        if model not in _UNPRICED_SEEN:
+            _UNPRICED_SEEN.add(model)
+            _log(
+                f"NO PRICE for model {model!r} — its cost will be recorded as $0.00 "
+                f"and total spend will read low until COST_RATES is updated.",
+                "ERROR",
+            )
+        return 0.0
     return (input_tokens * rates["input"] + output_tokens * rates["output"]) / 1000
 
 
@@ -1302,6 +1328,8 @@ async def generate_v6_report(
         daily_outlook=daily_outlook_doc,
         evidence_matrix=evidence_matrix,
         shadow_deterministic=shadow_det,
+        price_context=price_context or None,
+        intraday_tape=intraday_tape or None,
         cost_breakdown={
             "stage1": cost1,
             "stage2": cost2,
