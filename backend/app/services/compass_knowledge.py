@@ -109,11 +109,21 @@ def build_calibration_context(
             "    - primary_touch should sit within ~1.0x expected move of your chosen "
             "stale window. Further targets historically resolve LATE or expire."
         )
-        lines.append(
-            "    - counter-trend continuation calls (e.g. BEARISH_CONTINUATION while the "
-            "72h tape is rising >1%) hit 14% historically. Against the tape, prefer "
-            "NEUTRAL_RANGE or demand overwhelming multi-layer evidence."
-        )
+        # A hard-coded hit rate used to sit here — "counter-trend continuation
+        # calls hit 14% historically". It was measured once, written into the
+        # source, and then went stale exactly the way the funding threshold did:
+        # over the labelled set that cohort now runs 69.2% (n=13, p=0.382).
+        #
+        # Worse, it ended up contradicting the vault. The same prompt was
+        # telling the model that BEARISH_CONTINUATION into a rising tape hits
+        # 14% AND that it is "your strongest cohort at 82% — lean on it",
+        # because a hand-written constant and an auto-learned lesson were both
+        # writing into this block with nothing reconciling them.
+        #
+        # Removed rather than updated. Any number typed in here is a number that
+        # will be wrong later and will not announce it. Cohort statistics belong
+        # in the vault, where they are re-measured daily and now have to clear a
+        # confidence interval before they may claim to be a rule.
 
         track = _track_record_lines()
         if track:

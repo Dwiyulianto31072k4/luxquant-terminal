@@ -24,6 +24,7 @@ Manual run:
 from __future__ import annotations
 
 import argparse
+import math
 import json
 import logging
 from datetime import datetime, timezone
@@ -43,7 +44,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-LOOKBACK_DAYS = 14
+# Widened from 14. At 14 days this pipeline produces ~140 reports spread over
+# six-plus cohorts, so every cohort sat near the promotion threshold and the
+# vault churned on noise. Worse, the window was short enough that the book's own
+# hit rate over it read **91.4%** — a hot fortnight — against which a cohort at
+# 82% was being promoted as "your strongest". At 60 days the base settles at
+# 65.4% over n=257, which matches the rate measured independently across the
+# whole labelled set, and the cohorts are large enough to mean something.
+LOOKBACK_DAYS = 60
 MIN_EVIDENCE = 10
 VALIDATE_N = 20
 AVOID_PCT = 35
@@ -121,15 +129,73 @@ def _lesson_ab(db, lesson_id: str) -> dict:
 # Lesson lifecycle
 # ════════════════════════════════════════════════════════════════════
 
+def _wilson_bounds(wins: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """95% Wilson interval for a hit rate, in percent.
+
+    Wilson rather than normal-approximation because these samples are small and
+    the rates are far from 50%, which is exactly where the normal approximation
+    produces intervals that run past 0 or 100 and flatter the evidence.
+    """
+    if n <= 0:
+        return 0.0, 100.0
+    phat = wins / n
+    denom = 1 + z * z / n
+    centre = (phat + z * z / (2 * n)) / denom
+    half = z * math.sqrt(phat * (1 - phat) / n + z * z / (4 * n * n)) / denom
+    return max(0.0, (centre - half) * 100), min(100.0, (centre + half) * 100)
+
+
 def _lifecycle(cohort: dict, existing_status: str | None) -> tuple[str | None, str | None]:
-    """Returns (status, direction) — direction 'avoid'/'favor' — or (None, None)."""
+    """Returns (status, direction) — direction 'avoid'/'favor' — or (None, None).
+
+    Promotion is gated on a confidence interval, not on a raw count, because the
+    raw count was letting noise into the prompt. Under the old rule
+    (MIN_EVIDENCE=10, VALIDATE_N=20) a 65% hit rate over 20 calls became a
+    *validated* lesson telling the model to "lean on it" — while the 95%
+    interval on 65%/20 runs from **44% to 86%**, which does not exclude a coin
+    flip. That is how the vault came to hold
+    `bias_bearish_continuation_trend_up`, validated at 82% on n=17, instructing
+    the model to lean into a cohort that measures 69.2% (p=0.382) over the full
+    labelled set and splits July +0.958% / August −0.599%. Nine July
+    observations that never replicated.
+
+    So a cohort now has to beat a coin flip *at the bottom of its interval*
+    before it can claim to be a rule. On these sample sizes that is a high bar
+    — which is the point: the pipeline produces ~5.5 directional calls a day,
+    and a loop that promotes faster than its evidence arrives is fitting noise
+    by construction.
+    """
     scored = cohort["wins"] + cohort["losses"]
     if scored < MIN_EVIDENCE:
         return None, None
     hit = 100 * cohort["wins"] / scored
+    lo, hi = _wilson_bounds(cohort["wins"], scored)
+
+    # Compared against the book's OWN hit rate, not against a coin flip.
+    #
+    # 50% is the wrong bar here and using it flatters every cohort. These
+    # contracts put the target closer than the invalidation — measured ratios
+    # 0.54-0.73 — so a call hits target-first well over half the time on
+    # geometry alone; the book as a whole runs around 65%. Against 50% the
+    # bearish-into-a-rising-tape cohort (82% on n=17) clears easily and becomes
+    # a "lean on it" rule. Against the book's own rate its interval starts at
+    # 59% and it is correctly refused — which matters, because measured over the
+    # full labelled set that cohort is 69.2% (p=0.382) and splits July +0.958% /
+    # August -0.599%.
+    #
+    # Passed in rather than hard-coded, so it re-measures instead of going stale
+    # the way the 14% counter-trend figure in compass_knowledge did.
+    base = cohort.get("base_hit_pct")
+    if base is None:
+        return None, None
+
     if hit <= AVOID_PCT:
+        if hi >= base:
+            return None, None
         direction = "avoid"
     elif hit >= FAVOR_PCT:
+        if lo <= base:
+            return None, None
         direction = "favor"
     else:
         # informative before, coin-flip now -> retire
@@ -149,7 +215,10 @@ def _prompt_line(key: str, direction: str, hit: int, n: int, regime: str) -> str
              "flat": "in a FLAT 72h tape"}.get(regime, "")
     if direction == "avoid":
         return f"AVOID {key} {where}: only {hit}% hit rate over your last {n} scored calls.".strip()
-    return f"{key} {where} is your strongest cohort: {hit}% hit rate over {n} scored calls — lean on it when evidence agrees.".strip()
+    # Deliberately not "lean on it". A cohort that cleared the interval test is
+    # evidence worth knowing, not a licence to size up — and the previous
+    # wording was amplifying whatever happened to be winning that fortnight.
+    return f"{key} {where} has held up: {hit}% hit rate over {n} scored calls — treat it as supporting evidence, not as a reason to stretch.".strip()
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -222,10 +291,23 @@ def reflect(dry_run: bool = False) -> dict:
     existing = {str(m.get("id")): m for m in brain.list_lessons()}
     db = SessionLocal()
     try:
+        # The bar a cohort has to beat: the book's own hit rate over the same
+        # window. Measured here rather than written down, so it tracks the
+        # geometry instead of going stale like the constants it replaces.
+        _bias_all = _bias_cohorts(db)
+        _flag_all = _flag_cohorts(db)
+        _w = sum(c["wins"] for c in _bias_all)
+        _n = sum(c["wins"] + c["losses"] for c in _bias_all)
+        base_hit_pct = (100.0 * _w / _n) if _n >= MIN_EVIDENCE else None
+        logger.info("Base hit rate for the window: %s (n=%d)",
+                    f"{base_hit_pct:.1f}%" if base_hit_pct is not None else "unknown", _n)
+        for c in (*_bias_all, *_flag_all):
+            c["base_hit_pct"] = base_hit_pct
+
         # 1+2 — cohort lessons (bias cohorts are regime-scoped; flag cohorts are regime-agnostic)
         for cohort, regime_scope, prefix in (
-            *[(c, regime, "bias") for c in _bias_cohorts(db)],
-            *[(c, "any", "flag") for c in _flag_cohorts(db)],
+            *[(c, regime, "bias") for c in _bias_all],
+            *[(c, "any", "flag") for c in _flag_all],
         ):
             lesson_id = f"{prefix}_{str(cohort['key']).lower()}_{regime_scope}"
             status, direction = _lifecycle(cohort, str(existing.get(lesson_id, {}).get("status") or "") or None)
