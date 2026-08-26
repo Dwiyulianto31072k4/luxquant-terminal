@@ -1278,9 +1278,20 @@ async def generate_v6_report(
                     "agree": verdict.secondary_7d.direction == _sd["secondary_7d"]["direction"],
                 },
                 "inputs": _sd["inputs"],
+                # Carried through deliberately. `det` above is the direction as
+                # PUBLISHED, so once a policy withholds bearish it reads
+                # "neutral" and the record of what the scorer actually saw would
+                # be gone — taking with it the only evidence that could ever
+                # justify turning the policy back off. These two fields are that
+                # evidence.
+                "bearish_policy": _sd.get("bearish_policy"),
+                "suppressed_bearish": _sd.get("suppressed_bearish"),
             }
+            _sup = shadow_det.get("suppressed_bearish") or {}
             _log(f"Shadow det: 24h llm={shadow_det['tactical_24h']['llm']}/det={shadow_det['tactical_24h']['det']} "
-                 f"72h llm={shadow_det['secondary_7d']['llm']}/det={shadow_det['secondary_7d']['det']}")
+                 f"72h llm={shadow_det['secondary_7d']['llm']}/det={shadow_det['secondary_7d']['det']}"
+                 + (f" | WITHHELD 24h={(_sup.get('tactical_24h') or {}).get('would_be')}"
+                    f"@{(_sup.get('tactical_24h') or {}).get('score')}" if _sup.get("tactical_24h") else ""))
     except Exception as e:
         _log(f"Shadow det skipped (non-fatal): {e}", level="WARN")
 

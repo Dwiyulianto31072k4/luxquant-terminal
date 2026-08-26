@@ -114,12 +114,64 @@ def _metric_signal(confluence: dict | None, keys: set[str]) -> float:
     return max(-1.0, min(1.0, sum(scores) / len(scores)))
 
 
-def _direction(score: float) -> str:
+# What to do when the score says bearish.
+#   "suppress" — publish neutral instead, but keep scoring the bearish call
+#                behind the scenes so we can see when it starts working again.
+#   "publish"  — the old behaviour.
+_BEARISH_POLICY = os.getenv("COMPASS_BEARISH_POLICY", "suppress").lower()
+
+
+def _raw_direction(score: float) -> str:
+    """Direction before any policy is applied. This is what gets recorded."""
     if score >= _THRESHOLD:
         return "bullish"
     if score <= -_THRESHOLD:
         return "bearish"
     return "neutral"
+
+
+def _direction(score: float) -> str:
+    """Direction as published.
+
+    Bearish calls are withheld by default, and that is a measured decision, not
+    a hunch. Across 106 resolved bearish contracts the expected value per call
+    was **negative in both halves of the sample** — July −0.611% (n=73), August
+    −0.467% (n=33) — while bullish ran +0.963%. The geometry made it worse: a
+    bearish contract needed a 63.6% hit rate to break even and delivered 46.7%,
+    so it demanded *more* accuracy than bullish while running on a weaker
+    signal.
+
+    The mechanism is visible in the raw data. This is a momentum score, and at
+    the horizon these contracts actually resolve over — median 2-4 hours — BTC's
+    response to downward momentum is not symmetric with its response to upward
+    momentum. Following up-momentum was right 60.5% of the time (p=0.002);
+    following down-momentum was right 58.6% (p=0.063) with an average forward
+    return of −0.002%, i.e. nothing. And the *strongest* down signals inverted
+    outright: below −0.60 the average forward return was **+0.107%**. A sharp
+    drop was, on average, followed by a rise. That is the intraday reversal
+    documented for crypto and attributed to overreaction to non-fundamental
+    news — and the symmetric ±0.15 threshold above treats it identically to the
+    momentum that does persist.
+
+    Six alternative rules were backtested against the same 469 contracts.
+    Filtering bearish by strength, by liquidity agreement, by an asymmetric
+    threshold, and by a 72h-trend regime switch **all still lost money in July**.
+    The regime switch was the worst of them: the calls it dropped had +0.958% EV
+    that month. Withholding bearish entirely was the only rule positive in both
+    halves. Rules that also filtered *bullish* looked better on the full sample
+    but collapsed out of sample (one showed −2.314% in July on n=5) and were
+    rejected as overfitting.
+
+    IMPORTANT: the sample is a +28.7% bull run, so this asymmetry may be regime
+    rather than law. That is exactly why the bearish score keeps being computed
+    and recorded below instead of being deleted — `suppressed_bearish` in the
+    output is the running record of what the withheld call would have said, and
+    it is what should be re-measured before flipping the policy back.
+    """
+    raw = _raw_direction(score)
+    if raw == "bearish" and _BEARISH_POLICY == "suppress":
+        return "neutral"
+    return raw
 
 
 def _confidence(score: float) -> int:
@@ -163,9 +215,20 @@ def compute_deterministic_direction(
         + _W_72H["positioning"] * pos_s
     )
 
+    # Recorded whether or not it is published — this is the evidence that lets
+    # the policy be revisited rather than becoming permanent by forgetting.
+    suppressed = {
+        h: {"would_be": raw, "score": round(sc, 3), "confidence": _confidence(sc)}
+        for h, raw, sc in (("tactical_24h", _raw_direction(s24), s24),
+                           ("secondary_7d", _raw_direction(s72), s72))
+        if raw != _direction(sc)
+    }
+
     return {
         "tactical_24h": {"direction": _direction(s24), "confidence": _confidence(s24), "score": round(s24, 3)},
         "secondary_7d": {"direction": _direction(s72), "confidence": _confidence(s72), "score": round(s72, 3)},
+        "bearish_policy": _BEARISH_POLICY,
+        "suppressed_bearish": suppressed or None,
         "cycle_context": {"score": cyc.get("score"), "phase": cyc.get("phase")},
         "inputs": {
             "price_24_s": round(price_24_s, 3),
