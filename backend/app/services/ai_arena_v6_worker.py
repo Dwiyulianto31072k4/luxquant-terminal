@@ -879,7 +879,7 @@ Produce a JSON object matching this schema:
 
 Audit dimensions:
 1. CONFIDENCE CALIBRATION — Judge each horizon against the evidence allowed for that horizon. Do not use a fast-tape disagreement alone to penalize the daily outlook.
-2. INTERNAL CONSISTENCY — The 24h market outlook, its target-first contract, and DIRECTION_LOCK must agree. Multi-timeframe divergence is valid: a bearish 24h outlook may coexist with a bullish daily outlook or a neutral 1H/4H state.
+2. INTERNAL CONSISTENCY — The 24h market outlook, its target-first contract, and DIRECTION_LOCK must agree. Multi-timeframe divergence is valid: a bearish 24h outlook may coexist with a bullish daily outlook or a neutral 1H/4H state. So is LAYER divergence, and this is the more common trap: the 24h direction is computed from price, liquidity and fast derivatives ONLY. Macro, on-chain, cycle and positioning are deliberately excluded from it, because slow data must not average away a fast tape. A bearish 24h call sitting against bullish macro or bullish smart-money layers is therefore the system working as designed — NOT a contradiction, and never grounds for needs_revision. Judge the 24h call against price, liquidity and fast derivatives; judge the daily outlook against the slow layers.
 3. EVIDENCE TRACE — Does each reasoning_chain step cite real data, or hand-wave?
 4. INVALIDATION LOGIC — Are invalidation prices realistic vs zones? (bullish_invalidated should sit below demand zone)
 5. ZONE QUALITY — Do zones reflect actual structure (price clusters, prior reactions) or arbitrary?

@@ -14,6 +14,8 @@ string and the report generation proceeds without the block.
 from __future__ import annotations
 
 import logging
+import random
+import os
 import math
 from typing import Optional
 
@@ -143,13 +145,67 @@ def build_calibration_context(
         return ""
 
 
+# Share of runs each lesson is deliberately withheld from, to turn the
+# reflection worker's "A/B" into an actual experiment. See below.
+LESSON_HOLDOUT_RATE = float(os.getenv("COMPASS_LESSON_HOLDOUT", "0.25"))
+
+# Decided ONCE per process. Each report is its own systemd-timer run, so a
+# module-level memo is exactly one report — and it has to be memoised, because
+# `build_calibration_context()` (what goes in the prompt) and
+# `get_active_lesson_ids()` (what gets recorded on the contract) are separate
+# calls. Randomising without this would let them disagree, and the attribution
+# key would then be a record of lessons that were never in the prompt.
+# A single slot, not one per regime. Within a report the regime is fixed, so a
+# second regime appearing in the same process means the two callers were handed
+# different market stats — and the failure mode there is silent: the prompt gets
+# one draw, the contract records another, and the attribution key becomes a lie
+# that still parses. One slot makes that impossible and logs it instead.
+_HOLDOUT_MEMO: dict[str, list[dict]] = {}
+_HOLDOUT_REGIME: list = []
+
+
 def get_active_lessons(trend_72h_pct: Optional[float] = None) -> list[dict]:
-    """Lessons eligible for the current regime. Fail-safe: empty list."""
+    """Lessons eligible for the current regime, minus a random holdout.
+
+    Why a holdout at all: `compass_reflection._lesson_ab` scores each lesson by
+    comparing contracts that carried it against contracts that did not — and
+    calls the result an A/B. It is not one. A lesson only exists after it was
+    written, and it was written because its cohort was winning, so "with the
+    lesson" is by construction the period the cohort was already doing well.
+    Both validated lessons scored +22pp and +26pp under that method, and every
+    retired one scored negative — status and score computed from the same
+    outcomes, which is a mirror, not a measurement.
+
+    Withholding each lesson from a random share of runs breaks that. Assignment
+    stops being "before vs after" and becomes a coin flip, so the comparison can
+    finally say something about the lesson rather than about the fortnight.
+
+    The cost is that a quarter of runs go without a rule believed to be useful.
+    That is the price of finding out whether it is, and at ~5.5 directional
+    calls a day it is the only affordable way to ask.
+    """
     try:
         from app.services import compass_brain as brain
 
         regime = brain.classify_regime(trend_72h_pct)
-        return brain.active_lessons(regime=regime)
+        if _HOLDOUT_REGIME:
+            if _HOLDOUT_REGIME[0] != regime:
+                logger.warning(
+                    "Lesson holdout asked for regime %r after %r in the same run — "
+                    "callers disagree on the market stats; reusing the first draw so "
+                    "the prompt and the recorded attribution cannot diverge.",
+                    regime, _HOLDOUT_REGIME[0],
+                )
+            return _HOLDOUT_MEMO["run"]
+
+        eligible = brain.active_lessons(regime=regime)
+        kept = [m for m in eligible if random.random() >= LESSON_HOLDOUT_RATE]
+        held = len(eligible) - len(kept)
+        if held:
+            logger.info("Lesson holdout: withheld %d of %d for this run", held, len(eligible))
+        _HOLDOUT_MEMO["run"] = kept
+        _HOLDOUT_REGIME.append(regime)
+        return kept
     except Exception:
         return []
 
