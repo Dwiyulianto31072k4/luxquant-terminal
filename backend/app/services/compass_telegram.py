@@ -63,12 +63,17 @@ def _fmt_usd(v: Any) -> str:
         return "—"
 
 
-def _pct_from(level: Any, ref: Any) -> str:
+def _pct_from(level: Any, ref: Any, decimals: int = 2) -> str:
+    """Percent move from the reference price, without brackets.
+
+    Brackets cost two characters in a block measured in single digits, and add
+    nothing a sign does not already say.
+    """
     try:
         lv, rf = float(level), float(ref)
         if rf <= 0:
             return ""
-        return f" ({(lv - rf) / rf * 100:+.2f}%)"
+        return f"{(lv - rf) / rf * 100:+.{decimals}f}%"
     except (TypeError, ValueError):
         return ""
 
@@ -170,16 +175,66 @@ def _ago(then) -> str:
     return f"{secs / 86400:.0f}d ago"
 
 
+def _trim(text: str, limit: int) -> str:
+    """Cut at a sentence boundary, or a word, never mid-word.
+
+    `what_changed` runs to a few hundred characters and reflows to roughly
+    seven lines on a phone. Hard-slicing it left sentences amputated — "so range
+    remains int…" — which reads as a bug rather than an abbreviation.
+    """
+    text = " ".join(str(text).split())
+    if len(text) <= limit:
+        return text
+    window = text[: limit + 1]
+    for stop in (". ", "; ", " — "):
+        cut = window.rfind(stop)
+        if cut > limit * 0.5:
+            return window[: cut + 1].rstrip(" ;—")
+    cut = window.rfind(" ")
+    return (window[:cut] if cut > 0 else window[:limit]).rstrip() + "…"
+
+
+def _levels_block(ref, touch, inval) -> Optional[str]:
+    """The three numbers, in a column narrow enough to survive a phone.
+
+    The first version padded to a wider grid and broke: on the owner's screen
+    `Target     $79,565 (+1.96%)` — 27 characters — wrapped, dropping "(+1.96%)"
+    onto its own line and destroying the alignment the column existed to
+    provide. General guidance says Telegram wraps monospace near 40 characters,
+    but a reply carries a quoted parent above it and that narrows the bubble
+    further, so the real budget here is much smaller than the published one.
+
+    22 characters, measured against where it actually broke. Percentages drop to
+    one decimal to buy the room — the exact figures are in the PDF, and this
+    block exists to be scanned, not cited.
+
+    A wrapped table is worse than no table: prose reflows, a column just looks
+    broken.
+    """
+    if not (touch or inval):
+        return None
+    rows = [("Spot", ref, None)]
+    if touch:
+        rows.append(("Target", touch, _pct_from(touch, ref, decimals=1)))
+    if inval:
+        rows.append(("Invalid", inval, _pct_from(inval, ref, decimals=1)))
+    out = []
+    for label, value, pct in rows:
+        out.append(f"{label:<8}{_fmt_usd(value):>8}{(' ' + pct) if pct else ''}")
+    return "\n".join(out)
+
+
 def build_caption(report: dict, previous: Optional[dict] = None) -> str:
     """The read, in the order someone in a group chat actually needs it.
 
-    A revision has a different job from a first post. Ten of these arrive a day
-    and most only nudge a number, so the top line has to answer "is this new
-    information?" before anything else — and when the direction actually flips,
-    say so instead of leaving the reader to diff two posts by eye.
+    Ten of these arrive a day and most only nudge a number, so the first line
+    has to answer "is this new information?" before anything else — and when the
+    direction flips, say so rather than leaving the reader to diff two posts.
 
-    Levels sit in a monospace block so the numbers line up; in a feed of prose
-    that column is what makes the post scannable.
+    Spacing is deliberately tight. The earlier version put the update reason and
+    its timestamp on separate lines and left six blank lines in a message that
+    is mostly three numbers and a sentence; on a phone that reads as far longer
+    than it is.
     """
     verdict = report.get("verdict") or {}
     tac = verdict.get("tactical_24h") or {}
@@ -195,38 +250,31 @@ def build_caption(report: dict, previous: Optional[dict] = None) -> str:
     flipped = bool(prev_dir and prev_dir != direction)
 
     lines: list[str] = []
-    if previous:
-        when = _ago(previous.get("sent_at"))
-        why = "direction changed" if flipped else "levels refreshed"
-        lines.append(f"<b>UPDATED</b> · {why}")
-        lines.append(f"<i>Replaces the read from {when}</i>")
-        lines.append("")
 
-    lines.append(f"{arrow} <b>{direction.upper()}</b>{conf_txt}")
+    # One line, not two: what kind of update, and how long the last one stood.
+    if previous:
+        why = "direction changed" if flipped else "levels refreshed"
+        when = _ago(previous.get("sent_at"))
+        lines.append(f"<b>UPDATED</b> · {why}{' · ' + when if when else ''}")
+
+    head = f"{arrow} <b>{direction.upper()}</b>{conf_txt}"
     if flipped:
         pc = (previous or {}).get("confidence")
-        pc_txt = f" · {pc}%" if pc else ""
-        lines.append(f"<i>was {_ARROW.get(prev_dir, '•')} {prev_dir.upper()}{pc_txt}</i>")
+        head += f"  <i>was {_ARROW.get(prev_dir, '•')} {prev_dir.upper()}"
+        head += f" {pc}%</i>" if pc else "</i>"
+    lines.append(head)
 
     if verdict.get("headline"):
-        lines += ["", f"<i>{str(verdict['headline'])[:170]}</i>"]
+        lines.append(f"<i>{_trim(verdict['headline'], 130)}</i>")
 
-    touch = (sc.get("primary_touch") or {}).get("level")
-    inval = (sc.get("invalidation") or {}).get("level")
-    rows = [("Spot", ref, "")]
-    if touch:
-        rows.append(("Target", touch, _pct_from(touch, ref)))
-    if inval:
-        rows.append(("Invalid", inval, _pct_from(inval, ref)))
-    if len(rows) > 1:
-        block = "\n".join(
-            f"{label:<8}{_fmt_usd(value):>10}{pct}" for label, value, pct in rows
-        )
+    block = _levels_block(ref, (sc.get("primary_touch") or {}).get("level"),
+                          (sc.get("invalidation") or {}).get("level"))
+    if block:
         lines += ["", f"<code>{block}</code>"]
 
     changed = verdict.get("what_changed")
     if changed:
-        lines += ["", "<b>Why this changed</b>", str(changed)[:260]]
+        lines += ["", f"<b>Why</b> · {_trim(changed, 200)}"]
 
     lines += ["", f'<a href="{WEB_URL}">Open in LuxQuant →</a>']
 
