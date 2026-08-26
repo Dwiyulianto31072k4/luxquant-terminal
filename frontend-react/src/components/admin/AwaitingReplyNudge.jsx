@@ -10,6 +10,13 @@
  * than sits, because a number in a corner is easy to stop seeing. It stays
  * dismissed for a while after being closed: a nudge that cannot be silenced
  * becomes something you learn to ignore, which is the same as not having it.
+ *
+ * "Who spoke last" cannot tell a question from a goodbye, though. A thread
+ * ending "oke siap" has nothing owed and still qualifies forever, and one did:
+ * a finished conversation reappeared every ten minutes for fourteen days
+ * because Later only snoozes and nothing here could say the matter was
+ * settled. Hence Done — it closes the conversation, which is the only state
+ * the query actually respects.
  */
 import { useCallback, useEffect, useState } from "react";
 import { adminChatApi } from "../../services/adminChatApi";
@@ -30,6 +37,26 @@ export const AwaitingReplyNudge = ({ onOpenChat }) => {
   const [rows, setRows] = useState([]);
   const [snoozedUntil, setSnoozedUntil] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  // Closing is what the awaiting-reply query filters on (status <> 'closed'),
+  // so this is the one action that removes a settled thread for good rather
+  // than deferring it by ten minutes.
+  const markDone = useCallback(
+    async (conversationId) => {
+      setClosing(true);
+      try {
+        await adminChatApi.setStatus(conversationId, "closed");
+        setRows((prev) => prev.filter((c) => c.id !== conversationId));
+      } catch {
+        // Leave the row in place; a failed close should not look like a
+        // successful one.
+      } finally {
+        setClosing(false);
+      }
+    },
+    [],
+  );
 
   const poll = useCallback(async () => {
     try {
@@ -85,6 +112,15 @@ export const AwaitingReplyNudge = ({ onOpenChat }) => {
             className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-surface-primary"
           >
             Open chat
+          </button>
+          <button
+            type="button"
+            onClick={() => markDone(oldest.id)}
+            disabled={closing}
+            className="rounded-lg border border-ink/12 px-2.5 py-1.5 text-[12px] text-text-secondary hover:text-text-primary disabled:opacity-50"
+            title="Nothing is owed here — close the conversation and stop asking"
+          >
+            {closing ? "…" : "Done"}
           </button>
           <button
             type="button"
