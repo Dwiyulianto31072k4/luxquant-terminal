@@ -189,13 +189,25 @@ def _lifecycle(cohort: dict, existing_status: str | None) -> tuple[str | None, s
     if base is None:
         return None, None
 
+    def _fails(existing: str | None):
+        """A lesson that no longer clears the bar must come DOWN, not just stop
+        being re-promoted.
+
+        Gating promotion alone is not enough: a lesson already on file keeps its
+        old status and its old prompt_line until something rewrites it, so
+        tightening the bar silently leaves the previous era's claims standing.
+        `flag_counter_trend_any` — "92% over 12 scored calls, lean on it" —
+        survived the first pass of this fix for exactly that reason.
+        """
+        return ("retired", None) if existing in ("candidate", "validated") else (None, None)
+
     if hit <= AVOID_PCT:
         if hi >= base:
-            return None, None
+            return _fails(existing_status)
         direction = "avoid"
     elif hit >= FAVOR_PCT:
         if lo <= base:
-            return None, None
+            return _fails(existing_status)
         direction = "favor"
     else:
         # informative before, coin-flip now -> retire
