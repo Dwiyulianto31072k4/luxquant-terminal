@@ -87,7 +87,9 @@ function buildResult(item) {
     if (String(item.status || "").toUpperCase() === "SUPERSEDED") {
       return {
         label: "Superseded",
-        meta: "A newer read replaced this one before any barrier was touched",
+        // Says the consequence, not just the event. The question this row kept
+        // provoking was not "what happened" but "so does it count against you".
+        meta: "Replaced by a newer read before price touched anything — not scored either way",
         tone: "SUPERSEDED",
       };
     }
@@ -202,6 +204,18 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               Every row is judged by the target-first scenario map: what BTC was projected to touch,
               which barrier resolved first, and why that result matters.
             </p>
+            {/* Readers asked what "superseded" meant and whether those rows were
+                quietly dropped from the score. They are excluded, and the reason
+                is worth stating rather than leaving to be inferred from a badge. */}
+            <p className="mt-2 max-w-3xl text-[12.5px] leading-6 text-text-muted">
+              A new read is produced whenever price moves enough to matter, and it replaces the one
+              before it — only <span className="text-text-secondary">one projection is ever live</span>.
+              If the older read had already touched a barrier it still counts, as{" "}
+              <span className="text-profit">Hit</span> or{" "}
+              <span className="text-loss">Invalidated</span>. If it had not, it is marked{" "}
+              <span className="text-text-secondary">Superseded</span> and left out of the hit rate —
+              the market never gave it a verdict, so scoring it either way would be inventing one.
+            </p>
           </div>
           {/* Hit-rate donut. Hairline only — a filled panel here sat heavier
               than the five KPI cards below it and pulled the eye away from
@@ -244,7 +258,10 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
         </div>
 
         {/* KPI strip */}
-        <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
+        {/* Six, not five. Without a Superseded card the strip read 479 total,
+            1 tracking, 473 resolved — five rows unaccounted for and no way to
+            see where they went. */}
+        <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
           <StatCard
             label="Tracking"
@@ -252,6 +269,11 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             detail="Waiting for first barrier"
           />
           <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
+          <StatCard
+            label="Superseded"
+            value={stats.superseded ?? 0}
+            detail="Replaced first · not scored"
+          />
           <StatCard
             label="Hits"
             value={stats.clean_hits ?? 0}
@@ -287,6 +309,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           {[
             ["all", "All"],
             ["pending", "Pending"],
+            ["superseded", "Superseded"],
             ["resolved", "Resolved"],
             ["hit", "Hits"],
             ["miss", "Invalidated"],

@@ -329,7 +329,12 @@ MISS_OUTCOMES = ("INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP")
 
 LEDGER_FILTERS = {
     "all": "TRUE",
-    "pending": "res.outcome IS NULL",
+    # "Pending" means still being tracked. It used to be `res.outcome IS NULL`,
+    # which also caught every SUPERSEDED row — reads a newer report replaced,
+    # which can never resolve — so the filter showed dead scenarios alongside
+    # the single live one. They now have their own view.
+    "pending": "res.outcome IS NULL AND c.status = 'ACTIVE'",
+    "superseded": "res.outcome IS NULL AND c.status = 'SUPERSEDED'",
     "resolved": "res.outcome IS NOT NULL",
     "hit": "res.outcome IN :hit_outcomes",
     "miss": "res.outcome IN :miss_outcomes",
