@@ -1295,6 +1295,38 @@ async def generate_v6_report(
     except Exception as e:
         _log(f"Shadow det skipped (non-fatal): {e}", level="WARN")
 
+    # -- Feature history: raw values for percentile scoring --
+    # Recording only. None of this changes a decision today; it exists because
+    # two features had gone silently dead against hard-coded thresholds
+    # (funding fired 0/494, basis could never score bullish) and a third was
+    # never fed at all. A percentile needs a window, and a window needs someone
+    # to have been writing it down.
+    try:
+        from app.services import compass_percentile as _pc
+        from app.services.order_flow import fetch_taker_split
+
+        def _bg(key):
+            m = (bg_snapshot or {}).get(key)
+            if isinstance(m, dict):
+                m = m.get("value")
+            try:
+                return float(m)
+            except (TypeError, ValueError):
+                return None
+
+        for _feat, _key in (("funding_rate", "funding-rate"),
+                            ("basis", "btc-derivatives-basis-1h")):
+            _v = _bg(_key)
+            if _v is not None:
+                _pc.record(_feat, _v)
+
+        _of = await fetch_taker_split()
+        if _of:
+            _pc.record("order_flow_imbalance", _of["imbalance_pct"])
+            _log(f"Order flow: taker imbalance {_of['imbalance_pct']:+.1f}% (recorded, not scored)")
+    except Exception as e:
+        _log(f"Feature history skipped (non-fatal): {e}", level="WARN")
+
     # -- Phase 4: transparent evidence matrix (audit only) --
     evidence_matrix = None
     try:
