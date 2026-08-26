@@ -39,10 +39,16 @@ class MetricSignal:
     """Single metric's contribution to a layer verdict."""
     key: str
     raw_value: Any
-    score: int                # -1 (bearish) / 0 (neutral) / +1 (bullish)
+    score: float              # -1 (bearish) .. +1 (bullish); continuous where ranked
     label: str                # short human label e.g. "+6.93% YoY"
     note: str = ""            # optional one-liner explanation
     available: bool = True
+    # Carried for context, never scored — m2global is a level, not a direction.
+    # Marked explicitly so the operational-health feature check can tell a
+    # deliberately silent metric from a broken one. Without this it reported
+    # m2global as "never contributes" alongside genuinely dead features, and a
+    # check that cries wolf is a check people stop reading.
+    informational: bool = False
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -152,7 +158,7 @@ def evaluate_macro_liquidity(
     if m2_val is not None:
         # M2global is total liquidity — magnitude varies. Use as informational.
         metrics.append(MetricSignal(
-            key="m2global", raw_value=m2_val, score=0,
+            key="m2global", raw_value=m2_val, score=0, informational=True,
             label=f"${m2_val/1e12:.1f}T" if m2_val > 1e12 else f"{m2_val:.2f}",
             note="Total global money supply (informational)",
         ))

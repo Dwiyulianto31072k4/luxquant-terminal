@@ -300,6 +300,8 @@ def _feature_scoreboard(db, window: int) -> dict[str, dict]:
         LATERAL jsonb_each(r.report_json::jsonb->'confluence'->'layers') AS l(layer, body),
         LATERAL jsonb_array_elements(l.body->'metrics') AS m
         WHERE m->>'key' IS NOT NULL
+          -- Metrics carried for context and never scored are not faults.
+          AND COALESCE((m->>'informational')::boolean, FALSE) = FALSE
         GROUP BY 1
     """), {"w": window}).mappings().all()
     return {r["metric_key"]: dict(r) for r in rows}

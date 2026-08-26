@@ -81,7 +81,7 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
-def _price_signal(price_context: dict | None, horizon: str) -> float:
+def _price_signal(price_context: dict | None, horizon: str) -> float | None:
     """Normalize recent BTC tape into -1..+1."""
     ctx = price_context or {}
     if horizon == "24h":
@@ -95,13 +95,13 @@ def _price_signal(price_context: dict | None, horizon: str) -> float:
         threshold = 1.5
         scale = 6.0
     if change is None:
-        return 0.0
+        return None          # no data — NOT the same claim as "neutral"
     if abs(change) < threshold:
-        return 0.0
+        return 0.0           # genuinely inside the noise band
     return max(-1.0, min(1.0, change / scale))
 
 
-def _metric_signal(confluence: dict | None, keys: set[str]) -> float:
+def _metric_signal(confluence: dict | None, keys: set[str]) -> float | None:
     """Average only selected fast metrics from the smart-money layer."""
     layer = (((confluence or {}).get("layers") or {}).get("smart_money") or {})
     selected = [
@@ -109,7 +109,7 @@ def _metric_signal(confluence: dict | None, keys: set[str]) -> float:
         if metric.get("key") in keys and metric.get("available", True)
     ]
     if not selected:
-        return 0.0
+        return None          # nothing reported in — say so, do not invent a zero
     scores = []
     for metric in selected:
         try:
@@ -117,7 +117,7 @@ def _metric_signal(confluence: dict | None, keys: set[str]) -> float:
         except (TypeError, ValueError):
             continue
     if not scores:
-        return 0.0
+        return None
     return max(-1.0, min(1.0, sum(scores) / len(scores)))
 
 
@@ -181,8 +181,23 @@ def _direction(score: float) -> str:
     return raw
 
 
-def _confidence(score: float) -> int:
-    return int(max(0, min(_CONF_CAP, round(50 + 40 * abs(score)))))
+def _confidence(score: float, coverage: float = 1.0) -> int:
+    """Confidence, scaled down by how much of the evidence actually arrived.
+
+    Renormalising the score over present inputs was necessary — padding it with
+    imaginary zeros understated whatever did report in — but it has a sharp
+    edge: a single surviving input now reaches full strength, so a partial read
+    crosses the threshold as easily as a complete one. A 2% price move with
+    liquidity and derivatives both silent scores -0.667 where it used to score
+    -0.300.
+
+    The score should say that; the confidence should say the evidence was thin.
+    Coverage is the fraction of intended weight that reported in, and it is
+    applied here rather than gating the direction, because withholding the call
+    entirely would trade one silent distortion for another.
+    """
+    base = 50 + 40 * abs(score)
+    return int(max(0, min(_CONF_CAP, round(base * max(0.0, min(1.0, coverage))))))
 
 
 def compute_deterministic_direction(
@@ -203,46 +218,70 @@ def compute_deterministic_direction(
     liq = liquidity or {}
     cyc = cycle or {}
 
-    liq_s = _sign(liq.get("verdict")) * _strength(liq.get("strength"))
+    # Absent liquidity is unknown, not neutral — the doc either arrived or it
+    # did not, and a missing one must not vote.
+    liq_s = (
+        _sign(liq.get("verdict")) * _strength(liq.get("strength"))
+        if liq.get("verdict") is not None else None
+    )
     price_24_s = _price_signal(price_context, "24h")
     price_72_s = _price_signal(price_context, "72h")
     deriv_s = _metric_signal(confluence, _DERIVATIVE_KEYS)
     pos_s = _metric_signal(confluence, _POSITIONING_KEYS)
     cyc_s = _cycle_bias(cyc.get("score"))  # logged only; not directional owner
 
-    s24 = (
-        _W_24H["price"] * price_24_s
-        + _W_24H["liquidity"] * liq_s
-        + _W_24H["derivatives"] * deriv_s
-    )
-    s72 = (
-        _W_72H["price"] * price_72_s
-        + _W_72H["liquidity"] * liq_s
-        + _W_72H["derivatives"] * deriv_s
-        + _W_72H["positioning"] * pos_s
-    )
+    def _blend(weights: dict, parts: dict) -> tuple[float, float]:
+        """Weighted score over the inputs that are actually present.
+
+        `_price_signal`, `_metric_signal` and `_strength` all used to return
+        0.0 when their data was missing, which quietly claimed "neutral" on
+        behalf of an input nobody had heard from. The score then came out
+        diluted toward zero and indistinguishable from a genuinely balanced
+        one — the same number meaning either "three sources agreed on nothing"
+        or "two of them never answered".
+
+        Renormalising over the present weights keeps a partial read at its own
+        strength instead of shrinking it, and the returned coverage says how
+        much of the intended evidence actually arrived.
+        """
+        live = {k: v for k, v in parts.items() if v is not None}
+        total_w = sum(weights[k] for k in live) or 0.0
+        if total_w <= 0:
+            return 0.0, 0.0
+        raw = sum(weights[k] * live[k] for k in live)
+        return raw / total_w, total_w / sum(weights.values())
+
+    s24, cov24 = _blend(_W_24H, {
+        "price": price_24_s, "liquidity": liq_s, "derivatives": deriv_s,
+    })
+    s72, cov72 = _blend(_W_72H, {
+        "price": price_72_s, "liquidity": liq_s,
+        "derivatives": deriv_s, "positioning": pos_s,
+    })
 
     # Recorded whether or not it is published — this is the evidence that lets
     # the policy be revisited rather than becoming permanent by forgetting.
     suppressed = {
-        h: {"would_be": raw, "score": round(sc, 3), "confidence": _confidence(sc)}
-        for h, raw, sc in (("tactical_24h", _raw_direction(s24), s24),
-                           ("secondary_7d", _raw_direction(s72), s72))
+        h: {"would_be": raw, "score": round(sc, 3), "confidence": _confidence(sc, cov)}
+        for h, raw, sc, cov in (("tactical_24h", _raw_direction(s24), s24, cov24),
+                                ("secondary_7d", _raw_direction(s72), s72, cov72))
         if raw != _direction(sc)
     }
 
     return {
-        "tactical_24h": {"direction": _direction(s24), "confidence": _confidence(s24), "score": round(s24, 3)},
-        "secondary_7d": {"direction": _direction(s72), "confidence": _confidence(s72), "score": round(s72, 3)},
+        "tactical_24h": {"direction": _direction(s24), "confidence": _confidence(s24, cov24), "score": round(s24, 3)},
+        "secondary_7d": {"direction": _direction(s72), "confidence": _confidence(s72, cov72), "score": round(s72, 3)},
+        "coverage": {"tactical_24h": round(cov24, 3), "secondary_7d": round(cov72, 3)},
         "bearish_policy": _BEARISH_POLICY,
         "suppressed_bearish": suppressed or None,
         "cycle_context": {"score": cyc.get("score"), "phase": cyc.get("phase")},
         "inputs": {
-            "price_24_s": round(price_24_s, 3),
-            "price_72_s": round(price_72_s, 3),
-            "liq_s": round(liq_s, 3),
-            "deriv_s": round(deriv_s, 3),
-            "positioning_s": round(pos_s, 3),
+            # None is recorded as None, never coerced to 0.0 — the whole point.
+            "price_24_s": None if price_24_s is None else round(price_24_s, 3),
+            "price_72_s": None if price_72_s is None else round(price_72_s, 3),
+            "liq_s": None if liq_s is None else round(liq_s, 3),
+            "deriv_s": None if deriv_s is None else round(deriv_s, 3),
+            "positioning_s": None if pos_s is None else round(pos_s, 3),
             "cycle_context_s": round(cyc_s, 3),
         },
     }
