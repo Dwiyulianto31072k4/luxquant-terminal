@@ -489,7 +489,19 @@ def get_scenario_ledger(
             COUNT(*)                                        AS total,
             COUNT(*) FILTER (WHERE c.status = 'ACTIVE')     AS active,
             COUNT(res.projection_id)                        AS resolved,
-            COUNT(*) - COUNT(res.projection_id)             AS pending,
+            -- Genuinely still being tracked: live AND not yet resolved.
+            -- This used to be `COUNT(*) - COUNT(resolutions)`, which swept in
+            -- every SUPERSEDED contract — reads that a newer report replaced
+            -- and which can therefore never resolve. The ledger reported
+            -- "Tracking 5" while exactly one contract was live, and each dead
+            -- one sat in the table labelled "Pending" as though a barrier were
+            -- still coming for it.
+            COUNT(*) FILTER (
+                WHERE c.status = 'ACTIVE' AND res.projection_id IS NULL
+            )                                               AS pending,
+            COUNT(*) FILTER (
+                WHERE c.status = 'SUPERSEDED' AND res.projection_id IS NULL
+            )                                               AS superseded,
             COUNT(*) FILTER (WHERE res.outcome IN :hit_outcomes)  AS clean_hits,
             COUNT(*) FILTER (WHERE res.outcome IN :miss_outcomes) AS invalidated_first,
             COUNT(*) FILTER (WHERE res.outcome = 'LATE_HIT')       AS late_hits,
@@ -544,6 +556,10 @@ def get_scenario_ledger(
             "active": int(stats_row.active or 0),
             "resolved": resolved_count,
             "pending": int(stats_row.pending or 0),
+            # Reads a later report replaced before any barrier was touched.
+            # Not failures and not still running — they simply stopped being
+            # the current view of the market.
+            "superseded": int(stats_row.superseded or 0),
             "clean_hits": clean_hits,
             "invalidated_first": invalidated,
             "late_hits": int(stats_row.late_hits or 0),

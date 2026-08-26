@@ -40,6 +40,10 @@ function outcomeTone(value) {
   if (["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(text)) {
     return "border-loss/25 bg-loss/10 text-loss";
   }
+  if (text.includes("SUPERSEDED")) {
+    // Quieter than pending — this row is history, not something to watch.
+    return "border-ink/[0.08] bg-ink/[0.03] text-text-muted";
+  }
   if (text.includes("PENDING") || text.includes("ACTIVE")) {
     return "border-ink/12 bg-ink/[0.06] text-text-primary";
   }
@@ -74,6 +78,19 @@ function buildProjected(item) {
 function buildResult(item) {
   const resolution = item.resolution;
   if (!resolution) {
+    // A read the next report replaced before price touched anything. It will
+    // never resolve, so calling it "Pending" claimed a barrier was still
+    // coming for it — and with a new report every 30-170 minutes, the table
+    // filled with dead rows all appearing to be live at once. Only one
+    // contract is ever ACTIVE; the rest were superseded, which is the system
+    // updating its view, not five open positions.
+    if (String(item.status || "").toUpperCase() === "SUPERSEDED") {
+      return {
+        label: "Superseded",
+        meta: "A newer read replaced this one before any barrier was touched",
+        tone: "SUPERSEDED",
+      };
+    }
     // No meta: the chip already reads "Pending", and a constant second line
     // saying the same thing ran down every unresolved row in the table.
     return { label: "Pending", meta: null, tone: "PENDING" };
