@@ -1433,6 +1433,29 @@ async def generate_v6_report(
         except Exception as e:
             _log(f"DB persist failed (report still returned): {e}", level="ERROR")
 
+    # -- Publish to the Telegram topic, with the PDF attached --
+    # After persistence, deliberately: the database is the source of truth and a
+    # delivery problem must never cost a report. Both steps are non-fatal, and a
+    # missing PDF still posts the read rather than leaving a silent gap.
+    try:
+        from app.services.compass_report_pdf import ensure_report_pdf
+        from app.services.compass_telegram import send_report
+
+        _payload = bundle_v6.model_dump(mode="json")
+        _pdf = None
+        try:
+            _pdf = ensure_report_pdf(bundle_v6.report_id, _payload)
+        except Exception as e:
+            _log(f"PDF generation skipped: {e}", level="WARN")
+
+        _tg = send_report(bundle_v6.report_id, _payload, _pdf)
+        if _tg.get("sent"):
+            _log(f"Posted to Telegram topic (msg {_tg['message_id']}, pdf={_tg['with_pdf']})")
+        elif _tg.get("reason") not in ("disabled", "throttled"):
+            _log(f"Telegram post failed: {_tg.get('reason')}", level="WARN")
+    except Exception as e:
+        _log(f"Telegram publish skipped (non-fatal): {e}", level="WARN")
+
     _log(
         f"Pipeline complete in {elapsed_total:.1f}s | "
         f"cost ~${total_cost:.4f} | "
