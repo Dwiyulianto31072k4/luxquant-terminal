@@ -276,6 +276,123 @@ def _source_health_check(dashboard_health: Optional[dict[str, Any]]) -> dict[str
     )
 
 
+# Recent window: is this metric contributing *now*?
+FEATURE_WINDOW = 120
+# Long window: has it EVER contributed? The difference between the two is the
+# difference between "never wired" and "died when the regime moved", which are
+# different faults with different fixes.
+FEATURE_WINDOW_LONG = 900
+FEATURE_MIN_SAMPLES = 40
+
+
+def _feature_scoreboard(db, window: int) -> dict[str, dict]:
+    rows = db.execute(text("""
+        SELECT m->>'key' AS metric_key,
+               COUNT(*)                                             AS n,
+               COUNT(*) FILTER (WHERE (m->>'score')::numeric > 0)   AS pos,
+               COUNT(*) FILTER (WHERE (m->>'score')::numeric < 0)   AS neg,
+               COUNT(*) FILTER (WHERE COALESCE((m->>'available')::boolean, TRUE)) AS avail
+        FROM (
+            SELECT report_json FROM ai_arena_reports
+            WHERE report_json IS NOT NULL
+            ORDER BY created_at DESC LIMIT :w
+        ) r,
+        LATERAL jsonb_each(r.report_json::jsonb->'confluence'->'layers') AS l(layer, body),
+        LATERAL jsonb_array_elements(l.body->'metrics') AS m
+        WHERE m->>'key' IS NOT NULL
+        GROUP BY 1
+    """), {"w": window}).mappings().all()
+    return {r["metric_key"]: dict(r) for r in rows}
+
+
+def _feature_health_check() -> dict[str, Any]:
+    """Flag scoring metrics that have stopped contributing.
+
+    This exists because two of them had, and nothing could see it. A hard-coded
+    threshold does not raise, does not log, and does not visibly dent the hit
+    rate — it just quietly stops contributing, and the model is dumber than
+    anyone believes:
+
+      · `funding_rate` scored 0 in 494 consecutive reports. Its bullish test was
+        `> 0.01%`, and 0.01%/8h is the baseline rate perpetual exchanges clamp
+        toward — the threshold sat on the modal value of its own input. Over the
+        full history it *does* fire, so this one did not arrive broken: it died
+        when funding stopped going negative. That is the case a short window
+        catches and a long one hides.
+      · `basis` can score 0 or −1 but never +1: bullish test `> +50`, observed
+        range −60.96 to −1.45.
+      · `taker_volume` was never fed at all — `compute_all()` was called without
+        `external`, so the parameter existed and the data never arrived.
+
+    Silent is the operative word in all three. So: dead in the recent window but
+    alive historically is **degraded** (a threshold that outlived its regime);
+    dead in both, or never available, is **critical** (never worked). One-sided
+    metrics are reported as metadata but do not move the status — over any
+    window short enough to be timely, a genuinely slow series can sit on one
+    side honestly, and a check that cries wolf gets ignored.
+    """
+    from app.core.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        recent = _feature_scoreboard(db, FEATURE_WINDOW)
+        ever = _feature_scoreboard(db, FEATURE_WINDOW_LONG)
+    except Exception as e:  # a diagnostic must never take down the endpoint
+        return _check(
+            key="feature_health", label="Scoring feature health", status="unknown",
+            severity="info", detail=f"Could not inspect metric history: {e}",
+            runbook="feature_health",
+        )
+    finally:
+        db.close()
+
+    never_worked, stopped_working, one_sided = [], [], []
+    for key, r in recent.items():
+        if r["n"] < FEATURE_MIN_SAMPLES:
+            continue
+        if r["avail"] == 0:
+            never_worked.append(key)
+            continue
+        silent_now = r["pos"] == 0 and r["neg"] == 0
+        e = ever.get(key) or {}
+        silent_ever = (e.get("pos", 0) == 0 and e.get("neg", 0) == 0)
+        if silent_now and silent_ever:
+            never_worked.append(key)
+        elif silent_now:
+            stopped_working.append(key)
+        elif r["pos"] == 0 or r["neg"] == 0:
+            one_sided.append(key)
+
+    meta = {"never_worked": sorted(never_worked),
+            "stopped_working": sorted(stopped_working),
+            "one_sided": sorted(one_sided),
+            "window": FEATURE_WINDOW, "long_window": FEATURE_WINDOW_LONG}
+
+    if never_worked:
+        return _check(
+            key="feature_health", label="Scoring feature health", status="critical",
+            severity="critical",
+            detail=("never contributes: " + ", ".join(sorted(never_worked))
+                    + " — threshold set outside the data's range, or the input was never wired."),
+            runbook="feature_health", metadata=meta,
+        )
+    if stopped_working:
+        return _check(
+            key="feature_health", label="Scoring feature health", status="degraded",
+            severity="warning",
+            detail=("stopped contributing: " + ", ".join(sorted(stopped_working))
+                    + f" — silent for {FEATURE_WINDOW} reports but alive earlier, so its "
+                      "threshold has outlived the regime it was written for."),
+            runbook="feature_health", metadata=meta,
+        )
+    return _check(
+        key="feature_health", label="Scoring feature health", status="healthy",
+        severity="info",
+        detail=f"Every scoring metric contributed within the last {FEATURE_WINDOW} reports.",
+        runbook="feature_health", metadata=meta,
+    )
+
+
 def build_operational_health_from_report(
     report_row: Optional[dict[str, Any]],
     *,
@@ -316,6 +433,7 @@ def build_operational_health_from_report(
         _latest_report_check(dashboard_health),
         _dashboard_health_check(dashboard_health),
         _source_health_check(dashboard_health),
+        _feature_health_check(),
         _status_check_for_unit(
             "backend_service",
             "Backend systemd service",

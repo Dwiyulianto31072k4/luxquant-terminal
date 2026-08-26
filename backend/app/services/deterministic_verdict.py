@@ -29,7 +29,14 @@ _THRESHOLD = 0.15             # |score| below this => neutral
 _CONF_CAP = 90                # deterministic confidence ceiling (before ledger clamp)
 
 _STRENGTH_WORD = {"WEAK": 0.3, "MODERATE": 0.6, "STRONG": 0.9}
-_DERIVATIVE_KEYS = {"funding_rate", "basis", "taker_volume"}
+# `taker_volume` is deliberately absent. It is now wired and recorded — the
+# evidence matrix and the narrative see it — but it does not get a vote in the
+# direction until it earns one. Measured against real forward returns it scored
+# 53.5% alone at ±5% (p=0.20), and as a confirmation filter on momentum it
+# looked strong on the full sample (+0.0816% vs +0.0610% aligned return) and
+# then failed out of sample: July 56.2%, *worse* than momentum's own 58.3%.
+# Add it here the day it replicates, not before.
+_DERIVATIVE_KEYS = {"funding_rate", "basis"}
 _POSITIONING_KEYS = {"top_trader_position", "top_trader_account"}
 
 

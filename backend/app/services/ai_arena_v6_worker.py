@@ -1020,6 +1020,29 @@ async def generate_v6_report(
     except Exception as e:
         _log(f"Daily outlook preload skipped (non-fatal): {e}", level="WARN")
 
+    # External smart-money inputs. `compute_all()` has always accepted these and
+    # was always called without them, so taker_vol_buy/sell — and etf_flow and
+    # coinbase_premium beside them — were None on every run, and `taker_volume`
+    # was recorded unavailable in all 494 reports audited. BGeometrics cannot
+    # supply it: its taker-vol endpoint returns one aggregate figure, and an
+    # imbalance needs both sides.
+    #
+    # Wired so the evidence matrix and the narrative stop printing a dash where
+    # real order flow exists. Deliberately NOT added to the direction score —
+    # measured at 53.5% directional accuracy alone (p=0.20) and it failed
+    # out-of-sample as a momentum filter, so it has not earned a vote yet.
+    _external_inputs: dict = {}
+    try:
+        from app.services.order_flow import fetch_taker_split
+
+        _of = await fetch_taker_split()
+        if _of:
+            _external_inputs["taker_vol_buy"] = _of["taker_vol_buy"]
+            _external_inputs["taker_vol_sell"] = _of["taker_vol_sell"]
+            _log(f"Order flow: taker imbalance {_of['imbalance_pct']:+.1f}%")
+    except Exception as e:
+        _log(f"Order flow unavailable (non-fatal): {e}", level="WARN")
+
     # Daily macro/on-chain is calculated once after the UTC daily close. Every
     # later report reuses that snapshot and refreshes only the fast market tape.
     bg = bg_advanced.BGClient()
@@ -1054,7 +1077,9 @@ async def generate_v6_report(
             if key in (*bg_advanced.TIER_SMART, *bg_advanced.TIER_RISK)
         }
         cycle_result = cycle_position.from_bg_snapshot(bg_snapshot)
-        confluence_result = confluence_engine.compute_all(bg_snapshot=bg_snapshot)
+        confluence_result = confluence_engine.compute_all(
+            bg_snapshot=bg_snapshot, external=_external_inputs
+        )
         bundle, cost1 = await stage1_compress(
             bg_snapshot=bg_snapshot,
             cycle_result=cycle_result,
@@ -1064,7 +1089,9 @@ async def generate_v6_report(
         )
 
     cycle_result = cycle_position.from_bg_snapshot(bg_snapshot)
-    confluence_result = confluence_engine.compute_all(bg_snapshot=bg_snapshot)
+    confluence_result = confluence_engine.compute_all(
+        bg_snapshot=bg_snapshot, external=_external_inputs
+    )
     confluence_dict = confluence_result.to_dict()
     cycle_dict = cycle_result.to_dict()
     bg_summary = _summary_from_snapshot(bg_snapshot)
@@ -1303,7 +1330,6 @@ async def generate_v6_report(
     # to have been writing it down.
     try:
         from app.services import compass_percentile as _pc
-        from app.services.order_flow import fetch_taker_split
 
         def _bg(key):
             m = (bg_snapshot or {}).get(key)
@@ -1320,10 +1346,13 @@ async def generate_v6_report(
             if _v is not None:
                 _pc.record(_feat, _v)
 
-        _of = await fetch_taker_split()
-        if _of:
-            _pc.record("order_flow_imbalance", _of["imbalance_pct"])
-            _log(f"Order flow: taker imbalance {_of['imbalance_pct']:+.1f}% (recorded, not scored)")
+        # Reuses the fetch from the external-inputs block above rather than
+        # calling Binance a second time for the same candle.
+        _imb = _external_inputs.get("taker_vol_buy"), _external_inputs.get("taker_vol_sell")
+        if all(v is not None for v in _imb):
+            _buy, _sell = _imb
+            if (_buy + _sell) > 0:
+                _pc.record("order_flow_imbalance", (_buy - _sell) / (_buy + _sell) * 100)
     except Exception as e:
         _log(f"Feature history skipped (non-fatal): {e}", level="WARN")
 
