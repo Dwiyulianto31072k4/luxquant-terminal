@@ -1186,8 +1186,21 @@ async def generate_v6_report(
         _event_audit = apply_event_risk_to_verdict(verdict, event_risk_doc)
         if _event_audit["penalty_points"]:
             _warning = (event_risk_doc.get("warnings") or [event_risk_doc["summary"]])[0]
+            # Title carries the count, so it stops reading as a fixed label.
+            # This scenario appeared in 100 of the last 100 reports under one
+            # identical heading — measured — which is what made the whole list
+            # look generated from a form.
+            # Parsed from the warning text rather than a count field: the
+            # event_risk payload has warnings/headlines/upcoming_events and no
+            # "high_impact" key, so reaching for one would have left the title
+            # generic forever without failing loudly.
+            import re as _re
+
+            _m = _re.match(r"\s*(\d+)\b", _warning or "")
+            _n = int(_m.group(1)) if _m else None
             _scenario = RiskScenario(
-                title="Scheduled event-risk window",
+                title=(f"{_n} scheduled high-impact event{'' if _n == 1 else 's'}"
+                       if _n else "Scheduled event-risk window"),
                 severity=(
                     "high"
                     if event_risk_doc.get("risk_level") == "high"
@@ -1203,7 +1216,11 @@ async def generate_v6_report(
                 item for item in verdict.risk_scenarios
                 if item.title.lower() != _scenario.title.lower()
             ]
-            verdict.risk_scenarios = [_scenario, *_existing[:5]]
+            # Appended, not prepended. It used to take the first slot on every
+            # single report, so the most prominent position was always the one
+            # thing the model did not choose. The situational scenarios lead now
+            # and this closes the list.
+            verdict.risk_scenarios = [*_existing[:5], _scenario]
             _log(f"Event-risk confidence adjustment: {_event_audit}")
     except Exception as e:
         _log(f"Event-risk confidence adjustment skipped: {e}", level="WARN")

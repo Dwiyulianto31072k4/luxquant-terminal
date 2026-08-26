@@ -156,7 +156,8 @@ function HorizonPanel({ horizon, data }) {
           label="Baseline"
           value={formatRate(baseline.hit_rate)}
           note={`same sample · n=${baseline.total || 0}`}
-          tone="#e2e8f0"
+          // Was "#e2e8f0" — a near-white value on a near-white card.
+          tone="rgb(var(--fg))"
         />
         <MetricCard
           label="Shadow"

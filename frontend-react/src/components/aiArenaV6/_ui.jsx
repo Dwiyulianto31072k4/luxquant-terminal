@@ -113,7 +113,15 @@ export const COLOR = {
   goldLight: "rgb(var(--accent-light))",
   flat: "rgb(var(--warn))",
   muted: "rgb(var(--fg-muted))",
+  fg: "rgb(var(--fg))",
 };
+
+// Raw triples, so a colour can be re-emitted with alpha. `${hex}99` only works
+// on hex strings — appended to "rgb(var(--pos))" it produces invalid CSS, which
+// is why the TARGET and INVALIDATION labels below never received the tint they
+// were written to have.
+const VAR = { profit: "--pos", loss: "--neg", fg: "--fg" };
+const tint = (key, alpha) => `rgb(var(${VAR[key]}) / ${alpha})`;
 
 export const dirMeta = (direction) => {
   const k = normDir(direction);
@@ -400,13 +408,16 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
   const pct = (price) => fmtPct(((price - s) / s) * 100);
 
   const rows = [
-    { key: "target", price: t, label: "TARGET", hex: COLOR.profit, sub: `${pct(t)} from spot` },
-    { key: "spot", price: s, label: "SPOT", hex: "#ffffff", sub: "live price" },
+    { key: "target", price: t, label: "TARGET", tone: "profit", sub: `${pct(t)} from spot` },
+    // Was hard-coded #ffffff. Invisible on the bright theme — a white price on a
+    // near-white card, and the label above it with it. The foreground token
+    // flips with the theme; a literal cannot.
+    { key: "spot", price: s, label: "SPOT", tone: "fg", sub: "live price" },
     {
       key: "invalidation",
       price: i,
       label: "INVALIDATION",
-      hex: COLOR.loss,
+      tone: "loss",
       sub: `read breaks ${pct(i)}`,
     },
   ].sort((a, b) => b.price - a.price);
@@ -433,12 +444,12 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
         >
           <span
             className="relative z-10 h-[19px] w-[19px] shrink-0 rounded-full border-2 bg-surface-raised"
-            style={{ borderColor: row.hex }}
+            style={{ borderColor: COLOR[row.tone] }}
           >
             {row.key === "spot" && (
               <span
                 className="absolute inset-[3px] animate-pulse rounded-full"
-                style={{ background: row.hex }}
+                style={{ background: COLOR[row.tone] }}
               />
             )}
           </span>
@@ -446,13 +457,13 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
             <div className="min-w-0">
               <div
                 className="font-mono text-[8.5px] uppercase tracking-[0.18em]"
-                style={{ color: `${row.hex}99` }}
+                style={{ color: tint(row.tone, 0.6) }}
               >
                 {row.label}
               </div>
               <div
                 className="font-mono text-[15px] font-medium tabular-nums"
-                style={{ color: row.hex }}
+                style={{ color: COLOR[row.tone] }}
               >
                 {fmtUsd(row.price)}
               </div>

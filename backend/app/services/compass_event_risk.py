@@ -325,15 +325,21 @@ def _risk_assessment(headlines: list[dict], events: list[dict]) -> dict:
     warnings = []
     if high_24h_events:
         warnings.append(
-            f"{len(high_24h_events)} high-impact macro event(s) fall inside the next 24 hours."
+            f"{len(high_24h_events)} high-impact macro "
+            f"{'event falls' if len(high_24h_events) == 1 else 'events fall'} "
+            f"inside the next 24 hours."
         )
     elif high_72h_events:
         warnings.append(
-            f"{len(high_72h_events)} high-impact macro event(s) fall inside the next 72 hours."
+            f"{len(high_72h_events)} high-impact macro "
+            f"{'event falls' if len(high_72h_events) == 1 else 'events fall'} "
+            f"inside the next 72 hours."
         )
     if recent_high_news:
         warnings.append(
-            f"{len(recent_high_news)} high-impact headline(s) require closer monitoring."
+            f"{len(recent_high_news)} high-impact "
+            f"{'headline requires' if len(recent_high_news) == 1 else 'headlines require'} "
+            f"closer monitoring."
         )
 
     if high_24h_events:

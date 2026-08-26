@@ -90,6 +90,87 @@ const readable = (v) => {
 
 /* ── component ── */
 
+/**
+ * The headlines the read was formed against.
+ *
+ * `event_risk.headlines` has been in the payload all along — twelve items with
+ * impact, topic, age and a source link — and nothing rendered them. The
+ * component that used to (CompassBrief) was orphaned when TheRead replaced it,
+ * so the data kept arriving and stopped being shown.
+ *
+ * Placed near the top rather than at the bottom: a reader asking "why is the
+ * call what it is" wants the news before the levels, not after them. Kept to
+ * four, sorted by impact then recency — this is context for the read, not a
+ * news feed, and the News tab exists for the rest.
+ */
+function HeadlineStrip({ eventRisk }) {
+  const all = eventRisk?.headlines || [];
+  if (!all.length) return null;
+
+  const rank = { high: 0, medium: 1, low: 2 };
+  const rows = [...all]
+    .sort(
+      (a, b) =>
+        (rank[a.impact] ?? 3) - (rank[b.impact] ?? 3) ||
+        (a.age_seconds ?? 1e9) - (b.age_seconds ?? 1e9),
+    )
+    .slice(0, 4);
+
+  const ago = (secs) => {
+    const n = Number(secs);
+    if (!Number.isFinite(n)) return "";
+    if (n < 3600) return `${Math.max(1, Math.round(n / 60))}m`;
+    if (n < 86400) return `${Math.floor(n / 3600)}h`;
+    return `${Math.floor(n / 86400)}d`;
+  };
+
+  // Only high gets colour. If every row is tinted nothing is emphasised, and
+  // the point of the badge is to let one line pull the eye.
+  const tone = (impact) =>
+    impact === "high"
+      ? "border-accent/40 text-accent"
+      : "border-ink/[0.12] text-text-muted";
+
+  return (
+    <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
+      <div className="mb-2.5 flex items-baseline justify-between gap-2">
+        <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-text-muted">
+          News behind this read
+        </span>
+        <span className="font-mono text-[9.5px] text-text-muted">{all.length} tracked</span>
+      </div>
+      <ul className="space-y-1.5">
+        {rows.map((h, i) => (
+          <li key={h.url || i} className="flex items-start gap-2.5">
+            <span
+              className={`mt-[3px] shrink-0 rounded border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.1em] ${tone(h.impact)}`}
+            >
+              {h.impact || "news"}
+            </span>
+            <div className="min-w-0 flex-1">
+              {h.url ? (
+                <a
+                  href={h.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] leading-snug text-text-primary/90 transition-colors hover:text-accent"
+                >
+                  {h.title}
+                </a>
+              ) : (
+                <span className="text-[13px] leading-snug text-text-primary/90">{h.title}</span>
+              )}
+              <div className="mt-0.5 font-mono text-[9.5px] text-text-muted">
+                {[h.source, h.topic_label, ago(h.age_seconds)].filter(Boolean).join(" · ")}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function TheRead({ data }) {
   const [showRisks, setShowRisks] = useState(false);
   if (!data) return null;
@@ -177,6 +258,8 @@ export default function TheRead({ data }) {
           </p>
         </div>
       </div>
+
+      <HeadlineStrip eventRisk={data?.report?.event_risk || data?.event_risk} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
         {/* ════════ LEFT — narrative + drivers (8 cols) ════════ */}

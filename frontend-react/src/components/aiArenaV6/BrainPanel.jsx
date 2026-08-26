@@ -333,7 +333,9 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
               x={CX}
               y={CY + 10}
               textAnchor="middle"
-              fill="#fff"
+              /* Was "#fff" — the regime label vanished on the bright theme.
+                 SVG fill takes the same token the rest of the page uses. */
+              fill="rgb(var(--fg))"
               fontSize="10.5"
               fontWeight="600"
               fontFamily="JetBrains Mono, monospace"
