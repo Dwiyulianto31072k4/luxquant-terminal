@@ -208,6 +208,15 @@ def evaluate_macro_liquidity(
 
 
 # ─── Layer 2: Smart Money ─────────────────────────────────────────────
+def _percentile_score(feature: str, value: float):
+    """Rank against the trailing window, or None when history is too thin."""
+    try:
+        from app.services.compass_percentile import score as _score
+        return _score(feature, value)
+    except Exception:
+        return None
+
+
 def evaluate_smart_money(
     top_trader_position: Any = None,        # ratio 0-1 (1.0 = 100% long)
     top_trader_account: Any = None,
@@ -253,33 +262,58 @@ def evaluate_smart_money(
             key="top_trader_account", raw_value=None, score=0, label="—", available=False,
         ))
 
-    # Funding rate: > 0.01% = longs aggressive (bullish bias), < -0.005% = shorts (bearish)
-    fr = _safe_float(funding_rate)
-    if fr is not None:
-        # Detect if input is decimal (0.0001) vs percent (0.01)
-        fr_pct = fr * 100 if abs(fr) < 0.01 else fr
-        score = 1 if fr_pct > 0.01 else (-1 if fr_pct < -0.005 else 0)
-        metrics.append(MetricSignal(
-            key="funding_rate", raw_value=fr, score=score,
-            label=f"{fr_pct:+.4f}%",
-        ))
-    else:
-        metrics.append(MetricSignal(
-            key="funding_rate", raw_value=None, score=0, label="—", available=False,
-        ))
-
-    # Basis: futures premium over spot
-    bs = _safe_float(basis)
-    if bs is not None:
-        score = 1 if bs > 50 else (-1 if bs < -30 else 0)
-        metrics.append(MetricSignal(
-            key="basis", raw_value=bs, score=score,
-            label=f"{bs:+.0f}",
-        ))
-    else:
-        metrics.append(MetricSignal(
-            key="basis", raw_value=None, score=0, label="—", available=False,
-        ))
+    # Funding rate and basis are ranked against their own recent history rather
+    # than tested against constants, because both constants had stopped
+    # matching the data:
+    #
+    #   funding: `> 0.01%` fired 0 times in 494 reports. 0.01%/8h is the
+    #            BASELINE rate perpetual exchanges clamp toward, so the test sat
+    #            on the modal value of its own input — with a strict `>`, so the
+    #            most common observation always scored zero.
+    #
+    #   basis:   bullish test `> +50` against an observed range of -60.96 to
+    #            -1.45 across 795 stored observations. Never reachable. Basis
+    #            could score 0 or -1 and never +1, which made the whole
+    #            derivatives input structurally incapable of a bullish
+    #            contribution — deriv_s lived in [-0.5, 0] and could only ever
+    #            push the call DOWN.
+    #
+    # That last one was not cosmetic. Over 436 reports, derivatives changed the
+    # direction 37 times (8.5%) and **every one was downward**, because upward
+    # was impossible: 17 calls became bearish (measured at -0.548%/call,
+    # p=0.0011) and 20 bullish calls were dampened to neutral (bullish measures
+    # +0.963%/call). A one-sided input with a known direction of harm.
+    #
+    # Percentile scoring was split-half tested before this change and is
+    # statistically indistinguishable from the constants on accuracy — 58.3% vs
+    # 58.0% in the first half, 60.8% vs 63.5% in the second. It is shipped for
+    # the failure mode, not for the hit rate: a rank cannot silently fall
+    # outside its own data the way a constant did, twice.
+    for _key, _raw, _label in (
+        ("funding_rate", _safe_float(funding_rate),
+         lambda v: f"{(v * 100 if abs(v) < 0.01 else v):+.4f}%"),
+        ("basis", _safe_float(basis), lambda v: f"{v:+.0f}"),
+    ):
+        if _raw is None:
+            metrics.append(MetricSignal(key=_key, raw_value=None, score=0,
+                                        label="—", available=False))
+            continue
+        _pct = _percentile_score(_key, _raw)
+        if _pct is None:
+            # Not enough history yet (a fresh install, or a new feature). Fall
+            # back to the old constants rather than emitting a fake neutral —
+            # "no data" and "neutral" must not look the same.
+            if _key == "funding_rate":
+                _fp = _raw * 100 if abs(_raw) < 0.01 else _raw
+                _score = 1 if _fp > 0.01 else (-1 if _fp < -0.005 else 0)
+            else:
+                _score = 1 if _raw > 50 else (-1 if _raw < -30 else 0)
+        else:
+            # Continuous, so magnitude survives; the old ternary made funding at
+            # +0.5% and +0.011% identical.
+            _score = round(_pct, 3)
+        metrics.append(MetricSignal(key=_key, raw_value=_raw, score=_score,
+                                    label=_label(_raw)))
 
     # Taker volume — net direction of aggressive flow
     buy = _safe_float(taker_vol_buy)
