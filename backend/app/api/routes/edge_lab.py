@@ -36,6 +36,17 @@ import math
 
 from app.core.database import get_db
 from app.core.redis import cache_get, cache_set, cache_get_with_stale
+from app.services.hunt_recipe import (
+    RUNNER_MIN_FULL,
+    RUNNER_MIN_N,
+    RUNNER_MIN_PEAK,
+    RUNNER_MIN_TP4,
+    RUNNER_MIN_WR,
+    RUNNER_TOP_K,
+    mix_delta,
+    outcome_mix,
+    select_runner_tags,
+)
 
 router = APIRouter()
 
@@ -1902,6 +1913,205 @@ def get_edge_score_backtest(
         ),
     }
     cache_set(cache_key, response, ttl=900)
+    return response
+
+
+def _outcome_mix_sql(where_tags: bool) -> str:
+    """Resolved final-outcome counts. Optional union on Hunt runner tags at entry."""
+    tag_join = ""
+    tag_filter = ""
+    distinct = ""
+    if where_tags:
+        distinct = "DISTINCT "
+        tag_join = """
+        JOIN signal_enrichment e ON e.signal_id = r.signal_id,
+             jsonb_array_elements(
+                 COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                          e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
+        """
+        tag_filter = """
+          AND (t->>'important')::boolean = true
+          AND NULLIF(TRIM(t->>'name'), '') IN ({tag_in})
+        """
+    inner = f"""
+        SELECT {distinct}r.signal_id, r.outcome
+        FROM resolved r
+        {tag_join}
+        WHERE r.hit_date >= :start AND r.hit_date <= :end
+        {tag_filter}
+    """
+    return f"""
+        WITH {OUTCOMES_CTE},
+        scoped AS (
+            {inner}
+        )
+        SELECT
+          COUNT(*) AS n,
+          COUNT(*) FILTER (WHERE outcome = 'sl') AS sl,
+          COUNT(*) FILTER (WHERE outcome = 'tp1') AS tp1,
+          COUNT(*) FILTER (WHERE outcome = 'tp2') AS tp2,
+          COUNT(*) FILTER (WHERE outcome = 'tp3') AS tp3,
+          COUNT(*) FILTER (WHERE outcome = 'tp4') AS tp4
+        FROM scoped
+    """
+
+
+# ════════════════════════════════════════════════════════════════
+# HUNT FULL TP — union outcome mix for the live runner-tag shortlist
+# ════════════════════════════════════════════════════════════════
+@router.get("/analytics/hunt-full-tp")
+def get_hunt_full_tp(
+    days: int = Query(0, ge=0, le=400, description="0 = all since tag era"),
+    min_n: int = Query(40, ge=1, le=5000, description="min n forwarded to tag-wr"),
+    top_k: int = Query(RUNNER_TOP_K, ge=1, le=8),
+    db: Session = Depends(get_db),
+):
+    """
+    Transparent results for the Hunt full TP recipe.
+
+    Runner tags are chosen the same way as the Signals Quick path (clean tags,
+    n≥150, WR≥78, full-TP/peak gates, top-K by full_tp_rate). Stats are the
+    UNION of resolved calls that carried ANY of those tags on the entry
+    snapshot — one row per call, highest target reached (or SL).
+
+    Live Hunt also requires Worth on the desk; that pair filter is NOT applied
+    to these bars. Descriptive of the tag shortlist, not a member P&L.
+    """
+    if not (0 <= days <= 400):
+        raise HTTPException(status_code=400, detail="days must be 0–400")
+
+    start_date, end_date, effective_days = _resolve_tag_lookback(days)
+    start_str, end_str = start_date.isoformat(), end_date.isoformat()
+    cache_key = f"lq:edge-lab:hunt-ftp:v1:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+    stale, _ = cache_get_with_stale(cache_key)
+    if stale:
+        return stale
+
+    tw = get_tag_wr(days=days, min_n=min_n, db=db)
+    runners = select_runner_tags(tw.get("tags") or [], top_k=top_k)
+    runner_names = [t.get("tag") for t in runners if t.get("tag")]
+
+    if not runner_names:
+        response = {
+            "ok": False,
+            "reason": "No runner tags yet (need n≥150 clean tags with full-TP history).",
+            "window": {"start": start_str, "end": end_str},
+            "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
+            "runner_tags": [],
+        }
+        cache_set(cache_key, response, ttl=120)
+        return response
+
+    params = {"start": start_str, "end": end_str}
+    tag_in = []
+    for i, name in enumerate(runner_names):
+        key = f"tag{i}"
+        params[key] = name
+        tag_in.append(f":{key}")
+    tag_in_sql = ",".join(tag_in)
+
+    hunt_sql = _outcome_mix_sql(where_tags=True).replace("{tag_in}", tag_in_sql)
+    base_sql = _outcome_mix_sql(where_tags=False)
+    hunt_row = db.execute(text(hunt_sql), params).one()
+    base_row = db.execute(text(base_sql), {"start": start_str, "end": end_str}).one()
+    hunt = outcome_mix(hunt_row[0], hunt_row[1], hunt_row[2], hunt_row[3], hunt_row[4], hunt_row[5])
+    baseline = outcome_mix(base_row[0], base_row[1], base_row[2], base_row[3], base_row[4], base_row[5])
+
+    per_sql = f"""
+        WITH {OUTCOMES_CTE},
+        tagged AS (
+            SELECT r.signal_id, r.outcome, t->>'name' AS tag
+            FROM resolved r
+            JOIN signal_enrichment e ON e.signal_id = r.signal_id,
+                 jsonb_array_elements(
+                     COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                              e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
+            WHERE r.hit_date >= :start AND r.hit_date <= :end
+              AND (t->>'important')::boolean = true
+              AND NULLIF(TRIM(t->>'name'), '') IN ({tag_in_sql})
+        )
+        SELECT tag,
+          COUNT(*) AS n,
+          COUNT(*) FILTER (WHERE outcome = 'sl') AS sl,
+          COUNT(*) FILTER (WHERE outcome = 'tp1') AS tp1,
+          COUNT(*) FILTER (WHERE outcome = 'tp2') AS tp2,
+          COUNT(*) FILTER (WHERE outcome = 'tp3') AS tp3,
+          COUNT(*) FILTER (WHERE outcome = 'tp4') AS tp4
+        FROM tagged
+        GROUP BY tag
+    """
+    per_map = {}
+    for row in db.execute(text(per_sql), params):
+        per_map[row[0]] = outcome_mix(row[1], row[2], row[3], row[4], row[5], row[6])
+
+    open_ids = set()
+    per_tags = []
+    for t in runners:
+        name = t.get("tag")
+        mix = per_map.get(name) or outcome_mix(0, 0, 0, 0, 0, 0)
+        ids = t.get("active_signal_ids") or []
+        open_ids.update(ids)
+        per_tags.append({
+            "tag": name,
+            "n": mix["n"],
+            "win_rate": mix["win_rate"],
+            "full_tp_rate": mix["full_tp_rate"],
+            "active_count": len(ids),
+            "mix": mix,
+        })
+
+    response = {
+        "ok": True,
+        "method": "union_entry_snapshot_runner_tags",
+        "score_version": "v2",
+        "window": {"start": start_str, "end": end_str},
+        "effective_days": effective_days,
+        "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
+        "runner_tags": runner_names,
+        "runner_rules": {
+            "min_n": RUNNER_MIN_N,
+            "min_wr": RUNNER_MIN_WR,
+            "min_full_tp": RUNNER_MIN_FULL,
+            "min_tp4": RUNNER_MIN_TP4,
+            "min_peak_wins": RUNNER_MIN_PEAK,
+            "top_k": top_k,
+            "exclude": sorted(CONFOUND_BT),
+        },
+        "hunt": hunt,
+        "baseline": baseline,
+        "vs_all": mix_delta(hunt, baseline),
+        "per_tag": per_tags,
+        "open_count": len(open_ids),
+        "live_filter_also": ["worth_it", "sort edge_score desc"],
+        "stats_cover": (
+            "Resolved calls that carried any current Hunt runner tag on the "
+            "entry snapshot (union, one row per call). Worth is applied on the "
+            "live desk only — not on these bars."
+        ),
+        "how_to_read": {
+            "final": (
+                "Each closed call is counted once, at the highest target it "
+                "reached — or SL if it never hit TP1. The five shares sum to 100%."
+            ),
+            "reached": (
+                "Reached TP1 = win rate (TP1 and beyond). Reached TP3 = full TP. "
+                "These do not sum to 100% — a TP4 also reached TP1–TP3."
+            ),
+            "win": "A win is reaching at least TP1. Not member P&L.",
+            "as_of_entry": (
+                "Tags come from the call’s entry snapshot. Outcomes are not "
+                "used to attach tags after the fact."
+            ),
+            "in_sample": (
+                "These runner tags were chosen from the same history. Treat as "
+                "a description of the shortlist, not a walk-forward paper trade."
+            ),
+        },
+    }
+    cache_set(cache_key, response, ttl=600)
     return response
 
 

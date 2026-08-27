@@ -725,6 +725,7 @@ export default function EdgePlaybook({
   );
 }
 
+/** Lockstep with backend/app/services/hunt_recipe.py `is_runner_tag`. */
 export function buildRunnerTagSet(tagWr = []) {
   const set = new Set();
   for (const t of tagWr || []) {

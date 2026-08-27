@@ -1198,7 +1198,8 @@ const SignalsPage = () => {
     (corrDecoupled ? 1 : 0) +
     (corrHighAlign ? 1 : 0) +
     (verdictFilter !== "all" ? 1 : 0) +
-    (selectedTags.length > 0 ? 1 : 0);
+    (selectedTags.length > 0 ? 1 : 0) +
+    (!isDefaultSorts(sorts) ? 1 : 0);
 
   // Panel murni dikontrol toggle user (bisa ditutup walau ada filter aktif).
   const advancedOpen = showAdvanced;
@@ -1621,7 +1622,7 @@ const SignalsPage = () => {
         )}
       </header>
 
-      {/* ── COIN FLOW INTENSITY — tabel tipis + data call LuxQuant, default tertutup ── */}
+      {/* Coin flow — header only until expanded. Chip rail hid so the desk stays the table. */}
       {flowCoins.length > 0 &&
         (() => {
           const findSignal = (sym) =>
@@ -1722,9 +1723,6 @@ const SignalsPage = () => {
             if (sig) openSignal(sig);
             else navigate("/money-flow");
           };
-          // Collapsed chip preview — top movers at a glance
-          const preview = sortedFlow.slice(0, 6);
-
           return (
             <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
               <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 sm:px-4">
@@ -1776,42 +1774,6 @@ const SignalsPage = () => {
                   </button>
                 </div>
               </div>
-
-              {/* Collapsed: horizontal chips */}
-              {!flowOpen && (
-                <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-t border-ink/[0.05] px-3.5 py-2.5 sm:px-4">
-                  {preview.map(({ c, fromCall }) => {
-                    const chg = c.price_change_24h;
-                    const up = chg != null && chg >= 0;
-                    return (
-                      <button
-                        key={c.coin_id || c.symbol}
-                        type="button"
-                        onClick={() => openCoin(c)}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-2.5 py-1.5 transition-colors hover:border-ink/12 hover:bg-ink/[0.04]"
-                      >
-                        <CoinLogo pair={`${c.symbol}USDT`} size={16} />
-                        <span className="text-[12px] font-medium text-text-primary">
-                          {c.symbol}
-                        </span>
-                        <span
-                          className={`font-mono text-[11px] tabular-nums ${chg == null ? "text-text-muted" : up ? "text-profit" : "text-loss"}`}
-                        >
-                          {chg == null ? "—" : `${up ? "+" : ""}${chg.toFixed(1)}%`}
-                        </span>
-                        {fromCall != null ? (
-                          <span
-                            className={`hidden font-mono text-[10px] tabular-nums sm:inline ${fromCall >= 0 ? "text-profit/70" : "text-loss/70"}`}
-                          >
-                            call {fromCall >= 0 ? "+" : ""}
-                            {fromCall.toFixed(1)}%
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
 
               {flowOpen && (
                 <div className="border-t border-ink/[0.06] px-2 pb-2 sm:px-3">
@@ -2152,109 +2114,56 @@ const SignalsPage = () => {
               {sortOrder === "desc" ? Icon.arrowDown("w-3 h-3") : Icon.arrowUp("w-3 h-3")}
               <span className="hidden sm:inline">{getOrderLabel()}</span>
             </button>
-          </div>
-
-          {/* Multi-sort chain + presets */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted mr-0.5">
-              Sort
-            </span>
-            {sorts.map((s, i) => (
-              <button
-                key={`${s.field}-${i}`}
-                type="button"
-                onClick={() => setSorts((prev) => toggleSortLevel(prev, s.field))}
-                title={`Level ${i + 1}: click to flip direction`}
-                className="inline-flex items-center gap-1 rounded-md border border-accent/25 bg-accent/[0.08] px-2 py-1 font-mono text-[10px] text-text-primary transition-colors hover:border-accent/40"
-              >
-                <span className="tabular-nums text-accent opacity-80">{i + 1}</span>
-                <span>{SORT_FIELD_LABELS[s.field] || s.field}</span>
-                <span className="text-accent">{s.order === "asc" ? "↑" : "↓"}</span>
-                {sorts.length > 1 && (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSorts((prev) => removeSortLevel(prev, s.field));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSorts((prev) => removeSortLevel(prev, s.field));
-                      }
-                    }}
-                    className="ml-0.5 text-text-muted hover:text-loss"
-                    aria-label={`Remove ${s.field} from sort`}
-                  >
-                    ×
-                  </span>
-                )}
-              </button>
-            ))}
-            {!isDefaultSorts(sorts) && (
-              <button
-                type="button"
-                onClick={() => setSorts([...DEFAULT_SORTS])}
-                className="rounded-md border border-ink/[0.08] px-2 py-1 font-mono text-[10px] text-text-muted hover:text-text-primary"
-              >
-                Reset
-              </button>
-            )}
-            <span className="mx-0.5 hidden h-3 w-px bg-ink/10 sm:inline-block" />
-            {MULTI_SORT_PRESETS.map((p) => {
-              const active =
-                sorts.length === p.sorts.length &&
-                sorts.every(
-                  (s, i) => s.field === p.sorts[i].field && s.order === p.sorts[i].order
-                );
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  title={p.hint}
-                  onClick={() => setSorts(normalizeSorts(p.sorts))}
-                  className={`rounded-md border px-2 py-1 font-mono text-[10px] transition-colors ${
-                    active
-                      ? "border-accent/35 bg-accent/12 text-accent"
-                      : "border-ink/[0.08] text-text-muted hover:border-ink/15 hover:text-text-primary"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
-            <span className="w-full font-mono text-[9px] text-text-muted/70 sm:w-auto sm:ml-1">
-              Shift+click column headers to stack up to {MAX_SORTS} levels
-            </span>
-          </div>
-        </div>
-
-        {/* ADVANCED FILTERS TOGGLE */}
-        <div className="mt-5 pt-4 border-t border-ink/[0.06]">
-          <button
-            onClick={() => setShowAdvanced((v) => !v)}
-            className="w-full flex items-center justify-between gap-2 group"
-            aria-expanded={advancedOpen}
-          >
-            <span className="flex items-center gap-2">
-              <span className="text-text-muted">{Icon.sliders("w-3.5 h-3.5")}</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary/70 group-hover:text-text-primary transition-colors">
-                Advanced Filters
-              </span>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              aria-expanded={advancedOpen}
+              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-ink/[0.08] bg-surface font-mono text-[10px] uppercase tracking-wider text-text-primary/80 hover:border-ink/15 hover:text-text-primary"
+            >
+              {Icon.sliders("w-3.5 h-3.5")}
+              More
               {advancedActiveCount > 0 && (
-                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-ink/10 text-text-primary border border-ink/12">
-                  {advancedActiveCount} active
+                <span className="rounded-sm bg-ink/10 px-1.5 font-mono text-[9px] tabular-nums text-text-primary">
+                  {advancedActiveCount}
                 </span>
               )}
-            </span>
-            <span
-              className={`text-text-primary/70 group-hover:text-text-primary transition-all ${advancedOpen ? "rotate-180" : ""}`}
-            >
-              {Icon.chevronDown("w-3.5 h-3.5")}
-            </span>
-          </button>
+              <span className={advancedOpen ? "rotate-180" : ""}>
+                {Icon.chevronDown("w-3 h-3")}
+              </span>
+            </button>
+          </div>
+
+          {isSubscriber && (
+            <div className="pt-0.5">
+              <EdgeRecipesBar
+                tagWr={tagWr}
+                selectedTags={selectedTags}
+                tagMatchMode={tagMatchMode}
+                verdictFilter={verdictFilter}
+                statusFilter={statusFilter}
+                riskFilter={riskFilter}
+                streakFilter={streakFilter}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                sorts={sorts}
+                searchPair={searchPair}
+                corrDecoupled={corrDecoupled}
+                corrHighAlign={corrHighAlign}
+                filteredCount={totalSignals}
+                onApplyState={applyRecipeState}
+                onReset={resetFilters}
+                onScrollToPlaybook={() => {
+                  setShowAdvanced(true);
+                  requestAnimationFrame(() => {
+                    document.getElementById("edge-playbook")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  });
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* ACTIVE FILTER CHIPS — tetap terlihat & bisa dihapus per-item walau panel ditutup */}
@@ -2300,9 +2209,83 @@ const SignalsPage = () => {
           </div>
         )}
 
-        {/* ADVANCED FILTERS BODY — collapsed by default */}
+        {/* MORE — helper filters, sort stack, playbook. First screen stays date + search + Hunt. */}
         {advancedOpen && (
           <div className="mt-4 space-y-5 animate-slideDown">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted mr-0.5">
+                Sort
+              </span>
+              {sorts.map((s, i) => (
+                <button
+                  key={`${s.field}-${i}`}
+                  type="button"
+                  onClick={() => setSorts((prev) => toggleSortLevel(prev, s.field))}
+                  title={`Level ${i + 1}: click to flip direction`}
+                  className="inline-flex items-center gap-1 rounded-md border border-accent/25 bg-accent/[0.08] px-2 py-1 font-mono text-[10px] text-text-primary transition-colors hover:border-accent/40"
+                >
+                  <span className="tabular-nums text-accent opacity-80">{i + 1}</span>
+                  <span>{SORT_FIELD_LABELS[s.field] || s.field}</span>
+                  <span className="text-accent">{s.order === "asc" ? "↑" : "↓"}</span>
+                  {sorts.length > 1 && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSorts((prev) => removeSortLevel(prev, s.field));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSorts((prev) => removeSortLevel(prev, s.field));
+                        }
+                      }}
+                      className="ml-0.5 text-text-muted hover:text-loss"
+                      aria-label={`Remove ${s.field} from sort`}
+                    >
+                      ×
+                    </span>
+                  )}
+                </button>
+              ))}
+              {!isDefaultSorts(sorts) && (
+                <button
+                  type="button"
+                  onClick={() => setSorts([...DEFAULT_SORTS])}
+                  className="rounded-md border border-ink/[0.08] px-2 py-1 font-mono text-[10px] text-text-muted hover:text-text-primary"
+                >
+                  Reset
+                </button>
+              )}
+              {MULTI_SORT_PRESETS.map((p) => {
+                const active =
+                  sorts.length === p.sorts.length &&
+                  sorts.every(
+                    (s, i) => s.field === p.sorts[i].field && s.order === p.sorts[i].order
+                  );
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    title={p.hint}
+                    onClick={() => setSorts(normalizeSorts(p.sorts))}
+                    className={`rounded-md border px-2 py-1 font-mono text-[10px] transition-colors ${
+                      active
+                        ? "border-accent/35 bg-accent/12 text-accent"
+                        : "border-ink/[0.08] text-text-muted hover:border-ink/15 hover:text-text-primary"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+              <span className="w-full font-mono text-[9px] text-text-muted/70 sm:w-auto sm:ml-1">
+                Shift+click column headers to stack up to {MAX_SORTS} levels
+              </span>
+            </div>
+
             {/* Status + Risk */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
               {/* Status */}
@@ -2588,34 +2571,6 @@ const SignalsPage = () => {
         )}
       </div>
 
-      {/* Quick path recipes (English) — opt-in shortlists */}
-      {isSubscriber && (
-      <EdgeRecipesBar
-        tagWr={tagWr}
-        selectedTags={selectedTags}
-        tagMatchMode={tagMatchMode}
-        verdictFilter={verdictFilter}
-        statusFilter={statusFilter}
-        riskFilter={riskFilter}
-        streakFilter={streakFilter}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        sorts={sorts}
-        searchPair={searchPair}
-        corrDecoupled={corrDecoupled}
-        corrHighAlign={corrHighAlign}
-        filteredCount={totalSignals}
-        onApplyState={applyRecipeState}
-        onReset={resetFilters}
-        onScrollToPlaybook={() => {
-          document.getElementById("edge-playbook")?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }}
-      />
-      )}
-
       {/* Sticky current-filter chips */}
       <EdgeActiveFilters
         variant="bar"
@@ -2690,8 +2645,9 @@ const SignalsPage = () => {
         onClearAll={resetFilters}
       />
 
-      {/* Edge playbook — knowledge graph + multi-filter (default collapsed) */}
+      {/* Playbook + Learn — off the first screen; still mounted so Edge scores keep loading. */}
       {isSubscriber && (
+      <div className={showAdvanced ? "" : "hidden"}>
       <EdgePlaybook
         defaultOpen={false}
         tagWr={tagWr}
@@ -2783,10 +2739,7 @@ const SignalsPage = () => {
         }}
         onClear={resetFilters}
       />
-      )}
 
-      {/* Learn from past (tag era) → rank open by Edge Score (default collapsed) */}
-      {isSubscriber && (
       <EdgeCorrelationPanel
         defaultOpen={false}
         deskSignals={allSignals}
@@ -2885,6 +2838,7 @@ const SignalsPage = () => {
           setPage(1);
         }}
       />
+      </div>
       )}
 
       {/* BTC Dominance Alert — self-contained (has its own expand) */}

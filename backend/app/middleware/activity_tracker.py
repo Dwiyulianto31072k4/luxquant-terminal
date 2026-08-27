@@ -76,6 +76,7 @@ FEATURE_PATHS = (
     ("analytics/wr-vs-btc", "analytics"),
     # These fire from the Signals desk, not from Analytics.
     ("analytics/tag-wr", "signals"),
+    ("analytics/hunt-full-tp", "signals"),
     ("analytics/edge-correlation", "signals"),
     ("analytics/edge-score-backtest", "signals"),
     ("coin-watch", "watchlist"),

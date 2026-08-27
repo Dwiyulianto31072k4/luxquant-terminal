@@ -120,15 +120,18 @@ function LevelMeter({ spot, target, invalidation }) {
   );
 }
 
-export default function CompassSnapshot({ className = "" }) {
+export default function CompassSnapshot({ className = "", embedded = false }) {
   const [report, setReport] = useState(null);
   const [failed, setFailed] = useState(false);
   const [livePrice, setLivePrice] = useState(null);
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY) === "1";
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw === "0") return false;
+      if (raw === "1") return true;
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -259,7 +262,11 @@ export default function CompassSnapshot({ className = "" }) {
 
   return (
     <section
-      className={`relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised ${className}`}
+      className={`relative overflow-hidden ${
+        embedded
+          ? className
+          : `rounded-xl border border-ink/[0.07] bg-surface-raised ${className}`
+      }`}
     >
       {/* ── header ── */}
       <div className="flex flex-col gap-2.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between md:px-5 md:py-3">
@@ -308,8 +315,12 @@ export default function CompassSnapshot({ className = "" }) {
           </span>
         </button>
 
-        {/* short-term shortcuts only */}
-        <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center">
+        {/* short-term shortcuts — hidden while collapsed so Signals first screen stays quiet */}
+        <div
+          className={`grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center ${
+            collapsed ? "hidden" : ""
+          }`}
+        >
           <Link
             to="/ai-arena?tab=read"
             className="whitespace-nowrap rounded-md border border-ink/10 bg-ink/[0.05] px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-primary transition hover:bg-ink/[0.08]"

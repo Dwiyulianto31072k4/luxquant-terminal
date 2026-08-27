@@ -40,6 +40,17 @@ export const edgeLabApi = {
     });
     return response.data;
   },
+
+  /**
+   * Hunt full TP union mix: SL / TP1–TP4 vs all closed calls.
+   * Same runner-tag rules as the Signals Quick path.
+   */
+  getHuntFullTp: async (days = 0) => {
+    const response = await api.get("/api/v1/analytics/hunt-full-tp", {
+      params: { days },
+    });
+    return response.data;
+  },
 };
 
 export default edgeLabApi;

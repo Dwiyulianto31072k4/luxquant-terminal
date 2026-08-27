@@ -1,10 +1,10 @@
-// EdgeRecipesBar — Quick path recipes (English) + saved views + first-visit coach.
-// Opt-in only: full signal list stays unfiltered until the user picks a recipe.
+// EdgeRecipesBar — compact Hunt / Strongest chips. Stats live in the explain modal.
 
 import { useEffect, useMemo, useState } from "react";
 import { buildRunnerTagSet } from "./EdgePlaybook";
+import RecipeExplainModal from "./RecipeExplainModal";
+import edgeLabApi from "../services/edgeLabApi";
 
-const COACH_KEY = "lq:edge-coach:v1";
 const SAVED_KEY = "lq:edge-recipes:v1";
 const ACTIVE_KEY = "lq:edge-active-recipe:v1";
 
@@ -84,42 +84,42 @@ export default function EdgeRecipesBar({
   filteredCount = null,
   onApplyState,
   onReset,
-  onScrollToPlaybook,
+  onScrollToPlaybook: _onScrollToPlaybook,
 }) {
   const [saved, setSaved] = useState(() => loadSaved());
   const [activeId, setActiveId] = useState(() => loadActiveId());
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
-  const [coach, setCoach] = useState(false);
+  const [explainId, setExplainId] = useState(null);
+  const [huntStats, setHuntStats] = useState(null);
+  const [huntLoading, setHuntLoading] = useState(false);
+  const [huntError, setHuntError] = useState(false);
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem(COACH_KEY) === "1") return undefined;
-    } catch {
-      /* show coach */
-    }
-    setCoach(true);
-    const t = setTimeout(() => {
-      setCoach(false);
-      try {
-        localStorage.setItem(COACH_KEY, "1");
-      } catch {
-        /* ignore */
-      }
-    }, 15000);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    setHuntLoading(true);
+    setHuntError(false);
+    edgeLabApi
+      .getHuntFullTp(0)
+      .then((d) => {
+        if (cancelled) return;
+        if (d?.ok) setHuntStats(d);
+        else setHuntError(true);
+      })
+      .catch(() => {
+        if (!cancelled) setHuntError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setHuntLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const dismissCoach = () => {
-    setCoach(false);
-    try {
-      localStorage.setItem(COACH_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-  };
-
   const runnerTags = useMemo(() => {
+    const fromApi = huntStats?.runner_tags;
+    if (Array.isArray(fromApi) && fromApi.length) return fromApi;
     const set = buildRunnerTagSet(tagWr);
     return (tagWr || [])
       .filter((t) => set.has(t.tag))
@@ -130,7 +130,7 @@ export default function EdgeRecipesBar({
       )
       .slice(0, 4)
       .map((t) => t.tag);
-  }, [tagWr]);
+  }, [tagWr, huntStats]);
 
   const cautionTags = useMemo(() => {
     const CONFOUND = new Set([
@@ -289,209 +289,124 @@ export default function EdgeRecipesBar({
     return "border-ink/[0.1] bg-surface-raised/80 text-text-primary/90 hover:border-ink/20 hover:bg-ink/[0.03]";
   };
 
+  const firstScreen = builtins.filter((r) => r.id === "full_tp" || r.id === "strongest");
+
   return (
-    <section className="relative mb-4 overflow-hidden rounded-2xl border border-ink/[0.1] bg-surface-raised shadow-[0_1px_0_rgb(var(--ink)/0.04)]">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
-      <div className="px-4 py-3.5 sm:px-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-[14px] font-semibold tracking-tight text-text-primary">
-                Quick path
-              </h2>
-              <span className="rounded-md border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-                Edge Score · since tags
-              </span>
-              {filteredCount != null && activeId && (
-                <span className="rounded-md border border-accent/25 bg-accent/10 px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-accent">
-                  {filteredCount} shown
-                </span>
-              )}
-            </div>
-            <p className="mt-1 max-w-2xl text-[12.5px] leading-snug text-text-muted">
-              Pick a recipe to shortlist · table sorts by Edge Score · click any pair. Full list stays
-              open until you opt in.{" "}
-              <button
-                type="button"
-                onClick={() => onScrollToPlaybook?.()}
-                className="font-medium text-accent underline-offset-2 hover:underline"
-              >
-                Scroll to graph
-              </button>
-            </p>
-          </div>
+    <div className="flex flex-wrap items-center gap-1.5">
+      {firstScreen.map((r) => {
+        const active = activeId === r.id;
+        return (
+          <button
+            key={r.id}
+            type="button"
+            title={r.hint}
+            onClick={() => applyBuiltin(r)}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-all ${toneBorder(
+              r.tone,
+              active
+            )}`}
+          >
+            <span aria-hidden className="font-mono text-[11px] text-text-muted">
+              {r.icon}
+            </span>
+            {r.label}
+          </button>
+        );
+      })}
+      <button
+        type="button"
+        aria-label="How Hunt and Quick path work"
+        title="How this works — Hunt SL / TP1–TP4 on closed calls"
+        onClick={() => setExplainId(activeId === "caution" ? "caution" : "full_tp")}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-ink/10 font-mono text-[11px] font-bold text-text-muted hover:border-ink/25 hover:text-text-primary"
+      >
+        i
+      </button>
+      {filteredCount != null && activeId ? (
+        <span className="font-mono text-[10px] tabular-nums text-text-muted">
+          {filteredCount} shown
+        </span>
+      ) : null}
+      {activeId ? (
+        <button
+          type="button"
+          onClick={handleReset}
+          className="rounded-md px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary"
+        >
+          Reset
+        </button>
+      ) : null}
+
+      {saved.map((r) => (
+        <span
+          key={r.id}
+          className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] ${
+            activeId === r.id
+              ? "border-accent/40 bg-accent/12 text-text-primary"
+              : "border-ink/[0.1] text-text-muted"
+          }`}
+        >
+          <button type="button" onClick={() => applySaved(r)} className="hover:text-accent">
+            {r.name}
+          </button>
           <button
             type="button"
-            onClick={handleReset}
-            className="shrink-0 rounded-lg border border-ink/[0.12] bg-ink/[0.02] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary"
+            onClick={() => removeSaved(r.id)}
+            className="text-text-muted hover:text-loss"
+            aria-label={`Delete ${r.name}`}
           >
-            Reset
+            ×
           </button>
-        </div>
-
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          {builtins.map((r) => {
-            const active = activeId === r.id;
-            return (
-              <button
-                key={r.id}
-                type="button"
-                title={r.hint}
-                onClick={() => applyBuiltin(r)}
-                className={`group flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all ${toneBorder(
-                  r.tone,
-                  active
-                )} ${active ? "font-semibold" : ""}`}
-              >
-                <span
-                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-mono text-[11px] ${
-                    active
-                      ? r.tone === "warn"
-                        ? "bg-loss/15 text-loss"
-                        : r.tone === "positive"
-                          ? "bg-positive/15 text-positive"
-                          : "bg-accent/20 text-accent"
-                      : "bg-ink/[0.05] text-text-muted group-hover:text-text-primary"
-                  }`}
-                  aria-hidden
-                >
-                  {r.icon}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-[13px] font-semibold leading-tight tracking-tight">
-                    {r.label}
-                  </span>
-                  <span className="mt-0.5 block text-[11px] font-normal leading-snug text-text-muted">
-                    {r.hint}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-ink/[0.06] pt-2.5">
-          <span className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted">
-            My views
-          </span>
-          {saved.length === 0 && !showSave && (
-            <span className="text-[11.5px] text-text-muted">None yet</span>
-          )}
-          {saved.map((r) => (
-            <span
-              key={r.id}
-              className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11.5px] ${
-                activeId === r.id
-                  ? "border-accent/40 bg-accent/12 text-text-primary"
-                  : "border-ink/[0.1] bg-ink/[0.02] text-text-primary/90"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => applySaved(r)}
-                className="font-medium hover:text-accent"
-                title="Apply saved view"
-              >
-                {r.name}
-              </button>
-              <button
-                type="button"
-                onClick={() => removeSaved(r.id)}
-                className="text-text-muted hover:text-loss"
-                title="Delete"
-                aria-label={`Delete ${r.name}`}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-          {!showSave ? (
-            <button
-              type="button"
-              onClick={() => setShowSave(true)}
-              className="rounded-lg border border-dashed border-ink/15 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted transition-colors hover:border-accent/30 hover:text-accent"
-            >
-              + Save current
-            </button>
-          ) : (
-            <span className="inline-flex flex-wrap items-center gap-1.5">
-              <input
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSave();
-                  if (e.key === "Escape") setShowSave(false);
-                }}
-                placeholder="Name this view…"
-                maxLength={40}
-                className="w-40 rounded-md border border-ink/15 bg-surface-raised px-2 py-1 text-[12px] text-text-primary outline-none focus:border-accent/40"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!saveName.trim()}
-                className="rounded-md border border-accent/35 bg-accent/15 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-accent disabled:opacity-40"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSave(false);
-                  setSaveName("");
-                }}
-                className="rounded-md border border-ink/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted"
-              >
-                Cancel
-              </button>
-            </span>
-          )}
-        </div>
-
-        <p className="mt-2.5 text-[11px] leading-snug text-text-muted">
-          <span className="font-medium text-text-primary/75">Edge Score</span> = long-history prior
-          (tags since 2026-03-10 that won / hit full TP), applied to signals when they arrive — not
-          “only last 7 days of learning.” Desk list is just what you can act on now. Not a
-          guarantee — manage your own risk.
-        </p>
-      </div>
-
-      {coach && (
-        <div className="absolute inset-x-3 top-2 z-20 sm:inset-x-auto sm:left-5 sm:max-w-sm">
-          <div className="rounded-xl border border-accent/35 bg-surface-raised p-3.5 shadow-lg shadow-ink/15">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[12.5px] font-semibold text-text-primary">15-second tip</p>
-              <button
-                type="button"
-                onClick={dismissCoach}
-                className="font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary"
-              >
-                Dismiss
-              </button>
-            </div>
-            <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-[12px] leading-snug text-text-primary/90">
-              <li>
-                Tap <strong>Strongest setups</strong> for a ranked open shortlist.
-              </li>
-              <li>
-                Read the <strong>Edge</strong> column — hover for why.
-              </li>
-              <li>
-                Use the <strong>knowledge graph</strong> below to drill tags.{" "}
-                <strong>Reset</strong> anytime for the full list.
-              </li>
-            </ol>
-            <button
-              type="button"
-              onClick={dismissCoach}
-              className="mt-2.5 w-full rounded-lg border border-accent/30 bg-accent/12 py-1.5 text-[12px] font-semibold text-text-primary hover:bg-accent/20"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
+        </span>
+      ))}
+      {!showSave ? (
+        <button
+          type="button"
+          onClick={() => setShowSave(true)}
+          className="rounded-md px-1.5 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-accent"
+        >
+          + View
+        </button>
+      ) : (
+        <span className="inline-flex flex-wrap items-center gap-1">
+          <input
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") setShowSave(false);
+            }}
+            placeholder="Name…"
+            maxLength={40}
+            className="w-28 rounded-md border border-ink/15 bg-surface-raised px-2 py-1 text-[12px] text-text-primary outline-none focus:border-accent/40"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!saveName.trim()}
+            className="font-mono text-[10px] uppercase tracking-wider text-accent disabled:opacity-40"
+          >
+            Save
+          </button>
+        </span>
       )}
-    </section>
+
+      {explainId ? (
+        <RecipeExplainModal
+          recipeId={explainId}
+          onChangeRecipe={setExplainId}
+          onClose={() => setExplainId(null)}
+          huntStats={huntStats}
+          huntLoading={huntLoading}
+          huntError={huntError}
+          onApply={(id) => {
+            const r = builtins.find((x) => x.id === id);
+            if (r) applyBuiltin(r);
+            setExplainId(null);
+          }}
+        />
+      ) : null}
+    </div>
   );
 }
