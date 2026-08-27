@@ -317,133 +317,152 @@ export default function EdgeRecipesBar({
     .map((id) => builtins.find((r) => r.id === id))
     .filter(Boolean);
   const era = huntStats?.tag_era_start || huntStats?.tags_selected_from?.start;
+  const huntMix = huntStats?.hunt;
+  const vsAll = huntStats?.vs_all;
 
   return (
-    <div>
-      <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-          Shortlist
-        </span>
-        <span className="text-[11px] text-text-muted">
-          <span className="sm:hidden">Pick a path</span>
-          <span className="hidden sm:inline">
-            Pick a path · Hunt ranks setups that historically ran further
-          </span>
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {firstScreen.map((r) => {
-          const active = activeId === r.id;
-          return (
-            <button
-              key={r.id}
-              type="button"
-              title={r.hint}
-              onClick={() => applyBuiltin(r)}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-all ${toneBorder(
-                r.tone,
-                active
-              )}`}
-            >
-              <span aria-hidden className="font-mono text-[11px] text-text-muted">
-                {r.icon}
-              </span>
-              {r.label}
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          aria-expanded={readOpen}
-          aria-label="Read Hunt explanation and results"
-          onClick={() => setReadOpen((v) => !v)}
-          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-all ${
-            readOpen
-              ? "border-positive/40 bg-positive/10 text-text-primary"
-              : "border-ink/[0.1] bg-surface-raised/80 text-text-primary/90 hover:border-ink/20"
-          }`}
-        >
-          Read
-          <span
-            className={`text-[10px] text-text-muted transition-transform ${readOpen ? "rotate-180" : ""}`}
-            aria-hidden
-          >
-            ▾
-          </span>
-        </button>
-        {filteredCount != null && activeId ? (
-          <span className="font-mono text-[10px] tabular-nums text-text-muted">
-            {filteredCount} shown
-          </span>
-        ) : null}
-        {activeId ? (
+    <section className="overflow-hidden rounded-xl border border-positive/25 bg-positive/[0.05]">
+      <div className="px-3.5 py-3 sm:px-4">
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+          <div className="min-w-0">
+            <p className="text-[14px] font-semibold tracking-tight text-text-primary">Shortlist</p>
+            <p className="mt-0.5 text-[12.5px] leading-snug text-text-primary/85">
+              Start here. Hunt picks setups that historically ran to later targets.
+            </p>
+          </div>
+          {huntMix?.tp4_rate != null ? (
+            <p className="font-mono text-[11px] tabular-nums text-text-muted">
+              Closed so far · TP4{" "}
+              <span className="font-semibold text-positive">{Number(huntMix.tp4_rate).toFixed(1)}%</span>
+              {vsAll?.final_pp?.tp4 != null ? (
+                <span className="text-positive">
+                  {" "}
+                  ({vsAll.final_pp.tp4 > 0 ? "+" : ""}
+                  {Number(vsAll.final_pp.tp4).toFixed(1)}pp)
+                </span>
+              ) : null}
+              {" · "}SL{" "}
+              <span className="font-semibold text-text-primary">{Number(huntMix.sl_rate).toFixed(1)}%</span>
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          {firstScreen.map((r) => {
+            const active = activeId === r.id;
+            const huntPrimary = r.id === "full_tp" && !activeId;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                title={r.hint}
+                onClick={() => applyBuiltin(r)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-all ${
+                  r.id === "full_tp" && (active || huntPrimary)
+                    ? "border-positive/50 bg-positive/25 text-text-primary shadow-[0_0_0_1px_rgb(var(--positive)/0.15)]"
+                    : toneBorder(r.tone, active)
+                }`}
+              >
+                <span aria-hidden className="font-mono text-[11px] opacity-80">
+                  {r.icon}
+                </span>
+                {r.label}
+              </button>
+            );
+          })}
           <button
             type="button"
-            onClick={handleReset}
-            className="rounded-md px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary"
-          >
-            Reset
-          </button>
-        ) : null}
-
-        {saved.map((r) => (
-          <span
-            key={r.id}
-            className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] ${
-              activeId === r.id
-                ? "border-accent/40 bg-accent/12 text-text-primary"
-                : "border-ink/[0.1] text-text-muted"
+            aria-expanded={readOpen}
+            aria-label="Why Hunt works — closed results"
+            onClick={() => setReadOpen((v) => !v)}
+            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-[12.5px] font-medium transition-colors ${
+              readOpen
+                ? "bg-ink/[0.06] text-text-primary"
+                : "text-accent hover:bg-ink/[0.04]"
             }`}
           >
-            <button type="button" onClick={() => applySaved(r)} className="hover:text-accent">
-              {r.name}
-            </button>
-            <button
-              type="button"
-              onClick={() => removeSaved(r.id)}
-              className="text-text-muted hover:text-loss"
-              aria-label={`Delete ${r.name}`}
+            Why it works
+            <span
+              className={`text-[10px] text-text-muted transition-transform ${readOpen ? "rotate-180" : ""}`}
+              aria-hidden
             >
-              ×
-            </button>
-          </span>
-        ))}
-        {!showSave ? (
-          <button
-            type="button"
-            onClick={() => setShowSave(true)}
-            className="rounded-md px-1.5 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-accent"
-          >
-            + View
+              ▾
+            </span>
           </button>
-        ) : (
-          <span className="inline-flex flex-wrap items-center gap-1">
-            <input
-              value={saveName}
-              onChange={(e) => setSaveName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSave();
-                if (e.key === "Escape") setShowSave(false);
-              }}
-              placeholder="Name…"
-              maxLength={40}
-              className="w-28 rounded-md border border-ink/15 bg-surface-raised px-2 py-1 text-[12px] text-text-primary outline-none focus:border-accent/40"
-              autoFocus
-            />
+          {filteredCount != null && activeId ? (
+            <span className="font-mono text-[10px] tabular-nums text-text-muted">
+              {filteredCount} shown
+            </span>
+          ) : null}
+          {activeId ? (
             <button
               type="button"
-              onClick={handleSave}
-              disabled={!saveName.trim()}
-              className="font-mono text-[10px] uppercase tracking-wider text-accent disabled:opacity-40"
+              onClick={handleReset}
+              className="rounded-md px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary"
             >
-              Save
+              Reset
             </button>
-          </span>
-        )}
+          ) : null}
+
+          {saved.map((r) => (
+            <span
+              key={r.id}
+              className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] ${
+                activeId === r.id
+                  ? "border-accent/40 bg-accent/12 text-text-primary"
+                  : "border-ink/[0.1] text-text-muted"
+              }`}
+            >
+              <button type="button" onClick={() => applySaved(r)} className="hover:text-accent">
+                {r.name}
+              </button>
+              <button
+                type="button"
+                onClick={() => removeSaved(r.id)}
+                className="text-text-muted hover:text-loss"
+                aria-label={`Delete ${r.name}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {!showSave ? (
+            <button
+              type="button"
+              onClick={() => setShowSave(true)}
+              className="rounded-md px-1.5 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-accent"
+            >
+              + View
+            </button>
+          ) : (
+            <span className="inline-flex flex-wrap items-center gap-1">
+              <input
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSave();
+                  if (e.key === "Escape") setShowSave(false);
+                }}
+                placeholder="Name…"
+                maxLength={40}
+                className="w-28 rounded-md border border-ink/15 bg-surface-raised px-2 py-1 text-[12px] text-text-primary outline-none focus:border-accent/40"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!saveName.trim()}
+                className="font-mono text-[10px] uppercase tracking-wider text-accent disabled:opacity-40"
+              >
+                Save
+              </button>
+            </span>
+          )}
+        </div>
       </div>
 
       {readOpen ? (
-        <div className="mt-2.5 rounded-xl border border-positive/25 bg-surface-raised p-3 sm:p-3.5">
+        <div className="border-t border-positive/15 bg-surface-raised px-3.5 py-3 sm:px-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 max-w-2xl">
               <p className="text-[13px] font-semibold text-text-primary">Hunt full TP</p>
@@ -499,6 +518,6 @@ export default function EdgeRecipesBar({
           }}
         />
       ) : null}
-    </div>
+    </section>
   );
 }

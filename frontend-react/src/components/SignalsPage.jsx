@@ -2135,38 +2135,6 @@ const SignalsPage = () => {
               </span>
             </button>
           </div>
-
-          {isSubscriber && (
-            <div className="pt-0.5">
-              <EdgeRecipesBar
-                tagWr={tagWr}
-                selectedTags={selectedTags}
-                tagMatchMode={tagMatchMode}
-                verdictFilter={verdictFilter}
-                statusFilter={statusFilter}
-                riskFilter={riskFilter}
-                streakFilter={streakFilter}
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                sorts={sorts}
-                searchPair={searchPair}
-                corrDecoupled={corrDecoupled}
-                corrHighAlign={corrHighAlign}
-                filteredCount={totalSignals}
-                onApplyState={applyRecipeState}
-                onReset={resetFilters}
-                onScrollToPlaybook={() => {
-                  setShowAdvanced(true);
-                  requestAnimationFrame(() => {
-                    document.getElementById("edge-playbook")?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  });
-                }}
-              />
-            </div>
-          )}
         </div>
 
         {/* ACTIVE FILTER CHIPS — tetap terlihat & bisa dihapus per-item walau panel ditutup */}
@@ -2573,6 +2541,36 @@ const SignalsPage = () => {
           </div>
         )}
       </div>
+
+      {isSubscriber && (
+        <EdgeRecipesBar
+          tagWr={tagWr}
+          selectedTags={selectedTags}
+          tagMatchMode={tagMatchMode}
+          verdictFilter={verdictFilter}
+          statusFilter={statusFilter}
+          riskFilter={riskFilter}
+          streakFilter={streakFilter}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sorts={sorts}
+          searchPair={searchPair}
+          corrDecoupled={corrDecoupled}
+          corrHighAlign={corrHighAlign}
+          filteredCount={totalSignals}
+          onApplyState={applyRecipeState}
+          onReset={resetFilters}
+          onScrollToPlaybook={() => {
+            setShowAdvanced(true);
+            requestAnimationFrame(() => {
+              document.getElementById("edge-playbook")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            });
+          }}
+        />
+      )}
 
       {/* Sticky current-filter chips */}
       <EdgeActiveFilters
