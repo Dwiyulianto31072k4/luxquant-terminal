@@ -1379,87 +1379,106 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 </span>
               )}
             </div>
-            <p className="mt-2 font-mono text-[11px] text-text-muted">
-              Entry{" "}
-              <span className="font-semibold tabular-nums text-text-primary">
-                {formatPrice(signal?.entry)}
-              </span>
-              <span className="text-text-muted/70"> · {formatShortDateTime(signal?.created_at)}</span>
-            </p>
           </div>
 
-          <div className="border-t border-ink/[0.06] px-2 py-1.5 sm:px-2.5">
-            <p className="mb-1 px-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          <div className="border-t border-ink/[0.06] px-3 py-2.5 sm:px-3.5">
+            <p className="mb-2 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
               Plan
             </p>
-            <div className="space-y-0.5">
-              {planRows.map((row, i) => {
-                if (row.kind === "entry") {
+            <div className="relative">
+              <span
+                className="pointer-events-none absolute bottom-2 top-2 w-px bg-ink/[0.1]"
+                style={{ left: 11 }}
+                aria-hidden
+              />
+              <div className="space-y-0.5">
+                {planRows.map((row, i) => {
+                  if (row.kind === "entry") {
+                    return (
+                      <div key="entry" className="relative flex items-center gap-2.5 py-1.5">
+                        <span
+                          className="relative z-[1] h-2.5 w-2.5 flex-shrink-0 rounded-full border-2 border-accent bg-surface-raised"
+                          aria-hidden
+                        />
+                        <span className="w-12 text-[12px] font-semibold text-text-primary">
+                          Entry
+                        </span>
+                        <span className="flex-1 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
+                          {formatPrice(signal?.entry)}
+                        </span>
+                        <span className="font-mono text-[10px] text-text-muted">
+                          {formatShortDateTime(signal?.created_at)}
+                        </span>
+                      </div>
+                    );
+                  }
+                  const hit = !!row.hit;
+                  const isSl = row.kind === "sl";
+                  const pct = row.pct;
+                  const pctLabel =
+                    pct == null ? "—" : `${Number(pct) > 0 ? "+" : ""}${pct}%`;
+                  const live = Number(livePrice);
+                  const lv = Number(row.value);
+                  const nearNow =
+                    livePrice &&
+                    lv > 0 &&
+                    Math.abs(live - lv) / lv < 0.004;
                   return (
                     <div
-                      key="entry"
-                      className="flex items-center gap-2 rounded-lg bg-ink/[0.04] px-2 py-1.5"
+                      key={`${row.kind}-${row.label}-${i}`}
+                      className={`relative flex items-center gap-2.5 rounded-md py-1.5 pr-1 ${
+                        hit
+                          ? isSl
+                            ? "bg-negative/[0.07]"
+                            : "bg-positive/[0.07]"
+                          : nearNow
+                            ? "bg-ink/[0.03]"
+                            : ""
+                      }`}
                     >
-                      <span className="w-8 font-mono text-[9px] font-semibold uppercase tracking-wider text-accent">
-                        Ent
+                      <span
+                        className={`relative z-[1] h-2.5 w-2.5 flex-shrink-0 rounded-full border-2 ${
+                          hit
+                            ? isSl
+                              ? "border-negative bg-negative"
+                              : "border-positive bg-positive"
+                            : "border-ink/25 bg-surface-raised"
+                        }`}
+                        aria-hidden
+                      />
+                      <span
+                        className={`w-12 text-[12px] font-medium ${
+                          hit
+                            ? isSl
+                              ? "text-negative"
+                              : "text-positive"
+                            : "text-text-muted"
+                        }`}
+                      >
+                        {row.label}
                       </span>
-                      <span className="flex-1 font-mono text-[12px] font-semibold tabular-nums text-text-primary">
-                        {formatPrice(signal?.entry)}
+                      <span
+                        className={`flex-1 font-mono text-[13px] tabular-nums ${
+                          hit ? "font-semibold text-text-primary" : "text-text-secondary"
+                        }`}
+                      >
+                        {formatPrice(row.value)}
                       </span>
-                      <span className="font-mono text-[10px] text-text-muted">called</span>
+                      <span
+                        className={`font-mono text-[12px] tabular-nums ${
+                          hit
+                            ? isSl
+                              ? "text-negative"
+                              : "text-positive"
+                            : "text-text-muted"
+                        }`}
+                      >
+                        {pctLabel}
+                      </span>
                     </div>
                   );
-                }
-                const hit = !!row.hit;
-                const isSl = row.kind === "sl";
-                const pct = row.pct;
-                const pctLabel =
-                  pct == null
-                    ? "—"
-                    : `${Number(pct) > 0 ? "+" : ""}${pct}%`;
-                return (
-                  <div
-                    key={`${row.kind}-${row.label}-${i}`}
-                    className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${
-                      hit
-                        ? isSl
-                          ? "bg-negative/[0.08]"
-                          : "bg-positive/[0.08]"
-                        : ""
-                    }`}
-                  >
-                    <span
-                      className={`flex h-5 w-8 items-center justify-center rounded font-mono text-[9px] font-bold ${
-                        hit
-                          ? isSl
-                            ? "bg-negative/15 text-negative"
-                            : "bg-positive/15 text-positive"
-                          : "bg-ink/[0.05] text-text-muted"
-                      }`}
-                    >
-                      {hit ? "✓" : row.label.replace("SL", "SL").replace("TP", "TP")}
-                    </span>
-                    <span
-                      className={`flex-1 font-mono text-[12px] tabular-nums ${
-                        hit ? "font-semibold text-text-primary" : "text-text-secondary"
-                      }`}
-                    >
-                      {formatPrice(row.value)}
-                    </span>
-                    <span
-                      className={`font-mono text-[11px] tabular-nums ${
-                        hit
-                          ? isSl
-                            ? "text-negative"
-                            : "text-positive"
-                          : "text-text-muted"
-                      }`}
-                    >
-                      {pctLabel}
-                    </span>
-                  </div>
-                );
-              })}
+                })}
+              </div>
             </div>
           </div>
 
