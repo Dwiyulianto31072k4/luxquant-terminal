@@ -114,6 +114,10 @@ class ResourceCard(BaseModel):
     source_url: Optional[str] = None
     provider: Optional[str] = None
     category: str = "General"
+    track: Optional[str] = None
+    order_index: int = 0
+    level: Optional[str] = None
+    est_minutes: Optional[int] = None
     tags: Optional[str] = None
     author_name: Optional[str] = None
     reading_time: Optional[int] = None
@@ -422,6 +426,7 @@ def _lesson_row(r: Resource, done: bool = False) -> dict:
         "order_index": r.order_index or 0,
         "cover_image": r.cover_image,
         "cover_is_external": bool(r.cover_is_external),
+        "source_url": r.source_url,
         "completed": done,
     }
 

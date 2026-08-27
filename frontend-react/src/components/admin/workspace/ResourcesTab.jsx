@@ -7,23 +7,25 @@
 // ════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { resourcesApi, coverUrl, youtubeThumb } from "../../../services/resourcesApi";
+import { MODULE_COVERS, TYPE_LABEL, TRACK_LABEL } from "../../../content/tutorialCovers";
 import ResourceEditor from "../../resources/ResourceEditor";
 import { palette, tint, motion } from "../designSystem";
 import { useDialog } from "../../../hooks/useDialog";
 import { CollectionPagination, useCollectionPagination } from "../CollectionPagination";
 
 const TYPE_META = {
-  article: { label: "Research", color: "rgb(var(--fg-muted))" },
-  pdf: { label: "Guide", color: palette.red[400] },
-  video: { label: "Video", color: palette.amber[400] },
-  link: { label: "Link", color: palette.green[400] },
+  article: { label: TYPE_LABEL.article, color: "rgb(var(--fg-muted))" },
+  pdf: { label: TYPE_LABEL.pdf, color: palette.red[400] },
+  video: { label: TYPE_LABEL.video, color: palette.amber[400] },
+  link: { label: TYPE_LABEL.link, color: palette.green[400] },
 };
 
 const FILTERS = [
   { id: "all", label: "All" },
-  { id: "article", label: "Research" },
+  { id: "curriculum", label: "Tutorials" },
+  { id: "article", label: "Lessons" },
+  { id: "pdf", label: "Slides" },
   { id: "video", label: "Videos" },
-  { id: "pdf", label: "Guides" },
   { id: "link", label: "Links" },
   { id: "draft", label: "Drafts" },
 ];
@@ -32,7 +34,11 @@ const fmtDate = (d) =>
   d
     ? new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
     : "";
-const cardCover = (r) => coverUrl(r) || (r.type === "video" ? youtubeThumb(r.source_url) : null);
+const cardCover = (r) =>
+  coverUrl(r) ||
+  (r.type === "video" ? youtubeThumb(r.source_url) : null) ||
+  (r.track && MODULE_COVERS[r.track]) ||
+  null;
 
 const Stat = ({ label, value, color }) => (
   <div className="rounded-xl border border-ink/[0.07] bg-surface-raised px-4 py-3">
@@ -107,6 +113,7 @@ export const ResourcesTab = () => {
   const filtered = useMemo(() => {
     let list = items;
     if (filter === "draft") list = list.filter((r) => r.status === "draft");
+    else if (filter === "curriculum") list = list.filter((r) => r.track);
     else if (filter !== "all") list = list.filter((r) => r.type === filter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -175,9 +182,9 @@ export const ResourcesTab = () => {
       {/* Stat row */}
       <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
         <Stat label="Total" value={stats.total} color="rgb(var(--fg-muted))" />
-        <Stat label="Research" value={stats.article} color="rgb(var(--fg-muted))" />
+        <Stat label="Lessons" value={stats.article} color="rgb(var(--fg-muted))" />
         <Stat label="Videos" value={stats.video} color={palette.amber[400]} />
-        <Stat label="Guides" value={stats.pdf} color={palette.red[400]} />
+        <Stat label="Slides" value={stats.pdf} color={palette.red[400]} />
         <Stat label="Links" value={stats.link} color={palette.green[400]} />
         <Stat label="Drafts" value={stats.draft} color={palette.amber[400]} />
       </div>
@@ -245,7 +252,7 @@ export const ResourcesTab = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink/[0.07] bg-ink/[0.02] text-left">
-                {["Resource", "Type", "Category", "Status", "Featured", "Date", ""].map((h, i) => (
+                {["Resource", "Type", "Track", "Status", "Featured", "Date", ""].map((h, i) => (
                   <th
                     key={i}
                     className="whitespace-nowrap px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-text-muted"
@@ -283,7 +290,7 @@ export const ResourcesTab = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 min-w-0 max-w-[360px]">
                           <div
-                            className="w-12 h-9 rounded-md overflow-hidden flex-shrink-0"
+                            className="h-10 w-16 overflow-hidden rounded-md flex-shrink-0"
                             style={{ background: "rgb(var(--ink) / 0.05)" }}
                           >
                             {cover ? (
@@ -304,7 +311,7 @@ export const ResourcesTab = () => {
                         <Pill color={tm.color}>{tm.label}</Pill>
                       </td>
                       <td className="px-4 py-3 text-text-primary/60 whitespace-nowrap">
-                        {r.category}
+                        {r.track ? TRACK_LABEL[r.track] || r.track : "—"}
                       </td>
                       <td className="px-4 py-3">
                         <button

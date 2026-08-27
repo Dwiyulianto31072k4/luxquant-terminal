@@ -17,9 +17,9 @@ import { resourcesApi, coverUrl, youtubeThumb } from "../../services/resourcesAp
 import { useDialog } from "../../hooks/useDialog";
 
 const TYPES = [
-  { id: "article", label: "Article", hint: "Written research / guide" },
-  { id: "pdf", label: "PDF", hint: "Uploadable PDF module" },
-  { id: "video", label: "Video", hint: "YouTube / Vimeo link" },
+  { id: "article", label: "Lesson", hint: "Written guide" },
+  { id: "pdf", label: "Slides", hint: "PDF deck — shown as a Tutorials card" },
+  { id: "video", label: "Video", hint: "YouTube / Vimeo" },
   { id: "link", label: "Link", hint: "External article / post" },
 ];
 
@@ -466,7 +466,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
 
           {/* PDF upload */}
           {type === "pdf" && (
-            <Field label="PDF File" required={!isEdit}>
+            <Field label="Slides (PDF)" required={!isEdit}>
               <label className="flex items-center gap-3 bg-bg-card border-2 border-dashed border-ink/10 rounded-xl px-4 py-4 cursor-pointer hover:border-ink/15 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-negative/10 flex items-center justify-center flex-shrink-0">
                   <svg
@@ -558,8 +558,8 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
               </Field>
             </div>
             <p className="mt-2 text-[11px] text-text-muted">
-              Leave the track empty to keep this out of Tutorials. Order is low-to-high
-              within the track; reading time is worked out from the text unless you set one.
+              Assign a track to list this on Tutorials. Upload a 16:9 cover so the card
+              is not blank. Order is low-to-high within the track.
             </p>
             <div className="mt-3 sm:w-40">
               <Field label="Minutes (optional)">
@@ -623,10 +623,10 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                 className={inputCls}
               />
             </Field>
-            <Field label="Cover Image">
+            <Field label="Card image (16:9)">
               <div className="flex gap-3">
                 <label className="flex-1 flex items-center justify-center bg-bg-card border-2 border-dashed border-ink/10 rounded-xl px-4 py-3 cursor-pointer hover:border-ink/15 transition-colors text-text-muted text-xs">
-                  {coverFile ? coverFile.name : "Upload cover"}
+                  {coverFile ? coverFile.name : "Shown on the Tutorials card"}
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp,.gif"

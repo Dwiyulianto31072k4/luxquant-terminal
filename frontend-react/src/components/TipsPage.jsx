@@ -12,10 +12,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { resourcesApi } from "../services/resourcesApi";
+import { resourcesApi, coverUrl, youtubeThumb } from "../services/resourcesApi";
 import ResourceReader from "./resources/ResourceReader";
 import { useAuth } from "../context/AuthContext";
 import { PageHeader, SectionHeader } from "./ui/PageHeader";
+import { MODULE_COVERS, TYPE_LABEL } from "../content/tutorialCovers";
+
+const coverFor = (lesson, trackSlug) =>
+  coverUrl(lesson) ||
+  (lesson?.type === "video" ? youtubeThumb(lesson.source_url) : null) ||
+  MODULE_COVERS[trackSlug] ||
+  MODULE_COVERS.start;
 
 /* ── marks ──────────────────────────────────────────────────── */
 
@@ -32,15 +39,6 @@ const TypeMark = ({ type }) => {
       <path d={d} />
     </svg>
   );
-};
-
-const MODULE_ICON = {
-  start: "M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
-  "read-a-call": "M4 6h16M4 12h16M4 18h10",
-  numbers: "M4 19V9 M10 19V5 M16 19v-7 M22 19V8",
-  tools: "M4 8h6V4H4z M14 8h6V4h-6z M4 20h6v-8H4z M14 20h6v-8h-6z",
-  automation: "M13 2L4 14h7l-1 8 10-14h-7l0-6z",
-  account: "M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z M4 21c0-4 3.6-7 8-7s8 3 8 7",
 };
 
 const Tick = ({ on, size = 18 }) => (
@@ -91,50 +89,44 @@ const ModuleCard = ({ track, n, active, onSelect }) => {
     ? Math.round((track.completed_count / track.lesson_count) * 100)
     : 0;
   const done = track.lesson_count > 0 && track.completed_count === track.lesson_count;
-  const icon = MODULE_ICON[track.slug] || MODULE_ICON.start;
+  const cover = MODULE_COVERS[track.slug] || MODULE_COVERS.start;
 
   return (
     <button
       type="button"
       onClick={() => onSelect(track.slug)}
       aria-current={active ? "true" : undefined}
-      className={`flex h-full w-[240px] shrink-0 snap-start flex-col rounded-2xl border p-4 text-left transition-colors sm:w-full ${
+      className={`flex h-full w-[260px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border text-left transition-shadow sm:w-full ${
         active
-          ? "border-accent/40 bg-accent/[0.08]"
-          : "border-ink/[0.08] bg-surface-raised hover:border-ink/15 hover:bg-surface-hover"
-      }`}
+          ? "border-accent/40 shadow-[0_8px_28px_rgb(var(--scrim)/0.18)]"
+          : "border-ink/[0.08] hover:border-ink/15 hover:shadow-[0_8px_24px_rgb(var(--scrim)/0.12)]"
+      } bg-surface-raised`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span
-          className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${
-            active ? "bg-accent/15 text-accent" : "bg-ink/[0.05] text-text-secondary"
-          }`}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d={icon} />
-          </svg>
+      <div className="relative aspect-[16/9] overflow-hidden bg-ink/[0.06]">
+        <img src={cover} alt="" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-scrim/55 via-transparent to-transparent" />
+        <span className="absolute left-3 top-3 rounded-md bg-surface-raised/90 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-text-primary backdrop-blur-sm">
+          {String(n).padStart(2, "0")}
         </span>
-        {done ? <Tick on size={18} /> : (
-          <span className="font-mono text-[11px] tabular-nums text-text-muted">
-            {String(n).padStart(2, "0")}
+        {done && (
+          <span className="absolute right-3 top-3">
+            <Tick on size={20} />
           </span>
         )}
-      </div>
-      <h3 className="mt-3 font-display text-[15px] font-semibold tracking-tight text-text-primary">
-        {track.title}
-      </h3>
-      <p className="mt-1 line-clamp-2 min-h-[36px] text-[12.5px] leading-snug text-text-muted">
-        {track.summary}
-      </p>
-      <div className="mt-auto pt-3">
-        <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] tabular-nums text-text-muted">
-          <span>
-            {track.completed_count}/{track.lesson_count} lessons
-          </span>
-          <span>{track.minutes}m</span>
+        <div className="absolute inset-x-3 bottom-3">
+          <Bar pct={pct} done={done} />
         </div>
-        <Bar pct={pct} done={done} />
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="font-display text-[16px] font-semibold tracking-tight text-text-primary">
+          {track.title}
+        </h3>
+        <p className="mt-1 line-clamp-2 min-h-[40px] text-[13px] leading-snug text-text-secondary">
+          {track.summary}
+        </p>
+        <p className="mt-3 font-mono text-[10.5px] tabular-nums text-text-muted">
+          {track.completed_count}/{track.lesson_count} · {track.minutes} min
+        </p>
       </div>
     </button>
   );
@@ -142,61 +134,73 @@ const ModuleCard = ({ track, n, active, onSelect }) => {
 
 /* ── lesson card ────────────────────────────────────────────── */
 
-const LessonCard = ({ lesson, index, onOpen, onToggle, canTrack }) => (
-  <article
-    className={`group flex gap-3 rounded-2xl border p-3.5 transition-colors sm:gap-4 sm:p-4 ${
-      lesson.completed
-        ? "border-ink/[0.07] bg-surface-raised"
-        : "border-ink/[0.08] bg-surface-raised hover:border-ink/15 hover:bg-surface-hover"
-    }`}
-  >
-    <button
-      type="button"
-      onClick={() => canTrack && onToggle(lesson)}
-      disabled={!canTrack}
-      title={canTrack ? (lesson.completed ? "Mark as not done" : "Mark as done") : "Sign in to track your progress"}
-      aria-label={lesson.completed ? "Mark as not done" : "Mark as done"}
-      className="mt-0.5 shrink-0 self-start disabled:cursor-default"
-    >
-      <Tick on={lesson.completed} size={22} />
-    </button>
+const LessonCard = ({ lesson, index, trackSlug, onOpen, onToggle, canTrack }) => {
+  const cover = coverFor(lesson, trackSlug);
+  const kind = TYPE_LABEL[lesson.type] || "Lesson";
 
-    <button type="button" onClick={() => onOpen(lesson)} className="min-w-0 flex-1 text-left">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[10.5px] tabular-nums text-text-muted">
-          {String(index + 1).padStart(2, "0")}
-        </span>
-        {lesson.level && (
-          <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
-            {lesson.level}
+  return (
+    <article
+      className={`group flex flex-col overflow-hidden rounded-2xl border bg-surface-raised transition-shadow ${
+        lesson.completed
+          ? "border-ink/[0.07]"
+          : "border-ink/[0.08] hover:border-ink/15 hover:shadow-[0_10px_28px_rgb(var(--scrim)/0.12)]"
+      }`}
+    >
+      <button type="button" onClick={() => onOpen(lesson)} className="text-left">
+        <div className="relative aspect-[16/9] overflow-hidden bg-ink/[0.06]">
+          <img src={cover} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-scrim/50 via-transparent to-transparent" />
+          <span className="absolute left-3 top-3 rounded-md bg-surface-raised/90 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-text-primary backdrop-blur-sm">
+            {String(index + 1).padStart(2, "0")}
           </span>
-        )}
+          <span className="absolute right-3 top-3 rounded-md bg-surface-raised/90 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-text-primary backdrop-blur-sm">
+            {kind}
+          </span>
+        </div>
+        <div className="p-4">
+          <h3
+            className={`font-display text-[16px] font-semibold tracking-tight ${
+              lesson.completed ? "text-text-muted" : "text-text-primary"
+            }`}
+          >
+            {lesson.title}
+          </h3>
+          {lesson.excerpt && (
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-text-secondary">
+              {lesson.excerpt}
+            </p>
+          )}
+          <div className="mt-3 flex items-center gap-3 text-[12px] text-text-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <TypeMark type={lesson.type} />
+              {kind}
+            </span>
+            <span className="tabular-nums">{lesson.minutes} min</span>
+            {lesson.level && (
+              <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider">
+                {lesson.level}
+              </span>
+            )}
+            <span className="ml-auto font-medium text-accent">Open →</span>
+          </div>
+        </div>
+      </button>
+      <div className="flex items-center justify-between border-t border-ink/[0.06] px-4 py-2.5">
+        <button
+          type="button"
+          onClick={() => canTrack && onToggle(lesson)}
+          disabled={!canTrack}
+          title={canTrack ? (lesson.completed ? "Mark as not done" : "Mark as done") : "Sign in to track your progress"}
+          aria-label={lesson.completed ? "Mark as not done" : "Mark as done"}
+          className="inline-flex items-center gap-2 text-[12px] text-text-muted disabled:cursor-default"
+        >
+          <Tick on={lesson.completed} size={18} />
+          {lesson.completed ? "Completed" : "Mark done"}
+        </button>
       </div>
-      <h3
-        className={`mt-1 font-display text-[15px] font-semibold tracking-tight sm:text-[16px] ${
-          lesson.completed ? "text-text-muted" : "text-text-primary"
-        }`}
-      >
-        {lesson.title}
-      </h3>
-      {lesson.excerpt && (
-        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-text-secondary">
-          {lesson.excerpt}
-        </p>
-      )}
-      <div className="mt-2.5 flex items-center gap-3 text-[12px] text-text-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <TypeMark type={lesson.type} />
-          <span className="capitalize">{lesson.type || "article"}</span>
-        </span>
-        <span className="tabular-nums">{lesson.minutes} min</span>
-        <span className="ml-auto font-medium text-accent sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
-          Read →
-        </span>
-      </div>
-    </button>
-  </article>
-);
+    </article>
+  );
+};
 
 /* ── page ───────────────────────────────────────────────────── */
 
@@ -402,13 +406,14 @@ export default function TipsPage() {
                   }
                 />
 
-                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {active.lessons.length ? (
                     active.lessons.map((l, i) => (
                       <LessonCard
                         key={l.id}
                         lesson={l}
                         index={i}
+                        trackSlug={active.slug}
                         onOpen={openLesson}
                         onToggle={toggle}
                         canTrack={isAuthenticated}
