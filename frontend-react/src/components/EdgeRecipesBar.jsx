@@ -22,6 +22,7 @@ function prettyDay(iso) {
 
 const SAVED_KEY = "lq:edge-recipes:v1";
 const ACTIVE_KEY = "lq:edge-active-recipe:v1";
+const NUDGE_KEY = "lq:shortlist-nudge:v1";
 
 function loadSaved() {
   try {
@@ -38,14 +39,6 @@ function persistSaved(list) {
     localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0, 12)));
   } catch {
     /* ignore quota */
-  }
-}
-
-function loadActiveId() {
-  try {
-    return localStorage.getItem(ACTIVE_KEY) || null;
-  } catch {
-    return null;
   }
 }
 
@@ -102,7 +95,7 @@ export default function EdgeRecipesBar({
   onScrollToPlaybook: _onScrollToPlaybook,
 }) {
   const [saved, setSaved] = useState(() => loadSaved());
-  const [activeId, setActiveId] = useState(() => loadActiveId());
+  const [activeId, setActiveId] = useState(null);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [explainId, setExplainId] = useState(null);
@@ -113,6 +106,13 @@ export default function EdgeRecipesBar({
   huntByDaysRef.current = huntByDays;
   const [huntLoading, setHuntLoading] = useState(false);
   const [huntError, setHuntError] = useState(false);
+  const [nudgeOpen, setNudgeOpen] = useState(() => {
+    try {
+      return localStorage.getItem(NUDGE_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
 
   const huntStats = huntByDays[huntDays] || huntByDays["0"] || null;
 
@@ -248,10 +248,20 @@ export default function EdgeRecipesBar({
     [runnerTags, cautionTags]
   );
 
+  const dismissNudge = () => {
+    setNudgeOpen(false);
+    try {
+      localStorage.setItem(NUDGE_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  };
+
   const applyBuiltin = (r) => {
     onApplyState?.(r.build());
     setActiveId(r.id);
     persistActiveId(r.id);
+    if (r.id === "full_tp") dismissNudge();
   };
 
   const applySaved = (r) => {
@@ -319,8 +329,9 @@ export default function EdgeRecipesBar({
   const era = huntStats?.tag_era_start || huntStats?.tags_selected_from?.start;
   const huntMix = huntStats?.hunt;
   const vsAll = huntStats?.vs_all;
-  const showingHunt = activeId === "full_tp" || !activeId;
+  const showingHunt = activeId === "full_tp";
   const showingStrongest = activeId === "strongest";
+  const showNudge = nudgeOpen && !activeId;
 
   return (
     <section className="overflow-hidden rounded-xl border border-positive/25 bg-positive/[0.05]">
@@ -329,9 +340,11 @@ export default function EdgeRecipesBar({
           <div className="min-w-0">
             <p className="text-[14px] font-semibold tracking-tight text-text-primary">Shortlist</p>
             <p className="mt-0.5 text-[12.5px] leading-snug text-text-primary/85">
-              {showingStrongest
-                ? "Open Worth calls, ranked by the pair’s own track record — not Hunt tags."
-                : "Start here. Hunt picks setups that historically ran to later targets."}
+              {showingHunt
+                ? "Hunt is on. Setups that historically ran to later targets."
+                : showingStrongest
+                  ? "Open Worth calls, ranked by the pair’s own track record — not Hunt tags."
+                  : "Optional filter. Click Hunt to turn it on — it is not applied until you do."}
             </p>
           </div>
           {showingHunt && huntMix?.tp4_rate != null ? (
@@ -355,10 +368,54 @@ export default function EdgeRecipesBar({
           ) : null}
         </div>
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        {showNudge ? (
+          <div className="relative mt-2.5 max-w-md">
+            <div className="rounded-xl border border-accent/35 bg-surface-raised p-3 shadow-[0_8px_24px_rgb(var(--scrim)/0.12)]">
+              <div className="flex items-start gap-2.5">
+                <span
+                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-accent/30 bg-accent/12 text-accent"
+                  aria-hidden
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 13v5a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2v-7" />
+                    <path d="M8 13V8.5a1.5 1.5 0 0 1 3 0V13" />
+                    <path d="M11 13V7.5a1.5 1.5 0 0 1 3 0V13" />
+                    <path d="M14 13v-3a1.5 1.5 0 0 1 3 0V14a5 5 0 0 1-5 5h-1" />
+                    <path d="M8 13H7a2 2 0 0 0-2 2v1" />
+                  </svg>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold text-text-primary">
+                    Click Hunt to turn this on
+                  </p>
+                  <p className="mt-0.5 text-[12px] leading-snug text-text-muted">
+                    An optional advanced filter. It keeps setups that historically ran to later
+                    targets — a higher-chance slice, not the default desk.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissNudge}
+                  aria-label="Dismiss"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <span
+              className="absolute left-6 -bottom-1.5 h-3 w-3 rotate-45 border-b border-r border-accent/35 bg-surface-raised"
+              aria-hidden
+            />
+          </div>
+        ) : null}
+
+        <div className={`flex flex-wrap items-center gap-1.5 ${showNudge ? "mt-3.5" : "mt-2.5"}`}>
           {firstScreen.map((r) => {
             const active = activeId === r.id;
-            const huntPrimary = r.id === "full_tp" && !activeId;
+            const huntIdle = r.id === "full_tp" && showNudge;
             return (
               <button
                 key={r.id}
@@ -366,9 +423,11 @@ export default function EdgeRecipesBar({
                 title={r.hint}
                 onClick={() => applyBuiltin(r)}
                 className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-all ${
-                  r.id === "full_tp" && (active || huntPrimary)
+                  r.id === "full_tp" && active
                     ? "border-positive/50 bg-positive/25 text-text-primary shadow-[0_0_0_1px_rgb(var(--positive)/0.15)]"
-                    : toneBorder(r.tone, active)
+                    : huntIdle
+                      ? "relative border-accent/40 bg-surface-raised text-text-primary shadow-[0_0_0_3px_rgb(var(--accent)/0.12)]"
+                      : toneBorder(r.tone, active)
                 }`}
               >
                 <span aria-hidden className="font-mono text-[11px] opacity-80">
