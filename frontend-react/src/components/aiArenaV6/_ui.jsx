@@ -422,6 +422,34 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
     },
   ].sort((a, b) => b.price - a.price);
 
+  // Rows were positioned purely by price, so when two levels sat close together
+  // their cards landed on top of each other and the one drawn first vanished
+  // underneath. Seen with target +0.57% from spot: "$79,600" was completely
+  // hidden behind the spot card, which is the one number the row exists to show.
+  //
+  // Cards are centred on their position (-translate-y-1/2), so clearing a
+  // neighbour costs a full card height, not half. Measured in the browser rather
+  // than estimated: card 55px, rail 260px, so 21.2% is touching and 24% leaves
+  // about 7px of air. The first attempt guessed 48px and 19%, and the cards
+  // still overlapped by 6 — close enough to look deliberate, which is worse.
+  //
+  // Three cards at 24% need 71% of the rail, so they fit with room to spare.
+  //
+  // The dot stays on the rail at the TRUE price. Only the card moves, so where a
+  // level actually sits is never falsified to make room for text.
+  const MIN_GAP = 24;
+  const cardTops = rows.map((r) => ((top - r.price) / range) * 100);
+  for (let n = 1; n < cardTops.length; n += 1) {
+    if (cardTops[n] - cardTops[n - 1] < MIN_GAP) cardTops[n] = cardTops[n - 1] + MIN_GAP;
+  }
+  const overflow = cardTops[cardTops.length - 1] - (100 - MIN_GAP / 2);
+  if (overflow > 0) {
+    for (let n = cardTops.length - 1; n >= 0; n -= 1) {
+      cardTops[n] -= overflow;
+      if (n > 0 && cardTops[n] - cardTops[n - 1] >= MIN_GAP) break;
+    }
+  }
+
   return (
     <div className="relative h-[260px] w-full">
       {/* rail track */}
@@ -436,15 +464,12 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
           opacity: 0.35,
         }}
       />
-      {rows.map((row) => (
-        <div
-          key={row.key}
-          className="absolute left-0 right-0 flex -translate-y-1/2 items-center gap-3"
-          style={{ top: y(row.price) }}
-        >
+      {rows.map((row, idx) => (
+        <div key={row.key}>
+          {/* Dot on the rail at the real price. */}
           <span
-            className="relative z-10 h-[19px] w-[19px] shrink-0 rounded-full border-2 bg-surface-raised"
-            style={{ borderColor: COLOR[row.tone] }}
+            className="absolute z-10 h-[19px] w-[19px] -translate-y-1/2 rounded-full border-2 bg-surface-raised"
+            style={{ top: y(row.price), left: 0, borderColor: COLOR[row.tone] }}
           >
             {row.key === "spot" && (
               <span
@@ -453,7 +478,11 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
               />
             )}
           </span>
-          <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-ink/[0.05] bg-surface-secondary px-3 py-2">
+          {/* Card at the nudged position, indented past the rail. */}
+          <div
+            className="absolute right-0 flex -translate-y-1/2 items-baseline justify-between gap-2 rounded-lg border border-ink/[0.05] bg-surface-secondary px-3 py-2"
+            style={{ top: `${cardTops[idx]}%`, left: 32 }}
+          >
             <div className="min-w-0">
               <div
                 className="font-mono text-[8.5px] uppercase tracking-[0.18em]"

@@ -340,6 +340,28 @@ function BtcVisualPanel({ report }) {
       : null,
   ].filter(Boolean);
 
+  // Markers are 64px wide and centred on their price, so two levels close
+  // together collided and the numbers overprinted — "$79,14$79,608" on screen,
+  // with target only +0.57% from spot. The strip is a summary, not a precise
+  // axis, so nudging a marker a few percent to keep its number readable is the
+  // right trade; an unreadable number is not a smaller error than an imprecise
+  // position.
+  //
+  // 64px on a strip that is roughly 560px wide is ~11.5%; 13 leaves air.
+  // Positions are spread left to right, then pulled back if the last one runs
+  // past the edge, so the constraint holds at both ends.
+  const MIN_X_GAP = 13;
+  const xs = levels
+    .map((m) => (Number.isFinite(m.p) ? Math.max(8, Math.min(92, ((m.p - minL) / span) * 100)) : 50))
+    .map((v, idx) => ({ v, idx }))
+    .sort((a, b) => a.v - b.v);
+  for (let n = 1; n < xs.length; n += 1) {
+    if (xs[n].v - xs[n - 1].v < MIN_X_GAP) xs[n].v = xs[n - 1].v + MIN_X_GAP;
+  }
+  const spill = xs.length ? xs[xs.length - 1].v - 92 : 0;
+  if (spill > 0) for (const x of xs) x.v -= spill;
+  const xAt = new Map(xs.map((x) => [x.idx, `${Math.max(8, x.v)}%`]));
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-ink/[0.08] bg-surface-raised shadow-sm">
       {/* Theme-safe wash (pos/neg channels, not hard-coded hex) */}
@@ -385,11 +407,11 @@ function BtcVisualPanel({ report }) {
         {levels.length >= 2 ? (
           <div className="relative mt-6 pb-1 pt-5">
             <div className="absolute inset-x-1 top-[1.65rem] h-px bg-ink/15" />
-            {levels.map((m) => (
+            {levels.map((m, idx) => (
               <div
                 key={m.label}
                 className="absolute top-0 flex w-16 -translate-x-1/2 flex-col items-center"
-                style={{ left: xOf(m.p) }}
+                style={{ left: xAt.get(idx) ?? xOf(m.p) }}
               >
                 <span
                   className={`font-mono text-[10px] font-medium tabular-nums leading-none ${m.priceCls}`}
