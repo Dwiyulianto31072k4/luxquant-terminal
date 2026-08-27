@@ -114,6 +114,7 @@ const SignalModal = ({
   const [chartFull, setChartFull] = useState(false);
   // In full mode, plan summary floats on the right (toggle via panel header only)
   const [fullShowPlan, setFullShowPlan] = useState(true);
+  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
 
   useEffect(() => {
     const sid = signal?.signal_id;
@@ -176,6 +177,10 @@ const SignalModal = ({
     return () => {
       document.body.style.overflow = "";
     };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) setMoreActionsOpen(false);
   }, [isOpen]);
 
   // 1b. ROUTING FIX: sinkronkan tab aktif dari URL (?tab=...) — penting untuk
@@ -1333,30 +1338,28 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     return (
       <div className={`space-y-2 ${isCompact ? "p-2.5" : "p-3"}`}>
         <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
-          <div className={`${isCompact ? "px-3 py-2.5" : "px-3.5 py-3"}`}>
-            <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-50" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-positive" />
-                </span>
-                <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Mark
-                </span>
-              </span>
-              {liveChange24h !== null && (
-                <span
-                  className={`font-mono text-[10px] tabular-nums ${liveChange24h >= 0 ? "text-positive" : "text-negative"}`}
-                >
-                  {liveChange24h >= 0 ? "+" : ""}
-                  {liveChange24h.toFixed(2)}% · 24h
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 flex items-end justify-between gap-2">
+          <div className={`${isCompact ? "px-2.5 py-2" : "px-3.5 py-3"}`}>
+            <div className="flex items-end justify-between gap-2">
               <div className="min-w-0">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-50" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-positive" />
+                  </span>
+                  <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    Mark
+                  </span>
+                  {liveChange24h !== null && (
+                    <span
+                      className={`font-mono text-[10px] tabular-nums ${liveChange24h >= 0 ? "text-positive" : "text-negative"}`}
+                    >
+                      {liveChange24h >= 0 ? "+" : ""}
+                      {liveChange24h.toFixed(2)}% · 24h
+                    </span>
+                  )}
+                </div>
                 <p
-                  className={`font-mono font-semibold leading-none tabular-nums ${isCompact ? "text-[22px]" : "text-[26px]"} ${
+                  className={`font-mono font-semibold leading-none tabular-nums ${isCompact ? "text-[20px]" : "text-[26px]"} ${
                     up ? "text-positive" : down ? "text-negative" : "text-text-primary"
                   }`}
                 >
@@ -1381,104 +1384,75 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </div>
           </div>
 
-          <div className="border-t border-ink/[0.06] px-3 py-2.5 sm:px-3.5">
-            <p className="mb-2 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Plan
-            </p>
-            <div className="relative">
-              <span
-                className="pointer-events-none absolute bottom-2 top-2 w-px bg-ink/[0.1]"
-                style={{ left: 11 }}
-                aria-hidden
-              />
-              <div className="space-y-0.5">
-                {planRows.map((row, i) => {
-                  if (row.kind === "entry") {
-                    return (
-                      <div key="entry" className="relative flex items-center gap-2.5 py-1.5">
-                        <span
-                          className="relative z-[1] h-2.5 w-2.5 flex-shrink-0 rounded-full border-2 border-accent bg-surface-raised"
-                          aria-hidden
-                        />
-                        <span className="w-12 text-[12px] font-semibold text-text-primary">
-                          Entry
-                        </span>
-                        <span className="flex-1 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
-                          {formatPrice(signal?.entry)}
-                        </span>
-                        <span className="font-mono text-[10px] text-text-muted">
+          <div className="border-t border-ink/[0.06] px-2.5 py-2 sm:px-3.5 sm:py-2.5">
+            <div className="plan-ladder">
+              <span className="plan-rail" aria-hidden />
+              {planRows.map((row, i) => {
+                if (row.kind === "entry") {
+                  return (
+                    <div key="entry" className="plan-row plan-row-entry">
+                      <span className="plan-dot-slot" aria-hidden>
+                        <span className="plan-dot plan-dot-entry" />
+                      </span>
+                      <span className="plan-label font-semibold text-text-primary">Entry</span>
+                      <span className="plan-price font-semibold text-text-primary">
+                        {formatPrice(signal?.entry)}
+                      </span>
+                      {!isCompact && (
+                        <span className="plan-meta text-text-muted">
                           {formatShortDateTime(signal?.created_at)}
                         </span>
-                      </div>
-                    );
-                  }
-                  const hit = !!row.hit;
-                  const isSl = row.kind === "sl";
-                  const pct = row.pct;
-                  const pctLabel =
-                    pct == null ? "—" : `${Number(pct) > 0 ? "+" : ""}${pct}%`;
-                  const live = Number(livePrice);
-                  const lv = Number(row.value);
-                  const nearNow =
-                    livePrice &&
-                    lv > 0 &&
-                    Math.abs(live - lv) / lv < 0.004;
-                  return (
-                    <div
-                      key={`${row.kind}-${row.label}-${i}`}
-                      className={`relative flex items-center gap-2.5 rounded-md py-1.5 pr-1 ${
-                        hit
-                          ? isSl
-                            ? "bg-negative/[0.07]"
-                            : "bg-positive/[0.07]"
-                          : nearNow
-                            ? "bg-ink/[0.03]"
-                            : ""
-                      }`}
-                    >
-                      <span
-                        className={`relative z-[1] h-2.5 w-2.5 flex-shrink-0 rounded-full border-2 ${
-                          hit
-                            ? isSl
-                              ? "border-negative bg-negative"
-                              : "border-positive bg-positive"
-                            : "border-ink/25 bg-surface-raised"
-                        }`}
-                        aria-hidden
-                      />
-                      <span
-                        className={`w-12 text-[12px] font-medium ${
-                          hit
-                            ? isSl
-                              ? "text-negative"
-                              : "text-positive"
-                            : "text-text-muted"
-                        }`}
-                      >
-                        {row.label}
-                      </span>
-                      <span
-                        className={`flex-1 font-mono text-[13px] tabular-nums ${
-                          hit ? "font-semibold text-text-primary" : "text-text-secondary"
-                        }`}
-                      >
-                        {formatPrice(row.value)}
-                      </span>
-                      <span
-                        className={`font-mono text-[12px] tabular-nums ${
-                          hit
-                            ? isSl
-                              ? "text-negative"
-                              : "text-positive"
-                            : "text-text-muted"
-                        }`}
-                      >
-                        {pctLabel}
-                      </span>
+                      )}
                     </div>
                   );
-                })}
-              </div>
+                }
+                const hit = !!row.hit;
+                const isSl = row.kind === "sl";
+                const pct = row.pct;
+                const pctLabel =
+                  pct == null ? "—" : `${Number(pct) > 0 ? "+" : ""}${pct}%`;
+                const live = Number(livePrice);
+                const lv = Number(row.value);
+                const nearNow = livePrice && lv > 0 && Math.abs(live - lv) / lv < 0.004;
+                const slLabel = slLadder.length === 1 ? "SL" : row.label;
+                return (
+                  <div
+                    key={`${row.kind}-${row.label}-${i}`}
+                    className={`plan-row ${
+                      hit ? (isSl ? "plan-row-hit-sl" : "plan-row-hit-tp") : nearNow ? "plan-row-near" : ""
+                    }`}
+                  >
+                    <span className="plan-dot-slot" aria-hidden>
+                      <span
+                        className={`plan-dot ${
+                          hit ? (isSl ? "plan-dot-sl-hit" : "plan-dot-tp-hit") : "plan-dot-pending"
+                        }`}
+                      />
+                    </span>
+                    <span
+                      className={`plan-label ${
+                        hit ? (isSl ? "text-negative" : "text-positive") : "text-text-muted"
+                      }`}
+                    >
+                      {isSl ? slLabel : row.label}
+                    </span>
+                    <span
+                      className={`plan-price ${
+                        hit ? "font-semibold text-text-primary" : "text-text-secondary"
+                      }`}
+                    >
+                      {formatPrice(row.value)}
+                    </span>
+                    <span
+                      className={`plan-meta tabular-nums ${
+                        hit ? (isSl ? "text-negative" : "text-positive") : "text-text-muted"
+                      }`}
+                    >
+                      {pctLabel}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1497,8 +1471,33 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           )}
         </div>
 
+        {/* Compact: one-line derivatives so the ticket stays the focus */}
+        {isCompact && derivMetrics &&
+          (() => {
+            const { funding, oiUsd, lsLong, lsShort } = derivMetrics;
+            const fundingPos = funding > 0;
+            return (
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar rounded-xl border border-ink/[0.08] bg-surface-raised px-2.5 py-1.5 font-mono text-[10px] tabular-nums">
+                <span className={fundingPos ? "text-negative" : "text-positive"}>
+                  Fund {funding >= 0 ? "+" : ""}
+                  {funding.toFixed(4)}%
+                </span>
+                <span className="text-ink/20">·</span>
+                <span className="text-text-secondary">OI {formatOiUsd(oiUsd)}</span>
+                {lsLong != null && lsShort != null && (
+                  <>
+                    <span className="text-ink/20">·</span>
+                    <span className="text-positive">{lsLong}L</span>
+                    <span className="text-text-muted">/</span>
+                    <span className="text-negative">{lsShort}S</span>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
         {/* ── DERIVATIVES (tile kotak + L/S bar chart) ── */}
-        {derivMetrics &&
+        {!isCompact && derivMetrics &&
           (() => {
             const { funding, nextFundingMs, oiUsd, oiChange24h, lsLong, lsShort } = derivMetrics;
             const countdown = formatCountdown(nextFundingMs);
@@ -1613,7 +1612,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           })()}
 
         {/* ── FALLBACK: live/derivatives data ke-block (geo) → saran VPN ── */}
-        {!derivMetrics && liveBlocked && (
+        {!isCompact && !derivMetrics && liveBlocked && (
           <div className="lq-card bg-surface-raised">
             <div className="p-3 text-center">
               <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-ink/10 bg-ink/[0.05]">
@@ -1641,7 +1640,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         )}
 
         {/* ── META: volume / risk / cap ── */}
-        {(signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
+        {!isCompact && (signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
           <div className="lq-card bg-surface-raised p-2 space-y-1.5">
             {signal?.volume_rank_num && (
               <div className="flex items-center justify-between gap-2">
@@ -1689,6 +1688,103 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       </div>
     );
   };
+
+  // Chart tools live in a real bar above the iframe — never overlaid on TV's
+  // own timeframe chrome. Hosts below stay mounted (display toggle only).
+  const renderChartTools = () => (
+    <div className="flex h-9 flex-shrink-0 items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-ink/[0.08] bg-surface-raised px-2.5 sm:px-3">
+      {chartFull && (
+        <button
+          type="button"
+          onClick={toggleChartFull}
+          title="Back to the signal (Esc)"
+          className="inline-flex h-7 items-center gap-1 rounded-md border border-accent/35 bg-accent/12 px-2 text-[10px] font-medium uppercase tracking-[0.1em] text-accent"
+        >
+          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 3v6H3M15 21v-6h6M3 15h6v6M21 9h-6V3" />
+          </svg>
+          Back
+        </button>
+      )}
+      <div
+        role="tablist"
+        aria-label="Chart view"
+        className="inline-flex h-7 items-center rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5"
+      >
+        {[
+          { k: "tv", label: "TV", title: "TradingView chart" },
+          { k: "plan", label: "Plan", title: "Trade plan — entry, targets and stops on candles" },
+        ].map((m) => (
+          <button
+            key={m.k}
+            type="button"
+            role="tab"
+            aria-selected={chartMode === m.k}
+            onClick={() => setChartMode(m.k)}
+            title={m.title}
+            className={`h-6 rounded px-2.5 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
+              chartMode === m.k ? "bg-accent text-accent-fg" : "text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      {chartMode === "tv" && (
+        <button
+          type="button"
+          onClick={toggleIndicators}
+          title={
+            showIndicators
+              ? "Hide indicators (MACD · RSI · BB)"
+              : "Show indicators (MACD · RSI · BB)"
+          }
+          className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
+            showIndicators
+              ? "border-ink/15 bg-surface-secondary text-text-primary"
+              : "border-ink/10 bg-transparent text-text-muted hover:text-text-primary"
+          }`}
+        >
+          <span
+            className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-ink/40" : "bg-ink/15"}`}
+          >
+            <span
+              className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${showIndicators ? "translate-x-2.5" : "translate-x-0.5"}`}
+            />
+          </span>
+          Ind
+        </button>
+      )}
+      <div className="ml-auto flex items-center gap-1">
+        {!chartFull && (
+          <button
+            type="button"
+            onClick={toggleChartFull}
+            title="Fullscreen chart + full TV tools"
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-ink/[0.1] bg-surface-secondary px-2 text-[10px] font-medium uppercase tracking-[0.1em] text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+          >
+            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+            Full
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={openFullTradingView}
+          title="Open on TradingView.com"
+          aria-label="Open on TradingView.com"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-accent/35 hover:text-accent"
+        >
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
 
   // ========== RENDER ==========
   const modalContent = (
@@ -1861,94 +1957,32 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       type="button"
                       onClick={() => {
                         setActiveTab(id);
+                        setMoreActionsOpen(false);
                         onTabChange && onTabChange(id);
                       }}
-                      className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[10px] font-medium transition-colors sm:flex-none sm:px-3 sm:text-[11px] ${
+                      className={`flex flex-1 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-md px-1 py-1 text-[9px] font-medium leading-none transition-colors sm:flex-none sm:flex-row sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[11px] ${
                         activeTab === id
                           ? "bg-surface-raised text-text-primary shadow-sm"
                           : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
                       }`}
                     >
                       {icon}
-                      <span className="hidden sm:inline">{label}</span>
+                      <span>{label}</span>
                     </button>
                   ))}
                 </div>
 
-                {/* Utility actions — compact, right of the tab toolbar */}
-                <div className="flex shrink-0 items-center gap-1">
-                  {/* Shariah Check — tombol, bukan kartu tertanam. Titik warnanya
-                      cuma isyarat; status telanjang tidak pernah berdiri sendiri,
-                      keterangan lengkapnya ada di dalam modal. */}
-                  {shariahEnabled && (
+                {/* Utility actions — alert + share stay visible; the rest
+                    collapse into More on the phone so they don't fight the tabs. */}
+                <div className="relative flex shrink-0 items-center gap-1">
+                  {moreActionsOpen && (
                     <button
                       type="button"
-                      onClick={() => setShowShariah(true)}
-                      title="Shariah Check — hasil screening, bukan fatwa"
-                      aria-label="Shariah Check"
-                      className="flex h-8 items-center gap-1.5 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          SHARIAH_META[shariahStatus]?.dot || "bg-text-muted"
-                        }`}
-                      />
-                      <span className="hidden sm:inline">Shariah</span>
-                    </button>
+                      aria-label="Close menu"
+                      className="fixed inset-0 z-20 sm:hidden"
+                      onClick={() => setMoreActionsOpen(false)}
+                    />
                   )}
-                  <a
-                    href={`https://x.com/search?q=${encodeURIComponent("$" + (signal?.pair || "").replace(/USDT$|USDC$|USD$/i, ""))}&src=typed_query&f=live`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
-                    aria-label="Explore on X"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
-                  >
-                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" role="img">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sessionStorage.setItem(
-                        "journal_prefill",
-                        JSON.stringify({
-                          signal_id: signal.signal_id,
-                          pair: signal.pair,
-                          planned_entry: signal.entry,
-                          planned_tp1: signal.target1,
-                          planned_tp2: signal.target2,
-                          planned_tp3: signal.target3,
-                          planned_tp4: signal.target4,
-                          planned_sl: signal.stop1,
-                        })
-                      );
-                      handleCloseClick();
-                      setTimeout(() => {
-                        window.location.href = "/journal";
-                      }, 300);
-                    }}
-                    title="Journal this trade"
-                    aria-label="Journal this trade"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
-                      />
-                    </svg>
-                  </button>
-                  {/* Back-at-entry alert — don't chase a setup that already
-                      ran; get pinged if it returns to the entry zone. */}
                   <button
                     type="button"
                     onClick={toggleEntryAlert}
@@ -1966,59 +2000,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
                     }`}
                   >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                       <path d="M13.7 21a2 2 0 0 1-3.4 0" />
                     </svg>
                   </button>
-                  {/* Size this trade — hand the call straight to the Risk
-                      Calculator instead of making the user retype the levels. */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleCloseClick();
-                      setTimeout(() => {
-                        window.location.href = `/terminal/scan?tab=risk&prefill=${encodeURIComponent(
-                          signal?.pair || ""
-                        )}`;
-                      }, 300);
-                    }}
-                    title="Size this trade — open the risk calculator"
-                    aria-label="Size this trade"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="4" y="3" width="16" height="18" rx="2" />
-                      <path d="M8 7h8M8 12h3M8 16h3M15 12v5M13 14.5h4" />
-                    </svg>
-                  </button>
-                  {tweetUrl && (
-                    <button
-                      type="button"
-                      onClick={handleShareTweet}
-                      title="Share to Instagram"
-                      aria-label="Share to Instagram"
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
-                    >
-                      {Ic.instagram("w-3.5 h-3.5")}
-                    </button>
-                  )}
                   <div className="relative">
                     <button
                       type="button"
@@ -2035,6 +2021,121 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </span>
                     )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setMoreActionsOpen((v) => !v)}
+                    title="More actions"
+                    aria-label="More actions"
+                    aria-expanded={moreActionsOpen}
+                    className="relative z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:hidden"
+                  >
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <circle cx="5" cy="12" r="1.6" />
+                      <circle cx="12" cy="12" r="1.6" />
+                      <circle cx="19" cy="12" r="1.6" />
+                    </svg>
+                  </button>
+                  <div
+                    className={`${
+                      moreActionsOpen
+                        ? "absolute right-0 top-full z-30 mt-1.5 flex w-48 flex-col gap-0.5 rounded-lg border border-ink/12 bg-surface-raised p-1 shadow-lg"
+                        : "hidden"
+                    } sm:relative sm:top-auto sm:mt-0 sm:flex sm:w-auto sm:flex-row sm:items-center sm:gap-1 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none`}
+                  >
+                    {shariahEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowShariah(true);
+                          setMoreActionsOpen(false);
+                        }}
+                        title="Shariah Check — hasil screening, bukan fatwa"
+                        aria-label="Shariah Check"
+                        className="flex h-8 items-center gap-1.5 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:px-2"
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${SHARIAH_META[shariahStatus]?.dot || "bg-text-muted"}`} />
+                        <span>Shariah</span>
+                      </button>
+                    )}
+                    <a
+                      href={`https://x.com/search?q=${encodeURIComponent("$" + (signal?.pair || "").replace(/USDT$|USDC$|USD$/i, ""))}&src=typed_query&f=live`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
+                      aria-label="Explore on X"
+                      className="flex h-8 items-center gap-2 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:w-8 sm:justify-center sm:px-0"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" role="img">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                      <span className="sm:hidden">Search on X</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sessionStorage.setItem(
+                          "journal_prefill",
+                          JSON.stringify({
+                            signal_id: signal.signal_id,
+                            pair: signal.pair,
+                            planned_entry: signal.entry,
+                            planned_tp1: signal.target1,
+                            planned_tp2: signal.target2,
+                            planned_tp3: signal.target3,
+                            planned_tp4: signal.target4,
+                            planned_sl: signal.stop1,
+                          })
+                        );
+                        handleCloseClick();
+                        setTimeout(() => {
+                          window.location.href = "/journal";
+                        }, 300);
+                      }}
+                      title="Journal this trade"
+                      aria-label="Journal this trade"
+                      className="flex h-8 items-center gap-2 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:w-8 sm:justify-center sm:px-0"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                      </svg>
+                      <span className="sm:hidden">Journal</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCloseClick();
+                        setTimeout(() => {
+                          window.location.href = `/terminal/scan?tab=risk&prefill=${encodeURIComponent(
+                            signal?.pair || ""
+                          )}`;
+                        }, 300);
+                      }}
+                      title="Size this trade — open the risk calculator"
+                      aria-label="Size this trade"
+                      className="flex h-8 items-center gap-2 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:w-8 sm:justify-center sm:px-0"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="4" y="3" width="16" height="18" rx="2" />
+                        <path d="M8 7h8M8 12h3M8 16h3M15 12v5M13 14.5h4" />
+                      </svg>
+                      <span className="sm:hidden">Size trade</span>
+                    </button>
+                    {tweetUrl && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          handleShareTweet(e);
+                          setMoreActionsOpen(false);
+                        }}
+                        title="Share to Instagram"
+                        aria-label="Share to Instagram"
+                        className="flex h-8 items-center gap-2 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:w-8 sm:justify-center sm:px-0"
+                      >
+                        {Ic.instagram("w-3.5 h-3.5")}
+                        <span className="sm:hidden">Instagram</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2047,178 +2148,55 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <div
                     className={
                       chartFull
-                        ? // lq-below-header, not lq-modal-safe: everything in
-                          // here (the TV iframe, the control cluster, the side
-                          // panel) is absolutely positioned, so the box itself
-                          // has to stop below the header or the chart's top and
-                          // its controls end up behind the bar.
-                          "lq-below-header fixed inset-0 z-[70] bg-surface-raised"
-                        : "relative flex-1 min-w-0 min-h-0 bg-surface-raised"
+                        ? "lq-below-header fixed inset-0 z-[70] flex flex-col bg-surface-raised"
+                        : "relative flex min-h-0 min-w-0 flex-1 flex-col bg-surface-raised"
                     }
                   >
-                    {/* Compact controls: Full | TV↗ | TV/Plan | Indicators */}
-                    <div className="absolute top-2 right-2 z-20 flex max-w-[calc(100%-1rem)] flex-wrap items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={toggleChartFull}
-                        title={
-                          chartFull
-                            ? "Back to the signal (Esc)"
-                            : "Fullscreen chart + full TV tools"
-                        }
-                        className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
-                          chartFull
-                            ? "border-accent/35 bg-accent/12 text-accent"
-                            : "border-ink/15 bg-surface/80 text-text-muted hover:text-text-primary"
-                        }`}
+                    {renderChartTools()}
+                    <div className="relative min-h-0 flex-1">
+                      {/* Both hosts stay mounted and are toggled with CSS. Swapping
+                          them with a conditional made React unmount a div whose
+                          children the TradingView script had replaced, and the two
+                          fought over the same nodes: "Failed to execute
+                          'removeChild' on 'Node'". Keeping the host alive means
+                          React never touches DOM the widget owns. Absolute fill so
+                          the iframe gets a real box after the tools bar took height. */}
+                      <div
+                        className="absolute inset-0 p-3"
+                        style={{ display: chartMode === "plan" ? "block" : "none" }}
                       >
-                        {chartFull ? (
-                          <>
-                            <svg
-                              className="h-3 w-3"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M9 3v6H3M15 21v-6h6M3 15h6v6M21 9h-6V3" />
-                            </svg>
-                            Back
-                          </>
-                        ) : (
-                          <>
-                            <svg
-                              className="h-3 w-3"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-                            </svg>
-                            Full
-                          </>
+                        {chartMode === "plan" && (
+                          <SignalLevelsChart signal={signal} theme={appTheme} />
                         )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={openFullTradingView}
-                        title="Open on TradingView.com"
-                        aria-label="Open on TradingView.com"
-                        className="flex h-[30px] w-[30px] items-center justify-center rounded-md border border-ink/15 bg-surface/80 text-text-muted backdrop-blur-md transition-colors hover:border-accent/35 hover:text-accent"
-                      >
-                        <svg
-                          className="h-3.5 w-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                          <polyline points="15 3 21 3 21 9" />
-                          <line x1="10" y1="14" x2="21" y2="3" />
-                        </svg>
-                      </button>
-                      <div className="flex items-center rounded-md border border-ink/15 bg-surface/80 p-0.5 backdrop-blur-md">
-                        {[
-                          { k: "tv", label: "TV" },
-                          { k: "plan", label: "Plan" },
-                        ].map((m) => (
-                          <button
-                            key={m.k}
-                            type="button"
-                            onClick={() => setChartMode(m.k)}
-                            title={
-                              m.k === "plan"
-                                ? "Trade plan — entry, targets and stops on candles"
-                                : "TradingView chart"
-                            }
-                            className={`rounded px-2 py-1 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
-                              chartMode === m.k
-                                ? "bg-accent text-accent-fg"
-                                : "text-text-muted hover:text-text-primary"
-                            }`}
-                          >
-                            {m.label}
-                          </button>
-                        ))}
                       </div>
-                      {chartMode === "tv" && (
-                        <button
-                          onClick={toggleIndicators}
-                          title={
-                            showIndicators
-                              ? "Hide indicators (MACD · RSI · BB)"
-                              : "Show indicators (MACD · RSI · BB)"
-                          }
-                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md border text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
-                            showIndicators
-                              ? "bg-surface/80 border-ink/15 text-text-primary"
-                              : "bg-surface/60 border-ink/10 text-text-muted hover:text-text-primary"
-                          }`}
-                        >
-                          <span
-                            className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-ink/40" : "bg-ink/15"}`}
-                          >
-                            <span
-                              className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${showIndicators ? "translate-x-2.5" : "translate-x-0.5"}`}
-                            />
-                          </span>
-                          Ind
-                        </button>
-                      )}
-                    </div>
-                    {/* Both hosts stay mounted and are toggled with CSS. Swapping
-                        them with a conditional made React unmount a div whose
-                        children the TradingView script had replaced, and the two
-                        fought over the same nodes: "Failed to execute
-                        'removeChild' on 'Node'". Keeping the host alive means
-                        React never touches DOM the widget owns. */}
-                    <div
-                      className="h-full w-full p-3 pt-12"
-                      style={{ display: chartMode === "plan" ? "block" : "none" }}
-                    >
-                      {chartMode === "plan" && (
-                        <SignalLevelsChart signal={signal} theme={appTheme} />
-                      )}
-                    </div>
-                    <div
-                      id="tv_chart_modal_main"
-                      ref={chartContainerRef}
-                      className="w-full h-full"
-                      style={{ display: chartMode === "plan" ? "none" : "block" }}
-                    />
-                    {/* Full mode: keep plan summary floating on the right (not lost) */}
-                    {chartFull && fullShowPlan && (
-                      <div className="absolute bottom-2 right-2 top-12 z-20 hidden w-[min(20rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-ink/12 bg-surface-raised/95 shadow-2xl backdrop-blur-md sm:block">
-                        <div className="flex h-full flex-col">
-                          <div className="flex items-center justify-between border-b border-ink/[0.07] px-3 py-2">
-                            <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                              Plan summary
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setFullShowPlan(false)}
-                              className="rounded-md px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-text-primary"
-                            >
-                              Hide
-                            </button>
-                          </div>
-                          <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
-                            {renderTargetsPanel("sidebar")}
+                      <div
+                        id="tv_chart_modal_main"
+                        ref={chartContainerRef}
+                        className="absolute inset-0"
+                        style={{ display: chartMode === "plan" ? "none" : "block" }}
+                      />
+                      {chartFull && fullShowPlan && (
+                        <div className="absolute bottom-2 right-2 top-2 z-20 hidden w-[min(20rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-ink/12 bg-surface-raised/95 shadow-2xl backdrop-blur-md sm:block">
+                          <div className="flex h-full flex-col">
+                            <div className="flex items-center justify-between border-b border-ink/[0.07] px-3 py-2">
+                              <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                Plan summary
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setFullShowPlan(false)}
+                                className="rounded-md px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-text-primary"
+                              >
+                                Hide
+                              </button>
+                            </div>
+                            <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+                              {renderTargetsPanel("sidebar")}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                   <div
                     className={`${chartFull ? "hidden" : "hidden lg:block"} w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-ink/10 overflow-y-auto custom-scrollbar`}
@@ -3091,9 +3069,99 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  }
 
  .mobile-targets-panel {
- max-height: min(46vh, 400px);
+ max-height: min(42vh, 360px);
  overflow-y: auto;
  -webkit-overflow-scrolling: touch;
+ }
+
+ /* Plan ladder: 20px rail column, 10px dots, 1px line through the center. */
+ .plan-ladder { position: relative; }
+ .plan-rail {
+ position: absolute;
+ left: 10px;
+ top: 12px;
+ bottom: 12px;
+ width: 1px;
+ transform: translateX(-50%);
+ background: rgb(var(--ink) / 0.16);
+ pointer-events: none;
+ z-index: 1;
+ }
+ .plan-row {
+ display: grid;
+ grid-template-columns: 20px 2.6rem minmax(0, 1fr) auto;
+ align-items: center;
+ column-gap: 8px;
+ min-height: 30px;
+ padding: 3px 2px 3px 0;
+ border-radius: 6px;
+ }
+ .plan-row-entry {
+ background: rgb(var(--accent) / 0.06);
+ padding-top: 5px;
+ padding-bottom: 5px;
+ }
+ .plan-row-hit-tp { background: rgb(var(--positive) / 0.07); }
+ .plan-row-hit-sl { background: rgb(var(--negative) / 0.07); }
+ .plan-row-near { background: rgb(var(--ink) / 0.04); }
+ .plan-dot-slot {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ width: 20px;
+ height: 12px;
+ position: relative;
+ z-index: 2;
+ }
+ .plan-dot {
+ display: block;
+ width: 10px;
+ height: 10px;
+ border-radius: 999px;
+ border: 2px solid rgb(var(--ink) / 0.28);
+ background: rgb(var(--surface-raised));
+ box-sizing: border-box;
+ }
+ .plan-dot-entry {
+ width: 12px;
+ height: 12px;
+ border-color: rgb(var(--accent));
+ background: rgb(var(--surface-raised));
+ box-shadow: 0 0 0 3px rgb(var(--accent) / 0.16);
+ }
+ .plan-dot-pending { border-color: rgb(var(--ink) / 0.28); }
+ .plan-dot-tp-hit {
+ border-color: rgb(var(--positive));
+ background: rgb(var(--positive));
+ }
+ .plan-dot-sl-hit {
+ border-color: rgb(var(--negative));
+ background: rgb(var(--negative));
+ }
+ .plan-label {
+ font-size: 12px;
+ font-weight: 500;
+ line-height: 1;
+ }
+ .plan-price {
+ font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+ font-size: 13px;
+ font-variant-numeric: tabular-nums;
+ line-height: 1;
+ }
+ .plan-meta {
+ font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+ font-size: 12px;
+ font-variant-numeric: tabular-nums;
+ text-align: right;
+ min-width: 4.25rem;
+ line-height: 1;
+ }
+ @media (max-width: 639px) {
+ .plan-label { font-size: 11px; }
+ .plan-price { font-size: 12px; }
+ .plan-meta { font-size: 11px; min-width: 3.6rem; }
+ .plan-row { min-height: 28px; column-gap: 6px; }
  }
 
  .signal-modal-backdrop { animation: smBI .22s ease-out; }
