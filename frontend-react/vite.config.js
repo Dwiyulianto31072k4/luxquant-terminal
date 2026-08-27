@@ -1,8 +1,35 @@
+import { execSync } from "node:child_process";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+function readBuildId() {
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return String(Date.now());
+  }
+}
+
+const buildId = readBuildId();
+
+function buildIdPlugin() {
+  return {
+    name: "lq-build-id",
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "build.json",
+        source: JSON.stringify({ id: buildId }),
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), buildIdPlugin()],
+  define: {
+    "import.meta.env.VITE_BUILD_ID": JSON.stringify(buildId),
+  },
 
   server: {
     port: 3000,

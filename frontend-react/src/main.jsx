@@ -45,6 +45,54 @@ try {
   });
 })();
 
+// ── New-deploy pickup ──────────────────────────────────────────────────
+// Old hashed bundles are kept on disk so an open tab does not 404. That also
+// means a user can sit on yesterday's UI forever. Poll /build.json (never
+// cached) and reload when the running bundle is behind — on tab focus, after
+// bfcache restore, and every 10 minutes. Skip while they are typing.
+(function () {
+  const mine = import.meta.env.VITE_BUILD_ID;
+  if (!mine) return;
+  const ping = () => {
+    if (document.visibilityState && document.visibilityState !== "visible") return;
+    try {
+      const ae = document.activeElement;
+      if (
+        ae &&
+        (ae.tagName === "INPUT" ||
+          ae.tagName === "TEXTAREA" ||
+          ae.tagName === "SELECT" ||
+          ae.isContentEditable)
+      ) {
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    fetch("/build.json?t=" + Date.now(), { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d || !d.id || d.id === mine) return;
+        try {
+          const KEY = "lq_build_reload_at";
+          const last = Number(sessionStorage.getItem(KEY) || 0);
+          if (Date.now() - last < 20000) return;
+          sessionStorage.setItem(KEY, String(Date.now()));
+        } catch {
+          /* ignore */
+        }
+        window.location.reload();
+      })
+      .catch(() => {});
+  };
+  document.addEventListener("visibilitychange", ping);
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) ping();
+  });
+  setInterval(ping, 10 * 60 * 1000);
+  ping();
+})();
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
