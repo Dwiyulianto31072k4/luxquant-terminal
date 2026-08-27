@@ -8,10 +8,6 @@ import { getScenarioLedger } from "../../services/aiArenaV6Api";
 import { formatPrice, formatTimestamp } from "./constants";
 import {
   Card,
-  SectionHeader,
-  StatCard,
-  OutcomeBar,
-  Chip,
   Donut,
   GhostButton,
   highlightPrices,
@@ -19,6 +15,27 @@ import {
 } from "./_ui";
 
 const DEFAULT_PAGE_SIZE = 8;
+
+const MODE_SHORT = {
+  ALTCOIN_FRIENDLY: "Risk-on",
+  SELECTIVE_RISK_ON: "Selective",
+  BTC_ONLY_RISK_ON: "BTC-led",
+  DEFENSIVE: "Defensive",
+  EMERGENCY_DE_RISK: "Protect",
+  CHOPPY_RANGE: "Range",
+};
+
+const RESULT_SHORT = {
+  CLEAN_HIT: "Hit",
+  LATE_HIT: "Late",
+  RANGE_HELD: "Held",
+  PARTIAL_HIT: "Partial",
+  INVALIDATED_FIRST: "Miss",
+  RANGE_BREAK_DOWN: "Broke ↓",
+  RANGE_BREAK_UP: "Broke ↑",
+  SUPERSEDED: "Replaced",
+  PENDING: "Live",
+};
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -32,6 +49,20 @@ function prettyToken(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function shortBias(value) {
+  const text = String(value || "").toUpperCase();
+  if (text.includes("BULL")) return "Bullish";
+  if (text.includes("BEAR")) return "Bearish";
+  if (text.includes("RISK_ON")) return "Risk-on";
+  if (text.includes("RISK_OFF") || text.includes("DEFENSIVE")) return "Defensive";
+  return prettyToken(value).replace(/ Continuation$/i, "") || "—";
+}
+
+function shortMode(value) {
+  const key = String(value || "").toUpperCase();
+  return MODE_SHORT[key] || prettyToken(value);
+}
+
 function outcomeTone(value) {
   const text = String(value || "PENDING").toUpperCase();
   if (["CLEAN_HIT", "LATE_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(text)) {
@@ -41,7 +72,6 @@ function outcomeTone(value) {
     return "border-loss/25 bg-loss/10 text-loss";
   }
   if (text.includes("SUPERSEDED")) {
-    // Quieter than pending — this row is history, not something to watch.
     return "border-ink/[0.08] bg-ink/[0.03] text-text-muted";
   }
   if (text.includes("PENDING") || text.includes("ACTIVE")) {
@@ -64,42 +94,36 @@ function asPercent(value) {
   return `${number >= 0 ? "+" : ""}${number.toFixed(2)}%`;
 }
 
+function compactTime(iso) {
+  if (!iso) return "—";
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  const ageMin = Math.round((Date.now() - parsed.getTime()) / 60000);
+  if (ageMin < 60) return `${Math.max(1, ageMin)}m`;
+  if (ageMin < 60 * 24) return `${Math.round(ageMin / 60)}h`;
+  return parsed.toLocaleString("en-US", { month: "short", day: "numeric" });
+}
+
 function buildProjected(item) {
-  const bias = prettyToken(item.primary_bias);
   const touch = item.primary_touch?.level;
-  const trigger = item.primary_touch?.trigger;
-  const mode = prettyToken(item.market_mode);
   return {
-    title: touch ? `${bias} toward ${formatPrice(touch)}` : `${bias} scenario`,
-    meta: `${mode}${trigger ? ` · ${prettyToken(trigger)}` : ""}`,
+    title: touch ? formatPrice(touch) : shortBias(item.primary_bias),
+    meta: [shortBias(item.primary_bias), shortMode(item.market_mode)].filter(Boolean).join(" · "),
   };
 }
 
 function buildResult(item) {
   const resolution = item.resolution;
   if (!resolution) {
-    // A read the next report replaced before price touched anything. It will
-    // never resolve, so calling it "Pending" claimed a barrier was still
-    // coming for it — and with a new report every 30-170 minutes, the table
-    // filled with dead rows all appearing to be live at once. Only one
-    // contract is ever ACTIVE; the rest were superseded, which is the system
-    // updating its view, not five open positions.
     if (String(item.status || "").toUpperCase() === "SUPERSEDED") {
-      return {
-        label: "Superseded",
-        // Says the consequence, not just the event. The question this row kept
-        // provoking was not "what happened" but "so does it count against you".
-        meta: "Replaced by a newer read before price touched anything — not scored either way",
-        tone: "SUPERSEDED",
-      };
+      return { label: "Replaced", meta: "Not scored", tone: "SUPERSEDED" };
     }
-    // No meta: the chip already reads "Pending", and a constant second line
-    // saying the same thing ran down every unresolved row in the table.
-    return { label: "Pending", meta: null, tone: "PENDING" };
+    return { label: "Live", meta: null, tone: "PENDING" };
   }
+  const key = String(resolution.outcome || "").toUpperCase();
   const move = asPercent(resolution.mfe_pct ?? resolution.mae_pct);
   return {
-    label: prettyToken(resolution.outcome),
+    label: RESULT_SHORT[key] || prettyToken(resolution.outcome),
     meta: [
       resolution.first_barrier ? prettyToken(resolution.first_barrier) : null,
       resolution.first_barrier_price ? formatPrice(resolution.first_barrier_price) : null,
@@ -115,23 +139,53 @@ function buildExplanation(item) {
   const resolution = item.resolution;
   if (resolution?.interpretation) return resolution.interpretation;
   if (resolution?.reason_codes?.length) return resolution.reason_codes.map(prettyToken).join(", ");
-
-  const touch = item.primary_touch?.level;
-  const invalidation = item.invalidation?.level;
-  const confirmation = item.confirmation?.level;
+  if (item.headline) return item.headline;
   if (!resolution) {
-    return (
-      [
-        touch ? `Projected touch is ${formatPrice(touch)}` : null,
-        confirmation ? `confirmation near ${formatPrice(confirmation)}` : null,
-        invalidation ? `invalidation near ${formatPrice(invalidation)}` : null,
-      ]
-        .filter(Boolean)
-        .join("; ") ||
-      "Scenario is still active; result appears after a target, confirmation, or invalidation barrier resolves."
-    );
+    if (String(item.status || "").toUpperCase() === "SUPERSEDED") {
+      return "Replaced by a newer read before a barrier — not scored.";
+    }
+    const invalidation = item.invalidation?.level;
+    return invalidation
+      ? `Waiting on first barrier · invalidation ${formatPrice(invalidation)}`
+      : "Waiting on first barrier.";
   }
-  return "Resolved by the first touched scenario barrier.";
+  return "Resolved by the first touched barrier.";
+}
+
+function MixBar({ segments }) {
+  const total = segments.reduce((sum, s) => sum + (Number(s.value) || 0), 0);
+  if (!total) return null;
+  return (
+    <div
+      className="flex h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.06]"
+      role="img"
+      aria-label="Outcome mix"
+    >
+      {segments.map((s) =>
+        s.value > 0 ? (
+          <span
+            key={s.label}
+            className="h-full"
+            style={{ width: `${(s.value / total) * 100}%`, background: s.hex }}
+            title={`${s.label}: ${s.value}`}
+          />
+        ) : null
+      )}
+    </div>
+  );
+}
+
+function ResultChip({ result }) {
+  return (
+    <span
+      className={cx(
+        "inline-flex whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-medium",
+        outcomeTone(result.tone)
+      )}
+    >
+      {result.label}
+    </span>
+  );
 }
 
 export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) {
@@ -139,6 +193,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   const [page, setPage] = useState(1);
   const [data, setData] = useState(ledger || null);
   const [loading, setLoading] = useState(false);
+  const [openId, setOpenId] = useState(null);
   const requestRef = useRef(0);
 
   useEffect(() => {
@@ -172,6 +227,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
 
   useEffect(() => {
     setPage(1);
+    setOpenId(null);
   }, [filter]);
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -187,157 +243,130 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
     { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
     { label: "Stale", value: stats.stale ?? 0, hex: "#8a7a6a" },
     { label: "Ambiguous", value: stats.ambiguous ?? 0, hex: COLOR.flat },
-    { label: "Tracking", value: stats.pending ?? 0, hex: COLOR.gold },
+    { label: "Live", value: stats.pending ?? 0, hex: COLOR.gold },
   ];
 
+  const kpis = [
+    { label: "Reports", value: total, tone: "text-text-primary" },
+    { label: "Live", value: stats.pending ?? 0, tone: "text-text-primary" },
+    { label: "Resolved", value: stats.resolved ?? 0, tone: "text-text-primary" },
+    { label: "Replaced", value: stats.superseded ?? 0, tone: "text-text-muted" },
+    { label: "Hits", value: stats.clean_hits ?? 0, tone: "text-profit" },
+    { label: "Miss", value: stats.invalidated_first ?? 0, tone: "text-loss" },
+  ];
+
+  const toggleRow = (id) => {
+    setOpenId((current) => (current === id ? null : id));
+  };
+
   return (
-    <Card className="!rounded-lg">
-      {/* ── header ── */}
-      <div className="border-b border-ink/[0.07] p-4 md:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <Card>
+      <div className="border-b border-ink/[0.07] p-3 md:p-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <SectionHeader label="Evaluation · target-first" className="mb-1.5" />
-            <h2 className="text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
-              Projection accountability
+            <h2 className="font-display text-[18px] font-semibold tracking-tight text-text-primary">
+              Projection audit
             </h2>
-            <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-text-secondary">
-              Every row is judged by the target-first scenario map: what BTC was projected to touch,
-              which barrier resolved first, and why that result matters.
-            </p>
-            {/* Readers asked what "superseded" meant and whether those rows were
-                quietly dropped from the score. They are excluded, and the reason
-                is worth stating rather than leaving to be inferred from a badge. */}
-            <p className="mt-2 max-w-3xl text-[12.5px] leading-6 text-text-muted">
-              A new read is produced whenever price moves enough to matter, and it replaces the one
-              before it — only <span className="text-text-secondary">one projection is ever live</span>.
-              If the older read had already touched a barrier it still counts, as{" "}
-              <span className="text-profit">Hit</span> or{" "}
-              <span className="text-loss">Invalidated</span>. If it had not, it is marked{" "}
-              <span className="text-text-secondary">Superseded</span> and left out of the hit rate —
-              the market never gave it a verdict, so scoring it either way would be inventing one.
+            <p className="mt-0.5 text-[12px] leading-snug text-text-muted">
+              One live row. Hits and misses score · replaced reads do not.
             </p>
           </div>
-          {/* Hit-rate donut. Hairline only — a filled panel here sat heavier
-              than the five KPI cards below it and pulled the eye away from
-              the headline it is supposed to summarise. */}
-          <div className="flex items-center gap-4 rounded-lg border border-ink/[0.09] px-4 py-3">
+          <div className="flex shrink-0 items-center gap-2.5">
             <Donut
-              size={112}
-              thickness={11}
+              size={72}
+              thickness={8}
               centerValue={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
-              centerLabel="hit rate"
+              centerLabel="hit"
               segments={[
                 { label: "Hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
                 { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
-                { label: "Tracking", value: stats.pending ?? 0, hex: COLOR.gold },
+                { label: "Live", value: stats.pending ?? 0, hex: COLOR.gold },
               ]}
             />
-            <div className="space-y-1.5 font-mono text-[10px] font-medium">
-              <div className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.profit }} />
-                Hits{" "}
-                <span className="font-semibold text-text-primary">{stats.clean_hits ?? 0}</span>
+            <div className="hidden space-y-0.5 font-mono text-[10px] text-text-muted sm:block">
+              <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR.profit }} />
+                Hits <span className="tabular-nums text-text-primary">{stats.clean_hits ?? 0}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.loss }} />
-                Invalidated{" "}
-                <span className="font-semibold text-text-primary">
-                  {stats.invalidated_first ?? 0}
-                </span>
+              <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR.loss }} />
+                Miss <span className="tabular-nums text-text-primary">{stats.invalidated_first ?? 0}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.gold }} />
-                Tracking{" "}
-                <span className="font-semibold text-text-primary">{stats.pending ?? 0}</span>
-              </div>
-              <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted">
-                Target-first schema
+              <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR.gold }} />
+                Live <span className="tabular-nums text-text-primary">{stats.pending ?? 0}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* KPI strip */}
-        {/* Six, not five. Without a Superseded card the strip read 479 total,
-            1 tracking, 473 resolved — five rows unaccounted for and no way to
-            see where they went. */}
-        <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
-          <StatCard
-            label="Tracking"
-            value={stats.pending ?? 0}
-            detail="Waiting for first barrier"
-          />
-          <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
-          <StatCard
-            label="Superseded"
-            value={stats.superseded ?? 0}
-            detail="Replaced first · not scored"
-          />
-          <StatCard
-            label="Hits"
-            value={stats.clean_hits ?? 0}
-            detail={
-              stats.late_hits ? `Direction right · ${stats.late_hits} late` : "Projection respected"
-            }
-            tone="up"
-          />
-          <StatCard
-            label="Invalidated"
-            value={stats.invalidated_first ?? 0}
-            detail="Thesis broke first"
-            tone="down"
-          />
+        <div className="mt-3 overflow-hidden rounded-lg border border-ink/[0.08] bg-ink/[0.06]">
+          <div className="grid grid-cols-3 gap-px sm:grid-cols-6">
+            {kpis.map((cell) => (
+              <div key={cell.label} className="bg-surface-raised px-2.5 py-2">
+                <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                  {cell.label}
+                </p>
+                <p className={`mt-0.5 font-mono text-[16px] font-semibold tabular-nums leading-none ${cell.tone}`}>
+                  {cell.value}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-3.5">
-          <OutcomeBar segments={outcomeSegments} />
+        <div className="mt-2.5">
+          <MixBar segments={outcomeSegments} />
         </div>
       </div>
 
-      {/* ── toolbar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.07] bg-surface-secondary/60 px-4 py-2.5 md:px-5">
-        <div className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted">
-          Showing{" "}
-          <span className="text-text-primary">
-            {filteredTotal ? start + 1 : 0}–{Math.min(filteredTotal, start + visible.length)}
-          </span>{" "}
-          of <span className="text-text-primary">{filteredTotal}</span>
-          {loading && <span className="ml-2 text-accent">loading…</span>}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/[0.07] px-3 py-2 md:px-4">
+        <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
+          {filteredTotal ? start + 1 : 0}–{Math.min(filteredTotal, start + visible.length)} of{" "}
+          {filteredTotal}
+          {loading ? <span className="ml-2 text-accent">loading…</span> : null}
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex max-w-full gap-0.5 overflow-x-auto rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5">
           {[
             ["all", "All"],
-            ["pending", "Pending"],
-            ["superseded", "Superseded"],
+            ["pending", "Live"],
+            ["superseded", "Replaced"],
             ["resolved", "Resolved"],
             ["hit", "Hits"],
-            ["miss", "Invalidated"],
+            ["miss", "Miss"],
           ].map(([key, label]) => (
-            <Chip key={key} active={filter === key} onClick={() => setFilter(key)}>
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`shrink-0 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                filter === key
+                  ? "bg-surface-raised text-text-primary shadow-sm"
+                  : "text-text-muted hover:text-text-primary"
+              }`}
+            >
               {label}
-            </Chip>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* ── desktop table (md+) ── */}
       <div className="hidden md:block">
         <table className="w-full table-fixed border-collapse">
           <colgroup>
-            <col className="w-[3.5rem]" />
+            <col className="w-10" />
             <col className="w-[9rem]" />
-            <col className="w-[6rem]" />
-            <col className="w-[13rem]" />
-            <col className="w-[11rem]" />
+            <col className="w-[4.25rem]" />
+            <col className="w-[8.5rem]" />
+            <col className="w-[6.5rem]" />
             <col />
           </colgroup>
           <thead>
             <tr className="border-b border-ink/[0.08] bg-surface-secondary/80 text-left">
-              {["No", "Report ID", "Time", "Projected", "Result", "Explanation"].map((header) => (
+              {["#", "Report", "Age", "Target", "Result", "Read"].map((header) => (
                 <th
                   key={header}
-                  className="px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted"
+                  className="px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted"
                 >
                   {header}
                 </th>
@@ -348,86 +377,88 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             {visible.map((item, index) => {
               const projected = buildProjected(item);
               const result = buildResult(item);
+              const explanation = buildExplanation(item);
+              const rowId = item.projection_id || item.report_id;
+              const open = openId === rowId;
               return (
-                <tr
-                  key={item.projection_id || item.report_id}
-                  className="border-b border-ink/[0.045] transition hover:bg-ink/[0.03]"
-                >
-                  <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-text-muted">
-                    {start + index + 1}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <div className="truncate font-mono text-xs text-text-primary">
-                      {item.report_id || "-"}
-                    </div>
-                    {/* Kept for support lookups, but lowercase and untracked —
-                        as set it was a shouting truncated duplicate. */}
-                    <div
-                      className="mt-1 truncate font-mono text-[10px] text-text-muted"
-                      title={item.projection_id || undefined}
-                    >
-                      {item.projection_id || "-"}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 align-top font-mono text-xs text-text-secondary">
-                    {formatTimestamp(item.issued_at)}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <div className={cx("text-sm font-semibold", biasTone(item.primary_bias))}>
-                      {projected.title}
-                    </div>
-                    <div className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-text-muted">
-                      {projected.meta}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <span
-                      className={cx(
-                        "inline-flex rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em]",
-                        outcomeTone(result.tone)
-                      )}
-                    >
-                      {result.label}
-                    </span>
-                    {result.meta && (
-                      <div className="mt-2 font-mono text-[10.5px] leading-4 text-text-muted">
-                        {result.meta}
+                <React.Fragment key={rowId}>
+                  <tr
+                    className="cursor-pointer border-b border-ink/[0.045] transition hover:bg-ink/[0.03]"
+                    onClick={() => toggleRow(rowId)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleRow(rowId);
+                      }
+                    }}
+                    tabIndex={0}
+                  >
+                    <td className="px-3 py-2 align-middle font-mono text-[12px] tabular-nums text-text-muted">
+                      {start + index + 1}
+                    </td>
+                    <td className="px-3 py-2 align-middle">
+                      <div
+                        className="truncate font-mono text-[12px] text-text-primary"
+                        title={item.report_id || undefined}
+                      >
+                        {item.report_id || "—"}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <p className="text-[13px] leading-6 text-text-secondary">
-                      {highlightPrices(buildExplanation(item))}
-                    </p>
-                    {/* Advisory, not a loss. Red is this desk's colour for
-                        money lost, and spending it on "things to watch" made
-                        every unresolved row read as a failure. An amber rule
-                        carries caution without the alarm. */}
-                    {!!(item.key_risks || []).length && !item.resolution && (
-                      <div className="mt-2 border-l-2 border-warning/50 pl-2.5 text-[11px] leading-5 text-text-muted">
-                        <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
-                          Watch
-                        </span>{" "}
-                        {item.key_risks.slice(0, 2).join(" · ")}
+                    </td>
+                    <td
+                      className="whitespace-nowrap px-3 py-2 align-middle font-mono text-[12px] tabular-nums text-text-muted"
+                      title={formatTimestamp(item.issued_at)}
+                    >
+                      {compactTime(item.issued_at)}
+                    </td>
+                    <td className="px-3 py-2 align-middle">
+                      <div
+                        className={cx(
+                          "font-mono text-[13px] font-semibold tabular-nums",
+                          biasTone(item.primary_bias)
+                        )}
+                      >
+                        {projected.title}
                       </div>
-                    )}
-                  </td>
-                </tr>
+                      <div className="truncate font-mono text-[10px] text-text-muted" title={projected.meta}>
+                        {projected.meta}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 align-middle">
+                      <ResultChip result={result} />
+                    </td>
+                    <td className="px-3 py-2 align-middle">
+                      <p className="truncate text-[12.5px] leading-snug text-text-secondary" title={explanation}>
+                        {highlightPrices(explanation)}
+                      </p>
+                    </td>
+                  </tr>
+                  {open ? (
+                    <tr className="border-b border-ink/[0.045] bg-ink/[0.025]">
+                      <td colSpan={6} className="px-3 py-2.5">
+                        <RowDetail item={item} result={result} explanation={explanation} />
+                      </td>
+                    </tr>
+                  ) : null}
+                </React.Fragment>
               );
             })}
           </tbody>
         </table>
       </div>
 
-      {/* ── mobile cards (< md) — compact, no horizontal scroll ── */}
-      <div className={cx("space-y-2.5 p-3 md:hidden", loading && "opacity-50 transition-opacity")}>
+      <div className={cx("space-y-2 p-3 md:hidden", loading && "opacity-50 transition-opacity")}>
         {visible.map((item, index) => {
           const projected = buildProjected(item);
           const result = buildResult(item);
+          const explanation = buildExplanation(item);
+          const rowId = item.projection_id || item.report_id;
+          const open = openId === rowId;
           return (
-            <div
-              key={item.projection_id || item.report_id}
-              className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5"
+            <button
+              key={rowId}
+              type="button"
+              onClick={() => toggleRow(rowId)}
+              className="block w-full rounded-xl border border-ink/[0.06] bg-surface-secondary p-3 text-left"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
@@ -435,57 +466,43 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                     #{start + index + 1}
                   </span>
                   <span className="truncate font-mono text-[11px] text-text-secondary">
-                    {item.report_id || "-"}
+                    {item.report_id || "—"}
                   </span>
                 </div>
-                <span className="shrink-0 font-mono text-[10px] text-text-muted">
-                  {formatTimestamp(item.issued_at)}
+                <span
+                  className="shrink-0 font-mono text-[10px] text-text-muted"
+                  title={formatTimestamp(item.issued_at)}
+                >
+                  {compactTime(item.issued_at)}
                 </span>
               </div>
 
-              <div className="mt-2.5 flex items-start justify-between gap-2">
+              <div className="mt-2 flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div
                     className={cx(
-                      "text-[14px] font-semibold leading-snug",
+                      "font-mono text-[16px] font-semibold tabular-nums leading-none",
                       biasTone(item.primary_bias)
                     )}
                   >
                     {projected.title}
                   </div>
-                  <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-text-muted">
+                  <div className="mt-1 truncate font-mono text-[10px] text-text-muted">
                     {projected.meta}
                   </div>
                 </div>
-                <span
-                  className={cx(
-                    "shrink-0 rounded-md border px-2 py-1 text-[9.5px] font-mono uppercase tracking-[0.1em]",
-                    outcomeTone(result.tone)
-                  )}
-                >
-                  {result.label}
-                </span>
+                <ResultChip result={result} />
               </div>
 
-              {result.meta && (
-                <div className="mt-2 font-mono text-[10px] leading-4 text-text-muted">
-                  {result.meta}
-                </div>
-              )}
-
-              <p className="mt-2 text-[12.5px] leading-5 text-text-secondary">
-                {highlightPrices(buildExplanation(item))}
+              <p className={cx("mt-2 text-[12.5px] leading-snug text-text-secondary", open ? "" : "line-clamp-2")}>
+                {highlightPrices(explanation)}
               </p>
-
-              {!!(item.key_risks || []).length && !item.resolution && (
-                <div className="mt-2 border-l-2 border-warning/50 pl-2.5 text-[11px] leading-5 text-text-muted">
-                  <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
-                    Watch
-                  </span>{" "}
-                  {item.key_risks.slice(0, 2).join(" · ")}
+              {open ? (
+                <div className="mt-2">
+                  <RowDetail item={item} result={result} explanation={null} />
                 </div>
-              )}
-            </div>
+              ) : null}
+            </button>
           );
         })}
       </div>
@@ -495,17 +512,13 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           <div className="text-lg font-semibold text-text-primary">No evaluation rows yet</div>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-text-muted">
             The next BTC Compass scenario will create a projection row here, then the resolver will
-            mark it pending, hit, or invalidated based on the first barrier.
+            mark it live, hit, or miss based on the first barrier.
           </p>
         </div>
       )}
 
-      {/* ── footer / pagination ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] px-4 py-4 md:px-5">
-        <p className="max-w-2xl text-[11px] leading-5 text-text-muted">
-          This table uses the new Compass 2.0 rulebook only. Old fixed-horizon history is not mixed
-          into this scorecard.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] px-3 py-2.5 md:px-4">
+        <p className="text-[11px] text-text-muted">Target-first · Compass 2.0. Click a row for levels.</p>
         <div className="flex items-center gap-2">
           <GhostButton
             size="sm"
@@ -527,5 +540,34 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
         </div>
       </div>
     </Card>
+  );
+}
+
+function RowDetail({ item, result, explanation }) {
+  const levels = [
+    item.primary_touch?.level ? ["Target", formatPrice(item.primary_touch.level)] : null,
+    item.confirmation?.level ? ["Confirm", formatPrice(item.confirmation.level)] : null,
+    item.invalidation?.level ? ["Invalid.", formatPrice(item.invalidation.level)] : null,
+    item.reference_price ? ["Ref", formatPrice(item.reference_price)] : null,
+  ].filter(Boolean);
+
+  return (
+    <div className="space-y-2">
+      {explanation ? (
+        <p className="text-[12.5px] leading-5 text-text-secondary">{highlightPrices(explanation)}</p>
+      ) : null}
+      {result.meta ? (
+        <p className="font-mono text-[11px] text-text-muted">{result.meta}</p>
+      ) : null}
+      {levels.length ? (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] tabular-nums">
+          {levels.map(([label, value]) => (
+            <span key={label} className="text-text-muted">
+              {label} <span className="text-text-primary">{value}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
