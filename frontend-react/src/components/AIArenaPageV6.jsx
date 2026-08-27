@@ -481,36 +481,38 @@ function ThesisBoard({ report, ledger }) {
       ? fmtPct(((invalidation - btc) / btc) * 100)
       : null;
 
-  // What the two distances actually demand of you.
+  // How much BTC movement this read absorbs before it stops applying.
   //
-  // The page printed "+0.57%" and "-3.09%" side by side and left the reader to
-  // divide them. That ratio is the decision: a target five times nearer than
-  // the stop only pays if you are right far more often than you are wrong, and
-  // the break-even rate — stop / (target + stop) — says exactly how often.
-  // Here it is 84%, against 75% actually delivered on range reads. That gap is
-  // the most useful sentence available on this screen and nothing was saying it.
-  // "a 84%" reads wrong. English takes "an" before a leading vowel SOUND, which
-  // for numbers means 8x, 11 and 18 — eighty, eleven, eighteen. Not 110, which
-  // is "one hundred ten", so those two are matched exactly rather than by prefix.
-  const article = (n) => {
-    const d = String(Math.round(n));
-    return d.startsWith("8") || d === "11" || d === "18" ? "an" : "a";
+  // An earlier version of this line computed a break-even hit rate and told the
+  // reader what "trading it level-to-level" would cost. That was the wrong
+  // frame: this page is not a signal. It exists so someone taking a LuxQuant
+  // call can see where BTC sits and how much to trust the backdrop — the
+  // trading guidance lives in Signals, and the exposure advice below already
+  // says "smaller size, no conviction entries". Framing the read as a trade
+  // invited people to trade the read.
+  //
+  // What a signal-taker actually needs from two distances is durability: how
+  // far BTC can move before this context stops being the context they decided
+  // under.
+  // The exposure line already existed further down the page. Brought up here
+  // because it is the part a signal-taker acts on, and it was sitting below
+  // three cards of numbers.
+  const MODE_ADVICE = {
+    CHOPPY_RANGE: "Size alt entries smaller and skip conviction adds until the range breaks.",
+    DEFENSIVE: "Hold off on fresh high-beta entries until BTC reclaims its level.",
+    EMERGENCY_DE_RISK: "No new high-beta exposure while this stands.",
+    RISK_ON: "BTC is supportive, so alt entries can carry normal size.",
+    TRENDING: "BTC is trending, so alt entries can follow their usual plan.",
   };
+  const modeAdvice =
+    MODE_ADVICE[String(report?.report?.verdict?.scenario_contract?.market_mode || "").toUpperCase()] ||
+    "Keep alt exposure measured until BTC confirms or invalidates this projection.";
 
   const shape = (() => {
-    if (!(Number.isFinite(btc) && btc > 0 && target && invalidation)) return null;
-    const up = Math.abs((target - btc) / btc) * 100;
-    const down = Math.abs((invalidation - btc) / btc) * 100;
-    if (up <= 0 || down <= 0) return null;
-    return {
-      ratio: down / up,
-      breakEven: (down / (up + down)) * 100,
-      // Historical rate for this bias, when the ledger has loaded. Omitted
-      // rather than guessed — an invented benchmark is worse than none.
-      delivered: Number.isFinite(ledger?.stats?.hit_rate)
-        ? ledger.stats.hit_rate * 100
-        : null,
-    };
+    if (!(Number.isFinite(btc) && btc > 0 && invalidation)) return null;
+    const room = Math.abs((invalidation - btc) / btc) * 100;
+    if (room <= 0) return null;
+    return { room, breaksDown: invalidation < btc };
   })();
 
   const whyFull = [whatChanged, triggerHuman].filter(Boolean).join(" ");
@@ -590,28 +592,14 @@ function ThesisBoard({ report, ledger }) {
               .
             </p>
           )}
-          {shape && shape.ratio >= 1.3 ? (
+          {shape ? (
             <p className="text-text-muted">
-              The stop sits{" "}
+              This read holds until BTC moves{" "}
               <span className="font-mono tabular-nums text-text-secondary">
-                {shape.ratio.toFixed(1)}x
+                {shape.room.toFixed(1)}%
               </span>{" "}
-              further than the target, so trading it level-to-level needs{" "}
-              {article(shape.breakEven)}{" "}
-              <span className="font-mono tabular-nums text-text-secondary">
-                {Math.round(shape.breakEven)}%
-              </span>{" "}
-              hit rate just to break even
-              {shape.delivered != null ? (
-                <>
-                  {" "}
-                  — the audited record is{" "}
-                  <span className="font-mono tabular-nums text-text-secondary">
-                    {Math.round(shape.delivered)}%
-                  </span>
-                </>
-              ) : null}
-              .
+              {shape.breaksDown ? "lower" : "higher"} — anything inside that is
+              noise for this call. {modeAdvice}
             </p>
           ) : null}
         </div>
