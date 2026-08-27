@@ -300,14 +300,14 @@ PAGES = {
     },
     "tips": {
         "file": "tips-page.md",
-        "label": "Tips",
+        "label": "Tutorials",
         "suggestions": [
-            "What are Tips?",
-            "How do I filter tips by category?",
-            "How do I open a tip?",
-            "What kind of content is here?",
-            "Where can I learn how features work?",
-            "Are tips financial advice?",
+            "What does win rate actually mean?",
+            "Is peak the same as profit?",
+            "How do I read a call?",
+            "What is BTC Compass — is it a signal?",
+            "Why isn't the Agent trading?",
+            "Are tutorials financial advice?",
         ],
     },
     "referral": {

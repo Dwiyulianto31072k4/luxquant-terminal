@@ -119,7 +119,7 @@ const MOBILE_FEATURES = [
     group: "Personal",
     items: [
       { path: "/watchlist", label: "Watchlist" },
-      { path: "/tips", label: "Tips & Modules" },
+      { path: "/tips", label: "Tutorials" },
       { path: "/referral", label: "Referral" },
       { path: "/api-keys", label: "API Keys" },
     ],

@@ -34,6 +34,13 @@ const STEPS = [
     cta: "Verify proof",
   },
   {
+    id: "tutorials",
+    title: "Learn what the numbers mean",
+    body: "Win rate is 'reached at least TP1'. Peak is not profit. Five minutes.",
+    path: "/tips?lesson=win-rate",
+    cta: "Open a lesson",
+  },
+  {
     id: "watchlist",
     title: "Arm the value",
     body: "Save a call or pair so LuxQuant can bring you back when it matters.",

@@ -1,7 +1,7 @@
 // src/components/resources/ResourceReader.jsx
 // Full-screen reader for a resource: article (HTML/Markdown), PDF, or video.
 // ("link" resources open externally and never reach this component.)
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { resourcesApi, pdfUrl, youtubeEmbedUrl, coverUrl } from "../../services/resourcesApi";
 import { renderRich } from "./mdRender";
@@ -11,9 +11,33 @@ const fmtDate = (d) =>
     ? new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
     : "";
 
-const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
+const ResourceReader = ({
+  resource: initial,
+  onClose,
+  onNavigate,
+  playlist = [],
+  onOpenLesson,
+  onToggle,
+  canTrack = false,
+}) => {
   const [resource, setResource] = useState(initial);
   const [loading, setLoading] = useState(!initial?.content && initial?.type === "article");
+  const scrollRef = useRef(null);
+
+  const idx = useMemo(() => {
+    if (!playlist.length || !initial) return -1;
+    return playlist.findIndex(
+      (l) => l.id === initial.id || (initial.slug && l.slug === initial.slug)
+    );
+  }, [playlist, initial]);
+  const currentMeta = idx >= 0 ? playlist[idx] : null;
+  const nextLesson = idx >= 0 && idx < playlist.length - 1 ? playlist[idx + 1] : null;
+  const prevLesson = idx > 0 ? playlist[idx - 1] : null;
+
+  const goInternal = (path) => {
+    onClose();
+    if (onNavigate) onNavigate(path);
+  };
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -30,9 +54,11 @@ const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
     return () => window.removeEventListener("keydown", esc);
   }, [onClose]);
 
-  // Article cards arrive without the body — fetch the full record once.
+  // Article cards arrive without the body — fetch the full record once per lesson.
   useEffect(() => {
     let alive = true;
+    setResource(initial);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
     if (initial?.type === "article" && !initial?.content) {
       setLoading(true);
       resourcesApi
@@ -44,6 +70,8 @@ const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
         .finally(() => {
           if (alive) setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
     return () => {
       alive = false;
@@ -209,7 +237,7 @@ const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
               </div>
               {videoBody && (
                 <div className="resource-prose text-text-secondary text-[15px]">
-                  {renderRich(videoBody)}
+                  {renderRich(videoBody, goInternal)}
                 </div>
               )}
             </div>
@@ -217,7 +245,7 @@ const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
         )}
 
         {isArticle && (
-          <div className="flex-1 overflow-y-auto">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto">
             {coverUrl(resource) && (
               <div className="w-full h-52 sm:h-64 overflow-hidden">
                 <img
@@ -259,7 +287,7 @@ const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
                 </div>
               ) : resource.content_format === "markdown" ? (
                 <div className="resource-prose text-text-secondary text-[15px] leading-relaxed">
-                  {renderRich(resource.content || "")}
+                  {renderRich(resource.content || "", goInternal)}
                 </div>
               ) : (
                 <div
@@ -271,17 +299,81 @@ const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
               )}
             </article>
             <style>{`
- .resource-prose h2{font-size:1.4rem;font-weight:700;color:#fff;margin:1.4em 0 .5em}
- .resource-prose h3{font-size:1.15rem;font-weight:600;color:#fff;margin:1.1em 0 .4em}
+ .resource-prose h2{font-size:1.4rem;font-weight:700;color:rgb(var(--fg));margin:1.4em 0 .5em}
+ .resource-prose h3{font-size:1.15rem;font-weight:600;color:rgb(var(--fg));margin:1.1em 0 .4em}
  .resource-prose p{margin:.8em 0}
  .resource-prose ul{list-style:disc;padding-left:1.5em;margin:.8em 0}
  .resource-prose ol{list-style:decimal;padding-left:1.5em;margin:.8em 0}
  .resource-prose li{margin:.3em 0}
  .resource-prose a{color:rgb(var(--accent));text-decoration:underline}
  .resource-prose img{max-width:100%;border-radius:12px;margin:1em 0}
- .resource-prose blockquote{border-left:3px solid rgb(var(--line) / .5);padding-left:1em;margin:1em 0;color:#c9b59e;font-style:italic}
+ .resource-prose blockquote{border-left:3px solid rgb(var(--line) / .5);padding-left:1em;margin:1em 0;color:rgb(var(--fg-secondary));font-style:italic}
  .resource-prose code{background:rgb(var(--ink) / .08);padding:.1em .4em;border-radius:4px;font-size:.9em}
  `}</style>
+          </div>
+        )}
+
+        {playlist.length > 0 && (
+          <div
+            className="flex shrink-0 items-center gap-2 border-t px-4 py-3 sm:px-5"
+            style={{ borderColor: "rgb(var(--ink) / 0.08)", background: "rgb(var(--bg-primary) / 0.6)" }}
+          >
+            {canTrack && currentMeta && (
+              <button
+                type="button"
+                onClick={() => onToggle && onToggle({ ...currentMeta, ...resource, completed: currentMeta.completed })}
+                className="hidden items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium sm:inline-flex"
+                style={{
+                  color: currentMeta.completed ? "rgb(var(--pos-text))" : "rgb(var(--fg-secondary))",
+                  background: currentMeta.completed ? "rgb(var(--pos) / 0.12)" : "rgb(var(--ink) / 0.05)",
+                }}
+              >
+                {currentMeta.completed ? "Done" : "Mark done"}
+              </button>
+            )}
+            <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] tabular-nums"
+              style={{ color: "rgb(var(--fg-muted))" }}>
+              {idx >= 0 ? `${idx + 1} / ${playlist.length}` : ""}
+            </span>
+            {prevLesson && onOpenLesson && (
+              <button
+                type="button"
+                onClick={() => onOpenLesson(prevLesson)}
+                className="rounded-lg px-3 py-2 text-[12px] font-medium"
+                style={{ color: "rgb(var(--fg-secondary))" }}
+              >
+                Previous
+              </button>
+            )}
+            {nextLesson && onOpenLesson ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (canTrack && currentMeta && !currentMeta.completed && onToggle) {
+                    onToggle({ ...currentMeta, completed: false });
+                  }
+                  onOpenLesson(nextLesson);
+                }}
+                className="rounded-lg px-3.5 py-2 text-[12.5px] font-semibold"
+                style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+              >
+                {canTrack && currentMeta && !currentMeta.completed ? "Done · next" : "Next"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (canTrack && currentMeta && !currentMeta.completed && onToggle) {
+                    onToggle({ ...currentMeta, completed: false });
+                  }
+                  onClose();
+                }}
+                className="rounded-lg px-3.5 py-2 text-[12.5px] font-semibold"
+                style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+              >
+                Finish
+              </button>
+            )}
           </div>
         )}
       </div>

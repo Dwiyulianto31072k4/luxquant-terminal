@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -98,6 +99,7 @@ const Row = ({ title, desc, warn }) => (
  */
 export const GuideModal = ({ onClose }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [active, setActive] = useState("stats");
 
   useEffect(() => {
@@ -229,7 +231,17 @@ export const GuideModal = ({ onClose }) => {
                 );
               })}
             </nav>
-            <div className="mt-auto px-2 pt-4">
+            <div className="mt-auto px-2 pt-4 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate("/tips?lesson=win-rate");
+                }}
+                className="w-full rounded-md px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-accent hover:bg-accent/10"
+              >
+                Full course →
+              </button>
               <p className="font-mono text-[9px] leading-relaxed text-text-muted/50 normal-case tracking-normal">
                 {t("guide.disclaimer")}
               </p>

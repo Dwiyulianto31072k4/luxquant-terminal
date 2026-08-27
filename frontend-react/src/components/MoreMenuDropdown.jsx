@@ -508,7 +508,7 @@ const MoreMenuDropdown = ({
           label: t("mfm.watchlist"),
           desc: "Pairs you follow",
         },
-        { path: "/tips", icon: Icon.tips, label: t("mfm.tips"), desc: "Research, guides & videos" },
+        { path: "/tips", icon: Icon.tips, label: t("mfm.tips"), desc: "Short lessons, in the order they are useful" },
         {
           path: "/referral",
           icon: Icon.referral,

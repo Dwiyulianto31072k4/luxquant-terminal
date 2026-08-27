@@ -10,7 +10,11 @@
 const INLINE_RE =
   /(\*\*([^*]+)\*\*|__([^_]+)__|\*([^*\n]+)\*|_([^_\n]+)_|`([^`]+)`|\[([^\]]+)\]\(([^)\s]+)\)|https?:\/\/[^\s<)\]]+)/g;
 
-function renderInline(text, keyBase = "i") {
+function isInternalHref(href) {
+  return typeof href === "string" && href.startsWith("/") && !href.startsWith("//");
+}
+
+function renderInline(text, keyBase = "i", onLink) {
   const nodes = [];
   let last = 0;
   let m;
@@ -43,12 +47,22 @@ function renderInline(text, keyBase = "i") {
         </code>
       );
     else if (m[7] !== undefined && m[8] !== undefined) {
+      const href = m[8];
+      const internal = isInternalHref(href);
       nodes.push(
         <a
           key={key}
-          href={m[8]}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={href}
+          {...(internal
+            ? {
+                onClick: (e) => {
+                  if (onLink) {
+                    e.preventDefault();
+                    onLink(href);
+                  }
+                },
+              }
+            : { target: "_blank", rel: "noopener noreferrer" })}
           className="text-accent underline underline-offset-2 hover:text-accent"
         >
           {m[7]}
@@ -84,7 +98,7 @@ const HEADING_CLS = {
 };
 
 // ── Block parsing ──
-export function renderRich(text) {
+export function renderRich(text, onLink) {
   const lines = String(text || "")
     .replace(/\r/g, "")
     .split("\n");
@@ -98,7 +112,7 @@ export function renderRich(text) {
     if (para.length) {
       blocks.push(
         <p key={k++} className="my-3 leading-relaxed">
-          {renderInline(para.join(" "), `p${k}`)}
+          {renderInline(para.join(" "), `p${k}`, onLink)}
         </p>
       );
       para = [];
@@ -114,7 +128,7 @@ export function renderRich(text) {
         >
           {list.items.map((it, j) => (
             <li key={j} className="leading-relaxed pl-1">
-              {renderInline(it, `li${k}-${j}`)}
+              {renderInline(it, `li${k}-${j}`, onLink)}
             </li>
           ))}
         </Tag>
@@ -126,7 +140,7 @@ export function renderRich(text) {
     if (quote) {
       blocks.push(
         <blockquote key={k++} className="my-3 border-l-2 border-ink/18 pl-4 text-text-muted italic">
-          {renderInline(quote.join(" "), `q${k}`)}
+          {renderInline(quote.join(" "), `q${k}`, onLink)}
         </blockquote>
       );
       quote = null;
@@ -159,7 +173,7 @@ export function renderRich(text) {
       const Tag = `h${lvl}`;
       blocks.push(
         <Tag key={k++} className={HEADING_CLS[lvl]}>
-          {renderInline(h[2].replace(/\s*#+\s*$/, ""), `h${k}`)}
+          {renderInline(h[2].replace(/\s*#+\s*$/, ""), `h${k}`, onLink)}
         </Tag>
       );
       continue;

@@ -29,6 +29,7 @@ const PAGE_ROUTES = [
   ["Journal", "/journal"],
   ["Pulse", "/market-pulse"],
   ["News", "/crypto-news"],
+  ["Tutorials", "/tips"],
   ["Tips", "/tips"],
   ["Home", "/home"],
 ].sort((a, b) => b[0].length - a[0].length);

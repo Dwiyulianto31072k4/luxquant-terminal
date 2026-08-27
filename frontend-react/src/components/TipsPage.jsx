@@ -17,7 +17,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { resourcesApi } from "../services/resourcesApi";
 import ResourceReader from "./resources/ResourceReader";
 import { useAuth } from "../context/AuthContext";
@@ -154,6 +154,7 @@ const LessonRow = ({ lesson, index, onOpen, onToggle, canTrack }) => (
 
 export default function TipsPage() {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
 
   const [data, setData] = useState(null);
@@ -194,6 +195,18 @@ export default function TipsPage() {
     }
     return null;
   }, [tracks]);
+
+  const playlist = useMemo(() => tracks.flatMap((t) => t.lessons), [tracks]);
+
+  const goProduct = useCallback((path) => {
+    setReading(null);
+    setParams((p) => {
+      const n = new URLSearchParams(p);
+      n.delete("lesson");
+      return n;
+    });
+    navigate(path);
+  }, [navigate, setParams]);
 
   // Deep-linkable — `/tips?lesson=slug` — so the app can send someone straight
   // to the explanation at the moment they are confused, which is worth more
@@ -395,7 +408,17 @@ export default function TipsPage() {
         </p>
       )}
 
-      {reading && <ResourceReader resource={reading} onClose={closeReader} />}
+      {reading && (
+        <ResourceReader
+          resource={reading}
+          onClose={closeReader}
+          onNavigate={goProduct}
+          playlist={playlist}
+          onOpenLesson={openLesson}
+          onToggle={toggle}
+          canTrack={isAuthenticated}
+        />
+      )}
     </div>
   );
 }

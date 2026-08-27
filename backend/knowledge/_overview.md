@@ -26,7 +26,7 @@ so the user can go straight there. Feature map:
 - **Order Book** — live order-book depth and liquidity.
 - **Portfolio** — your connected Binance balances and positions.
 - **Referral** — invite others and earn rewards.
-- **Tips** — educational guides.
+- **Tutorials** (`/tips`) — a short course on using the product (calls, numbers, tools, Agent, account). `/learn` is the public glossary; `/tips` is "how to use this".
 - **Home** — the market overview dashboard and top LuxQuant performers.
 
 Key distinction: the PRODUCT provides trading signals; YOU (the assistant) explain

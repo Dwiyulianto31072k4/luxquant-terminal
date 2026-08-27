@@ -107,6 +107,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️ acq/geo column ensure failed: {e}")
 
+    # Official Tutorials lessons (git markdown → resources rows). Idempotent.
+    # Runs on every API worker: an empty `/tips` is worse than a double upsert.
+    try:
+        from app.services.tutorial_seed import seed_tutorials
+        _tdb = SessionLocal()
+        try:
+            _n = seed_tutorials(_tdb)
+            print(f"📚 Tutorials curriculum: {_n} lessons synced")
+        finally:
+            _tdb.close()
+    except Exception as e:
+        print(f"⚠️ Tutorial seed failed: {e}")
+
     # === Initialize shared HTTP clients ===
     init_clients()
 
