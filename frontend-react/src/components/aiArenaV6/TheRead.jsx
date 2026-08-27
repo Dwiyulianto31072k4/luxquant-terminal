@@ -18,7 +18,6 @@ import {
   StanceGauge,
   confLevel,
   LevelRail,
-  SignalBar,
   fmtUsd,
   fmtPct,
   dirMeta,
@@ -167,6 +166,80 @@ function HeadlineStrip({ eventRisk }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * One driver, told once.
+ *
+ * The same four drivers were rendered in three separate sections — "What's
+ * driving the read", "Why this read", and "Supporting numbers — per driver" —
+ * plus named again in the opening prose. Direction and strength appeared in all
+ * three; the only thing each added over the last was the bar, the weight, and
+ * the remaining metrics. The page was not dense, it was repetitive, and a
+ * reader had to work out that the three sections were the same four facts.
+ *
+ * Everything a driver has now lives in one card: which way it points and how
+ * strongly, how much it counts toward the verdict, the numbers underneath it,
+ * and the sentence explaining it.
+ */
+function DriverCard({ row }) {
+  const s = rowScore(row);
+  const m = dirMeta(s.direction);
+  const strengthPct = Math.max(0, Math.min(100, Math.round((Number(s.strength) || 0) * 100)));
+  const half = strengthPct / 2;
+  const weight = Number(s.weight);
+  const metrics = (row.evidence || []).slice(0, 6);
+  const why = row.rationale || row.evidence?.[0]?.note || null;
+
+  return (
+    <div className="min-w-0 rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="truncate text-[13px] font-semibold text-text-primary">{row.label}</span>
+        <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>
+          {m.arrow} {m.label} · {strengthPct}%
+        </span>
+      </div>
+
+      {/* Centre-anchored so left is bearish and right is bullish — the bar
+          carries direction as well as size, which two numbers cannot. */}
+      <div className="relative mt-2.5 h-[7px] overflow-hidden rounded-full bg-ink/[0.05]">
+        <span className="absolute bottom-0 left-1/2 top-0 w-px bg-ink/[0.14]" />
+        {m.k !== "flat" && strengthPct > 0 ? (
+          <span
+            className="absolute bottom-0 top-0 rounded-full"
+            style={
+              m.k === "up"
+                ? { left: "50%", width: `${half}%`, background: `linear-gradient(90deg, ${m.hex}55, ${m.hex})` }
+                : { right: "50%", width: `${half}%`, background: `linear-gradient(270deg, ${m.hex}55, ${m.hex})` }
+            }
+          />
+        ) : null}
+      </div>
+
+      {Number.isFinite(weight) ? (
+        <div className="mt-1.5 text-right font-mono text-[9.5px] text-text-muted">
+          weight {weight.toFixed(2)}
+        </div>
+      ) : null}
+
+      {metrics.length ? (
+        <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-ink/[0.05] lq-well px-2.5 py-2 sm:grid-cols-2">
+          {metrics.map((it, i) => (
+            <div key={i} className="flex items-baseline justify-between gap-2">
+              <span className="min-w-0 break-words text-[11.5px] text-text-secondary">
+                {it.metric}
+              </span>
+              <Num className="shrink-0 text-[12px] text-text-primary">{it.value ?? "—"}</Num>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {why ? (
+        <p className="mt-2 text-[11.5px] leading-[1.5] text-text-muted">{why}</p>
+      ) : null}
     </div>
   );
 }
@@ -369,50 +442,14 @@ export default function TheRead({ data }) {
                 <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                   What's driving the read — and why
                 </p>
+                <p className="mb-3 max-w-[74ch] text-[12.5px] leading-relaxed text-text-muted">
+                  Each bar pulls left for bearish, right for bullish; longer means stronger. The
+                  verdict is their weighted agreement, so conflicting drivers hold confidence back.
+                </p>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                  {drivers.map((r) => {
-                    const s = rowScore(r);
-                    const m = dirMeta(s.direction);
-                    const strengthPct = Math.round((Number(s.strength) || 0) * 100);
-                    const ev = r.evidence?.[0];
-                    const why = r.rationale || ev?.note || null;
-                    return (
-                      <div
-                        key={r.key}
-                        className="min-w-0 rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-[13px] font-semibold text-text-primary">
-                            {r.label}
-                          </span>
-                          <span
-                            className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}
-                          >
-                            {m.arrow} {m.label} · {strengthPct}%
-                          </span>
-                        </div>
-
-                        {/* the actual number behind the call */}
-                        {ev ? (
-                          <div className="mt-2 flex items-baseline justify-between gap-2 rounded-md border border-ink/[0.05] lq-well px-2.5 py-1.5">
-                            <span className="truncate text-[11.5px] text-text-secondary">
-                              {ev.metric}
-                            </span>
-                            <Num className="shrink-0 text-[12.5px] text-text-primary">
-                              {ev.value ?? "—"}
-                            </Num>
-                          </div>
-                        ) : null}
-
-                        {/* plain-language reasoning */}
-                        {why ? (
-                          <p className="mt-2 text-[11.5px] leading-[1.5] text-text-muted">
-                            {why}
-                          </p>
-                        ) : null}
-                      </div>
-                    );
-                  })}
+                  {drivers.map((r) => (
+                    <DriverCard key={r.key} row={r} />
+                  ))}
                 </div>
               </div>
             )}
@@ -421,78 +458,9 @@ export default function TheRead({ data }) {
           {/* ── why this read: diverging driver bars ── */}
           <Card className="p-5 md:p-6" accent="gold">
             <SectionHeader
-              label="Why this read"
+              label="Why these levels"
               right={<Tag tone="gold">{isFinite(conf) ? `${tierShort(conf)} ${conf}%` : "—"}</Tag>}
             />
-            <p className="mb-4 max-w-[74ch] text-[13.5px] leading-relaxed text-text-muted">
-              The 24h verdict is the weighted agreement of these drivers. Bars pull left (bearish)
-              or right (bullish); longer means stronger. Where drivers conflict, confidence is held
-              back.
-            </p>
-            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-              {drivers.length === 0 && (
-                <p className="col-span-full py-6 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
-                  No driver data
-                </p>
-              )}
-              {drivers.map((r) => {
-                const s = rowScore(r);
-                return (
-                  <SignalBar
-                    key={r.key}
-                    label={r.label}
-                    direction={s.direction}
-                    strength={s.strength}
-                    weight={s.weight}
-                    detail={
-                      r.evidence?.[0]
-                        ? `${r.evidence[0].metric}: ${r.evidence[0].value ?? "—"}`
-                        : r.rationale
-                    }
-                  />
-                );
-              })}
-            </div>
-
-            {/* supporting numbers per driver */}
-            <p className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
-              Supporting numbers — per driver
-            </p>
-            <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-              {drivers.map(
-                (r) =>
-                  r.evidence?.length > 0 && (
-                    <div
-                      key={r.key}
-                      className="min-w-0 rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5"
-                    >
-                      <div className="mb-2 flex items-center gap-2">
-                        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
-                          {r.label}
-                        </span>
-                        {r.rationale ? (
-                          <span className="truncate text-[11px] text-text-muted">
-                            — {r.rationale}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                        {r.evidence.slice(0, 6).map((it, i) => (
-                          <div key={i} className="flex items-center justify-between gap-2">
-                            <span className="truncate text-[12px] text-text-secondary">
-                              {it.metric}
-                            </span>
-                            <Num className="text-[12px] text-text-primary">
-                              {it.value ?? "—"}
-                            </Num>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-              )}
-            </div>
-
             {/* why target / why invalidation */}
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-profit/15 bg-profit/[0.04] p-4">
