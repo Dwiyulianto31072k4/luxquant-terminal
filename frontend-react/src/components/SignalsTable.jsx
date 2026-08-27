@@ -87,18 +87,17 @@ const loadVisibleCols = () => {
 
 // ================================================================
 // MOBILE CARD FIELDS — optional chips on collapsed cards (not desktop columns).
-// Core always shown: pair · status · E→target · live price/%.
+// Core always shown: pair · status · entry → target · SL (price + %) · live.
 // Default = Telegram-simple; power users can turn extras on.
 // ================================================================
 const MOBILE_FIELDS = [
   { key: "verdict", label: "Verdict / WR", hint: "Worth · Avoid · win rate" },
   { key: "risk", label: "Risk", hint: "High · Medium · Low chip" },
-  { key: "stop_loss", label: "Stop loss", hint: "SL next to entry path" },
   { key: "vol", label: "Volume", hint: "24h volume on the card" },
   { key: "called_time", label: "Called time", hint: "When the call went out" },
 ];
 
-const MOBILE_FIELDS_KEY = "lq:signals:mobile-fields";
+const MOBILE_FIELDS_KEY = "lq:signals:mobile-fields:v2";
 
 const defaultMobileFields = () =>
   MOBILE_FIELDS.reduce((acc, f) => {
@@ -170,7 +169,7 @@ const MobileFieldsSheet = ({ open, onClose, fields, onToggle, onReset, onPreset 
               Card fields
             </h2>
             <p className="mt-0.5 text-[12px] leading-snug text-text-muted">
-              Pair, entry → target, and live price always stay on. Toggle extras only.
+              Pair, entry → target, stop (price and %), and live price always stay on.
             </p>
           </div>
           <button
@@ -1158,21 +1157,22 @@ const SignalsTable = ({
     const btc = getBtc(signal);
     const maxTarget = getMaxTarget(signal);
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
+    const sl = signal.stop1 ?? signal.stop_loss;
+    const slPct = sl != null ? calcPct(sl, signal.entry) : null;
     const mf = mobileFields;
     const showVerdict = !!mf.verdict;
     const showRisk = !!mf.risk;
-    const showSl = !!mf.stop_loss;
     const showVol = !!mf.vol;
     const showCalled = !!mf.called_time;
 
     return (
       <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
-        {/* COLLAPSED — telegram-simple core + optional fields */}
-        <div className="flex items-center gap-2.5 p-3.5">
+        {/* COLLAPSED — pair, E→TP, SL (price + %), live. Tap opens the call. */}
+        <div className="flex items-start gap-2 p-3.5">
           <button
-            onClick={toggle}
-            aria-expanded={open}
-            className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+            type="button"
+            onClick={() => onRowClick && onRowClick(signal)}
+            className="flex min-w-0 flex-1 items-start gap-2.5 text-left"
           >
             <CoinLogo pair={signal.pair} size={32} />
             <div className="min-w-0 flex-1">
@@ -1218,32 +1218,41 @@ const SignalsTable = ({
                   </span>
                 ) : null}
               </div>
-              {/* line 2 — trade levels: entry -> max target (+ SL optional) */}
-              <div className="mt-1 flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+              {/* line 2 — entry → target (upside) */}
+              <div className="mt-1 flex flex-wrap items-baseline gap-1 font-mono text-[11px]">
                 <span className="text-text-muted">E</span>
                 <span className="tabular-nums text-text-secondary">
                   {formatPrice(signal.entry)}
                 </span>
                 {maxTarget != null ? (
                   <>
-                    <span className="text-text-muted/60">→</span>
+                    <span className="text-text-muted/50">→</span>
                     <span className="tabular-nums text-profit">{formatPrice(maxTarget)}</span>
                     {potentialPct != null ? (
-                      <span className="font-medium tabular-nums text-profit">
+                      <span className="font-semibold tabular-nums text-profit">
                         +{potentialPct.toFixed(1)}%
                       </span>
                     ) : null}
                   </>
                 ) : null}
-                {showSl && signal.stop_loss ? (
+              </div>
+              {/* line 3 — stop: price and % risk from entry, always on */}
+              <div className="mt-0.5 flex flex-wrap items-baseline gap-1 font-mono text-[11px]">
+                <span className="text-text-muted">SL</span>
+                {sl != null ? (
                   <>
-                    <span className="text-text-muted/40">·</span>
-                    <span className="text-text-muted">SL</span>
-                    <span className="tabular-nums text-loss/90">
-                      {formatPrice(signal.stop_loss)}
+                    <span className="tabular-nums font-medium text-loss">
+                      {formatPrice(sl)}
                     </span>
+                    {slPct != null ? (
+                      <span className="font-semibold tabular-nums text-loss">
+                        {slPct.toFixed(1)}%
+                      </span>
+                    ) : null}
                   </>
-                ) : null}
+                ) : (
+                  <span className="text-text-muted">—</span>
+                )}
               </div>
               {/* line 3 — live + optional quality / vol / time */}
               <div className="mt-0.5 flex flex-wrap items-center gap-2 font-mono text-[11px]">
