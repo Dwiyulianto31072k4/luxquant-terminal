@@ -21,6 +21,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.resource import Resource
+from app.models.user import User  # noqa: F401 — FK target for resources.created_by
 from app.services.learn import TRACK_SLUGS, LEVELS, estimate_minutes
 
 log = logging.getLogger(__name__)
