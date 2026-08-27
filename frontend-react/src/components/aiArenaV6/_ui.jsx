@@ -177,7 +177,7 @@ export const Card = ({ className = "", children, accent, hairline = false }) => 
           : "border-ink/[0.08]";
   return (
     <div
-      className={`relative overflow-hidden rounded-lg border ${border} bg-surface-raised ${className}`}
+      className={`relative overflow-hidden rounded-xl border ${border} bg-surface-raised ${className}`}
     >
       {hairline && (
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.06]" />
@@ -224,7 +224,7 @@ export const Tag = ({ children, tone = "muted", className = "" }) => {
 
 export const Tile = ({ label, children, className = "" }) => (
   <div
-    className={`rounded-lg border border-ink/[0.05] bg-surface-secondary px-3.5 py-3 ${className}`}
+    className={`rounded-xl border border-ink/[0.08] bg-surface-secondary px-3.5 py-3 ${className}`}
   >
     {label && (
       <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted">{label}</p>

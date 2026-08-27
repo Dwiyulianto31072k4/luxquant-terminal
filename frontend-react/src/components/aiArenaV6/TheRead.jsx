@@ -131,7 +131,7 @@ function HeadlineStrip({ eventRisk }) {
       : "border-ink/[0.12] text-text-muted";
 
   return (
-    <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
+    <div className="rounded-xl border border-ink/[0.08] bg-surface-raised p-3.5">
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
         <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-text-muted">
           News behind this read
@@ -208,7 +208,7 @@ function DriverCard({ row }) {
   const healthAge = sourceAge((row.source_health || {}).age_seconds);
 
   return (
-    <div className="min-w-0 rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5">
+    <div className="min-w-0 rounded-xl border border-ink/[0.08] bg-surface-secondary p-3.5">
       <div className="flex items-baseline justify-between gap-2">
         <div className="flex min-w-0 items-baseline gap-1.5">
           <span className="truncate text-[13px] font-semibold text-text-primary">{row.label}</span>
@@ -309,7 +309,7 @@ export default function TheRead({ data }) {
   return (
     <div className="space-y-4">
       {/* ════════ WHY THIS UPDATED — Terminal desk strip ════════ */}
-      <div className="flex items-start gap-3 rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
+      <div className="flex items-start gap-3 rounded-xl border border-ink/[0.08] bg-surface-raised p-3.5">
         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-secondary">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path
@@ -488,7 +488,7 @@ export default function TheRead({ data }) {
             />
             {/* why target / why invalidation */}
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-profit/15 bg-profit/[0.04] p-4">
+              <div className="rounded-xl border border-profit/15 bg-profit/[0.04] p-4">
                 <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-profit">
                   Why target {target ? <Hi tone="up">{fmtUsd(target)}</Hi> : ""}?
                 </p>
@@ -497,7 +497,7 @@ export default function TheRead({ data }) {
                     "Nearest upside magnet where liquidity sits — price tends to get pulled there first if bids stay in control."}
                 </p>
               </div>
-              <div className="rounded-lg border border-loss/15 bg-loss/[0.04] p-4">
+              <div className="rounded-xl border border-loss/15 bg-loss/[0.04] p-4">
                 <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-loss">
                   Why invalidation {invalidation ? <Hi tone="down">{fmtUsd(invalidation)}</Hi> : ""}
                   ?
@@ -528,7 +528,7 @@ export default function TheRead({ data }) {
                     {risks.map((rk, i) => (
                       <div
                         key={i}
-                        className="rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5"
+                        className="rounded-xl border border-ink/[0.08] bg-surface-secondary p-3.5"
                       >
                         <div className="mb-1.5 flex items-center justify-between gap-2">
                           <span className="text-[13px] font-medium text-text-primary">

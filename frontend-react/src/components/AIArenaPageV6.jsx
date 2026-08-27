@@ -363,7 +363,7 @@ function BtcVisualPanel({ report }) {
   const xAt = new Map(xs.map((x) => [x.idx, `${Math.max(8, x.v)}%`]));
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-ink/[0.08] bg-surface-raised shadow-sm">
+    <div className="relative overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
       {/* Theme-safe wash (pos/neg channels, not hard-coded hex) */}
       <div className={`pointer-events-none absolute inset-0 ${washClass}`} aria-hidden />
       <div
@@ -518,24 +518,28 @@ function ThesisBoard({ report, ledger }) {
   const whyFull = [whatChanged, triggerHuman].filter(Boolean).join(" ");
 
   return (
-    <section className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10">
+    <section className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
+    <div className="grid grid-cols-1 items-start gap-6 p-4 sm:p-5 lg:grid-cols-12 lg:gap-8 lg:p-6">
       {/* Left — thesis prose */}
       <div className="min-w-0 space-y-4 lg:col-span-7">
         <div>
+          <p className="mb-2 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            24h stance
+          </p>
           <h2
-            className={`font-display text-[34px] font-semibold leading-[1.1] tracking-tight sm:text-[42px] ${stance.text}`}
+            className={`font-display text-[28px] font-semibold leading-[1.1] tracking-tight sm:text-[32px] ${stance.text}`}
           >
             <span className="mr-2 opacity-70" aria-hidden>
               {stance.arrow}
             </span>
             {stance.label}
             {isFinite(conf) ? (
-              <span className="ml-2.5 font-mono text-[20px] font-medium tabular-nums text-text-muted sm:text-[22px]">
+              <span className="ml-2 font-mono text-[16px] font-medium tabular-nums text-text-muted sm:text-[18px]">
                 {conf}%
               </span>
             ) : null}
           </h2>
-          <p className="mt-2 text-[14px] text-text-muted">
+          <p className="mt-2 text-[13px] text-text-muted">
             {Number.isFinite(btc) && btc > 0 ? (
               <span className="font-mono tabular-nums text-text-primary">{fmtUsd(btc)}</span>
             ) : null}
@@ -546,7 +550,7 @@ function ThesisBoard({ report, ledger }) {
           </p>
         </div>
 
-        <div className="max-w-[42rem] space-y-3 text-[15.5px] leading-[1.75] text-text-secondary">
+        <div className="max-w-[42rem] space-y-3 text-[14.5px] leading-[1.7] text-text-secondary">
           <p>
             The 24-hour read is{" "}
             <span className={`font-medium ${stance.text}`}>
@@ -635,6 +639,7 @@ function ThesisBoard({ report, ledger }) {
       <div className="min-w-0 lg:col-span-5">
         <BtcVisualPanel report={report} />
       </div>
+    </div>
     </section>
   );
 }
@@ -656,7 +661,7 @@ function MiniContextStrip({ report, onOpenOutlook }) {
     <button
       type="button"
       onClick={onOpenOutlook}
-      className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-ink/[0.07] bg-surface-raised px-4 py-3 text-left text-[13px] transition hover:border-ink/12"
+      className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-ink/[0.08] bg-surface-raised px-4 py-2.5 text-left text-[13px] transition hover:border-ink/14"
     >
       <span className={`font-semibold ${stance.text}`}>
         {stance.arrow} {stance.label}
@@ -698,11 +703,11 @@ function WorkspacePills({ activeTab, onChange, tabs }) {
          instead of beside it. --lq-header-h is measured live by
          useHeaderMetrics, so this stays correct when the header height changes
          (larger base font, iOS safe-area inset, a banner above it). */
-      className="lq-ai-tabs sticky z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8 xl:-mx-10 xl:px-10"
+      className="lq-ai-tabs sticky z-20 -mx-4 bg-surface px-4 py-1 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8 xl:-mx-10 xl:px-10"
       style={{ top: "var(--lq-header-h, 57px)" }}
     >
       <div
-        className="no-scrollbar edge-fade-r flex gap-0.5 overflow-x-auto border-b border-ink/[0.08]"
+        className="no-scrollbar flex gap-0.5 overflow-x-auto rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5"
         role="tablist"
         aria-label="AI Research sections"
       >
@@ -716,17 +721,13 @@ function WorkspacePills({ activeTab, onChange, tabs }) {
               aria-selected={on}
               title={tab.description}
               onClick={() => onChange(tab.key)}
-              className={`relative shrink-0 px-3 py-3 text-[13.5px] font-medium transition-colors ${
-                on ? "text-text-primary" : "text-text-muted hover:text-text-secondary"
+              className={`relative shrink-0 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors sm:px-3.5 sm:text-[13px] ${
+                on
+                  ? "bg-surface-raised text-text-primary shadow-sm"
+                  : "text-text-muted hover:text-text-primary"
               }`}
             >
               {tab.short || tab.label}
-              {/* Sits on the rule, not above it: the indicator and the divider
-                  are one line, which is what makes the active tab read as
-                  attached to the panel below rather than underlined. */}
-              {on ? (
-                <span className="absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-text-primary" />
-              ) : null}
             </button>
           );
         })}
@@ -892,7 +893,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   if (!archive) {
     return (
-      <section className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-6">
+      <section className="relative overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised p-6">
         <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
           Report library
         </div>
@@ -969,28 +970,32 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
           return (
             <article
               key={item.report_id}
-              className="flex flex-col rounded-2xl border border-ink/[0.08] bg-surface-raised p-5 transition hover:border-ink/14"
+              className="flex flex-col overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised transition hover:border-ink/16"
             >
-              <div className="flex flex-wrap items-center gap-2 text-[12px] text-text-muted">
-                <span>{formatDateTime(item.timestamp)}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${stanceCls}`}
-                >
-                  {readableLabel(direction)} {confidence ?? "—"}%
-                </span>
+              <div className="flex flex-1 flex-col p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                    {formatDateTime(item.timestamp)}
+                  </span>
+                  <span
+                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${stanceCls}`}
+                  >
+                    {readableLabel(direction)} {confidence ?? "—"}%
+                  </span>
+                </div>
+                <h3 className="mt-2 line-clamp-2 text-[15px] font-semibold leading-snug text-text-primary">
+                  {item.headline || "Compass report"}
+                </h3>
+                <p className="mt-1 font-mono text-[13px] tabular-nums text-text-secondary">
+                  BTC {formatMoney(item.btc_price)}
+                </p>
+                <p className="mt-2 line-clamp-2 flex-1 text-[13px] leading-relaxed text-text-muted">
+                  {item.summary ||
+                    item.tactical_24h?.rationale ||
+                    "Archived Compass report with full breakdown."}
+                </p>
               </div>
-              <h3 className="mt-2 line-clamp-2 text-[15px] font-semibold leading-snug text-text-primary">
-                {item.headline || "Compass report"}
-              </h3>
-              <p className="mt-1 font-mono text-[13px] tabular-nums text-text-secondary">
-                BTC {formatMoney(item.btc_price)}
-              </p>
-              <p className="mt-2 line-clamp-2 flex-1 text-[13px] leading-relaxed text-text-muted">
-                {item.summary ||
-                  item.tactical_24h?.rationale ||
-                  "Archived Compass report with full breakdown."}
-              </p>
-              <div className="mt-4 flex items-center justify-between gap-3 border-t border-ink/[0.06] pt-3">
+              <div className="flex items-center justify-between gap-3 border-t border-ink/[0.06] px-4 py-2.5">
                 <span className="text-[12px] text-text-muted">
                   {item.pdf_ready
                     ? `${formatBytes(item.pdf_size_bytes)} ready`
@@ -1043,63 +1048,63 @@ function ReportPdfModal({ modal, onClose }) {
         className="lq-scrim"
       />
 
-      <div className="lq-sheet relative z-10 flex h-[min(var(--lq-modal-maxh),100%)] max-h-[min(var(--lq-modal-maxh),100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(920px,var(--lq-modal-maxh))] sm:max-h-[var(--lq-modal-maxh)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-2xl">
+      <div className="lq-sheet relative z-10 flex h-[min(var(--lq-modal-maxh),100%)] max-h-[min(var(--lq-modal-maxh),100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(920px,var(--lq-modal-maxh))] sm:max-h-[var(--lq-modal-maxh)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-xl">
         <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/20" />
         </div>
 
-        <header className="shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-3 md:px-4">
+        <header className="relative shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-2.5 pr-14 sm:px-4 sm:pr-16">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            aria-label="Close"
+            className="absolute right-2.5 top-2.5 z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.08] sm:right-3 sm:top-3 sm:h-9 sm:w-9"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M6 6l12 12M18 6L6 18"
+                stroke="currentColor"
+                strokeWidth={2.75}
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-accent/12 px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
-                  Compass reader
+                <span className="rounded-md bg-accent/12 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-accent">
+                  Compass
                 </span>
                 <span
-                  className={`rounded-md border px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${directionClasses(direction)}`}
+                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${directionClasses(direction)}`}
                 >
                   {readableLabel(direction)} {confidence ?? "-"}%
                 </span>
-                <span className="rounded-md border border-ink/[0.1] bg-surface-secondary px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+                <span className="font-mono text-[10px] text-text-muted">
                   {generatedLabel}
                 </span>
               </div>
-              <h3 className="mt-1.5 max-w-[min(68vw,720px)] truncate text-[15px] font-semibold tracking-tight text-text-primary md:text-lg">
+              <h3 className="mt-1.5 max-w-[min(68vw,720px)] truncate font-display text-[15px] font-semibold tracking-tight text-text-primary md:text-[17px]">
                 {modal.title}
               </h3>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
               <a
                 href={modal.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-2 text-xs font-semibold text-text-secondary transition hover:border-ink/18 hover:text-text-primary"
+                className="rounded-lg border border-ink/[0.1] bg-surface-secondary px-2.5 py-1.5 text-[11px] font-medium text-text-muted transition hover:border-ink/18 hover:text-text-primary"
               >
                 New tab
               </a>
               <a
                 href={modal.url}
                 download={modal.filename || "compass-report.pdf"}
-                className="rounded-md bg-accent px-3 py-2 text-xs font-semibold text-accent-fg transition hover:opacity-90"
+                className="rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-accent-fg transition hover:opacity-90"
               >
                 Download
               </a>
-              <button
-                type="button"
-                onClick={onClose}
-                title="Close"
-                aria-label="Close"
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-ink/[0.12] bg-surface-secondary text-text-primary transition hover:border-ink/20 hover:bg-ink/[0.06]"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M6 6l12 12M18 6L6 18"
-                    stroke="currentColor"
-                    strokeWidth={2.75}
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
             </div>
           </div>
         </header>
@@ -1107,7 +1112,7 @@ function ReportPdfModal({ modal, onClose }) {
         <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)]">
           <aside className="hidden min-h-0 border-r border-ink/[0.08] bg-surface-secondary/40 p-3 lg:block">
             <div className="flex h-full flex-col gap-2.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
-              <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
+              <div className="rounded-xl border border-ink/[0.08] bg-surface-raised p-3.5">
                 <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                   Reading brief
                 </div>
@@ -1133,7 +1138,7 @@ function ReportPdfModal({ modal, onClose }) {
                 <ReaderMetric label="Event risk" value={readableLabel(item.event_risk)} />
               </div>
 
-              <div className="mt-auto rounded-lg border border-ink/[0.08] bg-surface-raised p-3">
+              <div className="mt-auto rounded-xl border border-ink/[0.08] bg-surface-raised p-3">
                 <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                   Reader mode
                 </div>
@@ -1281,7 +1286,7 @@ function CompassPdfViewer({ url, title }) {
 
   return (
     <section
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-raised shadow-sm"
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-ink/[0.1] bg-surface-raised shadow-sm"
       ref={shellRef}
     >
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-ink/[0.08] bg-surface-raised px-3 py-2 md:px-4">
@@ -1420,7 +1425,7 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
         context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
         // PDF artboard is dark-designed; keep a neutral dark pad under glyphs only
         // (UI chrome around the page follows theme tokens)
-        context.fillStyle = "#0c0c0e";
+        context.fillStyle = "#ffffff";
         context.fillRect(0, 0, viewport.width, viewport.height);
 
         const renderTask = page.render({ canvasContext: context, viewport });
@@ -1445,7 +1450,7 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
 
   return (
     <article
-      className="mx-auto overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-raised shadow-md"
+      className="mx-auto overflow-hidden rounded-xl border border-ink/[0.1] bg-white shadow-md"
       style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}
     >
       <div className="flex items-center justify-between border-b border-ink/[0.08] bg-surface-secondary px-3 py-2 font-mono text-[10px] font-semibold text-text-muted">
@@ -1475,7 +1480,7 @@ function ReaderMetric({ label, value, tone }) {
   const valueCls =
     tone === "up" ? "text-profit" : tone === "down" ? "text-loss" : "text-text-primary";
   return (
-    <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3">
+    <div className="rounded-xl border border-ink/[0.08] bg-surface-raised p-3">
       <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
         {label}
       </div>

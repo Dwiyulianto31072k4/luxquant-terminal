@@ -17,7 +17,24 @@ from pathlib import Path
 from typing import Any
 
 PDF_DIR = Path(os.getenv("COMPASS_REPORT_PDF_DIR", "/opt/luxquant/compass-report-pdfs"))
-PDF_STYLE_VERSION = "v7"
+PDF_STYLE_VERSION = "v8"
+
+# White research-desk palette — print-friendly, matches the Signal Modal ticket.
+P = {
+    "page": "#FFFFFF",
+    "header": "#FAFAF9",
+    "ink": "#1C1917",
+    "muted": "#78716C",
+    "faint": "#A8A29E",
+    "rule": "#E7E5E4",
+    "head": "#F5F5F4",
+    "zebra": "#FAFAF9",
+    "accent": "#B45309",
+    "gold": "#C9A227",
+    "pos": "#15803D",
+    "neg": "#DC2626",
+    "inv": "#E11D48",
+}
 
 
 class CompassPdfGenerationError(RuntimeError):
@@ -241,16 +258,16 @@ def _collect_projection_levels(report: dict[str, Any], projection: dict[str, str
             "note": note,
         })
 
-    add_level("Report price", current, "#f8fafc", "current", "price when PDF was generated")
-    add_level("Target / touch", projection.get("target"), "#d4a853", "target", projection.get("distance", ""))
-    add_level("Magnet above", _magnet_price(magnets.get("nearest_above")), "#22c55e", "magnet")
-    add_level("Magnet below", _magnet_price(magnets.get("nearest_below")), "#ef4444", "magnet")
+    add_level("Report price", current, P["ink"], "current", "price when PDF was generated")
+    add_level("Target / touch", projection.get("target"), P["pos"], "target", projection.get("distance", ""))
+    add_level("Magnet above", _magnet_price(magnets.get("nearest_above")), P["pos"], "magnet")
+    add_level("Magnet below", _magnet_price(magnets.get("nearest_below")), P["neg"], "magnet")
 
     for invalidation in verdict.get("invalidation_levels") or []:
         if not isinstance(invalidation, dict):
             continue
         label = _title(invalidation.get("direction", "Invalidation")).replace(" Invalidated", " invalidated")
-        add_level(label, invalidation.get("price"), "#fb7185", "invalidation", _text(invalidation.get("reason"), ""))
+        add_level(label, invalidation.get("price"), P["inv"], "invalidation", _text(invalidation.get("reason"), ""))
 
     for zone in verdict.get("zones_to_watch") or []:
         if not isinstance(zone, dict):
@@ -264,7 +281,7 @@ def _collect_projection_levels(report: dict[str, Any], projection: dict[str, str
             low = high
         if high is None:
             high = low
-        color = "#22c55e" if kind == "demand" else "#d4a853" if kind == "fair_value" else "#ef4444" if kind == "supply" else "#94a3b8"
+        color = P["pos"] if kind == "demand" else P["accent"] if kind == "fair_value" else P["neg"] if kind == "supply" else P["faint"]
         levels.append({
             "label": _title(kind),
             "price_low": min(low, high),
@@ -324,28 +341,28 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
                 return chart_left + (price - lo) / (hi - lo) * (chart_right - chart_left)
 
             c.saveState()
-            c.setFillColor(colors.HexColor("#0a0709"))
-            c.roundRect(0, 0, width, height, 10, fill=1, stroke=0)
-            c.setStrokeColor(colors.HexColor("#2a2023"))
+            c.setFillColor(colors.HexColor(P["page"]))
+            c.roundRect(0, 0, width, height, 8, fill=1, stroke=0)
+            c.setStrokeColor(colors.HexColor(P["rule"]))
             c.setLineWidth(0.8)
-            c.roundRect(0, 0, width, height, 10, fill=0, stroke=1)
+            c.roundRect(0, 0, width, height, 8, fill=0, stroke=1)
 
-            c.setFillColor(colors.HexColor("#d4a853"))
-            c.setFont("Helvetica-Bold", 7.8)
-            c.drawString(pad_x, top - 2, "STATIC PROJECTION MAP")
-            c.setFillColor(colors.HexColor("#8b8580"))
+            c.setFillColor(colors.HexColor(P["muted"]))
+            c.setFont("Helvetica-Bold", 7.4)
+            c.drawString(pad_x, top - 2, "PROJECTION MAP")
+            c.setFillColor(colors.HexColor(P["faint"]))
             c.setFont("Helvetica", 7.2)
             c.drawRightString(width - pad_x, top - 2, f"Frozen at {generated_at.strftime('%Y-%m-%d %H:%M UTC')}")
 
-            c.setStrokeColor(colors.HexColor("#3a2c20"))
+            c.setStrokeColor(colors.HexColor(P["rule"]))
             c.setLineWidth(1.1)
             c.line(chart_left, rail_y, chart_right, rail_y)
             for i in range(5):
                 x = chart_left + i * (chart_right - chart_left) / 4
                 price = lo + i * (hi - lo) / 4
-                c.setStrokeColor(colors.HexColor("#2a2023"))
+                c.setStrokeColor(colors.HexColor(P["rule"]))
                 c.line(x, rail_y - 5, x, rail_y + 5)
-                c.setFillColor(colors.HexColor("#6f6863"))
+                c.setFillColor(colors.HexColor(P["muted"]))
                 c.setFont("Helvetica", 6.8)
                 c.drawCentredString(x, rail_y - 20, _money(price))
 
@@ -372,7 +389,7 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
                 if level.get("kind") == "target":
                     target_x = x_for(level["price"])
             if current_x is not None and target_x is not None:
-                c.setStrokeColor(colors.HexColor("#d4a853"))
+                c.setStrokeColor(colors.HexColor(P["gold"]))
                 c.setLineWidth(1.2)
                 c.line(current_x, rail_y + 43, target_x, rail_y + 43)
                 arrow = 4 if target_x >= current_x else -4
@@ -403,10 +420,10 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
                 c.setFont("Helvetica-Bold", 6.8)
                 c.drawCentredString(label_x, y, level["label"])
                 c.setFont("Helvetica", 6.5)
-                c.setFillColor(colors.HexColor("#d6d3d1"))
+                c.setFillColor(colors.HexColor(P["muted"]))
                 c.drawCentredString(label_x, y - 9, _money(level["price"]))
 
-            c.setFillColor(colors.HexColor("#8b8580"))
+            c.setFillColor(colors.HexColor(P["faint"]))
             c.setFont("Helvetica", 7)
             c.drawString(pad_x, 8, "Projection map is generated from the archived report only: report price, zones, magnets, target, and invalidation levels.")
             c.restoreState()
@@ -571,7 +588,7 @@ def _make_styles():
             fontName="Helvetica-Bold",
             fontSize=23,
             leading=27,
-            textColor=colors.HexColor("#f8fafc"),
+            textColor=colors.HexColor(P["ink"]),
             alignment=TA_LEFT,
             spaceAfter=7,
         ),
@@ -581,25 +598,25 @@ def _make_styles():
             fontName="Helvetica",
             fontSize=9.4,
             leading=13.5,
-            textColor=colors.HexColor("#a8a29e"),
+            textColor=colors.HexColor(P["muted"]),
             spaceAfter=12,
         ),
         "eyebrow": ParagraphStyle(
             "CompassEyebrow",
             parent=base["BodyText"],
             fontName="Helvetica-Bold",
-            fontSize=8,
+            fontSize=7.6,
             leading=10,
-            textColor=colors.HexColor("#d4a853"),
+            textColor=colors.HexColor(P["muted"]),
             spaceAfter=5,
         ),
         "section": ParagraphStyle(
             "CompassSection",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=13.5,
+            fontSize=12.5,
             leading=16,
-            textColor=colors.HexColor("#f8fafc"),
+            textColor=colors.HexColor(P["ink"]),
             spaceBefore=8,
             spaceAfter=8,
         ),
@@ -609,7 +626,7 @@ def _make_styles():
             fontName="Helvetica",
             fontSize=8.6,
             leading=12.5,
-            textColor=colors.HexColor("#d6d3d1"),
+            textColor=colors.HexColor(P["ink"]),
         ),
         "muted": ParagraphStyle(
             "CompassMuted",
@@ -617,7 +634,7 @@ def _make_styles():
             fontName="Helvetica",
             fontSize=7.5,
             leading=10.5,
-            textColor=colors.HexColor("#8b8580"),
+            textColor=colors.HexColor(P["muted"]),
         ),
         "metric": ParagraphStyle(
             "CompassMetric",
@@ -625,7 +642,7 @@ def _make_styles():
             fontName="Helvetica-Bold",
             fontSize=14.5,
             leading=17,
-            textColor=colors.HexColor("#f8fafc"),
+            textColor=colors.HexColor(P["ink"]),
         ),
         "small_center": ParagraphStyle(
             "CompassSmallCenter",
@@ -633,7 +650,7 @@ def _make_styles():
             fontName="Helvetica-Bold",
             fontSize=8,
             leading=10,
-            textColor=colors.HexColor("#d4a853"),
+            textColor=colors.HexColor(P["accent"]),
             alignment=TA_CENTER,
         ),
         "small_right": ParagraphStyle(
@@ -642,25 +659,33 @@ def _make_styles():
             fontName="Helvetica",
             fontSize=8,
             leading=10,
-            textColor=colors.HexColor("#8b8580"),
+            textColor=colors.HexColor(P["muted"]),
             alignment=TA_RIGHT,
         ),
     }
 
 
-def _card(title: str, value: str, detail: str, styles, accent: str = "#d4a853"):
+def _card(title: str, value: str, detail: str, styles, accent: str | None = None):
     from reportlab.lib import colors
+    from reportlab.lib.styles import ParagraphStyle
     from reportlab.platypus import Table, TableStyle
 
-    data = [[_p(title.upper(), styles["eyebrow"])], [_p(value, styles["metric"])], [_p(detail, styles["muted"])]]
+    accent = accent or P["ink"]
+    value_style = ParagraphStyle(
+        f"CompassMetric_{accent.replace('#', '')}",
+        parent=styles["metric"],
+        textColor=colors.HexColor(accent),
+    )
+    data = [[_p(title.upper(), styles["eyebrow"])], [_p(value, value_style)], [_p(detail, styles["muted"])]]
     table = Table(data, colWidths=[156], hAlign="LEFT")
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#120d11")),
-        ("BOX", (0, 0), (-1, -1), 0.7, colors.HexColor(accent)),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(P["page"])),
+        ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor(P["rule"])),
+        ("LINEABOVE", (0, 0), (-1, 0), 2.2, colors.HexColor(accent)),
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
         ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
     ]))
     return table
 
@@ -674,15 +699,15 @@ def _table(rows: list[list[Any]], styles, col_widths: list[float] | None = None)
         prepared.append([cell if hasattr(cell, "wrap") else _p(cell, styles["body"]) for cell in row])
     table = Table(prepared, colWidths=col_widths, hAlign="LEFT", repeatRows=1 if len(prepared) > 1 else 0)
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#171014")),
-        ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#e7e5e4")),
-        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#2a2023")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(P["head"])),
+        ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(P["ink"])),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor(P["rule"])),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 7),
         ("RIGHTPADDING", (0, 0), (-1, -1), 7),
         ("TOPPADDING", (0, 0), (-1, -1), 6),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#0b090c"), colors.HexColor("#100c0f")]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor(P["page"]), colors.HexColor(P["zebra"])]),
     ]))
     return table
 
@@ -692,23 +717,28 @@ def _page(canvas, doc):
 
     width, height = doc.pagesize
     canvas.saveState()
-    canvas.setFillColor(colors.HexColor("#070506"))
+    canvas.setFillColor(colors.HexColor(P["page"]))
     canvas.rect(0, 0, width, height, fill=1, stroke=0)
-    canvas.setFillColor(colors.HexColor("#0f0a0d"))
-    canvas.rect(0, height - 48, width, 48, fill=1, stroke=0)
-    canvas.setFillColor(colors.HexColor("#3a1114"))
-    canvas.rect(0, height - 48, width, 3, fill=1, stroke=0)
-    canvas.setStrokeColor(colors.HexColor("#2a2023"))
-    canvas.setLineWidth(0.5)
-    canvas.line(doc.leftMargin, height - 48, width - doc.rightMargin, height - 48)
-    canvas.setFillColor(colors.HexColor("#d4a853"))
-    canvas.setFont("Helvetica-Bold", 7.5)
-    canvas.drawString(doc.leftMargin, height - 27, "LUXQUANT BTC COMPASS")
-    canvas.setFillColor(colors.HexColor("#8b8580"))
+    canvas.setFillColor(colors.HexColor(P["header"]))
+    canvas.rect(0, height - 44, width, 44, fill=1, stroke=0)
+    canvas.setFillColor(colors.HexColor(P["gold"]))
+    canvas.rect(0, height - 44, width, 2.2, fill=1, stroke=0)
+    canvas.setStrokeColor(colors.HexColor(P["rule"]))
+    canvas.setLineWidth(0.6)
+    canvas.line(0, height - 44, width, height - 44)
+    canvas.setFillColor(colors.HexColor(P["ink"]))
+    canvas.setFont("Helvetica-Bold", 8)
+    canvas.drawString(doc.leftMargin, height - 26, "LUXQUANT")
+    canvas.setFillColor(colors.HexColor(P["muted"]))
+    canvas.setFont("Helvetica", 7.4)
+    canvas.drawString(doc.leftMargin + 62, height - 26, "BTC COMPASS")
+    canvas.drawRightString(width - doc.rightMargin, height - 26, "ARCHIVED MARKET READ")
+    canvas.setStrokeColor(colors.HexColor(P["rule"]))
+    canvas.line(doc.leftMargin, 28, width - doc.rightMargin, 28)
+    canvas.setFillColor(colors.HexColor(P["faint"]))
     canvas.setFont("Helvetica", 7)
-    canvas.drawRightString(width - doc.rightMargin, height - 27, "ARCHIVED MARKET READ")
-    canvas.drawRightString(width - doc.rightMargin, 22, f"Page {doc.page}")
-    canvas.drawString(doc.leftMargin, 22, "Decision support only. Not financial advice.")
+    canvas.drawRightString(width - doc.rightMargin, 16, f"Page {doc.page}")
+    canvas.drawString(doc.leftMargin, 16, "Decision support only. Not financial advice.")
     canvas.restoreState()
 
 
@@ -750,10 +780,21 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         styles["subtitle"],
     ))
 
+    def _stance_color(direction: Any) -> str:
+        token = str(direction or "").lower()
+        if "bull" in token:
+            return P["pos"]
+        if "bear" in token:
+            return P["neg"]
+        return P["ink"]
+
+    t24 = _as_dict(verdict.get("tactical_24h"))
+    s72 = _as_dict(verdict.get("secondary_7d"))
+    h30 = _as_dict(verdict.get("primary_30d"))
     cards = Table([[
-        _card("24h trader read", _title((_as_dict(verdict.get("tactical_24h"))).get("direction")), f"{(_as_dict(verdict.get('tactical_24h'))).get('confidence', '-')}% confidence", styles, "#7f1d1d"),
-        _card("72h swing", _title((_as_dict(verdict.get("secondary_7d"))).get("direction")), f"{(_as_dict(verdict.get('secondary_7d'))).get('confidence', '-')}% confidence", styles, "#854d0e"),
-        _card("Holder context", _title((_as_dict(verdict.get("primary_30d"))).get("direction")), f"{(_as_dict(verdict.get('primary_30d'))).get('confidence', '-')}% confidence", styles, "#065f46"),
+        _card("24h trader read", _title(t24.get("direction")), f"{t24.get('confidence', '-')}% confidence", styles, _stance_color(t24.get("direction"))),
+        _card("72h swing", _title(s72.get("direction")), f"{s72.get('confidence', '-')}% confidence", styles, _stance_color(s72.get("direction"))),
+        _card("Holder context", _title(h30.get("direction")), f"{h30.get('confidence', '-')}% confidence", styles, _stance_color(h30.get("direction"))),
     ]], colWidths=[166, 166, 166])
     cards.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
     story.append(cards)
