@@ -27,6 +27,7 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 
 from app.core.database import SessionLocal
+from app.services import compass_direction_gate
 from app.services.ai_arena_v6_scheduled_run import main as run_compass_report
 
 load_dotenv()
@@ -297,6 +298,24 @@ def _latest_report(db) -> dict[str, Any] | None:
     return dict(row) if row else None
 
 
+def _latest_report_json(db) -> dict[str, Any] | None:
+    """The last report with its payload, for the direction gate only.
+
+    Kept separate from _latest_report because that one runs every two minutes
+    just to read an age, and dragging a full report_json through 720 checks a
+    day to answer a timestamp question would be pure waste. This is fetched on
+    the trigger path alone — roughly eight times a day.
+    """
+    row = db.execute(text("""
+        SELECT report_id, timestamp, btc_price, report_json
+        FROM ai_arena_reports
+        WHERE report_id LIKE 'v6_%'
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """)).mappings().first()
+    return dict(row) if row else None
+
+
 def _latest_anomaly_at(db) -> datetime | None:
     row = db.execute(text("""
         SELECT timestamp
@@ -304,6 +323,26 @@ def _latest_anomaly_at(db) -> datetime | None:
         WHERE report_id LIKE 'v6_%'
           AND COALESCE(is_anomaly_triggered, false) = true
         ORDER BY timestamp DESC
+        LIMIT 1
+    """)).first()
+    return row[0] if row else None
+
+
+def _latest_attempt_at(db) -> datetime | None:
+    """When a full run was last STARTED, successful or not.
+
+    Cooldown used to read the reports table, so a run that died mid-pipeline
+    left no trace and the cooldown never began — the monitor simply fired again
+    two minutes later on the same move. That is what produced pairs like
+    14:21 since_report_high_pump_1.01% followed by 14:24 ..._1.12%, and it let
+    a failing run retry in a tight loop while burning tokens each time. The
+    check row is written before the run starts, so it records the attempt.
+    """
+    row = db.execute(text("""
+        SELECT checked_at
+        FROM ai_arena_anomaly_checks
+        WHERE trigger_hit = true
+        ORDER BY checked_at DESC
         LIMIT 1
     """)).first()
     return row[0] if row else None
@@ -395,6 +434,7 @@ def decide_trigger(
     active_contract: dict[str, Any] | None,
     latest_anomaly_at: datetime | None,
     derivatives: DerivativesSnapshot | None = None,
+    latest_attempt_at: datetime | None = None,
 ) -> TriggerDecision:
     reasons: list[str] = []
     details: dict[str, Any] = {
@@ -602,8 +642,16 @@ def decide_trigger(
         )
     )
 
-    if latest_anomaly_at:
-        anomaly_at = _as_utc(latest_anomaly_at)
+    # The later of "last published anomaly" and "last attempted run" — an
+    # attempt that failed still consumed the window it was meant to cover.
+    cooldown_from = _as_utc(latest_anomaly_at)
+    attempt_at = _as_utc(latest_attempt_at)
+    if attempt_at and (cooldown_from is None or attempt_at > cooldown_from):
+        cooldown_from = attempt_at
+        details["cooldown_source"] = "last_attempt"
+
+    if cooldown_from:
+        anomaly_at = cooldown_from
         cooldown_left = None
         if anomaly_at:
             cooldown_left = COOLDOWN_MINUTES - (now - anomaly_at).total_seconds() / 60.0
@@ -659,7 +707,15 @@ async def monitor_once(dry_run: bool = False) -> int:
         latest_report = _latest_report(db)
         latest_anomaly_at = _latest_anomaly_at(db)
         active_contract = _active_contract(db)
-        decision = decide_trigger(snapshot, latest_report, active_contract, latest_anomaly_at, derivatives)
+        latest_attempt_at = _latest_attempt_at(db)
+        decision = decide_trigger(
+            snapshot,
+            latest_report,
+            active_contract,
+            latest_anomaly_at,
+            derivatives,
+            latest_attempt_at=latest_attempt_at,
+        )
 
         logger.info(
             "BTC monitor price=$%.0f 15m=%s 1h=%s 4h=%s since_report=%s funding=%s oi_1h=%s long%%=%s decision=%s",
@@ -683,9 +739,39 @@ async def monitor_once(dry_run: bool = False) -> int:
         if dry_run:
             logger.warning("DRY RUN would trigger full Compass anomaly run: %s", reason)
             return 0
+        gate_report = None
+        if not compass_direction_gate.bypasses_gate(reason, decision.is_critical):
+            gate_report = _latest_report_json(db)
         _log_check(db, snapshot, decision)
     finally:
         db.close()
+
+    # Second gate. Runs with no DB connection held, because it does network I/O
+    # and this codebase has been bitten before by a transaction kept open
+    # across a network call.
+    if gate_report is not None:
+        gate = await compass_direction_gate.evaluate(
+            snapshot.price, gate_report, active_contract
+        )
+        decision.details.update(gate.details)
+        if not gate.proceed:
+            logger.warning(
+                "Compass run held by direction gate: %s (trigger was %s)",
+                gate.reason,
+                reason,
+            )
+            db = SessionLocal()
+            try:
+                _log_check(
+                    db,
+                    snapshot,
+                    TriggerDecision(False, gate.reason, False, decision.details),
+                )
+            finally:
+                db.close()
+            return 0
+        if gate.reason not in ("gate_off",):
+            logger.info("Direction gate cleared the run: %s", gate.reason)
 
     logger.warning("Triggering full Compass anomaly run: %s", reason)
     exit_code = await run_compass_report(is_anomaly=True, anomaly_reason=reason)
