@@ -26,6 +26,7 @@ import {
   subscribeTheme,
 } from "../utils/themeColors";
 import { deriveChartWithCard } from "./signalModal/utils";
+import MarketSheet from "./signalModal/MarketSheet";
 import { peakContextLabel, daysToPeak, peakIsAfterStop } from "../utils/peakTiming";
 import { buildLevelTimeline } from "../utils/journeyEvents";
 import { requestTelegramWriteAccess } from "../utils/telegramWriteAccess";
@@ -74,6 +75,7 @@ const SignalModal = ({
 
   const [overrideSignal, setOverrideSignal] = useState(null);
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
+  const [showMarket, setShowMarket] = useState(false);
   const [showCoinUtility, setShowCoinUtility] = useState(false);
 
   // ── Shariah Check ──────────────────────────────────────────────
@@ -260,6 +262,7 @@ const SignalModal = ({
     setShowTV(false);
     setPromptCopied(false);
     setShowDeepAnalysis(false);
+    setShowMarket(false);
     setActiveTab(initialTab);
 
     const fetchDetail = async () => {
@@ -488,6 +491,11 @@ const SignalModal = ({
         oiChange24h: d.oiChange24h,
         lsLong: d.lsLong,
         lsShort: d.lsShort,
+        basisPct: d.basisPct ?? null,
+        volume24h: d.volume24h ?? null,
+        high24h: d.high24h ?? null,
+        low24h: d.low24h ?? null,
+        takerBuyPct: d.takerBuyPct ?? null,
       });
     };
 
@@ -517,7 +525,14 @@ const SignalModal = ({
         lsLong: null,
         lsShort: null,
         change24h: null,
+        basisPct: null,
+        volume24h: null,
+        high24h: null,
+        low24h: null,
+        takerBuyPct: null,
       };
+      const idx = parseFloat(pm.indexPrice);
+      if (idx > 0) out.basisPct = ((price - idx) / idx) * 100;
       if (oiRes.status === "fulfilled" && oiRes.value.ok) {
         const o = await oiRes.value.json();
         out.oiUsd = parseFloat(o.openInterest) * price;
@@ -540,6 +555,14 @@ const SignalModal = ({
       if (tickRes.status === "fulfilled" && tickRes.value.ok) {
         const tk = await tickRes.value.json();
         out.change24h = parseFloat(tk.priceChangePercent);
+        const qv = parseFloat(tk.quoteVolume);
+        if (qv > 0) out.volume24h = qv;
+        const hi = parseFloat(tk.highPrice);
+        const lo = parseFloat(tk.lowPrice);
+        if (hi > 0) out.high24h = hi;
+        if (lo > 0) out.low24h = lo;
+        const tb = parseFloat(tk.takerBuyQuoteVolume);
+        if (qv > 0 && tb >= 0) out.takerBuyPct = (tb / qv) * 100;
       }
       return out;
     };
@@ -574,7 +597,14 @@ const SignalModal = ({
         oiChange24h: null,
         lsLong: null,
         lsShort: null,
+        basisPct: null,
+        volume24h: tk.turnover24h ? parseFloat(tk.turnover24h) : null,
+        high24h: tk.highPrice24h ? parseFloat(tk.highPrice24h) : null,
+        low24h: tk.lowPrice24h ? parseFloat(tk.lowPrice24h) : null,
+        takerBuyPct: null,
       };
+      const idx = parseFloat(tk.indexPrice);
+      if (idx > 0) out.basisPct = ((price - idx) / idx) * 100;
       if (oiRes.status === "fulfilled" && oiRes.value.ok) {
         const oj = await oiRes.value.json();
         const list = oj?.result?.list || [];
@@ -623,6 +653,8 @@ const SignalModal = ({
     const handleEscape = (e) => {
       if (e.key === "Escape") {
         if (lightboxImg) setLightboxImg(null);
+        else if (showMarket) setShowMarket(false);
+        else if (showDeepAnalysis) setShowDeepAnalysis(false);
         else {
           setIsClosing(true);
           setTimeout(() => {
@@ -634,7 +666,7 @@ const SignalModal = ({
     };
     if (isOpen) document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, lightboxImg, onClose]);
+  }, [isOpen, lightboxImg, showMarket, showDeepAnalysis, onClose]);
 
   // 6. Handle Render TradingView di Tab Utama (Chart)
   const getUserTimezone = () => {
@@ -1469,6 +1501,17 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               <span aria-hidden className="text-text-muted">→</span>
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setShowMarket(true)}
+            className="flex w-full items-center justify-between border-t border-ink/[0.06] px-3 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-ink/[0.03] hover:text-text-primary"
+          >
+            <span className="inline-flex items-center gap-1.5">
+              {Ic.bars("w-3.5 h-3.5")}
+              Market
+            </span>
+            <span aria-hidden className="text-text-muted">→</span>
+          </button>
         </div>
 
         {/* Compact: one-line derivatives so the ticket stays the focus */}
@@ -2910,6 +2953,17 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         isOpen={showDeepAnalysis}
         onClose={() => setShowDeepAnalysis(false)}
         pair={signal?.pair}
+      />
+
+      <MarketSheet
+        isOpen={showMarket}
+        onClose={() => setShowMarket(false)}
+        pair={signal?.pair}
+        deriv={derivMetrics}
+        livePrice={livePrice}
+        signal={signal}
+        liveBlocked={liveBlocked}
+        formatPrice={formatPrice}
       />
 
       {/* === NEW: Coin Utility Detail Modal === */}
