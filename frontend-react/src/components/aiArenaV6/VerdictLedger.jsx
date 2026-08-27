@@ -155,22 +155,31 @@ function buildExplanation(item) {
 function MixBar({ segments }) {
   const total = segments.reduce((sum, s) => sum + (Number(s.value) || 0), 0);
   if (!total) return null;
+  const shown = segments.filter((s) => Number(s.value) > 0);
   return (
-    <div
-      className="flex h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.06]"
-      role="img"
-      aria-label="Outcome mix"
-    >
-      {segments.map((s) =>
-        s.value > 0 ? (
+    <div>
+      <div
+        className="flex h-2.5 w-full overflow-hidden rounded-full bg-ink/[0.06]"
+        role="img"
+        aria-label="Outcome mix"
+      >
+        {shown.map((s) => (
           <span
             key={s.label}
             className="h-full"
             style={{ width: `${(s.value / total) * 100}%`, background: s.hex }}
             title={`${s.label}: ${s.value}`}
           />
-        ) : null
-      )}
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+        {shown.map((s) => (
+          <span key={s.label} className="inline-flex items-center gap-1.5 font-mono text-[11px] text-text-muted">
+            <span className="h-2 w-2 rounded-[3px]" style={{ background: s.hex }} />
+            {s.label} <span className="tabular-nums text-text-primary">{s.value}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -179,7 +188,7 @@ function ResultChip({ result }) {
   return (
     <span
       className={cx(
-        "inline-flex whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-medium",
+        "inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-medium",
         outcomeTone(result.tone)
       )}
     >
@@ -261,53 +270,53 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
 
   return (
     <Card>
-      <div className="border-b border-ink/[0.07] p-3 md:p-4">
-        <div className="flex items-center justify-between gap-3">
+      <div className="border-b border-ink/[0.07] p-4 md:p-5">
+        <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="font-display text-[18px] font-semibold tracking-tight text-text-primary">
+            <h2 className="font-display text-[22px] font-semibold tracking-tight text-text-primary">
               Projection audit
             </h2>
-            <p className="mt-0.5 text-[12px] leading-snug text-text-muted">
+            <p className="mt-1 max-w-xl text-[13.5px] leading-snug text-text-muted">
               One live row. Hits and misses score · replaced reads do not.
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-4 rounded-xl border border-ink/[0.08] px-3.5 py-2.5">
             <Donut
-              size={72}
-              thickness={8}
+              size={108}
+              thickness={11}
               centerValue={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
-              centerLabel="hit"
+              centerLabel="hit rate"
               segments={[
                 { label: "Hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
                 { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
                 { label: "Live", value: stats.pending ?? 0, hex: COLOR.gold },
               ]}
             />
-            <div className="hidden space-y-0.5 font-mono text-[10px] text-text-muted sm:block">
+            <div className="hidden space-y-1.5 font-mono text-[12px] text-text-muted sm:block">
               <div className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR.profit }} />
-                Hits <span className="tabular-nums text-text-primary">{stats.clean_hits ?? 0}</span>
+                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.profit }} />
+                Hits <span className="tabular-nums font-semibold text-text-primary">{stats.clean_hits ?? 0}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR.loss }} />
-                Miss <span className="tabular-nums text-text-primary">{stats.invalidated_first ?? 0}</span>
+                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.loss }} />
+                Miss <span className="tabular-nums font-semibold text-text-primary">{stats.invalidated_first ?? 0}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR.gold }} />
-                Live <span className="tabular-nums text-text-primary">{stats.pending ?? 0}</span>
+                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.gold }} />
+                Live <span className="tabular-nums font-semibold text-text-primary">{stats.pending ?? 0}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-3 overflow-hidden rounded-lg border border-ink/[0.08] bg-ink/[0.06]">
+        <div className="mt-4 overflow-hidden rounded-xl border border-ink/[0.08] bg-ink/[0.06]">
           <div className="grid grid-cols-3 gap-px sm:grid-cols-6">
             {kpis.map((cell) => (
-              <div key={cell.label} className="bg-surface-raised px-2.5 py-2">
-                <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+              <div key={cell.label} className="bg-surface-raised px-3 py-3">
+                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                   {cell.label}
                 </p>
-                <p className={`mt-0.5 font-mono text-[16px] font-semibold tabular-nums leading-none ${cell.tone}`}>
+                <p className={`mt-1.5 font-mono text-[22px] font-semibold tabular-nums leading-none ${cell.tone}`}>
                   {cell.value}
                 </p>
               </div>
@@ -315,7 +324,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           </div>
         </div>
 
-        <div className="mt-2.5">
+        <div className="mt-3.5">
           <MixBar segments={outcomeSegments} />
         </div>
       </div>
@@ -354,11 +363,11 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
       <div className="hidden md:block">
         <table className="w-full table-fixed border-collapse">
           <colgroup>
-            <col className="w-10" />
-            <col className="w-[9rem]" />
-            <col className="w-[4.25rem]" />
-            <col className="w-[8.5rem]" />
-            <col className="w-[6.5rem]" />
+            <col className="w-11" />
+            <col className="w-[10rem]" />
+            <col className="w-[4.75rem]" />
+            <col className="w-[11rem]" />
+            <col className="w-[7rem]" />
             <col />
           </colgroup>
           <thead>
@@ -366,7 +375,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               {["#", "Report", "Age", "Target", "Result", "Read"].map((header) => (
                 <th
                   key={header}
-                  className="px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted"
+                  className="px-3.5 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted"
                 >
                   {header}
                 </th>
@@ -393,41 +402,41 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                     }}
                     tabIndex={0}
                   >
-                    <td className="px-3 py-2 align-middle font-mono text-[12px] tabular-nums text-text-muted">
+                    <td className="px-3.5 py-3 align-middle font-mono text-[13px] tabular-nums text-text-muted">
                       {start + index + 1}
                     </td>
-                    <td className="px-3 py-2 align-middle">
+                    <td className="px-3.5 py-3 align-middle">
                       <div
-                        className="truncate font-mono text-[12px] text-text-primary"
+                        className="truncate font-mono text-[13px] text-text-primary"
                         title={item.report_id || undefined}
                       >
                         {item.report_id || "—"}
                       </div>
                     </td>
                     <td
-                      className="whitespace-nowrap px-3 py-2 align-middle font-mono text-[12px] tabular-nums text-text-muted"
+                      className="whitespace-nowrap px-3.5 py-3 align-middle font-mono text-[13px] tabular-nums text-text-muted"
                       title={formatTimestamp(item.issued_at)}
                     >
                       {compactTime(item.issued_at)}
                     </td>
-                    <td className="px-3 py-2 align-middle">
+                    <td className="px-3.5 py-3 align-middle">
                       <div
                         className={cx(
-                          "font-mono text-[13px] font-semibold tabular-nums",
+                          "font-mono text-[15px] font-semibold tabular-nums",
                           biasTone(item.primary_bias)
                         )}
                       >
                         {projected.title}
                       </div>
-                      <div className="truncate font-mono text-[10px] text-text-muted" title={projected.meta}>
+                      <div className="mt-0.5 font-mono text-[11px] text-text-muted" title={projected.meta}>
                         {projected.meta}
                       </div>
                     </td>
-                    <td className="px-3 py-2 align-middle">
+                    <td className="px-3.5 py-3 align-middle">
                       <ResultChip result={result} />
                     </td>
-                    <td className="px-3 py-2 align-middle">
-                      <p className="truncate text-[12.5px] leading-snug text-text-secondary" title={explanation}>
+                    <td className="px-3.5 py-3 align-middle">
+                      <p className="line-clamp-2 text-[13.5px] leading-snug text-text-secondary" title={explanation}>
                         {highlightPrices(explanation)}
                       </p>
                     </td>
@@ -458,7 +467,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               key={rowId}
               type="button"
               onClick={() => toggleRow(rowId)}
-              className="block w-full rounded-xl border border-ink/[0.06] bg-surface-secondary p-3 text-left"
+              className="block w-full rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5 text-left"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
@@ -481,7 +490,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                 <div className="min-w-0">
                   <div
                     className={cx(
-                      "font-mono text-[16px] font-semibold tabular-nums leading-none",
+                      "font-mono text-[18px] font-semibold tabular-nums leading-none",
                       biasTone(item.primary_bias)
                     )}
                   >

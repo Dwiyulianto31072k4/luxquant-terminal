@@ -129,24 +129,45 @@ export default function MarketSheet({
             <span className="font-semibold text-text-primary">{money(deriv?.oiUsd)}</span>
           </Row>
 
-          {lsLong != null && lsShort != null && (
+          {(deriv?.lsGlobal || deriv?.lsTopAccounts || deriv?.lsTopPositions || (lsLong != null && lsShort != null)) && (
             <div className="border-b border-ink/[0.06] px-4 py-3">
-              <div className="mb-1.5 flex items-center justify-between">
-                <p className="text-[12px] font-medium text-text-primary">Long / short</p>
-                <p className="font-mono text-[10px] text-text-muted">Top traders</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-8 shrink-0 font-mono text-[12px] font-semibold tabular-nums text-positive">
-                  {lsLong}%
-                </span>
-                <div className="flex h-2 flex-1 overflow-hidden rounded-sm bg-ink/5">
-                  <div className="h-full bg-positive/70" style={{ width: `${lsLong}%` }} />
-                  <div className="h-full bg-negative/70" style={{ width: `${lsShort}%` }} />
+              <p className="mb-2 text-[12px] font-medium text-text-primary">Long / short books</p>
+              {[
+                ["Global", deriv?.lsGlobal],
+                ["Top accounts", deriv?.lsTopAccounts],
+                ["Top positions", deriv?.lsTopPositions],
+              ].map(([label, book]) =>
+                book?.ratio != null ? (
+                  <div key={label} className="mb-2 last:mb-0">
+                    <div className="mb-1 flex items-baseline justify-between">
+                      <span className="text-[11px] text-text-muted">{label}</span>
+                      <span className="font-mono text-[13px] font-semibold tabular-nums">
+                        {Number(book.ratio).toFixed(4)}
+                      </span>
+                    </div>
+                    {book.longPct != null && (
+                      <div className="flex h-2.5 overflow-hidden rounded-sm bg-ink/5">
+                        <div className="h-full bg-positive/70" style={{ width: `${book.longPct}%` }} />
+                        <div className="h-full bg-negative/70" style={{ width: `${book.shortPct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                ) : null
+              )}
+              {!deriv?.lsGlobal && !deriv?.lsTopAccounts && !deriv?.lsTopPositions && lsLong != null && (
+                <div className="flex items-center gap-2">
+                  <span className="w-8 shrink-0 font-mono text-[12px] font-semibold tabular-nums text-positive">
+                    {lsLong}%
+                  </span>
+                  <div className="flex h-2.5 flex-1 overflow-hidden rounded-sm bg-ink/5">
+                    <div className="h-full bg-positive/70" style={{ width: `${lsLong}%` }} />
+                    <div className="h-full bg-negative/70" style={{ width: `${lsShort}%` }} />
+                  </div>
+                  <span className="w-8 shrink-0 text-right font-mono text-[12px] font-semibold tabular-nums text-negative">
+                    {lsShort}%
+                  </span>
                 </div>
-                <span className="w-8 shrink-0 text-right font-mono text-[12px] font-semibold tabular-nums text-negative">
-                  {lsShort}%
-                </span>
-              </div>
+              )}
             </div>
           )}
 

@@ -27,6 +27,7 @@ import {
 } from "../utils/themeColors";
 import { deriveChartWithCard } from "./signalModal/utils";
 import MarketSheet from "./signalModal/MarketSheet";
+import PositioningTape from "./signalModal/PositioningTape";
 import { peakContextLabel, daysToPeak, peakIsAfterStop } from "../utils/peakTiming";
 import { buildLevelTimeline } from "../utils/journeyEvents";
 import { requestTelegramWriteAccess } from "../utils/telegramWriteAccess";
@@ -479,6 +480,24 @@ const SignalModal = ({
     const symbol = (signal.pair || "").replace(/USDT$/i, "") + "USDT";
     let alive = true;
     setLiveBlocked(false); // reset saat pair ganti / modal buka
+    setDerivMetrics(null);
+
+    const n = (v) => {
+      const x = parseFloat(v);
+      return Number.isFinite(x) ? x : null;
+    };
+    const lsBook = (row, longKey = "longAccount", shortKey = "shortAccount", ratioKey = "longShortRatio") => {
+      if (!row) return null;
+      const longAcc = n(row[longKey]);
+      const shortAcc = n(row[shortKey]);
+      const ratio = n(row[ratioKey]);
+      const longPct = longAcc != null ? (longAcc <= 1.5 ? longAcc * 100 : longAcc) : null;
+      const shortPct = shortAcc != null ? (shortAcc <= 1.5 ? shortAcc * 100 : shortAcc) : longPct != null ? 100 - longPct : null;
+      const computed =
+        ratio ?? (longPct != null && shortPct > 0 ? longPct / shortPct : null);
+      if (computed == null && longPct == null) return null;
+      return { ratio: computed, longPct, shortPct };
+    };
 
     const applyData = (d) => {
       if (!alive || !d) return;
@@ -491,27 +510,47 @@ const SignalModal = ({
         oiChange24h: d.oiChange24h,
         lsLong: d.lsLong,
         lsShort: d.lsShort,
+        lsGlobal: d.lsGlobal ?? null,
+        lsTopAccounts: d.lsTopAccounts ?? null,
+        lsTopPositions: d.lsTopPositions ?? null,
         basisPct: d.basisPct ?? null,
         volume24h: d.volume24h ?? null,
+        spotVolume24h: d.spotVolume24h ?? null,
         high24h: d.high24h ?? null,
         low24h: d.low24h ?? null,
         takerBuyPct: d.takerBuyPct ?? null,
+        takerBuySell: d.takerBuySell ?? null,
+        fundingTrend: d.fundingTrend ?? null,
+        change7d: d.change7d ?? null,
       });
     };
 
     // --- Binance Futures (primary) ---
     const fetchBinance = async () => {
-      const [pmRes, oiRes, lsRes, oi24Res, tickRes] = await Promise.allSettled([
-        fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
-        fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`),
-        fetch(
-          `https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`
-        ),
-        fetch(
-          `https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=25`
-        ),
-        fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`),
-      ]);
+      const [pmRes, oiRes, posRes, accRes, globRes, oi24Res, tickRes, takerRes, fundRes, klineRes, spotRes] =
+        await Promise.allSettled([
+          fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
+          fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`),
+          fetch(
+            `https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`
+          ),
+          fetch(
+            `https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`
+          ),
+          fetch(
+            `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`
+          ),
+          fetch(
+            `https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=25`
+          ),
+          fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`),
+          fetch(
+            `https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${symbol}&period=5m&limit=1`
+          ),
+          fetch(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=6`),
+          fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=8`),
+          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),
+        ]);
       if (pmRes.status !== "fulfilled" || !pmRes.value.ok) return null;
       const pm = await pmRes.value.json();
       const price = parseFloat(pm.markPrice);
@@ -524,12 +563,19 @@ const SignalModal = ({
         oiChange24h: null,
         lsLong: null,
         lsShort: null,
+        lsGlobal: null,
+        lsTopAccounts: null,
+        lsTopPositions: null,
         change24h: null,
         basisPct: null,
         volume24h: null,
+        spotVolume24h: null,
         high24h: null,
         low24h: null,
         takerBuyPct: null,
+        takerBuySell: null,
+        fundingTrend: null,
+        change7d: null,
       };
       const idx = parseFloat(pm.indexPrice);
       if (idx > 0) out.basisPct = ((price - idx) / idx) * 100;
@@ -545,12 +591,20 @@ const SignalModal = ({
           if (old > 0) out.oiChange24h = ((now - old) / old) * 100;
         }
       }
-      if (lsRes.status === "fulfilled" && lsRes.value.ok) {
-        const l = await lsRes.value.json();
-        if (Array.isArray(l) && l.length) {
-          out.lsLong = Math.round(parseFloat(l[0].longAccount) * 100);
-          out.lsShort = Math.round(parseFloat(l[0].shortAccount) * 100);
-        }
+      const firstRow = async (res) => {
+        if (res.status !== "fulfilled" || !res.value.ok) return null;
+        const body = await res.value.json();
+        return Array.isArray(body) && body.length ? body[0] : null;
+      };
+      const pos = await firstRow(posRes);
+      const acc = await firstRow(accRes);
+      const glob = await firstRow(globRes);
+      out.lsTopPositions = lsBook(pos);
+      out.lsTopAccounts = lsBook(acc);
+      out.lsGlobal = lsBook(glob);
+      if (out.lsTopPositions?.longPct != null) {
+        out.lsLong = Math.round(out.lsTopPositions.longPct);
+        out.lsShort = Math.round(out.lsTopPositions.shortPct);
       }
       if (tickRes.status === "fulfilled" && tickRes.value.ok) {
         const tk = await tickRes.value.json();
@@ -564,12 +618,45 @@ const SignalModal = ({
         const tb = parseFloat(tk.takerBuyQuoteVolume);
         if (qv > 0 && tb >= 0) out.takerBuyPct = (tb / qv) * 100;
       }
+      const taker = await firstRow(takerRes);
+      if (taker) {
+        out.takerBuySell = n(taker.buySellRatio);
+        const buy = n(taker.buyVol);
+        const sell = n(taker.sellVol);
+        if (buy != null && sell != null && buy + sell > 0) {
+          out.takerBuyPct = (buy / (buy + sell)) * 100;
+        }
+      }
+      if (fundRes.status === "fulfilled" && fundRes.value.ok) {
+        const fr = await fundRes.value.json();
+        if (Array.isArray(fr) && fr.length) {
+          out.fundingTrend = fr
+            .map((row) => {
+              const r = n(row.fundingRate);
+              return r == null ? null : r * 100;
+            })
+            .filter((v) => v != null);
+        }
+      }
+      if (klineRes.status === "fulfilled" && klineRes.value.ok) {
+        const ks = await klineRes.value.json();
+        if (Array.isArray(ks) && ks.length >= 2) {
+          const old = n(ks[0][4]);
+          const now = n(ks[ks.length - 1][4]);
+          if (old > 0 && now != null) out.change7d = ((now - old) / old) * 100;
+        }
+      }
+      if (spotRes.status === "fulfilled" && spotRes.value.ok) {
+        const sp = await spotRes.value.json();
+        const qv = n(sp.quoteVolume);
+        if (qv > 0) out.spotVolume24h = qv;
+      }
       return out;
     };
 
     // --- Bybit (fallback — accessible from ID/more regions) ---
     const fetchBybit = async () => {
-      const [tkRes, oiRes, lsRes] = await Promise.allSettled([
+      const [tkRes, oiRes, lsRes, fundRes, klineRes, spotRes] = await Promise.allSettled([
         fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`),
         fetch(
           `https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${symbol}&intervalTime=1h&limit=25`
@@ -577,6 +664,13 @@ const SignalModal = ({
         fetch(
           `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1`
         ),
+        fetch(
+          `https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${symbol}&limit=6`
+        ),
+        fetch(
+          `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=D&limit=8`
+        ),
+        fetch(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}`),
       ]);
       if (tkRes.status !== "fulfilled" || !tkRes.value.ok) return null;
       const tj = await tkRes.value.json();
@@ -597,11 +691,18 @@ const SignalModal = ({
         oiChange24h: null,
         lsLong: null,
         lsShort: null,
+        lsGlobal: null,
+        lsTopAccounts: null,
+        lsTopPositions: null,
         basisPct: null,
         volume24h: tk.turnover24h ? parseFloat(tk.turnover24h) : null,
+        spotVolume24h: null,
         high24h: tk.highPrice24h ? parseFloat(tk.highPrice24h) : null,
         low24h: tk.lowPrice24h ? parseFloat(tk.lowPrice24h) : null,
         takerBuyPct: null,
+        takerBuySell: null,
+        fundingTrend: null,
+        change7d: null,
       };
       const idx = parseFloat(tk.indexPrice);
       if (idx > 0) out.basisPct = ((price - idx) / idx) * 100;
@@ -618,9 +719,41 @@ const SignalModal = ({
         const lj = await lsRes.value.json();
         const l = lj?.result?.list?.[0];
         if (l) {
-          out.lsLong = Math.round(parseFloat(l.buyRatio) * 100);
-          out.lsShort = Math.round(parseFloat(l.sellRatio) * 100);
+          const book = lsBook(l, "buyRatio", "sellRatio", "longShortRatio");
+          out.lsGlobal = book;
+          if (book?.longPct != null) {
+            out.lsLong = Math.round(book.longPct);
+            out.lsShort = Math.round(book.shortPct);
+          }
         }
+      }
+      if (fundRes.status === "fulfilled" && fundRes.value.ok) {
+        const fj = await fundRes.value.json();
+        const list = fj?.result?.list || [];
+        if (list.length) {
+          out.fundingTrend = list
+            .map((row) => {
+              const r = n(row.fundingRate);
+              return r == null ? null : r * 100;
+            })
+            .filter((v) => v != null)
+            .reverse();
+        }
+      }
+      if (klineRes.status === "fulfilled" && klineRes.value.ok) {
+        const kj = await klineRes.value.json();
+        const ks = kj?.result?.list || [];
+        if (ks.length >= 2) {
+          const old = n(ks[ks.length - 1][4]);
+          const nowPx = n(ks[0][4]);
+          if (old > 0 && nowPx != null) out.change7d = ((nowPx - old) / old) * 100;
+        }
+      }
+      if (spotRes.status === "fulfilled" && spotRes.value.ok) {
+        const sj = await spotRes.value.json();
+        const sp = sj?.result?.list?.[0];
+        const qv = n(sp?.turnover24h);
+        if (qv > 0) out.spotVolume24h = qv;
       }
       return out;
     };
@@ -1292,23 +1425,6 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     );
   };
 
-  const formatCountdown = (ms) => {
-    if (!ms) return null;
-    const diff = ms - Date.now();
-    if (diff <= 0) return "now";
-    const totalSec = Math.floor(diff / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
-  };
-
-  const formatOiUsd = (val) => {
-    if (!val || val <= 0) return "\u2014";
-    if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
-    if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
-    return `$${(val / 1e3).toFixed(1)}K`;
-  };
-
   // === renderTargetsPanel === (Diubah jadi fungsi biasa agar tidak re-mount)
   // STYLING: semua wrapper kartu sekarang pakai .lq-card (boxy + hover glow),
   // tile dalam pakai .lq-tile. Logika & data tidak berubah.
@@ -1514,148 +1630,20 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           </button>
         </div>
 
-        {/* Compact: one-line derivatives so the ticket stays the focus */}
-        {isCompact && derivMetrics &&
-          (() => {
-            const { funding, oiUsd, lsLong, lsShort } = derivMetrics;
-            const fundingPos = funding > 0;
-            return (
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar rounded-xl border border-ink/[0.08] bg-surface-raised px-2.5 py-1.5 font-mono text-[10px] tabular-nums">
-                <span className={fundingPos ? "text-negative" : "text-positive"}>
-                  Fund {funding >= 0 ? "+" : ""}
-                  {funding.toFixed(4)}%
-                </span>
-                <span className="text-ink/20">·</span>
-                <span className="text-text-secondary">OI {formatOiUsd(oiUsd)}</span>
-                {lsLong != null && lsShort != null && (
-                  <>
-                    <span className="text-ink/20">·</span>
-                    <span className="text-positive">{lsLong}L</span>
-                    <span className="text-text-muted">/</span>
-                    <span className="text-negative">{lsShort}S</span>
-                  </>
-                )}
-              </div>
-            );
-          })()}
-
-        {/* ── DERIVATIVES (tile kotak + L/S bar chart) ── */}
-        {!isCompact && derivMetrics &&
-          (() => {
-            const { funding, nextFundingMs, oiUsd, oiChange24h, lsLong, lsShort } = derivMetrics;
-            const countdown = formatCountdown(nextFundingMs);
-            const fundingPos = funding > 0;
-            return (
-              <div className="lq-card">
-                <div className="px-2.5 py-1.5 border-b border-ink/[0.05] flex items-center gap-1.5">
-                  <span className="text-[8.5px] uppercase tracking-[0.12em] text-text-muted font-medium">
-                    Derivatives · Perp
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-px bg-ink/[0.04]">
-                  <div className="p-2.5 bg-surface-raised">
-                    <p className="text-[8px] text-text-muted uppercase tracking-wider mb-1">
-                      Funding
-                    </p>
-                    <p
-                      className={`text-[12px] font-mono font-semibold leading-none tabular-nums ${fundingPos ? "text-negative" : "text-positive"}`}
-                    >
-                      {funding >= 0 ? "+" : ""}
-                      {funding.toFixed(4)}%
-                    </p>
-                    <p className="text-[7.5px] text-text-muted mt-1 leading-tight">
-                      {fundingPos ? "longs pay" : "shorts pay"}
-                      {countdown ? ` · ${countdown}` : ""}
-                    </p>
-                  </div>
-                  <div className="p-2.5 bg-surface-raised">
-                    <p className="text-[8px] text-text-muted uppercase tracking-wider mb-1">
-                      Open interest
-                    </p>
-                    <p className="text-[12px] font-mono font-bold text-text-primary leading-none">
-                      {formatOiUsd(oiUsd)}
-                    </p>
-                    {oiChange24h !== null && (
-                      <p
-                        className={`text-[7.5px] font-mono mt-1 leading-tight ${oiChange24h >= 0 ? "text-positive/70" : "text-negative/70"}`}
-                      >
-                        {oiChange24h >= 0 ? "+" : ""}
-                        {oiChange24h.toFixed(2)}% · 24h
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* L/S bar chart */}
-                {lsLong !== null && lsShort !== null && (
-                  <div className="px-2.5 py-2.5 border-t border-ink/[0.05]">
-                    <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1.5">
-                      L/S · Top Traders
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[12px] font-mono font-bold text-positive w-8 flex-shrink-0">
-                        {lsLong}%
-                      </span>
-                      <div className="flex-1 flex h-2.5 rounded-sm overflow-hidden bg-ink/5">
-                        <div
-                          className="h-full bg-gradient-to-r from-positive/80 to-positive/55"
-                          style={{ width: `${lsLong}%` }}
-                        />
-                        <div
-                          className="h-full bg-gradient-to-r from-negative/55 to-negative/80"
-                          style={{ width: `${lsShort}%` }}
-                        />
-                      </div>
-                      <span className="text-[12px] font-mono font-bold text-negative w-8 text-right flex-shrink-0">
-                        {lsShort}%
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-[7.5px] uppercase tracking-wider text-positive/50 font-medium">
-                        Long
-                      </span>
-                      <span className="text-[7.5px] uppercase tracking-wider text-negative/50 font-medium">
-                        Short
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Links (tanpa disclaimer) */}
-                <div className="px-2.5 py-1.5 border-t border-ink/[0.05] bg-scrim/20 flex items-center gap-1.5 flex-wrap">
-                  {[
-                    {
-                      label: "TradingView",
-                      url: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal?.pair || ""}.P`,
-                    },
-                    { label: "Metrics", url: `/market-pulse?pair=${signal?.pair || ""}` },
-                    {
-                      label: "Binance",
-                      url: `https://www.binance.com/en/futures/${signal?.pair || ""}`,
-                    },
-                  ].map((link, i, arr) => (
-                    <span key={link.label} className="flex items-center gap-1.5">
-                      <a
-                        href={link.url}
-                        target={link.url.startsWith("http") ? "_blank" : undefined}
-                        rel="noopener noreferrer"
-                        className="text-[8px] text-text-primary/30 hover:text-text-secondary transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                      {i < arr.length - 1 && (
-                        <span className="text-text-primary/15 text-[8px]">·</span>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
+        {derivMetrics ? (
+          <PositioningTape
+            pair={signal?.pair}
+            livePrice={livePrice}
+            change24h={liveChange24h}
+            formatPrice={formatPrice}
+            deriv={derivMetrics}
+            marketCap={signal?.market_cap}
+            compact={isCompact}
+          />
+        ) : null}
 
         {/* ── FALLBACK: live/derivatives data ke-block (geo) → saran VPN ── */}
-        {!isCompact && !derivMetrics && liveBlocked && (
+        {!derivMetrics && liveBlocked && (
           <div className="lq-card bg-surface-raised">
             <div className="p-3 text-center">
               <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-ink/10 bg-ink/[0.05]">
@@ -1670,10 +1658,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
                 </svg>
               </div>
-              <p className="text-[11px] font-semibold text-text-primary/85">
+              <p className="text-[13px] font-semibold text-text-primary/85">
                 Live data unavailable
               </p>
-              <p className="mx-auto mt-1 max-w-[250px] text-[9px] leading-relaxed text-text-primary/45">
+              <p className="mx-auto mt-1 max-w-[250px] text-[12px] leading-relaxed text-text-primary/45">
                 Derivatives data (funding, open interest, long/short) is blocked on your network or
                 region. Turn on a <span className="text-text-secondary font-medium">VPN</span> and
                 reopen this signal to see real-time metrics.
@@ -1683,7 +1671,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         )}
 
         {/* ── META: volume / risk / cap ── */}
-        {!isCompact && (signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
+        {!isCompact && (signal?.volume_rank_num || signal?.risk_level) && (
           <div className="lq-card bg-surface-raised p-2 space-y-1.5">
             {signal?.volume_rank_num && (
               <div className="flex items-center justify-between gap-2">
@@ -1716,16 +1704,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 </span>
               </div>
             )}
-            {signal?.market_cap && (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[9px] text-text-primary/40 uppercase tracking-wider min-w-0">
-                  {t("modal.market_cap")}
-                </span>
-                <span className="text-[10px] text-text-primary font-medium flex-shrink-0 text-right">
-                  {signal.market_cap}
-                </span>
-              </div>
-            )}
+
           </div>
         )}
       </div>
