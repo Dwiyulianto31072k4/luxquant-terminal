@@ -182,7 +182,7 @@ export const Card = ({ className = "", children, accent, hairline = false }) => 
       {hairline && (
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.06]" />
       )}
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 flex h-full min-h-0 flex-col">{children}</div>
     </div>
   );
 };

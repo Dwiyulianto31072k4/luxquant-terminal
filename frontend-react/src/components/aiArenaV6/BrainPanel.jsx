@@ -14,8 +14,8 @@ import { getBrain } from "../../services/aiArenaV6Api";
 import { Card, SectionHeader, Tag, Tile, StateBox, GhostButton, COLOR } from "./_ui";
 
 const STATUS_TONE = { core: "gold", validated: "up", candidate: "neutral", retired: "muted" };
-const W = 900,
-  H = 560,
+const W = 720,
+  H = 640,
   CX = W / 2,
   CY = H / 2;
 const MIN_K = 0.5,
@@ -56,14 +56,14 @@ function lessonHex(lesson) {
 function useGraphLayout(lessons, postmortems) {
   return useMemo(() => {
     const n = Math.max(lessons.length, 1);
-    const R = 175;
+    const R = 248;
     const nodes = lessons.map((lesson, i) => {
       const angle = (2 * Math.PI * i) / n - Math.PI / 2;
       const evidence = Number(lesson.evidence_n) || 0;
       return {
         lesson,
         hex: lessonHex(lesson),
-        r: Math.min(26, 10 + Math.sqrt(evidence) * 1.9),
+        r: Math.min(24, 11 + Math.sqrt(evidence) * 1.6),
         x: CX + R * Math.cos(angle),
         y: CY + R * Math.sin(angle),
         angle,
@@ -76,8 +76,8 @@ function useGraphLayout(lessons, postmortems) {
         nodes.find((node) => String(node.lesson.id || "").includes(bias)) ||
         nodes[j % Math.max(nodes.length, 1)];
       if (!host) return;
-      const spread = ((j % 11) - 5) * 0.13;
-      const dist = host.r + 44 + ((j * 17) % 52);
+      const spread = ((j % 11) - 5) * 0.1;
+      const dist = host.r + 22 + ((j * 11) % 28);
       const a = host.angle + spread;
       dots.push({
         pm,
@@ -157,7 +157,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
   const dimmed = (id) => selected && selected !== id;
 
   return (
-    <div ref={wrapRef} className="relative w-full overflow-hidden">
+    <div ref={wrapRef} className="relative h-full min-h-[380px] w-full overflow-hidden">
       {/* zoom controls */}
       <div className="absolute right-2.5 top-2.5 z-10 flex flex-col gap-1.5">
         {[
@@ -185,8 +185,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        className="block h-[340px] w-full cursor-grab touch-none select-none rounded-xl border border-ink/[0.08] bg-surface-raised active:cursor-grabbing sm:h-[420px] md:h-auto"
-        style={{ minHeight: 300 }}
+        className="block h-full min-h-[380px] w-full cursor-grab touch-none select-none rounded-xl border border-ink/[0.08] bg-surface-raised active:cursor-grabbing xl:min-h-0"
         role="img"
         aria-label="Interactive Compass brain graph"
         onPointerDown={onPointerDown}
@@ -327,8 +326,8 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
             }
             onMouseLeave={() => setTooltip(null)}
           >
-            <circle cx={CX} cy={CY} r="46" fill={COLOR.gold} fillOpacity="0.1" />
-            <circle cx={CX} cy={CY} r="32" fill="#1a0f08" stroke={COLOR.gold} strokeWidth="2.5" />
+            <circle cx={CX} cy={CY} r="38" fill={COLOR.gold} fillOpacity="0.1" />
+            <circle cx={CX} cy={CY} r="26" fill="#1a0f08" stroke={COLOR.gold} strokeWidth="2" />
             <text
               x={CX}
               y={CY - 4}
@@ -471,19 +470,16 @@ export default function BrainPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-        {/* graph */}
-        <div className="min-w-0 xl:col-span-7">
-          <Card className="p-4 md:p-6">
+      <div className="grid grid-cols-1 items-stretch gap-3 xl:grid-cols-2">
+        <Card className="flex min-h-0 flex-col p-3 md:p-4 xl:h-[min(72vh,680px)]">
             <SectionHeader
               label="Compass brain · knowledge graph"
               right={regime?.regime ? <Tag tone="gold">{pretty(regime.regime)}</Tag> : null}
             />
-            <p className="mb-3 max-w-2xl text-[13px] leading-relaxed text-text-muted">
-              The AI audits every projection it makes. Losses become postmortems (small dots),
-              recurring patterns become lessons (nodes — bigger means more evidence), and validated
-              lessons feed the next forecast. This is its memory, live.
+            <p className="mb-2 text-[12px] leading-snug text-text-muted">
+              Nodes are lessons (bigger = more evidence). Small dots are losses. Click a node.
             </p>
+            <div className="relative min-h-[380px] flex-1">
             <BrainGraph
               regime={regime}
               lessons={lessons}
@@ -491,7 +487,8 @@ export default function BrainPanel() {
               selected={selected}
               onSelect={setSelected}
             />
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] text-text-muted">
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] text-text-muted">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.profit }} />{" "}
                 favor
@@ -520,55 +517,25 @@ export default function BrainPanel() {
 
             {/* selection detail */}
             {selectedLesson && (
-              <div className="mt-4 rounded-xl border border-ink/12 bg-ink/[0.04] p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-display text-[15px] font-semibold text-text-primary">
+              <div className="mt-2 rounded-xl border border-ink/[0.08] bg-ink/[0.03] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-[13px] font-semibold text-text-primary">
                     {shortLessonName(selectedLesson.id)}
                   </span>
-                  <Tag tone={STATUS_TONE[String(selectedLesson.status)] || "muted"}>
-                    {selectedLesson.status}
-                  </Tag>
+                  <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                    {selectedLesson.wins}W / {selectedLesson.losses}L · {selectedLesson.hit_rate}%
+                  </span>
                 </div>
-                <p className="mt-1.5 text-[13px] leading-5 text-text-muted">
+                <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-text-muted">
                   {prettyPrompt(selectedLesson.prompt_line)}
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Tile label="Record">
-                    <span className="font-mono text-[14px] text-text-primary">
-                      {selectedLesson.wins}W / {selectedLesson.losses}L
-                    </span>
-                  </Tile>
-                  <Tile label="Hit rate">
-                    <span className="font-mono text-[14px] text-text-primary">
-                      {selectedLesson.hit_rate}%
-                    </span>
-                  </Tile>
-                  <Tile label="Scope">
-                    <span className="font-mono text-[12px] text-text-primary">
-                      {pretty(selectedLesson.regime)}
-                    </span>
-                  </Tile>
-                  <Tile label="Updated">
-                    <span className="font-mono text-[12px] text-text-primary">
-                      {selectedLesson.updated || "—"}
-                    </span>
-                  </Tile>
-                </div>
-                {linkedPostmortems.length > 0 && (
-                  <p className="mt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                    {linkedPostmortems.length} linked postmortems in the vault
-                  </p>
-                )}
               </div>
             )}
           </Card>
-        </div>
 
-        {/* right rail */}
-        <div className="min-w-0 space-y-4 xl:col-span-5">
-          <Card className="p-5">
+        <Card className="flex min-h-0 flex-col p-3 md:p-4 xl:h-[min(72vh,680px)]">
             <SectionHeader label={`Operating lessons · ${lessons.length}`} />
-            <div className="space-y-2.5">
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5 custom-scrollbar">
               {lessons.map((lesson) => {
                 const scored = (lesson.wins ?? 0) + (lesson.losses ?? 0);
                 const winPct = scored ? Math.round((100 * (lesson.wins ?? 0)) / scored) : 0;
@@ -578,7 +545,7 @@ export default function BrainPanel() {
                     key={lesson.id}
                     type="button"
                     onClick={() => setSelected(isSel ? null : lesson.id)}
-                    className={`w-full rounded-xl border p-3.5 text-left transition ${
+                    className={`w-full rounded-xl border px-3 py-2.5 text-left transition ${
                       isSel
                         ? "border-ink/25 bg-ink/[0.04]"
                         : "border-ink/[0.08] bg-surface-raised hover:border-ink/16"
@@ -600,10 +567,10 @@ export default function BrainPanel() {
                         {pretty(lesson.status)}
                       </span>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-5 text-text-muted">
+                    <p className="mt-1 line-clamp-1 text-[12px] leading-snug text-text-muted">
                       {prettyPrompt(lesson.prompt_line)}
                     </p>
-                    <div className="mt-2.5 flex h-[7px] overflow-hidden rounded-full bg-ink/[0.05]">
+                    <div className="mt-2 flex h-[5px] overflow-hidden rounded-full bg-ink/[0.06]">
                       <span
                         className="h-full"
                         style={{ width: `${winPct}%`, background: COLOR.profit }}
@@ -613,7 +580,7 @@ export default function BrainPanel() {
                         style={{ width: `${100 - winPct}%`, background: COLOR.loss, opacity: 0.7 }}
                       />
                     </div>
-                    <div className="mt-1.5 flex items-center justify-between font-mono text-[10px] text-text-muted">
+                    <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-text-muted">
                       <span>
                         {lesson.wins}W / {lesson.losses}L · n={lesson.evidence_n}
                       </span>
@@ -634,49 +601,37 @@ export default function BrainPanel() {
                   </button>
                 );
               })}
-            </div>
-          </Card>
-
-          {/* recent postmortems */}
-          {postmortems.length > 0 && (
-            <Card className="p-5">
-              <SectionHeader label="Recent postmortems" />
-              <div className="space-y-2">
-                {postmortems.slice(0, 6).map((pm) => (
-                  <div
-                    key={pm.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate font-mono text-[11px] text-text-primary">
-                        {pm.id}
+              {postmortems.length > 0 ? (
+                <div className="pt-2">
+                  <p className="mb-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    Recent postmortems
+                  </p>
+                  <div className="space-y-1.5">
+                    {postmortems.slice(0, 6).map((pm) => (
+                      <div
+                        key={pm.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-ink/[0.08] px-2.5 py-1.5"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-mono text-[11px] text-text-primary">{pm.id}</div>
+                          <div className="font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted">
+                            {pretty(pm.bias)} · {pretty(pm.market_mode)}
+                          </div>
+                        </div>
+                        <div className="shrink-0 font-mono text-[12px] tabular-nums text-loss">
+                          {pm.progress_to_target_pct ?? 0}%
+                        </div>
                       </div>
-                      <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted">
-                        {pretty(pm.bias)} · {pretty(pm.market_mode)}
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="font-mono text-[12px] tabular-nums text-loss">
-                        {pm.progress_to_target_pct ?? 0}%
-                      </div>
-                      <div className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted">
-                        to target
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          <Card className="p-4" accent="gold">
-            <p className="text-[12px] leading-5 text-text-muted">
-              <span className="font-semibold text-text-primary">How it learns: </span>
-              every resolved projection updates these statistics nightly. Lessons that keep helping
-              get promoted; lessons that stop working retire automatically.
+                </div>
+              ) : null}
+            </div>
+            <p className="mt-2 border-t border-ink/[0.06] pt-2 text-[11px] leading-snug text-text-muted">
+              <span className="font-medium text-text-primary">How it learns. </span>
+              Nightly scores promote lessons that keep helping and retire the rest.
             </p>
           </Card>
-        </div>
       </div>
     </div>
   );
