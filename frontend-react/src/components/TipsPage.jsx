@@ -1,21 +1,12 @@
 // src/components/TipsPage.jsx
-// ════════════════════════════════════════════════════════════════
-// Tutorials — a course, laid out like one.
-//
-// Full-width catalog (the app shell is already 1600px). A narrow max-width
-// left two empty gutters and made 24 lessons look like a stub. Layout is the
-// catalog every course platform converges on: a hero with Continue, a grid of
-// module cards so you can see the whole path, then lesson cards for the
-// selected module. Mobile is a snap-scroll of those same cards, not a squeezed
-// two-column.
-// ════════════════════════════════════════════════════════════════
+// Compact course catalog. Hero stays a preamble, not a dashboard.
+// Modules are a picker; the selected module owns the lesson list.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { resourcesApi, coverUrl, youtubeThumb } from "../services/resourcesApi";
 import ResourceReader from "./resources/ResourceReader";
 import { useAuth } from "../context/AuthContext";
-import { PageHeader, SectionHeader } from "./ui/PageHeader";
 import { MODULE_COVERS, TYPE_LABEL } from "../content/tutorialCovers";
 
 const coverFor = (lesson, trackSlug) =>
@@ -24,26 +15,9 @@ const coverFor = (lesson, trackSlug) =>
   MODULE_COVERS[trackSlug] ||
   MODULE_COVERS.start;
 
-/* ── marks ──────────────────────────────────────────────────── */
-
-const TypeMark = ({ type }) => {
-  const d = {
-    video: "M8 5v14l11-7z",
-    pdf: "M7 3h7l5 5v13H7z M14 3v5h5",
-    link: "M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1 M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1",
-    article: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
-  }[type] || "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z";
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={d} />
-    </svg>
-  );
-};
-
-const Tick = ({ on, size = 18 }) => (
+const Tick = ({ on, size = 16 }) => (
   <span
-    className="inline-flex shrink-0 items-center justify-center rounded-full transition-colors"
+    className="inline-flex shrink-0 items-center justify-center rounded-full"
     style={{
       width: size,
       height: size,
@@ -60,7 +34,7 @@ const Tick = ({ on, size = 18 }) => (
 );
 
 const Bar = ({ pct, done }) => (
-  <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.08]">
+  <div className="h-1 w-full overflow-hidden rounded-full bg-ink/[0.08]">
     <div
       className="h-full rounded-full transition-all duration-500"
       style={{
@@ -71,18 +45,24 @@ const Bar = ({ pct, done }) => (
   </div>
 );
 
-const Stat = ({ label, value }) => (
-  <div className="min-w-[88px] rounded-xl border border-ink/[0.08] bg-surface-secondary/80 px-3 py-2.5">
-    <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-      {label}
-    </p>
-    <p className="mt-0.5 font-display text-[17px] font-semibold tabular-nums text-text-primary">
-      {value}
-    </p>
+const SectionHead = ({ kicker, title, lede, right }) => (
+  <div className="flex items-end justify-between gap-3">
+    <div className="min-w-0">
+      {kicker ? (
+        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-text-muted">
+          {kicker}
+        </p>
+      ) : null}
+      <h2 className="mt-1 font-display text-[17px] font-semibold tracking-tight text-text-primary sm:text-xl">
+        {title}
+      </h2>
+      {lede ? (
+        <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-text-secondary">{lede}</p>
+      ) : null}
+    </div>
+    {right ? <div className="hidden shrink-0 sm:block">{right}</div> : null}
   </div>
 );
-
-/* ── module card ────────────────────────────────────────────── */
 
 const ModuleCard = ({ track, n, active, onSelect }) => {
   const pct = track.lesson_count
@@ -96,113 +76,96 @@ const ModuleCard = ({ track, n, active, onSelect }) => {
       type="button"
       onClick={() => onSelect(track.slug)}
       aria-current={active ? "true" : undefined}
-      className={`flex h-full w-[260px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border text-left transition-shadow sm:w-full ${
+      className={`flex h-full flex-col overflow-hidden rounded-xl border text-left transition-colors ${
         active
-          ? "border-accent/40 shadow-[0_8px_28px_rgb(var(--scrim)/0.18)]"
-          : "border-ink/[0.08] hover:border-ink/15 hover:shadow-[0_8px_24px_rgb(var(--scrim)/0.12)]"
-      } bg-surface-raised`}
+          ? "border-accent/45 bg-surface-raised"
+          : "border-ink/[0.08] bg-surface-raised hover:border-ink/16"
+      }`}
     >
       <div className="relative aspect-[16/9] overflow-hidden bg-ink/[0.06]">
         <img src={cover} alt="" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-scrim/55 via-transparent to-transparent" />
-        <span className="absolute left-3 top-3 rounded-md bg-surface-raised/90 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-text-primary backdrop-blur-sm">
+        <div className="absolute inset-0 bg-gradient-to-t from-scrim/50 to-transparent" />
+        <span className="absolute left-2 top-2 rounded bg-surface-raised/90 px-1.5 py-px font-mono text-[9.5px] font-semibold tabular-nums text-text-primary">
           {String(n).padStart(2, "0")}
         </span>
         {done && (
-          <span className="absolute right-3 top-3">
-            <Tick on size={20} />
+          <span className="absolute right-2 top-2">
+            <Tick on size={16} />
           </span>
         )}
-        <div className="absolute inset-x-3 bottom-3">
+        <div className="absolute inset-x-2 bottom-2">
           <Bar pct={pct} done={done} />
         </div>
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-display text-[16px] font-semibold tracking-tight text-text-primary">
+      <div className="flex flex-1 flex-col px-2.5 py-2.5 sm:px-3 sm:py-3">
+        <h3 className="font-display text-[13.5px] font-semibold leading-snug tracking-tight text-text-primary sm:text-[15px]">
           {track.title}
         </h3>
-        <p className="mt-1 line-clamp-2 min-h-[40px] text-[13px] leading-snug text-text-secondary">
-          {track.summary}
-        </p>
-        <p className="mt-3 font-mono text-[10.5px] tabular-nums text-text-muted">
-          {track.completed_count}/{track.lesson_count} · {track.minutes} min
+        <p className="mt-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+          {track.completed_count}/{track.lesson_count} · {track.minutes}m
         </p>
       </div>
     </button>
   );
 };
 
-/* ── lesson card ────────────────────────────────────────────── */
-
-const LessonCard = ({ lesson, index, trackSlug, onOpen, onToggle, canTrack }) => {
+const LessonRow = ({ lesson, index, trackSlug, onOpen, onToggle, canTrack }) => {
   const cover = coverFor(lesson, trackSlug);
   const kind = TYPE_LABEL[lesson.type] || "Lesson";
 
   return (
-    <article
-      className={`group flex flex-col overflow-hidden rounded-2xl border bg-surface-raised transition-shadow ${
-        lesson.completed
-          ? "border-ink/[0.07]"
-          : "border-ink/[0.08] hover:border-ink/15 hover:shadow-[0_10px_28px_rgb(var(--scrim)/0.12)]"
+    <div
+      className={`flex items-stretch overflow-hidden rounded-xl border bg-surface-raised ${
+        lesson.completed ? "border-ink/[0.07]" : "border-ink/[0.08]"
       }`}
     >
-      <button type="button" onClick={() => onOpen(lesson)} className="text-left">
-        <div className="relative aspect-[16/9] overflow-hidden bg-ink/[0.06]">
-          <img src={cover} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-scrim/50 via-transparent to-transparent" />
-          <span className="absolute left-3 top-3 rounded-md bg-surface-raised/90 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-text-primary backdrop-blur-sm">
-            {String(index + 1).padStart(2, "0")}
-          </span>
-          <span className="absolute right-3 top-3 rounded-md bg-surface-raised/90 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-text-primary backdrop-blur-sm">
-            {kind}
-          </span>
+      <button
+        type="button"
+        onClick={() => onOpen(lesson)}
+        className="flex min-w-0 flex-1 items-stretch text-left"
+      >
+        <div className="relative w-[88px] shrink-0 overflow-hidden bg-ink/[0.06] sm:w-[132px]">
+          <img src={cover} alt="" className="absolute inset-0 h-full w-full object-cover" />
         </div>
-        <div className="p-4">
+        <div className="min-w-0 flex-1 px-3 py-2.5 sm:px-4 sm:py-3">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] tabular-nums text-text-muted">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+              {kind}
+            </span>
+            <span className="font-mono text-[10px] tabular-nums text-text-muted">
+              {lesson.minutes}m
+            </span>
+          </div>
           <h3
-            className={`font-display text-[16px] font-semibold tracking-tight ${
+            className={`mt-0.5 truncate font-display text-[14.5px] font-semibold tracking-tight sm:text-[15.5px] ${
               lesson.completed ? "text-text-muted" : "text-text-primary"
             }`}
           >
             {lesson.title}
           </h3>
           {lesson.excerpt && (
-            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-text-secondary">
+            <p className="mt-0.5 hidden line-clamp-1 text-[12.5px] text-text-secondary sm:block">
               {lesson.excerpt}
             </p>
           )}
-          <div className="mt-3 flex items-center gap-3 text-[12px] text-text-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <TypeMark type={lesson.type} />
-              {kind}
-            </span>
-            <span className="tabular-nums">{lesson.minutes} min</span>
-            {lesson.level && (
-              <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider">
-                {lesson.level}
-              </span>
-            )}
-            <span className="ml-auto font-medium text-accent">Open →</span>
-          </div>
         </div>
       </button>
-      <div className="flex items-center justify-between border-t border-ink/[0.06] px-4 py-2.5">
-        <button
-          type="button"
-          onClick={() => canTrack && onToggle(lesson)}
-          disabled={!canTrack}
-          title={canTrack ? (lesson.completed ? "Mark as not done" : "Mark as done") : "Sign in to track your progress"}
-          aria-label={lesson.completed ? "Mark as not done" : "Mark as done"}
-          className="inline-flex items-center gap-2 text-[12px] text-text-muted disabled:cursor-default"
-        >
-          <Tick on={lesson.completed} size={18} />
-          {lesson.completed ? "Completed" : "Mark done"}
-        </button>
-      </div>
-    </article>
+      <button
+        type="button"
+        onClick={() => canTrack && onToggle(lesson)}
+        disabled={!canTrack}
+        title={canTrack ? (lesson.completed ? "Mark as not done" : "Mark as done") : "Sign in to track progress"}
+        aria-label={lesson.completed ? "Mark as not done" : "Mark as done"}
+        className="flex w-11 shrink-0 items-center justify-center border-l border-ink/[0.06] disabled:cursor-default sm:w-12"
+      >
+        <Tick on={lesson.completed} size={18} />
+      </button>
+    </div>
   );
 };
-
-/* ── page ───────────────────────────────────────────────────── */
 
 export default function TipsPage() {
   const { isAuthenticated } = useAuth();
@@ -240,6 +203,7 @@ export default function TipsPage() {
     () => tracks.reduce((sum, t) => sum + (t.minutes || 0), 0),
     [tracks]
   );
+  const activeIndex = tracks.findIndex((t) => t.slug === active?.slug);
 
   const nextLesson = useMemo(() => {
     for (const t of tracks) {
@@ -311,74 +275,73 @@ export default function TipsPage() {
 
   const selectModule = (slug) => {
     setActiveSlug(slug);
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches) {
       lessonsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
   return (
-    <div className="w-full">
-      <header className="rounded-2xl border border-ink/[0.08] bg-surface-raised p-4 sm:p-6 lg:p-8">
-        <PageHeader
-          eyebrow="LuxQuant · Tutorials"
-          title="Get more out of every call"
-          subtitle="Short lessons, in the order they are useful — from reading a call to knowing exactly what our numbers do and do not claim."
-          right={
-            anyLessons && nextLesson ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveSlug(nextLesson.track.slug);
-                  openLesson(nextLesson.lesson);
-                }}
-                className="inline-flex w-full items-center justify-between gap-4 rounded-xl bg-accent px-4 py-3 text-left text-accent-fg transition-opacity hover:opacity-90 sm:w-auto sm:min-w-[240px]"
-              >
-                <span>
-                  <span className="block font-mono text-[9px] font-semibold uppercase tracking-[0.14em] opacity-70">
-                    {totals.completed ? "Continue" : "Start"}
-                  </span>
-                  <span className="mt-0.5 block max-w-[220px] truncate text-[13.5px] font-semibold">
-                    {nextLesson.lesson.title}
-                  </span>
-                </span>
-                <span className="shrink-0 text-[16px]" aria-hidden>→</span>
-              </button>
-            ) : null
-          }
-        />
-
-        {anyLessons && (
-          <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-end">
-            <div className="flex flex-wrap gap-2">
-              <Stat label="Lessons" value={`${totals.completed}/${totals.lessons}`} />
-              <Stat label="Complete" value={`${pct}%`} />
-              <Stat label="Modules" value={tracks.length} />
-              <Stat label="Time" value={`${totalMinutes}m`} />
-            </div>
-            <div className="min-w-0 flex-1 lg:pb-1">
-              <Bar pct={pct} done={pct === 100} />
-            </div>
-          </div>
-        )}
+    <div className="w-full pb-4">
+      <header className="max-w-3xl">
+        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-text-muted">
+          Tutorials
+        </p>
+        <h1 className="mt-1.5 font-display text-[1.65rem] font-semibold leading-tight tracking-tight text-text-primary sm:text-3xl">
+          Read the terminal before you size a call
+        </h1>
+        <p className="mt-2 text-[13.5px] leading-relaxed text-text-secondary sm:text-[14.5px]">
+          This is the course for <em className="not-italic text-text-primary">this</em> product —
+          not generic trading school. Six short modules: what a call is, what the numbers
+          actually claim, then the tools, the Agent, and your account. Open any module.
+          The order is the useful one, not a lock.
+        </p>
       </header>
 
-      {error && <p className="mt-6 text-[13px] text-loss">{error}</p>}
+      {anyLessons && (
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          {nextLesson && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSlug(nextLesson.track.slug);
+                openLesson(nextLesson.lesson);
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-accent-fg"
+            >
+              <span>{totals.completed ? "Continue" : "Start"}</span>
+              <span className="max-w-[180px] truncate font-medium opacity-80 sm:max-w-[260px]">
+                {nextLesson.lesson.title}
+              </span>
+              <span aria-hidden>→</span>
+            </button>
+          )}
+          <p className="font-mono text-[11px] tabular-nums text-text-muted">
+            {totals.completed}/{totals.lessons} · {totalMinutes} min
+          </p>
+          <div className="min-w-[120px] max-w-xs flex-1">
+            <Bar pct={pct} done={pct === 100} />
+          </div>
+        </div>
+      )}
+
+      {error && <p className="mt-5 text-[13px] text-loss">{error}</p>}
       {!data && !error && (
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-2xl bg-ink/[0.04]" />
+            <div key={i} className="aspect-[4/3] animate-pulse rounded-xl bg-ink/[0.04]" />
           ))}
         </div>
       )}
 
       {data && (
         <>
-          <section className="mt-8">
-            <SectionHeader
-              title="Modules"
-              desc="Pick a path. Progress saves when you are signed in."
+          <section className="mt-7 sm:mt-9">
+            <SectionHead
+              kicker="The path"
+              title="Choose a module"
+              lede="Tap one to open its lessons. Start here if you are new; skip ahead if you already know the ladder."
             />
-            <div className="-mx-3 mt-4 flex gap-3 overflow-x-auto px-3 pb-2 snap-x snap-mandatory [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
               {tracks.map((t, i) => (
                 <ModuleCard
                   key={t.slug}
@@ -391,25 +354,27 @@ export default function TipsPage() {
             </div>
           </section>
 
-          <section ref={lessonsRef} className="mt-8 scroll-mt-24">
+          <section ref={lessonsRef} className="mt-8 scroll-mt-[calc(var(--lq-header-h,56px)+12px)] sm:mt-10">
             {active && (
               <>
-                <SectionHeader
-                  title={`${String(tracks.findIndex((t) => t.slug === active.slug) + 1).padStart(2, "0")}  ${active.title}`}
-                  desc={active.summary}
+                <SectionHead
+                  kicker={`Module ${String(activeIndex + 1).padStart(2, "0")} of ${String(tracks.length).padStart(2, "0")}`}
+                  title={active.title}
+                  lede={active.summary}
                   right={
-                    active.lesson_count > 0 ? (
-                      <span className="font-mono text-[11px] tabular-nums text-text-muted">
-                        {active.completed_count}/{active.lesson_count} · {active.minutes} min
-                      </span>
-                    ) : null
+                    <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                      {active.completed_count}/{active.lesson_count} · {active.minutes} min
+                    </span>
                   }
                 />
+                <p className="mt-1 font-mono text-[11px] tabular-nums text-text-muted sm:hidden">
+                  {active.completed_count}/{active.lesson_count} · {active.minutes} min
+                </p>
 
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-3 flex flex-col gap-2">
                   {active.lessons.length ? (
                     active.lessons.map((l, i) => (
-                      <LessonCard
+                      <LessonRow
                         key={l.id}
                         lesson={l}
                         index={i}
@@ -420,7 +385,7 @@ export default function TipsPage() {
                       />
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-ink/15 bg-ink/[0.02] px-4 py-10 text-center md:col-span-2">
+                    <div className="rounded-xl border border-dashed border-ink/15 px-4 py-8 text-center">
                       <p className="text-[13px] font-medium text-text-primary">
                         This module is being written.
                       </p>
@@ -435,8 +400,8 @@ export default function TipsPage() {
       )}
 
       {data && anyLessons && !isAuthenticated && (
-        <p className="mt-6 text-center text-[12px] text-text-muted">
-          Sign in to keep track of what you have read.
+        <p className="mt-5 text-[12px] text-text-muted">
+          Sign in to keep your place.
         </p>
       )}
 
