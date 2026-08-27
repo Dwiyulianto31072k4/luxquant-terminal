@@ -58,6 +58,32 @@ export const workspaceApi = {
     return response.data;
   },
 
+  // What X published, and what those calls did afterwards. Live prices are
+  // fetched server-side on each call, so this is deliberately not cached.
+  getXTracker: async (days = 7) => {
+    const response = await api.get("/api/v1/admin/x-tracker", { params: { days } });
+    return response.data;
+  },
+
+  // Which two or three calls are worth a hand-written post right now. Ranked
+  // server-side; nothing here posts anything.
+  getXCandidates: async (days = 7, limit = 3) => {
+    const response = await api.get("/api/v1/admin/x-tracker/candidates", {
+      params: { days, limit },
+    });
+    return response.data;
+  },
+
+  // Mark a suggestion handled so two admins never post the same coin.
+  dismissXCandidate: async (signal_id, kind, action = "dismissed") => {
+    const response = await api.post("/api/v1/admin/x-tracker/dismiss", {
+      signal_id,
+      kind,
+      action,
+    });
+    return response.data;
+  },
+
   refreshApiHealth: async () => {
     const response = await api.post("/api/v1/workspace/api-health/refresh");
     return response.data;

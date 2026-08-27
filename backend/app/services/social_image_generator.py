@@ -596,8 +596,14 @@ CARD_DOMAIN = os.environ.get("SOCIAL_CARD_DOMAIN", "luxquant.tw")
 # is stale config, and a card footer is the one place it would be burned into
 # a PNG and posted.
 from app.core.x_links import resolve_handle as _resolve_handle
+from app.core.x_links import brand_handles as _brand_handles
 
 CARD_HANDLE = "@" + _resolve_handle(os.environ.get("SOCIAL_CARD_HANDLE"))
+# Every handle the footer credits. The brand publishes from two accounts now —
+# the archive on one, the live signal feed on the other — so crediting a single
+# one sends half the readers to the wrong place. CARD_HANDLE stays as the
+# measuring stick for row height; all the handles are the same size.
+CARD_HANDLES = ["@" + h for h in _brand_handles()]
 # The lockup's box, shared by every card we publish. The nine render_*.py signal
 # cards already sit at these numbers (measured on the rendered PNGs, not read off
 # the CSS), so the news poster and the caption slide adopt them: in a 3-wide
@@ -1616,11 +1622,32 @@ def _compose_editorial_card(
     x += icon * GLOBE_INK_RIGHT + GAP - f_dom.getbbox(CARD_DOMAIN)[0]
     sd.text((x, cta_row), CARD_DOMAIN, font=f_dom, fill=ink)
 
+    # Both handles, each with its own mark. Measured first: if the pair would
+    # run past the opposite margin the footer falls back to one, because a
+    # credit that collides with the edge is worse than a credit that is short.
+    def _pair_width(handles):
+        w = 0.0
+        for i, h in enumerate(handles):
+            if i:
+                w += GAP * 2 + sd.textlength("\u00b7", font=f_row) + GAP * 2
+            w += icon * X_INK_RIGHT + GAP + sd.textlength(h, font=f_row)
+        return w
+
+    _handles = CARD_HANDLES
+    if _pair_width(_handles) > (width - CARD_MARGIN * 2) * ss:
+        _handles = CARD_HANDLES[:1]
+
     x = CARD_MARGIN * ss
-    _card_x_icon(strip, x, _card_line_centre(f_row, CARD_HANDLE, foot_row)
-                 - icon / 2, icon, ink)
-    x += icon * X_INK_RIGHT + GAP - f_row.getbbox(CARD_HANDLE)[0]
-    sd.text((x, foot_row), CARD_HANDLE, font=f_row, fill=ink)
+    for i, _h in enumerate(_handles):
+        if i:
+            x += GAP * 2
+            sd.text((x, foot_row), "\u00b7", font=f_row, fill=ink)
+            x += sd.textlength("\u00b7", font=f_row) + GAP * 2
+        _card_x_icon(strip, x, _card_line_centre(f_row, _h, foot_row)
+                     - icon / 2, icon, ink)
+        _tx = x + icon * X_INK_RIGHT + GAP - f_row.getbbox(_h)[0]
+        sd.text((_tx, foot_row), _h, font=f_row, fill=ink)
+        x = _tx + sd.textlength(_h, font=f_row)
 
     img.alpha_composite(
         strip.resize((width, strip_h), Image.Resampling.LANCZOS), (0, strip_top))

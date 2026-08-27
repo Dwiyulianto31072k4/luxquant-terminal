@@ -35,6 +35,7 @@ import { SystemTab } from "./admin/workspace/SystemTab";
 import { ProfitSharingTab } from "./admin/workspace/ProfitSharingTab";
 import { AiCostTab } from "./admin/workspace/AiCostTab";
 import { ApiHealthTab } from "./admin/workspace/ApiHealthTab";
+import { XTrackerTab } from "./admin/workspace/XTrackerTab";
 import { StatusTab } from "./admin/workspace/StatusTab";
 import { ResourcesTab } from "./admin/workspace/ResourcesTab";
 import SocialPostsAdminPage from "./SocialPostsAdminPage";
@@ -223,6 +224,13 @@ const TABS = [
     description: "External keys, balance & quota",
     Icon: KeyIcon,
     group: "platform",
+  },
+  {
+    id: "xtracker",
+    label: "X Tracker",
+    description: "What each post did afterwards",
+    Icon: MegaphoneIcon,
+    group: "growth",
   },
 ];
 
@@ -972,6 +980,7 @@ const AdminWorkspacePage = () => {
               {activeTab === "profitshare" && <ProfitSharingTab />}
               {activeTab === "aicost" && <AiCostTab />}
               {activeTab === "apihealth" && <ApiHealthTab />}
+              {activeTab === "xtracker" && <XTrackerTab />}
             </RouteErrorBoundary>
           </div>
         </main>
