@@ -2137,49 +2137,6 @@ const SignalsPage = () => {
           </div>
         </div>
 
-        {/* ACTIVE FILTER CHIPS — tetap terlihat & bisa dihapus per-item walau panel ditutup */}
-        {!advancedOpen && advancedActiveCount > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/40 mr-0.5">
-              Active
-            </span>
-            {[
-              statusFilter !== "all" && {
-                label: `Status: ${statusFilter}`,
-                clear: () => setStatusFilter("all"),
-              },
-              riskFilter !== "all" && {
-                label: `Risk: ${riskFilter}`,
-                clear: () => setRiskFilter("all"),
-              },
-              streakFilter !== "all" && {
-                label: "Hot streak",
-                clear: () => setStreakFilter("all"),
-              },
-              verdictFilter !== "all" && {
-                label: `Verdict: ${verdictFilter.replace(/_/g, " ")}`,
-                clear: () => setVerdictFilter("all"),
-              },
-              corrDecoupled && { label: "BTC decoupled", clear: () => setCorrDecoupled(false) },
-              corrHighAlign && { label: "BTC aligned", clear: () => setCorrHighAlign(false) },
-              ...selectedTags.map((tag) => ({ label: tag, clear: () => toggleTag(tag) })),
-            ]
-              .filter(Boolean)
-              .map((chip, i) => (
-                <button
-                  key={i}
-                  onClick={chip.clear}
-                  className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-ink/[0.06] border border-ink/12 text-text-primary font-mono text-[9px] uppercase tracking-wider hover:bg-ink/12 transition-all"
-                >
-                  <span>{chip.label}</span>
-                  <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-ink/10 group-hover:bg-ink/15 leading-none">
-                    ×
-                  </span>
-                </button>
-              ))}
-          </div>
-        )}
-
         {/* MORE — helper filters, sort stack, playbook. First screen stays date + search + Hunt. */}
         {advancedOpen && (
           <div className="mt-4 space-y-5 animate-slideDown">

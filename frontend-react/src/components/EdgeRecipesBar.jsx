@@ -319,6 +319,8 @@ export default function EdgeRecipesBar({
   const era = huntStats?.tag_era_start || huntStats?.tags_selected_from?.start;
   const huntMix = huntStats?.hunt;
   const vsAll = huntStats?.vs_all;
+  const showingHunt = activeId === "full_tp" || !activeId;
+  const showingStrongest = activeId === "strongest";
 
   return (
     <section className="overflow-hidden rounded-xl border border-positive/25 bg-positive/[0.05]">
@@ -327,22 +329,28 @@ export default function EdgeRecipesBar({
           <div className="min-w-0">
             <p className="text-[14px] font-semibold tracking-tight text-text-primary">Shortlist</p>
             <p className="mt-0.5 text-[12.5px] leading-snug text-text-primary/85">
-              Start here. Hunt picks setups that historically ran to later targets.
+              {showingStrongest
+                ? "Open Worth calls, ranked by the pair’s own track record — not Hunt tags."
+                : "Start here. Hunt picks setups that historically ran to later targets."}
             </p>
           </div>
-          {huntMix?.tp4_rate != null ? (
+          {showingHunt && huntMix?.tp4_rate != null ? (
             <p className="font-mono text-[11px] tabular-nums text-text-muted">
-              Closed so far · TP4{" "}
+              Hunt closed · TP4{" "}
               <span className="font-semibold text-positive">{Number(huntMix.tp4_rate).toFixed(1)}%</span>
               {vsAll?.final_pp?.tp4 != null ? (
                 <span className="text-positive">
                   {" "}
                   ({vsAll.final_pp.tp4 > 0 ? "+" : ""}
-                  {Number(vsAll.final_pp.tp4).toFixed(1)}pp)
+                  {Number(vsAll.final_pp.tp4).toFixed(1)}pp vs all)
                 </span>
               ) : null}
               {" · "}SL{" "}
               <span className="font-semibold text-text-primary">{Number(huntMix.sl_rate).toFixed(1)}%</span>
+            </p>
+          ) : showingStrongest ? (
+            <p className="font-mono text-[11px] tabular-nums text-text-muted">
+              Open · Worth · no Hunt tag filter
             </p>
           ) : null}
         </div>
