@@ -87,6 +87,34 @@ const readable = (v) => {
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
+const METRIC_LABELS = {
+  top_trader_position: "Top traders long",
+  top_trader_position_long: "Top traders long",
+  top_trader_account: "Accounts long",
+  top_trader_accounts: "Accounts long",
+  top_trader_accounts_long: "Accounts long",
+  funding_rate: "Funding",
+  taker_volume: "Taker volume",
+  basis: "Basis",
+  btc_price: "BTC price",
+  "24h_change": "24h change",
+  "72h_change": "72h change",
+  "24h_range": "24h range",
+  upside_liquidity_mass: "Upside liquidity",
+  magnet_above: "Magnet above",
+  magnet_below: "Magnet below",
+  model_confidence: "Model confidence",
+};
+
+function prettyMetric(raw) {
+  const key = String(raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+  if (METRIC_LABELS[key]) return METRIC_LABELS[key];
+  return readable(String(raw || "").replaceAll("_", " "));
+}
+
 /* ── component ── */
 
 /**
@@ -208,62 +236,65 @@ function DriverCard({ row }) {
   const healthAge = sourceAge((row.source_health || {}).age_seconds);
 
   return (
-    <div className="min-w-0 rounded-xl border border-ink/[0.08] bg-surface-secondary p-3.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="truncate text-[13px] font-semibold text-text-primary">{row.label}</span>
-          {health && health !== "fresh" ? (
+    <div className="min-w-0 overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
+      <div className="px-3.5 pt-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-[13px] font-semibold text-text-primary">{row.label}</span>
+            {health && health !== "fresh" ? (
+              <span
+                className="shrink-0 rounded-md bg-accent/[0.12] px-1.5 py-px font-mono text-[9px] font-semibold uppercase text-accent"
+                title={`Source ${health}${healthAge ? ` · last updated ${healthAge} ago` : ""}`}
+              >
+                {health}
+                {healthAge ? ` ${healthAge}` : ""}
+              </span>
+            ) : null}
+          </div>
+          <span className={`shrink-0 font-mono text-[11px] font-semibold tabular-nums ${m.text}`}>
+            {m.arrow} {m.label} · {strengthPct}%
+          </span>
+        </div>
+
+        <div className="relative mt-2.5 h-[6px] overflow-hidden rounded-full bg-ink/[0.06]">
+          <span className="absolute bottom-0 left-1/2 top-0 w-px bg-ink/[0.16]" />
+          {m.k !== "flat" && strengthPct > 0 ? (
             <span
-              className="shrink-0 rounded bg-accent/[0.12] px-1 py-px font-mono text-[9px] font-semibold uppercase text-accent"
-              title={`Source ${health}${healthAge ? ` · last updated ${healthAge} ago` : ""}`}
-            >
-              {health}
-              {healthAge ? ` ${healthAge}` : ""}
-            </span>
+              className="absolute bottom-0 top-0 rounded-full"
+              style={
+                m.k === "up"
+                  ? { left: "50%", width: `${half}%`, background: `linear-gradient(90deg, ${m.hex}55, ${m.hex})` }
+                  : { right: "50%", width: `${half}%`, background: `linear-gradient(270deg, ${m.hex}55, ${m.hex})` }
+              }
+            />
           ) : null}
         </div>
-        <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>
-          {m.arrow} {m.label} · {strengthPct}%
-        </span>
-      </div>
-
-      {/* Centre-anchored so left is bearish and right is bullish — the bar
-          carries direction as well as size, which two numbers cannot. */}
-      <div className="relative mt-2.5 h-[7px] overflow-hidden rounded-full bg-ink/[0.05]">
-        <span className="absolute bottom-0 left-1/2 top-0 w-px bg-ink/[0.14]" />
-        {m.k !== "flat" && strengthPct > 0 ? (
-          <span
-            className="absolute bottom-0 top-0 rounded-full"
-            style={
-              m.k === "up"
-                ? { left: "50%", width: `${half}%`, background: `linear-gradient(90deg, ${m.hex}55, ${m.hex})` }
-                : { right: "50%", width: `${half}%`, background: `linear-gradient(270deg, ${m.hex}55, ${m.hex})` }
-            }
-          />
+        {Number.isFinite(weight) ? (
+          <p className="mt-1 text-right font-mono text-[10px] tabular-nums text-text-muted">
+            weight {weight.toFixed(2)}
+          </p>
         ) : null}
       </div>
 
-      {Number.isFinite(weight) ? (
-        <div className="mt-1.5 text-right font-mono text-[9.5px] text-text-muted">
-          weight {weight.toFixed(2)}
-        </div>
-      ) : null}
-
       {metrics.length ? (
-        <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-ink/[0.05] lq-well px-2.5 py-2 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-2 gap-px border-t border-ink/[0.06] bg-ink/[0.06]">
           {metrics.map((it, i) => (
-            <div key={i} className="flex items-baseline justify-between gap-2">
-              <span className="min-w-0 break-words text-[11.5px] text-text-secondary">
-                {it.metric}
-              </span>
-              <Num className="shrink-0 text-[12px] text-text-primary">{it.value ?? "—"}</Num>
+            <div key={i} className="min-w-0 bg-surface-raised px-3 py-2.5">
+              <p className="truncate font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted" title={prettyMetric(it.metric)}>
+                {prettyMetric(it.metric)}
+              </p>
+              <p className="mt-0.5 truncate font-mono text-[12.5px] font-semibold tabular-nums text-text-primary">
+                {it.value ?? "—"}
+              </p>
             </div>
           ))}
         </div>
       ) : null}
 
       {why ? (
-        <p className="mt-2 text-[11.5px] leading-[1.5] text-text-muted">{why}</p>
+        <p className="border-t border-ink/[0.06] px-3.5 py-2.5 text-[12px] leading-snug text-text-muted">
+          {why}
+        </p>
       ) : null}
     </div>
   );
@@ -377,7 +408,7 @@ export default function TheRead({ data }) {
                   {/* Direction only — the gauge in this same card states the
                       confidence, and stating it twice is what let the two
                       drift apart in the first place. */}
-                  <span className="block text-[34px] font-bold leading-none tracking-tight md:text-[46px]">
+                  <span className="block text-[28px] font-semibold leading-none tracking-tight md:text-[32px]">
                     {dir.label}
                   </span>
                 </div>

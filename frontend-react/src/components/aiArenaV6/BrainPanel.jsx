@@ -27,6 +27,16 @@ function pretty(value) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function prettyPrompt(line) {
+  const raw = String(line || "").replaceAll("_", " ").trim();
+  if (!raw) return "";
+  const lowered = raw.replace(/\b([A-Z]{2,})\b/g, (word) => {
+    if (/^\d/.test(word) || word === "AI" || word === "AB") return word;
+    return word.toLowerCase();
+  });
+  return lowered.charAt(0).toUpperCase() + lowered.slice(1);
+}
+
 function shortLessonName(id) {
   return pretty(
     String(id)
@@ -175,7 +185,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        className="block h-[340px] w-full cursor-grab touch-none select-none rounded-lg border border-ink/[0.05] bg-surface active:cursor-grabbing sm:h-[420px] md:h-auto"
+        className="block h-[340px] w-full cursor-grab touch-none select-none rounded-xl border border-ink/[0.08] bg-surface-raised active:cursor-grabbing sm:h-[420px] md:h-auto"
         style={{ minHeight: 300 }}
         role="img"
         aria-label="Interactive Compass brain graph"
@@ -428,38 +438,37 @@ export default function BrainPanel() {
 
   return (
     <div className="space-y-4">
-      {/* vault stats strip */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Tile label="Regime">
-          <span className="font-display text-[16px] font-semibold text-text-primary">
-            {pretty(regime?.regime || "any")}
-          </span>
-        </Tile>
-        <Tile label="σ · 1h realized">
-          <span className="font-mono text-[16px] tabular-nums text-text-primary">
-            {regime?.sigma_1h_pct != null ? `${regime.sigma_1h_pct}%` : "—"}
-          </span>
-        </Tile>
-        <Tile label="72h tape">
-          <span
-            className={`font-mono text-[16px] tabular-nums ${Number(regime?.trend_72h_pct) >= 0 ? "text-profit" : "text-loss"}`}
-          >
-            {regime?.trend_72h_pct != null
-              ? `${regime.trend_72h_pct > 0 ? "+" : ""}${regime.trend_72h_pct}%`
-              : "—"}
-          </span>
-        </Tile>
-        <Tile label="Lessons">
-          <span className="font-mono text-[16px] tabular-nums text-text-primary">
-            {lessons.length}
-          </span>
-        </Tile>
-        <Tile label="Validated">
-          <span className="font-mono text-[16px] tabular-nums text-profit">{validatedCount}</span>
-        </Tile>
-        <Tile label="Postmortems">
-          <span className="font-mono text-[16px] tabular-nums text-loss">{postmortems.length}</span>
-        </Tile>
+      <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-ink/[0.06]">
+        <div className="grid grid-cols-2 gap-px sm:grid-cols-3 xl:grid-cols-6">
+          {[
+            { label: "Regime", value: pretty(regime?.regime || "any"), tone: "text-text-primary" },
+            {
+              label: "1h realized σ",
+              value: regime?.sigma_1h_pct != null ? `${regime.sigma_1h_pct}%` : "—",
+              tone: "text-text-primary",
+            },
+            {
+              label: "72h tape",
+              value:
+                regime?.trend_72h_pct != null
+                  ? `${regime.trend_72h_pct > 0 ? "+" : ""}${regime.trend_72h_pct}%`
+                  : "—",
+              tone: Number(regime?.trend_72h_pct) >= 0 ? "text-profit" : "text-loss",
+            },
+            { label: "Lessons", value: String(lessons.length), tone: "text-text-primary" },
+            { label: "Validated", value: String(validatedCount), tone: "text-profit" },
+            { label: "Postmortems", value: String(postmortems.length), tone: "text-loss" },
+          ].map((cell) => (
+            <div key={cell.label} className="bg-surface-raised px-3.5 py-3">
+              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                {cell.label}
+              </p>
+              <p className={`mt-1 font-mono text-[15px] font-semibold tabular-nums ${cell.tone}`}>
+                {cell.value}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
@@ -521,7 +530,7 @@ export default function BrainPanel() {
                   </Tag>
                 </div>
                 <p className="mt-1.5 text-[13px] leading-5 text-text-muted">
-                  {selectedLesson.prompt_line}
+                  {prettyPrompt(selectedLesson.prompt_line)}
                 </p>
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <Tile label="Record">
@@ -571,20 +580,28 @@ export default function BrainPanel() {
                     onClick={() => setSelected(isSel ? null : lesson.id)}
                     className={`w-full rounded-xl border p-3.5 text-left transition ${
                       isSel
-                        ? "border-ink/45 bg-ink/[0.06]"
-                        : "border-ink/[0.05] bg-surface-secondary hover:border-ink/[0.14]"
+                        ? "border-ink/25 bg-ink/[0.04]"
+                        : "border-ink/[0.08] bg-surface-raised hover:border-ink/16"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-[13px] font-semibold text-text-primary">
                         {pretty(String(lesson.id).replace(/^(bias|flag)_/, ""))}
                       </span>
-                      <Tag tone={STATUS_TONE[String(lesson.status)] || "muted"}>
-                        {lesson.status}
-                      </Tag>
+                      <span
+                        className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${
+                          String(lesson.status) === "validated" || String(lesson.status) === "core"
+                            ? "border-positive/20 bg-positive/10 text-positive"
+                            : String(lesson.status) === "retired"
+                              ? "border-ink/10 bg-ink/[0.04] text-text-muted"
+                              : "border-ink/10 bg-ink/[0.04] text-text-secondary"
+                        }`}
+                      >
+                        {pretty(lesson.status)}
+                      </span>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-[12px] leading-5 text-text-muted">
-                      {lesson.prompt_line}
+                    <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-5 text-text-muted">
+                      {prettyPrompt(lesson.prompt_line)}
                     </p>
                     <div className="mt-2.5 flex h-[7px] overflow-hidden rounded-full bg-ink/[0.05]">
                       <span
@@ -628,7 +645,7 @@ export default function BrainPanel() {
                 {postmortems.slice(0, 6).map((pm) => (
                   <div
                     key={pm.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-ink/[0.05] bg-surface-secondary px-3 py-2.5"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2.5"
                   >
                     <div className="min-w-0">
                       <div className="truncate font-mono text-[11px] text-text-primary">
