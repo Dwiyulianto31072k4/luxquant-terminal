@@ -2,25 +2,20 @@
 // ════════════════════════════════════════════════════════════════
 // Tutorials — a course, laid out like one.
 //
-// Lives at /tips, the route the old Resources shelf held. `/learn` is taken by
-// the public glossary: a separate, indexed SEO surface that answers "what does
-// this word mean", where this answers "how do I use this product".
-//
-// Layout is the module navigator every course platform converges on — a spine
-// of numbered modules on the left, the selected module's lessons on the right —
-// because it answers the two questions a learner actually has at once: how much
-// is there, and where am I in it. A stack of full-width cards answers neither,
-// and reads as empty shelves when a module has nothing in it yet.
-//
-// The single most useful control in a course UI is "continue", so it sits at
-// the top and points at the first unfinished lesson.
+// Full-width catalog (the app shell is already 1600px). A narrow max-width
+// left two empty gutters and made 24 lessons look like a stub. Layout is the
+// catalog every course platform converges on: a hero with Continue, a grid of
+// module cards so you can see the whole path, then lesson cards for the
+// selected module. Mobile is a snap-scroll of those same cards, not a squeezed
+// two-column.
 // ════════════════════════════════════════════════════════════════
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { resourcesApi } from "../services/resourcesApi";
 import ResourceReader from "./resources/ResourceReader";
 import { useAuth } from "../context/AuthContext";
+import { PageHeader, SectionHeader } from "./ui/PageHeader";
 
 /* ── marks ──────────────────────────────────────────────────── */
 
@@ -29,21 +24,31 @@ const TypeMark = ({ type }) => {
     video: "M8 5v14l11-7z",
     pdf: "M7 3h7l5 5v13H7z M14 3v5h5",
     link: "M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1 M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1",
-  }[type];
-  if (!d) return null;
+    article: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
+  }[type] || "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z";
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={d} />
     </svg>
   );
 };
 
+const MODULE_ICON = {
+  start: "M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
+  "read-a-call": "M4 6h16M4 12h16M4 18h10",
+  numbers: "M4 19V9 M10 19V5 M16 19v-7 M22 19V8",
+  tools: "M4 8h6V4H4z M14 8h6V4h-6z M4 20h6v-8H4z M14 20h6v-8h-6z",
+  automation: "M13 2L4 14h7l-1 8 10-14h-7l0-6z",
+  account: "M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z M4 21c0-4 3.6-7 8-7s8 3 8 7",
+};
+
 const Tick = ({ on, size = 18 }) => (
   <span
     className="inline-flex shrink-0 items-center justify-center rounded-full transition-colors"
     style={{
-      width: size, height: size,
+      width: size,
+      height: size,
       background: on ? "rgb(var(--pos) / 0.18)" : "transparent",
       border: `1px solid ${on ? "rgb(var(--pos) / 0.45)" : "rgb(var(--ink) / 0.18)"}`,
       color: on ? "rgb(var(--pos-text))" : "transparent",
@@ -57,97 +62,140 @@ const Tick = ({ on, size = 18 }) => (
 );
 
 const Bar = ({ pct, done }) => (
-  <div className="h-[3px] w-full overflow-hidden rounded-full"
-    style={{ background: "rgb(var(--ink) / 0.08)" }}>
-    <div className="h-full rounded-full transition-all duration-500"
-      style={{ width: `${pct}%`, background: done ? "rgb(var(--pos))" : "rgb(var(--accent))" }} />
+  <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.08]">
+    <div
+      className="h-full rounded-full transition-all duration-500"
+      style={{
+        width: `${Math.max(0, Math.min(100, pct))}%`,
+        background: done ? "rgb(var(--pos))" : "rgb(var(--accent))",
+      }}
+    />
   </div>
 );
 
-/* ── module spine ───────────────────────────────────────────── */
+const Stat = ({ label, value }) => (
+  <div className="min-w-[88px] rounded-xl border border-ink/[0.08] bg-surface-secondary/80 px-3 py-2.5">
+    <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+      {label}
+    </p>
+    <p className="mt-0.5 font-display text-[17px] font-semibold tabular-nums text-text-primary">
+      {value}
+    </p>
+  </div>
+);
 
-const ModuleButton = ({ track, n, active, onSelect }) => {
+/* ── module card ────────────────────────────────────────────── */
+
+const ModuleCard = ({ track, n, active, onSelect }) => {
   const pct = track.lesson_count
     ? Math.round((track.completed_count / track.lesson_count) * 100)
     : 0;
   const done = track.lesson_count > 0 && track.completed_count === track.lesson_count;
+  const icon = MODULE_ICON[track.slug] || MODULE_ICON.start;
 
   return (
     <button
       type="button"
       onClick={() => onSelect(track.slug)}
       aria-current={active ? "true" : undefined}
-      className="w-full rounded-lg px-3 py-2.5 text-left transition-colors"
-      style={{
-        background: active ? "rgb(var(--accent) / 0.10)" : "transparent",
-        border: `1px solid ${active ? "rgb(var(--accent) / 0.35)" : "transparent"}`,
-      }}
+      className={`flex h-full w-[240px] shrink-0 snap-start flex-col rounded-2xl border p-4 text-left transition-colors sm:w-full ${
+        active
+          ? "border-accent/40 bg-accent/[0.08]"
+          : "border-ink/[0.08] bg-surface-raised hover:border-ink/15 hover:bg-surface-hover"
+      }`}
     >
-      <div className="flex items-baseline gap-2.5">
-        <span className="font-mono text-[10px] tabular-nums"
-          style={{ color: active ? "rgb(var(--accent))" : "rgb(var(--ink) / 0.32)" }}>
-          {String(n).padStart(2, "0")}
+      <div className="flex items-start justify-between gap-3">
+        <span
+          className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${
+            active ? "bg-accent/15 text-accent" : "bg-ink/[0.05] text-text-secondary"
+          }`}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d={icon} />
+          </svg>
         </span>
-        <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium"
-          style={{ color: active ? "rgb(var(--fg))" : "rgb(var(--fg-secondary))" }}>
-          {track.title}
-        </span>
-        {done && <Tick on size={13} />}
+        {done ? <Tick on size={18} /> : (
+          <span className="font-mono text-[11px] tabular-nums text-text-muted">
+            {String(n).padStart(2, "0")}
+          </span>
+        )}
       </div>
-      <div className="mt-1.5 flex items-center gap-2 pl-[26px]">
+      <h3 className="mt-3 font-display text-[15px] font-semibold tracking-tight text-text-primary">
+        {track.title}
+      </h3>
+      <p className="mt-1 line-clamp-2 min-h-[36px] text-[12.5px] leading-snug text-text-muted">
+        {track.summary}
+      </p>
+      <div className="mt-auto pt-3">
+        <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] tabular-nums text-text-muted">
+          <span>
+            {track.completed_count}/{track.lesson_count} lessons
+          </span>
+          <span>{track.minutes}m</span>
+        </div>
         <Bar pct={pct} done={done} />
-        <span className="shrink-0 font-mono text-[9.5px] tabular-nums"
-          style={{ color: "rgb(var(--ink) / 0.32)" }}>
-          {track.completed_count}/{track.lesson_count}
-        </span>
       </div>
     </button>
   );
 };
 
-/* ── lesson ─────────────────────────────────────────────────── */
+/* ── lesson card ────────────────────────────────────────────── */
 
-const LessonRow = ({ lesson, index, onOpen, onToggle, canTrack }) => (
-  <div className="flex items-center gap-3 border-t px-1 py-2.5 transition-colors first:border-t-0 hover:bg-ink/[0.03]"
-    style={{ borderColor: "rgb(var(--ink) / 0.06)" }}>
+const LessonCard = ({ lesson, index, onOpen, onToggle, canTrack }) => (
+  <article
+    className={`group flex gap-3 rounded-2xl border p-3.5 transition-colors sm:gap-4 sm:p-4 ${
+      lesson.completed
+        ? "border-ink/[0.07] bg-surface-raised"
+        : "border-ink/[0.08] bg-surface-raised hover:border-ink/15 hover:bg-surface-hover"
+    }`}
+  >
     <button
       type="button"
       onClick={() => canTrack && onToggle(lesson)}
       disabled={!canTrack}
       title={canTrack ? (lesson.completed ? "Mark as not done" : "Mark as done") : "Sign in to track your progress"}
       aria-label={lesson.completed ? "Mark as not done" : "Mark as done"}
-      className="shrink-0 disabled:cursor-default"
+      className="mt-0.5 shrink-0 self-start disabled:cursor-default"
     >
-      <Tick on={lesson.completed} />
+      <Tick on={lesson.completed} size={22} />
     </button>
 
-    <button type="button" onClick={() => onOpen(lesson)}
-      className="flex min-w-0 flex-1 items-baseline gap-2.5 text-left">
-      <span className="shrink-0 font-mono text-[10.5px] tabular-nums"
-        style={{ color: "rgb(var(--ink) / 0.3)" }}>
-        {String(index + 1).padStart(2, "0")}
-      </span>
-      <span className="truncate text-[13.5px]"
-        style={{
-          color: lesson.completed ? "rgb(var(--fg-muted))" : "rgb(var(--fg))",
-          fontWeight: lesson.completed ? 400 : 500,
-        }}>
-        {lesson.title}
-      </span>
-      {lesson.level && (
-        <span className="hidden shrink-0 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider sm:inline"
-          style={{ background: "rgb(var(--ink) / 0.05)", color: "rgb(var(--ink) / 0.42)" }}>
-          {lesson.level}
+    <button type="button" onClick={() => onOpen(lesson)} className="min-w-0 flex-1 text-left">
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[10.5px] tabular-nums text-text-muted">
+          {String(index + 1).padStart(2, "0")}
         </span>
+        {lesson.level && (
+          <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+            {lesson.level}
+          </span>
+        )}
+      </div>
+      <h3
+        className={`mt-1 font-display text-[15px] font-semibold tracking-tight sm:text-[16px] ${
+          lesson.completed ? "text-text-muted" : "text-text-primary"
+        }`}
+      >
+        {lesson.title}
+      </h3>
+      {lesson.excerpt && (
+        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-text-secondary">
+          {lesson.excerpt}
+        </p>
       )}
+      <div className="mt-2.5 flex items-center gap-3 text-[12px] text-text-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <TypeMark type={lesson.type} />
+          <span className="capitalize">{lesson.type || "article"}</span>
+        </span>
+        <span className="tabular-nums">{lesson.minutes} min</span>
+        <span className="ml-auto font-medium text-accent sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+          Read →
+        </span>
+      </div>
     </button>
-
-    <span className="flex shrink-0 items-center gap-2 text-[10.5px]"
-      style={{ color: "rgb(var(--fg-muted))" }}>
-      <TypeMark type={lesson.type} />
-      <span className="tabular-nums">{lesson.minutes}m</span>
-    </span>
-  </div>
+  </article>
 );
 
 /* ── page ───────────────────────────────────────────────────── */
@@ -161,18 +209,15 @@ export default function TipsPage() {
   const [error, setError] = useState(null);
   const [reading, setReading] = useState(null);
   const [activeSlug, setActiveSlug] = useState(null);
+  const lessonsRef = useRef(null);
 
   const load = useCallback(() => {
     resourcesApi.tracks().then(setData).catch(() => setError("Could not load lessons."));
   }, []);
   useEffect(load, [load]);
 
-  // Memoised: a fresh [] each render would change the deps of every hook below
-  // on every render, which turns the module-selection effect into churn.
   const tracks = useMemo(() => data?.tracks || [], [data]);
 
-  // Open on the first module that still has something to do, so returning
-  // lands where the work is rather than back at lesson one.
   useEffect(() => {
     if (activeSlug || !tracks.length) return;
     const next = tracks.find((t) => t.completed_count < t.lesson_count);
@@ -187,6 +232,10 @@ export default function TipsPage() {
   const totals = data?.totals || { lessons: 0, completed: 0 };
   const pct = totals.lessons ? Math.round((totals.completed / totals.lessons) * 100) : 0;
   const anyLessons = totals.lessons > 0;
+  const totalMinutes = useMemo(
+    () => tracks.reduce((sum, t) => sum + (t.minutes || 0), 0),
+    [tracks]
+  );
 
   const nextLesson = useMemo(() => {
     for (const t of tracks) {
@@ -208,9 +257,6 @@ export default function TipsPage() {
     navigate(path);
   }, [navigate, setParams]);
 
-  // Deep-linkable — `/tips?lesson=slug` — so the app can send someone straight
-  // to the explanation at the moment they are confused, which is worth more
-  // than any amount of browsing.
   const wanted = params.get("lesson");
   useEffect(() => {
     if (!wanted || !tracks.length || reading) return;
@@ -242,8 +288,6 @@ export default function TipsPage() {
     });
   }, [setParams]);
 
-  // Optimistic: the tick is the whole interaction, and waiting a round-trip to
-  // see it move makes the page feel broken.
   const toggle = useCallback((lesson) => {
     const next = !lesson.completed;
     setData((d) => d && {
@@ -261,119 +305,107 @@ export default function TipsPage() {
     resourcesApi.setComplete(lesson.id, next).catch(load);
   }, [load]);
 
-  return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-10">
-      {/* ── course header ─────────────────────────────────────── */}
-      <header
-        className="rounded-xl p-5 sm:p-6"
-        style={{ background: "rgb(var(--surface-raised))", border: "1px solid rgb(var(--ink) / 0.08)" }}
-      >
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.18em]"
-              style={{ color: "rgb(var(--fg-muted))" }}>
-              LuxQuant · Tutorials
-            </p>
-            <h1 className="mt-1 font-display text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
-              Get more out of every call
-            </h1>
-            <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed"
-              style={{ color: "rgb(var(--fg-secondary))" }}>
-              Short lessons, in the order they are useful — from reading a call to
-              knowing exactly what our numbers do and do not claim.
-            </p>
-          </div>
+  const selectModule = (slug) => {
+    setActiveSlug(slug);
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+      lessonsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
-          {anyLessons && nextLesson && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSlug(nextLesson.track.slug);
-                openLesson(nextLesson.lesson);
-              }}
-              className="shrink-0 rounded-lg px-4 py-2.5 text-left transition-opacity hover:opacity-90"
-              style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
-            >
-              <span className="block font-mono text-[9px] font-semibold uppercase tracking-[0.14em] opacity-70">
-                {totals.completed ? "Continue" : "Start"}
-              </span>
-              <span className="mt-0.5 block max-w-[210px] truncate text-[12.5px] font-semibold">
-                {nextLesson.lesson.title}
-              </span>
-            </button>
-          )}
-        </div>
+  return (
+    <div className="w-full">
+      <header className="rounded-2xl border border-ink/[0.08] bg-surface-raised p-4 sm:p-6 lg:p-8">
+        <PageHeader
+          eyebrow="LuxQuant · Tutorials"
+          title="Get more out of every call"
+          subtitle="Short lessons, in the order they are useful — from reading a call to knowing exactly what our numbers do and do not claim."
+          right={
+            anyLessons && nextLesson ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSlug(nextLesson.track.slug);
+                  openLesson(nextLesson.lesson);
+                }}
+                className="inline-flex w-full items-center justify-between gap-4 rounded-xl bg-accent px-4 py-3 text-left text-accent-fg transition-opacity hover:opacity-90 sm:w-auto sm:min-w-[240px]"
+              >
+                <span>
+                  <span className="block font-mono text-[9px] font-semibold uppercase tracking-[0.14em] opacity-70">
+                    {totals.completed ? "Continue" : "Start"}
+                  </span>
+                  <span className="mt-0.5 block max-w-[220px] truncate text-[13.5px] font-semibold">
+                    {nextLesson.lesson.title}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[16px]" aria-hidden>→</span>
+              </button>
+            ) : null
+          }
+        />
 
         {anyLessons && (
-          <div className="mt-5 flex items-center gap-3">
-            <Bar pct={pct} done={pct === 100} />
-            <span className="shrink-0 font-mono text-[10.5px] tabular-nums"
-              style={{ color: "rgb(var(--fg-muted))" }}>
-              {totals.completed}/{totals.lessons}
-            </span>
+          <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-end">
+            <div className="flex flex-wrap gap-2">
+              <Stat label="Lessons" value={`${totals.completed}/${totals.lessons}`} />
+              <Stat label="Complete" value={`${pct}%`} />
+              <Stat label="Modules" value={tracks.length} />
+              <Stat label="Time" value={`${totalMinutes}m`} />
+            </div>
+            <div className="min-w-0 flex-1 lg:pb-1">
+              <Bar pct={pct} done={pct === 100} />
+            </div>
           </div>
         )}
       </header>
 
-      {error && <p className="mt-6 text-[13px]" style={{ color: "rgb(var(--neg-text))" }}>{error}</p>}
+      {error && <p className="mt-6 text-[13px] text-loss">{error}</p>}
       {!data && !error && (
-        <p className="mt-6 text-[13px]" style={{ color: "rgb(var(--fg-muted))" }}>Loading…</p>
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-40 animate-pulse rounded-2xl bg-ink/[0.04]" />
+          ))}
+        </div>
       )}
 
-      {/* ── module navigator + lessons ────────────────────────── */}
       {data && (
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[248px_1fr]">
-          <nav
-            className="rounded-xl p-2 lg:sticky lg:top-[calc(var(--lq-header-h,64px)+16px)] lg:self-start"
-            style={{ background: "rgb(var(--surface-raised))", border: "1px solid rgb(var(--ink) / 0.08)" }}
-            aria-label="Modules"
-          >
-            <p className="px-3 pb-1.5 pt-2 font-mono text-[9px] font-semibold uppercase tracking-[0.16em]"
-              style={{ color: "rgb(var(--ink) / 0.35)" }}>
-              Modules
-            </p>
-            <div className="space-y-0.5">
+        <>
+          <section className="mt-8">
+            <SectionHeader
+              title="Modules"
+              desc="Pick a path. Progress saves when you are signed in."
+            />
+            <div className="-mx-3 mt-4 flex gap-3 overflow-x-auto px-3 pb-2 snap-x snap-mandatory [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden">
               {tracks.map((t, i) => (
-                <ModuleButton
+                <ModuleCard
                   key={t.slug}
                   track={t}
                   n={i + 1}
                   active={active?.slug === t.slug}
-                  onSelect={setActiveSlug}
+                  onSelect={selectModule}
                 />
               ))}
             </div>
-          </nav>
+          </section>
 
-          <section
-            className="rounded-xl p-5"
-            style={{ background: "rgb(var(--surface-raised))", border: "1px solid rgb(var(--ink) / 0.08)" }}
-          >
+          <section ref={lessonsRef} className="mt-8 scroll-mt-24">
             {active && (
               <>
-                <div className="flex items-baseline gap-2.5">
-                  <span className="font-mono text-[11px] tabular-nums"
-                    style={{ color: "rgb(var(--accent))" }}>
-                    {String(tracks.findIndex((t) => t.slug === active.slug) + 1).padStart(2, "0")}
-                  </span>
-                  <h2 className="font-display text-[16px] font-semibold tracking-tight text-text-primary">
-                    {active.title}
-                  </h2>
-                  {active.lesson_count > 0 && (
-                    <span className="ml-auto shrink-0 font-mono text-[10.5px] tabular-nums"
-                      style={{ color: "rgb(var(--fg-muted))" }}>
-                      {active.minutes} min total
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-[12.5px]" style={{ color: "rgb(var(--fg-muted))" }}>
-                  {active.summary}
-                </p>
+                <SectionHeader
+                  title={`${String(tracks.findIndex((t) => t.slug === active.slug) + 1).padStart(2, "0")}  ${active.title}`}
+                  desc={active.summary}
+                  right={
+                    active.lesson_count > 0 ? (
+                      <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                        {active.completed_count}/{active.lesson_count} · {active.minutes} min
+                      </span>
+                    ) : null
+                  }
+                />
 
-                <div className="mt-4">
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                   {active.lessons.length ? (
                     active.lessons.map((l, i) => (
-                      <LessonRow
+                      <LessonCard
                         key={l.id}
                         lesson={l}
                         index={i}
@@ -383,27 +415,22 @@ export default function TipsPage() {
                       />
                     ))
                   ) : (
-                    // Dignified rather than apologetic: this module is planned,
-                    // not broken, and saying so is better than an empty box.
-                    <div className="rounded-lg px-4 py-8 text-center"
-                      style={{ background: "rgb(var(--ink) / 0.02)", border: "1px dashed rgb(var(--ink) / 0.12)" }}>
+                    <div className="rounded-2xl border border-dashed border-ink/15 bg-ink/[0.02] px-4 py-10 text-center md:col-span-2">
                       <p className="text-[13px] font-medium text-text-primary">
                         This module is being written.
                       </p>
-                      <p className="mt-1 text-[12px]" style={{ color: "rgb(var(--fg-muted))" }}>
-                        {active.summary}
-                      </p>
+                      <p className="mt-1 text-[12px] text-text-muted">{active.summary}</p>
                     </div>
                   )}
                 </div>
               </>
             )}
           </section>
-        </div>
+        </>
       )}
 
       {data && anyLessons && !isAuthenticated && (
-        <p className="mt-4 text-center text-[12px]" style={{ color: "rgb(var(--fg-muted))" }}>
+        <p className="mt-6 text-center text-[12px] text-text-muted">
           Sign in to keep track of what you have read.
         </p>
       )}
