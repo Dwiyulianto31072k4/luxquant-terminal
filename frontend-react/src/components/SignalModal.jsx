@@ -975,7 +975,7 @@ const SignalModal = ({
 
   // Quiet status chips — outline, not neon fills
   const statusStyles = {
-    open: "bg-ink/[0.06] text-text-secondary border border-ink/10",
+    open: "bg-accent/12 text-accent border border-accent/25",
     tp1: "bg-positive/10 text-positive border border-positive/20",
     tp2: "bg-positive/10 text-positive border border-positive/20",
     tp3: "bg-positive/10 text-positive border border-positive/20",
@@ -1318,177 +1318,165 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       );
     }
 
+    const entryNum = signal?.entry ? Number(signal.entry) : 0;
+    const isShortDir = signal?.target1 && Number(signal.target1) < entryNum;
+    const pnlRaw = livePrice && entryNum > 0 ? ((livePrice - entryNum) / entryNum) * 100 : null;
+    const pnlPct = isShortDir && pnlRaw !== null ? -pnlRaw : pnlRaw;
+    const up = pnlPct !== null && pnlPct > 0;
+    const down = pnlPct !== null && pnlPct < 0;
+    const tpLadder = isShortDir ? targets : [...targets].reverse();
+    const slLadder = isShortDir ? [...stops].reverse() : stops;
+    const planRows = isShortDir
+      ? [...slLadder.map((s) => ({ ...s, kind: "sl" })), { kind: "entry" }, ...tpLadder.map((t) => ({ ...t, kind: "tp" }))]
+      : [...tpLadder.map((t) => ({ ...t, kind: "tp" })), { kind: "entry" }, ...slLadder.map((s) => ({ ...s, kind: "sl" }))];
+
     return (
-      <div className="p-3 space-y-2">
-        {/* ── LIVE PRICE + PnL ── */}
-        {livePrice &&
-          (() => {
-            const entryNum = signal?.entry ? Number(signal.entry) : 0;
-            const pnlRaw = entryNum > 0 ? ((livePrice - entryNum) / entryNum) * 100 : null;
-            const isShortDir = signal?.target1 && Number(signal.target1) < entryNum;
-            const pnlPct = isShortDir && pnlRaw !== null ? -pnlRaw : pnlRaw;
-            const up = pnlPct !== null && pnlPct > 0;
-            const down = pnlPct !== null && pnlPct < 0;
-            return (
-              <div className="lq-card">
-                <div className="p-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="flex items-center gap-1.5">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-positive" />
-                      </span>
-                      <span className="text-[9px] uppercase tracking-[0.12em] text-text-muted font-medium">
-                        Mark
-                      </span>
-                    </span>
-                    {liveChange24h !== null && (
-                      <span
-                        className={`text-[9px] font-mono tabular-nums ${liveChange24h >= 0 ? "text-positive" : "text-negative"}`}
-                      >
-                        {liveChange24h >= 0 ? "+" : ""}
-                        {liveChange24h.toFixed(2)}% · 24h
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-end justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={`font-mono font-semibold leading-none truncate tabular-nums ${isCompact ? "text-lg" : "text-xl"} ${up ? "text-positive" : down ? "text-negative" : "text-text-primary"}`}
-                      >
-                        {formatPrice(livePrice)}
-                      </p>
-                      <LocalPriceLine usdtValue={livePrice} size="md" />
-                    </div>
-                    {pnlPct !== null && (
-                      <span
-                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono tabular-nums font-medium flex-shrink-0 border ${
-                          up
-                            ? "bg-positive/10 text-positive border-positive/15"
-                            : down
-                              ? "bg-negative/10 text-negative border-negative/15"
-                              : "bg-ink/[0.03] text-text-muted border-ink/10"
-                        }`}
-                      >
-                        {up ? "+" : down ? "−" : ""}
-                        {Math.abs(pnlPct).toFixed(2)}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-        {/* ── ENTRY ── */}
-        <div className="lq-card">
-          <div className="p-3">
-            <div className="flex items-center justify-between gap-2 mb-0.5">
-              <p className="text-text-muted text-[9px] uppercase tracking-[0.12em] font-medium">
-                {t("modal.entry")}
-              </p>
-              <p className="text-[9px] text-text-muted flex-shrink-0 whitespace-nowrap">
-                {formatShortDateTime(signal?.created_at)}
-              </p>
+      <div className={`space-y-2 ${isCompact ? "p-2.5" : "p-3"}`}>
+        <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
+          <div className={`${isCompact ? "px-3 py-2.5" : "px-3.5 py-3"}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-50" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-positive" />
+                </span>
+                <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Mark
+                </span>
+              </span>
+              {liveChange24h !== null && (
+                <span
+                  className={`font-mono text-[10px] tabular-nums ${liveChange24h >= 0 ? "text-positive" : "text-negative"}`}
+                >
+                  {liveChange24h >= 0 ? "+" : ""}
+                  {liveChange24h.toFixed(2)}% · 24h
+                </span>
+              )}
             </div>
-            <p
-              className={`font-mono font-semibold text-text-primary leading-none truncate tabular-nums ${isCompact ? "text-base" : "text-lg"}`}
-            >
-              {formatPrice(signal?.entry)}
+            <div className="mt-1.5 flex items-end justify-between gap-2">
+              <div className="min-w-0">
+                <p
+                  className={`font-mono font-semibold leading-none tabular-nums ${isCompact ? "text-[22px]" : "text-[26px]"} ${
+                    up ? "text-positive" : down ? "text-negative" : "text-text-primary"
+                  }`}
+                >
+                  {livePrice ? formatPrice(livePrice) : "—"}
+                </p>
+                <LocalPriceLine usdtValue={livePrice} size="md" />
+              </div>
+              {pnlPct !== null && (
+                <span
+                  className={`flex-shrink-0 rounded-md border px-2 py-1 font-mono text-[11px] font-semibold tabular-nums ${
+                    up
+                      ? "border-positive/20 bg-positive/10 text-positive"
+                      : down
+                        ? "border-negative/20 bg-negative/10 text-negative"
+                        : "border-ink/10 bg-ink/[0.03] text-text-muted"
+                  }`}
+                >
+                  {up ? "+" : down ? "−" : ""}
+                  {Math.abs(pnlPct).toFixed(2)}%
+                </span>
+              )}
+            </div>
+            <p className="mt-2 font-mono text-[11px] text-text-muted">
+              Entry{" "}
+              <span className="font-semibold tabular-nums text-text-primary">
+                {formatPrice(signal?.entry)}
+              </span>
+              <span className="text-text-muted/70"> · {formatShortDateTime(signal?.created_at)}</span>
             </p>
-            <LocalPriceLine usdtValue={signal?.entry} size="md" />
           </div>
-        </div>
 
-        {/* ── DEEP ANALYSIS ── */}
-        {signalDetail?.enrichment && (
-          <button
-            type="button"
-            onClick={() => setShowDeepAnalysis(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-medium bg-ink/[0.03] text-text-secondary border border-ink/[0.08] hover:bg-ink/[0.05] hover:text-text-primary transition-colors"
-          >
-            {Ic.cpu("w-3.5 h-3.5")}
-            <span>Deep analysis</span>
-          </button>
-        )}
-
-        {/* ── TARGETS ── */}
-        <div className="lq-card p-2.5">
-          <p className="text-[9px] uppercase tracking-[0.12em] text-text-muted font-medium mb-2 flex items-center gap-1.5 px-0.5">
-            {Ic.target("w-3 h-3")} {t("modal.targets")}
-          </p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {targets.map((tg, i) => (
-              <div
-                key={i}
-                className={`lq-tile p-2 ${tg.hit ? "bg-positive/[0.06] border-positive/20" : ""}`}
-              >
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className="flex items-center gap-1 min-w-0">
+          <div className="border-t border-ink/[0.06] px-2 py-1.5 sm:px-2.5">
+            <p className="mb-1 px-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Plan
+            </p>
+            <div className="space-y-0.5">
+              {planRows.map((row, i) => {
+                if (row.kind === "entry") {
+                  return (
+                    <div
+                      key="entry"
+                      className="flex items-center gap-2 rounded-lg bg-ink/[0.04] px-2 py-1.5"
+                    >
+                      <span className="w-8 font-mono text-[9px] font-semibold uppercase tracking-wider text-accent">
+                        Ent
+                      </span>
+                      <span className="flex-1 font-mono text-[12px] font-semibold tabular-nums text-text-primary">
+                        {formatPrice(signal?.entry)}
+                      </span>
+                      <span className="font-mono text-[10px] text-text-muted">called</span>
+                    </div>
+                  );
+                }
+                const hit = !!row.hit;
+                const isSl = row.kind === "sl";
+                const pct = row.pct;
+                const pctLabel =
+                  pct == null
+                    ? "—"
+                    : `${Number(pct) > 0 ? "+" : ""}${pct}%`;
+                return (
+                  <div
+                    key={`${row.kind}-${row.label}-${i}`}
+                    className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${
+                      hit
+                        ? isSl
+                          ? "bg-negative/[0.08]"
+                          : "bg-positive/[0.08]"
+                        : ""
+                    }`}
+                  >
                     <span
-                      className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-semibold flex-shrink-0 ${
-                        tg.hit ? "bg-positive/20 text-positive" : "bg-ink/[0.06] text-text-muted"
+                      className={`flex h-5 w-8 items-center justify-center rounded font-mono text-[9px] font-bold ${
+                        hit
+                          ? isSl
+                            ? "bg-negative/15 text-negative"
+                            : "bg-positive/15 text-positive"
+                          : "bg-ink/[0.05] text-text-muted"
                       }`}
                     >
-                      {tg.hit ? "✓" : i + 1}
+                      {hit ? "✓" : row.label.replace("SL", "SL").replace("TP", "TP")}
                     </span>
                     <span
-                      className={`text-[10px] font-medium truncate ${tg.hit ? "text-positive" : "text-text-secondary"}`}
+                      className={`flex-1 font-mono text-[12px] tabular-nums ${
+                        hit ? "font-semibold text-text-primary" : "text-text-secondary"
+                      }`}
                     >
-                      {tg.label}
-                    </span>
-                  </span>
-                  <span
-                    className={`text-[9px] font-mono tabular-nums flex-shrink-0 ${tg.hit ? "text-positive" : "text-text-muted"}`}
-                  >
-                    +{tg.pct}%
-                  </span>
-                </div>
-                <p
-                  className={`text-[11px] font-mono leading-none truncate tabular-nums ${tg.hit ? "text-text-primary" : "text-text-secondary"}`}
-                >
-                  {formatPrice(tg.value)}
-                </p>
-                <LocalPriceLine usdtValue={tg.value} size="sm" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── STOP LOSS ── */}
-        {stops.length > 0 && (
-          <div className="lq-card p-2.5">
-            <p className="text-[9px] uppercase tracking-[0.12em] text-text-muted font-medium mb-2 flex items-center gap-1.5 px-0.5">
-              {Ic.stop("w-3 h-3")} {t("modal.stop_loss")}
-            </p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {stops.map((s, i) => (
-                <div
-                  key={i}
-                  className={`lq-tile p-2 ${s.hit ? "bg-negative/[0.06] border-negative/20" : ""}`}
-                >
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span
-                      className={`text-[10px] font-medium truncate ${s.hit ? "text-negative" : "text-text-secondary"}`}
-                    >
-                      {s.label}
+                      {formatPrice(row.value)}
                     </span>
                     <span
-                      className={`text-[9px] font-mono tabular-nums flex-shrink-0 ${s.hit ? "text-negative" : "text-text-muted"}`}
+                      className={`font-mono text-[11px] tabular-nums ${
+                        hit
+                          ? isSl
+                            ? "text-negative"
+                            : "text-positive"
+                          : "text-text-muted"
+                      }`}
                     >
-                      {s.pct}%
+                      {pctLabel}
                     </span>
                   </div>
-                  <p
-                    className={`text-[11px] font-mono leading-none truncate tabular-nums ${s.hit ? "text-text-primary" : "text-text-secondary"}`}
-                  >
-                    {formatPrice(s.value)}
-                  </p>
-                  <LocalPriceLine usdtValue={s.value} size="sm" />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-        )}
+
+          {signalDetail?.enrichment && (
+            <button
+              type="button"
+              onClick={() => setShowDeepAnalysis(true)}
+              className="flex w-full items-center justify-between border-t border-ink/[0.06] px-3 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-ink/[0.03] hover:text-text-primary"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {Ic.cpu("w-3.5 h-3.5")}
+                Deep analysis
+              </span>
+              <span aria-hidden className="text-text-muted">→</span>
+            </button>
+          )}
+        </div>
 
         {/* ── DERIVATIVES (tile kotak + L/S bar chart) ── */}
         {derivMetrics &&
@@ -1695,15 +1683,14 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               <div className="w-10 h-1 rounded-full bg-ink/20" />
             </div>
 
-            {/* HEADER — exchange trade ticket style */}
-            <div className="relative z-10 flex-shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-2 pr-14 sm:px-4 sm:pr-16">
-              {/* Close — pinned top-right corner (best-practice escape affordance) */}
+            {/* HEADER — trade ticket */}
+            <div className="relative z-10 flex-shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-2.5 pr-14 sm:px-4 sm:py-3 sm:pr-16">
               <button
                 type="button"
                 onClick={handleCloseClick}
                 title="Close"
                 aria-label="Close"
-                className="absolute right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.08] sm:right-4"
+                className="absolute right-2.5 top-2.5 z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.08] sm:right-3 sm:top-3 sm:h-9 sm:w-9"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path
@@ -1714,57 +1701,57 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   />
                 </svg>
               </button>
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <CoinLogo pair={signal?.pair} size={32} />
-                  <div className="min-w-0 flex-1">
-                    {/* Baris 1: Pair name + status */}
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <h2 className="truncate font-mono text-[16px] font-semibold tracking-tight text-text-primary sm:text-[17px]">
-                        {signal?.pair}
-                      </h2>
-                      <span
-                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusStyles[signal?.status?.toLowerCase()] || "border border-ink/10 bg-ink/[0.06] text-text-muted"}`}
-                      >
-                        {signal?.status?.toUpperCase()}
-                      </span>
-                    </div>
-
-                    {/* Baris 2: Coin Category Badge (dual pill + tagline) */}
-                    <CoinCategoryBadge
-                      pair={signal?.pair}
-                      onClick={() => setShowCoinUtility(true)}
-                    />
-
-                    {/* Baris 2b: BTC Correlation Badge + How-to-use-indicator */}
-                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <BTCCorrelationBadge
-                        signalId={signal?.signal_id}
-                        onClick={() => setShowBtcCorrelation(true)}
+              <div className="flex min-w-0 items-center gap-2.5">
+                <CoinLogo pair={signal?.pair} size={36} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h2 className="truncate font-display text-[17px] font-semibold tracking-tight text-text-primary sm:text-[18px]">
+                      {(signal?.pair || "").includes("/")
+                        ? signal.pair
+                        : String(signal?.pair || "").replace(/(USDT|USDC|USD)$/i, "/$1")}
+                    </h2>
+                    <span
+                      className={`flex-shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusStyles[signal?.status?.toLowerCase()] || "border border-ink/10 bg-ink/[0.06] text-text-muted"}`}
+                    >
+                      {signal?.status?.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <span className="sm:hidden">
+                      <CoinCategoryBadge
+                        pair={signal?.pair}
+                        compact
+                        onClick={() => setShowCoinUtility(true)}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowIndicatorGuide(true)}
-                        title="How to use indicator"
-                        aria-label="How to use indicator"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium uppercase tracking-wide border border-ink/10 text-text-muted hover:text-text-primary hover:bg-ink/[0.04] transition-colors"
-                      >
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
-                          <rect x="6" y="11" width="3" height="6" rx="1" />
-                          <rect x="11" y="7" width="3" height="10" rx="1" />
-                          <rect x="16" y="9" width="3" height="8" rx="1" />
-                        </svg>
-                        <span>
-                          <span className="sm:hidden">Guide</span>
-                          <span className="hidden sm:inline">Indicator guide</span>
-                        </span>
-                      </button>
-                      {/* Timestamp inline — saves a header row */}
-                      <span className="ml-0.5 whitespace-nowrap text-[10px] text-text-muted">
-                        {formatShortDateTime(signal?.created_at)}
-                      </span>
-                    </div>
+                    </span>
+                    <span className="hidden sm:inline">
+                      <CoinCategoryBadge
+                        pair={signal?.pair}
+                        onClick={() => setShowCoinUtility(true)}
+                      />
+                    </span>
+                    <BTCCorrelationBadge
+                      signalId={signal?.signal_id}
+                      onClick={() => setShowBtcCorrelation(true)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowIndicatorGuide(true)}
+                      title="How to use indicator"
+                      aria-label="How to use indicator"
+                      className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium uppercase tracking-wide border border-ink/10 text-text-muted hover:text-text-primary hover:bg-ink/[0.04] transition-colors"
+                    >
+                      <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+                        <rect x="6" y="11" width="3" height="6" rx="1" />
+                        <rect x="11" y="7" width="3" height="10" rx="1" />
+                        <rect x="16" y="9" width="3" height="8" rx="1" />
+                      </svg>
+                      Indicator guide
+                    </button>
+                    <span className="whitespace-nowrap text-[10px] text-text-muted">
+                      {formatShortDateTime(signal?.created_at)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -3085,7 +3072,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  }
 
  .mobile-targets-panel {
- max-height: min(42vh, 360px);
+ max-height: min(46vh, 400px);
  overflow-y: auto;
  -webkit-overflow-scrolling: touch;
  }
