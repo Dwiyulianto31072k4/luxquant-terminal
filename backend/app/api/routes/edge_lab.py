@@ -1969,10 +1969,10 @@ def get_hunt_full_tp(
     """
     Transparent results for the Hunt full TP recipe.
 
-    Runner tags are chosen the same way as the Signals Quick path (clean tags,
-    n≥150, WR≥78, full-TP/peak gates, top-K by full_tp_rate). Stats are the
-    UNION of resolved calls that carried ANY of those tags on the entry
-    snapshot — one row per call, highest target reached (or SL).
+    Runner tags are always chosen from the full tag era (same as the live Hunt
+    chip) so 7d / 30d / all-time compare the SAME shortlist. Stats are the
+    UNION of resolved calls in `days` that carried ANY of those tags on the
+    entry snapshot — one row per call, highest target reached (or SL).
 
     Live Hunt also requires Worth on the desk; that pair filter is NOT applied
     to these bars. Descriptive of the tag shortlist, not a member P&L.
@@ -1982,7 +1982,10 @@ def get_hunt_full_tp(
 
     start_date, end_date, effective_days = _resolve_tag_lookback(days)
     start_str, end_str = start_date.isoformat(), end_date.isoformat()
-    cache_key = f"lq:edge-lab:hunt-ftp:v1:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
+    era_start, era_end, era_days = _resolve_tag_lookback(0)
+    cache_key = (
+        f"lq:edge-lab:hunt-ftp:v2:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
+    )
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -1990,7 +1993,8 @@ def get_hunt_full_tp(
     if stale:
         return stale
 
-    tw = get_tag_wr(days=days, min_n=min_n, db=db)
+    # Same tags as the live Hunt chip — do not re-pick runners inside 7d/30d.
+    tw = get_tag_wr(days=0, min_n=min_n, db=db)
     runners = select_runner_tags(tw.get("tags") or [], top_k=top_k)
     runner_names = [t.get("tag") for t in runners if t.get("tag")]
 
@@ -2069,6 +2073,14 @@ def get_hunt_full_tp(
         "score_version": "v2",
         "window": {"start": start_str, "end": end_str},
         "effective_days": effective_days,
+        "days": days,
+        "window_label": "All time" if days == 0 else f"Last {effective_days} days",
+        "tags_selected_from": {
+            "start": era_start.isoformat(),
+            "end": era_end.isoformat(),
+            "effective_days": era_days,
+            "label": f"since tags exist ({era_start.isoformat()})",
+        },
         "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
         "runner_tags": runner_names,
         "runner_rules": {

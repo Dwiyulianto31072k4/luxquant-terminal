@@ -47,7 +47,7 @@ export const edgeLabApi = {
    */
   getHuntFullTp: async (days = 0) => {
     const response = await api.get("/api/v1/analytics/hunt-full-tp", {
-      params: { days },
+      params: { days: days || 0 },
     });
     return response.data;
   },

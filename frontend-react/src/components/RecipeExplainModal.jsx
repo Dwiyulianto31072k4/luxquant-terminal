@@ -99,7 +99,7 @@ function OutcomeInfo({ item, view }) {
   );
 }
 
-function HuntResults({ stats, loading, error }) {
+export function HuntResults({ stats, loading, error }) {
   const [view, setView] = useState("final");
   const [tagOpen, setTagOpen] = useState(null);
 
@@ -135,6 +135,7 @@ function HuntResults({ stats, loading, error }) {
         <div className="min-w-0">
           <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-positive">
             Results so far · closed only
+            {stats.window_label ? ` · ${stats.window_label}` : ""}
           </p>
           <p className="mt-0.5 text-[12px] leading-snug text-text-primary">
             {fmtN(hunt.n)} Hunt calls vs {fmtN(base?.n)} all closed · {windowLabel}
@@ -142,6 +143,9 @@ function HuntResults({ stats, loading, error }) {
           <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
             Open calls are not in these bars — same as Performance. A call counts when it hits TP or
             SL.
+            {stats.tags_selected_from?.label
+              ? ` Hunt tags picked ${stats.tags_selected_from.label}.`
+              : ""}
           </p>
         </div>
         <SegGroup
