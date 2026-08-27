@@ -438,7 +438,7 @@ function BtcVisualPanel({ report }) {
 /**
  * Thesis + BTC visual — full-width split on desktop.
  */
-function ThesisBoard({ report }) {
+function ThesisBoard({ report, ledger }) {
   const [whyOpen, setWhyOpen] = useState(false);
   if (!report) return null;
 
@@ -461,8 +461,15 @@ function ThesisBoard({ report }) {
   );
 
   const TACTICAL = new Set(["price_action", "liquidity", "derivatives", "smart_money"]);
+  // Ranked by influence, not array order. This block used to take whichever two
+  // rows happened to come first, while TheRead below sorted by |weighted_score|
+  // — so the same page named different drivers in two places: "price action and
+  // liquidation liquidity" at the top, "fast positioning and price action"
+  // underneath. Two answers to one question is worse than either answer.
   const drivers = [...(report?.report?.evidence_matrix?.rows || [])]
     .filter((r) => TACTICAL.has(r.key) && r.role !== "context_only")
+    .map((r) => ({ ...r, _w: Math.abs(Number(r?.horizons?.["24h"]?.weighted_score) || 0) }))
+    .sort((a, b) => b._w - a._w)
     .slice(0, 2);
 
   const targetPct =
@@ -473,6 +480,38 @@ function ThesisBoard({ report }) {
     Number.isFinite(btc) && btc > 0 && invalidation
       ? fmtPct(((invalidation - btc) / btc) * 100)
       : null;
+
+  // What the two distances actually demand of you.
+  //
+  // The page printed "+0.57%" and "-3.09%" side by side and left the reader to
+  // divide them. That ratio is the decision: a target five times nearer than
+  // the stop only pays if you are right far more often than you are wrong, and
+  // the break-even rate — stop / (target + stop) — says exactly how often.
+  // Here it is 84%, against 75% actually delivered on range reads. That gap is
+  // the most useful sentence available on this screen and nothing was saying it.
+  // "a 84%" reads wrong. English takes "an" before a leading vowel SOUND, which
+  // for numbers means 8x, 11 and 18 — eighty, eleven, eighteen. Not 110, which
+  // is "one hundred ten", so those two are matched exactly rather than by prefix.
+  const article = (n) => {
+    const d = String(Math.round(n));
+    return d.startsWith("8") || d === "11" || d === "18" ? "an" : "a";
+  };
+
+  const shape = (() => {
+    if (!(Number.isFinite(btc) && btc > 0 && target && invalidation)) return null;
+    const up = Math.abs((target - btc) / btc) * 100;
+    const down = Math.abs((invalidation - btc) / btc) * 100;
+    if (up <= 0 || down <= 0) return null;
+    return {
+      ratio: down / up,
+      breakEven: (down / (up + down)) * 100,
+      // Historical rate for this bias, when the ledger has loaded. Omitted
+      // rather than guessed — an invented benchmark is worse than none.
+      delivered: Number.isFinite(ledger?.stats?.hit_rate)
+        ? ledger.stats.hit_rate * 100
+        : null,
+    };
+  })();
 
   const whyFull = [whatChanged, triggerHuman].filter(Boolean).join(" ");
 
@@ -551,6 +590,30 @@ function ThesisBoard({ report }) {
               .
             </p>
           )}
+          {shape && shape.ratio >= 1.3 ? (
+            <p className="text-text-muted">
+              The stop sits{" "}
+              <span className="font-mono tabular-nums text-text-secondary">
+                {shape.ratio.toFixed(1)}x
+              </span>{" "}
+              further than the target, so trading it level-to-level needs{" "}
+              {article(shape.breakEven)}{" "}
+              <span className="font-mono tabular-nums text-text-secondary">
+                {Math.round(shape.breakEven)}%
+              </span>{" "}
+              hit rate just to break even
+              {shape.delivered != null ? (
+                <>
+                  {" "}
+                  — the audited record is{" "}
+                  <span className="font-mono tabular-nums text-text-secondary">
+                    {Math.round(shape.delivered)}%
+                  </span>
+                </>
+              ) : null}
+              .
+            </p>
+          ) : null}
         </div>
 
         {whyFull ? (
@@ -1652,7 +1715,7 @@ export default function AIArenaPageV6() {
 
         {/* Full thesis only on Outlook; other tabs get a quiet one-line context */}
         {activeWorkspace === "read" ? (
-          <ThesisBoard report={report} />
+          <ThesisBoard report={report} ledger={ledger} />
         ) : (
           <MiniContextStrip report={report} onOpenOutlook={() => setWorkspace("read")} />
         )}
