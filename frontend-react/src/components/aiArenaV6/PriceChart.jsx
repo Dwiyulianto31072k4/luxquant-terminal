@@ -23,35 +23,50 @@ import {
 } from "./constants";
 import { highlightPrices } from "./_ui";
 import Tooltip from "./Tooltip";
+import {
+  getActiveTheme,
+  getChartPalette,
+  subscribeTheme,
+} from "../../utils/themeColors";
 
-// ────────────────────────────────────────────────────────────
-// Visual tokens
-// ────────────────────────────────────────────────────────────
-const COLORS = {
-  bgTransparent: "rgb(var(--ink) / 0.0)",
-  text: "#b8a89a",
-  grid: "rgb(var(--accent) / 0.04)",
-  border: "rgb(var(--accent) / 0.15)",
-  gold: "rgb(var(--accent))",
-  projection: "#f5c451",
-  candleUp: "#4ade80",
-  candleDown: "#f87171",
+// Hex only — lightweight-charts cannot resolve CSS variables, so `rgb(var(--x))`
+// silently falls back to a dark canvas even in bright mode.
+function chartSkin(theme = getActiveTheme()) {
+  const p = getChartPalette(theme);
+  const pos = p.pos;
+  const neg = p.neg;
+  const gold = p.accent;
+  const ink = p.ink;
+  return {
+    bg: p.raised,
+    text: p.muted,
+    grid: p.grid,
+    border: p.isBright ? "rgba(15,23,42,0.10)" : "rgba(255,255,255,0.10)",
+    gold,
+    projection: gold,
+    candleUp: pos,
+    candleDown: neg,
+    magnetAbove: neg,
+    magnetBelow: pos,
+    support: pos,
+    resistance: neg,
+    strongSupport: pos,
+    strongResistance: neg,
+    zoneDemandLine: pos,
+    zoneFairLine: gold,
+    zoneSupplyLine: neg,
+    zoneDemand: p.isBright ? "rgba(15,128,61,0.10)" : "rgba(14,203,129,0.12)",
+    zoneFair: p.isBright ? "rgba(180,83,9,0.10)" : "rgba(240,185,11,0.12)",
+    zoneSupply: p.isBright ? "rgba(220,38,38,0.10)" : "rgba(246,70,93,0.12)",
+    ink,
+  };
+}
+
+const MA_TONES = {
   ema20: "#60a5fa",
   ema50: "#a78bfa",
   sma100: "#fbbf24",
   sma200: "#f472b6",
-  magnetAbove: "#f87171",
-  magnetBelow: "#4ade80",
-  support: "rgba(74, 222, 128, 0.7)",
-  resistance: "rgba(248, 113, 113, 0.7)",
-  strongSupport: "rgba(74, 222, 128, 1)",
-  strongResistance: "rgba(248, 113, 113, 1)",
-  zoneDemandLine: "#4ade80",
-  zoneFairLine: "rgb(var(--accent))",
-  zoneSupplyLine: "#f87171",
-  zoneDemand: "rgba(74, 222, 128, 0.10)",
-  zoneFair: "rgb(var(--accent) / 0.10)",
-  zoneSupply: "rgba(248, 113, 113, 0.10)",
 };
 
 const TIMEFRAMES = [
@@ -61,10 +76,10 @@ const TIMEFRAMES = [
 ];
 
 const MA_CONFIG = [
-  { key: "ema20", label: "EMA 20", color: COLORS.ema20, width: 2 },
-  { key: "ema50", label: "EMA 50", color: COLORS.ema50, width: 2 },
-  { key: "sma100", label: "SMA 100", color: COLORS.sma100, width: 1 },
-  { key: "sma200", label: "SMA 200", color: COLORS.sma200, width: 1 },
+  { key: "ema20", label: "EMA 20", color: MA_TONES.ema20, width: 2 },
+  { key: "ema50", label: "EMA 50", color: MA_TONES.ema50, width: 2 },
+  { key: "sma100", label: "SMA 100", color: MA_TONES.sma100, width: 1 },
+  { key: "sma200", label: "SMA 200", color: MA_TONES.sma200, width: 1 },
 ];
 
 const LAYER_LABELS = {
@@ -129,6 +144,10 @@ export default function PriceChart({ report }) {
     trend: false,
   });
   const [crosshair, setCrosshair] = useState(null);
+  const [theme, setTheme] = useState(getActiveTheme);
+  const colors = useMemo(() => chartSkin(theme), [theme]);
+
+  useEffect(() => subscribeTheme(setTheme), []);
 
   // Fetch
   const fetchData = useCallback(async (timeframe) => {
@@ -156,39 +175,40 @@ export default function PriceChart({ report }) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const skin = chartSkin(theme);
     const chart = createChart(containerRef.current, {
       autoSize: true,
       layout: {
-        background: { type: "solid", color: COLORS.bgTransparent },
-        textColor: COLORS.text,
+        background: { type: "solid", color: skin.bg },
+        textColor: skin.text,
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: COLORS.grid },
-        horzLines: { color: COLORS.grid },
+        vertLines: { color: skin.grid },
+        horzLines: { color: skin.grid },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: {
-          color: COLORS.gold,
+          color: skin.gold,
           width: 1,
           style: LineStyle.Dashed,
-          labelBackgroundColor: COLORS.gold,
+          labelBackgroundColor: skin.gold,
         },
         horzLine: {
-          color: COLORS.gold,
+          color: skin.gold,
           width: 1,
           style: LineStyle.Dashed,
-          labelBackgroundColor: COLORS.gold,
+          labelBackgroundColor: skin.gold,
         },
       },
       rightPriceScale: {
-        borderColor: COLORS.border,
+        borderColor: skin.border,
         scaleMargins: { top: 0.08, bottom: 0.22 },
       },
       timeScale: {
-        borderColor: COLORS.border,
+        borderColor: skin.border,
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 6,
@@ -205,11 +225,11 @@ export default function PriceChart({ report }) {
     chartRef.current = chart;
 
     const candles = chart.addSeries(CandlestickSeries, {
-      upColor: COLORS.candleUp,
-      downColor: COLORS.candleDown,
+      upColor: skin.candleUp,
+      downColor: skin.candleDown,
       borderVisible: false,
-      wickUpColor: COLORS.candleUp,
-      wickDownColor: COLORS.candleDown,
+      wickUpColor: skin.candleUp,
+      wickDownColor: skin.candleDown,
       priceFormat: { type: "price", precision: 1, minMove: 0.1 },
     });
     candleSeriesRef.current = candles;
@@ -277,7 +297,7 @@ export default function PriceChart({ report }) {
       maSeriesRef.current = {};
       allPriceLinesRef.current = [];
     };
-  }, []);
+  }, [theme]);
 
   const tech = useMemo(() => data?.technicals || {}, [data]);
   const lastPrice =
@@ -355,7 +375,7 @@ export default function PriceChart({ report }) {
       if (liq.nearest_long_cluster)
         newLines.push({
           price: liq.nearest_long_cluster,
-          color: COLORS.magnetBelow,
+          color: colors.magnetBelow,
           lineStyle: LineStyle.Dotted,
           lineWidth: 2,
           axisLabelVisible: true,
@@ -364,7 +384,7 @@ export default function PriceChart({ report }) {
       if (liq.nearest_short_cluster)
         newLines.push({
           price: liq.nearest_short_cluster,
-          color: COLORS.magnetAbove,
+          color: colors.magnetAbove,
           lineStyle: LineStyle.Dotted,
           lineWidth: 2,
           axisLabelVisible: true,
@@ -373,7 +393,7 @@ export default function PriceChart({ report }) {
       if (kl.support)
         newLines.push({
           price: kl.support,
-          color: COLORS.support,
+          color: colors.support,
           lineStyle: LineStyle.Dashed,
           lineWidth: 1,
           axisLabelVisible: true,
@@ -382,7 +402,7 @@ export default function PriceChart({ report }) {
       if (kl.resistance)
         newLines.push({
           price: kl.resistance,
-          color: COLORS.resistance,
+          color: colors.resistance,
           lineStyle: LineStyle.Dashed,
           lineWidth: 1,
           axisLabelVisible: true,
@@ -391,7 +411,7 @@ export default function PriceChart({ report }) {
       if (kl.strong_support)
         newLines.push({
           price: kl.strong_support,
-          color: COLORS.strongSupport,
+          color: colors.strongSupport,
           lineStyle: LineStyle.Solid,
           lineWidth: 1,
           axisLabelVisible: true,
@@ -400,7 +420,7 @@ export default function PriceChart({ report }) {
       if (kl.strong_resistance)
         newLines.push({
           price: kl.strong_resistance,
-          color: COLORS.strongResistance,
+          color: colors.strongResistance,
           lineStyle: LineStyle.Solid,
           lineWidth: 1,
           axisLabelVisible: true,
@@ -410,9 +430,9 @@ export default function PriceChart({ report }) {
 
     if (layers.zones) {
       const zoneDefs = [
-        { key: "demand", color: COLORS.zoneDemandLine, label: "Demand" },
-        { key: "fair_value", color: COLORS.zoneFairLine, label: "Fair" },
-        { key: "supply", color: COLORS.zoneSupplyLine, label: "Supply" },
+        { key: "demand", color: colors.zoneDemandLine, label: "Demand" },
+        { key: "fair_value", color: colors.zoneFairLine, label: "Fair" },
+        { key: "supply", color: colors.zoneSupplyLine, label: "Supply" },
       ];
       zoneDefs.forEach(({ key, color, label }) => {
         const z = zones[key];
@@ -440,7 +460,7 @@ export default function PriceChart({ report }) {
       magnetLines.forEach((line) => {
         newLines.push({
           price: line.price,
-          color: line.side === "above" ? COLORS.magnetAbove : COLORS.magnetBelow,
+          color: line.side === "above" ? colors.magnetAbove : colors.magnetBelow,
           lineStyle: line.nearest ? LineStyle.Dashed : LineStyle.Dotted,
           lineWidth: line.nearest ? 2 : 1,
           axisLabelVisible: true,
@@ -452,7 +472,7 @@ export default function PriceChart({ report }) {
     if (layers.projection && projection?.target) {
       newLines.push({
         price: projection.target,
-        color: COLORS.projection,
+        color: colors.projection,
         lineStyle: LineStyle.Solid,
         lineWidth: 2,
         axisLabelVisible: true,
@@ -461,7 +481,7 @@ export default function PriceChart({ report }) {
       if (projection.secondaryTarget) {
         newLines.push({
           price: projection.secondaryTarget,
-          color: COLORS.projection,
+          color: colors.projection,
           lineStyle: LineStyle.LargeDashed,
           lineWidth: 1,
           axisLabelVisible: true,
@@ -481,7 +501,7 @@ export default function PriceChart({ report }) {
 
     // 8. Fit
     chart.timeScale().fitContent();
-  }, [data, layers, maVisible, zones, magnetLines, projection]);
+  }, [data, layers, maVisible, zones, magnetLines, projection, colors]);
 
   // MA visibility toggle (no data reload)
   useEffect(() => {
@@ -651,14 +671,14 @@ export default function PriceChart({ report }) {
 
         <div
           ref={containerRef}
-          className="w-full overflow-hidden rounded-md border border-ink/[0.04] bg-surface"
+          className="w-full overflow-hidden rounded-md border border-ink/[0.08] bg-surface-raised"
           style={{ height: "clamp(420px, 58vh, 640px)" }}
         />
 
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/50 backdrop-blur-sm rounded-xl">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-ink/12 border-t-white/50 rounded-full animate-spin" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink/12 border-t-text-primary" />
               <p className="text-text-muted text-[10px] font-mono uppercase tracking-wider">
                 Loading {tf} candles…
               </p>
@@ -711,24 +731,24 @@ export default function PriceChart({ report }) {
           <ZoneChip
             label="Demand"
             zone={zones.demand}
-            tint={COLORS.zoneDemand}
-            accent={COLORS.candleUp}
+            tint={colors.zoneDemand}
+            accent={colors.candleUp}
             arrow="↓"
             currentPrice={lastPrice}
           />
           <ZoneChip
             label="Fair Value"
             zone={zones.fair_value}
-            tint={COLORS.zoneFair}
-            accent={COLORS.gold}
+            tint={colors.zoneFair}
+            accent={colors.gold}
             arrow="→"
             currentPrice={lastPrice}
           />
           <ZoneChip
             label="Supply"
             zone={zones.supply}
-            tint={COLORS.zoneSupply}
-            accent={COLORS.candleDown}
+            tint={colors.zoneSupply}
+            accent={colors.candleDown}
             arrow="↑"
             currentPrice={lastPrice}
           />
