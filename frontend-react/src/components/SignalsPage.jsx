@@ -293,14 +293,14 @@ const Icon = {
 // still reads as a row and the reader can see exactly what they are missing.
 // The value is rendered and then blurred rather than replaced by dots: the
 // blur says "there is a real number here", which a placeholder does not.
-const LockedKpi = ({ label, value, sub, edge, onUnlock }) => (
+const LockedKpi = ({ label, value, sub, edge, onUnlock, className = "" }) => (
   <button
     type="button"
     onClick={onUnlock}
     aria-label={`${label} — subscribe to unlock`}
-    className={`group relative min-w-0 overflow-hidden px-3.5 py-3 text-left sm:px-5 sm:py-3.5 ${
+    className={`group relative min-w-0 overflow-hidden px-3 py-2.5 text-left sm:px-5 sm:py-3.5 ${
       edge ? "" : "border-l border-ink/[0.06]"
-    }`}
+    } ${className}`}
   >
     <p className="text-[11px] font-medium text-text-muted">{label}</p>
     <p
@@ -333,9 +333,9 @@ const LockedKpi = ({ label, value, sub, edge, onUnlock }) => (
   </button>
 );
 
-const KpiCell = ({ label, value, valueColor = "text-text-primary", sub, edge }) => (
+const KpiCell = ({ label, value, valueColor = "text-text-primary", sub, edge, className = "" }) => (
   <div
-    className={`min-w-0 px-3.5 py-3 sm:px-5 sm:py-3.5 ${edge ? "" : "border-l border-ink/[0.06]"}`}
+    className={`min-w-0 px-3 py-2.5 sm:px-5 sm:py-3.5 ${edge ? "" : "border-l border-ink/[0.06]"} ${className}`}
   >
     <p className="text-[11px] font-medium text-text-muted">{label}</p>
     <p
@@ -1484,8 +1484,8 @@ const SignalsPage = () => {
       )}
       {/* ── SIGNALS DESK — command center (title + KPI + BTC in one board) ── */}
       <header id={DESK_ID} className="scroll-mt-32 space-y-3">
-        {/* Title row — slim, no brochure subtitle */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Title row — hidden on phones; the tab already says Signals */}
+        <div className="hidden sm:flex sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
               Signals
@@ -1578,6 +1578,7 @@ const SignalsPage = () => {
               />
             )}
             <KpiCell
+              className="hidden sm:block"
               label="Lifetime WR"
               value={stats?.win_rate != null ? `${stats.win_rate}%` : "—"}
               valueColor={
@@ -1593,12 +1594,14 @@ const SignalsPage = () => {
             />
             {isSubscriber || !entitlementKnown ? (
               <KpiCell
+                className="hidden sm:block"
                 label="In view"
                 value={allSignals.length}
                 sub="rolling 7 days"
               />
             ) : (
               <LockedKpi
+                className="hidden sm:flex"
                 label="In view"
                 // The real 7-day count, blurred — not the filtered length,
                 // which would understate the desk by whatever we hid.

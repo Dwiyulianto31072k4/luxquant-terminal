@@ -313,11 +313,24 @@ export default function EdgeRecipesBar({
     return "border-ink/[0.1] bg-surface-raised/80 text-text-primary/90 hover:border-ink/20 hover:bg-ink/[0.03]";
   };
 
-  const firstScreen = builtins.filter((r) => r.id === "full_tp" || r.id === "strongest");
+  const firstScreen = ["full_tp", "strongest"]
+    .map((id) => builtins.find((r) => r.id === id))
+    .filter(Boolean);
   const era = huntStats?.tag_era_start || huntStats?.tags_selected_from?.start;
 
   return (
     <div>
+      <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Shortlist
+        </span>
+        <span className="text-[11px] text-text-muted">
+          <span className="sm:hidden">Pick a path</span>
+          <span className="hidden sm:inline">
+            Pick a path · Hunt ranks setups that historically ran further
+          </span>
+        </span>
+      </div>
       <div className="flex flex-wrap items-center gap-1.5">
         {firstScreen.map((r) => {
           const active = activeId === r.id;

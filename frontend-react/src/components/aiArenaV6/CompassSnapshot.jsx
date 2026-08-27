@@ -126,6 +126,9 @@ export default function CompassSnapshot({ className = "", embedded = false }) {
   const [livePrice, setLivePrice] = useState(null);
   const [collapsed, setCollapsed] = useState(() => {
     try {
+      if (typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches) {
+        return true;
+      }
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw === "0") return false;
       if (raw === "1") return true;
@@ -315,10 +318,10 @@ export default function CompassSnapshot({ className = "", embedded = false }) {
           </span>
         </button>
 
-        {/* short-term shortcuts — hidden while collapsed so Signals first screen stays quiet */}
+        {/* Desktop shortcuts only — phones get one link inside the compact body */}
         <div
-          className={`grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center ${
-            collapsed ? "hidden" : ""
+          className={`hidden shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center ${
+            collapsed ? "sm:hidden" : ""
           }`}
         >
           <Link
@@ -344,25 +347,37 @@ export default function CompassSnapshot({ className = "", embedded = false }) {
 
       {/* ── body (collapsible) ── */}
       {!collapsed && (
-        <div className="border-t border-ink/[0.06] px-3 pb-4 pt-3 md:px-5">
+        <div className="border-t border-ink/[0.06] px-3 pb-3 pt-2.5 md:px-5 md:pb-4 md:pt-3">
           <div className="grid gap-x-6 gap-y-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(260px,1fr)]">
-            {/* meter + explanation */}
+            {/* meter + explanation — meter is desktop; phones keep the one-liner */}
             <div className="min-w-0">
               {target && invalidation && spot ? (
-                <LevelMeter spot={spot} target={target} invalidation={invalidation} />
+                <div className="hidden sm:block">
+                  <LevelMeter spot={spot} target={target} invalidation={invalidation} />
+                </div>
               ) : (
-                <p className="text-[12px] text-text-muted">
+                <p className="hidden text-[12px] text-text-muted sm:block">
                   Projection levels are not available in the latest read.
                 </p>
               )}
-              <p className="mt-2.5 text-[12px] leading-5 text-text-muted">
+              <p className="text-[12px] leading-5 text-text-muted sm:mt-2.5">
                 <span className={`font-semibold ${dir.text}`}>{dir.arrow} What this means: </span>
-                {explanation}
+                <span className="line-clamp-3 sm:line-clamp-none">{explanation}</span>
               </p>
+              <p className="mt-1.5 text-[12px] text-text-primary sm:hidden">
+                <span className="font-medium">{mode}</span>
+                <span className="text-text-muted"> · {modeHint}</span>
+              </p>
+              <Link
+                to="/ai-arena?tab=read"
+                className="mt-2 inline-block font-mono text-[10px] uppercase tracking-wider text-accent sm:hidden"
+              >
+                Full Compass →
+              </Link>
             </div>
 
             {/* alt exposure card */}
-            <div className="flex items-stretch">
+            <div className="hidden items-stretch sm:flex">
               <div className="w-full rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-4 py-3">
                 <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">
                   Alt exposure
@@ -377,7 +392,7 @@ export default function CompassSnapshot({ className = "", embedded = false }) {
 
           {/* ── driver detail: the numbers behind the 24h call ── */}
           {drivers.length > 0 && (
-            <div className="mt-3 border-t border-ink/[0.05] pt-3">
+            <div className="mt-3 hidden border-t border-ink/[0.05] pt-3 sm:block">
               <div className="mb-2 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted">
                 What's driving it — 24h drivers
               </div>
@@ -425,7 +440,7 @@ export default function CompassSnapshot({ className = "", embedded = false }) {
 
           {/* ── why this report exists (event-driven trigger) ── */}
           {(whatChanged || triggerHuman) && (
-            <div className="mt-3 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2">
+            <div className="mt-3 hidden rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2 sm:block">
               <div className="flex items-start gap-2">
                 <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-text-muted">
                   {isAnomaly ? "Triggered by" : "Why updated"}
