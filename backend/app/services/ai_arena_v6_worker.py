@@ -43,6 +43,7 @@ from openai import AsyncOpenAI
 from app.services import bg_advanced, confluence_engine, cycle_position
 from app.services.verdict_schema import (
     CompleteVerdict,
+    LayerBrief,
     LayerBriefBundle,
     ReportBundleV6,
     RiskScenario,
@@ -341,6 +342,96 @@ async def _fetch_intraday_bg(
         client.fetch_tier("risk", force_refresh=True),
     )
     return {**smart, **risk}
+
+
+# Smart money is the one layer brief that must never be reused. Every input it
+# has — top-trader ratio, funding, basis, taker flow — moves intraday, so a
+# brief written once per UTC day goes stale within minutes while still being
+# quoted as fact. Measured: "Top trader position 69.48% long" survived 13
+# consecutive reports over ~20 hours while the real value moved between 68.1%
+# and 69.1%, and Stage 2 repeated it into the published narrative each time.
+_FAST_LAYER_KEYS = ("smart_money",)
+
+_FAST_METRIC_NAMES = {
+    "top_trader_position": "Top trader position",
+    "top_trader_account": "Top traders",
+    "funding_rate": "Funding",
+    "basis": "Basis",
+    "taker_volume": "Taker flow",
+}
+
+
+def _refresh_reused_layer_briefs(
+    bundle: LayerBriefBundle,
+    confluence_dict: dict,
+) -> list[str]:
+    """Rewrite reused daily briefs for layers that are actually intraday.
+
+    Rebuilt from the fresh confluence layer rather than by re-running Stage 1,
+    so it costs no tokens and cannot invent a figure: every number here is the
+    same label the evidence matrix renders.
+    """
+    refreshed: list[str] = []
+    layers = (confluence_dict or {}).get("layers") or {}
+
+    for layer_key in _FAST_LAYER_KEYS:
+        brief = getattr(bundle, layer_key, None)
+        layer = layers.get(layer_key) or {}
+        if brief is None or not layer:
+            continue
+
+        metrics = [
+            m
+            for m in (layer.get("metrics") or [])
+            if isinstance(m, dict)
+            and m.get("available") is not False
+            and m.get("label")
+            and m.get("label") != "\u2014"
+        ]
+        if not metrics:
+            continue
+
+        named = [
+            "{} {}".format(
+                _FAST_METRIC_NAMES.get(
+                    m["key"], str(m["key"]).replace("_", " ").capitalize()
+                ),
+                m["label"],
+            )
+            for m in metrics
+        ]
+
+        verdict = str(layer.get("verdict") or "NEUTRAL").lower()
+        rationale = (layer.get("rationale") or "").strip()
+
+        points = list(named)
+        if rationale:
+            points.append(rationale)
+        while len(points) < 2:
+            points.append(f"Fast positioning verdict {verdict}.")
+
+        headline = f"Fast positioning {verdict} \u2014 " + ", ".join(named[:3])
+
+        try:
+            setattr(
+                bundle,
+                layer_key,
+                LayerBrief(
+                    layer=brief.layer,
+                    direction=verdict,
+                    strength=float(layer.get("strength") or 0.0),
+                    headline=headline[:200],
+                    key_points=points[:6],
+                    notable_metrics=named[:4],
+                ),
+            )
+        except Exception as exc:  # never let a brief refresh kill a report
+            _log(f"Could not refresh {layer_key} brief: {exc}", level="WARN")
+            continue
+
+        refreshed.append(f"{layer_key} ({', '.join(named[:2])})")
+
+    return refreshed
 
 
 def _intraday_tape_payload(
@@ -1093,6 +1184,9 @@ async def generate_v6_report(
         bg_snapshot=bg_snapshot, external=_external_inputs
     )
     confluence_dict = confluence_result.to_dict()
+    if reusing_daily_snapshot:
+        for entry in _refresh_reused_layer_briefs(bundle, confluence_dict):
+            _log(f"Refreshed reused intraday brief: {entry}")
     cycle_dict = cycle_result.to_dict()
     bg_summary = _summary_from_snapshot(bg_snapshot)
     fast_ok_count = sum(1 for metric in fast_snapshot.values() if metric.ok)

@@ -184,6 +184,18 @@ function HeadlineStrip({ eventRisk }) {
  * strongly, how much it counts toward the verdict, the numbers underneath it,
  * and the sentence explaining it.
  */
+// A driver card that shows a number without showing how old that number is
+// invites the reader to trust it equally. The liquidity row is the reason this
+// exists: its magnets set the contract target while its own source sat 2.5h
+// behind, and nothing on the read said so.
+function sourceAge(secs) {
+  const n = Number(secs);
+  if (!Number.isFinite(n) || n < 60) return "";
+  if (n < 3600) return `${Math.round(n / 60)}m`;
+  if (n < 86400) return `${Math.floor(n / 3600)}h`;
+  return `${Math.floor(n / 86400)}d`;
+}
+
 function DriverCard({ row }) {
   const s = rowScore(row);
   const m = dirMeta(s.direction);
@@ -192,11 +204,24 @@ function DriverCard({ row }) {
   const weight = Number(s.weight);
   const metrics = (row.evidence || []).slice(0, 6);
   const why = row.rationale || row.evidence?.[0]?.note || null;
+  const health = (row.source_health || {}).status || null;
+  const healthAge = sourceAge((row.source_health || {}).age_seconds);
 
   return (
     <div className="min-w-0 rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="truncate text-[13px] font-semibold text-text-primary">{row.label}</span>
+        <div className="flex min-w-0 items-baseline gap-1.5">
+          <span className="truncate text-[13px] font-semibold text-text-primary">{row.label}</span>
+          {health && health !== "fresh" ? (
+            <span
+              className="shrink-0 rounded bg-accent/[0.12] px-1 py-px font-mono text-[9px] font-semibold uppercase text-accent"
+              title={`Source ${health}${healthAge ? ` · last updated ${healthAge} ago` : ""}`}
+            >
+              {health}
+              {healthAge ? ` ${healthAge}` : ""}
+            </span>
+          ) : null}
+        </div>
         <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>
           {m.arrow} {m.label} · {strengthPct}%
         </span>
