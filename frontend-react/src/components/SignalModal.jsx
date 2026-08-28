@@ -2166,12 +2166,12 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             <div className="flex-1 min-h-0 flex flex-col">
               {/* TAB 1: CHART */}
               {activeTab === "chart" && (
-                <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+                <div className="signal-chart-body flex-1 min-h-0 flex flex-col lg:flex-row">
                   <div
                     className={
                       chartFull
                         ? "lq-below-header fixed inset-0 z-[70] flex flex-col bg-surface-raised"
-                        : "relative flex min-h-0 min-w-0 flex-1 flex-col bg-surface-raised"
+                        : "signal-chart-pane relative flex min-h-0 min-w-0 flex-1 flex-col bg-surface-raised"
                     }
                   >
                     {renderChartTools()}
@@ -2226,7 +2226,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     {renderTargetsPanel("sidebar")}
                   </div>
                   <div
-                    className={`${chartFull ? "hidden" : "lg:hidden"} flex-shrink-0 bg-surface-raised border-t border-ink/10 overflow-y-auto custom-scrollbar mobile-targets-panel`}
+                    className={`${chartFull ? "hidden" : "lg:hidden"} bg-surface-raised border-t border-ink/10 overflow-y-auto custom-scrollbar mobile-targets-panel`}
                   >
                     {renderTargetsPanel("bottom")}
                   </div>
@@ -3101,10 +3101,58 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  .signal-modal-overlay { height: 100dvh; }
  }
 
+ /* Below lg the chart and the level ladder share one column, and the ladder
+    used to win every argument: flex-shrink-0 with a 42vh cap, while the chart
+    was flex-1 min-h-0 and free to collapse. Measured in a harness that mirrors
+    this layout, the chart came out at 74px on a 375x667 phone and 2px at
+    320x568 — a strip of candles with no readable price.
+
+    Two units were wrong. 42vh is the LARGE viewport height on mobile, measured
+    with the browser toolbars retracted, so the ladder claimed more than 42% of
+    what the reader could actually see. And a dvh floor on the chart is no
+    better: it sizes against the screen rather than the space left after the
+    header, tabs, toolbar, timeframe row, deep-analysis link and funding
+    footer — floors written that way overflowed the sheet by up to 90px, and
+    the content box clips.
+
+    Percentages resolve against the flex container, which IS the space that is
+    actually left. 60 + 40 cannot exceed 100, so the split adapts to any screen
+    and can never overflow. The px cap keeps the ladder from sprawling on tall
+    phones; past it the chart takes everything else. */
+ @media (max-width: 1023.98px) {
+ .signal-chart-pane {
+ flex: 1 1 auto;
+ min-height: 60%;
+ }
  .mobile-targets-panel {
- max-height: min(42vh, 360px);
+ flex: 0 1 auto;
+ min-height: 0;
+ max-height: min(40%, 220px);
  overflow-y: auto;
  -webkit-overflow-scrolling: touch;
+ }
+ }
+
+ /* Landscape phones have almost no height left once the chrome is paid for,
+    and 60% of nearly nothing is still nothing. Side by side instead — the
+    same arrangement the desktop layout already uses. */
+ @media (max-width: 1023.98px) and (orientation: landscape) and (max-height: 560px) {
+ .signal-chart-body { flex-direction: row; }
+ .signal-chart-pane { min-height: 0; }
+ .mobile-targets-panel {
+ width: min(46%, 260px);
+ max-height: none;
+ border-top: 0;
+ border-left: 1px solid rgb(var(--ink) / 0.10);
+ }
+ }
+
+ @media (min-width: 1024px) {
+ .mobile-targets-panel {
+ max-height: min(42dvh, 360px);
+ overflow-y: auto;
+ -webkit-overflow-scrolling: touch;
+ }
  }
 
  /* Plan ladder: 20px rail column, 10px dots, 1px line through the center. */
