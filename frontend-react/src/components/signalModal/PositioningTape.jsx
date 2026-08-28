@@ -70,42 +70,29 @@ export function readPositioning(deriv) {
   const opposite = g != null && p != null && (g - 1) * (p - 1) < 0;
   const split = g != null && p != null && Math.abs(g - p) >= 0.45;
 
-  let lean = "NEUTRAL";
-  let why = "Books are mixed — no one-sided crowd.";
+  // Describes what the books show, and stops there. This used to end in a call:
+  // 64% long was printed as "LEAN SHORT" — the contrarian read — so a trade
+  // recommendation sat next to raw exchange data, inverted on the way past. The
+  // metrics are the product; the reader decides what they mean.
+  let note = "Books are mixed \u2014 no one-sided crowd.";
   if (opposite) {
-    lean = p > 1 ? "LONG" : "SHORT";
-    why =
-      "Big accounts and the crowd sit on opposite sides. This split usually favours the big side.";
+    note = "Top accounts and the global crowd sit on opposite sides.";
   } else if (allLong) {
-    lean = "SHORT";
-    why =
-      "All L/S books are above 1 — too many longs. That is food for a long squeeze, not a pump.";
+    note = "All three books sit above 1 \u2014 more long than short.";
   } else if (allShort) {
-    lean = "LONG";
-    why =
-      "Crowd is short. Pumps often start when top traders are long and the global crowd is short.";
+    note = "All three books sit below 1 \u2014 more short than long.";
   } else if (avg > 1.15) {
-    lean = "SHORT";
-    why = "Positioning leans long. Crowded longs get squeezed down more easily than they squeeze up.";
+    note = "Positioning tilts long across the books.";
   } else if (avg < 0.87) {
-    lean = "LONG";
-    why = "Positioning leans short. Crowded shorts are squeeze-up fuel.";
+    note = "Positioning tilts short across the books.";
   }
 
-  const splitLabel = opposite ? "strong" : split ? "moderate" : "aligned";
-  const confidence = opposite || split ? "low" : allLong || allShort ? "moderate" : "low";
-  let against = "balanced books";
-  if (opposite || split) against = "big accounts split";
-  else if (allLong) against = "crowded longs";
-  else if (allShort) against = "crowded shorts";
+  const splitLabel = opposite ? "opposite" : split ? "wide" : "aligned";
 
   return {
-    lean,
     longPct,
-    why,
+    note,
     splitLabel,
-    confidence,
-    against,
     top: p,
     global: g,
   };
@@ -207,8 +194,6 @@ export default function PositioningTape({
   const futSpot = futVol != null && spotVol > 0 ? futVol / spotVol : null;
   const oiFut = oi != null && futVol > 0 ? oi / futVol : null;
 
-  const leanLong = read?.lean === "LONG";
-  const leanShort = read?.lean === "SHORT";
 
   return (
     <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
@@ -308,7 +293,7 @@ export default function PositioningTape({
         <div className="border-t border-ink/[0.07] bg-ink/[0.025] px-3.5 py-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Big accounts split
+              Crowd positioning
               <span className="ml-1.5 text-text-secondary">{read.splitLabel}</span>
             </p>
             {read.top != null && read.global != null ? (
@@ -316,26 +301,6 @@ export default function PositioningTape({
                 top {read.top.toFixed(2)} vs global {read.global.toFixed(2)}
               </p>
             ) : null}
-          </div>
-          <p className="mt-1.5 text-[12.5px] leading-snug text-text-secondary">{read.why}</p>
-
-          <div className="mt-3 flex items-end justify-between gap-3">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">Lean</p>
-              <p
-                className={`font-display text-[22px] font-semibold leading-none tracking-tight ${
-                  leanLong ? "text-positive" : leanShort ? "text-negative" : "text-text-primary"
-                }`}
-              >
-                {read.lean}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                Confidence
-              </p>
-              <p className="text-[13px] font-medium capitalize text-text-primary">{read.confidence}</p>
-            </div>
           </div>
 
           {read.longPct != null ? (
@@ -351,12 +316,7 @@ export default function PositioningTape({
             </div>
           ) : null}
 
-          <p className="mt-2.5 text-[11.5px] text-text-muted">
-            Against <span className="text-text-secondary">{read.against}</span>
-            <span className="mt-0.5 block text-[11px] leading-snug">
-              Not a probability. Weighted read of the books above.
-            </span>
-          </p>
+          <p className="mt-2.5 text-[12px] leading-snug text-text-secondary">{read.note}</p>
         </div>
       ) : null}
     </div>
