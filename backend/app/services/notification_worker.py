@@ -426,11 +426,24 @@ async def notification_worker_loop():
                 cc_count = generate_coin_called_notifications(db)
                 ep_count = generate_entry_pullback_notifications(db)
 
-                total = cm_count + btcdom_count + wl_count + sub_count + cc_count + ep_count
+                # Saved filters. Isolated because a broken user-authored filter
+                # must not stop the generators above from running — those serve
+                # everyone, this serves whoever wrote the filter.
+                sf_count = 0
+                try:
+                    from app.services.signal_filter_alerts import (
+                        generate_filter_match_notifications,
+                    )
+
+                    sf_count = generate_filter_match_notifications(db)
+                except Exception as e:
+                    print(f"⚠️  signal filter alerts skipped (non-fatal): {e}")
+
+                total = cm_count + btcdom_count + wl_count + sub_count + cc_count + ep_count + sf_count
                 elapsed = round((time.time() - start) * 1000)
 
                 if total > 0:
-                    print(f"🔔 Notifications: +{total} new ({cm_count} channel, {btcdom_count} btcdom, {wl_count} watchlist, {sub_count} sub, {cc_count} coin, {ep_count} entry) in {elapsed}ms")
+                    print(f"🔔 Notifications: +{total} new ({cm_count} channel, {btcdom_count} btcdom, {wl_count} watchlist, {sub_count} sub, {cc_count} coin, {ep_count} entry, {sf_count} filter) in {elapsed}ms")
 
                 # Cleanup every hour (check via Redis flag)
                 if is_redis_available():
