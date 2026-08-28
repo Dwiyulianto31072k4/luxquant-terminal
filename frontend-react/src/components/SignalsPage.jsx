@@ -2078,8 +2078,13 @@ const SignalsPage = () => {
 
         {/* ── Controls row — search + multi-sort stack ── */}
         <div className="mb-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 min-w-0">
+          {/* Wraps below sm so the field owns a full row. It used to sit as the
+              only shrinkable item next to three flex-shrink-0 controls, so on a
+              440px phone the sort select, direction toggle and More button took
+              ~285px and the search collapsed to just its own icon padding —
+              a box with nowhere to type. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative order-1 basis-full min-w-0 sm:order-none sm:basis-auto sm:flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
                 {Icon.search("w-3.5 h-3.5")}
               </span>
@@ -2088,8 +2093,20 @@ const SignalsPage = () => {
                 placeholder="Search pair (e.g. BTC, ETH, SOL)..."
                 value={searchPair}
                 onChange={(e) => setSearchPair(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-ink/15 focus:outline-none focus:bg-ink/[0.02] transition-all"
+                className={`w-full py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-ink/15 focus:outline-none focus:bg-ink/[0.02] transition-all pl-9 ${
+                  searchPair ? "pr-9" : "pr-3"
+                }`}
               />
+              {searchPair ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchPair("")}
+                  aria-label="Clear search"
+                  className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-primary/45 transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
+                >
+                  {Icon.close ? Icon.close("w-3 h-3") : <span className="text-[13px] leading-none">×</span>}
+                </button>
+              ) : null}
             </div>
             <div className="relative flex-shrink-0">
               <select
