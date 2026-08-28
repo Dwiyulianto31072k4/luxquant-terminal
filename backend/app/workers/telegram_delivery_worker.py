@@ -27,7 +27,31 @@ DIGEST_MAX_ITEMS = 8
 # Hard ceiling on how far back Telegram delivery will ever reach, whatever the
 # stored watermark says. See the note in run_once().
 MAX_BACKLOG_HOURS = 24
-TARGET_USER_IDS = [5]
+def _parse_targets(raw):
+    """Restrict delivery to specific user ids, or to nobody in particular.
+
+    This was hardcoded to [5] — a pilot restriction that outlived the pilot by
+    long enough that five users who had switched Telegram on were getting
+    nothing from the broadcast and digest paths. It only ever gated those two;
+    personal notifications were never restricted, which is why the failure was
+    invisible from the delivery counts.
+
+    Unset means everyone who opted in, which is the behaviour the preference
+    toggle already promises. Set TG_TARGET_USER_IDS to a comma-separated list
+    to narrow it again without a deploy.
+    """
+    raw = (raw or "").strip()
+    if not raw or raw.lower() in ("all", "*"):
+        return None
+    try:
+        ids = [int(x) for x in raw.replace(" ", "").split(",") if x]
+    except ValueError:
+        log.warning("TG_TARGET_USER_IDS is not a list of ids (%r); delivering to all", raw)
+        return None
+    return ids or None
+
+
+TARGET_USER_IDS = _parse_targets(os.getenv("TG_TARGET_USER_IDS"))
 
 LUX_DSN = os.getenv("DATABASE_URL")
 # No hardcoded fallback: this file lives in a public repository, and a proxy
