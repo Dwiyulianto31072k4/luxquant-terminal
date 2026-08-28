@@ -247,9 +247,27 @@ def run_once():
                     "nothing is advancing it",
                     cutoff_dt.isoformat(), stale_days, MAX_BACKLOG_HOURS,
                 )
+        pass_started = datetime.now(timezone.utc)
         s, f = run_instant_personal(conn, cutoff); res["ip"] += s; res["fail"] += f
         s, f = run_instant_broadcast(conn, cutoff); res["ib"] += s; res["fail"] += f
         s, f = run_digest(conn); res["dg"] += s; res["fail"] += f
+
+        # Advance the watermark. It was written once and never moved again, so
+        # it sat 23 days behind and logged the warning above every 20 seconds —
+        # 29,528 lines of it. The clamp meant delivery still worked, which is
+        # exactly why nobody caught it: the alarm was loud, permanent, and
+        # false, so reading it told you nothing. An alarm that is always on is
+        # the same as no alarm.
+        #
+        # Only advance when the pass drained the queue. Two ways it might not
+        # have: a send failed (leave the watermark so the next pass retries
+        # instead of stepping over it), or a batch came back full, which means
+        # there is more behind it that was created before pass_started and
+        # would fall outside a narrowed window — advancing there would drop
+        # exactly the backlog the watermark exists to protect.
+        drained = res["ip"] < BATCH_LIMIT and res["ib"] < BATCH_LIMIT
+        if not res["fail"] and drained:
+            set_config_ts(conn, "tg_cutoff_ts", pass_started.isoformat())
     return res
 
 def main():
