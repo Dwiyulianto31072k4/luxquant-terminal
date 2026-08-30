@@ -1926,6 +1926,26 @@ function App() {
                       </RequireAuth>
                     }
                   />
+                  <Route
+                    path="/tips/course/:courseSlug"
+                    element={
+                      <RequireAuth>
+                        <AppShell>
+                          <TipsPage />
+                        </AppShell>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/tips/lesson/:lessonSlug"
+                    element={
+                      <RequireAuth>
+                        <AppShell>
+                          <TipsPage />
+                        </AppShell>
+                      </RequireAuth>
+                    }
+                  />
                   {/* The old shelf. Still where lessons are filed and edited,
                       and where anything without a track can still be found. */}
                   <Route

@@ -1,421 +1,1064 @@
-// src/components/TipsPage.jsx
-// Compact course catalog. Hero stays a preamble, not a dashboard.
-// Modules are a picker; the selected module owns the lesson list.
-
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { resourcesApi, coverUrl, youtubeThumb } from "../services/resourcesApi";
-import ResourceReader from "./resources/ResourceReader";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { MODULE_COVERS, TYPE_LABEL } from "../content/tutorialCovers";
+import { learningApi } from "../services/learningApi";
+import { MODULE_COVERS } from "../content/tutorialCovers";
+import AssistantWidget from "./assistant/AssistantWidget";
+import "./learning/Learning.css";
 
-const coverFor = (lesson, trackSlug) =>
-  coverUrl(lesson) ||
-  (lesson?.type === "video" ? youtubeThumb(lesson.source_url) : null) ||
-  MODULE_COVERS[trackSlug] ||
-  MODULE_COVERS.start;
+const COURSE_COVERS = {
+  "luxquant-essentials": MODULE_COVERS["read-a-call"],
+  "signal-decision-lab": MODULE_COVERS.numbers,
+  "luxquant-workflow": MODULE_COVERS.tools,
+};
+const TYPE_LABEL = {
+  slides: "Interactive slides",
+  video: "Video",
+  reading: "Reading",
+  case: "Case lab",
+  quiz: "Knowledge check",
+  action: "Product practice",
+};
+const cx = (...parts) => parts.filter(Boolean).join(" ");
 
-const Tick = ({ on, size = 16 }) => (
-  <span
-    className="inline-flex shrink-0 items-center justify-center rounded-full"
-    style={{
-      width: size,
-      height: size,
-      background: on ? "rgb(var(--pos) / 0.18)" : "transparent",
-      border: `1px solid ${on ? "rgb(var(--pos) / 0.45)" : "rgb(var(--ink) / 0.18)"}`,
-      color: on ? "rgb(var(--pos-text))" : "transparent",
-    }}
-  >
-    <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="3.2">
-      <path d="M20 6L9 17l-5-5" />
+function Icon({ name, size = 18, className = "" }) {
+  const paths = {
+    arrow: <path d="m9 18 6-6-6-6" />,
+    back: <path d="m15 18-6-6 6-6" />,
+    play: <path d="m9 7 8 5-8 5V7Z" />,
+    lock: (
+      <>
+        <rect x="5" y="10" width="14" height="10" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </>
+    ),
+    check: <path d="m5 12 4 4L19 6" />,
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </>
+    ),
+    note: (
+      <>
+        <path d="M5 4h14v16H5z" />
+        <path d="M8 8h8M8 12h8M8 16h5" />
+      </>
+    ),
+    spark: (
+      <>
+        <path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z" />
+        <path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
+      </>
+    ),
+    target: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="4" />
+        <path d="m15 9 5-5" />
+      </>
+    ),
+  };
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {paths[name]}
     </svg>
-  </span>
-);
+  );
+}
 
-const Bar = ({ pct, done }) => (
-  <div className="h-1 w-full overflow-hidden rounded-full bg-ink/[0.08]">
-    <div
-      className="h-full rounded-full transition-all duration-500"
-      style={{
-        width: `${Math.max(0, Math.min(100, pct))}%`,
-        background: done ? "rgb(var(--pos))" : "rgb(var(--accent))",
-      }}
-    />
-  </div>
-);
-
-const SectionHead = ({ kicker, title, lede, right }) => (
-  <div className="flex items-end justify-between gap-3">
-    <div className="min-w-0">
-      {kicker ? (
-        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-text-muted">
-          {kicker}
-        </p>
-      ) : null}
-      <h2 className="mt-1 font-display text-[17px] font-semibold tracking-tight text-text-primary sm:text-xl">
-        {title}
-      </h2>
-      {lede ? (
-        <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-text-secondary">{lede}</p>
-      ) : null}
+function Progress({ value, className = "" }) {
+  return (
+    <div className={cx("learning-progress", className)}>
+      <span style={{ width: `${Math.max(0, Math.min(100, value || 0))}%` }} />
     </div>
-    {right ? <div className="hidden shrink-0 sm:block">{right}</div> : null}
-  </div>
-);
-
-const ModuleCard = ({ track, n, active, onSelect }) => {
-  const pct = track.lesson_count
-    ? Math.round((track.completed_count / track.lesson_count) * 100)
-    : 0;
-  const done = track.lesson_count > 0 && track.completed_count === track.lesson_count;
-  const cover = MODULE_COVERS[track.slug] || MODULE_COVERS.start;
-
+  );
+}
+function Pill({ children, tone = "neutral" }) {
+  const tones = {
+    neutral: "border-ink/10 bg-ink/[0.035] text-text-muted",
+    gold: "border-accent/25 bg-accent/[0.09] text-accent",
+    green: "border-positive/25 bg-positive/[0.08] text-positive",
+  };
+  return (
+    <span
+      className={cx(
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-[10.5px] font-semibold",
+        tones[tone]
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+function CourseCover({ course, className = "" }) {
+  const cover = course.cover_image || COURSE_COVERS[course.slug] || MODULE_COVERS.start;
+  return (
+    <div className={cx("learning-cover", className)}>
+      <img src={cover} alt="" className="h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-scrim/70 via-transparent to-transparent" />
+      <div className="absolute left-3 top-3 flex gap-1.5">
+        <Pill tone={course.access_tier === "premium" ? "gold" : "green"}>
+          {course.access_tier === "premium" ? "Premium" : "Free"}
+        </Pill>
+        <Pill>{course.level}</Pill>
+      </div>
+    </div>
+  );
+}
+function CourseCard({ course, onOpen }) {
   return (
     <button
       type="button"
-      onClick={() => onSelect(track.slug)}
-      aria-current={active ? "true" : undefined}
-      className={`flex h-full flex-col overflow-hidden rounded-xl border text-left transition-colors ${
-        active
-          ? "border-accent/45 bg-surface-raised"
-          : "border-ink/[0.08] bg-surface-raised hover:border-ink/16"
-      }`}
+      onClick={() => onOpen(course)}
+      className="learning-card learning-course-card overflow-hidden text-left"
     >
-      <div className="relative aspect-[16/9] overflow-hidden bg-ink/[0.06]">
-        <img src={cover} alt="" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-scrim/50 to-transparent" />
-        <span className="absolute left-2 top-2 rounded bg-surface-raised/90 px-1.5 py-px font-mono text-[9.5px] font-semibold tabular-nums text-text-primary">
-          {String(n).padStart(2, "0")}
-        </span>
-        {done && (
-          <span className="absolute right-2 top-2">
-            <Tick on size={16} />
-          </span>
-        )}
-        <div className="absolute inset-x-2 bottom-2">
-          <Bar pct={pct} done={done} />
-        </div>
-      </div>
-      <div className="flex flex-1 flex-col px-2.5 py-2.5 sm:px-3 sm:py-3">
-        <h3 className="font-display text-[13.5px] font-semibold leading-snug tracking-tight text-text-primary sm:text-[15px]">
-          {track.title}
+      <CourseCover course={course} className="aspect-[16/9]" />
+      <div className="p-4 sm:p-5">
+        <p className="learning-eyebrow">{course.category}</p>
+        <h3 className="mt-1.5 font-display text-lg font-semibold leading-tight tracking-tight text-text-primary">
+          {course.title}
         </h3>
-        <p className="mt-0.5 font-mono text-[10px] tabular-nums text-text-muted">
-          {track.completed_count}/{track.lesson_count} · {track.minutes}m
+        <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-text-secondary">
+          {course.summary}
         </p>
+        <div className="mt-4 flex items-center justify-between text-[11px] text-text-muted">
+          <span>
+            {course.module_count} modules · {course.lesson_count} lessons
+          </span>
+          <span>{course.estimated_minutes} min</span>
+        </div>
+        <Progress value={course.progress_pct} className="mt-2.5" />
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[11px] font-medium text-text-muted">
+            {course.progress_pct ? `${course.progress_pct}% complete` : "Ready to start"}
+          </span>
+          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-text-primary">
+            View course <Icon name="arrow" size={14} />
+          </span>
+        </div>
       </div>
     </button>
   );
-};
-
-const LessonRow = ({ lesson, index, trackSlug, onOpen, onToggle, canTrack }) => {
-  const cover = coverFor(lesson, trackSlug);
-  const kind = TYPE_LABEL[lesson.type] || "Lesson";
-
+}
+function LoadingCards() {
   return (
-    <div
-      className={`flex items-stretch overflow-hidden rounded-xl border bg-surface-raised ${
-        lesson.completed ? "border-ink/[0.07]" : "border-ink/[0.08]"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={() => onOpen(lesson)}
-        className="flex min-w-0 flex-1 items-stretch text-left"
-      >
-        <div className="relative w-[88px] shrink-0 overflow-hidden bg-ink/[0.06] sm:w-[132px]">
-          <img src={cover} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        </div>
-        <div className="min-w-0 flex-1 px-3 py-2.5 sm:px-4 sm:py-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] tabular-nums text-text-muted">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-              {kind}
-            </span>
-            <span className="font-mono text-[10px] tabular-nums text-text-muted">
-              {lesson.minutes}m
-            </span>
+    <div className="grid gap-4 md:grid-cols-3">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="aspect-[4/3] animate-pulse rounded-[18px] bg-ink/[0.045]" />
+      ))}
+    </div>
+  );
+}
+
+function LearningHome() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all");
+  useEffect(() => {
+    learningApi
+      .catalog()
+      .then(setData)
+      .catch(() => setError("Learning is temporarily unavailable."));
+  }, []);
+  const courses = data?.courses || [];
+  const visible = filter === "all" ? courses : courses.filter((c) => c.category === filter);
+  const nextCourse = courses.find((c) => c.started_count > 0 && c.progress_pct < 100) || courses[0];
+  const nextLesson = data?.next_lesson;
+  const completed = data?.totals?.completed || 0;
+  const total = data?.totals?.lessons || 0;
+  const readiness = total ? Math.round((completed / total) * 100) : 0;
+  const openCourse = (course) => navigate(`/tips/course/${course.slug}`);
+  const continueLearning = () =>
+    nextLesson ? navigate(`/tips/lesson/${nextLesson.slug}`) : nextCourse && openCourse(nextCourse);
+  return (
+    <div className="learning-shell space-y-8 pb-8">
+      <section className="learning-hero grid gap-7 px-5 py-7 sm:px-8 sm:py-9 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-10 lg:py-10">
+        <div className="relative z-[1] max-w-3xl">
+          <p className="learning-eyebrow">LuxQuant Learning</p>
+          <h1 className="mt-3 max-w-2xl font-display text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-text-primary sm:text-[2.55rem]">
+            Turn every signal into a decision you can explain.
+          </h1>
+          <p className="mt-4 max-w-2xl text-[14px] leading-7 text-text-secondary sm:text-[15px]">
+            Product walkthroughs, market foundations, and frozen case labs built around the real
+            questions LuxQuant users face—from TP ladders to retests and invalidation.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2.5">
+            <button
+              type="button"
+              onClick={continueLearning}
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-accent-fg shadow-[0_10px_24px_rgb(var(--accent)/0.18)]"
+            >
+              <Icon name="play" size={16} />
+              {completed ? "Continue learning" : "Start the essentials"}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                document.getElementById("learning-catalog")?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="rounded-xl border border-ink/10 bg-surface-raised/70 px-4 py-2.5 text-[13px] font-semibold text-text-primary"
+            >
+              Browse courses
+            </button>
           </div>
-          <h3
-            className={`mt-0.5 truncate font-display text-[14.5px] font-semibold tracking-tight sm:text-[15.5px] ${
-              lesson.completed ? "text-text-muted" : "text-text-primary"
-            }`}
-          >
-            {lesson.title}
-          </h3>
-          {lesson.excerpt && (
-            <p className="mt-0.5 hidden line-clamp-1 text-[12.5px] text-text-secondary sm:block">
-              {lesson.excerpt}
+          <p className="mt-4 text-[11px] text-text-muted">
+            Education, not financial advice. Progress measures product understanding—not trading
+            certification.
+          </p>
+        </div>
+        <div className="relative z-[1] self-stretch rounded-2xl border border-ink/10 bg-surface-raised/90 p-5 backdrop-blur">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="learning-eyebrow">Your readiness</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">
+                {readiness}%
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-accent/25 bg-accent/10 text-accent">
+              <Icon name="target" />
+            </div>
+          </div>
+          <Progress value={readiness} className="mt-4" />
+          <div className="mt-4 grid grid-cols-3 gap-2 border-t border-ink/[0.07] pt-4 text-center">
+            <div>
+              <b className="text-base text-text-primary">{data?.totals?.courses || 0}</b>
+              <div className="text-[10px] text-text-muted">Courses</div>
+            </div>
+            <div>
+              <b className="text-base text-text-primary">{completed}</b>
+              <div className="text-[10px] text-text-muted">Completed</div>
+            </div>
+            <div>
+              <b className="text-base text-text-primary">{data?.totals?.minutes || 0}</b>
+              <div className="text-[10px] text-text-muted">Minutes</div>
+            </div>
+          </div>
+          {!isAuthenticated && (
+            <p className="mt-4 rounded-xl bg-ink/[0.035] px-3 py-2 text-[11px] leading-relaxed text-text-muted">
+              Sign in to save notes, scores, and progress across devices.
             </p>
           )}
         </div>
-      </button>
-      <button
-        type="button"
-        onClick={() => canTrack && onToggle(lesson)}
-        disabled={!canTrack}
-        title={canTrack ? (lesson.completed ? "Mark as not done" : "Mark as done") : "Sign in to track progress"}
-        aria-label={lesson.completed ? "Mark as not done" : "Mark as done"}
-        className="flex w-11 shrink-0 items-center justify-center border-l border-ink/[0.06] disabled:cursor-default sm:w-12"
-      >
-        <Tick on={lesson.completed} size={18} />
-      </button>
-    </div>
-  );
-};
-
-export default function TipsPage() {
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
-
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [reading, setReading] = useState(null);
-  const [activeSlug, setActiveSlug] = useState(null);
-  const lessonsRef = useRef(null);
-
-  const load = useCallback(() => {
-    resourcesApi.tracks().then(setData).catch(() => setError("Could not load lessons."));
-  }, []);
-  useEffect(load, [load]);
-
-  const tracks = useMemo(() => data?.tracks || [], [data]);
-
-  useEffect(() => {
-    if (activeSlug || !tracks.length) return;
-    const next = tracks.find((t) => t.completed_count < t.lesson_count);
-    setActiveSlug((next || tracks[0]).slug);
-  }, [tracks, activeSlug]);
-
-  const active = useMemo(
-    () => tracks.find((t) => t.slug === activeSlug) || tracks[0] || null,
-    [tracks, activeSlug]
-  );
-
-  const totals = data?.totals || { lessons: 0, completed: 0 };
-  const pct = totals.lessons ? Math.round((totals.completed / totals.lessons) * 100) : 0;
-  const anyLessons = totals.lessons > 0;
-  const totalMinutes = useMemo(
-    () => tracks.reduce((sum, t) => sum + (t.minutes || 0), 0),
-    [tracks]
-  );
-  const activeIndex = tracks.findIndex((t) => t.slug === active?.slug);
-
-  const nextLesson = useMemo(() => {
-    for (const t of tracks) {
-      const hit = t.lessons.find((l) => !l.completed);
-      if (hit) return { lesson: hit, track: t };
-    }
-    return null;
-  }, [tracks]);
-
-  const playlist = useMemo(() => tracks.flatMap((t) => t.lessons), [tracks]);
-
-  const goProduct = useCallback((path) => {
-    setReading(null);
-    setParams((p) => {
-      const n = new URLSearchParams(p);
-      n.delete("lesson");
-      return n;
-    });
-    navigate(path);
-  }, [navigate, setParams]);
-
-  const wanted = params.get("lesson");
-  useEffect(() => {
-    if (!wanted || !tracks.length || reading) return;
-    for (const t of tracks) {
-      const hit = t.lessons.find((l) => l.slug === wanted || String(l.id) === wanted);
-      if (hit) {
-        setActiveSlug(t.slug);
-        setReading(hit);
-        return;
-      }
-    }
-  }, [wanted, tracks, reading]);
-
-  const openLesson = useCallback((lesson) => {
-    setReading(lesson);
-    setParams((p) => {
-      const n = new URLSearchParams(p);
-      n.set("lesson", lesson.slug || String(lesson.id));
-      return n;
-    });
-  }, [setParams]);
-
-  const closeReader = useCallback(() => {
-    setReading(null);
-    setParams((p) => {
-      const n = new URLSearchParams(p);
-      n.delete("lesson");
-      return n;
-    });
-  }, [setParams]);
-
-  const toggle = useCallback((lesson) => {
-    const next = !lesson.completed;
-    setData((d) => d && {
-      ...d,
-      tracks: d.tracks.map((t) => {
-        const mine = t.lessons.some((l) => l.id === lesson.id);
-        return {
-          ...t,
-          lessons: t.lessons.map((l) => (l.id === lesson.id ? { ...l, completed: next } : l)),
-          completed_count: t.completed_count + (mine ? (next ? 1 : -1) : 0),
-        };
-      }),
-      totals: { ...d.totals, completed: d.totals.completed + (next ? 1 : -1) },
-    });
-    resourcesApi.setComplete(lesson.id, next).catch(load);
-  }, [load]);
-
-  const selectModule = (slug) => {
-    setActiveSlug(slug);
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches) {
-      lessonsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
-  return (
-    <div className="w-full pb-4">
-      <header className="max-w-3xl">
-        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-text-muted">
-          Tutorials
-        </p>
-        <h1 className="mt-1.5 font-display text-[1.65rem] font-semibold leading-tight tracking-tight text-text-primary sm:text-3xl">
-          Read the terminal before you size a call
-        </h1>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-text-secondary sm:text-[14.5px]">
-          This is the course for <em className="not-italic text-text-primary">this</em> product —
-          not generic trading school. Six short modules: what a call is, what the numbers
-          actually claim, then the tools, the Agent, and your account. Open any module.
-          The order is the useful one, not a lock.
-        </p>
-      </header>
-
-      {anyLessons && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-          {nextLesson && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSlug(nextLesson.track.slug);
-                openLesson(nextLesson.lesson);
-              }}
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-accent-fg"
-            >
-              <span>{totals.completed ? "Continue" : "Start"}</span>
-              <span className="max-w-[180px] truncate font-medium opacity-80 sm:max-w-[260px]">
-                {nextLesson.lesson.title}
+      </section>
+      {nextCourse && (
+        <section className="learning-card grid overflow-hidden lg:grid-cols-[1.2fr_.8fr]">
+          <div className="p-5 sm:p-6">
+            <div className="flex items-center gap-2">
+              <Pill tone="gold">Continue</Pill>
+              <span className="text-[11px] text-text-muted">Your next useful step</span>
+            </div>
+            <h2 className="mt-3 font-display text-xl font-semibold text-text-primary">
+              {nextLesson?.title || nextCourse.title}
+            </h2>
+            <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-text-secondary">
+              {nextLesson?.summary || nextCourse.summary}
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <button
+                onClick={continueLearning}
+                className="rounded-xl bg-text-primary px-4 py-2.5 text-[12px] font-semibold text-bg-primary"
+              >
+                Resume lesson
+              </button>
+              <span className="text-[11px] text-text-muted">
+                {nextLesson?.estimated_minutes || 4} min
               </span>
-              <span aria-hidden>→</span>
-            </button>
-          )}
-          <p className="font-mono text-[11px] tabular-nums text-text-muted">
-            {totals.completed}/{totals.lessons} · {totalMinutes} min
-          </p>
-          <div className="min-w-[120px] max-w-xs flex-1">
-            <Bar pct={pct} done={pct === 100} />
+            </div>
+          </div>
+          <div className="border-t border-ink/[0.07] bg-ink/[0.018] p-5 lg:border-l lg:border-t-0 sm:p-6">
+            <p className="learning-eyebrow">Why this next</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">
+              The path moves from reading the published setup to judging current validity. You can
+              skip ahead, but this sequence prevents the most common interpretation mistakes.
+            </p>
+            <Progress value={nextCourse.progress_pct} className="mt-5" />
+            <p className="mt-2 text-[10.5px] text-text-muted">
+              {nextCourse.completed_count}/{nextCourse.lesson_count} lessons complete
+            </p>
+          </div>
+        </section>
+      )}
+      <section id="learning-catalog" className="scroll-mt-24">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="learning-eyebrow">The curriculum</p>
+            <h2 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-text-primary">
+              Choose what you need to decide better
+            </h2>
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-text-secondary">
+              Start product-first, then deepen the market concepts inside real LuxQuant cases.
+            </p>
+          </div>
+          <div className="flex gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.025] p-1">
+            {[
+              ["all", "All"],
+              ["LuxQuant", "Product"],
+              ["Case Lab", "Case labs"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setFilter(id)}
+                className={cx(
+                  "rounded-lg px-3 py-1.5 text-[11px] font-semibold",
+                  filter === id
+                    ? "bg-surface-raised text-text-primary shadow-sm"
+                    : "text-text-muted"
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
-      )}
-
-      {error && <p className="mt-5 text-[13px] text-loss">{error}</p>}
-      {!data && !error && (
-        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="aspect-[4/3] animate-pulse rounded-xl bg-ink/[0.04]" />
-          ))}
-        </div>
-      )}
-
-      {data && (
-        <>
-          <section className="mt-7 sm:mt-9">
-            <SectionHead
-              kicker="The path"
-              title="Choose a module"
-              lede="Tap one to open its lessons. Start here if you are new; skip ahead if you already know the ladder."
-            />
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
-              {tracks.map((t, i) => (
-                <ModuleCard
-                  key={t.slug}
-                  track={t}
-                  n={i + 1}
-                  active={active?.slug === t.slug}
-                  onSelect={selectModule}
-                />
-              ))}
+        {error && (
+          <p className="mt-5 rounded-xl border border-negative/20 bg-negative/5 p-4 text-sm text-loss">
+            {error}
+          </p>
+        )}
+        {!data && !error ? (
+          <div className="mt-5">
+            <LoadingCards />
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visible.map((c) => (
+              <CourseCard key={c.id} course={c} onOpen={openCourse} />
+            ))}
+          </div>
+        )}
+      </section>
+      <section className="grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
+        <div className="learning-card p-5 sm:p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+              <Icon name="spark" />
             </div>
-          </section>
-
-          <section ref={lessonsRef} className="mt-8 scroll-mt-[calc(var(--lq-header-h,56px)+12px)] sm:mt-10">
-            {active && (
-              <>
-                <SectionHead
-                  kicker={`Module ${String(activeIndex + 1).padStart(2, "0")} of ${String(tracks.length).padStart(2, "0")}`}
-                  title={active.title}
-                  lede={active.summary}
-                  right={
-                    <span className="font-mono text-[11px] tabular-nums text-text-muted">
-                      {active.completed_count}/{active.lesson_count} · {active.minutes} min
-                    </span>
-                  }
-                />
-                <p className="mt-1 font-mono text-[11px] tabular-nums text-text-muted sm:hidden">
-                  {active.completed_count}/{active.lesson_count} · {active.minutes} min
-                </p>
-
-                <div className="mt-3 flex flex-col gap-2">
-                  {active.lessons.length ? (
-                    active.lessons.map((l, i) => (
-                      <LessonRow
-                        key={l.id}
-                        lesson={l}
-                        index={i}
-                        trackSlug={active.slug}
-                        onOpen={openLesson}
-                        onToggle={toggle}
-                        canTrack={isAuthenticated}
-                      />
-                    ))
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-ink/15 px-4 py-8 text-center">
-                      <p className="text-[13px] font-medium text-text-primary">
-                        This module is being written.
-                      </p>
-                      <p className="mt-1 text-[12px] text-text-muted">{active.summary}</p>
-                    </div>
-                  )}
+            <div>
+              <p className="learning-eyebrow">How learning works</p>
+              <h2 className="mt-0.5 font-display text-lg font-semibold text-text-primary">
+                Explain → inspect → decide → practise
+              </h2>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+            {[
+              ["01", "Short concept"],
+              ["02", "Visual example"],
+              ["03", "Frozen decision"],
+              ["04", "Product action"],
+            ].map(([n, t]) => (
+              <div key={n} className="rounded-xl border border-ink/[0.07] bg-ink/[0.02] p-3">
+                <span className="font-mono text-[10px] text-accent">{n}</span>
+                <p className="mt-2 text-[12px] font-semibold text-text-primary">{t}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="learning-card p-5 sm:p-6">
+          <p className="learning-eyebrow">Skill map</p>
+          <div className="mt-4 space-y-4">
+            {(data?.skills || []).slice(0, 3).map((s) => (
+              <div key={`${s.course_slug}-${s.name}`}>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-medium text-text-primary">{s.name}</span>
+                  <span className="text-text-muted">{s.readiness}%</span>
                 </div>
-              </>
-            )}
-          </section>
-        </>
-      )}
-
-      {data && anyLessons && !isAuthenticated && (
-        <p className="mt-5 text-[12px] text-text-muted">
-          Sign in to keep your place.
-        </p>
-      )}
-
-      {reading && (
-        <ResourceReader
-          resource={reading}
-          onClose={closeReader}
-          onNavigate={goProduct}
-          playlist={playlist}
-          onOpenLesson={openLesson}
-          onToggle={toggle}
-          canTrack={isAuthenticated}
-        />
-      )}
+                <Progress value={s.readiness} className="mt-2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <AssistantWidget pageId="tips" />
     </div>
   );
+}
+
+function LessonLine({ lesson }) {
+  return (
+    <Link
+      to={lesson.locked ? "/pricing" : `/tips/lesson/${lesson.slug}`}
+      className="group flex items-center gap-3 rounded-xl border border-ink/[0.07] bg-surface-raised px-3 py-3 transition hover:border-accent/30"
+    >
+      <span
+        className={cx(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
+          lesson.completed
+            ? "border-positive/30 bg-positive/10 text-positive"
+            : "border-ink/10 bg-ink/[0.025] text-text-muted"
+        )}
+      >
+        <Icon name={lesson.completed ? "check" : lesson.locked ? "lock" : "play"} size={15} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-[13px] font-semibold text-text-primary">{lesson.title}</p>
+          {lesson.lesson_type === "case" && <Pill tone="gold">Case</Pill>}
+        </div>
+        <p className="mt-0.5 text-[10.5px] text-text-muted">
+          {TYPE_LABEL[lesson.lesson_type] || lesson.lesson_type} · {lesson.estimated_minutes} min
+        </p>
+      </div>
+      <Icon
+        name="arrow"
+        size={15}
+        className="text-text-muted transition group-hover:translate-x-0.5"
+      />
+    </Link>
+  );
+}
+
+function CourseDetail({ slug }) {
+  const navigate = useNavigate();
+  const [course, setCourse] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    learningApi
+      .course(slug)
+      .then(setCourse)
+      .catch(() => setError("Course not found."));
+  }, [slug]);
+  if (error)
+    return (
+      <div className="learning-card p-8 text-center">
+        <p className="text-loss">{error}</p>
+        <Link to="/tips" className="mt-4 inline-block text-sm text-accent">
+          Back to Learning
+        </Link>
+      </div>
+    );
+  if (!course) return <LoadingCards />;
+  const first =
+    course.modules.flatMap((m) => m.lessons).find((l) => !l.completed && !l.locked) ||
+    course.modules.flatMap((m) => m.lessons).find((l) => !l.locked);
+  return (
+    <div className="learning-shell space-y-7 pb-8">
+      <button
+        onClick={() => navigate("/tips")}
+        className="inline-flex items-center gap-1.5 text-[12px] font-medium text-text-muted hover:text-text-primary"
+      >
+        <Icon name="back" size={15} />
+        Learning home
+      </button>
+      <section className="learning-hero grid overflow-hidden lg:grid-cols-[minmax(0,1fr)_430px]">
+        <div className="relative z-[1] p-6 sm:p-8 lg:p-10">
+          <div className="flex flex-wrap gap-2">
+            <Pill tone="gold">{course.category}</Pill>
+            <Pill>{course.level}</Pill>
+            <Pill tone={course.access_tier === "free" ? "green" : "gold"}>
+              {course.access_tier}
+            </Pill>
+          </div>
+          <h1 className="mt-5 max-w-2xl font-display text-3xl font-semibold leading-tight tracking-[-0.03em] text-text-primary sm:text-4xl">
+            {course.title}
+          </h1>
+          <p className="mt-4 max-w-2xl text-[14px] leading-7 text-text-secondary">
+            {course.description || course.summary}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => first && navigate(`/tips/lesson/${first.slug}`)}
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-accent-fg"
+            >
+              <Icon name="play" size={16} />
+              {course.progress_pct ? "Continue course" : "Start course"}
+            </button>
+            <span className="text-[11px] text-text-muted">
+              {course.module_count} modules · {course.lesson_count} lessons ·{" "}
+              {course.estimated_minutes} min
+            </span>
+          </div>
+          <Progress value={course.progress_pct} className="mt-6 max-w-lg" />
+        </div>
+        <CourseCover
+          course={course}
+          className="min-h-[260px] border-t border-ink/[0.07] lg:border-l lg:border-t-0"
+        />
+      </section>
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-4">
+          <div>
+            <p className="learning-eyebrow">Course content</p>
+            <h2 className="mt-1 font-display text-2xl font-semibold text-text-primary">
+              Build the skill in sequence
+            </h2>
+          </div>
+          {course.modules.map((m, i) => (
+            <details
+              key={m.id}
+              open={i === 0 || m.completed_count < m.lesson_count}
+              className="learning-card overflow-hidden"
+            >
+              <summary className="flex cursor-pointer list-none items-center gap-4 p-4 sm:p-5">
+                <span className="font-mono text-[11px] text-accent">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[15px] font-semibold text-text-primary">{m.title}</h3>
+                  <p className="mt-1 text-[11.5px] text-text-muted">
+                    {m.lesson_count} lessons · {m.estimated_minutes} min
+                    {m.is_preview ? " · Free preview" : ""}
+                  </p>
+                </div>
+                <span className="text-[11px] text-text-muted">
+                  {m.completed_count}/{m.lesson_count}
+                </span>
+              </summary>
+              <div className="space-y-2 border-t border-ink/[0.07] bg-ink/[0.015] p-3 sm:p-4">
+                {m.lessons.map((l) => (
+                  <LessonLine key={l.id} lesson={l} />
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+        <aside className="space-y-4">
+          <div className="learning-card p-5">
+            <p className="learning-eyebrow">You will be able to</p>
+            <ul className="learning-checklist mt-4 space-y-3 pl-5 text-[12.5px] leading-relaxed text-text-secondary">
+              {course.outcomes.map((o) => (
+                <li key={o}>{o}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="learning-card p-5">
+            <p className="learning-eyebrow">Skills</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {course.skills.map((s) => (
+                <Pill key={s}>{s}</Pill>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-accent/20 bg-accent/[0.06] p-5">
+            <p className="text-[13px] font-semibold text-text-primary">Not a certification</p>
+            <p className="mt-2 text-[11.5px] leading-relaxed text-text-muted">
+              Completion means you understand the LuxQuant workflow and definitions. It does not
+              certify profitability.
+            </p>
+          </div>
+        </aside>
+      </section>
+    </div>
+  );
+}
+
+function Block({ block, answer, setAnswer }) {
+  if (!block) return null;
+  if (block.type === "hero")
+    return (
+      <div>
+        <p className="learning-eyebrow text-accent">{block.eyebrow}</p>
+        <h2 className="mt-3 max-w-3xl font-display text-3xl font-semibold leading-tight tracking-[-0.025em] text-text-primary sm:text-4xl">
+          {block.title}
+        </h2>
+        <p className="mt-5 max-w-3xl text-[15px] leading-8 text-text-secondary">{block.body}</p>
+      </div>
+    );
+  if (block.type === "callout") {
+    const tone =
+      block.tone === "danger"
+        ? "border-negative/25 bg-negative/[0.06]"
+        : block.tone === "warning"
+          ? "border-accent/25 bg-accent/[0.07]"
+          : "border-positive/20 bg-positive/[0.05]";
+    return (
+      <div className={cx("rounded-2xl border p-5 sm:p-6", tone)}>
+        <p className="learning-eyebrow">{block.tone || "Note"}</p>
+        <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+          {block.title}
+        </h2>
+        <p className="mt-3 text-[14px] leading-7 text-text-secondary">{block.body}</p>
+      </div>
+    );
+  }
+  if (block.type === "compare")
+    return (
+      <div>
+        <p className="learning-eyebrow">Compare</p>
+        <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+          {block.title}
+        </h2>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {[block.left, block.right].map((s, i) => (
+            <div
+              key={s.label}
+              className={cx(
+                "rounded-2xl border p-5",
+                i ? "border-accent/20 bg-accent/[0.045]" : "border-ink/[0.08] bg-ink/[0.025]"
+              )}
+            >
+              <p className="text-[13px] font-semibold text-text-primary">{s.label}</p>
+              <ul className="mt-3 space-y-2 text-[12.5px] leading-relaxed text-text-secondary">
+                {s.items.map((x) => (
+                  <li key={x} className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent" />
+                    {x}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  if (block.type === "steps" || block.type === "timeline")
+    return (
+      <div>
+        <p className="learning-eyebrow">{block.type === "steps" ? "Workflow" : "Sequence"}</p>
+        <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+          {block.title}
+        </h2>
+        <div className="mt-5 space-y-3">
+          {block.items.map((raw, i) => {
+            const item = typeof raw === "string" ? { label: raw } : raw;
+            return (
+              <div
+                key={`${i}-${item.label}`}
+                className="flex gap-3 rounded-xl border border-ink/[0.07] bg-ink/[0.02] p-3.5"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/12 font-mono text-[10px] font-bold text-accent">
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="text-[13px] font-semibold text-text-primary">{item.label}</p>
+                  {item.body && <p className="mt-1 text-[11.5px] text-text-muted">{item.body}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  if (block.type === "check" || block.type === "decision") {
+    const opts = (block.options || []).map((o) => (typeof o === "string" ? { label: o } : o));
+    return (
+      <div>
+        <p className="learning-eyebrow">Decision point</p>
+        <h2 className="mt-2 font-display text-2xl font-semibold leading-tight text-text-primary">
+          {block.question || block.prompt || block.title}
+        </h2>
+        <div className="mt-5 space-y-2">
+          {opts.map((o, i) => (
+            <button
+              key={o.label}
+              data-selected={answer === i}
+              onClick={() => setAnswer(i)}
+              className="learning-option text-[13px] font-medium text-text-primary"
+            >
+              <span className="mr-3 font-mono text-[10px] text-text-muted">
+                {String.fromCharCode(65 + i)}
+              </span>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        {answer !== null && (
+          <div
+            className={cx(
+              "mt-4 rounded-xl border p-4 text-[12.5px] leading-relaxed",
+              answer === block.answer
+                ? "border-positive/25 bg-positive/[0.06] text-text-primary"
+                : "border-accent/25 bg-accent/[0.06] text-text-secondary"
+            )}
+          >
+            <strong>{answer === block.answer ? "Good judgement. " : "Look again. "}</strong>
+            {opts[answer]?.result || block.explanation}
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (block.type === "product")
+    return (
+      <div>
+        <p className="learning-eyebrow">Practice in LuxQuant</p>
+        <h2 className="mt-2 font-display text-3xl font-semibold text-text-primary">
+          {block.title}
+        </h2>
+        <p className="mt-4 max-w-2xl text-[14px] leading-7 text-text-secondary">{block.body}</p>
+        <Link
+          to={block.path || "/signals"}
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-accent-fg"
+        >
+          {block.cta || "Open tool"}
+          <Icon name="arrow" size={15} />
+        </Link>
+      </div>
+    );
+  return (
+    <div>
+      <h2 className="font-display text-2xl font-semibold text-text-primary">{block.title}</h2>
+      <p className="mt-3 text-[14px] leading-7 text-text-secondary">{block.body}</p>
+    </div>
+  );
+}
+
+function LessonPlayer({ slug }) {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const [lesson, setLesson] = useState(null);
+  const [course, setCourse] = useState(null);
+  const [slide, setSlide] = useState(0);
+  const [answer, setAnswer] = useState(null);
+  const [supportTab, setSupportTab] = useState("notes");
+  const [notes, setNotes] = useState([]);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    setLesson(null);
+    setSlide(0);
+    setAnswer(null);
+    setError("");
+    learningApi
+      .lesson(slug)
+      .then((row) => {
+        setLesson(row);
+        learningApi.course(row.course.slug).then(setCourse);
+        if (isAuthenticated)
+          learningApi
+            .notes(row.id)
+            .then(setNotes)
+            .catch(() => {});
+      })
+      .catch((e) =>
+        setError(
+          e?.response?.status === 403 ? "This lesson is included in Premium." : "Lesson not found."
+        )
+      );
+  }, [slug, isAuthenticated]);
+  const playlist = useMemo(() => course?.modules.flatMap((m) => m.lessons) || [], [course]);
+  const index = playlist.findIndex((x) => x.id === lesson?.id);
+  const previous = index > 0 ? playlist[index - 1] : null;
+  const next = index >= 0 && index < playlist.length - 1 ? playlist[index + 1] : null;
+  const blocks = lesson?.content || [];
+  const pct = blocks.length ? Math.round(((slide + 1) / blocks.length) * 100) : 0;
+  const persist = useCallback(
+    (progress) => {
+      if (lesson && isAuthenticated)
+        learningApi
+          .progress(lesson.id, {
+            progress_pct: progress,
+            last_position: `slide:${slide}`,
+            state: {},
+          })
+          .catch(() => {});
+    },
+    [lesson, isAuthenticated, slide]
+  );
+  const goNext = () => {
+    if (slide < blocks.length - 1) {
+      const n = slide + 1;
+      setSlide(n);
+      setAnswer(null);
+      if (isAuthenticated)
+        learningApi
+          .progress(lesson.id, {
+            progress_pct: Math.max(
+              lesson.progress_pct || 0,
+              Math.round(((n + 1) / blocks.length) * 95)
+            ),
+            last_position: `slide:${n}`,
+            state: {},
+          })
+          .catch(() => {});
+    } else {
+      persist(100);
+      if (next && !next.locked) navigate(`/tips/lesson/${next.slug}`);
+      else navigate(`/tips/course/${lesson.course.slug}`);
+    }
+  };
+  const saveNote = async () => {
+    if (!note.trim()) return;
+    try {
+      const row = await learningApi.addNote(lesson.id, {
+        body: note.trim(),
+        anchor: `slide:${slide + 1}`,
+      });
+      setNotes((x) => [row, ...x]);
+      setNote("");
+    } catch {}
+  };
+  if (error)
+    return (
+      <div className="learning-card mx-auto max-w-lg p-8 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+          <Icon name="lock" />
+        </div>
+        <h1 className="mt-4 text-xl font-semibold text-text-primary">{error}</h1>
+        <p className="mt-2 text-sm text-text-muted">
+          Preview the first module for free or unlock the complete case lab.
+        </p>
+        <div className="mt-5 flex justify-center gap-2">
+          <Link
+            to="/tips"
+            className="rounded-xl border border-ink/10 px-4 py-2 text-sm text-text-primary"
+          >
+            Back
+          </Link>
+          <Link
+            to="/pricing"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-fg"
+          >
+            See Premium
+          </Link>
+        </div>
+      </div>
+    );
+  if (!lesson) return <LoadingCards />;
+  return (
+    <div className="learning-shell learning-player overflow-hidden">
+      <div className="flex h-14 items-center justify-between border-b border-ink/[0.08] px-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            onClick={() => navigate(`/tips/course/${lesson.course.slug}`)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-ink/[0.04]"
+          >
+            <Icon name="back" size={17} />
+          </button>
+          <div className="min-w-0">
+            <p className="truncate text-[12px] font-semibold text-text-primary">{lesson.title}</p>
+            <p className="truncate text-[9.5px] text-text-muted">
+              {lesson.course.title} · {lesson.module.title}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="hidden text-[10.5px] text-text-muted sm:inline">
+            Slide {slide + 1} of {Math.max(blocks.length, 1)}
+          </span>
+          <div className="w-20 sm:w-28">
+            <Progress value={pct} />
+          </div>
+          <button
+            onClick={() => navigate(`/tips/course/${lesson.course.slug}`)}
+            className="hidden rounded-lg border border-ink/10 px-3 py-1.5 text-[11px] font-medium text-text-primary sm:block"
+          >
+            Course overview
+          </button>
+        </div>
+      </div>
+      <div className="learning-player-grid">
+        <aside className="learning-player-rail overflow-y-auto p-3">
+          <p className="learning-eyebrow px-2 py-2">Curriculum</p>
+          <div className="mt-1 space-y-3">
+            {course?.modules.map((m) => (
+              <div key={m.id}>
+                <p className="px-2 text-[10px] font-semibold text-text-muted">{m.title}</p>
+                <div className="mt-1 space-y-1">
+                  {m.lessons.map((l) => (
+                    <button
+                      key={l.id}
+                      disabled={l.locked}
+                      onClick={() => !l.locked && navigate(`/tips/lesson/${l.slug}`)}
+                      className={cx(
+                        "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left",
+                        l.id === lesson.id
+                          ? "bg-accent/10 text-text-primary"
+                          : "text-text-muted hover:bg-ink/[0.035]"
+                      )}
+                    >
+                      <span
+                        className={cx(
+                          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
+                          l.completed ? "border-positive/30 text-positive" : "border-ink/10"
+                        )}
+                      >
+                        <Icon name={l.completed ? "check" : l.locked ? "lock" : "play"} size={10} />
+                      </span>
+                      <span className="line-clamp-2 text-[10.5px] leading-tight">{l.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+        <main className="flex min-w-0 flex-col px-4 py-5 sm:px-6 lg:px-10 lg:py-8">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex gap-2">
+              <Pill tone={lesson.lesson_type === "case" ? "gold" : "neutral"}>
+                {TYPE_LABEL[lesson.lesson_type]}
+              </Pill>
+              <Pill>{lesson.estimated_minutes} min</Pill>
+            </div>
+            <button
+              onClick={() => setSupportTab("notes")}
+              className="inline-flex items-center gap-1.5 text-[11px] text-text-muted lg:hidden"
+            >
+              <Icon name="note" size={14} />
+              Notes
+            </button>
+          </div>
+          {lesson.youtube_url ? (
+            <div className="aspect-video overflow-hidden rounded-2xl border border-ink/10">
+              <iframe
+                title={lesson.title}
+                src={lesson.youtube_url.replace("watch?v=", "embed/")}
+                className="h-full w-full"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <article className="learning-slide flex-1 p-5 sm:p-8 lg:p-10">
+              <Block
+                block={
+                  blocks[slide] || {
+                    type: "hero",
+                    eyebrow: "Lesson",
+                    title: lesson.title,
+                    body: lesson.summary,
+                  }
+                }
+                answer={answer}
+                setAnswer={setAnswer}
+              />
+            </article>
+          )}
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <button
+              disabled={slide === 0 && !previous}
+              onClick={() =>
+                slide > 0
+                  ? (setSlide(slide - 1), setAnswer(null))
+                  : previous && navigate(`/tips/lesson/${previous.slug}`)
+              }
+              className="inline-flex items-center gap-1.5 rounded-xl border border-ink/10 px-3.5 py-2 text-[12px] font-medium text-text-primary disabled:opacity-30"
+            >
+              <Icon name="back" size={14} />
+              Previous
+            </button>
+            <div className="hidden text-[10.5px] text-text-muted sm:block">
+              {isAuthenticated ? "Progress saved automatically" : "Sign in to save progress"}
+            </div>
+            <button
+              onClick={goNext}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-[12px] font-semibold text-accent-fg"
+            >
+              {slide < blocks.length - 1 ? "Next slide" : next ? "Next lesson" : "Finish course"}
+              <Icon name="arrow" size={14} />
+            </button>
+          </div>
+        </main>
+        <aside className="learning-player-support overflow-y-auto p-4">
+          <div className="flex rounded-lg border border-ink/[0.08] bg-ink/[0.025] p-1">
+            {[
+              ["notes", "Notes"],
+              ["glossary", "Key terms"],
+              ["research", "Research"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setSupportTab(id)}
+                className={cx(
+                  "flex-1 rounded-md px-2 py-1.5 text-[10.5px] font-semibold",
+                  supportTab === id
+                    ? "bg-surface-raised text-text-primary shadow-sm"
+                    : "text-text-muted"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {supportTab === "notes" && (
+            <div className="mt-4">
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={isAuthenticated ? "Capture your reasoning…" : "Sign in to save notes"}
+                disabled={!isAuthenticated}
+                rows={4}
+                className="w-full resize-none rounded-xl border border-ink/10 bg-surface-raised p-3 text-[12px] text-text-primary outline-none focus:border-accent/40 disabled:opacity-50"
+              />
+              <button
+                onClick={saveNote}
+                disabled={!note.trim()}
+                className="mt-2 w-full rounded-lg bg-text-primary px-3 py-2 text-[11px] font-semibold text-bg-primary disabled:opacity-30"
+              >
+                Save note
+              </button>
+              <div className="mt-4 space-y-2">
+                {notes.map((n) => (
+                  <div
+                    key={n.id}
+                    className="rounded-xl border border-ink/[0.07] bg-surface-raised p-3"
+                  >
+                    <p className="text-[11.5px] leading-relaxed text-text-secondary">{n.body}</p>
+                    <p className="mt-2 font-mono text-[9px] text-text-muted">{n.anchor}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {supportTab === "glossary" && (
+            <div className="mt-4 space-y-3">
+              {[
+                [
+                  "Invalidation",
+                  "The price or condition that makes the original thesis no longer valid.",
+                ],
+                [
+                  "Retest",
+                  "Price revisits a prior level; the reaction matters more than the label.",
+                ],
+                ["Confluence", "Independent evidence pointing in the same direction."],
+              ].map(([t, b]) => (
+                <div key={t} className="rounded-xl border border-ink/[0.07] bg-surface-raised p-3">
+                  <p className="text-[11px] font-semibold text-text-primary">{t}</p>
+                  <p className="mt-1 text-[10.5px] leading-relaxed text-text-muted">{b}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {supportTab === "research" && (
+            <div className="mt-4 space-y-3">
+              <p className="text-[11.5px] leading-relaxed text-text-muted">
+                Check the current market before applying an old case to a live setup.
+              </p>
+              <Link
+                to="/ai-arena"
+                className="flex items-center justify-between rounded-xl border border-ink/[0.08] bg-surface-raised p-3 text-[11.5px] font-semibold text-text-primary"
+              >
+                AI Research <Icon name="arrow" size={14} />
+              </Link>
+              <Link
+                to="/signals"
+                className="flex items-center justify-between rounded-xl border border-ink/[0.08] bg-surface-raised p-3 text-[11.5px] font-semibold text-text-primary"
+              >
+                Signals <Icon name="arrow" size={14} />
+              </Link>
+              <a
+                href="https://x.com/search"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between rounded-xl border border-ink/[0.08] bg-surface-raised p-3 text-[11.5px] font-semibold text-text-primary"
+              >
+                Research on X <Icon name="arrow" size={14} />
+              </a>
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+export default function TipsPage() {
+  const { courseSlug, lessonSlug } = useParams();
+  if (lessonSlug) return <LessonPlayer slug={lessonSlug} />;
+  if (courseSlug) return <CourseDetail slug={courseSlug} />;
+  return <LearningHome />;
 }

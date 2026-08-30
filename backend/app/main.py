@@ -8,7 +8,7 @@ import os
 import asyncio
 
 from app.config import settings
-from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips, resources
+from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips, resources, learning
 from app.api.routes import signal_journey
 from app.api.routes import api_keys
 from app.api.routes import public_signals
@@ -120,6 +120,19 @@ async def lifespan(app: FastAPI):
             _tdb.close()
     except Exception as e:
         print(f"⚠️ Tutorial seed failed: {e}")
+
+    # Structured Learning Studio catalog. The SQL migration is deployed before
+    # the API reload; the create-only seed never overwrites admin-authored work.
+    try:
+        from app.services.learning_seed import seed_learning_catalog
+        _ldb = SessionLocal()
+        try:
+            _created = seed_learning_catalog(_ldb)
+            print(f"🎓 Learning Studio: {_created} starter courses created")
+        finally:
+            _ldb.close()
+    except Exception as e:
+        print(f"⚠️ Learning Studio seed skipped: {e}")
 
     # === Initialize shared HTTP clients ===
     init_clients()
@@ -301,6 +314,7 @@ app.include_router(coin_watch_router, prefix="/api/v1", tags=["coin-watch"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 app.include_router(resources.router, prefix="/api/v1", tags=["resources"])
+app.include_router(learning.router, prefix="/api/v1", tags=["learning"])
 app.include_router(telegram_auth_router, prefix="/api/v1")
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(discord_auth_router, prefix="/api/v1")
