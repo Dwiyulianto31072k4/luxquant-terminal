@@ -629,67 +629,96 @@ const AnalyzePage = () => {
           <div
             className={`${showSigFilters ? "block" : "hidden"} lg:block pb-4 border-b border-ink/[0.04]`}
           >
-            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-2">
-              <FilterField
-                label={t("perf.search_pair")}
-                className="flex-1 min-w-0 w-full sm:w-auto sm:min-w-[160px]"
-              >
+            {/* Four labels stacked over four controls made a second row of
+                noise above a row that already said what it was — a select
+                reading "All Status" does not need STATUS written over it. The
+                controls were also three different heights and two different
+                shapes, so the eye read four unrelated widgets instead of one
+                bar. Sort and its direction are one idea and now sit in one
+                control; they were the pair most obviously broken apart. */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="relative min-w-0 flex-1 sm:min-w-[220px]">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/60">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M20 20l-3.2-3.2" />
+                  </svg>
+                </span>
                 <input
                   type="text"
-                  placeholder="BTC, ETH, SOL..."
+                  aria-label={t("perf.search_pair")}
+                  placeholder="Search a pair — BTC, ETH, SOL…"
                   value={sigSearch}
                   onChange={(e) => setSigSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-ink/15 transition-colors"
+                  className={`h-10 w-full rounded-lg border border-ink/[0.08] bg-surface-secondary pl-9 font-mono text-[13px] text-text-primary placeholder-text-muted/60 transition-colors focus:border-ink/20 focus:outline-none ${
+                    sigSearch ? "pr-9" : "pr-3"
+                  }`}
                 />
-              </FilterField>
-              <FilterField label={t("perf.status")} className="w-full sm:w-auto">
+                {sigSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => setSigSearch("")}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-muted/60 transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
+                  >
+                    &times;
+                  </button>
+                ) : null}
+              </div>
+
+              <select
+                aria-label={t("perf.status")}
+                value={sigStatus}
+                onChange={(e) => setSigStatus(e.target.value)}
+                className="h-10 rounded-lg border border-ink/[0.08] bg-surface-secondary px-3 font-mono text-[13px] text-text-primary transition-colors focus:border-ink/20 focus:outline-none"
+              >
+                <option value="all">{t("perf.all_status")}</option>
+                <option value="open">Not Hit</option>
+                <option value="tp1">TP1</option>
+                <option value="tp2">TP2</option>
+                <option value="tp3">TP3</option>
+                <option value="closed_win">TP4 (Win)</option>
+                <option value="closed_loss">Loss</option>
+              </select>
+
+              <select
+                aria-label={t("perf.risk")}
+                value={sigRisk}
+                onChange={(e) => setSigRisk(e.target.value)}
+                className="h-10 rounded-lg border border-ink/[0.08] bg-surface-secondary px-3 font-mono text-[13px] text-text-primary transition-colors focus:border-ink/20 focus:outline-none"
+              >
+                <option value="all">{t("perf.all_risk")}</option>
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+              </select>
+
+              {/* One control, because sorting by a field and choosing its
+                  direction is one decision. */}
+              <div className="flex h-10 items-stretch overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-secondary">
                 <select
-                  value={sigStatus}
-                  onChange={(e) => setSigStatus(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-ink/15"
-                >
-                  <option value="all">{t("perf.all_status")}</option>
-                  <option value="open">Not Hit</option>
-                  <option value="tp1">TP1</option>
-                  <option value="tp2">TP2</option>
-                  <option value="tp3">TP3</option>
-                  <option value="closed_win">TP4 (Win)</option>
-                  <option value="closed_loss">Loss</option>
-                </select>
-              </FilterField>
-              <FilterField label={t("perf.risk")} className="w-full sm:w-auto">
-                <select
-                  value={sigRisk}
-                  onChange={(e) => setSigRisk(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-ink/15"
-                >
-                  <option value="all">{t("perf.all_risk")}</option>
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                </select>
-              </FilterField>
-              <FilterField label={t("perf.sort")} className="w-full sm:w-auto">
-                <select
+                  aria-label={t("perf.sort")}
                   value={sigSort}
                   onChange={(e) => setSigSort(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-ink/15"
+                  className="bg-transparent px-3 font-mono text-[13px] text-text-primary focus:outline-none"
                 >
                   <option value="day_outcome">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
                   <option value="entry">Entry</option>
                   <option value="risk_level">Risk</option>
                 </select>
-              </FilterField>
-              <button
-                onClick={() => setSigOrder(sigOrder === "desc" ? "asc" : "desc")}
-                className="px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm hover:border-ink/12 transition-colors flex items-center gap-1.5"
-              >
-                {sigOrder === "desc" ? <IconArrowDown /> : <IconArrowUp />}
-                <span className="font-mono text-[11px] uppercase tracking-wider">
-                  {sigOrder === "desc" ? t("perf.newest") : "Oldest"}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSigOrder(sigOrder === "desc" ? "asc" : "desc")}
+                  title={sigOrder === "desc" ? "Newest first" : "Oldest first"}
+                  className="flex items-center gap-1.5 border-l border-ink/[0.08] px-3 font-mono text-[11px] uppercase tracking-wider text-text-muted transition-colors hover:bg-ink/[0.04] hover:text-text-primary"
+                >
+                  {sigOrder === "desc" ? <IconArrowDown /> : <IconArrowUp />}
+                  <span className="hidden sm:inline">
+                    {sigOrder === "desc" ? t("perf.newest") : "Oldest"}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -761,15 +790,6 @@ const AnalyzePage = () => {
 /* ──────────────────────────────────────────────────────────────
  FILTER FIELD WRAPPER
  ────────────────────────────────────────────────────────────── */
-
-const FilterField = ({ label, children, className }) => (
-  <div className={className}>
-    <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-      {label}
-    </label>
-    {children}
-  </div>
-);
 
 /* ──────────────────────────────────────────────────────────────
  KPI CARD — Flowscan flat hairline pattern
