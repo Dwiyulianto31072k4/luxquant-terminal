@@ -594,8 +594,10 @@ const AnalyzePage = () => {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
-        {/* Filters */}
-        <div className="px-5">
+          {/* The card now opens straight onto the filters — there is no header
+              above them any more — so the row needs its own top padding. It had
+              only px-5 and sat flush against the card's top edge. */}
+          <div className="px-5 pt-5">
           <button
             onClick={() => setShowSigFilters(!showSigFilters)}
             className="lg:hidden w-full flex items-center justify-between py-2.5 mb-2"
@@ -627,7 +629,7 @@ const AnalyzePage = () => {
           </button>
 
           <div
-            className={`${showSigFilters ? "block" : "hidden"} lg:block pb-4 border-b border-ink/[0.04]`}
+            className={`${showSigFilters ? "block" : "hidden"} lg:block pb-5 border-b border-ink/[0.04]`}
           >
             {/* Four labels stacked over four controls made a second row of
                 noise above a row that already said what it was — a select
