@@ -18,9 +18,9 @@ import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
 import { PageHeader } from "./ui/PageHeader";
 import RiskRSection from "./performance/RiskRSection";
-import { BarRow, Panel, PanelHead, Reveal } from "./performance/lp";
 import WrVsBtcChart from "./performance/WrVsBtcChart";
 import { InfoTip, KPI_INFO, SECTION_INFO } from "./performance/MetricInfo";
+import { BarRow, HeroFigure, Panel, PanelHead, Reveal, Rule, Stat } from "./performance/lp";
 
 const API_BASE = "/api/v1";
 
@@ -224,47 +224,60 @@ const AnalyzePage = () => {
         </div>
       </div>
 
-      {/* ── KPI STRIP ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        <KPICard
-          label={t("perf.win_rate")}
-          info={KPI_INFO.win_rate}
-          value={`${data.stats.win_rate.toFixed(1)}%`}
-          color={data.stats.win_rate >= 75 ? "profit" : data.stats.win_rate >= 55 ? "gold" : "loss"}
-          accent
-        />
-        <KPICard
-          label={t("perf.closed_trades")}
-          info={KPI_INFO.closed_trades}
-          value={data.stats.closed_trades.toLocaleString()}
-          sub={`of ${data.stats.total_signals.toLocaleString()}`}
-        />
-        <KPICard
-          label={t("perf.winners")}
-          info={KPI_INFO.winners}
-          value={data.stats.total_winners.toLocaleString()}
-          color="profit"
-        />
-        <KPICard
-          label={t("perf.losses")}
-          info={KPI_INFO.losses}
-          value={data.stats.sl_count.toLocaleString()}
-          color="loss"
-        />
-        <KPICard
-          label={`${t("perf.avg_rr")} (${maxTpRR.level})`}
-          info={KPI_INFO.avg_rr}
-          value={`${maxTpRR.rr.toFixed(2)}R`}
-          color="gold"
-        />
-        <KPICard
-          label={t("perf.not_hit")}
-          info={KPI_INFO.not_hit}
-          value={data.stats.open_signals.toLocaleString()}
-          sub={`${data.stats.active_pairs} ${t("perf.pairs")}`}
-          color="muted"
-        />
-      </div>
+      {/* ── HEADLINE + SUPPORTING FIGURES ──
+ Was six bordered tiles of equal weight, which is the shape lp.jsx warns
+ about in its own header: when everything is a tile, nothing is the point.
+ The win rate is what this page exists to state, so it carries the headline
+ and the rest step down into a quieter register — the same hierarchy the
+ landing uses on the very same numbers.
+
+ The InfoTips ride along. Hierarchy must not cost the definitions. ── */}
+      <Reveal>
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+          <HeroFigure
+            label={t("perf.win_rate")}
+            value={`${data.stats.win_rate.toFixed(1)}%`}
+            tone={data.stats.win_rate >= 75 ? "profit" : "gold"}
+            info={<InfoTip info={KPI_INFO.win_rate} />}
+            sub={`${data.stats.total_winners.toLocaleString()} winners against ${data.stats.sl_count.toLocaleString()} stopped out, across ${data.stats.closed_trades.toLocaleString()} closed calls.`}
+          />
+
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4 lg:gap-x-10">
+            <Stat
+              label={t("perf.closed_trades")}
+              value={data.stats.closed_trades.toLocaleString()}
+              sub={`of ${data.stats.total_signals.toLocaleString()}`}
+              info={<InfoTip info={KPI_INFO.closed_trades} />}
+            />
+            <Stat
+              label={t("perf.winners")}
+              value={data.stats.total_winners.toLocaleString()}
+              tone="profit"
+              info={<InfoTip info={KPI_INFO.winners} />}
+            />
+            <Stat
+              label={t("perf.losses")}
+              value={data.stats.sl_count.toLocaleString()}
+              tone="loss"
+              info={<InfoTip info={KPI_INFO.losses} />}
+            />
+            <Stat
+              label={`${t("perf.avg_rr")} (${maxTpRR.level})`}
+              value={`${maxTpRR.rr.toFixed(2)}R`}
+              tone="gold"
+              info={<InfoTip info={KPI_INFO.avg_rr} />}
+            />
+            <Stat
+              label={t("perf.not_hit")}
+              value={data.stats.open_signals.toLocaleString()}
+              sub={`${data.stats.active_pairs} ${t("perf.pairs")}`}
+              info={<InfoTip info={KPI_INFO.not_hit} />}
+            />
+          </div>
+        </div>
+      </Reveal>
+
+      <Rule />
 
       {/* ── WIN RATE × BITCOIN ──
  Replaces the old bare win-rate trend. A win-rate line alone has nothing
@@ -716,54 +729,6 @@ const FilterField = ({ label, children, className }) => (
 
 /* ──────────────────────────────────────────────────────────────
  KPI CARD — Flowscan flat hairline pattern
- ────────────────────────────────────────────────────────────── */
-
-const KPICard = ({ label, value, sub, color = "default", accent = false, info = null }) => {
-  const colorStyles = {
-    profit: "text-profit",
-    loss: "text-loss",
-    // accent-text, not accent: yellow as TEXT fails contrast on the Bright
-    // canvas, and this token is the dark amber that survives all three themes.
-    gold: "text-accent-text",
-    muted: "text-text-secondary",
-    default: "text-text-primary",
-  };
-
-  return (
-    <div
-      className={`group relative rounded-xl border p-4 transition-all duration-200 ${
-        accent
-          ? "border-accent/25 bg-accent/[0.07] shadow-[0_4px_16px_rgb(var(--accent)/0.10)]"
-          : "border-ink/[0.06] bg-surface-raised hover:-translate-y-px hover:border-ink/[0.14]"
-      }`}
-    >
-      {accent && (
-        <span className="absolute left-0 top-3 bottom-3 w-[2.5px] rounded-full bg-accent" />
-      )}
-      {/* No overflow-hidden on the card: it would clip the info popover. */}
-      <div className="mb-2.5 flex items-center gap-1.5">
-        <p className="min-w-0 truncate font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/65">
-          {label}
-        </p>
-        <InfoTip info={info} />
-      </div>
-      <p
-        className={`font-mono text-[26px] font-semibold leading-none tabular-nums ${colorStyles[color]}`}
-      >
-        {value}
-      </p>
-      {sub && (
-        <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/55 mt-2 tabular-nums truncate">
-          {sub}
-        </p>
-      )}
-    </div>
-  );
-};
-
-/* ──────────────────────────────────────────────────────────────
- OUTCOME DISTRIBUTION — Gold opacity gradient + loss
- (consistent with OverviewPage outcome bars pattern)
  ────────────────────────────────────────────────────────────── */
 
 const OutcomeDistribution = ({ data, _t }) => {

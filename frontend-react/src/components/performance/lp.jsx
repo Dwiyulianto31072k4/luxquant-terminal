@@ -96,7 +96,7 @@ export function SectionHead({ eyebrow, title, lede, right = null, className = ""
  * the landing sets its win rate — used once per section, never twice, because
  * the emphasis is the whole point.
  */
-export function HeroFigure({ value, label, tone = "gold", sub = null }) {
+export function HeroFigure({ value, label, tone = "gold", sub = null, info = null }) {
   const grad =
     tone === "loss"
       ? "from-loss via-loss to-loss/70"
@@ -105,7 +105,10 @@ export function HeroFigure({ value, label, tone = "gold", sub = null }) {
         : "from-accent via-accent-light to-accent-dark";
   return (
     <div>
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
+      <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+        {label}
+        {info}
+      </p>
       <p className="mt-1.5 text-[38px] font-extrabold leading-none tracking-[-0.03em] sm:text-[46px]">
         <span className={`bg-gradient-to-br ${grad} bg-clip-text text-transparent`}>
           <CountUp text={value} easing="smooth" />
@@ -119,8 +122,12 @@ export function HeroFigure({ value, label, tone = "gold", sub = null }) {
 /**
  * A supporting figure. No border and no fill — separation comes from space, and
  * from the label sitting in a quieter register than the value.
+ *
+ * `info` takes the InfoTip that used to ride on the bordered tile. Hierarchy
+ * must not cost the definitions: a figure nobody can define is a figure nobody
+ * can trust, and this is the page whose whole job is proof.
  */
-export function Stat({ label, value, sub, tone = "default", animate = true }) {
+export function Stat({ label, value, sub, tone = "default", animate = true, info = null }) {
   const toneCls =
     tone === "profit"
       ? "text-profit"
@@ -131,7 +138,10 @@ export function Stat({ label, value, sub, tone = "default", animate = true }) {
           : "text-text-primary";
   return (
     <div className="min-w-0">
-      <p className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
+      <p className="flex items-center gap-1.5 font-mono text-[9.5px] uppercase tracking-[0.16em] text-text-muted">
+        {label}
+        {info}
+      </p>
       <p className={`mt-1.5 text-[22px] font-bold leading-none tracking-[-0.02em] tabular-nums ${toneCls}`}>
         {animate ? <CountUp text={String(value)} /> : value}
       </p>
