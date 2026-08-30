@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import TheRead from "./aiArenaV6/TheRead";
+import { useLiveBtcPrice } from "./aiArenaV6/useLiveBtcPrice";
 import {
   getChartData,
   getEventRisk,
@@ -52,15 +53,17 @@ function statusTone(status) {
   return "border-ink/10 bg-ink/5 text-text-muted";
 }
 
+// How old the READ is, not the price. The price shown beside this is live, so
+// the age has to say what it measures or it gets read as a stale quote.
 function formatAge(timestamp) {
-  if (!timestamp) return "not updated";
+  if (!timestamp) return "no read yet";
   const parsed = new Date(timestamp);
-  if (Number.isNaN(parsed.getTime())) return "not updated";
+  if (Number.isNaN(parsed.getTime())) return "no read yet";
   const minutes = Math.max(0, Math.round((Date.now() - parsed.getTime()) / 60000));
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `read ${minutes}m ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  if (hours < 24) return `read ${hours}h ago`;
+  return `read ${Math.round(hours / 24)}d ago`;
 }
 
 function stanceMeta(direction) {
@@ -257,12 +260,16 @@ function Sparkline({ points, up, className = "" }) {
  * Readable on luxquant / dark / bright (no hard-coded white/black fills).
  */
 function BtcVisualPanel({ report }) {
+  const liveBtc = useLiveBtcPrice();
   const [spark, setSpark] = useState([]);
   const tactical =
     report?.verdict_summary?.tactical_24h || report?.report?.verdict?.tactical_24h || {};
   const stance = stanceMeta(tactical.direction);
   const conf = Number(tactical.confidence);
-  const btc = Number(report?.btc_price);
+  // Live spot, falling back to the report's snapshot until the poll lands.
+  // Everything below is present tense — the NOW marker, % to target, room
+  // until this read breaks — so it must not quote a price from hours ago.
+  const btc = liveBtc ?? Number(report?.btc_price);
   const contract = report?.report?.verdict?.scenario_contract || {};
   const target = Number(contract?.primary_touch?.level) || null;
   const invalidation = Number(contract?.invalidation?.level) || null;
@@ -439,6 +446,7 @@ function BtcVisualPanel({ report }) {
  * Thesis + BTC visual — full-width split on desktop.
  */
 function ThesisBoard({ report, ledger }) {
+  const liveBtc = useLiveBtcPrice();
   const [whyOpen, setWhyOpen] = useState(false);
   if (!report) return null;
 
@@ -447,7 +455,10 @@ function ThesisBoard({ report, ledger }) {
     report?.verdict_summary?.tactical_24h || verdict.tactical_24h || {};
   const stance = stanceMeta(tactical.direction);
   const conf = Number(tactical.confidence);
-  const btc = Number(report?.btc_price);
+  // Live spot, falling back to the report's snapshot until the poll lands.
+  // Everything below is present tense — the NOW marker, % to target, room
+  // until this read breaks — so it must not quote a price from hours ago.
+  const btc = liveBtc ?? Number(report?.btc_price);
   const contract = verdict.scenario_contract || {};
   const target = Number(contract?.primary_touch?.level) || null;
   const invalidation = Number(contract?.invalidation?.level) || null;
@@ -646,12 +657,16 @@ function ThesisBoard({ report, ledger }) {
 
 /** Quiet one-line context when not on Outlook — avoids repeating full hero */
 function MiniContextStrip({ report, onOpenOutlook }) {
+  const liveBtc = useLiveBtcPrice();
   if (!report) return null;
   const tactical =
     report?.verdict_summary?.tactical_24h || report?.report?.verdict?.tactical_24h || {};
   const stance = stanceMeta(tactical.direction);
   const conf = Number(tactical.confidence);
-  const btc = Number(report?.btc_price);
+  // Live spot, falling back to the report's snapshot until the poll lands.
+  // Everything below is present tense — the NOW marker, % to target, room
+  // until this read breaks — so it must not quote a price from hours ago.
+  const btc = liveBtc ?? Number(report?.btc_price);
   const modeKey = String(
     report?.report?.verdict?.scenario_contract?.market_mode || ""
   ).toUpperCase();
