@@ -9,6 +9,8 @@
 import { useMemo } from "react";
 import { wrColor, WR_LEGEND, Panel, Methodology, InsightBand, EmptyState } from "./_shared";
 
+const THIN_DAY = 5;
+
 const DOW_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTH_LABELS = [
   "Jan",
@@ -237,7 +239,19 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
                             ? "cursor-pointer border-black/25 hover:ring-1 hover:ring-white/30"
                             : "cursor-default border-ink/[0.04]"
                         } ${cell.isToday ? "ring-1 ring-accent" : ""}`}
-                        style={{ background: bg, opacity: cell.inRange ? 1 : 0.25 }}
+                        // A day resolved on two signals can read 100% and, at
+                        // full strength, looks exactly like a day built on fifty.
+                        // Dimmed at the same floor the Pattern x BTC and Timing
+                        // heatmaps already use, so thin means the same thing
+                        // everywhere in Edge Lab.
+                        style={{
+                          background: bg,
+                          opacity: !cell.inRange
+                            ? 0.25
+                            : has && (cell.entry?.total ?? 0) < THIN_DAY
+                              ? 0.5
+                              : 1,
+                        }}
                       >
                         <span
                           className={`absolute left-1.5 top-1 font-mono text-[9px] tabular-nums leading-none ${has ? "text-white/70" : "text-text-muted"}`}
