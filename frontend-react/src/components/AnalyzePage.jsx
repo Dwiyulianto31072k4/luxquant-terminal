@@ -521,17 +521,32 @@ const AnalyzePage = () => {
                 {t("perf.top_pairs")} <InfoTip info={SECTION_INFO.top_pairs} />
               </>
             }
-            lede={t("perf.top_pairs_desc")}
+            lede="Ranked by win rate over at least 5 closed calls. Pick a coin to pull its calls up in the history below."
             className="mb-6"
           />
           <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
-            <TopPairsTable pairs={data.pair_metrics} t={t} />
+            <TopPairsTable
+              pairs={data.pair_metrics}
+              t={t}
+              onPick={(pairName) => {
+                // The row already knew which coin it was about; the table just
+                // had no way to say so. Picking one asks the history below the
+                // obvious next question — "show me those calls" — instead of
+                // making the reader retype the ticker into the search box.
+                setSigSearch((pairName || "").replace("USDT", ""));
+                setSigPage(1);
+                document
+                  .getElementById("signal-history")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
           </div>
         </Reveal>
       )}
 
       {/* ── FULL SIGNAL HISTORY ── */}
       <Reveal>
+        <div id="signal-history" className="scroll-mt-24" />
         <div className="mb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 max-w-2xl">
@@ -652,8 +667,7 @@ const AnalyzePage = () => {
                   onChange={(e) => setSigSort(e.target.value)}
                   className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-ink/15"
                 >
-                  <option value="day_outcome">Day &middot; best first</option>
-                  <option value="created_at">{t("perf.date")}</option>
+                  <option value="day_outcome">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
                   <option value="entry">Entry</option>
                   <option value="risk_level">Risk</option>
@@ -874,7 +888,7 @@ const RiskRewardChart = ({ data, t }) => {
  RISK TREND CHART — muted profit/gold/loss palette
  ────────────────────────────────────────────────────────────── */
 
-const TopPairsTable = ({ pairs, t }) => {
+const TopPairsTable = ({ pairs, t, onPick }) => {
   const filtered = pairs
     .filter((p) => p.closed_trades >= 5)
     .sort((a, b) => b.win_rate - a.win_rate || b.performance_score - a.performance_score)
@@ -905,9 +919,10 @@ const TopPairsTable = ({ pairs, t }) => {
                 t("perf.wl"),
                 t("perf.best_tp"),
                 t("perf.score"),
-              ].map((h) => (
+                "",
+              ].map((h, hi) => (
                 <th
-                  key={h}
+                  key={h || `sp${hi}`}
                   className="px-3 py-3 text-left font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted"
                 >
                   {h}
@@ -936,7 +951,8 @@ const TopPairsTable = ({ pairs, t }) => {
               return (
                 <tr
                   key={i}
-                  className="border-b border-ink/[0.03] hover:bg-ink/[0.02] transition-colors"
+                  onClick={() => onPick?.(p.pair)}
+                  className="group cursor-pointer border-b border-ink/[0.03] transition-colors hover:bg-ink/[0.02]"
                 >
                   <td className="py-2.5 px-3 font-mono text-[11px] text-text-muted/70 tabular-nums">
                     {String(i + 1).padStart(2, "0")}
@@ -983,6 +999,9 @@ const TopPairsTable = ({ pairs, t }) => {
                       {p.performance_score.toFixed(0)}
                     </span>
                   </td>
+                  <td className="py-2.5 pl-1 pr-3 text-right">
+                    <RowOpen />
+                  </td>
                 </tr>
               );
             })}
@@ -1024,6 +1043,25 @@ const TopPairsTable = ({ pairs, t }) => {
 /* ──────────────────────────────────────────────────────────────
  FULL SIGNAL TABLE — Flowscan pattern (consistent with SignalsTable)
  ────────────────────────────────────────────────────────────── */
+
+/** The chevron that says a row opens.
+ *
+ *  Both tables were already clickable and neither said so — the only cue was a
+ *  hover tint, which does not exist on a phone at all. An affordance nobody can
+ *  see is a feature nobody uses. Muted until the row is hovered so it marks the
+ *  column without competing with the data in it. */
+function RowOpen() {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex text-text-muted/35 transition-colors group-hover:text-accent"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    </span>
+  );
+}
 
 const FullSignalTable = ({ signals, loading, onSelect, t }) => {
   const formatPrice = (p) => {
@@ -1120,9 +1158,10 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                 t("perf.status"),
                 t("perf.mcap"),
                 t("perf.date"),
-              ].map((h) => (
+                "",
+              ].map((h, hi) => (
                 <th
-                  key={h}
+                  key={h || `sp${hi}`}
                   className="px-3 py-3 text-left font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted"
                 >
                   {h}
@@ -1196,6 +1235,9 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   </td>
                   <td className="py-2.5 px-3 font-mono text-[10px] uppercase tracking-wider text-text-muted/70 tabular-nums">
                     {formatDate(s.created_at)}
+                  </td>
+                  <td className="py-2.5 pl-1 pr-3 text-right">
+                    <RowOpen />
                   </td>
                 </tr>
               );
