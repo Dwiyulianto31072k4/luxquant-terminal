@@ -20,7 +20,16 @@ import { PageHeader } from "./ui/PageHeader";
 import RiskRSection from "./performance/RiskRSection";
 import WrVsBtcChart from "./performance/WrVsBtcChart";
 import { InfoTip, KPI_INFO, SECTION_INFO } from "./performance/MetricInfo";
-import { BarRow, HeroFigure, Panel, PanelHead, Reveal, Rule, Stat } from "./performance/lp";
+import {
+  BarRow,
+  HeroFigure,
+  Panel,
+  PanelHead,
+  Reveal,
+  Rule,
+  SectionHead,
+  Stat,
+} from "./performance/lp";
 
 const API_BASE = "/api/v1";
 
@@ -328,19 +337,21 @@ const AnalyzePage = () => {
         </div>
       </div>
 
-      {/* ── RISK LEVEL ANALYSIS ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised p-5 sm:p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <IconRisk />
-          <div>
-            <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
+      {/* ── RISK LEVEL ANALYSIS ──
+ Open surface, not a bordered box. The three risk cards inside already carry
+ their own edges; wrapping them in a fourth was the nested-box shape lp.jsx
+ warns about, and it flattened the section title to 15px in the process. ── */}
+      <Reveal>
+        <SectionHead
+          eyebrow="By risk level"
+          title={
+            <>
               {t("perf.risk_analysis")} <InfoTip info={SECTION_INFO.risk_level} />
-            </h3>
-            <p className="mt-1 text-[12px] leading-snug text-text-muted">
-              {t("perf.risk_desc")}
-            </p>
-          </div>
-        </div>
+            </>
+          }
+          lede={t("perf.risk_desc")}
+          className="mb-6"
+        />
 
         {!data.risk_distribution || data.risk_distribution.length === 0 ? (
           <div className="text-center py-8 font-mono text-[11px] uppercase tracking-wider text-text-muted">
@@ -492,53 +503,48 @@ const AnalyzePage = () => {
             })()}
           </>
         )}
-      </div>
+      </Reveal>
 
+      <Rule />
 
       {/* ── TOP PERFORMING PAIRS ── */}
       {data.pair_metrics && data.pair_metrics.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised">
-          <div className="p-5 pb-0">
-            <div className="flex items-center gap-2">
-              <IconPairs />
-              <div>
-                <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
-                  {t("perf.top_pairs")} <InfoTip info={SECTION_INFO.top_pairs} />
-                </h3>
-                <p className="mt-1 text-[12px] leading-snug text-text-muted">
-                  {t("perf.top_pairs_desc")}
-                </p>
-              </div>
-            </div>
+        <Reveal>
+          <SectionHead
+            eyebrow="Ranked"
+            title={
+              <>
+                {t("perf.top_pairs")} <InfoTip info={SECTION_INFO.top_pairs} />
+              </>
+            }
+            lede={t("perf.top_pairs_desc")}
+            className="mb-6"
+          />
+          <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
+            <TopPairsTable pairs={data.pair_metrics} t={t} />
           </div>
-          <TopPairsTable pairs={data.pair_metrics} t={t} />
-        </div>
+        </Reveal>
       )}
 
       {/* ── FULL SIGNAL HISTORY ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised">
-        <div className="p-5 pb-0">
-          <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <IconHistory />
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="flex items-center gap-1.5 text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
-                    {t("perf.sig_history")}
-                    <InfoTip info={SECTION_INFO.signal_history} />
-                  </h3>
-                  <span className="rounded-md border border-accent/30 bg-accent/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-accent-text">
-                    Proof of Calls
-                  </span>
-                </div>
-                {/* The fetch sets date_to = today − 7 days. Saying "every call
-                    on record" under a table that stops a week short was the
-                    kind of small untruth a proof section cannot afford. */}
-                <p className="mt-1 text-[12px] leading-snug text-text-muted tabular-nums">
-                  {sigTotal.toLocaleString()} {t("perf.total_signals")} · {t("perf.history_desc")}
-                  <span className="ml-1.5 text-text-muted/70">— {t("perf.history_vip")}</span>
-                </p>
-              </div>
+      <Reveal>
+        <div className="mb-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 max-w-2xl">
+              <p className="flex items-center gap-2 text-[11px] font-medium tracking-wide text-text-muted sm:text-[12px]">
+                Proof of Calls
+              </p>
+              <h2 className="mt-2 flex items-center gap-2 text-[22px] font-extrabold leading-[1.2] tracking-[-0.02em] text-text-primary sm:text-[26px] lg:text-[30px]">
+                {t("perf.sig_history")}
+                <InfoTip info={SECTION_INFO.signal_history} />
+              </h2>
+              {/* The fetch sets date_to = today − 7 days. Saying "every call
+                  on record" under a table that stops a week short was the
+                  kind of small untruth a proof section cannot afford. */}
+              <p className="mt-2.5 text-[13px] leading-[1.6] text-text-muted tabular-nums sm:text-[14.5px]">
+                {sigTotal.toLocaleString()} {t("perf.total_signals")} · {t("perf.history_desc")}
+                <span className="ml-1.5 text-text-muted/70">— {t("perf.history_vip")}</span>
+              </p>
             </div>
 
             {/* Two contrast bugs lived here: `hover:bg-accent` turned the
@@ -560,6 +566,7 @@ const AnalyzePage = () => {
           </div>
         </div>
 
+        <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
         {/* Filters */}
         <div className="px-5">
           <button
@@ -703,7 +710,8 @@ const AnalyzePage = () => {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </Reveal>
 
       <SignalModal
         signal={selectedSignal}
