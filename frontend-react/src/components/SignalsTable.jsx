@@ -48,6 +48,10 @@ const SIGNAL_COLUMNS = [
   { key: "btc_corr", label: "BTC Corr" },
   { key: "verdict", label: "Verdict" },
   { key: "status", label: "Status" },
+  // What changed last and how long ago. Sorting on it surfaces the calls that
+  // just moved, which is the point: momentum is easier to read from a fresh
+  // TP2 than from the board's ordering by call time.
+  { key: "last_update", label: "Last Update" },
   { key: "created_at", label: "Called Time" },
 ];
 
@@ -1961,6 +1965,9 @@ const SignalsTable = ({
                   {effectiveCols.status && (
                     <SortableHeader field="status" label="Status" align="center" />
                   )}
+                  {effectiveCols.last_update && (
+                    <SortableHeader field="last_update" label="Updated" align="right" />
+                  )}
                   {effectiveCols.created_at && (
                     <SortableHeader field="created_at" label="Called" align="right" />
                   )}
@@ -2509,6 +2516,21 @@ const SignalsTable = ({
                             >
                               {getStatusBadge(signal.status)}
                             </span>
+                          </td>
+                        )}
+
+                        {effectiveCols.last_update && (
+                          <td className="text-right">
+                            {signal.last_update_at ? (
+                              <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+                                {getUpdateTypeBadge(signal.last_update_type)}
+                                <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                                  {formatTimeAgo(signal.last_update_at)}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="font-mono text-[11px] text-text-muted/40">—</span>
+                            )}
                           </td>
                         )}
 
