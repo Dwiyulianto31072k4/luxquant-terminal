@@ -285,7 +285,12 @@ const resources = {
         score: "SCORE",
         sig_history: "Signal History",
         total_signals: "total signals",
-        history_desc: "every call on record",
+        // The table sets date_to = today − 7 days, so this is NOT "every call
+        // on record": the last week is the subscriber window and is absent.
+        // Claiming completeness under a table that stops short is the one
+        // thing a section headed "Proof of Calls" cannot do.
+        history_desc: "everything older than 7 days",
+        history_vip: "the last 7 days are subscriber-only",
         view_latest: "Latest Signals",
         search_pair: "SEARCH PAIR",
         status: "STATUS",
@@ -742,7 +747,8 @@ const resources = {
         score: "得分",
         sig_history: "信号历史记录",
         total_signals: "总信号数",
-        history_desc: "每一次信号皆有记录",
+        history_desc: "7 天以前的全部记录",
+        history_vip: "最近 7 天为订阅用户专属",
         view_latest: "最新信号",
         search_pair: "搜索代币对",
         status: "状态",

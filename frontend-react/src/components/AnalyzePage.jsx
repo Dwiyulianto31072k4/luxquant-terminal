@@ -18,6 +18,7 @@ import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
 import { PageHeader } from "./ui/PageHeader";
 import RiskRSection from "./performance/RiskRSection";
+import { BarRow, Panel, PanelHead, Reveal } from "./performance/lp";
 import WrVsBtcChart from "./performance/WrVsBtcChart";
 import { InfoTip, KPI_INFO, SECTION_INFO } from "./performance/MetricInfo";
 
@@ -284,14 +285,14 @@ const AnalyzePage = () => {
 
       {/* ── OUTCOME & R:R ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <IconOutcome />
             <div>
-              <h3 className="text-text-primary text-sm font-normal tracking-tight">
+              <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
                 {t("perf.outcome_dist")} <InfoTip info={SECTION_INFO.outcome} />
               </h3>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5 tabular-nums">
+              <p className="mt-1 text-[12px] leading-snug text-text-muted tabular-nums">
                 {data.stats.closed_trades.toLocaleString()} {t("perf.closed_trades")}
               </p>
             </div>
@@ -299,14 +300,14 @@ const AnalyzePage = () => {
           <OutcomeDistribution data={data.stats} t={t} />
         </div>
 
-        <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <IconRR />
             <div>
-              <h3 className="text-text-primary text-sm font-normal tracking-tight">
+              <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
                 {t("perf.risk_reward")} <InfoTip info={SECTION_INFO.rr} />
               </h3>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+              <p className="mt-1 text-[12px] leading-snug text-text-muted">
                 {t("perf.rr_desc")} · Best{" "}
                 <span className="text-accent tabular-nums">{maxTpRR.rr.toFixed(2)}R</span>
               </p>
@@ -317,14 +318,14 @@ const AnalyzePage = () => {
       </div>
 
       {/* ── RISK LEVEL ANALYSIS ── */}
-      <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
+      <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised p-5 sm:p-6">
         <div className="flex items-center gap-2 mb-4">
           <IconRisk />
           <div>
-            <h3 className="text-text-primary text-sm font-normal tracking-tight">
+            <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
               {t("perf.risk_analysis")} <InfoTip info={SECTION_INFO.risk_level} />
             </h3>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+            <p className="mt-1 text-[12px] leading-snug text-text-muted">
               {t("perf.risk_desc")}
             </p>
           </div>
@@ -340,20 +341,20 @@ const AnalyzePage = () => {
               {data.risk_distribution.map((rd) => {
                 const colorMap = {
                   Low: {
-                    border: "border-profit/20",
-                    bg: "from-profit/[0.05] to-transparent",
+                    border: "border-profit/35",
+                    bg: "from-profit/[0.10] to-transparent",
                     text: "text-profit",
                     dot: "bg-profit",
                   },
                   Normal: {
-                    border: "border-ink/10",
-                    bg: "from-accent/[0.05] to-transparent",
+                    border: "border-accent/35",
+                    bg: "from-accent/[0.10] to-transparent",
                     text: "text-accent",
                     dot: "bg-accent",
                   },
                   High: {
-                    border: "border-loss/20",
-                    bg: "from-loss/[0.05] to-transparent",
+                    border: "border-loss/35",
+                    bg: "from-loss/[0.10] to-transparent",
                     text: "text-loss",
                     dot: "bg-loss",
                   },
@@ -367,13 +368,13 @@ const AnalyzePage = () => {
                 return (
                   <div
                     key={rd.risk_level}
-                    className={`rounded-sm p-4 bg-gradient-to-b ${c.bg} border ${c.border}`}
+                    className={`rounded-xl border p-5 bg-gradient-to-b ${c.bg} ${c.border}`}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
                         <span
-                          className={`font-mono text-[11px] uppercase tracking-wider ${c.text}`}
+                          className={`text-[13px] font-bold uppercase tracking-[0.1em] ${c.text}`}
                         >
                           {t(`perf.${safeRiskKey}`)}
                         </span>
@@ -384,15 +385,15 @@ const AnalyzePage = () => {
                     </div>
 
                     <p
-                      className={`text-3xl font-mono font-light tabular-nums leading-none ${c.text}`}
+                      className={`text-[34px] font-extrabold leading-none tracking-[-0.03em] tabular-nums ${c.text}`}
                     >
                       {rd.win_rate.toFixed(1)}%
                     </p>
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-1 mb-3">
+                    <p className="mb-4 mt-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                       {t("perf.win_rate")}
                     </p>
 
-                    <div className="h-1 rounded-sm overflow-hidden flex bg-ink/[0.04] mb-2">
+                    <div className="mb-3 flex h-2 overflow-hidden rounded-full bg-ink/[0.07]">
                       <div
                         className="h-full bg-profit/70 transition-all duration-700"
                         style={{ width: `${winPct}%` }}
@@ -441,7 +442,7 @@ const AnalyzePage = () => {
               if (totalSig === 0) return null;
               return (
                 <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-sm bg-surface-secondary border border-ink/[0.04]">
-                  <div className="w-full sm:w-64 h-1 rounded-sm overflow-hidden flex bg-ink/[0.04] flex-shrink-0">
+                  <div className="flex h-2 w-full flex-shrink-0 overflow-hidden rounded-full bg-ink/[0.07] sm:w-64">
                     {data.risk_distribution.map((rd, i) => (
                       <div
                         key={i}
@@ -484,14 +485,14 @@ const AnalyzePage = () => {
 
       {/* ── WIN RATE TREND BY RISK LEVEL ── */}
       {data.risk_trend && data.risk_trend.length > 0 && (
-        <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <IconRiskTrend />
             <div>
-              <h3 className="text-text-primary text-sm font-normal tracking-tight">
+              <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
                 {t("perf.wr_by_risk")}
               </h3>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+              <p className="mt-1 text-[12px] leading-snug text-text-muted">
                 {t("perf.wr_by_risk_desc")}
               </p>
             </div>
@@ -502,15 +503,15 @@ const AnalyzePage = () => {
 
       {/* ── TOP PERFORMING PAIRS ── */}
       {data.pair_metrics && data.pair_metrics.length > 0 && (
-        <div className="bg-surface-raised rounded-xl border border-ink/[0.07] relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised">
           <div className="p-5 pb-0">
             <div className="flex items-center gap-2">
               <IconPairs />
               <div>
-                <h3 className="text-text-primary text-sm font-normal tracking-tight">
+                <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
                   {t("perf.top_pairs")} <InfoTip info={SECTION_INFO.top_pairs} />
                 </h3>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+                <p className="mt-1 text-[12px] leading-snug text-text-muted">
                   {t("perf.top_pairs_desc")}
                 </p>
               </div>
@@ -521,34 +522,44 @@ const AnalyzePage = () => {
       )}
 
       {/* ── FULL SIGNAL HISTORY ── */}
-      <div className="bg-surface-raised rounded-xl border border-ink/[0.07] relative overflow-hidden">
+      <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised">
         <div className="p-5 pb-0">
           <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <IconHistory />
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="flex items-center gap-1.5 text-text-primary text-sm font-normal tracking-tight">
+                  <h3 className="flex items-center gap-1.5 text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
                     {t("perf.sig_history")}
                     <InfoTip info={SECTION_INFO.signal_history} />
                   </h3>
-                  <span className="px-2 py-0.5 rounded-sm bg-accent/12 border border-ink/12 text-accent-text font-mono text-[10px] uppercase tracking-wider">
+                  <span className="rounded-md border border-accent/30 bg-accent/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-accent-text">
                     Proof of Calls
                   </span>
                 </div>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-1 tabular-nums">
+                {/* The fetch sets date_to = today − 7 days. Saying "every call
+                    on record" under a table that stops a week short was the
+                    kind of small untruth a proof section cannot afford. */}
+                <p className="mt-1 text-[12px] leading-snug text-text-muted tabular-nums">
                   {sigTotal.toLocaleString()} {t("perf.total_signals")} · {t("perf.history_desc")}
+                  <span className="ml-1.5 text-text-muted/70">— {t("perf.history_vip")}</span>
                 </p>
               </div>
             </div>
 
+            {/* Two contrast bugs lived here: `hover:bg-accent` turned the
+                background solid gold while the label stayed `text-accent`, so
+                the text vanished on hover; and the PRO chip was gold-on-grey
+                (`bg-accent text-text-muted`) instead of the dark-on-gold this
+                fill requires. Solid gold from the start fixes both and gives
+                the one call-to-action on the page some presence. */}
             <a
               href="/signals"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-accent/12 border border-ink/12 text-accent font-mono text-[10px] uppercase tracking-wider hover:bg-accent transition-colors group"
+              className="group hidden items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-accent-fg shadow-sm transition-colors hover:bg-accent-light sm:inline-flex"
             >
               <IconBolt />
               {t("perf.view_latest")}
-              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-sm bg-accent text-text-muted border border-ink/10">
+              <span className="rounded border border-accent-fg/25 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.1em] text-accent-fg/80">
                 PRO
               </span>
             </a>
@@ -715,7 +726,7 @@ const AnalyzePage = () => {
 
 const FilterField = ({ label, children, className }) => (
   <div className={className}>
-    <label className="font-mono text-[10px] uppercase tracking-wider text-text-muted/80 mb-1.5 block">
+    <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
       {label}
     </label>
     {children}
@@ -778,76 +789,49 @@ const OutcomeDistribution = ({ data, _t }) => {
   const total = data.tp1_count + data.tp2_count + data.tp3_count + data.tp4_count + data.sl_count;
   if (total === 0)
     return (
-      <div className="h-40 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
+      <div className="flex h-40 items-center justify-center text-[13px] text-text-muted">
         No closed trades
       </div>
     );
 
-  // Gold opacity gradient for TPs, loss for SL
   const items = [
     { label: "TP1", count: data.tp1_count, color: "rgb(var(--accent) / 1)" },
     { label: "TP2", count: data.tp2_count, color: "rgb(var(--accent) / 0.85)" },
     { label: "TP3", count: data.tp3_count, color: "rgb(var(--accent) / 0.7)" },
     { label: "TP4", count: data.tp4_count, color: "rgb(var(--accent) / 0.55)" },
-    { label: "SL", count: data.sl_count, color: C.loss },
+    { label: "SL", count: data.sl_count, color: "rgb(var(--neg))" },
   ];
 
   return (
-    <div className="space-y-3">
-      {/* Stack bar */}
-      <div className="h-2 rounded-sm overflow-hidden flex bg-ink/[0.04] border border-ink/[0.04]">
+    <div>
+      {/* The summary bar earns real height — at 8px with a near-invisible track
+          it read as a hairline rather than a distribution. */}
+      <div className="mb-5 flex h-3 overflow-hidden rounded-full bg-ink/[0.07]">
         {items
           .filter((i) => i.count > 0)
-          .map((item, idx) => (
+          .map((item) => (
             <div
-              key={idx}
-              style={{
-                width: `${(item.count / total) * 100}%`,
-                backgroundColor: item.color,
-              }}
-              className="h-full transition-all duration-700 relative group"
-            >
-              {(item.count / total) * 100 > 10 && (
-                <span className="absolute inset-0 flex items-center justify-center font-mono text-[8px] text-text-primary/80 tabular-nums">
-                  {((item.count / total) * 100).toFixed(0)}%
-                </span>
-              )}
-            </div>
+              key={item.label}
+              style={{ width: `${(item.count / total) * 100}%`, backgroundColor: item.color }}
+              className="h-full transition-[width] duration-700"
+              title={`${item.label} ${((item.count / total) * 100).toFixed(1)}%`}
+            />
           ))}
       </div>
 
-      {/* Detail rows */}
-      <div className="space-y-2">
-        {items.map((item) => {
-          const pct = (item.count / total) * 100;
-          const isLoss = item.label === "SL";
-          return (
-            <div key={item.label} className="flex items-center gap-2.5">
-              <span
-                className={`font-mono text-[10px] uppercase tracking-wider w-7 ${
-                  isLoss ? "text-loss" : "text-accent"
-                }`}
-              >
-                {item.label}
-              </span>
-              <div className="flex-1 h-1 rounded-sm bg-ink/[0.04] overflow-hidden">
-                <div
-                  className="h-full transition-all duration-700"
-                  style={{
-                    width: `${Math.max(pct, 1)}%`,
-                    backgroundColor: item.color,
-                  }}
-                />
-              </div>
-              <div className="flex items-center gap-2 min-w-[80px] justify-end font-mono tabular-nums">
-                <span className="text-text-primary text-[11px]">{item.count.toLocaleString()}</span>
-                <span className="text-text-muted/70 text-[10px] w-[36px] text-right">
-                  {pct.toFixed(1)}%
-                </span>
-              </div>
-            </div>
-          );
-        })}
+      <div>
+        {items.map((item, i) => (
+          <BarRow
+            key={item.label}
+            label={item.label}
+            color={item.color}
+            pct={(item.count / total) * 100}
+            value={item.count.toLocaleString()}
+            right={`${((item.count / total) * 100).toFixed(1)}%`}
+            muted={item.label === "SL"}
+            last={i === items.length - 1}
+          />
+        ))}
       </div>
     </div>
   );
@@ -1104,7 +1088,7 @@ const TopPairsTable = ({ pairs, t }) => {
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-ink/[0.06]">
+            <tr className="border-b border-ink/[0.10]">
               {[
                 t("perf.rank"),
                 t("perf.pair"),
@@ -1116,7 +1100,7 @@ const TopPairsTable = ({ pairs, t }) => {
               ].map((h) => (
                 <th
                   key={h}
-                  className="py-2.5 px-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70"
+                  className="px-3 py-3 text-left font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted"
                 >
                   {h}
                 </th>
@@ -1157,7 +1141,7 @@ const TopPairsTable = ({ pairs, t }) => {
                   </td>
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 h-1 rounded-sm bg-ink/[0.04] overflow-hidden">
+                      <div className="h-2 w-16 overflow-hidden rounded-full bg-ink/[0.07]">
                         <div
                           className="h-full bg-profit/70 transition-all duration-500"
                           style={{ width: `${winPct}%` }}
@@ -1318,7 +1302,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-ink/[0.06]">
+            <tr className="border-b border-ink/[0.10]">
               {[
                 t("perf.pair"),
                 t("perf.entry"),
@@ -1331,7 +1315,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
               ].map((h) => (
                 <th
                   key={h}
-                  className="py-2.5 px-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70"
+                  className="px-3 py-3 text-left font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted"
                 >
                   {h}
                 </th>

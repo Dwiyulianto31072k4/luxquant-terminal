@@ -36,6 +36,11 @@ export default {
           dark: withAlpha("--accent-dark"),
           // Text/icon ON solid yellow fills — always dark (Binance CTA pattern)
           fg: withAlpha("--accent-fg"),
+          // Gold TEXT on a normal surface. The --accent-text variable has
+          // existed in index.css all along and 19 components already write
+          // `text-accent-text`, but Tailwind never had a class for it, so every
+          // one of them silently inherited its parent's colour instead.
+          text: withAlpha("--accent-text"),
         },
         // Alias for gold CTAs: text-accent-fg / bg-gold-primary
         red: {

@@ -32,6 +32,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { InfoTip, SECTION_INFO } from "./MetricInfo";
+import { GoldAreaDefs, HeroFigure, Reveal, SectionHead, Stat } from "./lp";
 
 const API_BASE = "/api/v1";
 
@@ -145,20 +146,23 @@ export default function RiskRSection() {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-5">
-      {/* header */}
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="flex items-center gap-1.5 text-sm font-normal tracking-tight text-text-primary">
-            Risk-Adjusted Performance
-            <InfoTip info={SECTION_INFO.r_section} />
-          </h3>
-          <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
-            every result in R · 1R = entry − stop
-          </p>
-        </div>
-        {/* population toggle */}
-        <div className="flex gap-1 rounded-sm border border-ink/[0.04] bg-surface-secondary p-1">
+    <section className="relative">
+      <Reveal>
+        <SectionHead
+          eyebrow="Every result in R · 1R = entry − stop"
+          title={
+            <span className="inline-flex items-center gap-2">
+              Risk-adjusted performance
+              <InfoTip info={SECTION_INFO.r_section} />
+            </span>
+          }
+          lede={
+            closedMode
+              ? "Realized only: calls that ran the whole ladder (TP4) or died at the stop. Every R here was actually bookable — nothing is marked at a level still in play."
+              : "Every call that reached a target or its stop. Calls still sitting between targets are marked at the best level reached so far — an honest running score, not yet all realized."
+          }
+          right={
+            <div className="flex gap-1 rounded-lg border border-ink/[0.07] bg-surface-secondary/70 p-1">
           {[
             { id: "hit", label: "Every hit" },
             { id: "closed", label: "Realized only" },
@@ -166,7 +170,7 @@ export default function RiskRSection() {
             <button
               key={p.id}
               onClick={() => setPopulation(p.id)}
-              className={`rounded-sm px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+              className={`rounded-md px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors ${
                 population === p.id
                   ? "bg-accent font-semibold text-accent-fg"
                   : "text-text-muted hover:text-text-primary"
@@ -175,8 +179,10 @@ export default function RiskRSection() {
               {p.label}
             </button>
           ))}
-        </div>
-      </div>
+            </div>
+          }
+        />
+      </Reveal>
 
       {!r || loading ? (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
@@ -186,83 +192,80 @@ export default function RiskRSection() {
         </div>
       ) : (
         <>
-          <p className="mb-3 text-[11px] leading-relaxed text-text-muted">
-            {closedMode
-              ? "Realized only: calls that ran the whole ladder (TP4) or died at the stop. Every R here was actually bookable — nothing is marked at a level still in play."
-              : "Every call that reached a target or its stop. Calls still sitting between targets are marked at the best level reached so far — an honest running score, not yet all realized."}
-          </p>
+          {/* One number leads. Expectancy is the figure that decides whether the
+              edge is real, so it gets the headline and everything else steps
+              back — eight tiles of equal weight said nothing was important. */}
+          <Reveal delay={60}>
+            <div className="mt-9 grid gap-8 border-b border-ink/[0.07] pb-9 lg:grid-cols-[minmax(0,20rem)_1fr] lg:gap-14">
+              <HeroFigure
+                label="Expectancy"
+                value={fmtR(r.expectancy_r)}
+                tone={r.expectancy_r > 0 ? "profit" : "loss"}
+                sub="Average R returned per call. Positive means the edge survives its own losses — no position sizing can rescue a negative one."
+              />
+              <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-3">
+                <Stat
+                  label={closedMode ? "TP4 completion" : "Win rate"}
+                  value={r.win_rate_pct != null ? `${r.win_rate_pct.toFixed(1)}%` : "—"}
+                  tone="gold"
+                  sub={
+                    closedMode
+                      ? "tp4 ÷ (tp4 + sl) — not a win rate; TP1–TP3 wins are excluded"
+                      : `needs only ${r.breakeven_win_rate_pct?.toFixed(1)}% to break even`
+                  }
+                />
+                <Stat
+                  label="Profit factor"
+                  value={r.profit_factor != null ? r.profit_factor.toFixed(2) : "—"}
+                  tone="profit"
+                  sub={`${fmtNum(Math.round(r.gross_win_r))}R won vs ${fmtNum(Math.round(r.gross_loss_r))}R lost`}
+                />
+                <Stat
+                  label="Max drawdown"
+                  value={fmtR(r.max_drawdown_r, 0)}
+                  tone="loss"
+                  sub="deepest peak-to-trough — size so you can sit through it"
+                />
+                <Stat
+                  label="Sharpe (monthly)"
+                  value={r.monthly_sharpe_annualised != null ? r.monthly_sharpe_annualised.toFixed(2) : "—"}
+                  sub="consistency, not size"
+                />
+                <Stat
+                  label="SQN"
+                  value={r.sqn != null ? r.sqn.toFixed(0) : "—"}
+                  sub="inflated by big samples — read as 'stable'"
+                />
+                <Stat
+                  label="Avg win / avg loss"
+                  value={`${fmtR(r.avg_win_r)} / ${fmtR(r.avg_loss_r)}`}
+                  animate={false}
+                  sub="losses capped at −1R; only the win side varies"
+                />
+                <Stat
+                  label="Total R"
+                  value={fmtR(r.total_r, 0)}
+                  tone="gold"
+                  sub={`${fmtNum(r.trades)} calls since ${r.window?.first_call?.slice(0, 10) || "—"}`}
+                />
+              </div>
+            </div>
+          </Reveal>
 
-          {/* verdict row */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <Tile
-              big
-              label="Expectancy"
-              value={fmtR(r.expectancy_r)}
-              tone={r.expectancy_r > 0 ? "profit" : "loss"}
-              sub="avg R returned per call — the number that decides if the edge is real"
-            />
-            <Tile
-              big
-              label={closedMode ? "TP4 completion" : "Win rate"}
-              value={r.win_rate_pct != null ? `${r.win_rate_pct.toFixed(1)}%` : "—"}
-              tone="gold"
-              sub={
-                closedMode
-                  ? "tp4 ÷ (tp4 + sl) — not a win rate; TP1–TP3 wins are excluded here"
-                  : `needs only ${r.breakeven_win_rate_pct?.toFixed(1)}% to break even — the gap is the edge`
-              }
-            />
-            <Tile
-              big
-              label="Profit factor"
-              value={r.profit_factor != null ? r.profit_factor.toFixed(2) : "—"}
-              tone="profit"
-              sub={`${fmtNum(Math.round(r.gross_win_r))}R won vs ${fmtNum(Math.round(r.gross_loss_r))}R lost`}
-            />
-            <Tile
-              big
-              label="Max drawdown"
-              value={fmtR(r.max_drawdown_r, 0)}
-              tone="loss"
-              sub="deepest peak-to-trough of the R curve — size positions so you can sit through this"
-            />
-          </div>
-
-          {/* ratio row */}
-          <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <Tile
-              label="Sharpe (monthly)"
-              value={r.monthly_sharpe_annualised != null ? r.monthly_sharpe_annualised.toFixed(2) : "—"}
-              sub="mean ÷ stdev of monthly R, ×√12 — consistency, not size"
-            />
-            <Tile
-              label="SQN"
-              value={r.sqn != null ? r.sqn.toFixed(0) : "—"}
-              sub="Van Tharp system-quality number — inflated by big samples, read as 'stable'"
-            />
-            <Tile
-              label="Avg win / avg loss"
-              value={`${fmtR(r.avg_win_r)} / ${fmtR(r.avg_loss_r)}`}
-              sub="losses are capped at −1R by the stop; only the win side varies"
-            />
-            <Tile
-              label="Total R"
-              value={fmtR(r.total_r, 0)}
-              sub={`${fmtNum(r.trades)} calls since ${r.window?.first_call?.slice(0, 10) || "—"}`}
-            />
-          </div>
-
-          {/* cumulative R curve */}
-          <div className="mt-4 rounded-xl border border-ink/[0.07] bg-surface-secondary/40 p-4">
-            <div className="mb-2 flex items-baseline justify-between">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+          {/* The curve is the argument — give it room and take the box off it.
+              Boxed at h-44 it read as a widget; open and taller it reads as
+              evidence, which is how the landing presents the same shape. */}
+          <Reveal delay={110}>
+          <div className="mt-10">
+            <div className="mb-4 flex items-baseline justify-between">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                 Cumulative R
               </p>
               <p className="font-mono text-[10px] text-text-muted">
                 {monthly.length} months
               </p>
             </div>
-            <div className="h-44">
+            <div className="h-56 sm:h-64">
               <ResponsiveContainer>
                 <AreaChart data={monthly} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
                   <defs>
@@ -297,14 +300,17 @@ export default function RiskRSection() {
               </ResponsiveContainer>
             </div>
           </div>
+          </Reveal>
 
-          {/* monthly R + outcome contribution, side by side */}
-          <div className="mt-2.5 grid gap-2.5 lg:grid-cols-2">
-            <div className="rounded-xl border border-ink/[0.07] bg-surface-secondary/40 p-4">
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+          {/* monthly R + outcome contribution — separated by space and one
+              hairline instead of a border around each. */}
+          <Reveal delay={140}>
+          <div className="mt-10 grid gap-10 border-t border-ink/[0.07] pt-9 lg:grid-cols-2 lg:gap-14">
+            <div>
+              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                 R per month
               </p>
-              <div className="h-36">
+              <div className="h-44 sm:h-48">
                 <ResponsiveContainer>
                   <BarChart data={monthly} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
                     <XAxis
@@ -336,8 +342,8 @@ export default function RiskRSection() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-ink/[0.07] bg-surface-secondary/40 p-4">
-              <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            <div>
+              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                 Where the R comes from
               </p>
               <div className="space-y-2">
@@ -376,13 +382,16 @@ export default function RiskRSection() {
               </p>
             </div>
           </div>
+          </Reveal>
 
-          {/* methodology */}
-          <div className="mt-2.5 rounded-xl border border-ink/[0.06] bg-surface-secondary/30 p-4">
-            <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+          {/* Methodology keeps its quiet surface — it is reference, not
+              evidence, and the one place a soft fill still earns its keep. */}
+          <Reveal delay={170}>
+          <div className="mt-10 rounded-2xl border border-ink/[0.06] bg-surface-secondary/30 p-5 sm:p-6">
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
               How to read these
             </p>
-            <div className="grid gap-x-6 gap-y-1.5 text-[11px] leading-relaxed text-text-muted sm:grid-cols-2">
+            <div className="grid gap-x-8 gap-y-2.5 text-[12px] leading-[1.6] text-text-muted sm:grid-cols-2">
               <p>
                 <span className="text-text-primary/85">R</span> — the risk each call sets for
                 itself: 1R = entry − stop. +2R means the call paid twice what it risked.
@@ -413,8 +422,9 @@ export default function RiskRSection() {
               </p>
             </div>
           </div>
+          </Reveal>
         </>
       )}
-    </div>
+    </section>
   );
 }

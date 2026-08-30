@@ -264,7 +264,11 @@ export const enPerf = {
   // Signal History
   sig_history: "Signal History",
   total_signals: "total signals",
-  history_desc: "every call on record",
+  // NOTE: this whole `perf` block is DEAD — i18n.js carries its own copy and
+  // that is the one that wins at runtime. Editing here changes nothing; it
+  // cost one build to discover. Keep the strings in step until it is removed.
+  history_desc: "everything older than 7 days",
+  history_vip: "The last 7 days are subscriber-only",
   view_latest: "Latest Signals",
   search_pair: "SEARCH PAIR",
   status: "STATUS",
