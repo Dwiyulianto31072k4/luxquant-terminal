@@ -381,7 +381,7 @@ export const SectionBand = ({ title, desc, badge, guide }) => {
 // Metric tile — large number, tiny label, optional sub (Aero Economics density)
 // Binance desk KPI: monochrome numbers by default.
 // `tone` only for semantic PnL (text-positive / text-negative). `accent` bar dropped (decorative).
-export const Kpi = ({ label, value, desc, tone, sub, _accent, compact }) => {
+export const Kpi = ({ label, value, desc, tone, sub, subTone, _accent, compact, onClick, badge }) => {
   // Strip leftover decorative multi-color tones (cyan/gold/purple/orange)
   const safeTone =
     tone &&
@@ -391,14 +391,21 @@ export const Kpi = ({ label, value, desc, tone, sub, _accent, compact }) => {
       tone.includes("loss"))
       ? tone
       : "text-text-primary";
+  // A tile that filters the page when clicked has to say so: real button
+  // semantics, a pointer, and a focus ring, or it is a trap for anyone not
+  // using a mouse.
+  const Tag = onClick ? "button" : "div";
   return (
-    <div
-      className={`group relative min-w-0 rounded-xl border border-ink/[0.08] bg-surface-raised transition-colors hover:border-ink/[0.12] ${
+    <Tag
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={`group relative min-w-0 rounded-xl border border-ink/[0.08] bg-surface-raised text-left transition-colors hover:border-ink/[0.12] ${
         compact ? "px-3 py-2.5" : "px-3.5 py-3"
-      }`}
+      } ${onClick ? "w-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50" : ""}`}
     >
-      <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-        {label}
+      <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+        <span className="truncate">{label}</span>
+        {badge}
       </div>
       <div
         className={`font-mono tabular-nums mt-1.5 leading-none truncate font-semibold ${compact ? "text-[22px]" : "text-[26px]"} ${safeTone}`}
@@ -406,16 +413,34 @@ export const Kpi = ({ label, value, desc, tone, sub, _accent, compact }) => {
         {value}
       </div>
       {sub != null && sub !== "" && (
-        <div className="font-mono text-[10.5px] tabular-nums mt-1 text-text-muted truncate">
+        <div
+          className={`font-mono text-[10.5px] tabular-nums mt-1 truncate ${subTone || "text-text-muted"}`}
+        >
           {sub}
         </div>
       )}
       {desc && !compact && (
         <div className="text-[10px] text-text-muted mt-1.5 leading-snug line-clamp-1">{desc}</div>
       )}
-    </div>
+    </Tag>
   );
 };
+
+/** Reliability from sample size alone.
+ *
+ *  The real rule (backend _reliability_tier) needs the confidence interval as
+ *  well: reliable means n >= 30 AND a CI half-width within 5pp. A caller that
+ *  only knows n cannot honestly reach "reliable", so this never returns it —
+ *  promising more than the data supports is the exact failure the badge exists
+ *  to prevent. Returns null above the threshold so nothing is drawn when there
+ *  is nothing to warn about. */
+export function reliabilityFromSample(n, floor = 10) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return null;
+  if (v < floor) return "unreliable";
+  if (v < 30) return "moderate";
+  return null;
+}
 
 // Active chip = solid yellow + dark ink (Binance filter pattern)
 export const Chip = ({ active, onClick, children, size = "sm", title }) => (

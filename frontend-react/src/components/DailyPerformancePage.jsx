@@ -23,6 +23,11 @@ import CoinLogo from "./CoinLogo";
 import { PageHeader } from "./ui/PageHeader";
 import { useDialog } from "../hooks/useDialog";
 import { peakLagLabel, daysToPeak } from "../utils/peakTiming";
+import {
+  Kpi,
+  ReliabilityBadge,
+  reliabilityFromSample,
+} from "./terminal/vizShared";
 
 // strip the quote-asset suffix for a clean coin symbol
 const coinSym = (p) => (p || "").replace(/USDT$|USDC$|USD$/i, "");
@@ -416,38 +421,37 @@ const CoverageBanner = ({ coverage, total, _dailyRegime, hasFilters }) => {
 
 // ─── Small sample badge (v7) ─────────────────────────────────────
 
+// Was a hand-rolled binary badge ("small sample" below 15) one folder away
+// from ReliabilityBadge, which says the same thing in the vocabulary the rest
+// of the product already uses. Same call signature so nothing downstream moves.
 const SmallSampleBadge = ({ n, threshold = 15 }) => {
-  if (n >= threshold) return null;
+  // The caller's threshold decides WHETHER to warn — it knows what counts as
+  // thin for its own chart. reliabilityFromSample only decides HOW LOUD, so a
+  // shared vocabulary does not quietly add warnings nobody asked for.
+  if (!Number.isFinite(Number(n)) || Number(n) >= threshold) return null;
+  const tier = reliabilityFromSample(n) || "moderate";
   return (
-    <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border border-accent/25 bg-accent/[0.05] text-[9px] font-mono uppercase tracking-wider text-accent/80"
-      title={`Only ${n} data points — patterns may not generalize`}
-    >
-      ⚠ small sample
+    <span title={`Only ${n} data points — patterns may not generalize`}>
+      <ReliabilityBadge tier={tier} compact />
     </span>
   );
 };
 
 // ─── KPI Card ────────────────────────────────────────────────────
 
-const KpiCard = ({ label, value, sub, subColor, onClick, valueColor }) => (
-  <div
-    className={`relative rounded-xl bg-surface-raised border border-ink/[0.07] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-ink/12" : ""}`}
+// Thin wrapper over the Terminal's Kpi so Daily and the desk render the same
+// tile. Kept as a local name because five call sites use it, and kept the
+// subColor/valueColor props because Daily colours some values by outcome.
+const KpiCard = ({ label, value, sub, subColor, onClick, valueColor, badge }) => (
+  <Kpi
+    label={label}
+    value={value}
+    sub={sub}
+    tone={valueColor}
+    subTone={subColor}
     onClick={onClick}
-  >
-    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/10 to-transparent" />
-    <Label>{label}</Label>
-    <div
-      className={`text-xl lg:text-2xl font-mono tabular-nums mt-1.5 truncate ${valueColor || "text-text-primary/95"}`}
-    >
-      {value}
-    </div>
-    <div
-      className={`text-[10px] tracking-[0.15em] font-mono uppercase mt-1 ${subColor || "text-text-primary/40"}`}
-    >
-      {sub}
-    </div>
-  </div>
+    badge={badge}
+  />
 );
 
 // ─── Hero Section ────────────────────────────────────────────────
