@@ -814,7 +814,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-5xl max-h-[min(var(--lq-modal-maxh),100%)] h-[min(var(--lq-modal-maxh),100%)] sm:h-[88vh] bg-surface-raised border-t border-ink/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
+      <div className="relative w-full max-w-5xl max-h-[min(var(--lq-modal-maxh),100%)] h-[min(var(--lq-modal-maxh),100%)] sm:h-auto sm:min-h-[440px] sm:max-h-[88vh] bg-surface-raised border-t border-ink/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
@@ -952,7 +952,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
             <>
               {/* ② left: toolbar + list */}
               <div
-                className={`w-full md:w-[300px] md:border-r border-ink/[0.06] flex-col min-h-0 ${
+                className={`w-full md:w-[300px] md:border-r border-ink/[0.06] md:bg-ink/[0.012] flex-col min-h-0 ${
                   mobileDetail ? "hidden md:flex" : "flex"
                 }`}
               >
@@ -990,6 +990,16 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                       />
                     ))
                   )}
+                  {/* The detail panel on the right is much taller than five rows,
+                      so it sets the modal's height and the list column runs out
+                      long before the bottom. Without a marker the divider just
+                      keeps going and the empty stretch reads as something that
+                      failed to load. This says the list ended on purpose. */}
+                  {view.length > 0 ? (
+                    <div className="px-3 py-4 text-center font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/25">
+                      {view.length} of {stats.total} shown
+                    </div>
+                  ) : null}
                 </div>
                 <div className="px-3 py-2 border-t border-ink/[0.05] text-[9px] font-mono text-text-primary/25 shrink-0 hidden md:block">
                   ↑↓ navigate · Enter opens full breakdown
