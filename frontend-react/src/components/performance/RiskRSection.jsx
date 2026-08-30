@@ -384,44 +384,58 @@ export default function RiskRSection() {
           </div>
           </Reveal>
 
-          {/* Methodology keeps its quiet surface — it is reference, not
-              evidence, and the one place a soft fill still earns its keep. */}
+          {/* Six definitions used to run as prose paragraphs in a two-column
+              grid, the term only a shade brighter than the sentence it opened.
+              With nothing to jump between, the eye read it as a grey wall and
+              skipped it — and a glossary nobody reads is the same as no
+              glossary. It also flowed down-then-across while the eye reads
+              across, so the pairing was ambiguous.
+
+              Rebuilt as a real definition list: the term in its own register
+              above its definition, so every entry has a landing point. The box
+              is gone — hierarchy comes from type and space, and reference text
+              does not need a container to say it is reference. */}
           <Reveal delay={170}>
-          <div className="mt-10 rounded-2xl border border-ink/[0.06] bg-surface-secondary/30 p-5 sm:p-6">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
-              How to read these
-            </p>
-            <div className="grid gap-x-8 gap-y-2.5 text-[12px] leading-[1.6] text-text-muted sm:grid-cols-2">
-              <p>
-                <span className="text-text-primary/85">R</span> — the risk each call sets for
-                itself: 1R = entry − stop. +2R means the call paid twice what it risked.
+            <div className="mt-12 border-t border-ink/[0.07] pt-7">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">
+                How to read these
               </p>
-              <p>
-                <span className="text-text-primary/85">Expectancy</span> — average R per call.
-                Positive means the edge survives its losses; no position sizing can rescue a
-                negative one.
-              </p>
-              <p>
-                <span className="text-text-primary/85">Break-even win rate</span> — what this
-                reward:risk shape demands just to stay flat. The distance between it and the
-                actual rate is the whole edge.
-              </p>
-              <p>
-                <span className="text-text-primary/85">Profit factor</span> — gross R won per 1R
-                lost. Above 2 is strong; below 1 loses money.
-              </p>
-              <p>
-                <span className="text-text-primary/85">Max drawdown</span> — worst run, in
-                multiples of your per-call risk. Computed trade-by-trade in sequence; with many
-                calls open at once the felt drawdown can run deeper.
-              </p>
-              <p>
-                <span className="text-text-primary/85">Sharpe / SQN</span> — result ÷ volatility.
-                High here partly reflects the huge sample and stops capping losses at −1R, so
-                read them as "consistent", not as hedge-fund comparables.
-              </p>
+              <dl className="mt-6 grid gap-x-14 gap-y-7 sm:grid-cols-2">
+                {[
+                  {
+                    t: "R",
+                    d: "The risk each call sets for itself: 1R = entry − stop. +2R means the call paid twice what it risked.",
+                  },
+                  {
+                    t: "Expectancy",
+                    d: "Average R per call. Positive means the edge survives its losses; no position sizing can rescue a negative one.",
+                  },
+                  {
+                    t: "Break-even win rate",
+                    d: "What this reward-to-risk shape demands just to stay flat. The distance between it and the actual rate is the whole edge.",
+                  },
+                  {
+                    t: "Profit factor",
+                    d: "Gross R won per 1R lost. Above 2 is strong; below 1 loses money.",
+                  },
+                  {
+                    t: "Max drawdown",
+                    d: "Worst run, in multiples of your per-call risk. Computed trade-by-trade in sequence; with many calls open at once the felt drawdown can run deeper.",
+                  },
+                  {
+                    t: "Sharpe / SQN",
+                    d: "Result ÷ volatility. High here partly reflects the huge sample and stops capping losses at −1R, so read them as “consistent”, not as hedge-fund comparables.",
+                  },
+                ].map((row) => (
+                  <div key={row.t} className="min-w-0">
+                    <dt className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-text-primary/80">
+                      {row.t}
+                    </dt>
+                    <dd className="mt-2 text-[13px] leading-[1.65] text-text-muted">{row.d}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
-          </div>
           </Reveal>
         </>
       )}
