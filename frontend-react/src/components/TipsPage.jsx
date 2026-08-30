@@ -184,7 +184,7 @@ function LearningHome() {
   const continueLearning = () =>
     nextLesson ? navigate(`/tips/lesson/${nextLesson.slug}`) : nextCourse && openCourse(nextCourse);
   return (
-    <div className="learning-shell space-y-8 pb-8">
+    <div className="learning-shell space-y-8 pb-8" data-learning-build="studio-v1">
       <section className="learning-hero grid gap-7 px-5 py-7 sm:px-8 sm:py-9 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-10 lg:py-10">
         <div className="relative z-[1] max-w-3xl">
           <p className="learning-eyebrow">LuxQuant Learning</p>
