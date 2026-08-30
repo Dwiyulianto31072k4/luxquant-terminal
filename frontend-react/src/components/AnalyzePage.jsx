@@ -20,6 +20,7 @@ import { PageHeader } from "./ui/PageHeader";
 import RiskRSection from "./performance/RiskRSection";
 import WrVsBtcChart from "./performance/WrVsBtcChart";
 import { InfoTip, KPI_INFO, SECTION_INFO } from "./performance/MetricInfo";
+import SignalDrillDrawer from "./edgelab/SignalDrillDrawer";
 import {
   BarRow,
   HeroFigure,
@@ -83,6 +84,9 @@ const AnalyzePage = () => {
   const [sigSort, setSigSort] = useState("day_outcome");
   const [sigOrder, setSigOrder] = useState("desc");
   const [selectedSignal, setSelectedSignal] = useState(null);
+  // Reuses the drill modal Edge Lab already ships — same list, same filters,
+  // same way into a signal. A second modal doing the same job would drift.
+  const [drillCoin, setDrillCoin] = useState(null);
   const [showSigFilters, setShowSigFilters] = useState(false);
 
   const fetchAnalyzeData = useCallback(async () => {
@@ -204,7 +208,12 @@ const AnalyzePage = () => {
   })();
 
   return (
-    <div className="space-y-5">
+    // A uniform 20px between every section is what makes a long page read as
+    // cramped: the header, a chart and a 20-row table all got the same breath,
+    // so nothing announced itself as a new subject. lp.jsx states the rule —
+    // generous, growing gaps rather than one uniform margin — and the section
+    // that already adopted it uses mt-10 to mt-12 internally.
+    <div className="space-y-12 lg:space-y-16">
       {/* ── PAGE HEADER — eyebrow + title + tagline, with integrated time range ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
@@ -528,17 +537,12 @@ const AnalyzePage = () => {
             <TopPairsTable
               pairs={data.pair_metrics}
               t={t}
-              onPick={(pairName) => {
-                // The row already knew which coin it was about; the table just
-                // had no way to say so. Picking one asks the history below the
-                // obvious next question — "show me those calls" — instead of
-                // making the reader retype the ticker into the search box.
-                setSigSearch((pairName || "").replace("USDT", ""));
-                setSigPage(1);
-                document
-                  .getElementById("signal-history")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
+              onPick={(pairName) =>
+                // Opens the coin's own calls rather than filtering the table
+                // below it: the reader asked about one coin, and scrolling them
+                // to a filtered list costs them the ranking they were reading.
+                setDrillCoin({ dimension: "coin", key: pairName })
+              }
             />
           </div>
         </Reveal>
@@ -578,8 +582,12 @@ const AnalyzePage = () => {
             >
               <IconBolt />
               {t("perf.view_latest")}
-              <span className="rounded border border-accent-fg/25 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.1em] text-accent-fg/80">
-                PRO
+              {/* "PRO" is not a tier this product sells. The page's own subtitle
+                  two lines up says subscriber-only, and every other locked
+                  surface says Subscriber — a button inventing a third name for
+                  the same thing makes the reader wonder what they are buying. */}
+              <span className="rounded border border-accent-fg/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-accent-fg/80">
+                Subscriber
               </span>
             </a>
           </div>
@@ -731,6 +739,15 @@ const AnalyzePage = () => {
         )}
         </div>
       </Reveal>
+
+      <SignalDrillDrawer
+        bucket={drillCoin}
+        days={90}
+        sector="all"
+        hidden={!!selectedSignal}
+        onClose={() => setDrillCoin(null)}
+        onOpenSignal={(_id, signalObj) => setSelectedSignal(signalObj)}
+      />
 
       <SignalModal
         signal={selectedSignal}
@@ -954,16 +971,16 @@ const TopPairsTable = ({ pairs, t, onPick }) => {
                   onClick={() => onPick?.(p.pair)}
                   className="group cursor-pointer border-b border-ink/[0.03] transition-colors hover:bg-ink/[0.02]"
                 >
-                  <td className="py-2.5 px-3 font-mono text-[11px] text-text-muted/70 tabular-nums">
+                  <td className="py-3.5 px-3 font-mono text-[11px] text-text-muted/70 tabular-nums">
                     {String(i + 1).padStart(2, "0")}
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={p.pair} size={18} />
                       <span className="text-text-primary text-[12px]">{pair}</span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-16 overflow-hidden rounded-full bg-ink/[0.07]">
                         <div
@@ -976,15 +993,15 @@ const TopPairsTable = ({ pairs, t, onPick }) => {
                       </span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-[12px] text-text-primary tabular-nums">
+                  <td className="py-3.5 px-3 font-mono text-[12px] text-text-primary tabular-nums">
                     {p.closed_trades}
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-[11px] tabular-nums">
+                  <td className="py-3.5 px-3 font-mono text-[11px] tabular-nums">
                     <span className="text-profit/80">{winners}</span>
                     <span className="text-text-muted/40 mx-1">/</span>
                     <span className="text-loss/80">{p.sl_count}</span>
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3">
                     <span
                       className="font-mono text-[11px] uppercase tracking-wider"
                       style={{
@@ -994,12 +1011,12 @@ const TopPairsTable = ({ pairs, t, onPick }) => {
                       {bestTp}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3">
                     <span className="font-mono text-[12px] text-accent tabular-nums">
                       {p.performance_score.toFixed(0)}
                     </span>
                   </td>
-                  <td className="py-2.5 pl-1 pr-3 text-right">
+                  <td className="py-3.5 pl-1 pr-3 text-right">
                     <RowOpen />
                   </td>
                 </tr>
@@ -1179,7 +1196,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   onClick={() => onSelect(s)}
                   className="border-b border-ink/[0.03] hover:bg-ink/[0.02] cursor-pointer transition-colors group"
                 >
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={s.pair} size={20} />
                       <span className="text-text-primary text-[12px] group-hover:text-text-primary transition-colors">
@@ -1187,10 +1204,10 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                       </span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-[12px] text-text-primary tabular-nums">
+                  <td className="py-3.5 px-3 font-mono text-[12px] text-text-primary tabular-nums">
                     ${formatPrice(s.entry)}
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3">
                     {mt.value ? (
                       <div className="font-mono tabular-nums">
                         <span className="text-text-primary text-[12px]">
@@ -1202,7 +1219,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                       <span className="font-mono text-[11px] text-text-muted">-</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3">
                     {s.stop1 ? (
                       <div className="font-mono tabular-nums">
                         <span className="text-text-primary text-[12px]">
@@ -1218,7 +1235,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                       <span className="font-mono text-[11px] text-text-muted">-</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3">
                     {s.risk_level ? (
                       <span
                         className={`px-2 py-0.5 rounded-sm font-mono text-[10px] uppercase tracking-wider border ${riskBadge(s.risk_level)}`}
@@ -1229,14 +1246,14 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                       <span className="font-mono text-[11px] text-text-muted">-</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-3">{statusBadge(s.status)}</td>
-                  <td className="py-2.5 px-3 font-mono text-[11px] text-text-muted">
+                  <td className="py-3.5 px-3">{statusBadge(s.status)}</td>
+                  <td className="py-3.5 px-3 font-mono text-[11px] text-text-muted">
                     {s.market_cap || "-"}
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-[10px] uppercase tracking-wider text-text-muted/70 tabular-nums">
+                  <td className="py-3.5 px-3 font-mono text-[10px] uppercase tracking-wider text-text-muted/70 tabular-nums">
                     {formatDate(s.created_at)}
                   </td>
-                  <td className="py-2.5 pl-1 pr-3 text-right">
+                  <td className="py-3.5 pl-1 pr-3 text-right">
                     <RowOpen />
                   </td>
                 </tr>
