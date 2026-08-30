@@ -38,6 +38,33 @@ BINANCE_TICKERS = "https://fapi.binance.com/fapi/v1/ticker/price"
 POSTER_ENV = os.getenv("X_POSTER_ENV", "/root/luxquant-x-poster/.env")
 
 
+# The commentary account (@luxquantcrypto) runs off its own worker and its own
+# env file, so its ceiling is read from there for the same reason: a number
+# copied into the dashboard is a number that will quietly go stale.
+QUOTE_ENV = os.getenv("X_QUOTE_ENV", "/root/luxquant-x-poster/.env.crypto")
+
+
+def _quote_cfg() -> dict:
+    cfg = {"enabled": False, "daily_cap": 12, "mention_every": 4,
+           "handle": "luxquantcrypto", "min_gap_min": 60}
+    try:
+        with open(QUOTE_ENV) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k, v = k.strip(), v.strip()
+                if   k == "XQ_ENABLED":       cfg["enabled"] = v.lower() == "true"
+                elif k == "XQ_DAILY_CAP":     cfg["daily_cap"] = int(v)
+                elif k == "XQ_MENTION_EVERY": cfg["mention_every"] = int(v)
+                elif k == "XQ_MIN_GAP_MIN":   cfg["min_gap_min"] = int(v)
+                elif k == "XQ_HANDLE":        cfg["handle"] = v.lstrip("@")
+    except Exception:
+        pass
+    return cfg
+
+
 def _daily_cap(default: int = 48) -> int:
     try:
         with open(POSTER_ENV) as f:
@@ -211,6 +238,8 @@ def x_tracker(
             {"cut": X_CUTOVER}).fetchall()
     ]
 
+    commentary = _commentary(db, px)
+
     cap = _daily_cap()
     posted_today = db.execute(text(
         "SELECT count(*) FROM x_posts WHERE tweet_id IS NOT NULL "
@@ -238,6 +267,75 @@ def x_tracker(
         "cadence": cadence,
         "daily": daily,
         "rows": out,
+        # The second account is deliberately NOT merged into the rows above.
+        # These are two accounts under one operator, and the rule they are
+        # judged by is whether their output differs; a dashboard that stacks
+        # them into one list is the one view that could not show a drift into
+        # duplication.
+        "commentary": commentary,
+    }
+
+
+def _commentary(db: Session, px: dict) -> dict:
+    """@luxquantcrypto — the digest account, one row per finished ladder."""
+    cfg = _quote_cfg()
+    empty = {**cfg, "rows": [], "count": 0, "posted_today": 0,
+             "mentions": 0, "daily": [], "available": False}
+    try:
+        rows = db.execute(text("""
+            SELECT q.signal_id, q.tweet_id, q.tweet_text, q.mentioned, q.posted_at,
+                   s.pair, s.entry, s.target4, s.peak_pct
+              FROM x_quote_posts q
+              JOIN signals s ON s.signal_id = q.signal_id
+             WHERE q.posted_at IS NOT NULL
+             ORDER BY q.posted_at DESC
+             LIMIT 200
+        """)).mappings().all()
+    except Exception as e:                       # table absent outside prod
+        log.warning("x-tracker: commentary read failed: %s", e)
+        return empty
+
+    out = []
+    for r in rows:
+        entry = float(r["entry"] or 0)
+        target = float(r["target4"] or 0)
+        now_px = px.get(r["pair"])
+        pct_at_post = ((target - entry) / entry * 100) if entry and target else None
+        pct_now = ((now_px - entry) / entry * 100) if entry and now_px else None
+        out.append({
+            "signal_id": r["signal_id"],
+            "pair": r["pair"],
+            "tweet_id": r["tweet_id"],
+            "tweet_url": f"https://x.com/{cfg['handle']}/status/{r['tweet_id']}"
+                          if r["tweet_id"] else None,
+            "posted_at": r["posted_at"].isoformat() if r["posted_at"] else None,
+            "caption": r["tweet_text"],
+            "chars": len(r["tweet_text"] or ""),
+            "mentioned": bool(r["mentioned"]),
+            "entry": entry or None,
+            "target": target or None,
+            "price_now": now_px,
+            "pct_at_post": pct_at_post,
+            "pct_now": pct_now,
+            "since_post": (pct_now - pct_at_post)
+                          if (pct_now is not None and pct_at_post is not None) else None,
+        })
+
+    today = [o for o in out
+             if o["posted_at"] and o["posted_at"][:10] == datetime.now(timezone.utc).date().isoformat()]
+    daily = {}
+    for o in out:
+        if o["posted_at"]:
+            daily[o["posted_at"][:10]] = daily.get(o["posted_at"][:10], 0) + 1
+
+    return {
+        **cfg,
+        "available": True,
+        "rows": out,
+        "count": len(out),
+        "posted_today": len(today),
+        "mentions": sum(1 for o in out if o["mentioned"]),
+        "daily": [{"day": d, "posts": n} for d, n in sorted(daily.items())],
     }
 
 

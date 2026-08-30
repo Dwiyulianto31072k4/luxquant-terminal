@@ -495,6 +495,83 @@ function MemberRow({ r, domain, sub, open, onToggle }) {
 
 /* ------------------------------------------------------------- main ---- */
 
+
+/* The second account, kept in its own frame rather than merged into the table
+   above. Two accounts under one operator are judged on whether their output
+   differs, so the one view that must never exist is a single list that hides
+   which account said what. */
+function Commentary({ c }) {
+  const [open, setOpen] = useState(false);
+  if (!c || !c.available) return null;
+  const rows = open ? c.rows : c.rows.slice(0, 5);
+  const cap = c.daily_cap || 1;
+  const mentionRate = c.count ? Math.round((c.mentions / c.count) * 100) : 0;
+  const longest = c.rows.reduce((m, r) => Math.max(m, r.chars || 0), 0);
+
+  return (
+    <div className="xt-panel" style={{ marginTop: 20 }}>
+      <div className="xt-phead" style={{ alignItems: "flex-start" }}>
+        <div>
+          <h3>@{c.handle}</h3>
+          <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--text-muted)", maxWidth: "56ch" }}>
+            The digest account. One plain-text note per finished ladder, posted after the
+            feed has already covered it.
+          </p>
+        </div>
+        <span className="xt-live" data-on={c.enabled ? "1" : "0"}>
+          <span className="xt-dot" style={c.enabled ? undefined : { background: "var(--text-muted)" }} />
+          {c.enabled ? "running" : "paused"}
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gap: 10, marginTop: 12,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+        <Tile label="Today" value={`${c.posted_today}/${cap}`} fill={c.posted_today / cap}
+              note="posts used" tone={c.posted_today >= cap ? "warm" : undefined} />
+        <Tile label="Mentions" value={`${mentionRate}%`}
+              note={`target 1 in ${c.mention_every}`}
+              tone={mentionRate > (100 / c.mention_every) + 10 ? "warm" : undefined} />
+        <Tile label="Longest post" value={longest ? `${longest}` : "—"}
+              note="characters · ceiling 120" tone={longest > 120 ? "warm" : undefined} />
+        <Tile label="Published" value={c.count} note="since it started" />
+      </div>
+
+      <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+        {rows.map((r) => (
+          <div key={r.signal_id} style={{
+                display: "flex", gap: 12, alignItems: "flex-start",
+                padding: "10px 12px", borderRadius: 9,
+                background: "var(--bg-subtle)", border: "1px solid var(--border-subtle)" }}>
+            <CoinLogo pair={r.pair} size={22} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, lineHeight: 1.45 }}>{r.caption}</div>
+              <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--text-muted)",
+                            display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <span>{r.chars} chars</span>
+                {r.mentioned ? <span style={{ color: "var(--text-accent)" }}>mentions the feed</span> : null}
+                <span>{r.posted_at ? `${ago(r.posted_at)} ago` : ""}</span>
+                {r.since_post !== null && r.since_post !== undefined
+                  ? <span>{pct(r.since_post)} since</span> : null}
+              </div>
+            </div>
+            <OpenPost url={r.tweet_url} pair={r.pair} />
+          </div>
+        ))}
+        {c.rows.length > 5 ? (
+          <button className="xt-toggle" onClick={() => setOpen((v) => !v)} style={{ justifySelf: "start" }}>
+            {open ? "Show less" : `Show all ${c.rows.length}`}
+          </button>
+        ) : null}
+        {!c.rows.length ? (
+          <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 2px" }}>
+            Nothing published yet.
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function XTrackerTab() {
   const [data, setData] = useState(null);
   const [cands, setCands] = useState(null);
@@ -691,6 +768,8 @@ export function XTrackerTab() {
           </div>
         </div>
       </div>
+
+      <Commentary c={data?.commentary} />
 
       <div style={{ marginTop: 20, border: "1px solid var(--border-subtle)", borderRadius: 12,
                     overflow: "hidden", background: "var(--bg-elevated)" }}>
