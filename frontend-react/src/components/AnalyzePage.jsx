@@ -773,7 +773,10 @@ const AnalyzePage = () => {
 
       <SignalDrillDrawer
         bucket={drillCoin}
-        days={90}
+        // All time, because the table above it ranks all time. At 90 days,
+        // seven of the ten leaderboard coins opened empty — every one of their
+        // calls is older than that.
+        days={0}
         sector="all"
         hidden={!!selectedSignal}
         onClose={() => setDrillCoin(null)}

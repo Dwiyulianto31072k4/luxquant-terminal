@@ -645,19 +645,28 @@ def get_edge_lab(
 def get_edge_lab_drill(
     dimension: str = Query(..., description="calendar_day | timing_cell | pattern | pattern_btc"),
     key: str = Query(..., description="bucket key (see edgeLabApi.getDrill)"),
-    days: int = Query(30, ge=7, le=90),
+    days: int = Query(30, ge=0, le=90, description="0 = all time, or 7, 30, 90"),
     sector: str = Query("all", description="'all' or specific sector name"),
     limit: int = Query(300, ge=1, le=1000),
     db: Session = Depends(get_db),
 ):
-    """Return the individual signals inside one Edge Lab bucket."""
-    if days not in (7, 30, 90):
-        raise HTTPException(status_code=400, detail="days must be 7, 30, or 90")
+    """Return the individual signals inside one Edge Lab bucket.
+
+    days=0 means all time, the same as its sibling get_edge_lab. Without it the
+    coin dimension could not answer for a table that ranks all time: seven of
+    the ten coins on the All-Time leaderboard have every one of their calls
+    older than 90 days, so opening them returned "NO SIGNALS" for rows that
+    plainly showed 8 to 17 closed trades.
+    """
+    if days not in (0, 7, 30, 90):
+        raise HTTPException(status_code=400, detail="days must be 0, 7, 30, or 90")
     if dimension not in ("calendar_day", "created_day", "timing_cell", "pattern", "pattern_btc", "coin"):
         raise HTTPException(status_code=400, detail="invalid dimension")
 
     end_date = datetime.utcnow().date()
-    start_date = end_date - timedelta(days=days - 1)
+    # All time: reach back past the first signal rather than special-casing the
+    # SQL, so every dimension keeps one code path.
+    start_date = date(2000, 1, 1) if days == 0 else end_date - timedelta(days=days - 1)
     end_str = end_date.isoformat()
     start_str = start_date.isoformat()
     sector_filter = sector.lower().strip()
