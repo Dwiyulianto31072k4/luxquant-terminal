@@ -31,12 +31,25 @@ import { createPortal } from "react-dom";
 import CoinLogo from "../CoinLogo";
 import edgeLabApi from "../../services/edgeLabApi";
 
+// Four Tailwind emerald tints (#10b981 down to #a7f3d0) and a Tailwind red —
+// none of them this product's --pos / --neg. Two things were wrong with them.
+//
+// They were not the brand's green, so the modal's bars did not match the same
+// outcome rendered anywhere else in the app. And the ramp ran the wrong way:
+// TP1 at #a7f3d0 measured 1.28:1 against a white surface, so the segment for
+// the most common outcome was the one nobody could see.
+//
+// Now built off the token and running darker as the outcome improves, so the
+// best result reads strongest. Every step clears 3:1 against white — the
+// threshold WCAG sets for graphical objects — and holds at least 0.055
+// luminance between neighbours so the segments stay tellable apart:
+//   TP1 3.07:1 · TP2 4.61:1 · TP3 7.11:1 · TP4 11.36:1 · SL 3.53:1
 const OUTCOME_STYLE = {
-  tp4: { label: "TP4", c: "#10b981", bg: "rgba(16,185,129,0.16)" },
-  tp3: { label: "TP3", c: "#34d399", bg: "rgba(16,185,129,0.13)" },
-  tp2: { label: "TP2", c: "#6ee7b7", bg: "rgba(16,185,129,0.10)" },
-  tp1: { label: "TP1", c: "#a7f3d0", bg: "rgba(16,185,129,0.08)" },
-  sl: { label: "SL", c: "#ef4444", bg: "rgba(239,68,68,0.15)" },
+  tp4: { label: "TP4", c: "#05432e", bg: "rgb(var(--pos) / 0.20)" },
+  tp3: { label: "TP3", c: "#076543", bg: "rgb(var(--pos) / 0.16)" },
+  tp2: { label: "TP2", c: "#098657", bg: "rgb(var(--pos) / 0.12)" },
+  tp1: { label: "TP1", c: "#0ca86c", bg: "rgb(var(--pos) / 0.09)" },
+  sl: { label: "SL", c: "rgb(var(--neg))", bg: "rgb(var(--neg) / 0.15)" },
 };
 const DIST_ORDER = ["tp4", "tp3", "tp2", "tp1", "sl"];
 
@@ -163,7 +176,7 @@ const BtcDayStat = ({ btc }) => {
   const up = btc.chg >= 0;
   return (
     <div>
-      <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+      <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
         BTC that day
       </div>
       <div className="font-mono tabular-nums text-base leading-tight">
@@ -171,7 +184,7 @@ const BtcDayStat = ({ btc }) => {
           {up ? "+" : ""}
           {btc.chg}%
         </span>
-        <span className="text-text-primary/30 text-[11px] ml-2">
+        <span className="text-text-muted text-[11px] ml-2">
           {fmtUsd(btc.open)} → {fmtUsd(btc.close)}
         </span>
       </div>
@@ -197,7 +210,7 @@ const TradeVsMarket = ({ s, btcHold }) => {
 
   const Row = ({ label, value, log, color }) => (
     <div className="flex items-center gap-2.5">
-      <span className="w-[72px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+      <span className="w-[72px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
         {label}
       </span>
       <div className="relative flex-1 h-[14px]">
@@ -223,10 +236,10 @@ const TradeVsMarket = ({ s, btcHold }) => {
   return (
     <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-3.5 py-3">
       <div className="flex items-baseline justify-between mb-2.5">
-        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
           Trade vs market · same window
         </span>
-        <span className="text-[9px] font-mono text-text-primary/25">log scale</span>
+        <span className="text-[9px] font-mono text-text-muted">log scale</span>
       </div>
       <div className="space-y-2">
         <Row label="This trade" value={peak} log={lp} color={peak >= 0 ? "#34d399" : "#f87171"} />
@@ -234,7 +247,7 @@ const TradeVsMarket = ({ s, btcHold }) => {
       </div>
       <div className="mt-3 pt-2.5 border-t border-ink/[0.05] flex items-baseline justify-between">
         <span
-          className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35"
+          className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted"
           title="Signal peak minus the BTC move over the same created→resolved window"
         >
           α vs holding BTC
@@ -275,7 +288,7 @@ const TradeJourney = ({ s }) => {
   return (
     <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-3.5 py-3">
       <div className="flex items-baseline justify-between mb-2.5">
-        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
           Trade journey · path to outcome
         </span>
       </div>
@@ -283,7 +296,7 @@ const TradeJourney = ({ s }) => {
       {/* MFE / MAE excursion — two bars from a shared center baseline */}
       <div className="space-y-1.5">
         <div className="flex items-center gap-2.5">
-          <span className="w-[68px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+          <span className="w-[68px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
             Ran up
           </span>
           <div className="relative flex-1 h-[12px]">
@@ -298,7 +311,7 @@ const TradeJourney = ({ s }) => {
           </span>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="w-[68px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+          <span className="w-[68px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
             Drew down
           </span>
           <div className="relative flex-1 h-[12px]">
@@ -318,11 +331,11 @@ const TradeJourney = ({ s }) => {
       {realized != null && missed != null && (
         <div className="mt-3 pt-2.5 border-t border-ink/[0.05]">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+            <span className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
               Banked vs left on table
             </span>
             {capture != null && (
-              <span className="text-[10px] font-mono tabular-nums text-text-primary/55">
+              <span className="text-[10px] font-mono tabular-nums text-text-muted">
                 {capture}% of peak captured
               </span>
             )}
@@ -349,7 +362,7 @@ const TradeJourney = ({ s }) => {
           </div>
           <div className="flex justify-between mt-1 text-[9px] font-mono tabular-nums">
             <span className="text-profit/80">realized {fmtPeak(realized)}</span>
-            <span className="text-text-primary/35">missed {fmtPeak(missed)}</span>
+            <span className="text-text-muted">missed {fmtPeak(missed)}</span>
           </div>
         </div>
       )}
@@ -376,10 +389,10 @@ const PeakField = ({ signals, selectedId }) => {
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1.5">
-        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
           Peak field · all {pts.length} signals
         </span>
-        <span className="text-[9px] font-mono text-text-primary/25">log scale</span>
+        <span className="text-[9px] font-mono text-text-muted">log scale</span>
       </div>
       <div className="relative h-11 rounded-md border border-ink/[0.06] bg-ink/[0.015] overflow-hidden">
         {/* baseline */}
@@ -432,7 +445,7 @@ const PeakField = ({ signals, selectedId }) => {
           );
         })}
       </div>
-      <div className="flex justify-between mt-1 text-[9px] font-mono tabular-nums text-text-primary/25">
+      <div className="flex justify-between mt-1 text-[9px] font-mono tabular-nums text-text-muted">
         <span>{fmtPeak(minPeak)}</span>
         <span className="text-accent/45">med {fmtPeak(med)}</span>
         <span>{fmtPeak(maxPeak)}</span>
@@ -466,7 +479,7 @@ const SignalRow = ({ s, maxPeak, btcHold, selected, onSelect }) => {
             <OutcomeBadge outcome={s.outcome} size={8} />
           </div>
           <div className="flex items-center gap-2 text-[10px] font-mono leading-tight mt-0.5">
-            <span className="text-text-primary/30">{fmtDate(s.hit_date)}</span>
+            <span className="text-text-muted">{fmtDate(s.hit_date)}</span>
             {alpha != null && (
               <span
                 className={alpha >= 0 ? "text-profit/55" : "text-loss/55"}
@@ -511,7 +524,7 @@ const DetailPane = ({
 }) => {
   if (!s) {
     return (
-      <div className="flex-1 flex items-center justify-center text-text-primary/25 text-xs font-mono uppercase tracking-wider">
+      <div className="flex-1 flex items-center justify-center text-text-muted text-xs font-mono uppercase tracking-wider">
         Select a signal
       </div>
     );
@@ -525,7 +538,7 @@ const DetailPane = ({
       {onBack && (
         <button
           onClick={onBack}
-          className="md:hidden self-start mx-4 mt-3 px-2.5 py-1 rounded-md border border-ink/[0.08] text-[10px] font-mono uppercase tracking-wider text-text-primary/50 hover:text-text-primary"
+          className="md:hidden self-start mx-4 mt-3 px-2.5 py-1 rounded-md border border-ink/[0.08] text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-text-primary"
         >
           ← List
         </button>
@@ -539,7 +552,7 @@ const DetailPane = ({
             <div className="font-display text-xl text-text-primary/95 leading-tight truncate">
               {fmtPair(s.pair)}
             </div>
-            <div className="text-[10px] font-mono text-text-primary/35 mt-1">
+            <div className="text-[10px] font-mono text-text-muted mt-1">
               {rank != null && total != null ? `#${rank} of ${total} by peak` : ""}
             </div>
           </div>
@@ -549,7 +562,7 @@ const DetailPane = ({
         {/* hero: peak + held */}
         <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30 mb-1">
+            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted mb-1">
               Peak
             </div>
             <div
@@ -561,7 +574,7 @@ const DetailPane = ({
           </div>
           {hold && (
             <div className="text-right">
-              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30 mb-1">
+              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted mb-1">
                 Held
               </div>
               <div className="font-mono tabular-nums text-xl text-text-primary/80 leading-none">
@@ -583,7 +596,7 @@ const DetailPane = ({
         {/* timeline facts */}
         <div className="rounded-lg border border-ink/[0.06] divide-y divide-ink/[0.04]">
           <div className="flex items-center justify-between px-3.5 py-2.5">
-            <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+            <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
               Created
             </span>
             <span className="font-mono tabular-nums text-[12px] text-text-primary/75">
@@ -591,7 +604,7 @@ const DetailPane = ({
             </span>
           </div>
           <div className="flex items-center justify-between px-3.5 py-2.5">
-            <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+            <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
               Resolved
             </span>
             <span className="font-mono tabular-nums text-[12px] text-text-primary/75">
@@ -600,14 +613,14 @@ const DetailPane = ({
           </div>
           {btcHold && (
             <div className="flex items-center justify-between px-3.5 py-2.5">
-              <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+              <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
                 BTC over hold{btcHold.sameDay ? " · same day" : ""}
               </span>
               <span className="font-mono tabular-nums text-[12px] text-text-primary/75">
                 <span className={btcHold.chg >= 0 ? "text-profit/90" : "text-loss/90"}>
                   {fmtSignedPct(btcHold.chg)}
                 </span>
-                <span className="text-text-primary/30 text-[10px] ml-2">
+                <span className="text-text-muted text-[10px] ml-2">
                   {fmtUsd(btcHold.from)} → {fmtUsd(btcHold.to)}
                 </span>
               </span>
@@ -615,7 +628,7 @@ const DetailPane = ({
           )}
           {btc && btc.chg != null && (
             <div className="flex items-center justify-between px-3.5 py-2.5">
-              <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+              <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
                 BTC that day
               </span>
               <span
@@ -627,7 +640,7 @@ const DetailPane = ({
             </div>
           )}
           <div className="flex items-center justify-between px-3.5 py-2.5">
-            <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+            <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
               Outcome
             </span>
             <OutcomeBadge outcome={s.outcome} size={9} />
@@ -640,7 +653,7 @@ const DetailPane = ({
           disabled={opening}
           className={`w-full py-2.5 rounded-lg border text-[11px] font-mono uppercase tracking-[0.18em] transition flex items-center justify-center gap-2 ${
             opening
-              ? "border-ink/[0.08] text-text-primary/30 cursor-wait"
+              ? "border-ink/[0.08] text-text-muted cursor-wait"
               : "border-ink/35 bg-accent/[0.07] text-accent hover:bg-accent/[0.14]"
           }`}
         >
@@ -799,7 +812,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
       className={`px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider transition border ${
         filter === id
           ? "border-ink/15 bg-accent/12 text-accent"
-          : "border-ink/[0.08] text-text-primary/45 hover:text-text-primary/80"
+          : "border-ink/[0.08] text-text-muted hover:text-text-primary/80"
       }`}
     >
       {label}
@@ -833,7 +846,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
             </div>
             <button
               onClick={onClose}
-              className="shrink-0 w-8 h-8 rounded-md border border-ink/[0.08] text-text-primary/50 hover:text-text-primary hover:border-ink/25 transition flex items-center justify-center"
+              className="shrink-0 w-8 h-8 rounded-md border border-ink/[0.08] text-text-muted hover:text-text-primary hover:border-ink/25 transition flex items-center justify-center"
               title="Close (Esc)"
             >
               <svg
@@ -853,7 +866,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
             <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-center">
               <div>
                 <div className="flex items-center gap-3 mb-1.5 text-[11px] font-mono tabular-nums">
-                  <span className="text-text-primary/55">{aggTotal.toLocaleString()} resolved</span>
+                  <span className="text-text-muted">{aggTotal.toLocaleString()} resolved</span>
                   {wr != null && (
                     <span
                       className={
@@ -863,7 +876,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                       {wr.toFixed(0)}% WR
                     </span>
                   )}
-                  <span className="text-text-primary/35">
+                  <span className="text-text-muted">
                     {stats.wins}W / {stats.counts.sl}L
                   </span>
                   {capped && (
@@ -891,7 +904,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
               </div>
               <div className="flex items-center gap-5">
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+                  <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
                     Median peak
                   </div>
                   <div className="font-mono tabular-nums text-base text-text-primary/85">
@@ -899,7 +912,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                   </div>
                 </div>
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
+                  <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
                     Best
                   </div>
                   <div className="font-mono tabular-nums text-base text-profit/90">
@@ -943,7 +956,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
           )}
 
           {!loading && !error && all.length === 0 && (
-            <div className="flex-1 flex items-center justify-center text-text-primary/30 text-sm font-mono uppercase tracking-wider">
+            <div className="flex-1 flex items-center justify-center text-text-muted text-sm font-mono uppercase tracking-wider">
               No signals
             </div>
           )}
@@ -972,7 +985,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                 </div>
                 <div className="flex-1 overflow-y-auto divide-y divide-ink/[0.03]">
                   {view.length === 0 ? (
-                    <div className="py-12 text-center text-text-primary/25 text-xs font-mono uppercase tracking-wider">
+                    <div className="py-12 text-center text-text-muted text-xs font-mono uppercase tracking-wider">
                       No signals
                     </div>
                   ) : (
@@ -996,12 +1009,12 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                       keeps going and the empty stretch reads as something that
                       failed to load. This says the list ended on purpose. */}
                   {view.length > 0 ? (
-                    <div className="px-3 py-4 text-center font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/25">
+                    <div className="px-3 py-4 text-center font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
                       {view.length} of {stats.total} shown
                     </div>
                   ) : null}
                 </div>
-                <div className="px-3 py-2 border-t border-ink/[0.05] text-[9px] font-mono text-text-primary/25 shrink-0 hidden md:block">
+                <div className="px-3 py-2 border-t border-ink/[0.05] text-[9px] font-mono text-text-muted shrink-0 hidden md:block">
                   ↑↓ navigate · Enter opens full breakdown
                 </div>
               </div>
