@@ -897,10 +897,25 @@ def get_signals(
         }
         sort_col = valid_sorts.get(sort_by, 's.call_message_id')
         sort_dir = 'DESC' if sort_order == 'desc' else 'ASC'
-        
+
         null_handling = ""
         if sort_by == 'last_update':
             null_handling = " NULLS LAST"
+
+        # Newest day first, and inside each day the calls that ran furthest at
+        # the top. Chronological order alone interleaves a TP4 with the stop
+        # that happened four minutes later, so a page reads as noise; grouping
+        # by day keeps the record honest — every call for that day is still on
+        # that day, none are dropped or moved — while letting the day be read
+        # as a day rather than a stream.
+        #
+        # Two levels, so it cannot be expressed by the single sort_col above.
+        if sort_by == 'day_outcome':
+            outcome_rank = """CASE so.outcome
+                WHEN 'tp4' THEN 5 WHEN 'tp3' THEN 4 WHEN 'tp2' THEN 3
+                WHEN 'tp1' THEN 2 WHEN 'sl' THEN 0 ELSE 1 END"""
+            sort_col = f"DATE(s.created_at) {sort_dir}, {outcome_rank} DESC, s.call_message_id"
+            null_handling = ""
         
         count_query = text(f"""
             WITH {SIGNAL_OUTCOMES_CTE}

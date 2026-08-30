@@ -76,7 +76,11 @@ const AnalyzePage = () => {
   const [sigSearch, setSigSearch] = useState("");
   const [sigStatus, setSigStatus] = useState("all");
   const [sigRisk, setSigRisk] = useState("all");
-  const [sigSort, setSigSort] = useState("created_at");
+  // Newest day first, best outcome first inside it. Plain chronology puts a
+  // TP4 next to the stop that happened four minutes later, so a page reads as
+  // noise rather than as a day. Nothing is filtered — every call for a day is
+  // still on that day.
+  const [sigSort, setSigSort] = useState("day_outcome");
   const [sigOrder, setSigOrder] = useState("desc");
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [showSigFilters, setShowSigFilters] = useState(false);
@@ -648,6 +652,7 @@ const AnalyzePage = () => {
                   onChange={(e) => setSigSort(e.target.value)}
                   className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-ink/15"
                 >
+                  <option value="day_outcome">Day &middot; best first</option>
                   <option value="created_at">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
                   <option value="entry">Entry</option>
