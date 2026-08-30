@@ -1296,7 +1296,16 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
                   <td
                     className={`px-4 py-2.5 font-mono text-sm ${isActive ? "text-accent" : "text-text-primary/85"}`}
                   >
-                    {p.pattern}
+                    <span className="inline-flex items-center gap-2">
+                      {p.pattern}
+                      {/* Beside the name, not in a footnote. A pattern seen four
+                          times can show a 100% win rate, and that row looks
+                          exactly like one seen four hundred times unless the
+                          thinness is said where the number is read. */}
+                      {reliabilityFromSample(p.count) ? (
+                        <ReliabilityBadge tier={reliabilityFromSample(p.count)} compact />
+                      ) : null}
+                    </span>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums text-text-primary/80">
                     {p.count}
@@ -1330,6 +1339,22 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
             })}
           </tbody>
         </table>
+      </div>
+      <div className="border-t border-ink/[0.06] p-4">
+        <Methodology title="How patterns are counted">
+          <p className="mb-2">
+            A signal carries several tags at once, and every tag it carries gets
+            credited with that signal&rsquo;s outcome. So the counts in this table
+            <strong className="text-text-primary/80"> do not add up to the number of
+            signals</strong> for the day &mdash; a day of 47 calls with eleven tags each
+            produces several hundred rows of credit.
+          </p>
+          <p>
+            That also means two patterns can share the same winning call. Read a row
+            as &ldquo;calls that carried this tag&rdquo;, not as a slice of the day that
+            belongs only to it. The badge beside a name marks rows too thin to lean on.
+          </p>
+        </Methodology>
       </div>
     </Card>
   );
@@ -2015,6 +2040,22 @@ const LossAutopsy = ({ signals }) => {
             </div>
           );
         })}
+      </div>
+      <div className="mt-4 border-t border-ink/[0.06] pt-4">
+        <Methodology title="How to read a loss autopsy">
+          <p className="mb-2">
+            Each bar is how often a tag appears among the day&rsquo;s losers, next to
+            how often it appears among its winners. The gap is the signal &mdash; a tag
+            on every loser <em>and</em> most winners is telling you nothing.
+          </p>
+          <p>
+            With only a handful of losses, <strong className="text-text-primary/80">100%
+            is arithmetic, not evidence</strong>: any tag present on all four of four
+            losses reads as 100%, and one more loss tomorrow can move it thirty
+            points. Treat a day&rsquo;s autopsy as a question to take to the longer
+            windows in Edge Lab, not as a finding on its own.
+          </p>
+        </Methodology>
       </div>
     </Card>
   );
