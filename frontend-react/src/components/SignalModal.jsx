@@ -27,6 +27,7 @@ import {
 } from "../utils/themeColors";
 import { deriveChartWithCard } from "./signalModal/utils";
 import MarketSheet from "./signalModal/MarketSheet";
+import { fetchAllLevels, SR_TFS } from "./signalModal/supportResistance";
 import PositioningTape from "./signalModal/PositioningTape";
 import { peakContextLabel, daysToPeak, peakIsAfterStop } from "../utils/peakTiming";
 import { buildLevelTimeline } from "../utils/journeyEvents";
@@ -111,6 +112,11 @@ const SignalModal = ({
   // our own chart, the only one that can draw entry/TP/SL, because the TV embed
   // is a cross-origin iframe nothing outside it can write to.
   const [chartMode, setChartMode] = useState("tv");
+  // Key levels. 1H is the default because it is the timeframe the calls are
+  // managed on; srLevels is {resistance, support} for the chosen timeframe only.
+  const [srTf, setSrTf] = useState("1h");
+  const [srLevels, setSrLevels] = useState(null);
+  const [srLoading, setSrLoading] = useState(false);
   // Fullscreen is a CSS position change on the existing column, never a move or
   // remount — the TradingView widget owns DOM inside it and re-parenting would
   // reopen the removeChild fight. Full mode also unlocks richer TV chrome.
@@ -157,6 +163,7 @@ const SignalModal = ({
     }
   };
   const [livePrice, setLivePrice] = useState(null);
+  const livePriceRef = useRef(null);
   const [liveChange24h, setLiveChange24h] = useState(null);
   const [derivMetrics, setDerivMetrics] = useState(null);
   // true = fetch live (Binance & Bybit) sama-sama gagal → kemungkinan geo-block.
@@ -474,6 +481,12 @@ const SignalModal = ({
     fetchPeakPrice();
   }, [isOpen, signalKey, signalDetail]);
 
+  // Latest price in a ref, so the key-levels effect can read it without taking
+  // it as a dependency — otherwise every 10s tick would restart that fetch.
+  useEffect(() => {
+    livePriceRef.current = livePrice;
+  }, [livePrice]);
+
   // 4b. Live price + derivatives metrics (polling 10s) — Binance -> Bybit fallback
   useEffect(() => {
     if (!isOpen || !signal?.pair) return;
@@ -779,6 +792,42 @@ const SignalModal = ({
       alive = false;
       clearInterval(iv);
     };
+  }, [isOpen, signal?.pair]);
+
+  // Key levels — its own effect, not part of the 10s price poll. Levels come
+  // from closed candles and change only when one closes, so a 2-minute refresh
+  // is already faster than the data can move; the price-driven part of the card
+  // (distance to the level) recomputes on every render for free.
+  useEffect(() => {
+    if (!isOpen || !signal?.pair) {
+      setSrLevels(null);
+      return undefined;
+    }
+    const symbol = (signal.pair || "").replace(/USDT$/i, "") + "USDT";
+    let alive = true;
+    setSrLoading(true);
+    setSrLevels(null);
+
+    const run = async () => {
+      // livePrice decides which side of the market a level falls on. Passing it
+      // matters most on 1d, where the last CLOSE can sit well below where price
+      // is now and a "resistance" would otherwise be printed below the market.
+      const out = await fetchAllLevels(symbol, livePriceRef.current);
+      if (!alive) return;
+      setSrLevels(out);
+      setSrLoading(false);
+    };
+    run();
+    const iv = setInterval(run, 120000);
+    return () => {
+      alive = false;
+      clearInterval(iv);
+    };
+    // livePrice is intentionally absent: it is read through a ref so a ticking
+    // price does not restart the fetch every ten seconds.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // srTf is deliberately NOT a dependency: every timeframe is computed in
+    // one pass, so switching tabs reads what is already in memory.
   }, [isOpen, signal?.pair]);
 
   // 5. Handle tombol Escape (Esc)
@@ -1629,6 +1678,137 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             <span aria-hidden className="text-text-muted">→</span>
           </button>
         </div>
+
+        {(srLevels || srLoading) && (() => {
+          const tf = srLevels?.[srTf];
+          const rows = [
+            { key: "resistance", label: "Resistance", z: tf?.resistance, up: true },
+            { key: "support", label: "Support", z: tf?.support, up: false },
+          ];
+          return (
+            <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
+              <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-2">
+                <span className="flex items-baseline gap-1.5">
+                  <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    Key levels
+                  </span>
+                  {tf?.regime && (
+                    <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
+                      {tf.regime === "up" ? "uptrend" : tf.regime === "down" ? "downtrend" : "range"}
+                    </span>
+                  )}
+                </span>
+                <div className="flex items-center gap-0.5 rounded-md border border-ink/[0.08] bg-ink/[0.03] p-0.5">
+                  {SR_TFS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setSrTf(t)}
+                      className={`rounded px-1 py-0.5 font-mono text-[9px] uppercase tracking-wider transition-colors ${
+                        srTf === t
+                          ? "bg-ink/[0.09] text-text-primary"
+                          : "text-text-muted hover:text-text-primary"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {srLoading && !srLevels ? (
+                <div className="px-3 pb-3 font-mono text-[11px] text-text-muted">
+                  Reading structure…
+                </div>
+              ) : !tf ? (
+                <div className="px-3 pb-3 text-[11px] leading-relaxed text-text-muted">
+                  No level data for this timeframe.
+                </div>
+              ) : (
+                <>
+                  {rows.map(({ key, label, z, up }) => {
+                    // Distance is a magnitude with a direction, never a signed
+                    // gain — colouring "+2.40%" red because it is the resistance
+                    // row reads as "up is bad", which is nonsense.
+                    const gap =
+                      z && livePrice > 0 ? ((z.price - livePrice) / livePrice) * 100 : null;
+                    const broken = gap !== null && (up ? gap < 0 : gap > 0);
+                    const width = z && z.hi > z.lo ? ((z.hi - z.lo) / z.price) * 100 : 0;
+                    const tags = z
+                      ? [
+                          `${z.touches}x tested`,
+                          z.volShare >= 0.03 ? `${Math.round(z.volShare * 100)}% vol` : null,
+                          // "N TF" removed: measured worthless for resistance
+                          // (z 0.75) and backwards for support (z -2.35).
+                          // A badge that implies strength must have shown some.
+
+                          z.wall >= 2.5 ? "wall" : null,
+                          // Measured: a resistance price already traded through
+                          // holds 55.1% vs 51.3% (z=+2.27). Support shows no
+                          // such effect, so the badge is resistance-only rather
+                          // than decoration on both.
+                          up && z.flipped ? "retest" : null,
+                        ].filter(Boolean)
+                      : [];
+                    return (
+                      <div key={key} className="px-3 py-1.5">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+                            {label}
+                          </span>
+                          <span className="flex items-baseline gap-2 min-w-0">
+                            {/* Resistance is the side that measured an edge;
+                                support never did, in any regime or method
+                                tested. Equal type size implied equal evidence,
+                                so the weaker side is rendered quieter. */}
+                            <span
+                              className={`truncate font-mono text-[12px] tabular-nums ${
+                                up ? "text-text-primary" : "text-text-secondary"
+                              }`}
+                            >
+                              {z ? formatPrice(z.price) : "—"}
+                            </span>
+                            {gap !== null && (
+                              <span className="flex-shrink-0 font-mono text-[11px] tabular-nums text-text-secondary">
+                                {broken
+                                  ? "broken"
+                                  : `${up ? "▲" : "▼"} ${Math.abs(gap).toFixed(2)}%`}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {tags.length > 0 && (
+                          <div className="mt-0.5 font-mono text-[9px] text-text-muted">
+                            {tags.join(" · ")}
+                            {width >= 0.05 ? ` · zone ±${(width / 2).toFixed(2)}%` : ""}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <p className="px-3 pb-2.5 pt-1 text-[9px] leading-relaxed text-text-muted">
+                    Pivot zones on {srTf.toUpperCase()}, ranked by traded volume and times
+                    tested.
+                    {/* Stated always, not only when convenient. Backtested over
+                        8-12 pairs x 4 timeframes: resistance beat a random level
+                        at the same distance in trending markets; support never
+                        beat it in any regime, and in some samples measured
+                        significantly worse. */}
+                    <span className="mt-1 block text-text-muted/80">
+                      Resistance is the tested side. Support below price did not beat a
+                      random level in our backtests — treat it as structure, not a floor.
+                    </span>
+                    {tf.regime === "range" && (
+                      <span className="mt-1 block text-text-muted/80">
+                        In a range both sides tend to hold, so these levels carry less
+                        information than they do in a trend.
+                      </span>
+                    )}
+                  </p>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {derivMetrics ? (
           <PositioningTape
