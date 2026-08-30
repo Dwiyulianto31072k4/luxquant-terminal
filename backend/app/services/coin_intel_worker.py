@@ -337,7 +337,7 @@ def _assemble_coin(row, history_map, flow_map, wr_30d_map, active_days_map,
         "pl_pct": f"+{h['pl_pct']}%" if h["pl_pct"] > 0 else f"{h['pl_pct']}%",
         "platform_wr": h["platform_wr"], "flow": h["flow"]} for h in history]
 
-    return {
+    payload = {
         "pair": pair, "total_calls": total_calls, "closed_trades": closed, "open_trades": open_trades,
         "win_rate": wr, "sl_rate": sr, "avg_outcome": avg_outcome,
         "outcome_dist": {"tp1": tp1, "tp2": tp2, "tp3": tp3, "tp4": tp4, "sl": sl},
@@ -351,6 +351,9 @@ def _assemble_coin(row, history_map, flow_map, wr_30d_map, active_days_map,
         "active_days": active_days_map.get(pair, []),
         "first_signal": str(row[9]) if row[9] else None, "last_signal": str(row[10]) if row[10] else None,
     }
+    # Decided once, here, so the desk and the alert filters cannot disagree.
+    payload["verdict"] = classify_coin(payload)
+    return payload
 
 
 # ════════════════════════════════════════════
@@ -535,6 +538,59 @@ def _detect_anomalies(pair, wr, sr, closed, wins, sl, tp1, tp2, tp3, tp4,
 # ════════════════════════════════════════════
 # RANKING
 # ════════════════════════════════════════════
+
+def classify_coin(coin):
+    """Avoid / worth_it / neutral for one coin.
+
+    This lived only in the browser (coinIntelShared.jsx classifyCoin), while the
+    server computed every input it reads — win_rate, sl_rate, closed_trades,
+    current_streak, anomaly_flags — and stopped one step short of the verdict.
+
+    It has to exist here because saved alert filters are evaluated server-side.
+    A filter that screens on a different definition of "worth it" than the one
+    the user saw when they saved it is worse than no filter: the mismatch is
+    invisible from both ends. Two copies of ten rules drift; one does not.
+
+    Kept rule-for-rule identical to the frontend, order included — these are
+    first-match-wins, so reordering them silently changes verdicts.
+    """
+    if not coin:
+        return "neutral"
+
+    flags = coin.get("anomaly_flags") or []
+    types = {f.get("type") for f in flags if isinstance(f, dict)}
+    has_danger = any(f.get("severity") == "danger" for f in flags if isinstance(f, dict))
+    has_warning = any(f.get("severity") == "warning" for f in flags if isinstance(f, dict))
+    has_positive = any(f.get("severity") == "positive" for f in flags if isinstance(f, dict))
+
+    wr = coin.get("win_rate") or 0
+    sr = coin.get("sl_rate") or 0
+    closed = coin.get("closed_trades") or 0
+    streak = coin.get("current_streak") or {}
+    streak_len = streak.get("length") or 0
+
+    if has_danger:
+        return "avoid"
+    if "wr_decline" in types and wr < 70:
+        return "avoid"
+    if "flow_underperformer" in types:
+        return "avoid"
+    if sr >= 30 and closed >= 5:
+        return "avoid"
+    if has_warning and not has_positive and wr < 75:
+        return "avoid"
+    if wr >= 80 and closed >= 5:
+        return "worth_it"
+    if has_positive and not has_danger:
+        return "worth_it"
+    if "hot_streak" in types and streak_len >= 5:
+        return "worth_it"
+    if wr >= 85:
+        return "worth_it"
+    if wr < 65 and closed >= 5:
+        return "avoid"
+    return "worth_it" if has_positive else "neutral"
+
 
 def _rank_score(coin):
     score = 0

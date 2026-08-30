@@ -44,6 +44,42 @@ def _as_list(value):
     return [str(value)]
 
 
+def _pairs_matching_verdict(wanted: list[str]) -> list[str] | None:
+    """Pairs whose coin-intel verdict is one of `wanted`, or None if unknown.
+
+    Returns None rather than an empty list when coin intel cannot be read: an
+    empty list would silently mean "nothing matches", and a filter that goes
+    quiet looks identical to a market with no setups.
+    """
+    try:
+        from app.api.routes.signals import _compute_coin_intel_once
+
+        intel = _compute_coin_intel_once() or {}
+        if not isinstance(intel, dict):
+            return None
+        coins = list(intel.get("top_coins") or []) + list(intel.get("rest_coins") or [])
+        if not coins:
+            return None
+
+        # A cached payload written before verdict existed has the key on no
+        # coin at all. Defaulting those to "neutral" would quietly answer a
+        # question this data cannot answer, so treat it as unavailable and let
+        # the filter hold until the cache refreshes.
+        if not any("verdict" in c for c in coins if isinstance(c, dict)):
+            log.info("coin intel has no verdict field yet; filter held")
+            return None
+
+        want = set(wanted)
+        return [
+            str(c.get("pair")).upper()
+            for c in coins
+            if isinstance(c, dict) and c.get("pair") and (c.get("verdict") or "neutral") in want
+        ]
+    except Exception as e:  # never let a filter take the worker down
+        log.warning("coin intel unavailable for verdict filter: %s", e)
+        return None
+
+
 def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
     """Translate saved criteria into SQL. Unknown keys are ignored, not guessed."""
     where: list[str] = []
@@ -68,6 +104,20 @@ def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
     if isinstance(min_conf, (int, float)):
         where.append("e.confidence_score >= :min_conf")
         params["min_conf"] = int(min_conf)
+
+    # verdict (worth_it / avoid / neutral) is a property of the COIN's history,
+    # not of this signal, so it is resolved per pair from coin intel rather than
+    # in SQL. Same function the desk renders, so a saved filter screens on the
+    # definition the user was looking at when they saved it.
+    verdicts = _as_list(criteria.get("verdict"))
+    if verdicts:
+        pairs_for_verdict = _pairs_matching_verdict([v.lower() for v in verdicts])
+        if pairs_for_verdict is None:
+            # Coin intel unavailable — hold the filter rather than firing on a
+            # criterion we cannot actually check.
+            return [], {"__unavailable__": True}
+        where.append("upper(s.pair) = ANY(:verdict_pairs)")
+        params["verdict_pairs"] = pairs_for_verdict
 
     tags = _as_list(criteria.get("tags"))
     if tags:
@@ -126,6 +176,9 @@ def generate_filter_match_notifications(db) -> int:
         # An empty filter matches everything. That is never what someone means
         # by "alert me", so it is treated as not yet configured.
         where, params = _build_conditions(criteria)
+        if params.pop("__unavailable__", False):
+            log.info("filter %s held: verdict data unavailable this pass", fid)
+            continue
         if not where:
             continue
 
