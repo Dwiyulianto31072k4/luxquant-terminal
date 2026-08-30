@@ -1663,6 +1663,22 @@ const CorrelationTab = ({ signals, correlationSummary }) => {
             </div>
           </div>
         )}
+      <div className="mt-4 border-t border-ink/[0.06] pt-4">
+        <Methodology title="What beta is measuring here">
+          <p className="mb-2">
+            Beta is how much a coin has moved with Bitcoin over the last 30 days.
+            Around 1 it tracks BTC; above 1 it exaggerates the same moves; near 0 it
+            has been going its own way. It is a description of the past 30 days, not
+            a forecast &mdash; a coin can decouple the day after a month of tracking.
+          </p>
+          <p>
+            Plotted against peak, so the question the chart answers is whether the
+            day&rsquo;s best moves came from coins riding Bitcoin or from coins that
+            left it. On a quiet BTC day both clusters collapse toward the middle and
+            the chart has little to say; that is the tape, not a broken chart.
+          </p>
+        </Methodology>
+      </div>
       </Card>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Card className="p-5">
@@ -1854,6 +1870,11 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
               <span className="font-mono uppercase tracking-wider text-sm text-text-primary/90">
                 {s.sector}
               </span>
+              {/* A sector with six calls can show 100%. Without this the card is
+                  indistinguishable from one built on two hundred. */}
+              {reliabilityFromSample(s.total) ? (
+                <ReliabilityBadge tier={reliabilityFromSample(s.total)} compact />
+              ) : null}
               {isActive && <span className="text-[9px] text-accent ml-auto">● FILTER</span>}
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
