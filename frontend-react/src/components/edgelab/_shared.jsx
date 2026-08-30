@@ -8,19 +8,19 @@
 // - tier helpers : colors, labels
 // ════════════════════════════════════════════════════════════════
 
-import { useState } from "react";
 
-export const TIER_COLORS = {
-  reliable: "#10b981",
-  moderate: "#f59e0b",
-  unreliable: "#ef4444",
-};
-
-export const TIER_LABELS = {
-  reliable: "Reliable",
-  moderate: "Moderate",
-  unreliable: "Unreliable",
-};
+// Methodology / InsightBand / ReliabilityBadge now live in the Terminal's
+// design system, so every surface can use them rather than just Edge Lab.
+// Re-exported here so the seven tabs that already import them keep working
+// unchanged; their colours moved from Tailwind defaults onto --pos / --accent
+// / --neg on the way, which is why the badges now match the rest of the app.
+export {
+  Methodology,
+  InsightBand,
+  ReliabilityBadge,
+  TIER_COLORS,
+  TIER_LABELS,
+} from "../terminal/vizShared";
 
 // ─── Win-rate → color (solid Binance green/red — no pastel alpha) ─
 // Mix deep slate → full #0ECB81 / #F6465D so cells stay sharp on any theme.
@@ -71,74 +71,7 @@ export const Panel = ({ children, className = "", title, meta, pad = true }) => 
 );
 
 // ─── Collapsible methodology ─────────────────────────────────────
-export const Methodology = ({ title, children, defaultOpen = false }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="rounded-lg border border-ink/[0.05] bg-ink/[0.015] overflow-hidden">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-ink/[0.02] transition group"
-      >
-        <span className="flex items-center gap-2 text-[10px] tracking-[0.2em] font-mono uppercase text-text-muted group-hover:text-text-primary/85 transition">
-          <span className="text-text-primary/25">ⓘ</span> {title}
-        </span>
-        <span
-          className={`text-text-primary/30 text-[10px] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-        >
-          ▾
-        </span>
-      </button>
-      {open && (
-        <div className="px-4 pb-3.5 pt-0.5 text-xs text-text-primary/60 leading-relaxed border-t border-ink/[0.04]">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // ─── Insight band — the headline takeaways ───────────────────────
-// items: [{ kind: 'good'|'bad'|'neutral', label, value, sub }]
-const KIND = {
-  good: { dot: "#10b981", val: "text-profit", ring: "border-profit/25 bg-profit/[0.045]" },
-  bad: { dot: "#ef4444", val: "text-loss", ring: "border-negative/25 bg-negative/[0.045]" },
-  neutral: {
-    dot: "rgb(var(--accent))",
-    val: "text-accent",
-    ring: "border-ink/12 bg-surface-secondary",
-  },
-};
-
-export const InsightBand = ({ items = [] }) => {
-  const shown = items.filter(Boolean).slice(0, 3);
-  if (!shown.length) return null;
-  return (
-    <div
-      className={`grid gap-3 ${shown.length === 1 ? "grid-cols-1" : shown.length === 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-3"}`}
-    >
-      {shown.map((it, i) => {
-        const k = KIND[it.kind] || KIND.neutral;
-        return (
-          <div key={i} className={`relative rounded-lg border px-4 py-3.5 ${k.ring}`}>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: k.dot }} />
-              <span className="text-[9px] tracking-[0.2em] font-mono uppercase text-text-primary/45">
-                {it.label}
-              </span>
-            </div>
-            <div className={`font-mono tabular-nums text-lg leading-none ${k.val}`}>{it.value}</div>
-            {it.sub && (
-              <div className="text-[10px] font-mono text-text-primary/45 mt-1.5 leading-snug">
-                {it.sub}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
 // ─── Empty state ─────────────────────────────────────────────────
 export const EmptyState = ({ title, hint }) => (
   <Panel pad>
@@ -150,26 +83,6 @@ export const EmptyState = ({ title, hint }) => (
     </div>
   </Panel>
 );
-
-// ─── Reliability badge ───────────────────────────────────────────
-export const ReliabilityBadge = ({ tier, compact = false }) => {
-  const color = TIER_COLORS[tier] || "#888";
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-sm border font-mono uppercase tracking-wider"
-      style={{
-        background: `${color}18`,
-        borderColor: `${color}50`,
-        color,
-        padding: compact ? "1px 6px" : "2px 8px",
-        fontSize: compact ? 8 : 9,
-      }}
-    >
-      <span className="rounded-full" style={{ background: color, width: 5, height: 5 }} />
-      {TIER_LABELS[tier] || tier}
-    </span>
-  );
-};
 
 // ─── WR scale legend strip ───────────────────────────────────────
 export const WrLegend = ({ note }) => (

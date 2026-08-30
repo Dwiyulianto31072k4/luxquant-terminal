@@ -1165,6 +1165,118 @@ export function Donut({ data, active, onPick, h = 190 }) {
 }
 
 // "warming up" placeholder — shown while the backend blob is precomputing
+// ── Trust primitives ────────────────────────────────────────────────────────
+// These three were written for Edge Lab and stayed there, which is the wrong
+// way round: Edge Lab is the least-visited corner of the product, and the
+// pages people actually judge us on — All-Time, Daily — carry none of them.
+// A big number with no method beside it reads as a claim; the same number with
+// its method reads as evidence. Moved here so every surface can use them.
+//
+// Their colours came from Tailwind's default palette (#10b981 / #f59e0b /
+// #ef4444), not from --pos / --accent / --neg, so Edge Lab's greens and reds
+// were a different green and red from the rest of the product. Bound to the
+// tokens on the way across.
+
+export const TIER_COLORS = { reliable: POS, moderate: GOLD, unreliable: NEG };
+export const TIER_LABELS = {
+  reliable: "Reliable",
+  moderate: "Moderate",
+  unreliable: "Unreliable",
+};
+
+/** Collapsible "how this number is computed". Collapsed by default: it must be
+ *  available without competing with the figure it explains. */
+export function Methodology({ title, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="overflow-hidden rounded-lg border border-ink/[0.05] bg-ink/[0.015]">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="group flex w-full items-center justify-between px-4 py-2.5 text-left transition hover:bg-ink/[0.02]"
+      >
+        <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted transition group-hover:text-text-primary/85">
+          <span className="text-text-primary/25">&#9432;</span> {title}
+        </span>
+        <span
+          className={`text-[10px] text-text-primary/30 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        >
+          &#9662;
+        </span>
+      </button>
+      {open ? (
+        <div className="border-t border-ink/[0.04] px-4 pb-3.5 pt-0.5 text-xs leading-relaxed text-text-primary/60">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+const INSIGHT_KIND = {
+  good: { dot: POS, val: "text-profit", ring: "border-profit/25 bg-profit/[0.045]" },
+  bad: { dot: NEG, val: "text-loss", ring: "border-negative/25 bg-negative/[0.045]" },
+  neutral: { dot: GOLD, val: "text-accent", ring: "border-ink/12 bg-surface-secondary" },
+};
+
+/** One to three takeaways in plain language, above the chart that produced
+ *  them. items: [{ kind: 'good'|'bad'|'neutral', label, value, sub }] */
+export function InsightBand({ items = [] }) {
+  const shown = (items || []).filter(Boolean).slice(0, 3);
+  if (!shown.length) return null;
+  const cols =
+    shown.length === 1
+      ? "grid-cols-1"
+      : shown.length === 2
+        ? "grid-cols-1 sm:grid-cols-2"
+        : "grid-cols-1 sm:grid-cols-3";
+  return (
+    <div className={`grid gap-3 ${cols}`}>
+      {shown.map((it, i) => {
+        const k = INSIGHT_KIND[it.kind] || INSIGHT_KIND.neutral;
+        return (
+          <div key={i} className={`relative rounded-lg border px-4 py-3.5 ${k.ring}`}>
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: k.dot }} />
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-primary/45">
+                {it.label}
+              </span>
+            </div>
+            <div className={`font-mono text-lg leading-none tabular-nums ${k.val}`}>{it.value}</div>
+            {it.sub ? (
+              <div className="mt-1.5 font-mono text-[10px] leading-snug text-text-primary/45">
+                {it.sub}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Says out loud when a sample is too small to lean on, before the reader
+ *  works it out and stops trusting the rest of the page. */
+export function ReliabilityBadge({ tier, compact = false }) {
+  const color = TIER_COLORS[tier] || MUTED;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-sm border font-mono uppercase tracking-wider"
+      style={{
+        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+        borderColor: `color-mix(in srgb, ${color} 34%, transparent)`,
+        color,
+        padding: compact ? "1px 6px" : "2px 8px",
+        fontSize: compact ? 8 : 9,
+      }}
+    >
+      <span className="rounded-full" style={{ background: color, width: 5, height: 5 }} />
+      {TIER_LABELS[tier] || tier}
+    </span>
+  );
+}
+
 export const Warming = ({ text }) => (
   <div className="py-12 flex flex-col items-center gap-2">
     <div className="w-5 h-5 border border-ink/12 border-t-accent rounded-full animate-spin" />
