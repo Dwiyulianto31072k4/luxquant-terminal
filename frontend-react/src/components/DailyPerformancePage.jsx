@@ -25,6 +25,7 @@ import { useDialog } from "../hooks/useDialog";
 import { peakLagLabel, daysToPeak } from "../utils/peakTiming";
 import {
   Kpi,
+  Methodology,
   ReliabilityBadge,
   reliabilityFromSample,
 } from "./terminal/vizShared";
@@ -731,6 +732,30 @@ const HeroSection = ({
               </div>
             </div>
           )}
+        </div>
+        {/* The number people quote off this page is the one they are most
+            likely to read wrong. "Win rate" here counts a call that reached
+            TP1 — not one that was held to TP4, and not realised profit. Saying
+            so beside the figure costs a line and removes the argument. */}
+        <div className="mt-5">
+          <Methodology title="How this day is scored">
+            <p className="mb-2">
+              A call counts as a <strong className="text-text-primary/80">win</strong> once it
+              reaches TP1. It does not mean the call ran to TP4, and it is not a
+              realised-profit figure &mdash; where a position was actually closed is the
+              trader&rsquo;s decision, not ours to claim.
+            </p>
+            <p className="mb-2">
+              <strong className="text-text-primary/80">Resolved</strong> counts calls that
+              reached a target or their stop on this date. Calls still running are
+              excluded, so the rate is not diluted by trades that have not finished.
+            </p>
+            <p>
+              <strong className="text-text-primary/80">Avg peak</strong> is the best level
+              each call reached, averaged. It is the ceiling that was available, not
+              what anyone banked.
+            </p>
+          </Methodology>
         </div>
       </Card>
     </div>
