@@ -53,27 +53,27 @@ const OUTCOME_STYLE = {
 };
 const DIST_ORDER = ["tp4", "tp3", "tp2", "tp1", "sl"];
 
-const OutcomeBadge = ({ outcome, size = 9 }) => {
-  const s = OUTCOME_STYLE[outcome] || {
-    label: outcome || "—",
-    c: "#888",
-    bg: "rgb(var(--ink) / 0.06)",
-  };
-  return (
-    <span
-      className="inline-flex items-center rounded-sm font-mono uppercase tracking-wider"
-      style={{
-        color: s.c,
-        background: s.bg,
-        border: `1px solid ${s.c}40`,
-        padding: "1px 7px",
-        fontSize: size,
-      }}
-    >
-      {s.label}
-    </span>
-  );
+// Badges reuse the app-wide status palette (SignalModal's `statusStyles`): one
+// profit colour for every TP, because the level is already spelled out in the
+// label. The ramp above stays for the distribution bar, where the segments sit
+// against each other and so do need to be separable.
+const OUTCOME_BADGE = {
+  tp4: "border-positive/25 bg-positive/15 text-positive",
+  tp3: "border-positive/20 bg-positive/10 text-positive",
+  tp2: "border-positive/20 bg-positive/10 text-positive",
+  tp1: "border-positive/20 bg-positive/10 text-positive",
+  sl: "border-negative/20 bg-negative/10 text-negative",
 };
+
+const OutcomeBadge = ({ outcome }) => (
+  <span
+    className={`inline-flex flex-shrink-0 items-center rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+      OUTCOME_BADGE[outcome] || "border-ink/10 bg-ink/[0.06] text-text-muted"
+    }`}
+  >
+    {OUTCOME_STYLE[outcome]?.label || outcome || "—"}
+  </span>
+);
 
 const fmtPair = (pair) => (pair || "").replace(/USDT$/i, "");
 
@@ -476,7 +476,7 @@ const SignalRow = ({ s, maxPeak, btcHold, selected, onSelect }) => {
             >
               {fmtPair(s.pair)}
             </span>
-            <OutcomeBadge outcome={s.outcome} size={8} />
+            <OutcomeBadge outcome={s.outcome} />
           </div>
           <div className="flex items-center gap-2 text-[10px] font-mono leading-tight mt-0.5">
             <span className="text-text-muted">{fmtDate(s.hit_date)}</span>
@@ -538,7 +538,7 @@ const DetailPane = ({
       {onBack && (
         <button
           onClick={onBack}
-          className="md:hidden self-start mx-4 mt-3 px-2.5 py-1 rounded-md border border-ink/[0.08] text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-text-primary"
+          className="mx-4 mt-3 inline-flex h-7 items-center self-start rounded-md border border-ink/[0.1] bg-surface-secondary px-2 text-[10px] font-medium uppercase tracking-[0.1em] text-text-muted transition-colors hover:text-text-primary md:hidden"
         >
           ← List
         </button>
@@ -556,7 +556,7 @@ const DetailPane = ({
               {rank != null && total != null ? `#${rank} of ${total} by peak` : ""}
             </div>
           </div>
-          <OutcomeBadge outcome={s.outcome} size={10} />
+          <OutcomeBadge outcome={s.outcome} />
         </div>
 
         {/* hero: peak + held */}
@@ -643,7 +643,7 @@ const DetailPane = ({
             <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
               Outcome
             </span>
-            <OutcomeBadge outcome={s.outcome} size={9} />
+            <OutcomeBadge outcome={s.outcome} />
           </div>
         </div>
 
@@ -651,10 +651,10 @@ const DetailPane = ({
         <button
           onClick={() => !opening && onOpenSignal?.(s.signal_id, s)}
           disabled={opening}
-          className={`w-full py-2.5 rounded-lg border text-[11px] font-mono uppercase tracking-[0.18em] transition flex items-center justify-center gap-2 ${
+          className={`flex w-full items-center justify-center gap-2 rounded-lg px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] shadow-sm transition-colors ${
             opening
-              ? "border-ink/[0.08] text-text-muted cursor-wait"
-              : "border-ink/35 bg-accent/[0.07] text-accent hover:bg-accent/[0.14]"
+              ? "cursor-wait border border-ink/[0.08] text-text-muted shadow-none"
+              : "bg-accent text-accent-fg hover:bg-accent-light"
           }`}
         >
           {opening ? (
@@ -809,14 +809,16 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
   const FilterChip = ({ id, label, count }) => (
     <button
       onClick={() => setFilter(id)}
-      className={`px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider transition border ${
+      className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
         filter === id
-          ? "border-ink/15 bg-accent/12 text-accent"
-          : "border-ink/[0.08] text-text-muted hover:text-text-primary/80"
+          ? "border-accent/35 bg-accent/12 text-accent"
+          : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:text-text-primary"
       }`}
     >
       {label}
-      {count != null && <span className="opacity-50 ml-1">{count}</span>}
+      {count != null && (
+        <span className="tabular-nums opacity-60">{count}</span>
+      )}
     </button>
   );
 
@@ -845,16 +847,18 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="shrink-0 w-8 h-8 rounded-md border border-ink/[0.08] text-text-muted hover:text-text-primary hover:border-ink/25 transition flex items-center justify-center"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.08] sm:h-9 sm:w-9"
               title="Close (Esc)"
+              aria-label="Close"
             >
               <svg
                 viewBox="0 0 24 24"
                 className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={2}
+                strokeWidth={2.75}
                 strokeLinecap="round"
               >
                 <path d="M18 6 6 18M6 6l12 12" />
@@ -947,7 +951,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                 {error}
                 <button
                   onClick={load}
-                  className="block mt-2 text-[11px] font-mono uppercase tracking-wider text-loss/70 hover:text-loss"
+                  className="mt-2 inline-flex h-7 items-center rounded-md border border-negative/25 bg-negative/10 px-2 text-[10px] font-medium uppercase tracking-[0.1em] text-negative transition-colors hover:bg-negative/15"
                 >
                   ↻ Retry
                 </button>
@@ -977,7 +981,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                   </div>
                   <button
                     onClick={() => setSort(sort === "peak" ? "recent" : "peak")}
-                    className="px-2 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-text-primary"
+                    className="inline-flex h-7 items-center rounded-md border border-ink/[0.1] bg-surface-secondary px-2 text-[10px] font-medium uppercase tracking-[0.1em] text-text-muted transition-colors hover:text-text-primary"
                     title="Toggle sort"
                   >
                     ⇅ {sort}
