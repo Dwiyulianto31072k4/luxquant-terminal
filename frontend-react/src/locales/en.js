@@ -248,8 +248,6 @@ export const enPerf = {
   normal: "Normal",
   high: "High",
   signals: "SIGNALS",
-  wr_by_risk: "Win Rate by Risk Level",
-  wr_by_risk_desc: "Trend comparison across risk categories",
 
   // Top Pairs
   top_pairs: "Top Performing Pairs",

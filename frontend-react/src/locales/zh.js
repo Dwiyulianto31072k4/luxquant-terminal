@@ -246,8 +246,6 @@ export const zhPerf = {
   normal: "正常",
   high: "高",
   signals: "信号数",
-  wr_by_risk: "各风险等级胜率",
-  wr_by_risk_desc: "不同风险类别的趋势比较",
 
   // Top Pairs
   top_pairs: "最佳表现代币对",

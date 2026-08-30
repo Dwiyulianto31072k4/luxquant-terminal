@@ -58,7 +58,6 @@ const AnalyzePage = () => {
   const [error, setError] = useState(null);
 
   const [timeRange, setTimeRange] = useState("all");
-  const [trendMode, setTrendMode] = useState("weekly");
 
   const [signals, setSignals] = useState([]);
   const [sigLoading, setSigLoading] = useState(false);
@@ -79,7 +78,6 @@ const AnalyzePage = () => {
       setError(null);
       const params = new URLSearchParams();
       if (timeRange !== "all") params.append("time_range", timeRange);
-      params.append("trend_mode", trendMode);
       const token = localStorage.getItem("access_token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await fetch(`${API_BASE}/signals/analyze?${params}`, { headers });
@@ -90,7 +88,7 @@ const AnalyzePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, trendMode]);
+  }, [timeRange]);
 
   useEffect(() => {
     fetchAnalyzeData();
@@ -483,23 +481,6 @@ const AnalyzePage = () => {
         )}
       </div>
 
-      {/* ── WIN RATE TREND BY RISK LEVEL ── */}
-      {data.risk_trend && data.risk_trend.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl border border-ink/[0.10] bg-surface-raised p-5 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <IconRiskTrend />
-            <div>
-              <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-text-primary">
-                {t("perf.wr_by_risk")}
-              </h3>
-              <p className="mt-1 text-[12px] leading-snug text-text-muted">
-                {t("perf.wr_by_risk_desc")}
-              </p>
-            </div>
-          </div>
-          <RiskTrendChart data={data.risk_trend} mode={trendMode} t={t} />
-        </div>
-      )}
 
       {/* ── TOP PERFORMING PAIRS ── */}
       {data.pair_metrics && data.pair_metrics.length > 0 && (
@@ -913,157 +894,6 @@ const RiskRewardChart = ({ data, t }) => {
 
 /* ──────────────────────────────────────────────────────────────
  RISK TREND CHART — muted profit/gold/loss palette
- ────────────────────────────────────────────────────────────── */
-
-const RiskTrendChart = ({ data, _mode, t }) => {
-  if (!data || data.length === 0)
-    return (
-      <div className="h-48 lg:h-64 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
-        Not enough data
-      </div>
-    );
-
-  const chartData = data.map((item) => ({
-    period: (() => {
-      try {
-        const d = new Date(item.period);
-        return isNaN(d)
-          ? item.period
-          : d.toLocaleDateString("en", { month: "short", day: "numeric" });
-      } catch {
-        return item.period;
-      }
-    })(),
-    fullDate: item.period,
-    low: item.low_wr,
-    normal: item.normal_wr,
-    high: item.high_wr,
-    lowCount: item.low_count,
-    normalCount: item.normal_count,
-    highCount: item.high_count,
-  }));
-
-  const allRates = chartData
-    .flatMap((d) => [d.low, d.normal, d.high])
-    .filter((v) => v != null && v > 0);
-  const minR = allRates.length > 0 ? Math.min(...allRates) : 0;
-  const maxR = allRates.length > 0 ? Math.max(...allRates) : 100;
-  const pad = Math.max((maxR - minR) * 0.15, 5);
-  const yMin = Math.max(0, Math.floor((minR - pad) / 5) * 5);
-  const yMax = Math.min(100, Math.ceil((maxR + pad) / 5) * 5);
-
-  return (
-    <div className="h-48 lg:h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--ink) / 0.04)" vertical={false} />
-          <XAxis
-            dataKey="period"
-            stroke="#6b5c52"
-            fontSize={9}
-            fontFamily="JetBrains Mono, monospace"
-            tickLine={false}
-            axisLine={false}
-            interval={Math.max(0, Math.floor(chartData.length / 10))}
-          />
-          <YAxis
-            stroke="#6b5c52"
-            fontSize={10}
-            fontFamily="JetBrains Mono, monospace"
-            domain={[yMin, yMax]}
-            tickFormatter={(v) => `${v}%`}
-            tickLine={false}
-            axisLine={false}
-            width={38}
-          />
-          <Tooltip
-            content={({ active, payload, label }) => {
-              if (!active || !payload?.length) return null;
-              const d = payload[0]?.payload;
-              return (
-                <div className="bg-surface border border-ink/[0.06] rounded-sm p-3 relative overflow-hidden shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)]">
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-1.5">
-                    {d?.fullDate || label}
-                  </p>
-                  {d?.low != null && (
-                    <p className="font-mono text-[11px] text-profit tabular-nums">
-                      <span className="uppercase tracking-wider text-[10px]">{t("perf.low")}</span>:{" "}
-                      {d.low.toFixed(1)}% <span className="text-text-muted/70">({d.lowCount})</span>
-                    </p>
-                  )}
-                  {d?.normal != null && (
-                    <p className="font-mono text-[11px] text-accent tabular-nums">
-                      <span className="uppercase tracking-wider text-[10px]">
-                        {t("perf.normal")}
-                      </span>
-                      : {d.normal.toFixed(1)}%{" "}
-                      <span className="text-text-muted/70">({d.normalCount})</span>
-                    </p>
-                  )}
-                  {d?.high != null && (
-                    <p className="font-mono text-[11px] text-loss tabular-nums">
-                      <span className="uppercase tracking-wider text-[10px]">{t("perf.high")}</span>
-                      : {d.high.toFixed(1)}%{" "}
-                      <span className="text-text-muted/70">({d.highCount})</span>
-                    </p>
-                  )}
-                </div>
-              );
-            }}
-          />
-          <Legend
-            iconType="circle"
-            wrapperStyle={{
-              fontSize: "10px",
-              paddingTop: "8px",
-              fontFamily: "JetBrains Mono, monospace",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="low"
-            name={t("perf.low")}
-            stroke={C.profit}
-            strokeWidth={1.5}
-            dot={false}
-            activeDot={{
-              r: 3,
-              fill: C.profit,
-              stroke: "rgb(var(--surface-raised))",
-              strokeWidth: 2,
-            }}
-            connectNulls
-          />
-          <Line
-            type="monotone"
-            dataKey="normal"
-            name={t("perf.normal")}
-            stroke={C.gold}
-            strokeWidth={1.5}
-            dot={false}
-            activeDot={{ r: 3, fill: C.gold, stroke: "rgb(var(--surface-raised))", strokeWidth: 2 }}
-            connectNulls
-          />
-          <Line
-            type="monotone"
-            dataKey="high"
-            name={t("perf.high")}
-            stroke={C.loss}
-            strokeWidth={1.5}
-            dot={false}
-            activeDot={{ r: 3, fill: C.loss, stroke: "rgb(var(--surface-raised))", strokeWidth: 2 }}
-            connectNulls
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-/* ──────────────────────────────────────────────────────────────
- TOP PAIRS TABLE — Flowscan table pattern
  ────────────────────────────────────────────────────────────── */
 
 const TopPairsTable = ({ pairs, t }) => {
@@ -1529,24 +1359,6 @@ const IconRisk = () => (
     >
       <path d="M12 2L2 22h20L12 2z" />
       <path d="M12 9v4M12 17h.01" />
-    </svg>
-  </div>
-);
-
-const IconRiskTrend = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
-    <svg
-      className="w-3.5 h-3.5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 3v18h18" />
-      <path d="M7 12l3-3 3 3 7-7" />
-      <path d="M14 5h6v6" />
     </svg>
   </div>
 );
