@@ -179,11 +179,20 @@ const ExpectedValueTab = ({ data, onDrill }) => {
                   >
                     <td className="px-4 py-2.5 font-mono text-[13px] text-text-primary/85 whitespace-nowrap">
                       <span className="inline-flex items-center gap-2">
-                        <span
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ background: tierColor }}
-                          title={p.reliability}
-                        />
+                        {/* Was a 1.5px dot decoded only by hovering it, which on a
+                            phone means not at all. The backend already returns a
+                            real tier here — n >= 30 with a tight CI — so the rows
+                            that cannot carry weight can say so out loud. Reliable
+                            rows stay unbadged, or the badge stops meaning anything. */}
+                        {p.reliability && p.reliability !== "reliable" ? (
+                          <ReliabilityBadge tier={p.reliability} compact />
+                        ) : (
+                          <span
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ background: tierColor }}
+                            title={p.reliability}
+                          />
+                        )}
                         {p.pattern}
                       </span>
                     </td>

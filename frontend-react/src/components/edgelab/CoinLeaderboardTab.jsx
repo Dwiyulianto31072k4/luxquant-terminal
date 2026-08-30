@@ -10,6 +10,8 @@
 // ════════════════════════════════════════════════════════════════
 import { useState, useMemo } from "react";
 import CoinLogo from "../CoinLogo";
+import { ReliabilityBadge } from "./_shared";
+import { reliabilityFromSample } from "../terminal/vizShared";
 import { Panel, Methodology, InsightBand, EmptyState } from "./_shared";
 import { peakLagLabel } from "../../utils/peakTiming";
 
@@ -233,6 +235,13 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
                         <span className="font-mono text-[13px] text-text-primary/90">
                           {fmtPair(c.pair)}
                         </span>
+                        {/* The server floors this list at n >= 10, so nothing here
+                            is wild — but ten calls and a hundred read identically
+                            in a win-rate column, and this table is the one people
+                            screenshot. Marks 10-29; stays quiet at 30+. */}
+                        {reliabilityFromSample(c.count) ? (
+                          <ReliabilityBadge tier={reliabilityFromSample(c.count)} compact />
+                        ) : null}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-[11px] font-mono uppercase tracking-wider text-text-primary/45">
