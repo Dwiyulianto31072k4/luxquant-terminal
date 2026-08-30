@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.learning import LearningCourse, LearningLesson, LearningModule
 from app.models.user import User  # noqa: F401 - registers FK target in Base metadata
+from app.services.learning_maximize_calls_course import MAXIMIZE_CALLS_COURSE
 
 
 def _slug(value: str) -> str:
@@ -202,6 +203,8 @@ CATALOG = [
         ],
     },
 ]
+
+CATALOG.append(MAXIMIZE_CALLS_COURSE)
 
 
 def seed_learning_catalog(db: Session) -> int:
