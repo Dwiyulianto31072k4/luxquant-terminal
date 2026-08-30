@@ -419,6 +419,8 @@ const CoverageBanner = ({ coverage, total, _dailyRegime, hasFilters }) => {
   );
 };
 
+const LOCK_WINDOW_DAYS = 7;
+
 // ─── Small sample badge (v7) ─────────────────────────────────────
 
 // Was a hand-rolled binary badge ("small sample" below 15) one folder away
@@ -2634,6 +2636,11 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
   }, []);
 
   const allSignals = useMemo(() => data?.day_detail?.signals || [], [data]);
+  // The server withholds the per-signal list inside the paid window rather
+  // than sending it and hiding it in the client, so there is nothing here to
+  // read out of the network tab.
+  const locked = Boolean(data?.day_detail?.signals_locked);
+  const lockedCount = Number(data?.day_detail?.signals_locked_count) || 0;
 
   const filteredSignals = useMemo(() => {
     return allSignals.filter((s) => {
@@ -2688,6 +2695,20 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
             Interactive analytics · click any chart to filter · click any pair for detail
           </p>
         </div>
+        {locked ? (
+          <div className="w-full rounded-lg border border-accent/25 bg-accent/[0.05] px-4 py-3">
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+              Per-signal breakdown is for subscribers
+            </div>
+            <p className="mt-1.5 text-sm text-text-primary/70">
+              The day&rsquo;s win rate, counts and distributions above are open to
+              everyone. Which coins were called, in what direction, and how each
+              one resolved stays with the subscription for {LOCK_WINDOW_DAYS} days
+              &mdash; {lockedCount} {lockedCount === 1 ? "signal" : "signals"} on this
+              date. Days older than that open up in full.
+            </p>
+          </div>
+        ) : null}
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* v7: Edge Lab button (placeholder until Deliverable B) */}

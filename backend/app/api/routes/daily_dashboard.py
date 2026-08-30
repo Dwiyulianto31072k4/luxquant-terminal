@@ -41,6 +41,8 @@ from datetime import datetime, timedelta
 
 from app.core.database import get_db
 from app.core.redis import cache_get, cache_set, cache_get_with_stale
+from app.api.deps import get_current_user_optional
+from app.models.user import User
 
 router = APIRouter()
 
@@ -105,10 +107,16 @@ def _fear_greed_label(value: Optional[int]) -> Optional[str]:
     return "Extreme Greed"
 
 
+# Matches the All-Time history window, so the two pages agree on what the
+# subscription buys. Older days stay open — that is track record, not a tip.
+PUBLIC_DETAIL_LAG_DAYS = 7
+
+
 @router.get("/analytics/daily/dashboard")
 def get_daily_dashboard(
     date: Optional[str] = Query(None, description="YYYY-MM-DD UTC. Default = today UTC"),
     db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Daily Performance dashboard — bundled in one round-trip."""
     if date:
@@ -119,7 +127,23 @@ def get_daily_dashboard(
     else:
         target_date = datetime.utcnow().date()
 
-    cache_key = f"lq:daily-dashboard:v6:{target_date.isoformat()}"
+    # This endpoint had no auth at all, so 47 of today's calls — pair, direction,
+    # outcome, peak and enrichment tags — were readable by anyone with the URL,
+    # while the All-Time page one tab away deliberately hides the same seven-day
+    # window as the subscriber's. Two pages disagreeing about what is paid for
+    # is worse than either policy alone.
+    #
+    # The aggregate stays open: win rate, counts and distributions are the same
+    # proof the landing page already publishes, and hiding it would cost
+    # marketing without protecting anything. What closes is the per-signal list
+    # inside the paid window.
+    is_subscriber = bool(current_user is not None and current_user.has_active_access)
+    detail_cutoff = datetime.utcnow().date() - timedelta(days=PUBLIC_DETAIL_LAG_DAYS)
+    redact_detail = (not is_subscriber) and target_date > detail_cutoff
+
+    # Never let an anonymous response and a subscriber response share a key.
+    scope = "pub" if redact_detail else "sub"
+    cache_key = f"lq:daily-dashboard:v7:{scope}:{target_date.isoformat()}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -513,7 +537,9 @@ def get_daily_dashboard(
             "daily_regime": daily_regime,
         },
         "day_detail": {
-            "signals": day_signals,
+            "signals": [] if redact_detail else day_signals,
+            "signals_locked": redact_detail,
+            "signals_locked_count": len(day_signals) if redact_detail else 0,
             "context": {
                 "btc_trend_distribution": btc_trend_dist,
                 "btc_dom_distribution": btc_dom_dist,
