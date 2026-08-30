@@ -7,6 +7,7 @@
 // ────────────────────────────────────────────────────────────────
 
 import { useState } from "react";
+import { useLiveBtcPrice } from "./useLiveBtcPrice";
 import {
   Card,
   SectionHeader,
@@ -301,6 +302,7 @@ function DriverCard({ row }) {
 }
 
 export default function TheRead({ data }) {
+  const liveBtc = useLiveBtcPrice();
   const [showRisks, setShowRisks] = useState(false);
   if (!data) return null;
 
@@ -309,7 +311,7 @@ export default function TheRead({ data }) {
   const dir = dirMeta(tactical.direction);
   const conf = Number(tactical.confidence);
 
-  const btc = Number(data?.btc_price) || null;
+  const btc = liveBtc ?? (Number(data?.btc_price) || null);
   const contract = verdict.scenario_contract || {};
   const target = Number(contract?.primary_touch?.level) || null;
   const invalidation = Number(contract?.invalidation?.level) || null;
