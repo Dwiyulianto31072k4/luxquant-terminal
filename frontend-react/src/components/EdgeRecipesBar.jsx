@@ -67,14 +67,21 @@ export function captureRecipeState(s) {
 }
 
 /**
- * Do the live filters still equal what this recipe applies?
+ * Is this recipe still the one in force?
+ *
+ * Equality, not identity: the search box and the day tabs narrow WITHIN a
+ * recipe rather than replacing it. Comparing them too meant typing a coin name
+ * while Hunt was on made the bar go dark and claim Hunt was off, while every
+ * one of its filters was still applied and still listed in the chip bar. The
+ * recipe is defined by the filters it sets — tags, verdict, status, risk,
+ * streak, correlation and the sort chain — so only those decide.
  *
  * The bar used to STORE which recipe was clicked, and persist it. That made the
  * highlight drift the moment anything else touched the filters: "Clear all"
  * wiped every filter while the bar kept insisting "Hunt is on", and localStorage
  * carried the claim across reloads. Derived, the highlight cannot lie.
  */
-function sameRecipeState(a, b) {
+export function sameRecipeState(a, b) {
   if (!a || !b) return false;
   const ta = [...(a.selectedTags || [])].sort();
   const tb = [...(b.selectedTags || [])].sort();
@@ -89,7 +96,6 @@ function sameRecipeState(a, b) {
     a.statusFilter === b.statusFilter &&
     a.riskFilter === b.riskFilter &&
     a.streakFilter === b.streakFilter &&
-    a.searchPair === b.searchPair &&
     a.corrDecoupled === b.corrDecoupled &&
     a.corrHighAlign === b.corrHighAlign
   );
