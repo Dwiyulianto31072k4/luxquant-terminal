@@ -111,7 +111,13 @@ const SignalModal = ({
   // "tv" keeps the embed widget (drawing tools, symbol search); "plan" swaps in
   // our own chart, the only one that can draw entry/TP/SL, because the TV embed
   // is a cross-origin iframe nothing outside it can write to.
-  const [chartMode, setChartMode] = useState("tv");
+  // Binance lists a handful of perps whose ticker is Chinese (龙虾USDT and
+  // friends). TradingView has no symbol for them, so the embed renders nothing
+  // but "This symbol doesn't exist" — our own chart reads the app's klines
+  // endpoint, which serves them, so those pairs open on it instead.
+  const [chartMode, setChartMode] = useState(() =>
+    (signal?.pair || "").split("").every((c) => c.charCodeAt(0) < 128) ? "tv" : "plan"
+  );
   // Key levels. 1H is the default because it is the timeframe the calls are
   // managed on; srLevels is {resistance, support} for the chosen timeframe only.
   const [srTf, setSrTf] = useState("1h");
@@ -1099,9 +1105,14 @@ const SignalModal = ({
     lastPricePct = ((Math.abs(lastPrice - entryPrice) / entryPrice) * 100).toFixed(2);
   }
 
+  // Signed, deliberately. Math.abs used to sit here, so a peak that came back
+  // BELOW entry — which happens when the fetch resolves the wrong symbol, or
+  // returns a stale series — rendered as a gain: 0.007777 against an entry of
+  // 0.0245 read "+68.26%". A high that is under the entry is not a high, so it
+  // is suppressed rather than dressed up.
   let peakPricePct = null;
-  if (peakPrice > 0 && entryPrice > 0) {
-    peakPricePct = ((Math.abs(Number(peakPrice) - entryPrice) / entryPrice) * 100).toFixed(2);
+  if (peakPrice > 0 && entryPrice > 0 && Number(peakPrice) > entryPrice) {
+    peakPricePct = (((Number(peakPrice) - entryPrice) / entryPrice) * 100).toFixed(2);
   }
 
   // When that high actually happened, and whether the stop had already fired by
@@ -2614,7 +2625,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     )}
 
                     {/* Peak Price (FULL WIDTH) */}
-                    {peakPrice && entryPrice > 0 && (
+                    {peakPrice && entryPrice > 0 && peakPricePct && (
                       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-ink/[0.06] bg-surface-raised px-4 py-3 sm:flex-row sm:gap-4">
                         <div className="flex flex-col items-center sm:items-end">
                           <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-muted sm:text-right">
