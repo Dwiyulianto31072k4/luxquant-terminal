@@ -850,8 +850,17 @@ def get_signals(
             params["pair"] = f"%{pair.upper()}%"
         if risk_level:
             risk_lower = risk_level.lower()
-            if risk_lower in ['med', 'medium']:
-                conditions.append("LOWER(s.risk_level) LIKE 'med%'")
+            # The UI's three buckets, matched exactly as the client matches them.
+            # 'normal' covers medium/med/normal — asking the API for 'normal' used
+            # to return only the literal 'normal' rows and silently drop the
+            # ~7k stored as 'medium'/'med', so the same filter name meant two
+            # different sets depending on which side ran it.
+            if risk_lower in ('med', 'medium', 'normal'):
+                conditions.append(
+                    "(LOWER(s.risk_level) LIKE 'med%' OR LOWER(s.risk_level) LIKE 'nor%')"
+                )
+            elif risk_lower == 'unrated':
+                conditions.append("COALESCE(NULLIF(TRIM(s.risk_level), ''), NULL) IS NULL")
             else:
                 conditions.append("LOWER(s.risk_level) LIKE :risk")
                 params["risk"] = f"{risk_lower}%"

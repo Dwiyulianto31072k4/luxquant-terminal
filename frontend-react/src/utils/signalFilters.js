@@ -17,6 +17,7 @@ export const DEFAULT_FILTERS = {
   verdictFilter: "all", // 'all' | 'worth_it' | 'avoid'
   selectedDates: [], // ['YYYY-MM-DD', ...]
   selectedTags: [],
+  tagMatchMode: "any", // 'any' (OR) | 'all' (AND) — matches the signals desk
   showWatchlistOnly: false,
   sortBy: "created_at",
   sortOrder: "desc",
@@ -57,6 +58,7 @@ export function filtersToParams(f) {
   if (f.verdictFilter !== "all") p.set("verdict", f.verdictFilter);
   if (f.selectedDates?.length) p.set("dates", f.selectedDates.join(","));
   if (f.selectedTags?.length) p.set("tags", f.selectedTags.join(","));
+  if (f.tagMatchMode === "all") p.set("tagmode", "all");
   if (f.showWatchlistOnly) p.set("wl", "1");
   if (f.sortBy && f.sortBy !== "created_at") p.set("sort", f.sortBy);
   if (f.sortOrder && f.sortOrder !== "desc") p.set("order", f.sortOrder);
@@ -76,6 +78,7 @@ export function parseFilters(searchParams) {
     verdictFilter: g("verdict") || "all",
     selectedDates: g("dates") ? g("dates").split(",").filter(Boolean) : [],
     selectedTags: g("tags") ? g("tags").split(",").filter(Boolean) : [],
+    tagMatchMode: g("tagmode") === "all" ? "all" : "any",
     showWatchlistOnly: g("wl") === "1",
     sortBy: g("sort") || "created_at",
     sortOrder: g("order") || "desc",
@@ -113,6 +116,12 @@ export function applySignalFilters(signals, f, ctx = {}) {
           return st === "tp2";
         case "tp3":
           return st === "tp3";
+        case "tp1_plus":
+          return ["tp1", "tp2", "tp3", "tp4", "closed_win"].includes(st);
+        case "tp2_plus":
+          return ["tp2", "tp3", "tp4", "closed_win"].includes(st);
+        case "full_tp":
+          return st === "tp3" || st === "tp4" || st === "closed_win";
         case "tp4":
         case "closed_win":
           return st === "closed_win" || st === "tp4";
@@ -135,6 +144,8 @@ export function applySignalFilters(signals, f, ctx = {}) {
           return r.startsWith("med") || r.startsWith("nor");
         case "high":
           return r.startsWith("high");
+        case "unrated":
+          return !r;
         default:
           return true;
       }
@@ -156,7 +167,9 @@ export function applySignalFilters(signals, f, ctx = {}) {
     out = out.filter((s) => {
       const tags = s.important_tags;
       if (!Array.isArray(tags)) return false;
-      return f.selectedTags.some((t) => tags.includes(t));
+      return f.tagMatchMode === "all"
+        ? f.selectedTags.every((t) => tags.includes(t))
+        : f.selectedTags.some((t) => tags.includes(t));
     });
   }
 

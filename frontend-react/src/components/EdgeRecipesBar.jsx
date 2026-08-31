@@ -21,7 +21,6 @@ function prettyDay(iso) {
 }
 
 const SAVED_KEY = "lq:edge-recipes:v1";
-const ACTIVE_KEY = "lq:edge-active-recipe:v1";
 const NUDGE_KEY = "lq:shortlist-nudge:v1";
 
 function loadSaved() {
@@ -42,14 +41,6 @@ function persistSaved(list) {
   }
 }
 
-function persistActiveId(id) {
-  try {
-    if (id) localStorage.setItem(ACTIVE_KEY, id);
-    else localStorage.removeItem(ACTIVE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
 
 export function captureRecipeState(s) {
   const sorts =
@@ -75,6 +66,35 @@ export function captureRecipeState(s) {
   };
 }
 
+/**
+ * Do the live filters still equal what this recipe applies?
+ *
+ * The bar used to STORE which recipe was clicked, and persist it. That made the
+ * highlight drift the moment anything else touched the filters: "Clear all"
+ * wiped every filter while the bar kept insisting "Hunt is on", and localStorage
+ * carried the claim across reloads. Derived, the highlight cannot lie.
+ */
+function sameRecipeState(a, b) {
+  if (!a || !b) return false;
+  const ta = [...(a.selectedTags || [])].sort();
+  const tb = [...(b.selectedTags || [])].sort();
+  if (ta.length !== tb.length || ta.some((t, i) => t !== tb[i])) return false;
+  const sa = a.sorts || [];
+  const sb = b.sorts || [];
+  if (sa.length !== sb.length) return false;
+  if (sa.some((x, i) => x.field !== sb[i].field || x.order !== sb[i].order)) return false;
+  return (
+    a.tagMatchMode === b.tagMatchMode &&
+    a.verdictFilter === b.verdictFilter &&
+    a.statusFilter === b.statusFilter &&
+    a.riskFilter === b.riskFilter &&
+    a.streakFilter === b.streakFilter &&
+    a.searchPair === b.searchPair &&
+    a.corrDecoupled === b.corrDecoupled &&
+    a.corrHighAlign === b.corrHighAlign
+  );
+}
+
 export default function EdgeRecipesBar({
   tagWr = [],
   selectedTags = [],
@@ -89,13 +109,10 @@ export default function EdgeRecipesBar({
   searchPair = "",
   corrDecoupled = false,
   corrHighAlign = false,
-  filteredCount = null,
   onApplyState,
-  onReset,
   onScrollToPlaybook: _onScrollToPlaybook,
 }) {
   const [saved, setSaved] = useState(() => loadSaved());
-  const [activeId, setActiveId] = useState(null);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [explainId, setExplainId] = useState(null);
@@ -248,6 +265,49 @@ export default function EdgeRecipesBar({
     [runnerTags, cautionTags]
   );
 
+  // Which recipe (if any) the live filters currently equal. Derived, never stored.
+  const liveState = useMemo(
+    () =>
+      captureRecipeState({
+        selectedTags,
+        tagMatchMode,
+        verdictFilter,
+        statusFilter,
+        riskFilter,
+        streakFilter,
+        sortBy,
+        sortOrder,
+        sorts,
+        searchPair,
+        corrDecoupled,
+        corrHighAlign,
+      }),
+    [
+      selectedTags,
+      tagMatchMode,
+      verdictFilter,
+      statusFilter,
+      riskFilter,
+      streakFilter,
+      sortBy,
+      sortOrder,
+      sorts,
+      searchPair,
+      corrDecoupled,
+      corrHighAlign,
+    ]
+  );
+
+  const activeId = useMemo(() => {
+    for (const r of builtins) {
+      if (sameRecipeState(liveState, captureRecipeState(r.build()))) return r.id;
+    }
+    for (const r of saved) {
+      if (r?.state && sameRecipeState(liveState, captureRecipeState(r.state))) return r.id;
+    }
+    return null;
+  }, [liveState, builtins, saved]);
+
   const dismissNudge = () => {
     setNudgeOpen(false);
     try {
@@ -259,22 +319,12 @@ export default function EdgeRecipesBar({
 
   const applyBuiltin = (r) => {
     onApplyState?.(r.build());
-    setActiveId(r.id);
-    persistActiveId(r.id);
     if (r.id === "full_tp") dismissNudge();
   };
 
   const applySaved = (r) => {
     if (!r?.state) return;
     onApplyState?.(r.state);
-    setActiveId(r.id);
-    persistActiveId(r.id);
-  };
-
-  const handleReset = () => {
-    onReset?.();
-    setActiveId(null);
-    persistActiveId(null);
   };
 
   const handleSave = () => {
@@ -298,8 +348,6 @@ export default function EdgeRecipesBar({
     const next = [{ id, name, state, savedAt: new Date().toISOString() }, ...saved].slice(0, 12);
     setSaved(next);
     persistSaved(next);
-    setActiveId(id);
-    persistActiveId(id);
     setSaveName("");
     setShowSave(false);
   };
@@ -308,10 +356,6 @@ export default function EdgeRecipesBar({
     const next = saved.filter((x) => x.id !== id);
     setSaved(next);
     persistSaved(next);
-    if (activeId === id) {
-      setActiveId(null);
-      persistActiveId(null);
-    }
   };
 
   const toneBorder = (tone, active) => {
@@ -456,21 +500,6 @@ export default function EdgeRecipesBar({
               ▾
             </span>
           </button>
-          {filteredCount != null && activeId ? (
-            <span className="font-mono text-[10px] tabular-nums text-text-muted">
-              {filteredCount} shown
-            </span>
-          ) : null}
-          {activeId ? (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="rounded-md px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary"
-            >
-              Reset
-            </button>
-          ) : null}
-
           {saved.map((r) => (
             <span
               key={r.id}

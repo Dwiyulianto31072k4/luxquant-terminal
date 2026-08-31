@@ -1059,6 +1059,8 @@ const SignalsPage = () => {
             return r.startsWith("med") || r.startsWith("nor");
           case "high":
             return r.startsWith("high");
+          case "unrated":
+            return !r;
           default:
             return true;
         }
@@ -1352,6 +1354,8 @@ const SignalsPage = () => {
             return r.startsWith("med") || r.startsWith("nor");
           case "high":
             return r.startsWith("high");
+          case "unrated":
+            return !r;
           default:
             return true;
         }
@@ -1456,6 +1460,10 @@ const SignalsPage = () => {
     { value: "low", label: "Low", dotColor: "bg-profit" },
     { value: "normal", label: "Normal", dotColor: "bg-accent" },
     { value: "high", label: "High", dotColor: "bg-negative" },
+    // ~9% of signals carry no risk_level. Without this they matched none of
+    // Low/Normal/High and could only be reached by clearing the filter, so the
+    // three options silently failed to add up to the whole set.
+    { value: "unrated", label: "Unrated", dotColor: "bg-ink/30" },
   ];
 
   const sortOptions = [
@@ -2531,9 +2539,7 @@ const SignalsPage = () => {
           searchPair={searchPair}
           corrDecoupled={corrDecoupled}
           corrHighAlign={corrHighAlign}
-          filteredCount={totalSignals}
           onApplyState={applyRecipeState}
-          onReset={resetFilters}
           onScrollToPlaybook={() => {
             setShowAdvanced(true);
             requestAnimationFrame(() => {
