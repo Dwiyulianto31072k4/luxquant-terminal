@@ -384,8 +384,31 @@ const SignalModal = ({
 
         let peak = null;
 
-        // === 1. BINANCE FUTURES ===
+        // === 0. OUR OWN KLINES ===
+        // Ahead of the exchange calls on purpose. This is the perp-first feed
+        // the rest of the app already charts from, so the peak agrees with what
+        // the user is looking at, and it serves every pair — including the CJK
+        // tickers the direct calls stumble on. 龙虾USDT reported a high of
+        // 0.007777 against an entry of 0.0245: a price that appears nowhere in
+        // its real range (0.0216–0.0789), handed over by a fallback provider
+        // answering for a symbol it does not actually list. The true high was
+        // 0.078946. Falling through to the exchanges still works when this
+        // endpoint is unavailable.
         try {
+          const res = await fetch(
+            `/api/v1/market/klines?symbol=${encodeURIComponent(symbol)}&interval=1h&limit=500&startTime=${startTime}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0)
+              peak = extractPeak(data, binanceH, binanceL, binanceT);
+          }
+        } catch (e) {
+          console.warn("[PeakPrice] app klines failed:", e.message);
+        }
+
+        // === 1. BINANCE FUTURES ===
+        if (peak === null) try {
           const res = await fetch(
             `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`
           );
