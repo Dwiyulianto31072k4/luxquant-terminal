@@ -1100,9 +1100,13 @@ const SignalModal = ({
       : null;
   const lastPrice = lastTpUpdate?.price ? Number(lastTpUpdate.price) : 0;
 
+  // Signed too. lastTpUpdate is the last update of ANY kind, so on a stopped
+  // signal this is a price below entry — Math.abs printed "5.31%" and left the
+  // sign to be inferred from the text being red. State it.
   let lastPricePct = null;
   if (lastPrice > 0 && entryPrice > 0) {
-    lastPricePct = ((Math.abs(lastPrice - entryPrice) / entryPrice) * 100).toFixed(2);
+    const d = ((lastPrice - entryPrice) / entryPrice) * 100;
+    lastPricePct = `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(2)}`;
   }
 
   // Signed, deliberately. Math.abs used to sit here, so a peak that came back
