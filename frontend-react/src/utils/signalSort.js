@@ -151,6 +151,29 @@ export function setPrimarySort(field, order = "desc") {
   return normalizeSorts([{ field, order }]);
 }
 
+/**
+ * Make `field` the primary sort while keeping the levels already in the chain
+ * as tiebreakers below it.
+ *
+ * The toolbar dropdown used to call setPrimarySort, which returns a chain of
+ * one — so picking a field there silently threw away every level the user had
+ * built with Shift+click. The only warning was a title tooltip reading
+ * "replaces chain", which nobody sees. The two controls now compose: headers
+ * build the chain, the dropdown re-heads it.
+ *
+ * Re-picking a field already in the chain keeps the direction it had, rather
+ * than snapping it back to desc.
+ */
+export function promoteSortField(sorts, field, order = null) {
+  const cur = normalizeSorts(sorts);
+  const existing = cur.find((s) => s.field === field);
+  const rest = cur.filter((s) => s.field !== field);
+  return normalizeSorts([
+    { field, order: order || existing?.order || "desc" },
+    ...rest,
+  ]);
+}
+
 export function formatSortChain(sorts) {
   return normalizeSorts(sorts)
     .map((s, i) => {
@@ -280,8 +303,20 @@ export function sortValue(signal, field, ctx = {}) {
       return { v: ts || null, kind: "num" };
     }
     case "created_at":
-    default:
-      return { v: signal.call_message_id || 0, kind: "num" };
+    default: {
+      // "Called" is a time, and the column shows one, so sort the time.
+      //
+      // This used to return call_message_id. On clean data that is a perfect
+      // chronological proxy — the ids are handed out in order — which is why
+      // nothing looked wrong for a long time. It stops being one the moment a
+      // row lands with an odd timestamp: eleven rows stored as "+02" instead of
+      // UTC were enough to displace 541 rows, the worst by 170 places. Reading
+      // the timestamp means the column can only ever be as wrong as the data.
+      //
+      // Ties fall through to tiebreak() below, which still uses the id.
+      const ts = signal.created_at ? new Date(signal.created_at).getTime() : 0;
+      return { v: Number.isFinite(ts) ? ts : 0, kind: "num" };
+    }
   }
 }
 

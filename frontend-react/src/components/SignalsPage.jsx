@@ -32,7 +32,7 @@ import {
   orderLabel,
   primaryOf,
   removeSortLevel,
-  setPrimarySort,
+  promoteSortField,
   sortSignals,
   sortsFromLegacy,
   SORT_LABELS as SORT_FIELD_LABELS,
@@ -512,10 +512,7 @@ const SignalsPage = () => {
   const sortBy = sorts[0]?.field || "created_at";
   const sortOrder = sorts[0]?.order || "desc";
   const setSortBy = useCallback((field) => {
-    setSorts((prev) => {
-      const order = prev[0]?.field === field ? prev[0].order : "desc";
-      return setPrimarySort(field, order);
-    });
+    setSorts((prev) => promoteSortField(prev, field));
   }, []);
   const setSortOrder = useCallback((order) => {
     setSorts((prev) => {
@@ -2119,8 +2116,8 @@ const SignalsPage = () => {
             <div className="relative flex-shrink-0">
               <select
                 value={sortBy}
-                onChange={(e) => setSorts(setPrimarySort(e.target.value, "desc"))}
-                title="Primary sort (replaces chain). Shift+click table headers to add levels."
+                onChange={(e) => setSorts((prev) => promoteSortField(prev, e.target.value))}
+                title="Primary sort. Any extra levels stay on as tiebreakers — Shift+click table headers to add them."
                 className="pl-3 pr-8 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-ink/15 focus:outline-none appearance-none cursor-pointer transition-all"
               >
                 {sortOptions.map((opt) => (
@@ -2141,6 +2138,14 @@ const SignalsPage = () => {
             >
               {sortOrder === "desc" ? Icon.arrowDown("w-3 h-3") : Icon.arrowUp("w-3 h-3")}
               <span className="hidden sm:inline">{getOrderLabel()}</span>
+              {sorts.length > 1 && (
+                <span
+                  className="rounded-sm bg-ink/10 px-1 tabular-nums text-[9px] text-text-primary"
+                  title={`Sorting on ${sorts.length} levels: ${formatSortChain(sorts)}`}
+                >
+                  +{sorts.length - 1}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -2677,7 +2682,7 @@ const SignalsPage = () => {
         }}
         onSort={(field, order) => {
           if (field) {
-            setSorts(setPrimarySort(field, order || "desc"));
+            setSorts((prev) => promoteSortField(prev, field, order || null));
           }
           setPage(1);
         }}
