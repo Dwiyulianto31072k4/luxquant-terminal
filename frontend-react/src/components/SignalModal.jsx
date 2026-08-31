@@ -115,9 +115,7 @@ const SignalModal = ({
   // friends). TradingView has no symbol for them, so the embed renders nothing
   // but "This symbol doesn't exist" — our own chart reads the app's klines
   // endpoint, which serves them, so those pairs open on it instead.
-  const [chartMode, setChartMode] = useState(() =>
-    (signal?.pair || "").split("").every((c) => c.charCodeAt(0) < 128) ? "tv" : "plan"
-  );
+  const [chartMode, setChartMode] = useState("tv");
   // Key levels. 1H is the default because it is the timeframe the calls are
   // managed on; srLevels is {resistance, support} for the chosen timeframe only.
   const [srTf, setSrTf] = useState("1h");
@@ -274,6 +272,16 @@ const SignalModal = ({
     setPeakPrice(null);
     setPeakAt(null);
     setShowTV(false);
+    // TradingView has no symbol for Binance's CJK-ticker perps, so the embed
+    // renders "This symbol doesn't exist". Our own chart reads the app's klines
+    // and serves them. Decided here rather than in a useState initializer: that
+    // runs once on mount, when `signal` is usually still null, and an empty
+    // string is vacuously all-ASCII — so it always picked TV.
+    setChartMode(
+      [...String(currentSignal?.pair || "")].every((c) => c.charCodeAt(0) < 128)
+        ? "tv"
+        : "plan"
+    );
     setPromptCopied(false);
     setShowDeepAnalysis(false);
     setShowMarket(false);
