@@ -27,7 +27,15 @@ const symbolOf = (pair) => {
   for (const q of QUOTES) if (pair.endsWith(q) && pair.length > q.length) return pair.slice(0, -q.length);
   return pair;
 };
-const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+// ASCII first, so every slug that already exists keeps exactly the value it has.
+// Binance lists a few perps whose ticker is CJK (币安人生, 我踏马来了, 龙虾, 牛来);
+// stripping to a-z0-9 left those empty, and line ~68 then skipped them, so they
+// silently got no /coins/ page at all. Fall back to keeping the letters — the
+// router and the browser handle /coins/币安人生 without help.
+const slugify = (s) => {
+  const ascii = s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return ascii || s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+};
 
 // ── 1. Preserve existing names/cg from the current generated file ──
 const nameMap = {}; // slug -> { name, cg }
