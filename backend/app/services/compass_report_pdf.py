@@ -742,6 +742,19 @@ def _page(canvas, doc):
     canvas.restoreState()
 
 
+def _cycle_phase_label(report: dict[str, Any]) -> str:
+    """Where the cycle sits, e.g. "Accumulation". Falls back to a dash rather
+    than to a direction, so an absent phase can never read as a forecast."""
+    cyc = _as_dict(report.get("cycle_position"))
+    label = cyc.get("phase_label")
+    if isinstance(label, str) and label.strip():
+        return label.strip()
+    raw = cyc.get("phase")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip().replace("_", " ").title()
+    return "\u2014"
+
+
 def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, output_path: Path) -> None:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
@@ -790,11 +803,18 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
 
     t24 = _as_dict(verdict.get("tactical_24h"))
     s72 = _as_dict(verdict.get("secondary_7d"))
-    h30 = _as_dict(verdict.get("primary_30d"))
     cards = Table([[
         _card("24h trader read", _title(t24.get("direction")), f"{t24.get('confidence', '-')}% confidence", styles, _stance_color(t24.get("direction"))),
         _card("72h swing", _title(s72.get("direction")), f"{s72.get('confidence', '-')}% confidence", styles, _stance_color(s72.get("direction"))),
-        _card("Holder context", _title(h30.get("direction")), f"{h30.get('confidence', '-')}% confidence", styles, _stance_color(h30.get("direction"))),
+        # Cycle position, stated as such. The 30d horizon has read "bullish" on
+        # 853 of 854 reports over 150 days — one neutral, no bearish — so it is
+        # a constant, not a call, and its 65.3% accuracy is just the base rate
+        # of BTC rising (65.2%). Its confidence is uncalibrated by design: the
+        # ledger clamp deliberately skips this horizon. Printed as a direction
+        # and a percentage beside two horizons that genuinely vary, it read as
+        # a confident month-ahead forecast. It is holder context, which is
+        # useful, and now says only what it knows.
+        _card("Holder context", _cycle_phase_label(report), "cycle position", styles, P["ink"]),
     ]], colWidths=[166, 166, 166])
     cards.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
     story.append(cards)
