@@ -27,7 +27,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import os
+import statistics
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -104,8 +106,14 @@ async def _redis(command: str, *args, **kwargs):
 # ─── Endpoint registry ────────────────────────────────────────────────
 TIER_CYCLE = ("mvrv-zscore", "puell-multiple", "mayer-multiple", "pi-cycle", "reserve-risk")
 TIER_MACRO = ("m2global", "m2yoy-change", "ssr", "ssr-oscillator")
+# taker-vol-1h removed from the fetch list, not from the product: it returns one
+# aggregate figure where an imbalance needs both sides, and was recorded
+# unavailable in all 494 reports audited. The evidence matrix still lists the key
+# and will keep rendering it unavailable, exactly as it already did — real order
+# flow comes from Binance via order_flow.fetch_taker_split. Dropping it returns a
+# slot to a quota that is now 10/hour.
 TIER_SMART = ("top-trader-position-1h", "top-trader-account-1h", "funding-rate",
-              "btc-derivatives-basis-1h", "taker-vol-1h")
+              "btc-derivatives-basis-1h")
 TIER_ONCHAIN = ("nupl", "sopr", "sth-mvrv", "miner-net-flow", "exchange-netflow-btc", "hashribbons")
 TIER_RISK = ("volatility", "open-interest", "fear-greed")  # 'liquidations' dropped — 404
 
@@ -117,7 +125,7 @@ TIERS: dict[str, tuple[str, ...]] = {
     "risk": TIER_RISK,
 }
 
-ALL_ENDPOINTS = TIER_CYCLE + TIER_MACRO + TIER_SMART + TIER_ONCHAIN + TIER_RISK  # 23 total
+ALL_ENDPOINTS = TIER_CYCLE + TIER_MACRO + TIER_SMART + TIER_ONCHAIN + TIER_RISK  # 22 total
 
 # ─── Field mapping (endpoint → response field name) ─────────────────
 # BGeometrics returns {"d": date, "unixTs": ts, "<fieldName>": value}.
@@ -356,8 +364,114 @@ def _normalize(endpoint: str, raw: Any) -> tuple[Any, int | None]:
 
 
 # ─── HTTP fetch ───────────────────────────────────────────────────────
+
+# ─── Free replacements (Binance / alternative.me) ─────────────────────
+#
+# The BGeometrics plan lapsed on 2026-08-30 and the account fell back to the
+# free tier's 10 requests/hour. Twenty-three endpoints cannot refresh inside
+# that: five stopped reaching the cache at all — mvrv-zscore among them, the
+# heaviest-weighted cycle input — and the rest began serving past their 6h
+# fresh window.
+#
+# These six carry the same numbers Binance publishes for nothing, so they are
+# taken there instead. Every mapping below was checked against the value
+# BGeometrics had cached at the time:
+#
+#   top-trader-position-1h   0.6742  vs longAccount 0.6753
+#   top-trader-account-1h    0.5759  vs longAccount 0.5778
+#   funding-rate           3.844e-05 vs fundingRate 0.00003844   (exact)
+#   open-interest           109,442  vs 108,878                  (~0.5%, minutes apart)
+#   volatility               42.11   vs 42.98
+#   fear-greed                  69   vs 69                       (exact)
+#
+# Not moved: btc-derivatives-basis-1h. BGeometrics reports -22.09 where the
+# perp basis is -0.04%, so the unit is something else, and this value feeds a
+# correlation series that changing scale mid-flight would corrupt.
+#
+# Measured on the free tier after the lapse: exchange-netflow-btc answers 403
+# INVALID_TOKEN, so it is paid-only and is simply gone until someone subscribes
+# again. The rest answer, subject to the 10/hour ceiling.
+#
+# Not replaced but dropped: taker-vol-1h. It returns one aggregate where an
+# imbalance needs both sides, and was already recorded unavailable in all 494
+# reports audited — order flow comes from Binance via order_flow.fetch_taker_split.
+BINANCE_BACKED = frozenset({
+    "top-trader-position-1h",
+    "top-trader-account-1h",
+    "funding-rate",
+    "open-interest",
+    "volatility",
+    "fear-greed",
+})
+
+_FAPI = "https://fapi.binance.com"
+
+
+async def _fetch_free(client: httpx.AsyncClient, endpoint: str) -> BGMetric:
+    """One of BINANCE_BACKED, from its free public source. Spends no BG quota."""
+    try:
+        if endpoint == "top-trader-position-1h":
+            r = await client.get(f"{_FAPI}/futures/data/topLongShortPositionRatio",
+                                 params={"symbol": "BTCUSDT", "period": "1h", "limit": 1},
+                                 timeout=HTTP_TIMEOUT)
+            row = r.json()[-1]
+            return BGMetric(key=endpoint, value=float(row["longAccount"]),
+                            timestamp=int(row["timestamp"]) // 1000)
+
+        if endpoint == "top-trader-account-1h":
+            r = await client.get(f"{_FAPI}/futures/data/topLongShortAccountRatio",
+                                 params={"symbol": "BTCUSDT", "period": "1h", "limit": 1},
+                                 timeout=HTTP_TIMEOUT)
+            row = r.json()[-1]
+            return BGMetric(key=endpoint, value=float(row["longAccount"]),
+                            timestamp=int(row["timestamp"]) // 1000)
+
+        if endpoint == "funding-rate":
+            # The last SETTLED rate, which is what BGeometrics reports —
+            # premiumIndex.lastFundingRate is the current prediction and differs.
+            r = await client.get(f"{_FAPI}/fapi/v1/fundingRate",
+                                 params={"symbol": "BTCUSDT", "limit": 1},
+                                 timeout=HTTP_TIMEOUT)
+            row = r.json()[-1]
+            return BGMetric(key=endpoint, value=float(row["fundingRate"]),
+                            timestamp=int(row["fundingTime"]) // 1000)
+
+        if endpoint == "open-interest":
+            r = await client.get(f"{_FAPI}/fapi/v1/openInterest",
+                                 params={"symbol": "BTCUSDT"}, timeout=HTTP_TIMEOUT)
+            d = r.json()
+            return BGMetric(key=endpoint, value=float(d["openInterest"]),
+                            timestamp=int(d.get("time", 0)) // 1000 or None)
+
+        if endpoint == "volatility":
+            # 30d realised, annualised, in percent — matches BGeometrics' scale.
+            r = await client.get(f"{_FAPI}/fapi/v1/klines",
+                                 params={"symbol": "BTCUSDT", "interval": "1d", "limit": 31},
+                                 timeout=HTTP_TIMEOUT)
+            closes = [float(k[4]) for k in r.json()]
+            if len(closes) < 10:
+                return BGMetric(key=endpoint, error="klines_too_short")
+            rets = [math.log(closes[i] / closes[i - 1]) for i in range(1, len(closes))]
+            vol = statistics.stdev(rets) * math.sqrt(365) * 100
+            return BGMetric(key=endpoint, value=round(vol, 4), timestamp=int(time.time()))
+
+        if endpoint == "fear-greed":
+            r = await client.get("https://api.alternative.me/fng/",
+                                 params={"limit": 1}, timeout=HTTP_TIMEOUT)
+            d = r.json()["data"][0]
+            return BGMetric(key=endpoint, value=float(d["value"]),
+                            timestamp=int(d.get("timestamp", 0)) or None)
+
+        return BGMetric(key=endpoint, error="no_free_source")
+    except Exception as e:
+        return BGMetric(key=endpoint, error=f"free_source: {type(e).__name__}: {e}")
+
+
 async def _http_fetch(client: httpx.AsyncClient, endpoint: str) -> BGMetric:
     """Single endpoint HTTP fetch with retry. Does not touch cache."""
+    if endpoint in BINANCE_BACKED:
+        return await _fetch_free(client, endpoint)
+
     if not BG_TOKEN:
         return BGMetric(key=endpoint, error="BGEOMETRICS_API_KEY not set")
 
