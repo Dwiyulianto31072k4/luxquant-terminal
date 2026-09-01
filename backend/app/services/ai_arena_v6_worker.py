@@ -1484,11 +1484,38 @@ async def generate_v6_report(
             except (TypeError, ValueError):
                 return None
 
+        # The four strongest measured predictors of BTC's next 24h were absent
+        # here, while the two weakest were the only ones stored. Correlation of
+        # each against the forward 24h return, over 811 reports:
+        #
+        #   momentum 24h        +0.278   (t=8.25)
+        #   top-trader long     -0.353   contrarian, and it STRENGTHENS once
+        #                                momentum is partialled out (-0.305 raw)
+        #   open interest 24h   +0.205   residual
+        #   taker imbalance     +0.215   residual  — already recorded below
+        #   funding rate        +0.123   residual  — stored since May
+        #   realised volatility +0.012   (t=0.35)  no predictive power at all
+        #
+        # Nothing new is fetched: momentum is already in price_context, and both
+        # derivatives are already in the snapshot. Levels are stored rather than
+        # deltas so the window can be chosen at analysis time instead of frozen
+        # here.
         for _feat, _key in (("funding_rate", "funding-rate"),
-                            ("basis", "btc-derivatives-basis-1h")):
+                            ("basis", "btc-derivatives-basis-1h"),
+                            ("top_trader_long", "top-trader-position-1h"),
+                            ("open_interest", "open-interest")):
             _v = _bg(_key)
             if _v is not None:
                 _pc.record(_feat, _v)
+
+        for _feat, _ctx_key in (("momentum_24h", "change_24h_pct"),
+                                ("momentum_7d", "change_7d_pct")):
+            try:
+                _v = (price_context or {}).get(_ctx_key)
+                if _v is not None:
+                    _pc.record(_feat, float(_v))
+            except (TypeError, ValueError):
+                pass
 
         # Reuses the fetch from the external-inputs block above rather than
         # calling Binance a second time for the same candle.
