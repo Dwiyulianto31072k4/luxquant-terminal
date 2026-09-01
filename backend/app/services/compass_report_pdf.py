@@ -571,7 +571,7 @@ def _detail_pointer_rows(report: dict[str, Any]) -> list[list[Any]]:
         ["Levels", f"{levels_count} zone(s), magnets, and invalidation areas are archived.", "AI Research > Market Read > Levels, or BTC Chart for live candles"],
         ["News", f"{headline_count} relevant headline(s) plus scheduled events are included.", "AI Research > Market Read > News > Open news detail"],
         ["Risk", f"{risk_count} scenario(s) define what can break the read.", "AI Research > Market Read > Risk > Open risk detail"],
-        ["Holder", "72h and cycle context explain whether the trader read fights or aligns with the bigger tape.", "AI Research > Market Read > Holder"],
+        ["Holder", "Market mode and cycle position explain whether the 24h read fights or aligns with the bigger tape.", "AI Research > Market Read > Holder"],
     ]
 
 
@@ -742,6 +742,15 @@ def _page(canvas, doc):
     canvas.restoreState()
 
 
+def _market_mode_label(report: dict[str, Any]) -> str:
+    """The scenario contract's market mode, e.g. "Selective Risk On"."""
+    contract = _as_dict(_as_dict(report.get("verdict")).get("scenario_contract"))
+    raw = contract.get("market_mode")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip().replace("_", " ").title()
+    return "\u2014"
+
+
 def _cycle_phase_label(report: dict[str, Any]) -> str:
     """Where the cycle sits, e.g. "Accumulation". Falls back to a dash rather
     than to a direction, so an absent phase can never read as a forecast."""
@@ -802,10 +811,22 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         return P["ink"]
 
     t24 = _as_dict(verdict.get("tactical_24h"))
-    s72 = _as_dict(verdict.get("secondary_7d"))
     cards = Table([[
         _card("24h trader read", _title(t24.get("direction")), f"{t24.get('confidence', '-')}% confidence", styles, _stance_color(t24.get("direction"))),
-        _card("72h swing", _title(s72.get("direction")), f"{s72.get('confidence', '-')}% confidence", styles, _stance_color(s72.get("direction"))),
+        # The 72h call used to sit here with a confidence percentage. Measured
+        # across 794 reports it has no edge: bullish 65.6% against a 62.2%
+        # baseline (z=+1.84), bearish 64.0% on 25 samples (z=+0.19), neutral
+        # 58.9% (z=-1.90) — not one of them significant. And it cannot be
+        # calibrated: the clamp maps it to a "72h" ledger that has never been
+        # built, so it reported "provisional" on every report and published
+        # whatever number the model felt.
+        #
+        # Market mode replaces it because it is the one thing here that IS
+        # measured, and it speaks to the card beside it: reads hit 72.0% in
+        # SELECTIVE_RISK_ON against 46.7% in DEFENSIVE (n=268, z=4.18). That
+        # reliability is already priced into the 24h confidence, which is now
+        # clamped per mode — this names the condition producing it.
+        _card("Market mode", _market_mode_label(report), "conditions for the 24h read", styles, P["ink"]),
         # Cycle position, stated as such. The 30d horizon has read "bullish" on
         # 853 of 854 reports over 150 days — one neutral, no bearish — so it is
         # a constant, not a call, and its 65.3% accuracy is just the base rate
