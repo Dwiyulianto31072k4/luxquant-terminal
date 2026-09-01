@@ -1321,15 +1321,35 @@ async def generate_v6_report(
 
     # -- Calibrate horizon confidence against the ledger (additive) --
     try:
-        from app.services.ledger_confidence import apply_ledger_confidence
-        from app.services.verdict_outcome_evaluator import compute_track_record
+        # Reads the LIVE ledger. compute_track_record() queries
+        # ai_arena_verdict_outcomes, which Compass 2.0 retired and which has
+        # never held a row — so this clamp has never fired once, on any report.
+        # The real record is compass_projection_resolutions.
+        #
+        # Scoped to the read's own market mode, because that is where the record
+        # separates: SELECTIVE_RISK_ON hits 72.0% (n=161) against DEFENSIVE's
+        # 46.7% (n=107), 25.3pp apart with disjoint intervals. Blended, a
+        # defensive read would keep borrowing a risk-on read's credibility.
+        from app.services.ledger_confidence import (
+            apply_ledger_confidence,
+            compute_projection_track_record,
+        )
         from app.core.database import SessionLocal
+
+        _mode = getattr(getattr(verdict, "scenario_contract", None), "market_mode", None)
         _db = SessionLocal()
         try:
-            _tr = compute_track_record(_db, days=90)
+            _tr = compute_projection_track_record(_db, days=90, market_mode=_mode)
+            if not _tr:
+                # Unknown or thin mode — fall back to the blended record rather
+                # than to no calibration at all.
+                _tr = compute_projection_track_record(_db, days=90)
         finally:
             _db.close()
         _conf_audit = apply_ledger_confidence(verdict, _tr)
+        if _tr:
+            _log(f"Ledger: mode={_mode or 'blended'} "
+                 f"n={_tr['overall']['total']} hit={_tr['overall']['hit_rate']:.3f}")
         if _conf_audit:
             _log(f"Confidence calibrated: {_conf_audit}")
     except Exception as e:
