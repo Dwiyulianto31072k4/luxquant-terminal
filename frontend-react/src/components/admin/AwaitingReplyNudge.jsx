@@ -33,6 +33,10 @@ const waited = (seconds) => {
   return `${Math.floor(seconds / 86400)}d`;
 };
 
+// /awaiting-reply names the key `conversation_id`; older shapes used `id`.
+// Read both so neither side can silently break the other again.
+const convId = (c) => c?.conversation_id ?? c?.id ?? null;
+
 export const AwaitingReplyNudge = ({ onOpenChat }) => {
   const [rows, setRows] = useState([]);
   const [snoozedUntil, setSnoozedUntil] = useState(0);
@@ -45,12 +49,17 @@ export const AwaitingReplyNudge = ({ onOpenChat }) => {
   const markDone = useCallback(
     async (conversationId) => {
       setClosing(true);
+      if (conversationId == null) return;
       try {
         await adminChatApi.setStatus(conversationId, "closed");
-        setRows((prev) => prev.filter((c) => c.id !== conversationId));
-      } catch {
+        setRows((prev) => prev.filter((c) => convId(c) !== conversationId));
+      } catch (e) {
         // Leave the row in place; a failed close should not look like a
-        // successful one.
+        // successful one. But say something: this swallowed a 422 for the
+        // whole life of the button — /awaiting-reply returns the key as
+        // `conversation_id` and this read `.id`, so every Done posted to
+        // /conversations/undefined and no thread was ever closed.
+        console.error("[awaiting-reply] close failed:", e?.response?.status, e?.message);
       } finally {
         setClosing(false);
       }
@@ -84,6 +93,7 @@ export const AwaitingReplyNudge = ({ onOpenChat }) => {
   if (!visible) return null;
 
   const oldest = rows[0];
+  const oldestId = convId(oldest);
   const others = rows.length - 1;
 
   return (
@@ -115,7 +125,7 @@ export const AwaitingReplyNudge = ({ onOpenChat }) => {
           </button>
           <button
             type="button"
-            onClick={() => markDone(oldest.id)}
+            onClick={() => markDone(oldestId)}
             disabled={closing}
             className="rounded-lg border border-ink/12 px-2.5 py-1.5 text-[12px] text-text-secondary hover:text-text-primary disabled:opacity-50"
             title="Nothing is owed here — close the conversation and stop asking"
