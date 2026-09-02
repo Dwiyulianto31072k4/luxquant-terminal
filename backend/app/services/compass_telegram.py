@@ -63,6 +63,20 @@ def _fmt_usd(v: Any) -> str:
         return "—"
 
 
+_RANGE_BIASES = ("RANGE", "NEUTRAL_RANGE")
+
+
+def _num(v: Any) -> Optional[float]:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_range(bias: Any) -> bool:
+    return str(bias or "").upper().startswith(_RANGE_BIASES)
+
+
 def _pct_from(level: Any, ref: Any, decimals: int = 2) -> str:
     """Percent move from the reference price, without brackets.
 
@@ -194,7 +208,8 @@ def _trim(text: str, limit: int) -> str:
     return (window[:cut] if cut > 0 else window[:limit]).rstrip() + "…"
 
 
-def _levels_block(ref, touch, inval) -> Optional[str]:
+def _levels_block(ref, touch, inval, *, bias=None,
+                  support=None, lid=None) -> Optional[str]:
     """The three numbers, in a column narrow enough to survive a phone.
 
     The first version padded to a wider grid and broke: on the owner's screen
@@ -213,11 +228,32 @@ def _levels_block(ref, touch, inval) -> Optional[str]:
     """
     if not (touch or inval):
         return None
-    rows = [("Spot", ref, None)]
+
+    r = _num(ref)
+    rows = [("Spot", r, None)]
     if touch:
-        rows.append(("Target", touch, _pct_from(touch, ref, decimals=1)))
+        rows.append(("Target", _num(touch), _pct_from(touch, ref, decimals=1)))
+
+    # A range read is two-sided, but the block only ever printed the level the
+    # AI expects to touch first. When that level sat below spot the card read as
+    # a bearish call under a NEUTRAL verdict, with the lid that made it a range
+    # left in the database. Measured over 30 days: 130/130 range contracts had
+    # a lid above spot, and none of them printed it.
+    if _is_range(bias) and r is not None:
+        t = _num(touch)
+        edge = ("Lid", _num(lid)) if (t is not None and t < r) else ("Floor", _num(support))
+        label, level = edge
+        # Only when it really is the opposite side; otherwise say nothing.
+        if level is not None and ((level > r) if label == "Lid" else (level < r)):
+            rows.append((label, level, _pct_from(level, ref, decimals=1)))
+
     if inval:
-        rows.append(("Invalid", inval, _pct_from(inval, ref, decimals=1)))
+        rows.append(("Invalid", _num(inval), _pct_from(inval, ref, decimals=1)))
+
+    # Read it as a ladder: highest level on top, so where spot sits inside the
+    # band is visible without doing arithmetic.
+    rows.sort(key=lambda row: (row[1] is None, -(row[1] or 0)))
+
     out = []
     for label, value, pct in rows:
         out.append(f"{label:<8}{_fmt_usd(value):>8}{(' ' + pct) if pct else ''}")
@@ -267,8 +303,15 @@ def build_caption(report: dict, previous: Optional[dict] = None) -> str:
     if verdict.get("headline"):
         lines.append(f"<i>{_trim(verdict['headline'], 130)}</i>")
 
-    block = _levels_block(ref, (sc.get("primary_touch") or {}).get("level"),
-                          (sc.get("invalidation") or {}).get("level"))
+    _ext = sc.get("extension_zone") or {}
+    block = _levels_block(
+        ref,
+        (sc.get("primary_touch") or {}).get("level"),
+        (sc.get("invalidation") or {}).get("level"),
+        bias=sc.get("primary_bias"),
+        support=(sc.get("support") or {}).get("level"),
+        lid=_ext.get("price_high", _ext.get("high")),
+    )
     if block:
         lines += ["", f"<code>{block}</code>"]
 
