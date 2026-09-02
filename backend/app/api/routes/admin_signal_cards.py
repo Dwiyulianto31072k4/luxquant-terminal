@@ -58,6 +58,13 @@ CARD_META = {
     "daily_gainers_bundle":   {"label": "Top Gainers + Proof",     "group": "gainers"},
     "weekly_gainers_bundle":  {"label": "Weekly Gainers + Proof",  "group": "gainers"},
     "monthly_gainers_bundle": {"label": "Monthly Gainers + Proof", "group": "gainers"},
+    # Every card that names one of our calls ships its receipts with it.
+    "daily_recap_bundle":   {"label": "Daily Recap + Proof",   "group": "recap"},
+    "weekly_recap_bundle":  {"label": "Weekly Recap + Proof",  "group": "recap"},
+    "monthly_recap_bundle": {"label": "Monthly Recap + Proof", "group": "recap"},
+    "sector_edge_bundle":   {"label": "Sector Edge + Proof",   "group": "insight"},
+    "track_record_bundle":  {"label": "Track Record (Monthly) + Proof", "group": "insight"},
+    "weekly_track_record_bundle": {"label": "Track Record (Weekly) + Proof", "group": "insight"},
 }
 # Slot clock (UTC) — mirrors the systemd timers luxquant-card-poster-{a..g}.timer.
 # (hour, minute): G fires at :30, so the clock cannot be hours alone.
@@ -70,7 +77,7 @@ def pick_card(d, slot: str) -> str:
     """Exact mirror of card_poster.pick_card (7 slots). "" = nothing this slot today."""
     wd = d.weekday()  # Mon=0 .. Sun=6
     if slot == "A":
-        return "daily_recap"
+        return "daily_recap_bundle"
     if slot == "B":
         return "daily_gainers_bundle"
     if slot == "C":
@@ -79,12 +86,13 @@ def pick_card(d, slot: str) -> str:
         return "etf_flows_eth" if wd in (1, 2, 3, 4, 5) else ""
     if slot == "D":
         if d.day == 15:
-            return "track_record"
-        return {2: "sector_edge", 4: "money_flow", 6: "weekly_track_record"}.get(wd, "")
+            return "track_record_bundle"
+        return {2: "sector_edge_bundle", 4: "money_flow",
+                6: "weekly_track_record_bundle"}.get(wd, "")
     if slot == "E":
         if d.day == 1:
-            return "monthly_recap"
-        return "weekly_recap" if wd == 0 else ""
+            return "monthly_recap_bundle"
+        return "weekly_recap_bundle" if wd == 0 else ""
     if slot == "F":
         if d.day == 1:
             return "monthly_gainers_bundle"
