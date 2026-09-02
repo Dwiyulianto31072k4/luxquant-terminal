@@ -37,13 +37,44 @@ const MODE_HINT = {
 };
 
 /* ── horizontal level meter: invalidation ── spot(live) ── target ── */
-function LevelMeter({ spot, target, invalidation }) {
+/**
+ * The far side of a range read, or null.
+ *
+ * A range read is two-sided, but the meter only ever plotted the level the AI
+ * expects to touch first. On a NEUTRAL_RANGE that level sits below spot as often
+ * as above, and then TARGET and INVALIDATION both land on one side and LIVE is
+ * pinned to the end of the track — it reads as a broken directional call rather
+ * than a price sitting inside a band. Plotting the opposite edge restores it.
+ *
+ * Mirrors the Telegram card's `_levels_block`; the two must agree, since the
+ * same read goes out through both.
+ */
+export function rangeEdge({ spot, target, bias, support, lid }) {
+  const s = Number(spot);
+  const t = Number(target);
+  if (!isFinite(s) || !isFinite(t)) return null;
+  if (!/^(RANGE|NEUTRAL_RANGE)/.test(String(bias || "").toUpperCase())) return null;
+
+  const above = t < s;
+  const price = Number(above ? lid : support);
+  // Only when it really is the other side: a "lid" below spot is not a lid, and
+  // saying nothing beats drawing something false.
+  if (!isFinite(price) || price === 0) return null;
+  if (above ? price <= s : price >= s) return null;
+  return { label: above ? "RANGE LID" : "RANGE FLOOR", price };
+}
+
+function LevelMeter({ spot, target, invalidation, bias, support, lid }) {
   const s = Number(spot),
     t = Number(target),
     i = Number(invalidation);
   if (!isFinite(s) || !isFinite(t) || !isFinite(i)) return null;
-  const lo = Math.min(s, t, i);
-  const hi = Math.max(s, t, i);
+
+  const edge = rangeEdge({ spot: s, target: t, bias, support, lid });
+
+  const levels = edge ? [s, t, i, edge.price] : [s, t, i];
+  const lo = Math.min(...levels);
+  const hi = Math.max(...levels);
   const span = hi - lo || 1;
   const pad = span * 0.1;
   const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -70,6 +101,9 @@ function LevelMeter({ spot, target, invalidation }) {
         {[
           { key: "inv", price: i, hex: COLOR.loss, label: "INVALIDATION", sub: pct(i) },
           { key: "tgt", price: t, hex: COLOR.profit, label: "TARGET", sub: pct(t) },
+          ...(edge
+            ? [{ key: "edge", price: edge.price, hex: COLOR.muted, label: edge.label, sub: pct(edge.price) }]
+            : []),
         ].map((m) => (
           <div
             key={m.key}
@@ -208,6 +242,10 @@ export default function CompassSnapshot({ className = "", embedded = false }) {
       reportSpot: Number(report?.btc_price) || null,
       target: Number(contract?.primary_touch?.level) || null,
       invalidation: Number(contract?.invalidation?.level) || null,
+      bias: contract?.primary_bias || "",
+      support: Number(contract?.support?.level) || null,
+      lid:
+        Number(contract?.extension_zone?.price_high ?? contract?.extension_zone?.high) || null,
       mode: MODE_LABEL[modeKey] || "Selective",
       modeHint: MODE_HINT[modeKey] || "Keep exposure measured until BTC confirms the read.",
       updated: report?.timestamp,
@@ -226,6 +264,9 @@ export default function CompassSnapshot({ className = "", embedded = false }) {
     reportSpot,
     target,
     invalidation,
+    bias,
+    support,
+    lid,
     mode,
     modeHint,
     updated,
@@ -353,7 +394,14 @@ export default function CompassSnapshot({ className = "", embedded = false }) {
             <div className="min-w-0">
               {target && invalidation && spot ? (
                 <div className="hidden sm:block">
-                  <LevelMeter spot={spot} target={target} invalidation={invalidation} />
+                  <LevelMeter
+                    spot={spot}
+                    target={target}
+                    invalidation={invalidation}
+                    bias={bias}
+                    support={support}
+                    lid={lid}
+                  />
                 </div>
               ) : (
                 <p className="hidden text-[12px] text-text-muted sm:block">
