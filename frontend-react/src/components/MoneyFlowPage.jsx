@@ -696,6 +696,7 @@ const SectorsTab = ({ q }) => {
           signal={selectedSignal}
           isOpen={!!selectedSignal}
           onClose={() => setSelectedSignal(null)}
+          onSwitchSignal={(s) => setSelectedSignal(s)}
         />
       )}
     </>
