@@ -407,6 +407,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
         signal={selectedSignal}
         isOpen={!!selectedSignal}
         onClose={() => setSelectedSignal(null)}
+        onSwitchSignal={(s) => setSelectedSignal(s)}
       />
     </div>
   );

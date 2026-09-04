@@ -2939,6 +2939,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
           signal={selectedSignal}
           isOpen={!!selectedSignal}
           onClose={() => setSelectedSignal(null)}
+          onSwitchSignal={(s) => setSelectedSignal(s)}
         />
       )}
 

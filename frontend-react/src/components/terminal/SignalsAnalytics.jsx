@@ -2518,6 +2518,7 @@ export default function SignalsAnalytics() {
           signal={selectedSignal}
           isOpen={!!selectedSignal}
           onClose={() => setSelectedSignal(null)}
+          onSwitchSignal={(s) => setSelectedSignal(s)}
         />
       )}
     </div>

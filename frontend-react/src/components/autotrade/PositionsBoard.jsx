@@ -1123,6 +1123,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
         signal={selectedSignal}
         isOpen={!!selectedSignal}
         onClose={() => setSelectedSignal(null)}
+        onSwitchSignal={(s) => setSelectedSignal(s)}
       />
     </div>
   );

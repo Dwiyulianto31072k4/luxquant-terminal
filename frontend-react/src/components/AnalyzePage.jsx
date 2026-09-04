@@ -783,6 +783,7 @@ const AnalyzePage = () => {
         signal={selectedSignal}
         isOpen={!!selectedSignal}
         onClose={() => setSelectedSignal(null)}
+        onSwitchSignal={(s) => setSelectedSignal(s)}
       />
     </div>
   );

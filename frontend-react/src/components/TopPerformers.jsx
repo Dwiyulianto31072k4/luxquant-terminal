@@ -549,6 +549,7 @@ const TopPerformers = () => {
         signal={historyModalSignal}
         isOpen={historyModalOpen}
         onClose={closeHistoryModal}
+        onSwitchSignal={(s) => setHistoryModalSignal(s)}
         initialTab="history"
       />
     </div>
