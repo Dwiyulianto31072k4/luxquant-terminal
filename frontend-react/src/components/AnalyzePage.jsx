@@ -43,6 +43,25 @@ const API_BASE = "/api/v1";
  • Line-label-line section headers + SVG icons
  ────────────────────────────────────────────────────────────── */
 
+// Risk is ordinal, so rank is drawn as filled steps rather than coloured. Shape
+// survives colour-blindness, greyscale printing and forced-colors mode, and it
+// cannot be mistaken for a verdict the way green-through-red was.
+const RISK_STEP = { Low: 1, Normal: 2, High: 3 };
+
+function RiskSteps({ step = 2 }) {
+  return (
+    <span className="flex items-end gap-[2px]" aria-hidden="true">
+      {[1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className={`w-[3px] rounded-[1px] ${i <= step ? "bg-text-primary" : "bg-ink/[0.16]"}`}
+          style={{ height: `${3 + i * 2}px` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 // Muted Flowscan color palette
 const C = {
   profit: "#56c996",
@@ -374,76 +393,51 @@ const AnalyzePage = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {data.risk_distribution.map((rd) => {
-                const colorMap = {
-                  Low: {
-                    border: "border-profit/35",
-                    bg: "from-profit/[0.10] to-transparent",
-                    text: "text-profit",
-                    dot: "bg-profit",
-                  },
-                  Normal: {
-                    border: "border-accent/35",
-                    bg: "from-accent/[0.10] to-transparent",
-                    text: "text-accent",
-                    dot: "bg-accent",
-                  },
-                  High: {
-                    border: "border-loss/35",
-                    bg: "from-loss/[0.10] to-transparent",
-                    text: "text-loss",
-                    dot: "bg-loss",
-                  },
-                };
-                const c = colorMap[rd.risk_level] || colorMap["Normal"];
+                // Risk level is ORDINAL (low → high), not a verdict. Painting it
+                // profit-green through loss-red said "high risk is bad" while the
+                // number underneath said the opposite: high carries the best win
+                // rate of the three. Rank now reads as filled steps — shape, not
+                // hue — and every figure wears ink, so nothing but the data speaks.
+                const step = RISK_STEP[rd.risk_level] ?? 2;
                 const winPct = rd.closed_trades > 0 ? (rd.winners / rd.closed_trades) * 100 : 0;
-                const totalSig = data.risk_distribution.reduce((s, r) => s + r.total_signals, 0);
-                const pct = totalSig > 0 ? ((rd.total_signals / totalSig) * 100).toFixed(1) : "0";
                 const safeRiskKey = rd.risk_level ? String(rd.risk_level).toLowerCase() : "normal";
 
                 return (
                   <div
                     key={rd.risk_level}
-                    className={`rounded-xl border p-5 bg-gradient-to-b ${c.bg} ${c.border}`}
+                    className="rounded-sm border border-ink/[0.07] bg-surface p-5"
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                        <span
-                          className={`text-[13px] font-bold uppercase tracking-[0.1em] ${c.text}`}
-                        >
-                          {t(`perf.${safeRiskKey}`)}
-                        </span>
-                      </div>
-                      <span className="font-mono text-[10px] text-text-muted tabular-nums">
-                        {pct}%
+                    {/* The share of flow lives on the distribution strip below,
+                        labelled and to scale. Repeating it here crowded the tier
+                        name into two lines and said nothing the strip does not. */}
+                    <div className="mb-5 flex items-center gap-2">
+                      <RiskSteps step={step} />
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-primary">
+                        {t(`perf.${safeRiskKey}`)}
                       </span>
                     </div>
 
-                    <p
-                      className={`text-[34px] font-extrabold leading-none tracking-[-0.03em] tabular-nums ${c.text}`}
-                    >
+                    <p className="text-[34px] font-bold leading-none tracking-[-0.03em] tabular-nums text-text-primary">
                       {rd.win_rate.toFixed(1)}%
                     </p>
                     <p className="mb-4 mt-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                       {t("perf.win_rate")}
                     </p>
 
-                    <div className="mb-3 flex h-2 overflow-hidden rounded-full bg-ink/[0.07]">
+                    {/* A proportion on a neutral track: how much of the closed
+                        flow won. One fill, because this is magnitude, not a
+                        contest between two colours. */}
+                    <div className="h-[3px] overflow-hidden rounded-full bg-ink/[0.07]">
                       <div
-                        className="h-full bg-profit/70 transition-all duration-700"
+                        className="h-full rounded-full bg-accent/80 transition-[width] duration-700"
                         style={{ width: `${winPct}%` }}
                       />
-                      <div
-                        className="h-full bg-loss/70 transition-all duration-700"
-                        style={{ width: `${100 - winPct}%` }}
-                      />
                     </div>
-                    <div className="flex justify-between font-mono text-[10px] tabular-nums mb-3">
-                      <span className="text-profit/80">{rd.winners.toLocaleString()} W</span>
-                      <span className="text-loss/80">{rd.losers.toLocaleString()} L</span>
-                    </div>
+                    <p className="mb-4 mt-2 font-mono text-[10px] tabular-nums text-text-muted">
+                      {rd.winners.toLocaleString()} won · {rd.losers.toLocaleString()} lost
+                    </p>
 
-                    <div className="pt-3 border-t border-ink/[0.04] grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 border-t border-ink/[0.07] pt-3">
                       <div>
                         <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                           {t("perf.signals")}
@@ -469,11 +463,9 @@ const AnalyzePage = () => {
             {/* Distribution bar */}
             {(() => {
               const totalSig = data.risk_distribution.reduce((s, r) => s + r.total_signals, 0);
-              const colors = {
-                Low: C.profit,
-                Normal: C.gold,
-                High: C.loss,
-              };
+              // Ordinal share, so one hue deepening with risk — never three
+              // separate hues, which would read as three unrelated categories.
+              const shade = { Low: 0.28, Normal: 0.55, High: 0.85 };
               if (totalSig === 0) return null;
               return (
                 <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-sm bg-surface-secondary border border-ink/[0.04]">
@@ -484,8 +476,10 @@ const AnalyzePage = () => {
                         className="h-full transition-all duration-700"
                         style={{
                           width: `${(rd.total_signals / totalSig) * 100}%`,
-                          backgroundColor: colors[rd.risk_level],
-                          opacity: 0.75,
+                          backgroundColor: `rgb(var(--accent) / ${shade[rd.risk_level] ?? 0.55})`,
+                          // 2px of surface between segments so adjacent shades
+                          // stay legible instead of blending into one band.
+                          boxShadow: i > 0 ? "-2px 0 0 0 rgb(var(--surface))" : undefined,
                         }}
                       />
                     ))}
@@ -498,8 +492,10 @@ const AnalyzePage = () => {
                       return (
                         <div key={rd.risk_level} className="flex items-center gap-1.5">
                           <div
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: colors[rd.risk_level] }}
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{
+                              backgroundColor: `rgb(var(--accent) / ${shade[rd.risk_level] ?? 0.55})`,
+                            }}
                           />
                           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                             {t(`perf.${safeRiskKey}`)}
@@ -988,8 +984,10 @@ const TopPairsTable = ({ pairs, t, onPick }) => {
                         : "-";
               const tpAlpha = bestTpAlpha[bestTp] || 0.5;
               const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
-              const wrColor =
-                winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-accent" : "text-loss";
+              // Win rate is a magnitude. Repainting it green above 80 and red
+              // below 60 states a verdict the number never made — and the bar
+              // beside it already carries the comparison.
+              const wrColor = "text-text-primary";
               return (
                 <tr
                   key={i}
@@ -1009,7 +1007,7 @@ const TopPairsTable = ({ pairs, t, onPick }) => {
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-16 overflow-hidden rounded-full bg-ink/[0.07]">
                         <div
-                          className="h-full bg-profit/70 transition-all duration-500"
+                          className="h-full bg-accent/80 transition-all duration-500"
                           style={{ width: `${winPct}%` }}
                         />
                       </div>
@@ -1022,9 +1020,9 @@ const TopPairsTable = ({ pairs, t, onPick }) => {
                     {p.closed_trades}
                   </td>
                   <td className="py-3.5 px-3 font-mono text-[11px] tabular-nums">
-                    <span className="text-profit/80">{winners}</span>
+                    <span className="text-text-secondary">{winners}</span>
                     <span className="text-text-muted/40 mx-1">/</span>
-                    <span className="text-loss/80">{p.sl_count}</span>
+                    <span className="text-text-muted">{p.sl_count}</span>
                   </td>
                   <td className="py-3.5 px-3">
                     <span
@@ -1057,7 +1055,7 @@ const TopPairsTable = ({ pairs, t, onPick }) => {
           const pair = (p.pair || "").replace("USDT", "");
           const winPct = p.closed_trades > 0 ? p.win_rate : 0;
           const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
-          const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-accent" : "text-loss";
+          const wrColor = "text-text-primary";
           return (
             <div key={i} className="flex items-center gap-3 py-2 border-b border-ink/[0.03]">
               <span className="font-mono text-[10px] text-text-muted/70 tabular-nums w-5">
@@ -1067,8 +1065,8 @@ const TopPairsTable = ({ pairs, t, onPick }) => {
               <div className="flex-1 min-w-0">
                 <p className="text-text-primary text-[12px]">{pair}</p>
                 <p className="font-mono text-[10px] text-text-muted/70 tabular-nums">
-                  {p.closed_trades} trades · <span className="text-profit/80">{winners}W</span>{" "}
-                  <span className="text-loss/80">{p.sl_count}L</span>
+                  {p.closed_trades} trades · <span className="text-text-secondary">{winners}W</span>{" "}
+                  <span className="text-text-muted">{p.sl_count}L</span>
                 </p>
               </div>
               <span className={`font-mono text-sm font-light tabular-nums ${wrColor}`}>
@@ -1159,10 +1157,12 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
 
   const riskBadge = (r) => {
     const rl = r?.toLowerCase() || "";
-    if (rl.startsWith("low")) return "bg-profit/10 text-profit border-profit/25";
+    // Ordinal, so one hue deepening with risk — green-to-red made "high" read
+    // as a failing grade when it is simply a tier, and the best-performing one.
+    if (rl.startsWith("low")) return "bg-accent/[0.08] text-text-primary border-ink/[0.08]";
     if (rl.startsWith("nor") || rl.startsWith("med"))
-      return "bg-accent/12 text-accent border-ink/12";
-    if (rl.startsWith("high")) return "bg-loss/10 text-loss border-loss/25";
+      return "bg-accent/[0.16] text-text-primary border-ink/[0.10]";
+    if (rl.startsWith("high")) return "bg-accent/[0.26] text-text-primary border-ink/[0.12]";
     return "bg-ink/[0.04] text-text-muted border-ink/[0.06]";
   };
 
