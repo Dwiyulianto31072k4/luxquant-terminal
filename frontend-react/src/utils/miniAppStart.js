@@ -24,12 +24,37 @@ const KEY_DESTINATIONS = {
   record: "/performance",
   one_tap: "/performance",
   terminal: "/home",
+  try_free: "/home",
+  // The brand name inside the closing line, wrapped as a link. Kept apart from
+  // the button keys so a tap on the prose is never counted as a tap on the
+  // free-row button, and because it is the only exit that survives a copied
+  // post -- a republished caption loses the inline keyboard entirely.
+  tail_link: "/home",
+  // The same name, made tappable inside the narrative sentence instead of the
+  // closing line. Separate key on purpose: these two sit at opposite ends of
+  // the post, and in a few weeks the click counts will say which position is
+  // worth keeping and which is clutter.
+  brand_link: "/home",
+  // The free product no button had ever named. /watchlist is LOGIN_REQUIRED
+  // and deliberately NOT in PREMIUM_REQUIRED: a free account picks coins and
+  // gets "$COIN has been called" with the entry the moment a signal opens on
+  // one. 72 of those alerts have gone to free accounts already, and 5 of 1,223
+  // free users have ever found the screen.
+  alert_gen: "/watchlist",
+  alerts_gen: "/watchlist",
+  // Held behind TG_COIN_ALERT_ROUTING in caption_builder until this screen can
+  // prefill the coin from start_param. Mapped now so enabling the flag is one
+  // change on one side, not two that have to land together.
+  alert_coin: "/watchlist",
+  watch_coin: "/watchlist",
   // VIP asks a compact question, so it gets the compact page. /pricing is
   // public — not in LOGIN_REQUIRED — and the reader is authenticated anyway
   // inside the Mini App, so nothing here can hit a wall.
   vip_inside: "/pricing",
   vip_gets: "/pricing",
   vip_see: "/pricing",
+  vip_get: "/pricing",
+  vip_sub: "/pricing",
   // BUY_CTA still reaches the site over the web branch and lands on the long
   // explainer. Mapped anyway so a future switch cannot fall through silently.
   how_works: "/",
@@ -41,6 +66,20 @@ const KEY_DESTINATIONS = {
 // last segment" turns a bare `wr_coin` into `coin` and `how_far` into `far` —
 // the same trap the campaign grouping hit. Suffix-match the whole known key.
 const KEYS = Object.keys(KEY_DESTINATIONS).sort((a, b) => b.length - a.length);
+
+// Keys whose label names one specific coin. For these the path alone is not the
+// promise: "Alert me on $BOME" landing on an empty watchlist is a broken one,
+// and a broken promise on arrival is the failure the whole channel-button
+// rewrite exists to stop.
+//
+// Why this matters more than any other route here. Measured 2026-09-06 over 120
+// days: of 1,002 accounts, the 11 who ever added a coin averaged 8.3 logins
+// against 1.7, came back three or more times at 82% against 12%, and paid at
+// 64% against 8%. Only 2 of 670 signups in 60 days did it on the day they
+// joined. Whatever the causal direction — and n=11 cannot settle that — this is
+// the one action worth spending an arrival on, and every second of friction
+// between the tap and the coin being added is spent against it.
+const COIN_PREFILL_KEYS = new Set(["alert_coin", "watch_coin"]);
 
 // Telegram reviews the first screen reached by each sponsored message. These
 // three ads make different promises, so their signed start_param is rendered
@@ -81,7 +120,15 @@ export function startDestination(startParam) {
     return "/performance";
   }
   const key = KEYS.find((k) => s === k || s.endsWith(`_${k}`));
-  return key ? KEY_DESTINATIONS[key] : null;
+  if (!key) return null;
+  const dest = KEY_DESTINATIONS[key];
+  if (!COIN_PREFILL_KEYS.has(key)) return dest;
+  // content is "{coin}_{key}"; the key is a known suffix, so what precedes it
+  // is the ticker. Anything that is not a plain ticker is dropped rather than
+  // passed on — the screen would only reject it, after the arrival was spent.
+  const content = parseStartParam(s)?.content || "";
+  const coin = content.slice(0, -(key.length + 1)).toUpperCase();
+  return /^[A-Z0-9]{2,15}$/.test(coin) ? `${dest}?add=${coin}` : dest;
 }
 
 export const __TEST__ = {

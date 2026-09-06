@@ -5,7 +5,7 @@
 // Backend: /api/v1/coin-watch · prices: /api/v1/market/prices
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { coinWatchApi } from "../services/coinWatchApi";
 import CoinLogo from "./CoinLogo";
 
@@ -70,6 +70,7 @@ const StatCard = ({ label, value, sublabel, isGold }) => (
 // ════════════════════════════════════════════════════════════════
 const WatchingTab = () => {
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [counts, setCounts] = useState({ total: 0, waiting: 0, called: 0 });
   const [loading, setLoading] = useState(true);
@@ -98,6 +99,27 @@ const WatchingTab = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Prefill from ?add=COIN, which a coin-named channel button carries through
+  // start_param. Filled, not submitted: the tap that adds it is the activation
+  // event, and a list that filled itself is not one the reader owns. Setting
+  // the input also starts the live price preview below, so the coin arrives
+  // already showing what it costs right now.
+  //
+  // The parameter is consumed immediately. Left in the URL it would refill the
+  // box every time this tab remounted, overwriting whatever the reader had
+  // since typed.
+  useEffect(() => {
+    const add = (params.get("add") || "").trim().toUpperCase();
+    if (!add) return;
+    setInput(add);
+    const next = new URLSearchParams(params);
+    next.delete("add");
+    setParams(next, { replace: true });
+    // params/setParams are stable enough for a one-shot consume; re-running on
+    // every search change is what the delete above exists to prevent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── live prices for watched coins ──
   useEffect(() => {

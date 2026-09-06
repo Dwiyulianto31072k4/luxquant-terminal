@@ -4,6 +4,7 @@
 // Solid yellow active segment, theme-tokenized.
 
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import WatchingTab from "./WatchingTab";
 import WatchlistPage from "./WatchlistPage";
 import { SegGroup } from "./ui/SegGroup";
@@ -66,7 +67,15 @@ function readStoredMode() {
 }
 
 const WatchlistTabs = () => {
-  const [tab, setTab] = useState(readStoredMode);
+  const [params] = useSearchParams();
+  // A channel button that named a coin sends ?add=COIN. The stored mode is a
+  // preference, but this arrival is a promise, and the coin can only be added
+  // on the Watching tab -- so the promise wins. Without this, somebody whose
+  // last visit ended on Tracking taps "Alert me on $BOME" and lands on a list
+  // of starred signals with no sign of BOME anywhere.
+  const [tab, setTab] = useState(() =>
+    params.get("add") ? "watching" : readStoredMode()
+  );
 
   const select = (key) => {
     setTab(key);

@@ -49,6 +49,48 @@ describe("Mini App campaign routing", () => {
     expect(startDestination("lq1r_luxquantadmin")).toBe("/performance");
   });
 
+  it("lands the entry-alert buttons on the free product they name", () => {
+    // These are the labels "Get the entry alert" and "Alerts on your coins".
+    // Unmapped keys fall through to the app's default screen, which would put
+    // a reader who tapped a promise about alerts somewhere that never mentions
+    // them, so the mapping is the button's promise.
+    expect(startDestination("tp2_bome_alert_gen")).toBe("/watchlist");
+    expect(startDestination("tp3_uai_alerts_gen")).toBe("/watchlist");
+    expect(startDestination("closed_win_arb_alert_gen")).toBe("/watchlist");
+  });
+
+  it("separates vip_get from vip_gets rather than truncating one into the other", () => {
+    // Longest-match-first exists for exactly this pair: a naive suffix test
+    // would file both under whichever it checked first.
+    expect(startDestination("tp2_bome_vip_get")).toBe("/pricing");
+    expect(startDestination("tp2_bome_vip_gets")).toBe("/pricing");
+    expect(parseStartParam("tp2_bome_vip_get").content).toBe("bome_vip_get");
+    expect(parseStartParam("tp2_bome_vip_gets").content).toBe("bome_vip_gets");
+  });
+
+  it("routes both in-text brand links into the app", () => {
+    expect(startDestination("tp2_bome_brand_link")).toBe("/home");
+    expect(startDestination("tp2_bome_tail_link")).toBe("/home");
+    expect(parseStartParam("tp2_bome_tail_link").content).toBe("bome_tail_link");
+  });
+
+  it("routes the remaining new free-row and VIP keys", () => {
+    expect(startDestination("tp2_bome_try_free")).toBe("/home");
+    expect(startDestination("tp3_uai_vip_sub")).toBe("/pricing");
+    // Coin-named labels carry the ticker through, so the screen can prefill it.
+    // Landing on an empty watchlist would break the promise the label made.
+    expect(startDestination("tp2_bome_alert_coin")).toBe("/watchlist?add=BOME");
+    expect(startDestination("tp2_bome_watch_coin")).toBe("/watchlist?add=BOME");
+    expect(startDestination("closed_win_1inch_alert_coin")).toBe("/watchlist?add=1INCH");
+  });
+
+  it("drops a ticker it cannot trust rather than passing it to the screen", () => {
+    // A malformed payload should still land somewhere useful; only the prefill
+    // is abandoned, never the arrival.
+    expect(startDestination("tp2__alert_coin")).toBe("/watchlist");
+    expect(startDestination("tp2_alert_coin")).toBe("/watchlist");
+  });
+
   it("keeps legacy channel payload grouping intact", () => {
     expect(startDestination("closed_win_btc_wr_coin")).toBe("/performance");
     expect(parseStartParam("closed_win_btc_wr_coin")).toEqual({

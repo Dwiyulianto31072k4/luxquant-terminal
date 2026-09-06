@@ -25,7 +25,34 @@ const markDone = () => {
   }
 };
 
+// Order is the whole design, and it changed on evidence.
+//
+// This list used to open on the performance archive and put the watchlist
+// third. Measured over 60 days it took 246 clicks on the top row against 18 on
+// the watchlist row, so 39% of the only attention every new account ever gives
+// us was being spent on reading rather than doing.
+//
+// Measured 2026-09-06 over 120 days and 1,002 accounts, the 11 people who ever
+// added a coin averaged 8.3 logins against 1.7, returned three or more times at
+// 82% against 12%, and paid at 64% against 8%. Two of 670 signups in 60 days
+// did it on the day they joined. n=11 cannot prove the direction of that, and
+// engaged people may simply be the ones who add coins -- but it is the only
+// behaviour in the product that separates the two groups at all, and the way to
+// test it is to drive the action and watch whether the retention follows.
+//
+// So the action goes first and the proof goes second. Two rows that earned
+// almost nothing (tutorials at 3 clicks, invite at 0) make way for the two
+// questions this modal never answered: what is this, and what does it cost.
 const STEPS = [
+  {
+    id: "watchlist",
+    title: "Get told when a coin is called",
+    // The payoff stated plainly. "Arm the value" described the mechanism to
+    // somebody who does not yet know there is one.
+    body: "Pick a coin. LuxQuant messages you the moment a signal opens on it, with the entry. Free.",
+    path: "/watchlist",
+    cta: "Pick a coin",
+  },
   {
     id: "performance",
     title: "Verify one resolved call",
@@ -34,18 +61,20 @@ const STEPS = [
     cta: "Verify proof",
   },
   {
-    id: "tutorials",
-    title: "Learn what the numbers mean",
-    body: "Win rate is 'reached at least TP1'. Peak is not profit. Five minutes.",
-    path: "/tips?lesson=win-rate",
-    cta: "Open a lesson",
+    id: "how",
+    title: "See how LuxQuant works",
+    body: "The whole story: what the system does, what is free, and what VIP adds.",
+    path: "/",
+    cta: "Read it",
   },
   {
-    id: "watchlist",
-    title: "Arm the value",
-    body: "Save a call or pair so LuxQuant can bring you back when it matters.",
-    path: "/watchlist",
-    cta: "See watchlist",
+    id: "vip",
+    // Same sentence the free channel's closing line uses, so the message a
+    // reader met in the post is the one that greets them in the app.
+    title: "See what VIP adds",
+    body: "Free shows the call after TP2. VIP shows the entry when it is published.",
+    path: "/pricing",
+    cta: "See plans",
   },
   {
     id: "pulse",
@@ -53,13 +82,6 @@ const STEPS = [
     body: "Use Pulse, flow and research after you have verified the signal process.",
     path: "/market-pulse",
     cta: "Open Pulse",
-  },
-  {
-    id: "invite",
-    title: "Send this record to someone",
-    body: "Share your link. They join free. You earn USDT when they subscribe.",
-    path: "/referral",
-    cta: "Invite · Earn USDT",
   },
 ];
 
@@ -99,7 +121,9 @@ export default function FreeOnboardingModal() {
     navigate(step.path);
   };
 
-  const startProof = () => go(STEPS[0]);
+  // The primary button is the first row, whatever it is. It used to be hard-wired
+  // to the archive under the name `startProof`.
+  const startFirst = () => go(STEPS[0]);
 
   return (
     <div
@@ -154,18 +178,20 @@ export default function FreeOnboardingModal() {
         <div className="mt-4 flex flex-col gap-2 border-t border-ink/[0.06] px-5 py-4 sm:px-6">
           <button
             type="button"
-            onClick={startProof}
+            onClick={startFirst}
             className="inline-flex h-12 w-full items-center justify-center rounded-full bg-accent text-[15px] font-semibold text-accent-fg shadow-[0_4px_16px_rgb(var(--accent)/0.28)]"
           >
-            Verify a resolved call
+            {STEPS[0].cta}
           </button>
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <button
               type="button"
-              onClick={() => {
-                dismiss("pricing");
-                navigate("/pricing");
-              }}
+              // Was dismiss("pricing"), which filed everyone who tapped it under
+              // cta_dismiss. 20 people did so in 60 days and every one of them
+              // was counted as walking away from the product rather than
+              // toward the paid tier -- the single most misleading row in the
+              // conversion report.
+              onClick={() => go({ id: "pricing", path: "/pricing" })}
               className="text-[12px] font-medium text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
             >
               Premium later
