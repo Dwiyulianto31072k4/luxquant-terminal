@@ -72,6 +72,12 @@ CRITICAL_MOVE_PCT = _env_float("COMPASS_MONITOR_CRITICAL_MOVE_PCT", 3.5)
 LEVEL_TOUCH_BUFFER_PCT = _env_float("COMPASS_MONITOR_LEVEL_TOUCH_BUFFER_PCT", 0.15)
 COOLDOWN_MINUTES = _env_int("COMPASS_MONITOR_COOLDOWN_MINUTES", 30)
 MIN_REPORT_AGE_MINUTES = _env_int("COMPASS_MONITOR_MIN_REPORT_AGE_MINUTES", 8)
+# The floor above stops reads landing on top of each other. Nothing stopped
+# one standing forever: every trigger reason was price-derived, so a flat
+# market produced no read at all. On 2026-09-06 a read had stood 40 hours
+# against the 720 minutes its own contract declared. Contracts still win
+# when they carry a value; this is the fallback when none is active.
+MAX_REPORT_AGE_MINUTES = _env_int("COMPASS_MONITOR_MAX_REPORT_AGE_MINUTES", 720)
 
 # ── Derivatives confluence triggers (Bybit linear BTCUSDT) ──────────────
 # Best-practice multi-signal layer: funding-rate flips/extremes, open-interest
@@ -641,6 +647,21 @@ def decide_trigger(
             since_report_high_pct,
         )
     )
+
+    # Age is a reason in its own right. It joins `reasons` rather than forcing a
+    # trigger, so the cooldown and the too-fresh floor still apply — a stale read
+    # is refreshed, never burst.
+    stale_after = MAX_REPORT_AGE_MINUTES
+    contract_stale = (active_contract or {}).get("stale_after_minutes")
+    if contract_stale:
+        try:
+            stale_after = int(contract_stale)
+        except (TypeError, ValueError):
+            pass
+    details["stale_after_minutes"] = stale_after
+    if report_age_minutes is not None and report_age_minutes >= stale_after:
+        details["report_age_minutes_over_limit"] = round(report_age_minutes - stale_after, 2)
+        reasons.append(f"report_stale_{int(report_age_minutes)}m")
 
     # The later of "last published anomaly" and "last attempted run" — an
     # attempt that failed still consumed the window it was meant to cover.
