@@ -102,7 +102,8 @@ def persist_rss_items(
     Expected item shape (macro_news_service / market_overview):
         {title, link, description, image, source, published}
 
-    Returns the number of rows inserted (conflicts are skipped).
+    Returns the number of rows written — inserts plus rows whose headline or
+    missing image was refreshed. Unchanged rows are not rewritten.
     `default_category` overrides the classifier (e.g. force 'bitcoin' for
     the bitcoin-page feed); leave None to auto-classify.
     """
@@ -118,7 +119,25 @@ def persist_rss_items(
             :category, :title, :description, :url, :domain, :image_url,
             :published_at, :raw_text
         )
-        ON CONFLICT DO NOTHING
+        -- Outlets rewrite headlines after publishing. With DO NOTHING the row
+        -- kept whatever title it was first seen with, so the News page could
+        -- carry a headline the outlet had already replaced — and a search for a
+        -- word in the live headline found nothing, even though the article was
+        -- stored. CoinDesk's "Timing the bitcoin market..." was one such row.
+        --
+        -- The arbiter names the partial index ux_cn_rss_url, so its predicate
+        -- has to be repeated here. source_msg_id is derived from the url, so the
+        -- (source_channel, source_msg_id) index cannot fire independently.
+        ON CONFLICT (url) WHERE source_type = 'rss' AND url IS NOT NULL
+        DO UPDATE SET
+            title = EXCLUDED.title,
+            -- Never trade a real value for an empty one: a feed that drops the
+            -- summary or image on a re-poll must not erase what we already have.
+            description = COALESCE(NULLIF(EXCLUDED.description, ''), crypto_news.description),
+            raw_text    = COALESCE(NULLIF(EXCLUDED.raw_text, ''),    crypto_news.raw_text),
+            image_url   = COALESCE(NULLIF(EXCLUDED.image_url, ''),   crypto_news.image_url)
+        WHERE crypto_news.title IS DISTINCT FROM EXCLUDED.title
+           OR (crypto_news.image_url IS NULL AND NULLIF(EXCLUDED.image_url, '') IS NOT NULL)
     """)
     for it in items:
         url = (it.get("link") or it.get("url") or "").strip()
