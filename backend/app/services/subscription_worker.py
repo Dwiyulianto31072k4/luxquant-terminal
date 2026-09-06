@@ -41,7 +41,11 @@ from app.services.telegram_group import is_in_group, kick_member, send_dm
 logger = logging.getLogger(__name__)
 
 INTERVAL = 300  # 5 minutes
-GRACE_DAYS = int(os.getenv("VIP_GRACE_DAYS", "3"))
+# 0 = the Telegram seat is withdrawn at expiry, in the same cycle the role
+# drops — the owner's call on 2026-09-06. Set VIP_GRACE_DAYS to restore a
+# window; the copy and the final warning below follow this number, so the
+# customer is never promised days they do not have.
+GRACE_DAYS = int(os.getenv("VIP_GRACE_DAYS", "0"))
 SITE_URL = os.getenv("PUBLIC_SITE_URL", "https://luxquant.tw")
 
 # A referee is considered churned once their subscription has been expired for
@@ -68,9 +72,18 @@ LOCK_KEY = "lq:subworker:lock"
 LOCK_TTL = INTERVAL - 60  # 240s
 
 MSG_EXPIRED = (
-    "Your LuxQuant subscription has ended.\n\n"
-    f"Renew within {GRACE_DAYS} days to keep your spot in the VIP group.\n"
-    f"Renew here: {SITE_URL}"
+    (
+        "Your LuxQuant subscription has ended, so your VIP group access has been "
+        "withdrawn.\n\n"
+        "Renew anytime and you are added straight back.\n"
+        f"Renew here: {SITE_URL}"
+    )
+    if GRACE_DAYS <= 0
+    else (
+        "Your LuxQuant subscription has ended.\n\n"
+        f"Renew within {GRACE_DAYS} days to keep your spot in the VIP group.\n"
+        f"Renew here: {SITE_URL}"
+    )
 )
 MSG_FINAL = (
     "Final reminder: you'll be removed from the LuxQuant VIP group within 24 hours "
@@ -369,6 +382,11 @@ async def _expire_and_start_grace(db, now):
 
 async def _send_final_reminders(db, now):
     """Kirim reminder #2 buat user yang mendekati deadline kick (best-effort)."""
+    # With no grace window there is nothing to warn about: the seat is gone in
+    # the same cycle. Sending "you will be removed within 24 hours" beside the
+    # removal itself would just be false.
+    if GRACE_DAYS <= 0:
+        return 0
     threshold = now + timedelta(hours=FINAL_REMINDER_BEFORE_HOURS)
     rows = db.execute(
         text(f"""
