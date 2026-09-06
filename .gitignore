@@ -54,3 +54,6 @@ backend/rebackfill_backups/
 
 # deploy stamp — server-local runtime state, never commit
 .deploy-rev-backend
+
+# Local snapshot dirs made before risky UI reworks (VPS-only, never shipped)
+backups/
