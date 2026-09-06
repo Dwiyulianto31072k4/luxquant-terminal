@@ -38,7 +38,7 @@ import { ApiHealthTab } from "./admin/workspace/ApiHealthTab";
 import { EdgeHealthTab } from "./admin/workspace/EdgeHealthTab";
 import { XTrackerTab } from "./admin/workspace/XTrackerTab";
 import { StatusTab } from "./admin/workspace/StatusTab";
-import { ResourcesTab } from "./admin/workspace/ResourcesTab";
+import { LearningStudioTab } from "./admin/workspace/LearningStudioTab";
 import SocialPostsAdminPage from "./SocialPostsAdminPage";
 import SignalCardsAdminPage from "./SignalCardsAdminPage";
 
@@ -187,8 +187,8 @@ const TABS = [
   },
   {
     id: "resources",
-    label: "Resources",
-    description: "Research, guides, videos & links",
+    label: "Learning Studio",
+    description: "Courses, case labs, lessons & readiness",
     Icon: BookOpenIcon,
     group: "growth",
   },
@@ -981,7 +981,7 @@ const AdminWorkspacePage = () => {
               {activeTab === "announcements" && <AnnouncementsTab />}
               {activeTab === "socialposts" && <SocialPostsAdminPage />}
               {activeTab === "signalcards" && <SignalCardsAdminPage />}
-              {activeTab === "resources" && <ResourcesTab />}
+              {activeTab === "resources" && <LearningStudioTab />}
               {activeTab === "system" && <SystemTab />}
               {activeTab === "status" && <StatusTab />}
               {activeTab === "profitshare" && <ProfitSharingTab />}
