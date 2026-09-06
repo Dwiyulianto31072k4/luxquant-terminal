@@ -426,13 +426,16 @@ export default function SignalsAnalytics() {
     fetchLiq();
     fetchCvd();
     fetchOb();
-    const ivData = setInterval(fetchData, 60000);
-    const ivDeriv = setInterval(fetchDeriv, 30000); // cheap: pure Redis read
-    const ivPs = setInterval(fetchPostsignal, 300000); // 5 min: pure Redis read
-    const ivMacro = setInterval(fetchMacro, 300000);
-    const ivLiq = setInterval(fetchLiq, 6000); // live tape
-    const ivCvd = setInterval(fetchCvd, 8000); // live order flow
-    const ivOb = setInterval(fetchOb, 8000); // live order book
+    const vis = (fn) => () => {
+      if (document.visibilityState === "visible") fn();
+    };
+    const ivData = setInterval(vis(fetchData), 60000);
+    const ivDeriv = setInterval(vis(fetchDeriv), 30000);
+    const ivPs = setInterval(vis(fetchPostsignal), 300000);
+    const ivMacro = setInterval(vis(fetchMacro), 300000);
+    const ivLiq = setInterval(vis(fetchLiq), 6000);
+    const ivCvd = setInterval(vis(fetchCvd), 8000);
+    const ivOb = setInterval(vis(fetchOb), 8000);
     return () => {
       clearInterval(ivData);
       clearInterval(ivDeriv);

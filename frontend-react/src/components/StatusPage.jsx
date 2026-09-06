@@ -94,17 +94,42 @@ const FALLBACK_COMPONENTS = [
   },
 ];
 
-async function fetchWithTimeout(url, ms) {
+async function fetchWithTimeout(url, ms, init = {}) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
     return await fetch(url, {
+      ...init,
       signal: ctrl.signal,
-      headers: { Accept: "application/json" },
       cache: "no-store",
+      headers: { Accept: "application/json", ...(init.headers || {}) },
     });
   } finally {
     clearTimeout(t);
+  }
+}
+
+/** Boot files from index.html — catches CDN 522 on the shell this browser uses. */
+async function probeBootAssets() {
+  try {
+    const htmlRes = await fetchWithTimeout("/", PING_TIMEOUT_MS, {
+      headers: { Accept: "text/html" },
+    });
+    if (!htmlRes.ok) return false;
+    const html = await htmlRes.text();
+    const urls = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]);
+    if (urls.length === 0) return true;
+    const checks = await Promise.all(
+      urls.map((u) =>
+        fetchWithTimeout(u, PING_TIMEOUT_MS, {
+          method: "HEAD",
+          headers: { Accept: "*/*" },
+        }).then((r) => r.ok).catch(() => false),
+      ),
+    );
+    return checks.every(Boolean);
+  } catch {
+    return false;
   }
 }
 
@@ -398,42 +423,70 @@ export default function StatusPage() {
   const [pastPage, setPastPage] = useState(0);
 
   const load = useCallback(async () => {
-    const [pingRes, statusRes] = await Promise.allSettled([
-      fetchWithTimeout("/api/v1/status/ping", PING_TIMEOUT_MS),
-      fetchWithTimeout("/api/v1/status", STATUS_TIMEOUT_MS),
+    const [pingRes, statusRes, bootOk] = await Promise.all([
+      fetchWithTimeout("/api/v1/status/ping", PING_TIMEOUT_MS).then((r) => r).catch(() => null),
+      fetchWithTimeout("/api/v1/status", STATUS_TIMEOUT_MS).then((r) => r).catch(() => null),
+      probeBootAssets(),
     ]);
-    const apiAlive = pingRes.status === "fulfilled" && pingRes.value.ok;
+    const apiAlive = Boolean(pingRes && pingRes.ok);
     let detail = null;
-    if (statusRes.status === "fulfilled" && statusRes.value.ok) {
+    if (statusRes && statusRes.ok) {
       try {
-        detail = await statusRes.value.json();
+        detail = await statusRes.json();
       } catch {
         detail = null;
       }
     }
 
+    const markDeliveryDown = (components, overall, label, note) => {
+      if (bootOk) return { components, overall, label, note };
+      const next = (components || []).map((c) =>
+        c.key === "platform" ? { ...c, status: "major_outage" } : c,
+      );
+      return {
+        components: next,
+        overall: "major_outage",
+        label: "Website files failed to download",
+        note:
+          (note ? `${note} ` : "") +
+          "This browser could not fetch the app boot files (CDN/edge). The API may still be up.",
+      };
+    };
+
     if (detail && Array.isArray(detail.components)) {
+      const marked = markDeliveryDown(
+        detail.components,
+        detail.overall || "operational",
+        detail.overall_label || OVERALL_LABEL[detail.overall] || "",
+        detail.note || "",
+      );
       setView({
-        overall: detail.overall || "operational",
-        label: detail.overall_label || OVERALL_LABEL[detail.overall] || "",
-        components: detail.components,
+        overall: marked.overall,
+        label: marked.label,
+        components: marked.components,
         incidents: detail.incidents || [],
         past: detail.past_incidents || [],
         updatedAt: detail.updated_at ? new Date(detail.updated_at) : new Date(),
-        note: detail.note || "",
+        note: marked.note,
       });
     } else if (apiAlive) {
-      setView({
-        overall: "degraded",
-        label: "Running — detailed status temporarily unavailable",
-        components: FALLBACK_COMPONENTS.map((c) => ({
+      const marked = markDeliveryDown(
+        FALLBACK_COMPONENTS.map((c) => ({
           ...c,
           status: c.key === "platform" ? "operational" : "unknown",
         })),
+        "degraded",
+        "Running — detailed status temporarily unavailable",
+        "The platform is responding, but the detailed component status couldn't be loaded right now.",
+      );
+      setView({
+        overall: marked.overall,
+        label: marked.label,
+        components: marked.components,
         incidents: [],
         past: [],
         updatedAt: new Date(),
-        note: "The platform is responding, but the detailed component status couldn't be loaded right now.",
+        note: marked.note,
       });
     } else {
       setView({

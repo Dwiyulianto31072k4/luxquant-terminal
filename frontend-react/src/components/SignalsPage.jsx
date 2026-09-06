@@ -11,7 +11,6 @@ import BtcDomAlert from "./BtcDomAlert";
 import { classifyCoin, classifySignalVerdict } from "./coinIntelShared";
 import { InfoTip, GuideModal } from "./GuideInfo";
 import { watchlistApi } from "../services/watchlistApi";
-import moneyFlowApi from "../services/moneyFlowApi";
 import { signalsApi } from "../services/api";
 import CoinLogo from "./CoinLogo";
 import CompassSnapshot from "./aiArenaV6/CompassSnapshot";
@@ -835,8 +834,8 @@ const SignalsPage = () => {
       "USR",
       "USD1",
     ]);
-    moneyFlowApi
-      .getCoins({ limit: 80 })
+    import("../services/moneyFlowApi")
+      .then((m) => m.default.getCoins({ limit: 80 }))
       .then((res) => {
         const coins = Array.isArray(res) ? res : res?.coins || [];
         const filtered = (coins || []).filter(

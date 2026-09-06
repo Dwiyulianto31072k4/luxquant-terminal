@@ -9,14 +9,26 @@ set -e
 #   ./deploy.sh both        # same as default
 #   ./deploy.sh luxquant    # deploy LuxQuant only
 #   ./deploy.sh cryptobot   # deploy Cryptobot only
+#   ./deploy.sh purge-url URL [URL...]
+#       Purge specific Cloudflare URLs only (522 stuck key / bad HTML).
+#       NEVER used as a routine deploy step.
+#
+# Frontend publish (hashed Vite assets):
+#   - rsync -a WITHOUT --delete (old chunks stay for open tabs)
+#   - NEVER cp -r (can truncate a live file; CF caches it 1 year)
+#   - NEVER purge_everything on deploy (cold-cache lottery → 522)
+#   - NEVER bump frontend-react/.asset-salt as a "fix"
+#   - Users get new code because HTML is uncached (DYNAMIC) and
+#     changed JS gets a new content-hash URL
+#   - After publish, smoke origin + https://luxquant.tw (not just localhost)
 # ============================================
 
 MODE="${1:-both}"
 case "$MODE" in
-    luxquant|cryptobot|both) ;;
+    luxquant|cryptobot|both|purge-url) ;;
     *)
         echo "Unknown mode: $MODE"
-        echo "Usage: $0 [luxquant|cryptobot|both]"
+        echo "Usage: $0 [luxquant|cryptobot|both|purge-url URL...]"
         exit 2
         ;;
 esac
@@ -47,8 +59,97 @@ CRYPTOBOT_SERVICES=(
     "cryptobot-monitoring-alerts"
 )
 
-# Cloudflare purge (LuxQuant only — Cryptobot is API-only)
+# Cloudflare (LuxQuant only — Cryptobot is API-only)
+# Token is for incident purge-by-URL, NOT purge_everything on every deploy.
 CF_ENV_FILE="/root/.cloudflare_env"
+PUBLIC_ORIGIN="https://luxquant.tw"
+
+cf_load_env() {
+    if [ -f "$CF_ENV_FILE" ]; then
+        # shellcheck source=/dev/null
+        source "$CF_ENV_FILE"
+    fi
+}
+
+# Incident tool: unstick one cache key. Do not call from a normal deploy.
+cf_purge_urls() {
+    cf_load_env
+    if [ -z "${CF_ZONE_ID:-}" ] || [ -z "${CF_API_TOKEN:-}" ]; then
+        echo "   ❌ CF_ZONE_ID/CF_API_TOKEN missing in $CF_ENV_FILE"
+        echo "   Purge the URL in Cloudflare dash → Caching → Custom Purge"
+        return 1
+    fi
+    if [ "$#" -lt 1 ]; then
+        echo "   Usage: $0 purge-url https://luxquant.tw/assets/js/chunk.js"
+        return 2
+    fi
+    local files_json="" u
+    for u in "$@"; do
+        [ -n "$files_json" ] && files_json="$files_json, "
+        files_json="$files_json$(printf '%s' "$u" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))')"
+    done
+    echo "   → Purge Cloudflare files: $*"
+    CF_RESULT=$(curl -4 -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+        -H "Authorization: Bearer ${CF_API_TOKEN}" \
+        -H "Content-Type: application/json" \
+        --data "{\"files\":[$files_json]}" || true)
+    if echo "$CF_RESULT" | grep -q '"success":true'; then
+        echo "   ✅ Purged: $*"
+        return 0
+    fi
+    echo "   ⚠️  API purge failed — use the dashboard Custom Purge for those URLs."
+    echo "   Response: $CF_RESULT"
+    return 1
+}
+
+warn_if_box_busy() {
+    local load cores
+    load=$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo 0)
+    cores=$(nproc 2>/dev/null || echo 2)
+    echo "   → load $load / ${cores} cores"
+    python3 - "$load" "$cores" <<'PY' || true
+import sys
+load, cores = float(sys.argv[1]), float(sys.argv[2] or 2)
+if load >= cores:
+    print(f"   ⚠️  Load {load} on {int(cores)} cores — a frontend build can cause brief 522s.")
+    print("   ⚠️  Prefer waiting until load < cores. This deploy will still run.")
+PY
+}
+
+# Origin 200 + public 522 = Cloudflare edge, not React. Do not salt/rebuild.
+smoke_frontend_delivery() {
+    local index_html chunk origin_code public_code
+    index_html=$(curl -sS -m 10 -H "Host: luxquant.tw" http://127.0.0.1/index.html || true)
+    chunk=$(printf '%s' "$index_html" | python3 -c '
+import re,sys
+html=sys.stdin.read()
+m=re.search(r"src=\"(/assets/js/index-[^\"]+)\"", html)
+print(m.group(1) if m else "")
+' 2>/dev/null || true)
+    if [ -z "$chunk" ]; then
+        echo "   ⚠️  Smoke: could not parse /assets/js/index-*.js from index.html"
+        return 0
+    fi
+    echo "   → Smoke chunk $chunk"
+    origin_code=$(curl -sS -m 15 -o /dev/null -w "%{http_code}" -H "Host: luxquant.tw" "http://127.0.0.1$chunk" || echo "000")
+    public_code=$(curl -sS -m 25 -o /dev/null -w "%{http_code}" "$PUBLIC_ORIGIN$chunk" || echo "000")
+    echo "   → origin $origin_code   public $public_code   (public curl from this box ≠ Indonesia/SIN)"
+    if [ "$origin_code" != "200" ]; then
+        echo "   ❌ Origin did not 200 this chunk — do not continue blindly"
+        return 1
+    fi
+    if [ "$public_code" = "522" ] || [ "$public_code" = "000" ]; then
+        echo "   ❌ Cloudflare $public_code for $chunk (origin was 200)"
+        echo "   → Fix: $0 purge-url $PUBLIC_ORIGIN$chunk"
+        echo "   → Do NOT bump .asset-salt / do NOT rebuild to unstick the edge"
+        return 1
+    fi
+    if [ "$public_code" != "200" ]; then
+        echo "   ⚠️  Public HTTP $public_code — check Cloudflare dash"
+        return 0
+    fi
+    echo "   ✅ Origin and public both 200"
+}
 
 # ============================================================
 # LuxQuant deployment
@@ -57,6 +158,7 @@ deploy_luxquant() {
     echo "==============================================="
     echo "🚀 DEPLOYING LUXQUANT"
     echo "==============================================="
+    warn_if_box_busy
 
     # [1/6] Pull
     echo ""
@@ -95,22 +197,18 @@ deploy_luxquant() {
     nice -n 19 ionice -c3 npm run build
     echo "   → Deploying ke Nginx (keep old bundles so in-flight users don't break)..."
     mkdir -p "$NGINX_WWW_PATH"
-    # Copy the fresh build OVER the existing files — this updates index.html and
-    # adds the new hashed bundles, but does NOT delete the old hashed bundles.
-    # A user who still has the previous index.html open can therefore keep
-    # loading its (old) chunks instead of hitting a 404 → no broken login after
-    # a deploy. Old bundles are pruned below once they're a few days stale.
     # rsync, not cp: it writes each file to a temp name and renames it into
     # place, so a request arriving mid-deploy can never read a half-written
     # chunk. A torn read here is worse than it sounds — /assets/ is served
-    # `immutable, max-age=31536000`, so Cloudflare caches the truncated file
-    # at that edge for a year and everyone routed there stays broken.
+    # immutable max-age=1y, so Cloudflare caches the truncated file at that
+    # edge for a year and everyone routed there stays broken.
     # No --delete: old hashed bundles must survive for tabs still open.
     rsync -a dist/ "$NGINX_WWW_PATH/"
     # Prune hashed asset files not touched in >3 days (well past any live
     # session), so old bundles don't pile up forever. index.html is at the root
     # and is always overwritten above, so it's never pruned.
     find "$NGINX_WWW_PATH/assets" -type f -mtime +3 -delete 2>/dev/null || true
+    # Keep chown: dist/ is root-owned; www-data must read the tree.
     chown -R www-data:www-data "$NGINX_WWW_PATH"
 
     # [3/6] Backend replacement — only when backend code actually changed.
@@ -283,27 +381,14 @@ deploy_luxquant() {
         fi
     fi
 
-    # [6/6] Cloudflare
+    # [6/6] Delivery smoke — hashed assets + uncached HTML, no purge_everything.
+    # New code reaches users because index.html is DYNAMIC and changed chunks
+    # get a new URL. Purging all of Cloudflare here recreates cold 522s.
     echo ""
-    echo "☁️  [6/6] Purge Cloudflare cache..."
-    if [ -f "$CF_ENV_FILE" ]; then
-        # shellcheck source=/dev/null
-        source "$CF_ENV_FILE"
-    fi
-    if [ -n "${CF_ZONE_ID:-}" ] && [ -n "${CF_API_TOKEN:-}" ]; then
-        CF_RESULT=$(curl -4 -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
-            -H "Authorization: Bearer ${CF_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"purge_everything":true}' || true)
-        if echo "$CF_RESULT" | grep -q '"success":true'; then
-            echo "   ✅ Cloudflare cache purged"
-        else
-            echo "   ⚠️  Cloudflare purge GAGAL — purge manual di dashboard."
-            echo "   Response: $CF_RESULT"
-        fi
-    else
-        echo "   ⏭️  Skip — CF_ZONE_ID/CF_API_TOKEN belum di-set di $CF_ENV_FILE"
-        echo "   ⚠️  Jangan lupa purge manual di dashboard Cloudflare!"
+    echo "☁️  [6/6] Frontend delivery smoke (no Purge Everything)..."
+    smoke_frontend_delivery
+    if [ -f "$LUXQUANT_PATH/scripts/cf-analytics-522.py" ]; then
+        python3 "$LUXQUANT_PATH/scripts/cf-analytics-522.py" || true
     fi
 
     echo ""
@@ -415,6 +500,11 @@ case "$MODE" in
         deploy_luxquant
         deploy_cryptobot
         ;;
+    purge-url)
+        shift
+        cf_purge_urls "$@"
+        exit $?
+        ;;
 esac
 
 echo ""
@@ -428,4 +518,5 @@ echo "   • Log LuxQuant   : journalctl -u $LUXQUANT_SERVICE -f"
 echo "   • Log Cryptobot  : journalctl -u cryptobot-api -f"
 echo "   • Status all     : systemctl status $LUXQUANT_SERVICE 'cryptobot-*' --no-pager"
 echo "   • Deploy partial : ./deploy.sh luxquant | cryptobot | both"
+echo "   • Unstick 1 URL  : ./deploy.sh purge-url https://luxquant.tw/assets/js/<chunk>.js"
 echo ""

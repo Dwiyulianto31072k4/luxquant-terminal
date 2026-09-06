@@ -4,8 +4,8 @@
 // ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { lazy, Suspense } from "react";
-
+import { lazyWithRetry as lazy } from "../../../utils/lazyWithRetry";
+import { Suspense } from "react";
 import { countryName, flagEmoji, isUnknownCountry } from "./countries";
 const WorldMapPanel = lazy(() => import("./WorldMapPanel"));
 import { growthApi } from "../../../services/growthApi";

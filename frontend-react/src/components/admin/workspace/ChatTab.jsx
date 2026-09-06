@@ -22,7 +22,7 @@ import {
 
 // Conversations refresh faster than the workspace shell's 60s: a stale support
 // list is a slow reply, which is the one metric this feature lives on.
-const LIST_POLL_MS = 15000;
+const LIST_POLL_MS = 30000;
 const THREAD_POLL_MS = 5000;
 
 const FILTERS = [
@@ -603,7 +603,9 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   }, [loadList]);
 
   useEffect(() => {
-    const id = setInterval(loadList, LIST_POLL_MS);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") loadList();
+    }, LIST_POLL_MS);
     return () => clearInterval(id);
   }, [loadList]);
 

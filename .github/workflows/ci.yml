@@ -112,3 +112,49 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Upload dist (VPS rsyncs this — no vite on 2 cores)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-react/dist
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy-frontend:
+    name: frontend · rsync artifact to VPS
+    needs: frontend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+
+      - name: Rsync to /var/www/luxquantdata
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          # No literal host here on purpose: this repo is public, and the
+          # origin sits behind Cloudflare. Publishing the origin IP lets
+          # anyone bypass the CDN, the WAF and the rate limits entirely.
+          if [ -z "${SSH_KEY:-}" ] || [ -z "${VPS_HOST:-}" ]; then
+            echo "VPS_SSH_KEY/VPS_HOST not set — artifact is built, VPS not updated."
+            echo "GitHub → Settings → Secrets: VPS_SSH_KEY, VPS_HOST, VPS_USER"
+            exit 0
+          fi
+          : "${VPS_USER:=root}"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Same rules as deploy.sh: rsync -a, no --delete, no purge_everything.
+          rsync -az -e "ssh -4 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" \
+            dist/ "${VPS_USER}@${VPS_HOST}:/var/www/luxquantdata/"
+          ssh -4 -i ~/.ssh/id_ed25519 "${VPS_USER}@${VPS_HOST}" \
+            'chown -R www-data:www-data /var/www/luxquantdata; /root/luxquant-terminal/scripts/cf-edge-health.sh || true'

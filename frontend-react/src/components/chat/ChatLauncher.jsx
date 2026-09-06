@@ -3,6 +3,7 @@ import { lazyWithRetry as lazy } from "../../utils/lazyWithRetry";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { chatApi } from "../../services/chatApi";
+import { pollWhileVisible } from "../../utils/pollWhileVisible";
 
 // The panel pulls in the thread hook and transport; nobody who never opens
 // chat should pay for that in the initial bundle.
@@ -86,12 +87,11 @@ export default function ChatLauncher() {
   // thread's own transport is already fetching, and everything is read anyway.
   useEffect(() => {
     if (!isAuthenticated || open) return undefined;
-    fetchUnread();
-    const id = setInterval(fetchUnread, UNREAD_POLL_MS);
+    const stop = pollWhileVisible(fetchUnread, UNREAD_POLL_MS);
     const onFocus = () => fetchUnread();
     window.addEventListener("focus", onFocus);
     return () => {
-      clearInterval(id);
+      stop();
       window.removeEventListener("focus", onFocus);
     };
   }, [isAuthenticated, open, fetchUnread]);

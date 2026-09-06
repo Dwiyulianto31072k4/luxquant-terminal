@@ -11,6 +11,7 @@
 // pihak ketiga (bukan backend kita), jadi tidak relevan untuk tracking.
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { pollWhileVisible } from "../utils/pollWhileVisible";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
@@ -768,8 +769,7 @@ const MarketPulsePageInner = () => {
 
   useEffect(() => {
     fetchData(true);
-    const interval = setInterval(() => fetchData(false), 10000);
-    return () => clearInterval(interval);
+    return pollWhileVisible(() => fetchData(false), 20_000, { immediate: false });
   }, [fetchData]);
 
   useEffect(() => {

@@ -35,15 +35,17 @@ import { SystemTab } from "./admin/workspace/SystemTab";
 import { ProfitSharingTab } from "./admin/workspace/ProfitSharingTab";
 import { AiCostTab } from "./admin/workspace/AiCostTab";
 import { ApiHealthTab } from "./admin/workspace/ApiHealthTab";
+import { EdgeHealthTab } from "./admin/workspace/EdgeHealthTab";
 import { XTrackerTab } from "./admin/workspace/XTrackerTab";
 import { StatusTab } from "./admin/workspace/StatusTab";
-import { LearningStudioTab } from "./admin/workspace/LearningStudioTab";
+import { ResourcesTab } from "./admin/workspace/ResourcesTab";
 import SocialPostsAdminPage from "./SocialPostsAdminPage";
 import SignalCardsAdminPage from "./SignalCardsAdminPage";
 
 // Design system
 import { palette, tint, motion, NEUTRAL } from "./admin/designSystem";
 import { RouteErrorBoundary } from "./ErrorBoundary";
+import { pollWhileVisible } from "../utils/pollWhileVisible";
 import "./admin/AdminWorkspacePage.css";
 
 // Icons
@@ -185,8 +187,8 @@ const TABS = [
   },
   {
     id: "resources",
-    label: "Learning Studio",
-    description: "Courses, case labs, lessons & readiness",
+    label: "Resources",
+    description: "Research, guides, videos & links",
     Icon: BookOpenIcon,
     group: "growth",
   },
@@ -223,6 +225,13 @@ const TABS = [
     label: "API Health",
     description: "External keys, balance & quota",
     Icon: KeyIcon,
+    group: "platform",
+  },
+  {
+    id: "delivery",
+    label: "Delivery",
+    description: "Cloudflare 522 & origin vs edge",
+    Icon: ActivityIcon,
     group: "platform",
   },
   {
@@ -807,9 +816,7 @@ const AdminWorkspacePage = () => {
   // minute behind an unanswered user, and response time is the metric that
   // decides whether this feature converts anyone.
   useEffect(() => {
-    fetchChatUnread();
-    const interval = setInterval(fetchChatUnread, 15000);
-    return () => clearInterval(interval);
+    return pollWhileVisible(fetchChatUnread, 45_000);
   }, [fetchChatUnread]);
 
   useEffect(() => {
@@ -974,12 +981,13 @@ const AdminWorkspacePage = () => {
               {activeTab === "announcements" && <AnnouncementsTab />}
               {activeTab === "socialposts" && <SocialPostsAdminPage />}
               {activeTab === "signalcards" && <SignalCardsAdminPage />}
-              {activeTab === "resources" && <LearningStudioTab />}
+              {activeTab === "resources" && <ResourcesTab />}
               {activeTab === "system" && <SystemTab />}
               {activeTab === "status" && <StatusTab />}
               {activeTab === "profitshare" && <ProfitSharingTab />}
               {activeTab === "aicost" && <AiCostTab />}
               {activeTab === "apihealth" && <ApiHealthTab />}
+              {activeTab === "delivery" && <EdgeHealthTab />}
               {activeTab === "xtracker" && <XTrackerTab />}
             </RouteErrorBoundary>
           </div>

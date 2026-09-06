@@ -22,6 +22,7 @@ import TelegramNudgeModal from "./components/TelegramNudgeModal";
 import OpenInvoiceCard from "./components/subscription/OpenInvoiceCard";
 import FreeOnboardingModal from "./components/FreeOnboardingModal";
 import MiniAppStartRoute from "./components/MiniAppStartRoute";
+import LandingPageV2 from "./components/landing/v2/LandingPageV2";
 import TelegramAdTerminalEntry from "./components/telegramAds/TelegramAdTerminalEntry";
 import AnnouncementModal from "./components/AnnouncementModal";
 import ChatLauncher from "./components/chat/ChatLauncher";
@@ -54,7 +55,6 @@ const CoinsPage = lazy(() => import("./components/CoinsPage"));
 const OrderBookPage = lazy(() => import("./components/OrderBookPage"));
 const AIArenaPageV6 = lazy(() => import("./components/AIArenaPageV6"));
 const ReferralPage = lazy(() => import("./components/ReferralPage"));
-const LandingPageV2 = lazy(() => import("./components/landing/v2/LandingPageV2"));
 const LoginPage = lazy(() => import("./components/auth/LoginPage"));
 const GoogleCallback = lazy(() => import("./components/auth/GoogleCallback"));
 const DiscordCallback = lazy(() => import("./components/auth/DiscordCallback"));
@@ -1541,11 +1541,7 @@ function App() {
                   {/* Landing — V2 primary (desktop + mobile) */}
                   <Route
                     path="/"
-                    element={
-                      <Suspense fallback={<PageLoader />}>
-                        <LandingPageV2 />
-                      </Suspense>
-                    }
+                    element={<LandingPageV2 />}
                   />
                   {/* Legacy v1 landing retired → redirect */}
                   <Route path="/v1" element={<Navigate to="/" replace />} />

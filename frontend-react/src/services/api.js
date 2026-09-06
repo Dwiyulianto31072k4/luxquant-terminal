@@ -53,6 +53,14 @@ api.interceptors.response.use(
 // Domain API helpers
 // ════════════════════════════════════════════════════════════════
 export const signalsApi = {
+  // Cache-break token, and it has to live on a USED export or rollup drops it.
+  // Chunk filenames are content hashes, so a module whose source has not
+  // changed keeps its URL forever — and one Cloudflare edge got permanently
+  // stuck answering 522 for this chunk's URL (18/18 attempts), which breaks
+  // every page importing it: the app renders, then the data never arrives and
+  // the skeletons spin. Bumping this moves the chunk to a fresh URL. A cache
+  // purge is the proper fix; this is what you have when you cannot reach one.
+  __chunkBuild: 2,
   // Get paginated signals
   getSignals: async (page = 1, pageSize = 20, status = null, pair = null) => {
     const params = { page, page_size: pageSize };

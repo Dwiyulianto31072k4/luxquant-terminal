@@ -889,3 +889,206 @@ def activity_insights(
     }
     cache_set(cache_key, result, ttl=120)
     return result
+
+
+# ════════════════════════════════════════════════════════════════════
+# Cloudflare edge health — 522s look like a dead app on Conversion
+# Token stays on the VPS (IPv4). Never sent to the browser.
+# ════════════════════════════════════════════════════════════════════
+
+def _curl4(args, timeout=18):
+    import subprocess
+    p = subprocess.run(
+        ["curl", "-4", "-sS", "-m", str(timeout), *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout + 5,
+    )
+    return p.returncode, p.stdout or "", p.stderr or ""
+
+
+def _http_code(url, extra=None):
+    args = ["-o", "/dev/null", "-w", "%{http_code}"]
+    if extra:
+        args.extend(extra)
+    args.append(url)
+    _rc, out, _err = _curl4(args, timeout=16)
+    try:
+        return int(out.strip() or 0)
+    except ValueError:
+        return 0
+
+
+def _header(url, name, extra=None):
+    args = ["-sI"]
+    if extra:
+        args.extend(extra)
+    args.append(url)
+    _rc, out, _err = _curl4(args, timeout=16)
+    key = name.lower() + ":"
+    for line in out.splitlines():
+        if line.lower().startswith(key):
+            return line.split(":", 1)[1].strip()
+    return ""
+
+
+@router.get("/edge-health")
+def edge_health(admin: User = Depends(get_admin_user)):
+    """Origin vs Cloudflare + GraphQL 5xx/522. Admin Conversion tab."""
+    cached = cache_get("lq:growth:edge-health")
+    if cached is not None:
+        return cached
+
+    host = ["-H", "Host: luxquant.tw"]
+    origin_html = _http_code("http://127.0.0.1/", extra=host)
+    public_html = _http_code("https://luxquant.tw/")
+    _rc, html, _err = _curl4([*host, "http://127.0.0.1/index.html"], timeout=12)
+    chunk = ""
+    import re
+    m = re.search(r'src="(/assets/js/index-[^"]+)"', html or "")
+    if m:
+        chunk = m.group(1)
+    origin_chunk = _http_code(f"http://127.0.0.1{chunk}", extra=host) if chunk else 0
+    public_chunk = _http_code(f"https://luxquant.tw{chunk}") if chunk else 0
+    cf_ray = _header("https://luxquant.tw/", "cf-ray")
+    colo = cf_ray.split("-")[-1] if cf_ray else ""
+    cf_cache = _header(
+        f"https://luxquant.tw{chunk}" if chunk else "https://luxquant.tw/",
+        "cf-cache-status",
+    )
+
+    env = {}
+    try:
+        with open("/root/.cloudflare_env") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                env[k.strip()] = v.strip().strip("\"'")
+    except OSError:
+        env = {}
+    token, zone = env.get("CF_API_TOKEN", ""), env.get("CF_ZONE_ID", "")
+
+    status_24h = {}
+    requests_24h = 0
+    hourly_522 = []
+    analytics_ok = False
+    analytics_error = None
+    if token and zone:
+        since = (_now() - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        q = {
+            "query": """
+            query ($zone: String!, $since: Time!) {
+              viewer {
+                zones(filter: { zoneTag: $zone }) {
+                  httpRequests1hGroups(
+                    limit: 24
+                    filter: { datetime_geq: $since }
+                    orderBy: [datetime_DESC]
+                  ) {
+                    dimensions { datetime }
+                    sum {
+                      requests
+                      responseStatusMap { edgeResponseStatus requests }
+                    }
+                  }
+                }
+              }
+            }
+            """,
+            "variables": {"zone": zone, "since": since},
+        }
+        import json as _json
+        _rc, out, err = _curl4(
+            [
+                "-X",
+                "POST",
+                "https://api.cloudflare.com/client/v4/graphql",
+                "-H",
+                f"Authorization: Bearer {token}",
+                "-H",
+                "Content-Type: application/json",
+                "--data",
+                _json.dumps(q),
+            ],
+            timeout=20,
+        )
+        try:
+            payload = _json.loads(out) if out else {}
+        except Exception:
+            payload = {}
+        if payload.get("errors"):
+            analytics_error = str(
+                payload["errors"][0].get("message") or payload["errors"][0]
+            )[:180]
+        zones = ((payload.get("data") or {}).get("viewer") or {}).get("zones") or []
+        groups = zones[0].get("httpRequests1hGroups") if zones else []
+        if groups:
+            analytics_ok = True
+            for g in groups:
+                s = g.get("sum") or {}
+                requests_24h += int(s.get("requests") or 0)
+                n522 = 0
+                for mstat in s.get("responseStatusMap") or []:
+                    st = str(mstat.get("edgeResponseStatus"))
+                    n = int(mstat.get("requests") or 0)
+                    status_24h[st] = status_24h.get(st, 0) + n
+                    if st == "522":
+                        n522 = n
+                hourly_522.append(
+                    {
+                        "hour": (g.get("dimensions") or {}).get("datetime"),
+                        "count": n522,
+                    }
+                )
+        elif not analytics_error:
+            analytics_error = (err or out or "empty GraphQL")[:180]
+    else:
+        analytics_error = "CF_API_TOKEN/CF_ZONE_ID missing"
+
+    n522 = int(status_24h.get("522") or 0)
+    last_hour_522 = int(hourly_522[0]["count"]) if hourly_522 else 0
+    delivery_ok = (
+        origin_html == 200
+        and public_html == 200
+        and (not chunk or (origin_chunk == 200 and public_chunk == 200))
+    )
+    sin_hotspots = []
+    unstick_recent = []
+    try:
+        import json as _json2
+        snap = _json2.loads(open("/var/lib/luxquant/cf-sin-snapshot.json").read())
+        sin_hotspots = snap.get("hotspots") or []
+    except Exception:
+        sin_hotspots = []
+    try:
+        lines = open("/var/log/luxquant-unstick.jsonl").read().splitlines()[-12:]
+        import json as _json3
+        unstick_recent = [_json3.loads(x) for x in lines if x.strip()]
+        unstick_recent.reverse()
+    except Exception:
+        unstick_recent = []
+    result = {
+        "ok": delivery_ok and last_hour_522 < 80,
+        "delivery_ok": delivery_ok,
+        "origin": {"html": origin_html, "chunk": origin_chunk, "chunk_path": chunk},
+        "public": {"html": public_html, "chunk": public_chunk},
+        "cf_ray": cf_ray,
+        "colo": colo,
+        "cf_cache_status": cf_cache,
+        "colo_note": "This server reaches Cloudflare via that colo, not Indonesia/SIN.",
+        "requests_24h": requests_24h,
+        "status_24h": {k: v for k, v in status_24h.items() if k.startswith("5") or k == "522"},
+        "http_522_24h": n522,
+        "http_522_last_hour": last_hour_522,
+        "hourly_522": hourly_522[:12],
+        "sin_hotspots": sin_hotspots,
+        "unstick_recent": unstick_recent,
+        "analytics_ok": analytics_ok,
+        "analytics_error": analytics_error,
+        "generated_at": _iso(_now()),
+    }
+    cache_set("lq:growth:edge-health", result, ttl=45)
+    return result
+

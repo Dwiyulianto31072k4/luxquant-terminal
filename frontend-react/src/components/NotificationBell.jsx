@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { notificationApi } from "../services/notificationApi";
+import { pollWhileVisible } from "../utils/pollWhileVisible";
 
 // ── Type-based token (semantic 3-tier, no emoji) ──
 const getTypeToken = (type, data) => {
@@ -77,23 +78,14 @@ const NotificationBell = () => {
     }
   }, [isAuthenticated]);
 
-  // ── Poll unread count every 30s + on window focus ──
+  // Poll unread while the tab is visible. Hidden phones otherwise keep
+  // punching Cloudflare SIN (522 on /notifications/unread-count).
   useEffect(() => {
-    if (!isAuthenticated) return;
-
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-
-    // Re-fetch when user comes back to tab
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") fetchCount();
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
+    if (!isAuthenticated) return undefined;
+    const stop = pollWhileVisible(fetchCount, 60_000);
     window.addEventListener("focus", fetchCount);
-
     return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibility);
+      stop();
       window.removeEventListener("focus", fetchCount);
     };
   }, [isAuthenticated, fetchCount]);

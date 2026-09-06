@@ -63,7 +63,7 @@ export default class ErrorBoundary extends Component {
 
   handleHome = () => {
     try {
-      window.location.assign("/home");
+      window.location.assign("/");
     } catch {
       window.location.href = "/";
     }
@@ -98,7 +98,7 @@ export default class ErrorBoundary extends Component {
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-text-secondary">
             {chunk
-              ? "Part of the app never arrived. Nothing is broken and nothing is lost — reload and it normally comes straight through."
+              ? "A page file never arrived from the network. Reload sometimes helps. If it keeps failing, it is not your account — the file is stuck at the CDN."
               : "The rest of LuxQuant is still available. Reload this screen or go back home."}
           </p>
           {msg && !chunk ? (

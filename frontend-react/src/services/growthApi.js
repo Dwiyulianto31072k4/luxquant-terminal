@@ -68,6 +68,11 @@ export const growthApi = {
     return response.data;
   },
 
+  getEdgeHealth: async () => {
+    const response = await api.get("/api/v1/workspace/growth/edge-health");
+    return response.data;
+  },
+
   // Signups over time on a range of its own — separate from getConversion so
   // swinging the chart out to a year does not refetch the whole tab or move
   // every other number on it. Buckets (day/week/month) are picked server-side

@@ -57,6 +57,12 @@ const moneyFlowApi = {
   /**
    * Ringkasan gabungan buat initial page load (1 call).
    */
+  // Cache-break token. One Cloudflare edge is permanently stuck serving 522
+  // for this chunk's URL, and the Signals page statically imports it, so the
+  // page renders and then hangs on its skeletons forever. Filenames are
+  // content hashes, so moving the URL means changing the content. Bump this.
+  __chunkBuild: 2,
+
   getOverview: async () => {
     const response = await api.get("/money-flow/overview");
     return response.data;
