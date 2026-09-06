@@ -11,7 +11,8 @@
 // Groups: All-Time · Daily (5) · Research (7) — 13 destinations.
 // URL: ?view=<overview|daily|research>&tab=<subtab> (shareable, back/fwd).
 // ════════════════════════════════════════════════════════════════
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
+import { lazyWithRetry as lazy } from "../utils/lazyWithRetry";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";

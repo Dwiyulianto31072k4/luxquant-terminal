@@ -14,7 +14,8 @@
 //
 // Dipasang di route /v2 (lihat catatan integrasi App.jsx).
 // ════════════════════════════════════════════════════════════════
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { lazyWithRetry as lazy } from "../../../utils/lazyWithRetry";
 import Seo from "../../Seo";
 import { saveRefFromURL } from "../../../utils/referralStorage";
 import ReferralBanner from "../../auth/ReferralBanner";

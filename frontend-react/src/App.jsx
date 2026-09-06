@@ -9,7 +9,8 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 // - Edge Lab added to More menu (desktop) + mobile drawer
 // ════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { lazyWithRetry as lazy } from "./utils/lazyWithRetry";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";

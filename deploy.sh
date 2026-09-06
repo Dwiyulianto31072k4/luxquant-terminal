@@ -100,7 +100,13 @@ deploy_luxquant() {
     # A user who still has the previous index.html open can therefore keep
     # loading its (old) chunks instead of hitting a 404 → no broken login after
     # a deploy. Old bundles are pruned below once they're a few days stale.
-    cp -r dist/* "$NGINX_WWW_PATH/"
+    # rsync, not cp: it writes each file to a temp name and renames it into
+    # place, so a request arriving mid-deploy can never read a half-written
+    # chunk. A torn read here is worse than it sounds — /assets/ is served
+    # `immutable, max-age=31536000`, so Cloudflare caches the truncated file
+    # at that edge for a year and everyone routed there stays broken.
+    # No --delete: old hashed bundles must survive for tabs still open.
+    rsync -a dist/ "$NGINX_WWW_PATH/"
     # Prune hashed asset files not touched in >3 days (well past any live
     # session), so old bundles don't pile up forever. index.html is at the root
     # and is always overwritten above, so it's never pruned.

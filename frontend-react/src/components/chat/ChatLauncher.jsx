@@ -1,4 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { lazyWithRetry as lazy } from "../../utils/lazyWithRetry";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { chatApi } from "../../services/chatApi";

@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-
+import { Suspense } from "react";
+import { lazyWithRetry as lazy } from "../../utils/lazyWithRetry";
 import { telegramAdVariant } from "../../utils/miniAppStart";
 
 const TelegramAdDestination = lazy(() => import("./TelegramAdDestination"));

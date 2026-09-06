@@ -2677,3 +2677,14 @@ textarea:focus-visible {
   --lq-ai-tabs-h: 49px;
   --lq-ai-rail-top: calc(var(--lq-header-h, 57px) + var(--lq-ai-tabs-h) + 1rem);
 }
+
+/* Cache-break token. The filename hash is derived from this file's contents, so
+   changing this number is the only way to move the stylesheet to a fresh URL.
+   Needed 2026-09-06: one Cloudflare edge (Singapore — most of our traffic) got
+   stuck on the cache key for index-DU79oIw6.css and answered 522 to every
+   request for it, while the same file served fine from origin and from other
+   edges. Result was an unstyled site for Indonesian visitors. A dashboard purge
+   of that one URL fixes it too; bump this when no one can reach the dashboard. */
+:root {
+  --lq-css-build: 2;
+}

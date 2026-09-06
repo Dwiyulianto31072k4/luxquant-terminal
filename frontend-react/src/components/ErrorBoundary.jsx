@@ -3,19 +3,49 @@
 // (desktop + mobile). Includes a solid accent recovery CTA.
 
 import { Component } from "react";
+import { isChunkLoadError } from "../utils/lazyWithRetry";
+
+// Shared with the global handler in main.jsx so the two cannot double-reload.
+const RELOAD_KEY = "lq_chunk_reload_at";
+
+// A chunk that never arrived is not a bug in this view — it is a dropped asset
+// fetch, and by the time it reaches here lazyWithRetry has already tried the
+// download four times. The one thing left to try is a fresh index.html, which
+// also covers the case where the tab is running a bundle that a deploy replaced.
+// Guarded on a timestamp so a genuinely broken build cannot spin the tab.
+function reloadOnceForChunkError() {
+  try {
+    const last = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
+    if (Date.now() - last < 30000) return false;
+    sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+  } catch {
+    /* private mode: no guard available, still worth one reload */
+  }
+  try {
+    window.location.reload();
+  } catch {
+    window.location.href = "/";
+  }
+  return true;
+}
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { error: null, info: null };
+    this.state = { error: null, info: null, chunk: false };
   }
 
   static getDerivedStateFromError(error) {
-    return { error };
+    return { error, chunk: isChunkLoadError(error) };
   }
 
   componentDidCatch(error, info) {
     this.setState({ info });
+    if (isChunkLoadError(error)) {
+      // Returns false if we already spent this tab's one reload — then we fall
+      // through to the panel below, which explains it instead of looping.
+      if (reloadOnceForChunkError()) return;
+    }
     try {
       console.error("[ErrorBoundary]", error, info?.componentStack);
     } catch {
@@ -40,7 +70,7 @@ export default class ErrorBoundary extends Component {
   };
 
   render() {
-    const { error } = this.state;
+    const { error, chunk } = this.state;
     if (!error) return this.props.children;
 
     const fallback = this.props.fallback;
@@ -61,15 +91,17 @@ export default class ErrorBoundary extends Component {
       >
         <div className="w-full max-w-md rounded-md border border-ink/[0.1] bg-surface-raised p-6 shadow-desk">
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
-            Something went wrong
+            {chunk ? "Connection problem" : "Something went wrong"}
           </p>
           <h2 className="mt-2 font-display text-xl font-semibold tracking-tight text-text-primary">
-            This view hit an error
+            {chunk ? "This screen did not finish downloading" : "This view hit an error"}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-            The rest of LuxQuant is still available. Reload this screen or go back home.
+            {chunk
+              ? "Part of the app never arrived. Nothing is broken and nothing is lost — reload and it normally comes straight through."
+              : "The rest of LuxQuant is still available. Reload this screen or go back home."}
           </p>
-          {msg ? (
+          {msg && !chunk ? (
             <pre className="mt-4 max-h-24 overflow-auto rounded-md border border-ink/[0.08] bg-surface-secondary px-3 py-2 text-left font-mono text-[10px] leading-relaxed text-text-muted">
               {msg}
             </pre>
