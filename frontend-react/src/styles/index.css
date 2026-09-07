@@ -107,6 +107,28 @@
   z-index: 2;
 }
 
+/* Same idea, but for a strip that scrolls INSIDE a raised card (the Signals
+   filter console). .edge-fade-r paints --surface, which is the page ground, not
+   the card's — using it there leaves a visible grey smear over the card. */
+.edge-fade-raised-r {
+  position: relative;
+}
+.edge-fade-raised-r::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(
+    to right,
+    rgb(var(--surface-raised) / 0),
+    rgb(var(--surface-raised)) 85%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
 /* ============================================================
  DESIGN TOKENS — single source of truth (theming M1)
  Layer 1 primitive (raw RGB channels) → Layer 2 semantic (per theme,

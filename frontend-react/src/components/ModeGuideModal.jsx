@@ -140,6 +140,8 @@ export default function ModeGuideModal({
   huntDays = "0",
   onHuntDays,
   onMoreDetail,
+  onDeskGuide,
+  onTutorials,
 }) {
   const [mute, setMute] = useState(() => isModeGuideMuted());
   const key = MODE_GUIDES[mode] ? mode : "all";
@@ -252,6 +254,22 @@ export default function ModeGuideModal({
             </div>
           ))}
         </dl>
+
+        {onDeskGuide || onTutorials ? (
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink/[0.06] pt-3 font-mono text-[10px] uppercase tracking-[0.08em] text-text-muted">
+            <span>More</span>
+            {onDeskGuide ? (
+              <button type="button" onClick={onDeskGuide} className="text-accent hover:underline">
+                Desk guide
+              </button>
+            ) : null}
+            {onTutorials ? (
+              <button type="button" onClick={onTutorials} className="text-accent hover:underline">
+                Tutorials
+              </button>
+            ) : null}
+          </p>
+        ) : null}
 
         {key === "full_tp" ? (
           <div>

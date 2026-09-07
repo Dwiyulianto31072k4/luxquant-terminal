@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { buildRunnerTagSet } from "./EdgePlaybook";
 import RecipeExplainModal from "./RecipeExplainModal";
 import ModeGuideModal, { isModeGuideMuted } from "./ModeGuideModal";
-import { SegGroup, DESK_SHELL, deskSegClass } from "./ui/SegGroup";
+import { SegGroup, deskGhostClass } from "./ui/SegGroup";
 import edgeLabApi from "../services/edgeLabApi";
 
 const SAVED_KEY = "lq:edge-recipes:v1";
@@ -123,12 +123,23 @@ export default function EdgeRecipesBar({
   watchlistCount = 0,
   watchlistActive = false,
   onWatchlist,
+  /** "modes" is the desk rail; "views" is just the saved-view list, which the
+   *  filter sheet renders. Same component so the list has one owner. */
+  variant = "modes",
+  guideMode: guideModeProp = null,
+  onGuideMode,
+  onDeskGuide,
+  onTutorials,
 }) {
   const [saved, setSaved] = useState(() => loadSaved());
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [explainId, setExplainId] = useState(null);
-  const [guideMode, setGuideMode] = useState(null);
+  // Controlled by SignalsPage when it wants the ? on the search row to open
+  // the briefing; otherwise this component keeps its own.
+  const [guideModeLocal, setGuideModeLocal] = useState(null);
+  const guideMode = onGuideMode ? guideModeProp : guideModeLocal;
+  const setGuideMode = onGuideMode || setGuideModeLocal;
   const [huntDays, setHuntDays] = useState("0");
   const [huntByDays, setHuntByDays] = useState({});
   const huntByDaysRef = useRef(huntByDays);
@@ -355,8 +366,6 @@ export default function EdgeRecipesBar({
     persistSaved(next);
   };
 
-  const showingHunt = !watchlistActive && activeId === "full_tp";
-
   const modeValue = watchlistActive
     ? "watchlist"
     : activeId === "full_tp" || activeId === "strongest"
@@ -380,6 +389,12 @@ export default function EdgeRecipesBar({
       label: "Watchlist",
       title: "Starred calls — any day, not just the last 7",
       badge: watchlistCount > 0 ? watchlistCount : null,
+      // Four equal segments have exactly enough room for "STRONGEST" on a
+      // 360px phone and not a pixel more. The count is the one piece of
+      // content only one segment carries — Apple's "keep segment content
+      // consistent" — and the results line under the console already says
+      // "4 / 727 signals", so it costs nothing to hold it back until sm.
+      badgeClass: "hidden sm:inline-flex",
     },
   ];
 
@@ -407,91 +422,85 @@ export default function EdgeRecipesBar({
     setGuideMode(key);
   };
 
-  return (
-    <div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <SegGroup
-          size="sm"
-          aria-label="Desk mode"
-          value={modeValue}
-          onChange={onMode}
-          options={modeOptions}
-          wrap
-        />
-        <div className={DESK_SHELL}>
+  // Saved views moved into the filter sheet, where their subject is. Rendering
+  // them from here keeps one owner of the localStorage list and of activeId.
+  const savedViews = (
+    <div className="flex flex-wrap items-center gap-1">
+      {saved.map((r) => (
+        <span key={r.id} className="inline-flex items-center">
           <button
             type="button"
-            title="What this mode is"
-            aria-label="What this mode is"
-            onClick={() => setGuideMode(modeValue)}
-            className={deskSegClass(false)}
+            onClick={() => applySaved(r)}
+            className={`${deskGhostClass({ bordered: true })} ${
+              !watchlistActive && activeId === r.id ? "bg-surface-secondary text-text-primary" : ""
+            }`}
           >
-            ?
+            {r.name}
           </button>
-          {showRecipes && showingHunt ? (
-            <button
-              type="button"
-              onClick={() => setGuideMode("full_tp")}
-              className={deskSegClass(guideMode === "full_tp")}
-            >
-              Why
-            </button>
-          ) : null}
-          {showRecipes &&
-            saved.map((r) => (
-              <span key={r.id} className="inline-flex items-center">
-                <button
-                  type="button"
-                  onClick={() => applySaved(r)}
-                  className={deskSegClass(!watchlistActive && activeId === r.id)}
-                >
-                  {r.name}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeSaved(r.id)}
-                  className="px-1 font-mono text-[10px] text-text-muted hover:text-loss"
-                  aria-label={`Delete ${r.name}`}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          {showRecipes ? (
-            !showSave ? (
-              <button type="button" onClick={() => setShowSave(true)} className={deskSegClass(false)}>
-                + View
-              </button>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-1">
-                <input
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSave();
-                    if (e.key === "Escape") setShowSave(false);
-                  }}
-                  placeholder="Name…"
-                  maxLength={40}
-                  className="w-24 bg-transparent font-mono text-[11px] text-text-primary outline-none"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={!saveName.trim()}
-                  className={deskSegClass(true)}
-                >
-                  Save
-                </button>
-              </span>
-            )
-          ) : null}
-        </div>
-      </div>
+          <button
+            type="button"
+            onClick={() => removeSaved(r.id)}
+            className="px-1 font-mono text-[11px] text-text-muted hover:text-loss"
+            aria-label={`Delete ${r.name}`}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      {!showSave ? (
+        <button
+          type="button"
+          onClick={() => setShowSave(true)}
+          className={deskGhostClass({ bordered: true })}
+        >
+          + Save this view
+        </button>
+      ) : (
+        <span className="inline-flex items-center gap-1">
+          <input
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") setShowSave(false);
+            }}
+            placeholder="Name…"
+            maxLength={40}
+            className="h-10 w-28 rounded-md border border-ink/[0.1] bg-surface-secondary px-2 font-mono text-[11px] text-text-primary outline-none focus:border-ink/20 sm:h-8"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!saveName.trim()}
+            className={deskGhostClass({ bordered: true })}
+          >
+            Save
+          </button>
+        </span>
+      )}
+    </div>
+  );
+
+  if (variant === "views") return savedViews;
+
+  return (
+    <div>
+      {/* Mode is the primary control on this desk, so it gets the full width of
+          the card and four equal segments — the count Apple caps a phone
+          segmented control at. Nothing else shares this rail any more: help
+          moved to the search row, saved views into the filter sheet. */}
+      <SegGroup
+        size="touch"
+        fill="mobile"
+        aria-label="Desk mode"
+        value={modeValue}
+        onChange={onMode}
+        options={modeOptions}
+      />
 
       <ModeGuideModal
-        mode={guideMode || modeValue}
+        mode={guideMode && guideMode !== "__current" ? guideMode : modeValue}
         isOpen={!!guideMode}
         onClose={() => setGuideMode(null)}
         onSelectMode={onGuideSelect}
@@ -501,6 +510,8 @@ export default function EdgeRecipesBar({
         huntError={huntError}
         huntDays={huntDays}
         onHuntDays={setHuntDays}
+        onDeskGuide={onDeskGuide}
+        onTutorials={onTutorials}
         onMoreDetail={
           showRecipes
             ? () => {

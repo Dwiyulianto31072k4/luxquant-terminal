@@ -19,14 +19,19 @@ import EdgePlaybook, { buildRunnerTagSet } from "./EdgePlaybook";
 import EdgeActiveFilters from "./EdgeActiveFilters";
 import EdgeCorrelationPanel from "./EdgeCorrelationPanel";
 import EdgeRecipesBar from "./EdgeRecipesBar";
-import { DESK_SHELL, deskSegClass, deskBadgeClass } from "./ui/SegGroup";
+import Modal from "./ui/Modal";
+import {
+  SegGroup,
+  deskBadgeClass,
+  deskChipClass,
+  deskGhostClass,
+} from "./ui/SegGroup";
 import { buildEdgeScoreMap, plainEdgeWhy } from "../utils/edgeScore";
 import {
   DEFAULT_SORTS,
   MAX_SORTS,
   MULTI_SORT_PRESETS,
   applySortClick,
-  formatSortChain,
   isDefaultSorts,
   normalizeSorts,
   orderLabel,
@@ -534,6 +539,9 @@ const SignalsPage = () => {
   // doesn't push the table far down the page. Always force-open when an advanced
   // filter is active so the user can see/clear what's applied.
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // Lifted out of EdgeRecipesBar so the single ? on the search row can open the
+  // briefing for whichever mode is current. "__current" means exactly that.
+  const [guideMode, setGuideMode] = useState(null);
 
   // Min win-streak length to count as a "High Win Streak" (matches the
   // Coin Intelligence hot-streak heuristic).
@@ -1190,8 +1198,6 @@ const SignalsPage = () => {
     return wr == null ? null : wr;
   };
 
-  const getOrderLabel = () => orderLabel(sortBy, sortOrder);
-
   // Count of active advanced (secondary) filters — drives the badge on the
   // "Advanced filters" toggle. TIDAK lagi memaksa panel terbuka: user boleh
   // apply filter lalu menutup panel; filter tetap berlaku (badge "N active").
@@ -1207,6 +1213,12 @@ const SignalsPage = () => {
 
   // Panel murni dikontrol toggle user (bisa ditutup walau ada filter aktif).
   const advancedOpen = showAdvanced;
+
+  // What the Filter button reports. Status moved into the sheet, so it counts
+  // here now — advancedActiveCount deliberately ignores open/updated because
+  // those used to be their own buttons on the console.
+  const sheetActiveCount =
+    advancedActiveCount + (statusFilter === "open" || statusFilter === "updated" ? 1 : 0);
 
   const todayYmd = utcTodayYmd();
   const dayIsDefault =
@@ -2055,62 +2067,56 @@ const SignalsPage = () => {
         strict={shariah.strict}
       />
 
-      {/* FILTER CONSOLE — mode → day → search / Open / Hit */}
-      <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-4">
-        <div className="mb-3 flex items-center justify-between border-b border-ink/[0.06] pb-3">
-          <div className="flex items-center gap-2">
-            {Icon.filter("w-3.5 h-3.5 text-text-muted")}
-            <h2 className="text-[13px] font-medium text-text-primary">Filters</h2>
-            <div className={DESK_SHELL}>
-              <button type="button" onClick={() => setShowGuide(true)} className={deskSegClass(false)}>
-                {t("guide.button")}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/tips?lesson=anatomy-of-a-call")}
-                className={deskSegClass(false)}
-              >
-                Tutorials
-              </button>
-            </div>
-          </div>
-          {hasActiveFilters && (
-            <div className={DESK_SHELL}>
-              <button type="button" onClick={resetFilters} className={deskSegClass(false)}>
-                Reset
-              </button>
-            </div>
-          )}
-        </div>
+      {/* FILTER CONSOLE — rebuilt from scratch. One question per row:
+          1. which set of calls?   (mode)
+          2. how recent?           (day)
+          3. narrow it down        (search + everything else, behind one button)
 
-        <div className="mb-3">
-          <EdgeRecipesBar
-            tagWr={tagWr}
-            selectedTags={selectedTags}
-            tagMatchMode={tagMatchMode}
-            verdictFilter={verdictFilter}
-            statusFilter={statusFilter}
-            riskFilter={riskFilter}
-            streakFilter={streakFilter}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            sorts={sorts}
-            searchPair={searchPair}
-            corrDecoupled={corrDecoupled}
-            corrHighAlign={corrHighAlign}
-            onApplyState={applyRecipeState}
-            showRecipes={isSubscriber}
-            watchlistCount={watchlistIds.length}
-            watchlistActive={showWatchlistOnly}
-            onWatchlist={enterWatchlist}
-          />
-        </div>
+          The old console put five rails of controls on the first screen, which
+          pushed the first signal a full phone-screen below the fold — it showed
+          the filters instead of the product. Refinement is not selection, so
+          status, sort and the advanced filters moved into a sheet, and the
+          chip bar under this card reports what is on. */}
+      <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-3 sm:p-4">
+        <EdgeRecipesBar
+          tagWr={tagWr}
+          selectedTags={selectedTags}
+          tagMatchMode={tagMatchMode}
+          verdictFilter={verdictFilter}
+          statusFilter={statusFilter}
+          riskFilter={riskFilter}
+          streakFilter={streakFilter}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sorts={sorts}
+          searchPair={searchPair}
+          corrDecoupled={corrDecoupled}
+          corrHighAlign={corrHighAlign}
+          onApplyState={applyRecipeState}
+          showRecipes={isSubscriber}
+          watchlistCount={watchlistIds.length}
+          watchlistActive={showWatchlistOnly}
+          onWatchlist={enterWatchlist}
+          guideMode={guideMode}
+          onGuideMode={setGuideMode}
+          onDeskGuide={() => {
+            setGuideMode(null);
+            setShowGuide(true);
+          }}
+          onTutorials={() => navigate("/tips?lesson=anatomy-of-a-call")}
+        />
 
-        {/* Day tabs — same SegGroup shell as mode. Watchlist lives on the mode rail. */}
-        <div className={`relative mb-3 ${showWatchlistOnly ? "opacity-40" : ""}`}>
+        {/* Day strip — eight-plus options, so not a segmented control: Apple
+            caps those at five equal segments on a phone, which is why cramming
+            the days into one shell clipped the last label behind a chevron.
+            Chips that snap, with the next one peeking past the fade — on touch
+            the peek is the affordance, so the arrow is pointer-only. */}
+        <div
+          className={`edge-fade-raised-r relative mt-2.5 sm:mt-3 ${showWatchlistOnly ? "opacity-40" : ""}`}
+        >
           <div
             ref={tabScrollRef}
-            className={`${DESK_SHELL} w-full overflow-x-auto no-scrollbar pr-8`}
+            className="flex snap-x snap-proximity gap-1.5 overflow-x-auto no-scrollbar pr-10"
           >
             {dateOptions.map((opt) => {
               const active =
@@ -2126,7 +2132,7 @@ const SignalsPage = () => {
                     setShowWatchlistOnly(false);
                     toggleDateFilter(opt.value);
                   }}
-                  className={deskSegClass(active)}
+                  className={deskChipClass(active)}
                 >
                   {opt.label}
                   {opt.count != null ? (
@@ -2140,7 +2146,7 @@ const SignalsPage = () => {
             type="button"
             onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
             aria-label="View previous day"
-            className="absolute right-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary"
+            className="absolute right-0 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-secondary hover:text-text-primary sm:flex"
           >
             <svg
               className="h-4 w-4"
@@ -2156,113 +2162,164 @@ const SignalsPage = () => {
           </button>
         </div>
 
-        {/* ── Controls row — search + Open/Hit + sort ── */}
-        <div className="mb-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative order-1 basis-full min-w-0 sm:order-none sm:basis-auto sm:flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
-                {Icon.search("w-3.5 h-3.5")}
-              </span>
-              <input
-                type="text"
-                placeholder="Search pair (e.g. BTC, ETH, SOL)..."
-                value={searchPair}
-                onChange={(e) => setSearchPair(e.target.value)}
-                className={`w-full rounded-md border border-ink/[0.1] bg-surface-secondary py-1.5 font-mono text-xs text-text-primary placeholder-text-secondary/50 focus:border-ink/20 focus:outline-none pl-9 ${
-                  searchPair ? "pr-9" : "pr-3"
-                }`}
-              />
-              {searchPair ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchPair("")}
-                  aria-label="Clear search"
-                  className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-primary/45 transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
-                >
-                  {Icon.close ? Icon.close("w-3 h-3") : <span className="text-[13px] leading-none">×</span>}
-                </button>
-              ) : null}
-            </div>
-            <div className={`${DESK_SHELL} flex-shrink-0`}>
+        <div className="mt-2.5 flex items-center gap-2 sm:mt-3">
+          <div className="relative min-w-0 flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
+              {Icon.search("w-3.5 h-3.5")}
+            </span>
+            <input
+              type="text"
+              placeholder="Search pair"
+              value={searchPair}
+              onChange={(e) => setSearchPair(e.target.value)}
+              className={`h-10 w-full rounded-md border border-ink/[0.1] bg-surface-secondary font-mono text-xs text-text-primary placeholder-text-secondary/50 focus:border-ink/20 focus:outline-none sm:h-8 pl-9 ${
+                searchPair ? "pr-9" : "pr-3"
+              }`}
+            />
+            {searchPair ? (
               <button
                 type="button"
-                onClick={() => setStatusFilter((v) => (v === "open" ? "all" : "open"))}
-                className={deskSegClass(statusFilter === "open")}
+                onClick={() => setSearchPair("")}
+                aria-label="Clear search"
+                className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text-primary/45 transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
               >
-                Open
+                {Icon.close ? Icon.close("w-3 h-3") : <span className="text-[13px] leading-none">×</span>}
               </button>
-              <button
-                type="button"
-                title="Calls that just moved — TP, SL, or an update"
-                onClick={() => {
-                  if (statusFilter === "updated") {
-                    setStatusFilter("all");
-                    return;
-                  }
-                  setStatusFilter("updated");
-                  if (sortBy === "created_at") setSortBy("last_update");
-                }}
-                className={deskSegClass(statusFilter === "updated")}
-              >
-                Hit
-                {updatedCount > 0 ? (
-                  <span className={deskBadgeClass(statusFilter === "updated")}>{updatedCount}</span>
-                ) : null}
-              </button>
-            </div>
-            <div className={`${DESK_SHELL} flex-shrink-0`}>
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSorts((prev) => promoteSortField(prev, e.target.value))}
-                  title="Primary sort. Shift+click table headers to add levels."
-                  className={`${deskSegClass(false)} cursor-pointer appearance-none border-0 bg-transparent pr-6 shadow-none`}
-                >
-                  {sortOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-surface">
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted">
-                  {Icon.chevronDown("w-3 h-3")}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-                className={deskSegClass(false)}
-                title="Toggle primary sort direction"
-              >
-                {sortOrder === "desc" ? Icon.arrowDown("w-3 h-3") : Icon.arrowUp("w-3 h-3")}
-                <span className="hidden sm:inline">{getOrderLabel()}</span>
-                {sorts.length > 1 ? (
-                  <span
-                    className={deskBadgeClass(false)}
-                    title={`Sorting on ${sorts.length} levels: ${formatSortChain(sorts)}`}
-                  >
-                    +{sorts.length - 1}
-                  </span>
-                ) : null}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAdvanced((v) => !v)}
-                aria-expanded={advancedOpen}
-                className={deskSegClass(advancedOpen)}
-              >
-                More
-                {advancedActiveCount > 0 ? (
-                  <span className={deskBadgeClass(advancedOpen)}>{advancedActiveCount}</span>
-                ) : null}
-              </button>
-            </div>
+            ) : null}
           </div>
-        </div>
 
-        {/* MORE — helper filters, sort stack, playbook. First screen is mode (above) + date + search. */}
-        {advancedOpen && (
-          <div className="mt-4 space-y-5 animate-slideDown">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(true)}
+            aria-expanded={advancedOpen}
+            className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors sm:h-8 ${
+              sheetActiveCount > 0
+                ? "border-accent/50 bg-accent/10 text-text-primary"
+                : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {Icon.sliders("w-3.5 h-3.5")}
+            Filter
+            {sheetActiveCount > 0 ? (
+              <span className={deskBadgeClass(false)}>{sheetActiveCount}</span>
+            ) : null}
+          </button>
+
+          {/* One help entry, not three. It opens the briefing for the mode you
+              are actually in, and that sheet links on to the desk guide and the
+              tutorials — which is where those two buttons went. */}
+          <button
+            type="button"
+            title="What this mode is"
+            aria-label="What this mode is"
+            onClick={() => setGuideMode("__current")}
+            className={deskGhostClass({ square: true, bordered: true })}
+          >
+            ?
+          </button>
+        </div>
+      </div>
+
+      {/* FILTER SHEET — a bottom sheet on a phone, a centred dialog on a desk
+          (Modal already does both). Refinement belongs behind a deliberate tap:
+          it is used once and then wanted out of the way, which is exactly the
+          case bottom sheets exist for. */}
+      <Modal
+        isOpen={advancedOpen}
+        onClose={() => setShowAdvanced(false)}
+        size="lg"
+        eyebrow="Signals"
+        title="Filter & sort"
+        subtitle={
+          allSignals?.length
+            ? `${totalSignals} of ${allSignals.length} calls match`
+            : "Narrow the desk down"
+        }
+        footer={() => (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={resetFilters}
+              disabled={!hasActiveFilters}
+              className={`inline-flex h-11 items-center rounded-md border border-ink/[0.1] px-4 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-text-muted transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 sm:h-9`}
+            >
+              Reset all
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(false)}
+              className="ml-auto inline-flex h-11 items-center rounded-md bg-accent px-5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-accent-fg shadow-sm sm:h-9"
+            >
+              Show {totalSignals} {totalSignals === 1 ? "call" : "calls"}
+            </button>
+          </div>
+        )}
+      >
+        <div className="space-y-6">
+          {/* Status is ONE tri-state, not two toggles. Open and Hit as separate
+              buttons implied they could both be on; they never could. */}
+          <section>
+            <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+              Status
+            </h3>
+            <SegGroup
+              size="touch"
+              fill
+              aria-label="Call status"
+              value={statusFilter === "open" || statusFilter === "updated" ? statusFilter : "all"}
+              onChange={(k) => {
+                if (k === "updated" && sortBy === "created_at") setSortBy("last_update");
+                setStatusFilter(k);
+                setPage(1);
+              }}
+              options={[
+                { key: "all", label: "All" },
+                { key: "open", label: "Open" },
+                { key: "updated", label: "Hit", badge: updatedCount > 0 ? updatedCount : null },
+              ]}
+            />
+          </section>
+
+          <section>
+            <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+              Sort by
+            </h3>
+            <div className="grid grid-cols-2 gap-1">
+              {sortOptions.map((opt) => {
+                const on = sortBy === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSorts((prev) => promoteSortField(prev, opt.value))}
+                    className={`flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-left font-mono text-[11px] leading-tight transition-colors sm:min-h-[36px] ${
+                      on
+                        ? "border-accent/50 bg-accent/10 text-text-primary"
+                        : "border-ink/[0.08] bg-surface-secondary text-text-muted hover:text-text-primary"
+                    }`}
+                  >
+                    {opt.label}
+                    {on ? <span className="text-accent">✓</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2">
+              <SegGroup
+                size="touch"
+                fill
+                aria-label="Sort direction"
+                value={sortOrder}
+                onChange={(k) => setSortOrder(k === "asc" ? "asc" : "desc")}
+                options={[
+                  { key: "desc", label: orderLabel(sortBy, "desc") },
+                  { key: "asc", label: orderLabel(sortBy, "asc") },
+                ]}
+              />
+            </div>
+          </section>
+
+
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted mr-0.5">
                 Sort
@@ -2618,9 +2675,38 @@ const SignalsPage = () => {
                 </p>
               </div>
             )}
-          </div>
-        )}
-      </div>
+          {/* Saved views live here now: a saved view IS a saved filter state,
+              so this is its subject. It used to sit beside the mode rail. */}
+          {isSubscriber ? (
+            <section>
+              <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                Saved views
+              </h3>
+              <EdgeRecipesBar
+                variant="views"
+                tagWr={tagWr}
+                selectedTags={selectedTags}
+                tagMatchMode={tagMatchMode}
+                verdictFilter={verdictFilter}
+                statusFilter={statusFilter}
+                riskFilter={riskFilter}
+                streakFilter={streakFilter}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                sorts={sorts}
+                searchPair={searchPair}
+                corrDecoupled={corrDecoupled}
+                corrHighAlign={corrHighAlign}
+                onApplyState={applyRecipeState}
+                showRecipes={isSubscriber}
+                watchlistCount={watchlistIds.length}
+                watchlistActive={showWatchlistOnly}
+                onWatchlist={enterWatchlist}
+              />
+            </section>
+          ) : null}
+        </div>
+      </Modal>
 
       {/* Sticky current-filter chips */}
       <EdgeActiveFilters
