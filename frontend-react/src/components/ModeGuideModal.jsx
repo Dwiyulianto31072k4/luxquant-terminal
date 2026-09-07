@@ -1,6 +1,10 @@
-// ModeGuideModal — short briefing when a Signals desk mode is pressed.
-// One surface for All / Runners / Top rated / Watchlist. Runners can show live
-// closed-call results; the deep RecipeExplainModal stays one tap behind.
+// ModeGuideModal — short briefing for the ONE mode that was just pressed.
+//
+// It used to carry a rail of all four modes at the top, which read as "press
+// one, get all four" — and worse, that rail applied the mode as well as
+// switching the reading, so the list changed underneath the sheet you were
+// still reading. One press, one briefing. Runners can show live closed-call
+// results; the deep RecipeExplainModal stays one tap behind.
 
 import { useEffect, useState } from "react";
 import Modal from "./ui/Modal";
@@ -132,8 +136,6 @@ export default function ModeGuideModal({
   mode,
   isOpen,
   onClose,
-  onSelectMode,
-  showRecipes = true,
   huntStats = null,
   huntLoading = false,
   huntError = false,
@@ -151,17 +153,6 @@ export default function ModeGuideModal({
     if (isOpen) setMute(isModeGuideMuted());
   }, [isOpen]);
 
-  const modeOptions = [
-    { key: "all", label: "All" },
-    ...(showRecipes
-      ? [
-          { key: "full_tp", label: "Runners" },
-          { key: "strongest", label: "Top rated" },
-        ]
-      : []),
-    { key: "watchlist", label: "Watchlist" },
-  ];
-
   const toggleMute = (next) => {
     setMute(next);
     setModeGuideMuted(next);
@@ -172,7 +163,7 @@ export default function ModeGuideModal({
       isOpen={isOpen}
       onClose={onClose}
       size="lg"
-      eyebrow="Desk mode"
+      eyebrow={`Desk mode · ${g.eyebrow}`}
       title={g.title}
       subtitle={g.oneLiner}
       icon={
@@ -213,18 +204,6 @@ export default function ModeGuideModal({
       )}
     >
       <div className="space-y-5">
-        <SegGroup
-          size="sm"
-          aria-label="Which mode to read"
-          value={key}
-          onChange={(k) => onSelectMode?.(k)}
-          options={modeOptions}
-        />
-
-        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
-          {g.eyebrow}
-        </p>
-
         <div className="grid gap-2 sm:grid-cols-3">
           {g.steps.map((s) => (
             <div

@@ -358,11 +358,6 @@ export default function EdgeRecipesBar({
     if (!isModeGuideMuted()) setGuideMode(key);
   };
 
-  const onGuideSelect = (key) => {
-    applyModeKey(key);
-    setGuideMode(key);
-  };
-
   return (
     <div>
       {/* Mode is the primary control on this desk, so it gets the full width of
@@ -382,8 +377,6 @@ export default function EdgeRecipesBar({
         mode={guideMode && guideMode !== "__current" ? guideMode : modeValue}
         isOpen={!!guideMode}
         onClose={() => setGuideMode(null)}
-        onSelectMode={onGuideSelect}
-        showRecipes={showRecipes}
         huntStats={huntByDays[huntDays] || huntStats}
         huntLoading={huntLoading}
         huntError={huntError}
