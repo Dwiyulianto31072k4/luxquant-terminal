@@ -3,23 +3,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildRunnerTagSet } from "./EdgePlaybook";
-import RecipeExplainModal, { HuntResults } from "./RecipeExplainModal";
-import { SegGroup } from "./ui/SegGroup";
+import RecipeExplainModal from "./RecipeExplainModal";
+import ModeGuideModal, { isModeGuideMuted } from "./ModeGuideModal";
+import { SegGroup, DESK_SHELL, deskSegClass } from "./ui/SegGroup";
 import edgeLabApi from "../services/edgeLabApi";
-
-const HUNT_WINDOWS = [
-  { key: "7", label: "7d" },
-  { key: "30", label: "30d" },
-  { key: "0", label: "All time" },
-];
-
-function prettyDay(iso) {
-  if (!iso) return "10 Mar 2026";
-  const p = String(iso).split("-");
-  if (p.length !== 3) return iso;
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${parseInt(p[2], 10)} ${months[parseInt(p[1], 10) - 1] || p[1]} ${p[0]}`;
-}
 
 const SAVED_KEY = "lq:edge-recipes:v1";
 
@@ -141,7 +128,7 @@ export default function EdgeRecipesBar({
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [explainId, setExplainId] = useState(null);
-  const [readOpen, setReadOpen] = useState(false);
+  const [guideMode, setGuideMode] = useState(null);
   const [huntDays, setHuntDays] = useState("0");
   const [huntByDays, setHuntByDays] = useState({});
   const huntByDaysRef = useRef(huntByDays);
@@ -153,7 +140,8 @@ export default function EdgeRecipesBar({
 
   useEffect(() => {
     if (!showRecipes) return undefined;
-    const key = readOpen ? huntDays : "0";
+    if (guideMode !== "full_tp" && explainId !== "full_tp") return undefined;
+    const key = huntDays;
     if (huntByDaysRef.current[key]) return undefined;
     let cancelled = false;
     setHuntLoading(true);
@@ -175,7 +163,7 @@ export default function EdgeRecipesBar({
     return () => {
       cancelled = true;
     };
-  }, [readOpen, huntDays, showRecipes]);
+  }, [guideMode, explainId, huntDays, showRecipes]);
 
   const runnerTags = useMemo(() => {
     const fromApi = huntStats?.runner_tags;
@@ -368,7 +356,6 @@ export default function EdgeRecipesBar({
   };
 
   const showingHunt = !watchlistActive && activeId === "full_tp";
-  const era = huntStats?.tag_era_start || huntStats?.tags_selected_from?.start;
 
   const modeValue = watchlistActive
     ? "watchlist"
@@ -396,26 +383,33 @@ export default function EdgeRecipesBar({
     },
   ];
 
-  const onMode = (key) => {
+  const applyModeKey = (key) => {
     if (key === "watchlist") {
+      // Re-applying Watchlist would wipe tags/sort for no reason — it is already the source.
       if (!watchlistActive) onWatchlist?.();
-      setReadOpen(false);
       return;
     }
     if (key === "all") {
-      // Don't re-apply All when it is already the mode — that would wipe Open/Hit
-      // which are slices, not the mode.
       if (modeValue !== "all") onApplyState?.(ALL_MODE_STATE);
-      setReadOpen(false);
       return;
     }
     const r = builtins.find((x) => x.id === key);
     if (r) applyBuiltin(r);
   };
 
+  const onMode = (key) => {
+    applyModeKey(key);
+    if (!isModeGuideMuted()) setGuideMode(key);
+  };
+
+  const onGuideSelect = (key) => {
+    applyModeKey(key);
+    setGuideMode(key);
+  };
+
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <SegGroup
           size="sm"
           aria-label="Desk mode"
@@ -424,122 +418,99 @@ export default function EdgeRecipesBar({
           options={modeOptions}
           wrap
         />
-        {showRecipes && showingHunt ? (
+        <div className={DESK_SHELL}>
           <button
             type="button"
-            aria-expanded={readOpen}
-            onClick={() => setReadOpen((v) => !v)}
-            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-medium transition-colors ${
-              readOpen ? "bg-ink/[0.06] text-text-primary" : "text-accent hover:bg-ink/[0.04]"
-            }`}
+            title="What this mode is"
+            aria-label="What this mode is"
+            onClick={() => setGuideMode(modeValue)}
+            className={deskSegClass(false)}
           >
-            Why it works
-            <span
-              className={`text-[10px] text-text-muted transition-transform ${readOpen ? "rotate-180" : ""}`}
-              aria-hidden
-            >
-              ▾
-            </span>
+            ?
           </button>
-        ) : null}
-        {showRecipes &&
-          saved.map((r) => (
-            <span
-              key={r.id}
-              className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] ${
-                !watchlistActive && activeId === r.id
-                  ? "border-accent/40 bg-accent/12 text-text-primary"
-                  : "border-ink/[0.1] text-text-muted"
-              }`}
-            >
-              <button type="button" onClick={() => applySaved(r)} className="hover:text-accent">
-                {r.name}
-              </button>
-              <button
-                type="button"
-                onClick={() => removeSaved(r.id)}
-                className="text-text-muted hover:text-loss"
-                aria-label={`Delete ${r.name}`}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        {showRecipes ? (
-          !showSave ? (
+          {showRecipes && showingHunt ? (
             <button
               type="button"
-              onClick={() => setShowSave(true)}
-              className="rounded-md px-1.5 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-accent"
+              onClick={() => setGuideMode("full_tp")}
+              className={deskSegClass(guideMode === "full_tp")}
             >
-              + View
+              Why
             </button>
-          ) : (
-            <span className="inline-flex flex-wrap items-center gap-1">
-              <input
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSave();
-                  if (e.key === "Escape") setShowSave(false);
-                }}
-                placeholder="Name…"
-                maxLength={40}
-                className="w-28 rounded-md border border-ink/15 bg-surface-raised px-2 py-1 text-[12px] text-text-primary outline-none focus:border-accent/40"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!saveName.trim()}
-                className="font-mono text-[10px] uppercase tracking-wider text-accent disabled:opacity-40"
-              >
-                Save
+          ) : null}
+          {showRecipes &&
+            saved.map((r) => (
+              <span key={r.id} className="inline-flex items-center">
+                <button
+                  type="button"
+                  onClick={() => applySaved(r)}
+                  className={deskSegClass(!watchlistActive && activeId === r.id)}
+                >
+                  {r.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeSaved(r.id)}
+                  className="px-1 font-mono text-[10px] text-text-muted hover:text-loss"
+                  aria-label={`Delete ${r.name}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          {showRecipes ? (
+            !showSave ? (
+              <button type="button" onClick={() => setShowSave(true)} className={deskSegClass(false)}>
+                + View
               </button>
-            </span>
-          )
-        ) : null}
+            ) : (
+              <span className="inline-flex items-center gap-1 px-1">
+                <input
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSave();
+                    if (e.key === "Escape") setShowSave(false);
+                  }}
+                  placeholder="Name…"
+                  maxLength={40}
+                  className="w-24 bg-transparent font-mono text-[11px] text-text-primary outline-none"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!saveName.trim()}
+                  className={deskSegClass(true)}
+                >
+                  Save
+                </button>
+              </span>
+            )
+          ) : null}
+        </div>
       </div>
 
-      {showRecipes && readOpen && showingHunt ? (
-        <div className="mt-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-3 sm:px-3.5">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0 max-w-2xl">
-              <p className="text-[13px] font-semibold text-text-primary">Hunt full TP</p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-text-primary/90">
-                Setups whose <span className="font-medium">entry tags</span> historically reached
-                TP3/TP4 more often. Tags are on the call when it is published — not added after it
-                already won. Numbers are <span className="font-medium">closed calls only</span> (hit
-                TP or SL). Open calls are not counted.
-              </p>
-              <p className="mt-1.5 text-[11.5px] leading-snug text-text-muted">
-                Evaluated since tags exist ({prettyDay(era)}). Day tabs above still slice the list.
-              </p>
-            </div>
-            <SegGroup
-              size="sm"
-              aria-label="Hunt results window"
-              value={huntDays}
-              onChange={setHuntDays}
-              options={HUNT_WINDOWS}
-            />
-          </div>
-          <div className="mt-3">
-            <HuntResults
-              stats={huntByDays[huntDays] || null}
-              loading={huntLoading}
-              error={huntError}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setExplainId("full_tp")}
-            className="mt-2 font-mono text-[10px] uppercase tracking-wider text-accent hover:underline"
-          >
-            More detail
-          </button>
-        </div>
-      ) : null}
+      <ModeGuideModal
+        mode={guideMode || modeValue}
+        isOpen={!!guideMode}
+        onClose={() => setGuideMode(null)}
+        onSelectMode={onGuideSelect}
+        showRecipes={showRecipes}
+        huntStats={huntByDays[huntDays] || huntStats}
+        huntLoading={huntLoading}
+        huntError={huntError}
+        huntDays={huntDays}
+        onHuntDays={setHuntDays}
+        onMoreDetail={
+          showRecipes
+            ? () => {
+                // One sheet at a time — hand off to the deep explainer.
+                setGuideMode(null);
+                setExplainId("full_tp");
+              }
+            : undefined
+        }
+      />
 
       {explainId ? (
         <RecipeExplainModal

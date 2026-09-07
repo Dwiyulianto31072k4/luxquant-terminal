@@ -19,6 +19,7 @@ import EdgePlaybook, { buildRunnerTagSet } from "./EdgePlaybook";
 import EdgeActiveFilters from "./EdgeActiveFilters";
 import EdgeCorrelationPanel from "./EdgeCorrelationPanel";
 import EdgeRecipesBar from "./EdgeRecipesBar";
+import { DESK_SHELL, deskSegClass, deskBadgeClass } from "./ui/SegGroup";
 import { buildEdgeScoreMap, plainEdgeWhy } from "../utils/edgeScore";
 import {
   DEFAULT_SORTS,
@@ -2060,33 +2061,25 @@ const SignalsPage = () => {
           <div className="flex items-center gap-2">
             {Icon.filter("w-3.5 h-3.5 text-text-muted")}
             <h2 className="text-[13px] font-medium text-text-primary">Filters</h2>
-            <button
-              type="button"
-              onClick={() => setShowGuide(true)}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
-            >
-              <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ink/15 text-[9px] leading-none">
-                ?
-              </span>
-              {t("guide.button")}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/tips?lesson=anatomy-of-a-call")}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
-            >
-              Tutorials
-            </button>
+            <div className={DESK_SHELL}>
+              <button type="button" onClick={() => setShowGuide(true)} className={deskSegClass(false)}>
+                {t("guide.button")}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/tips?lesson=anatomy-of-a-call")}
+                className={deskSegClass(false)}
+              >
+                Tutorials
+              </button>
+            </div>
           </div>
           {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
-            >
-              {Icon.close("w-3 h-3")}
-              Reset
-            </button>
+            <div className={DESK_SHELL}>
+              <button type="button" onClick={resetFilters} className={deskSegClass(false)}>
+                Reset
+              </button>
+            </div>
           )}
         </div>
 
@@ -2113,13 +2106,11 @@ const SignalsPage = () => {
           />
         </div>
 
-        {/* Day tabs — single-select. Watchlist lives in the mode rail above. */}
-        <div
-          className={`relative edge-fade-r mb-3 border-b border-ink/[0.07] ${showWatchlistOnly ? "opacity-40" : ""}`}
-        >
+        {/* Day tabs — same SegGroup shell as mode. Watchlist lives on the mode rail. */}
+        <div className={`relative mb-3 ${showWatchlistOnly ? "opacity-40" : ""}`}>
           <div
             ref={tabScrollRef}
-            className="flex items-center gap-6 overflow-x-auto no-scrollbar pr-12"
+            className={`${DESK_SHELL} w-full overflow-x-auto no-scrollbar pr-8`}
           >
             {dateOptions.map((opt) => {
               const active =
@@ -2135,20 +2126,12 @@ const SignalsPage = () => {
                     setShowWatchlistOnly(false);
                     toggleDateFilter(opt.value);
                   }}
-                  className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                    active
-                      ? "text-text-primary border-ink/30"
-                      : "text-text-primary/50 border-transparent hover:text-text-primary/80"
-                  }`}
+                  className={deskSegClass(active)}
                 >
                   {opt.label}
-                  {opt.count != null && (
-                    <span
-                      className={`font-mono text-[12px] tabular-nums ${active ? "text-text-primary" : "text-text-primary/35"}`}
-                    >
-                      {opt.count}
-                    </span>
-                  )}
+                  {opt.count != null ? (
+                    <span className={deskBadgeClass(active)}>{opt.count}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -2157,7 +2140,7 @@ const SignalsPage = () => {
             type="button"
             onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
             aria-label="View previous day"
-            className="absolute right-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-text-primary/60 transition-colors hover:text-text-primary"
+            className="absolute right-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary"
           >
             <svg
               className="h-4 w-4"
@@ -2185,7 +2168,7 @@ const SignalsPage = () => {
                 placeholder="Search pair (e.g. BTC, ETH, SOL)..."
                 value={searchPair}
                 onChange={(e) => setSearchPair(e.target.value)}
-                className={`w-full py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-ink/15 focus:outline-none focus:bg-ink/[0.02] transition-all pl-9 ${
+                className={`w-full rounded-md border border-ink/[0.1] bg-surface-secondary py-1.5 font-mono text-xs text-text-primary placeholder-text-secondary/50 focus:border-ink/20 focus:outline-none pl-9 ${
                   searchPair ? "pr-9" : "pr-3"
                 }`}
               />
@@ -2200,92 +2183,80 @@ const SignalsPage = () => {
                 </button>
               ) : null}
             </div>
-            <button
-              type="button"
-              onClick={() => setStatusFilter((v) => (v === "open" ? "all" : "open"))}
-              className={`flex-shrink-0 rounded-md border px-2.5 py-2 font-mono text-[10px] uppercase tracking-wider transition-all ${
-                statusFilter === "open"
-                  ? "border-ink/15 bg-ink/10 text-text-primary"
-                  : "border-ink/[0.08] bg-surface text-text-primary/70 hover:border-ink/12 hover:text-text-primary"
-              }`}
-            >
-              Open
-            </button>
-            <button
-              type="button"
-              title="Calls that just moved — TP, SL, or an update"
-              onClick={() => {
-                if (statusFilter === "updated") {
-                  setStatusFilter("all");
-                  return;
-                }
-                setStatusFilter("updated");
-                if (sortBy === "created_at") setSortBy("last_update");
-              }}
-              className={`flex-shrink-0 inline-flex items-center gap-1 rounded-md border px-2.5 py-2 font-mono text-[10px] uppercase tracking-wider transition-all ${
-                statusFilter === "updated"
-                  ? "border-ink/15 bg-ink/10 text-text-primary"
-                  : "border-ink/[0.08] bg-surface text-text-primary/70 hover:border-ink/12 hover:text-text-primary"
-              }`}
-            >
-              Hit
-              {updatedCount > 0 && statusFilter !== "updated" ? (
-                <span className="rounded-sm bg-ink/[0.06] px-1 font-mono text-[9px] tabular-nums text-text-primary">
-                  {updatedCount}
-                </span>
-              ) : null}
-            </button>
-            <div className="relative flex-shrink-0">
-              <select
-                value={sortBy}
-                onChange={(e) => setSorts((prev) => promoteSortField(prev, e.target.value))}
-                title="Primary sort. Any extra levels stay on as tiebreakers — Shift+click table headers to add them."
-                className="pl-3 pr-8 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-ink/15 focus:outline-none appearance-none cursor-pointer transition-all"
+            <div className={`${DESK_SHELL} flex-shrink-0`}>
+              <button
+                type="button"
+                onClick={() => setStatusFilter((v) => (v === "open" ? "all" : "open"))}
+                className={deskSegClass(statusFilter === "open")}
               >
-                {sortOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value} className="bg-surface">
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-primary/70 pointer-events-none">
-                {Icon.chevronDown("w-3 h-3")}
-              </span>
+                Open
+              </button>
+              <button
+                type="button"
+                title="Calls that just moved — TP, SL, or an update"
+                onClick={() => {
+                  if (statusFilter === "updated") {
+                    setStatusFilter("all");
+                    return;
+                  }
+                  setStatusFilter("updated");
+                  if (sortBy === "created_at") setSortBy("last_update");
+                }}
+                className={deskSegClass(statusFilter === "updated")}
+              >
+                Hit
+                {updatedCount > 0 ? (
+                  <span className={deskBadgeClass(statusFilter === "updated")}>{updatedCount}</span>
+                ) : null}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-ink/[0.08] hover:border-ink/12 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
-              title="Toggle primary sort direction"
-            >
-              {sortOrder === "desc" ? Icon.arrowDown("w-3 h-3") : Icon.arrowUp("w-3 h-3")}
-              <span className="hidden sm:inline">{getOrderLabel()}</span>
-              {sorts.length > 1 && (
-                <span
-                  className="rounded-sm bg-ink/10 px-1 tabular-nums text-[9px] text-text-primary"
-                  title={`Sorting on ${sorts.length} levels: ${formatSortChain(sorts)}`}
+            <div className={`${DESK_SHELL} flex-shrink-0`}>
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSorts((prev) => promoteSortField(prev, e.target.value))}
+                  title="Primary sort. Shift+click table headers to add levels."
+                  className={`${deskSegClass(false)} cursor-pointer appearance-none border-0 bg-transparent pr-6 shadow-none`}
                 >
-                  +{sorts.length - 1}
+                  {sortOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-surface">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted">
+                  {Icon.chevronDown("w-3 h-3")}
                 </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAdvanced((v) => !v)}
-              aria-expanded={advancedOpen}
-              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-ink/[0.08] bg-surface font-mono text-[10px] uppercase tracking-wider text-text-primary/80 hover:border-ink/15 hover:text-text-primary"
-            >
-              {Icon.sliders("w-3.5 h-3.5")}
-              More
-              {advancedActiveCount > 0 && (
-                <span className="rounded-sm bg-ink/10 px-1.5 font-mono text-[9px] tabular-nums text-text-primary">
-                  {advancedActiveCount}
-                </span>
-              )}
-              <span className={advancedOpen ? "rotate-180" : ""}>
-                {Icon.chevronDown("w-3 h-3")}
-              </span>
-            </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                className={deskSegClass(false)}
+                title="Toggle primary sort direction"
+              >
+                {sortOrder === "desc" ? Icon.arrowDown("w-3 h-3") : Icon.arrowUp("w-3 h-3")}
+                <span className="hidden sm:inline">{getOrderLabel()}</span>
+                {sorts.length > 1 ? (
+                  <span
+                    className={deskBadgeClass(false)}
+                    title={`Sorting on ${sorts.length} levels: ${formatSortChain(sorts)}`}
+                  >
+                    +{sorts.length - 1}
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                aria-expanded={advancedOpen}
+                className={deskSegClass(advancedOpen)}
+              >
+                More
+                {advancedActiveCount > 0 ? (
+                  <span className={deskBadgeClass(advancedOpen)}>{advancedActiveCount}</span>
+                ) : null}
+              </button>
+            </div>
           </div>
         </div>
 

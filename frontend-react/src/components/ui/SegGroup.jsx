@@ -25,6 +25,24 @@
  *   wrap?: boolean,
  * }} props
  */
+/** Outer track — same shell for mode, days, Open/Hit, sort, More. */
+export const DESK_SHELL =
+  "inline-flex max-w-full items-center gap-0.5 rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5";
+
+/** Inner segment — gold fill when active. size sm matches the Signals desk. */
+export function deskSegClass(active, { fill = false, size = "sm" } = {}) {
+  const pad = size === "sm" ? "px-2.5 py-1 text-[10px]" : "px-3.5 py-1.5 text-[11px]";
+  return `inline-flex ${fill ? "min-w-0 flex-1 justify-center" : "shrink-0"} items-center gap-1.5 whitespace-nowrap rounded-sm font-mono font-semibold uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${pad} ${
+    active ? "bg-accent text-accent-fg shadow-sm" : "text-text-muted hover:text-text-primary"
+  }`;
+}
+
+export function deskBadgeClass(active) {
+  return `rounded-sm px-1.5 py-0.5 font-mono text-[9px] tabular-nums ${
+    active ? "bg-black/15 text-accent-fg" : "bg-ink/[0.06] text-text-muted"
+  }`;
+}
+
 export function SegGroup({
   options = [],
   value,
@@ -36,13 +54,11 @@ export function SegGroup({
   /** Stretch to the container and split the width evenly between options. */
   fill = false,
 }) {
-  const pad = size === "sm" ? "px-2.5 py-1 text-[10px]" : "px-3.5 py-1.5 text-[11px]";
-
   return (
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`${fill ? "flex w-full" : "inline-flex"} max-w-full items-center gap-0.5 rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5 ${
+      className={`${fill ? "flex w-full" : "inline-flex"} ${DESK_SHELL} ${
         wrap && !fill ? "flex-wrap" : fill ? "" : "overflow-x-auto no-scrollbar"
       } ${className}`}
     >
@@ -59,11 +75,7 @@ export function SegGroup({
             onClick={() => {
               if (!opt.disabled && onChange) onChange(opt.key);
             }}
-            className={`inline-flex ${fill ? "min-w-0 flex-1 justify-center" : "shrink-0"} items-center gap-1.5 whitespace-nowrap rounded-sm font-mono font-semibold uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${pad} ${
-              active
-                ? "bg-accent text-accent-fg shadow-sm"
-                : "text-text-muted hover:text-text-primary"
-            }`}
+            className={deskSegClass(active, { fill, size })}
           >
             {opt.icon ? (
               <span
@@ -75,13 +87,7 @@ export function SegGroup({
             ) : null}
             {opt.label}
             {opt.badge != null && opt.badge !== false ? (
-              <span
-                className={`rounded-sm px-1.5 py-0.5 font-mono text-[9px] tabular-nums ${
-                  active ? "bg-black/15 text-accent-fg" : "bg-ink/[0.06] text-text-muted"
-                }`}
-              >
-                {opt.badge}
-              </span>
+              <span className={deskBadgeClass(active)}>{opt.badge}</span>
             ) : null}
           </button>
         );

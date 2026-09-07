@@ -1,0 +1,278 @@
+// ModeGuideModal — short briefing when a Signals desk mode is pressed.
+// One surface for All / Hunt / Strongest / Watchlist. Hunt can show live
+// closed-call results; the deep RecipeExplainModal stays one tap behind.
+
+import { useEffect, useState } from "react";
+import Modal from "./ui/Modal";
+import { SegGroup } from "./ui/SegGroup";
+import { HuntResults } from "./RecipeExplainModal";
+
+const MUTE_KEY = "lq:signals:mode-guide:mute";
+
+/** How far back the Hunt numbers are counted. Kept from the old panel — the
+ *  window is part of reading the figure, not a detail to bury. */
+const HUNT_WINDOWS = [
+  { key: "7", label: "7d" },
+  { key: "30", label: "30d" },
+  { key: "0", label: "All time" },
+];
+
+export function isModeGuideMuted() {
+  try {
+    return localStorage.getItem(MUTE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setModeGuideMuted(on) {
+  try {
+    if (on) localStorage.setItem(MUTE_KEY, "1");
+    else localStorage.removeItem(MUTE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+const ICONS = {
+  all: (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="7" height="7" rx="1" />
+      <rect x="14" y="4" width="7" height="7" rx="1" />
+      <rect x="3" y="13" width="7" height="7" rx="1" />
+      <rect x="14" y="13" width="7" height="7" rx="1" />
+    </svg>
+  ),
+  full_tp: (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v18" />
+      <path d="M5 10l7-7 7 7" />
+    </svg>
+  ),
+  strongest: (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 3 15.1 9.3 22 10.2 17 15 18.2 22 12 18.7 5.8 22 7 15 2 10.2 8.9 9.3" />
+    </svg>
+  ),
+  watchlist: (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 3 14.9 9.2 21.6 9.8 16.6 14.4 18.2 21 12 17.5 5.8 21 7.4 14.4 2.4 9.8 9.1 9.2" />
+    </svg>
+  ),
+};
+
+export const MODE_GUIDES = {
+  all: {
+    key: "all",
+    label: "All",
+    eyebrow: "Default desk",
+    title: "All calls",
+    oneLiner: "The full tape for the day you picked. No extra shortlist.",
+    does: "Shows every call in the selected day, newest first. Hunt tags, Worth and Watchlist are off.",
+    see: "Today’s list if you left the day tab on Today — or the whole 7-day tape if you chose All days.",
+    not: "Not a quality filter. Weak and strong setups sit together. Use Hunt or Strongest when you want a slice.",
+    changes: "Clears Hunt / Strongest / Watchlist. Keeps the day tab and anything you typed in search.",
+    steps: [
+      { n: "1", t: "Pick a day", d: "Today is the default. All days is the last week." },
+      { n: "2", t: "Open or Hit", d: "Optional. Open = still running. Hit = just moved." },
+      { n: "3", t: "Tap a row", d: "Chart, proof, research and history are in the call." },
+    ],
+  },
+  full_tp: {
+    key: "full_tp",
+    label: "Hunt",
+    eyebrow: "Optional shortlist",
+    title: "Hunt full TP",
+    oneLiner: "Setups whose entry tags historically ran to later targets more often.",
+    does: "Keeps Worth calls that wore runner tags at publish — tags that reached TP3/TP4 more often on closed history. Sorts by Edge, then newest.",
+    see: "A shorter list. Runner badges. The day tab still slices: Hunt + Today is the usual view.",
+    not: "Not a buy button, and not the default desk. Tags are stamped when the call goes out — not added after it already won. Past mix ≠ your fill.",
+    changes: "Worth · runner tags (any) · sort Edge → Called. Search and the day tab stay.",
+    steps: [
+      { n: "1", t: "Read the mix", d: "Closed Hunt calls vs all closed. Open rows are not in those bars." },
+      { n: "2", t: "Keep the day", d: "Today still means today. Hunt does not wipe the tab." },
+      { n: "3", t: "Open a row", d: "Edge is a ranking prior. The stop is still the stop." },
+    ],
+  },
+  strongest: {
+    key: "strongest",
+    label: "Strongest",
+    eyebrow: "Optional shortlist",
+    title: "Strongest setups",
+    oneLiner: "Open Worth calls, ranked by the pair’s own track record — not Hunt tags.",
+    does: "Keeps calls that are still running on pairs marked Worth. Sorts by verdict, then Edge, then newest.",
+    see: "A quiet open book: coins whose past LuxQuant calls usually reached at least TP1.",
+    not: "Not a Hunt. A quiet pair with a strong record can sit above a loud runner. Worth is the pair’s history, not this tag.",
+    changes: "Open · Worth · sort Verdict → Edge → Called. No runner-tag filter.",
+    steps: [
+      { n: "1", t: "Still running", d: "Closed calls drop out. This is the live book." },
+      { n: "2", t: "Worth first", d: "Avoid pairs are hidden. The score is as-of-entry on closed history." },
+      { n: "3", t: "Then Edge", d: "Among Worth, higher Edge ranks first. Still not a buy." },
+    ],
+  },
+  watchlist: {
+    key: "watchlist",
+    label: "Watchlist",
+    eyebrow: "Your list",
+    title: "Watchlist",
+    oneLiner: "Calls you starred — any day, including older than the 7-day desk.",
+    does: "Switches the source to your stars. Day tabs do not apply until you leave Watchlist.",
+    see: "Only what you starred. Star sits on every row. Count on the mode rail is how many you keep.",
+    not: "Not a quality score. Star anything you want to revisit. It is not Hunt and not Strongest.",
+    changes: "Leaves Hunt / Strongest. Ignores the day tab. Search still filters inside the list.",
+    steps: [
+      { n: "1", t: "Star a call", d: "The star on a row adds it. Works on days you have already left." },
+      { n: "2", t: "Come back here", d: "Watchlist is a mode, not a day. The day strip dims on purpose." },
+      { n: "3", t: "Leave via a day", d: "Tap Today (or All) to return to the desk tape." },
+    ],
+  },
+};
+
+export default function ModeGuideModal({
+  mode,
+  isOpen,
+  onClose,
+  onSelectMode,
+  showRecipes = true,
+  huntStats = null,
+  huntLoading = false,
+  huntError = false,
+  huntDays = "0",
+  onHuntDays,
+  onMoreDetail,
+}) {
+  const [mute, setMute] = useState(() => isModeGuideMuted());
+  const key = MODE_GUIDES[mode] ? mode : "all";
+  const g = MODE_GUIDES[key];
+
+  useEffect(() => {
+    if (isOpen) setMute(isModeGuideMuted());
+  }, [isOpen]);
+
+  const modeOptions = [
+    { key: "all", label: "All" },
+    ...(showRecipes
+      ? [
+          { key: "full_tp", label: "Hunt" },
+          { key: "strongest", label: "Strongest" },
+        ]
+      : []),
+    { key: "watchlist", label: "Watchlist" },
+  ];
+
+  const toggleMute = (next) => {
+    setMute(next);
+    setModeGuideMuted(next);
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      eyebrow="Desk mode"
+      title={g.title}
+      subtitle={g.oneLiner}
+      icon={
+        <span className="flex h-10 w-10 items-center justify-center rounded-md border border-accent/25 bg-accent/12 text-accent">
+          {ICONS[key]}
+        </span>
+      }
+      footer={() => (
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <label className="flex cursor-pointer items-center gap-2 text-[12.5px] text-text-muted">
+            <input
+              type="checkbox"
+              checked={mute}
+              onChange={(e) => toggleMute(e.target.checked)}
+              className="h-3.5 w-3.5 rounded-sm border-ink/30 accent-[rgb(var(--accent))]"
+            />
+            Don’t explain each time
+          </label>
+          <div className="flex items-center gap-2">
+            {key === "full_tp" && onMoreDetail ? (
+              <button
+                type="button"
+                onClick={onMoreDetail}
+                className="inline-flex h-10 items-center rounded-md border border-ink/[0.1] bg-surface-secondary px-3.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted transition-colors hover:text-text-primary"
+              >
+                Full results
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 items-center rounded-md bg-accent px-4 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-accent-fg shadow-sm"
+            >
+              See the list
+            </button>
+          </div>
+        </div>
+      )}
+    >
+      <div className="space-y-5">
+        <SegGroup
+          size="sm"
+          aria-label="Which mode to read"
+          value={key}
+          onChange={(k) => onSelectMode?.(k)}
+          options={modeOptions}
+        />
+
+        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+          {g.eyebrow}
+        </p>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          {g.steps.map((s) => (
+            <div
+              key={s.n}
+              className="rounded-md border border-ink/[0.08] bg-surface-secondary/80 px-3 py-3"
+            >
+              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+                {s.n} · {s.t}
+              </p>
+              <p className="mt-1.5 text-[12.5px] leading-snug text-text-primary/90">{s.d}</p>
+            </div>
+          ))}
+        </div>
+
+        <dl className="space-y-3 rounded-md border border-ink/[0.08] bg-ink/[0.02] px-3.5 py-3.5">
+          {[
+            ["What it does", g.does],
+            ["What you’ll see", g.see],
+            ["What it is not", g.not],
+            ["What changes on the desk", g.changes],
+          ].map(([dt, dd]) => (
+            <div key={dt}>
+              <dt className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                {dt}
+              </dt>
+              <dd className="mt-1 text-[13px] leading-relaxed text-text-primary">{dd}</dd>
+            </div>
+          ))}
+        </dl>
+
+        {key === "full_tp" ? (
+          <div>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                Closed calls only
+              </p>
+              {onHuntDays ? (
+                <SegGroup
+                  size="sm"
+                  aria-label="Hunt results window"
+                  value={huntDays}
+                  onChange={onHuntDays}
+                  options={HUNT_WINDOWS}
+                />
+              ) : null}
+            </div>
+            <HuntResults stats={huntStats} loading={huntLoading} error={huntError} />
+          </div>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
