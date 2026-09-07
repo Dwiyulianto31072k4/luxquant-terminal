@@ -8,7 +8,6 @@
 
 import { useEffect, useState } from "react";
 import Modal from "./ui/Modal";
-import { SegGroup } from "./ui/SegGroup";
 import { HuntResults } from "./RecipeExplainModal";
 
 const MUTE_KEY = "lq:signals:mode-guide:mute";
@@ -250,24 +249,17 @@ export default function ModeGuideModal({
           </p>
         ) : null}
 
+        {/* The window belongs to the numbers, so it now lives in the results
+            header rather than floating above the card as a second heading. */}
         {key === "full_tp" ? (
-          <div>
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Closed calls only
-              </p>
-              {onHuntDays ? (
-                <SegGroup
-                  size="sm"
-                  aria-label="Runner results window"
-                  value={huntDays}
-                  onChange={onHuntDays}
-                  options={HUNT_WINDOWS}
-                />
-              ) : null}
-            </div>
-            <HuntResults stats={huntStats} loading={huntLoading} error={huntError} />
-          </div>
+          <HuntResults
+            stats={huntStats}
+            loading={huntLoading}
+            error={huntError}
+            windowValue={huntDays}
+            onWindow={onHuntDays}
+            windowOptions={HUNT_WINDOWS}
+          />
         ) : null}
       </div>
     </Modal>

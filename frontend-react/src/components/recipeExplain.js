@@ -193,7 +193,7 @@ export const OUTCOME_LABELS = [
     short: "SL",
     title: "Stop",
     final:
-      "Closed at the stop without reaching TP1. Counted as a loss. This is the share of Hunt calls that never made it to the first target.",
+      "Closed at the stop without reaching TP1. Counted as a loss. This is the share of Runner calls that never made it to the first target.",
     reached:
       "Same as the final SL share — calls that did not reach TP1.",
   },
