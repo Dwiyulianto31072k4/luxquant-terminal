@@ -1557,24 +1557,6 @@ const SignalsPage = () => {
     { value: "closed_loss", label: "Loss", icon: Icon.x, accent: "red" },
   ];
 
-  // Expanded on request, or automatically when the active sort is not one of
-  // the six — the selected row must never be hidden behind a toggle.
-  const sortListExpanded = showAllSorts || !COMMON_SORTS.includes(sortBy);
-  const visibleSortOptions = sortListExpanded
-    ? sortOptions
-    : sortOptions.filter((o) => COMMON_SORTS.includes(o.value));
-
-  const riskOptions = [
-    { value: "all", label: "All" },
-    { value: "low", label: "Low", dotColor: "bg-profit" },
-    { value: "normal", label: "Normal", dotColor: "bg-accent" },
-    { value: "high", label: "High", dotColor: "bg-negative" },
-    // ~9% of signals carry no risk_level. Without this they matched none of
-    // Low/Normal/High and could only be reached by clearing the filter, so the
-    // three options silently failed to add up to the whole set.
-    { value: "unrated", label: "Unrated", dotColor: "bg-ink/30" },
-  ];
-
   // The six a reader recognises without being told what they mean. The other
   // ten are one tap away — a list of sixteen identical rows is not a menu, it
   // is a wall, and a first-time reader stops at it.
@@ -1604,6 +1586,24 @@ const SignalsPage = () => {
     { value: "verdict", label: "Verdict (Worth→Avoid)" },
     { value: "market_cap", label: "Market Cap" },
     { value: "volume", label: "Volume 24H" },
+  ];
+
+  // Expanded on request, or automatically when the active sort is not one of
+  // the six — the selected row must never be hidden behind a toggle.
+  const sortListExpanded = showAllSorts || !COMMON_SORTS.includes(sortBy);
+  const visibleSortOptions = sortListExpanded
+    ? sortOptions
+    : sortOptions.filter((o) => COMMON_SORTS.includes(o.value));
+
+  const riskOptions = [
+    { value: "all", label: "All" },
+    { value: "low", label: "Low", dotColor: "bg-profit" },
+    { value: "normal", label: "Normal", dotColor: "bg-accent" },
+    { value: "high", label: "High", dotColor: "bg-negative" },
+    // ~9% of signals carry no risk_level. Without this they matched none of
+    // Low/Normal/High and could only be reached by clearing the filter, so the
+    // three options silently failed to add up to the whole set.
+    { value: "unrated", label: "Unrated", dotColor: "bg-ink/30" },
   ];
 
   return (
