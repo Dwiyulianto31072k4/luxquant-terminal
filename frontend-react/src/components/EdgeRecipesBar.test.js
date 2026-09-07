@@ -32,6 +32,17 @@ describe("a recipe stays on while you narrow inside it", () => {
     expect(sameRecipeState(live({ searchPair: "DO" }), hunt)).toBe(true);
   });
 
+  it("does not capture the day tab — dates slice a recipe, they are not the recipe", () => {
+    // The other half of the awkward Hunt → then day flow: applyRecipeState
+    // used to wipe selectedDates, so Today then Hunt bounced back to All Days.
+    // The captured recipe must not even carry a date, or a saved view would
+    // still fight the tabs.
+    expect("selectedDates" in captureRecipeState({ ...hunt, selectedDates: ["2026-09-07"] })).toBe(
+      false
+    );
+    expect(sameRecipeState(live({}), hunt)).toBe(true);
+  });
+
   it("survives tag order differing", () => {
     expect(
       sameRecipeState(live({ selectedTags: ["VOL_CLIMAX", "BTC_VOLATILE"] }), hunt)

@@ -1,4 +1,5 @@
-// EdgeRecipesBar — compact Hunt / Strongest chips. Stats live in the explain modal.
+// EdgeRecipesBar — desk mode rail: All · Hunt · Strongest · Watchlist.
+// Stats live in the explain panel. Hunt is a mode; day/search are slices.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildRunnerTagSet } from "./EdgePlaybook";
@@ -21,7 +22,6 @@ function prettyDay(iso) {
 }
 
 const SAVED_KEY = "lq:edge-recipes:v1";
-const NUDGE_KEY = "lq:shortlist-nudge:v1";
 
 function loadSaved() {
   try {
@@ -41,6 +41,21 @@ function persistSaved(list) {
   }
 }
 
+/** Desk default: no Hunt / Strongest / watchlist. Day and search are slices — not here. */
+export const ALL_MODE_STATE = {
+  selectedTags: [],
+  tagMatchMode: "any",
+  verdictFilter: "all",
+  statusFilter: "all",
+  riskFilter: "all",
+  streakFilter: "all",
+  sortBy: "created_at",
+  sortOrder: "desc",
+  sorts: [{ field: "created_at", order: "desc" }],
+  searchPair: "",
+  corrDecoupled: false,
+  corrHighAlign: false,
+};
 
 export function captureRecipeState(s) {
   const sorts =
@@ -72,9 +87,10 @@ export function captureRecipeState(s) {
  * Equality, not identity: the search box and the day tabs narrow WITHIN a
  * recipe rather than replacing it. Comparing them too meant typing a coin name
  * while Hunt was on made the bar go dark and claim Hunt was off, while every
- * one of its filters was still applied and still listed in the chip bar. The
- * recipe is defined by the filters it sets — tags, verdict, status, risk,
- * streak, correlation and the sort chain — so only those decide.
+ * one of its filters was still applied and still listed in the chip bar. Dates
+ * are not even captured — they are a slice, so Today then Hunt must stay on
+ * Today. The recipe is defined by the filters it sets — tags, verdict, status,
+ * risk, streak, correlation and the sort chain — so only those decide.
  *
  * The bar used to STORE which recipe was clicked, and persist it. That made the
  * highlight drift the moment anything else touched the filters: "Clear all"
@@ -116,7 +132,10 @@ export default function EdgeRecipesBar({
   corrDecoupled = false,
   corrHighAlign = false,
   onApplyState,
-  onScrollToPlaybook: _onScrollToPlaybook,
+  showRecipes = true,
+  watchlistCount = 0,
+  watchlistActive = false,
+  onWatchlist,
 }) {
   const [saved, setSaved] = useState(() => loadSaved());
   const [showSave, setShowSave] = useState(false);
@@ -129,17 +148,11 @@ export default function EdgeRecipesBar({
   huntByDaysRef.current = huntByDays;
   const [huntLoading, setHuntLoading] = useState(false);
   const [huntError, setHuntError] = useState(false);
-  const [nudgeOpen, setNudgeOpen] = useState(() => {
-    try {
-      return localStorage.getItem(NUDGE_KEY) !== "1";
-    } catch {
-      return true;
-    }
-  });
 
   const huntStats = huntByDays[huntDays] || huntByDays["0"] || null;
 
   useEffect(() => {
+    if (!showRecipes) return undefined;
     const key = readOpen ? huntDays : "0";
     if (huntByDaysRef.current[key]) return undefined;
     let cancelled = false;
@@ -162,7 +175,7 @@ export default function EdgeRecipesBar({
     return () => {
       cancelled = true;
     };
-  }, [readOpen, huntDays]);
+  }, [readOpen, huntDays, showRecipes]);
 
   const runnerTags = useMemo(() => {
     const fromApi = huntStats?.runner_tags;
@@ -271,7 +284,6 @@ export default function EdgeRecipesBar({
     [runnerTags, cautionTags]
   );
 
-  // Which recipe (if any) the live filters currently equal. Derived, never stored.
   const liveState = useMemo(
     () =>
       captureRecipeState({
@@ -305,6 +317,7 @@ export default function EdgeRecipesBar({
   );
 
   const activeId = useMemo(() => {
+    if (watchlistActive) return null;
     for (const r of builtins) {
       if (sameRecipeState(liveState, captureRecipeState(r.build()))) return r.id;
     }
@@ -312,20 +325,10 @@ export default function EdgeRecipesBar({
       if (r?.state && sameRecipeState(liveState, captureRecipeState(r.state))) return r.id;
     }
     return null;
-  }, [liveState, builtins, saved]);
-
-  const dismissNudge = () => {
-    setNudgeOpen(false);
-    try {
-      localStorage.setItem(NUDGE_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-  };
+  }, [liveState, builtins, saved, watchlistActive]);
 
   const applyBuiltin = (r) => {
     onApplyState?.(r.build());
-    if (r.id === "full_tp") dismissNudge();
   };
 
   const applySaved = (r) => {
@@ -364,138 +367,70 @@ export default function EdgeRecipesBar({
     persistSaved(next);
   };
 
-  const toneBorder = (tone, active) => {
-    if (active) {
-      if (tone === "warn") return "border-loss/40 bg-loss/10 text-text-primary";
-      if (tone === "positive") return "border-positive/40 bg-positive/10 text-text-primary";
-      return "border-accent/45 bg-accent/15 text-text-primary shadow-[0_0_0_1px_rgb(var(--accent)/0.1)]";
+  const showingHunt = !watchlistActive && activeId === "full_tp";
+  const era = huntStats?.tag_era_start || huntStats?.tags_selected_from?.start;
+
+  const modeValue = watchlistActive
+    ? "watchlist"
+    : activeId === "full_tp" || activeId === "strongest"
+      ? activeId
+      : "all";
+
+  const modeOptions = [
+    { key: "all", label: "All", title: "Every call in the selected day" },
+    ...(showRecipes
+      ? [
+          { key: "full_tp", label: "Hunt", title: "Setups that historically ran to later targets" },
+          {
+            key: "strongest",
+            label: "Strongest",
+            title: "Open Worth calls, ranked by the pair’s track record",
+          },
+        ]
+      : []),
+    {
+      key: "watchlist",
+      label: "Watchlist",
+      title: "Starred calls — any day, not just the last 7",
+      badge: watchlistCount > 0 ? watchlistCount : null,
+    },
+  ];
+
+  const onMode = (key) => {
+    if (key === "watchlist") {
+      if (!watchlistActive) onWatchlist?.();
+      setReadOpen(false);
+      return;
     }
-    return "border-ink/[0.1] bg-surface-raised/80 text-text-primary/90 hover:border-ink/20 hover:bg-ink/[0.03]";
+    if (key === "all") {
+      // Don't re-apply All when it is already the mode — that would wipe Open/Hit
+      // which are slices, not the mode.
+      if (modeValue !== "all") onApplyState?.(ALL_MODE_STATE);
+      setReadOpen(false);
+      return;
+    }
+    const r = builtins.find((x) => x.id === key);
+    if (r) applyBuiltin(r);
   };
 
-  const firstScreen = ["full_tp", "strongest"]
-    .map((id) => builtins.find((r) => r.id === id))
-    .filter(Boolean);
-  const era = huntStats?.tag_era_start || huntStats?.tags_selected_from?.start;
-  const huntMix = huntStats?.hunt;
-  const vsAll = huntStats?.vs_all;
-  const showingHunt = activeId === "full_tp";
-  const showingStrongest = activeId === "strongest";
-  const showNudge = nudgeOpen && !activeId;
-
   return (
-    <section className="overflow-hidden rounded-xl border border-positive/25 bg-positive/[0.05]">
-      <div className="px-3.5 py-3 sm:px-4">
-        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-          <div className="min-w-0">
-            <p className="text-[14px] font-semibold tracking-tight text-text-primary">Shortlist</p>
-            <p className="mt-0.5 text-[12.5px] leading-snug text-text-primary/85">
-              {showingHunt
-                ? "Hunt is on. Setups that historically ran to later targets."
-                : showingStrongest
-                  ? "Open Worth calls, ranked by the pair’s own track record — not Hunt tags."
-                  : "Optional filter. Click Hunt to turn it on — it is not applied until you do."}
-            </p>
-          </div>
-          {showingHunt && huntMix?.tp4_rate != null ? (
-            <p className="font-mono text-[11px] tabular-nums text-text-muted">
-              Hunt closed · TP4{" "}
-              <span className="font-semibold text-positive">{Number(huntMix.tp4_rate).toFixed(1)}%</span>
-              {vsAll?.final_pp?.tp4 != null ? (
-                <span className="text-positive">
-                  {" "}
-                  ({vsAll.final_pp.tp4 > 0 ? "+" : ""}
-                  {Number(vsAll.final_pp.tp4).toFixed(1)}pp vs all)
-                </span>
-              ) : null}
-              {" · "}SL{" "}
-              <span className="font-semibold text-text-primary">{Number(huntMix.sl_rate).toFixed(1)}%</span>
-            </p>
-          ) : showingStrongest ? (
-            <p className="font-mono text-[11px] tabular-nums text-text-muted">
-              Open · Worth · no Hunt tag filter
-            </p>
-          ) : null}
-        </div>
-
-        {showNudge ? (
-          <div className="relative mt-2.5 max-w-md">
-            <div className="rounded-xl border border-accent/35 bg-surface-raised p-3 shadow-[0_8px_24px_rgb(var(--scrim)/0.12)]">
-              <div className="flex items-start gap-2.5">
-                <span
-                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-accent/30 bg-accent/12 text-accent"
-                  aria-hidden
-                >
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M8 13v5a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2v-7" />
-                    <path d="M8 13V8.5a1.5 1.5 0 0 1 3 0V13" />
-                    <path d="M11 13V7.5a1.5 1.5 0 0 1 3 0V13" />
-                    <path d="M14 13v-3a1.5 1.5 0 0 1 3 0V14a5 5 0 0 1-5 5h-1" />
-                    <path d="M8 13H7a2 2 0 0 0-2 2v1" />
-                  </svg>
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-text-primary">
-                    Click Hunt to turn this on
-                  </p>
-                  <p className="mt-0.5 text-[12px] leading-snug text-text-muted">
-                    An optional advanced filter. It keeps setups that historically ran to later
-                    targets — a higher-chance slice, not the default desk.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={dismissNudge}
-                  aria-label="Dismiss"
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
-                >
-                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <span
-              className="absolute left-6 -bottom-1.5 h-3 w-3 rotate-45 border-b border-r border-accent/35 bg-surface-raised"
-              aria-hidden
-            />
-          </div>
-        ) : null}
-
-        <div className={`flex flex-wrap items-center gap-1.5 ${showNudge ? "mt-3.5" : "mt-2.5"}`}>
-          {firstScreen.map((r) => {
-            const active = activeId === r.id;
-            const huntIdle = r.id === "full_tp" && showNudge;
-            return (
-              <button
-                key={r.id}
-                type="button"
-                title={r.hint}
-                onClick={() => applyBuiltin(r)}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-all ${
-                  r.id === "full_tp" && active
-                    ? "border-positive/50 bg-positive/25 text-text-primary shadow-[0_0_0_1px_rgb(var(--positive)/0.15)]"
-                    : huntIdle
-                      ? "relative border-accent/40 bg-surface-raised text-text-primary shadow-[0_0_0_3px_rgb(var(--accent)/0.12)]"
-                      : toneBorder(r.tone, active)
-                }`}
-              >
-                <span aria-hidden className="font-mono text-[11px] opacity-80">
-                  {r.icon}
-                </span>
-                {r.label}
-              </button>
-            );
-          })}
+    <div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <SegGroup
+          size="sm"
+          aria-label="Desk mode"
+          value={modeValue}
+          onChange={onMode}
+          options={modeOptions}
+          wrap
+        />
+        {showRecipes && showingHunt ? (
           <button
             type="button"
             aria-expanded={readOpen}
-            aria-label="Why Hunt works — closed results"
             onClick={() => setReadOpen((v) => !v)}
-            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-[12.5px] font-medium transition-colors ${
-              readOpen
-                ? "bg-ink/[0.06] text-text-primary"
-                : "text-accent hover:bg-ink/[0.04]"
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-medium transition-colors ${
+              readOpen ? "bg-ink/[0.06] text-text-primary" : "text-accent hover:bg-ink/[0.04]"
             }`}
           >
             Why it works
@@ -506,11 +441,13 @@ export default function EdgeRecipesBar({
               ▾
             </span>
           </button>
-          {saved.map((r) => (
+        ) : null}
+        {showRecipes &&
+          saved.map((r) => (
             <span
               key={r.id}
-              className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] ${
-                activeId === r.id
+              className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] ${
+                !watchlistActive && activeId === r.id
                   ? "border-accent/40 bg-accent/12 text-text-primary"
                   : "border-ink/[0.1] text-text-muted"
               }`}
@@ -528,7 +465,8 @@ export default function EdgeRecipesBar({
               </button>
             </span>
           ))}
-          {!showSave ? (
+        {showRecipes ? (
+          !showSave ? (
             <button
               type="button"
               onClick={() => setShowSave(true)}
@@ -559,25 +497,23 @@ export default function EdgeRecipesBar({
                 Save
               </button>
             </span>
-          )}
-        </div>
+          )
+        ) : null}
       </div>
 
-      {readOpen ? (
-        <div className="border-t border-positive/15 bg-surface-raised px-3.5 py-3 sm:px-4">
+      {showRecipes && readOpen && showingHunt ? (
+        <div className="mt-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-3 sm:px-3.5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 max-w-2xl">
               <p className="text-[13px] font-semibold text-text-primary">Hunt full TP</p>
               <p className="mt-1 text-[12.5px] leading-relaxed text-text-primary/90">
-                Shortlist of setups whose <span className="font-medium">entry tags</span> historically
-                reached TP3/TP4 more often. Tags are on the call when it is published — not added
-                after it already won. Numbers are <span className="font-medium">closed calls only</span>{" "}
-                (hit TP or SL), same as Performance. Open calls are not counted.
+                Setups whose <span className="font-medium">entry tags</span> historically reached
+                TP3/TP4 more often. Tags are on the call when it is published — not added after it
+                already won. Numbers are <span className="font-medium">closed calls only</span> (hit
+                TP or SL). Open calls are not counted.
               </p>
               <p className="mt-1.5 text-[11.5px] leading-snug text-text-muted">
-                Evaluated since tags exist ({prettyDay(era)}). All time = that full history. 7d and 30d use
-                the <span className="text-text-primary/80">same Hunt tags</span>, scored only on
-                closes in that window — so you can see if the edge is still there recently.
+                Evaluated since tags exist ({prettyDay(era)}). Day tabs above still slice the list.
               </p>
             </div>
             <SegGroup
@@ -620,6 +556,6 @@ export default function EdgeRecipesBar({
           }}
         />
       ) : null}
-    </section>
+    </div>
   );
 }

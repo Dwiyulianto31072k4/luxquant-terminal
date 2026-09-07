@@ -387,6 +387,8 @@ const SignalsTable = ({
   page,
   totalPages,
   totalSignals,
+  emptyState = null,
+  onEmptyAction = null,
   onPageChange,
   sortBy,
   sortOrder,
@@ -418,7 +420,6 @@ const SignalsTable = ({
 }) => {
   const { t } = useTranslation();
 
-  const [expandedCards, setExpandedCards] = useState({}); // mobile card expand, keyed by signal_id (survives 15s price refresh)
   const [selectedCoinIntel, setSelectedCoinIntel] = useState(null); // coin object for CoinDetailModal
   const [showVerdictHint, setShowVerdictHint] = useState(false); // verdict coachmark (auto-shows on load)
   const [currentPrices, setCurrentPrices] = useState({});
@@ -1142,6 +1143,29 @@ const SignalsTable = ({
     );
   };
 
+  const EmptyView = () => (
+    <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.03]">
+        <EmptyStateIcon />
+      </div>
+      <p className="text-sm font-medium text-text-primary">
+        {emptyState?.title || "No signals found"}
+      </p>
+      <p className="max-w-sm text-[12.5px] leading-snug text-text-muted">
+        {emptyState?.hint || "Adjust your filters and try again"}
+      </p>
+      {emptyState?.actionLabel && onEmptyAction ? (
+        <button
+          type="button"
+          onClick={() => onEmptyAction(emptyState.action)}
+          className="mt-1 rounded-lg border border-ink/15 bg-surface-raised px-3.5 py-1.5 text-[12.5px] font-semibold text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.04]"
+        >
+          {emptyState.actionLabel}
+        </button>
+      ) : null}
+    </div>
+  );
+
   const MobileSignalCard = ({ signal }) => {
     const livePrice = getPrice(signal.pair);
     const currentPrice =
@@ -1150,15 +1174,9 @@ const SignalsTable = ({
         : livePrice;
     const currentVol = getVolume(signal.pair);
     const priceChange = getPriceChange(signal.entry, currentPrice);
-    const open = !!expandedCards[signal.signal_id];
-    const toggle = () =>
-      setExpandedCards((p) => ({ ...p, [signal.signal_id]: !p[signal.signal_id] }));
     const v = getVerdict(signal);
     const wr = getWinRate(signal.pair);
-    const streak = getStreak(signal.pair);
-    const topTag = getTopTag(signal.signal_id);
     const runner = getRunnerHint(signal.signal_id);
-    const btc = getBtc(signal);
     const maxTarget = getMaxTarget(signal);
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
     const sl = signal.stop1 ?? signal.stop_loss;
@@ -1171,7 +1189,7 @@ const SignalsTable = ({
 
     return (
       <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
-        {/* COLLAPSED — pair, E→TP, SL (price + %), live. Tap opens the call. */}
+        {/* Pair, E→TP, SL, live. Tap opens the call — star is the only other target. */}
         <div className="flex items-start gap-2 p-3.5">
           <button
             type="button"
@@ -1302,238 +1320,19 @@ const SignalsTable = ({
               </div>
             </div>
           </button>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {!teaser ? (
-              <>
-                <div className="px-1.5" onClick={(e) => e.stopPropagation()}>
-                  <CompareBox signal={signal} size={18} />
-                </div>
-                <div onClick={(e) => e.stopPropagation()}>
-                  <StarButton
-                    signalId={signal.signal_id}
-                    isStarred={watchlistIds.includes(signal.signal_id)}
-                    onToggle={handleStarToggle}
-                  />
-                </div>
-              </>
-            ) : null}
-            <button
-              onClick={toggle}
-              aria-label={open ? "Collapse" : "Expand"}
-              className="w-8 h-8 flex items-center justify-center text-text-primary/50 hover:text-text-primary"
+          {!teaser ? (
+            <div
+              className="flex-shrink-0 self-center"
+              onClick={(e) => e.stopPropagation()}
             >
-              <svg
-                className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-          </div>
+              <StarButton
+                signalId={signal.signal_id}
+                isStarred={watchlistIds.includes(signal.signal_id)}
+                onToggle={handleStarToggle}
+              />
+            </div>
+          ) : null}
         </div>
-
-        {/* EXPANDED — detail + open full signal */}
-        {open ? (
-          <div className="space-y-3 border-t border-ink/[0.06] p-3.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${getRiskClasses(signal.risk_level)}`}
-              >
-                {getRiskLabel(signal.risk_level)}
-              </span>
-              {wr != null ? (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${wr >= 70 ? "bg-profit/12 text-profit" : wr >= 50 ? "bg-accent/12 text-accent" : "bg-negative/12 text-loss"}`}
-                >
-                  WR {wr}%
-                </span>
-              ) : null}
-              {streak ? (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${streak.type === "win" ? "bg-profit/12 text-profit" : "bg-negative/12 text-loss"}`}
-                >
-                  {streak.length}
-                  {streak.type === "win" ? "W" : "L"}
-                </span>
-              ) : null}
-              {topTag ? (
-                <span
-                  title={`${fmtTag(topTag.tag)}: ${topTag.wr}% historical win rate when present`}
-                  className="max-w-[160px] truncate rounded-full bg-accent/12 px-2 py-0.5 text-[10px] font-medium text-accent"
-                >
-                  {fmtTag(topTag.tag).toLowerCase()} {topTag.wr}%
-                </span>
-              ) : null}
-            </div>
-
-            {signal.last_update_at ? (
-              <div className="flex items-center justify-between rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
-                  {getUpdateTypeBadge(signal.last_update_type)}
-                </div>
-                <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/45">
-                  {formatTimeAgo(signal.last_update_at)}
-                </span>
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-3">
-              <div>
-                <p className="mb-1 text-[10px] font-medium text-text-muted">Entry</p>
-                <p className="font-mono text-[12.5px] font-medium tabular-nums text-text-primary">
-                  {formatPrice(signal.entry)}
-                </p>
-              </div>
-              <div className="border-x border-ink/[0.05] text-center">
-                <p className="mb-1 text-[10px] font-medium text-text-muted">Current</p>
-                {currentPrice ? (
-                  <p
-                    className={`font-mono text-[12.5px] font-medium tabular-nums ${priceChange !== null ? (priceChange >= 0 ? "text-profit" : "text-loss") : "text-text-primary"}`}
-                  >
-                    {formatPrice(currentPrice)}
-                  </p>
-                ) : (
-                  <p className="text-[12.5px] text-text-muted">—</p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="mb-1 text-[10px] font-medium text-text-muted">P&amp;L</p>
-                {priceChange !== null ? (
-                  <p
-                    className={`font-mono text-[12.5px] font-medium tabular-nums ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
-                  >
-                    {priceChange >= 0 ? "+" : ""}
-                    {priceChange.toFixed(2)}%
-                  </p>
-                ) : (
-                  <p className="text-[12.5px] text-text-muted">—</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-1.5">
-              {[
-                { label: "TP1", value: signal.target1 },
-                { label: "TP2", value: signal.target2 },
-                { label: "TP3", value: signal.target3 },
-                { label: "TP4", value: signal.target4 },
-              ].map((tp, i) => {
-                const pct = tp.value ? calcPct(tp.value, signal.entry) : null;
-                return (
-                  <div
-                    key={i}
-                    className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-1 py-1.5 text-center"
-                  >
-                    <p className="text-[9px] font-medium text-text-muted">{tp.label}</p>
-                    <p className="mt-0.5 font-mono text-[10.5px] font-medium tabular-nums text-text-secondary">
-                      {tp.value ? formatPrice(tp.value) : "—"}
-                    </p>
-                    {pct != null ? (
-                      <p className="mt-0.5 font-mono text-[9px] tabular-nums text-profit/80">
-                        +{pct.toFixed(1)}%
-                      </p>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center justify-between gap-2 text-[10px] font-mono flex-wrap">
-              <div className="flex items-center gap-3 flex-wrap">
-                {signal.market_cap ? (
-                  <span className="text-text-primary/45">
-                    MC{" "}
-                    <span className="text-text-primary/75">
-                      {formatMarketCap(signal.market_cap)}
-                    </span>
-                  </span>
-                ) : null}
-                {currentVol ? (
-                  <span className="text-text-primary/45">
-                    Vol <span className="text-text-primary/75">{formatVolume(currentVol)}</span>
-                  </span>
-                ) : signal.volume_rank_num && signal.volume_rank_den ? (
-                  <span className="text-text-primary/45">
-                    Vol{" "}
-                    <span className="text-text-primary/75">
-                      {signal.volume_rank_num}/{signal.volume_rank_den}
-                    </span>
-                  </span>
-                ) : null}
-                {btc ? (
-                  <span className="text-text-primary/45">
-                    BTC <span className={btcScoreColor(btc.score)}>{btc.score}</span>
-                    {btc.decoupled ? " ⚡" : ""}
-                  </span>
-                ) : null}
-              </div>
-              <span className="text-text-primary/45">
-                Called{" "}
-                <span className="text-text-primary/75 tabular-nums">
-                  {(() => {
-                    const d = new Date(signal.created_at);
-                    const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-                    const time = d.toLocaleTimeString("en-GB", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    });
-                    return `${date}, ${time}`;
-                  })()}
-                </span>
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 border-t border-ink/[0.06] pt-3">
-              <button
-                type="button"
-                onClick={() => onRowClick && onRowClick(signal)}
-                className="text-[12px] font-medium text-accent transition-colors hover:text-accent/80"
-              >
-                Open signal →
-              </button>
-              <div className="flex items-center gap-1.5">
-                {v && v.verdict !== "neutral" ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCoinIntel(v.fullCoin || v.coin)}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${v.verdict === "avoid" ? "bg-negative/12 text-loss" : "bg-profit/12 text-profit"}`}
-                  >
-                    {v.verdict === "avoid" ? "Avoid" : "Worth"} detail
-                    <svg
-                      className="h-2.5 w-2.5 opacity-60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={(e) => handleShareSignal(e, signal)}
-                  title="Share signal"
-                  aria-label="Share signal"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-accent transition-colors hover:bg-accent/12"
-                >
-                  {sharedId === signal.signal_id
-                    ? Ic.check("w-3.5 h-3.5")
-                    : Ic.share("w-3.5 h-3.5")}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
     );
   };
@@ -1722,16 +1521,8 @@ const SignalsTable = ({
         {loading ? (
           <MobileLoadingSkeleton />
         ) : signals?.length === 0 ? (
-          <div className="rounded-xl border border-ink/[0.07] bg-surface-raised p-10 text-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.03]">
-                <EmptyStateIcon />
-              </div>
-              <p className="text-sm font-medium text-text-primary">No signals found</p>
-              <p className="text-[12px] text-text-muted">
-                Adjust your filters and try again
-              </p>
-            </div>
+          <div className="rounded-xl border border-ink/[0.07] bg-surface-raised">
+            <EmptyView />
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -1989,16 +1780,8 @@ const SignalsTable = ({
                   ))
                 ) : signals?.length === 0 ? (
                   <tr>
-                    <td colSpan={visibleColCount} className="py-16 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.03]">
-                          <EmptyStateIcon />
-                        </div>
-                        <p className="text-sm font-medium text-text-primary">No signals found</p>
-                        <p className="text-[12px] text-text-muted">
-                          Adjust your filters and try again
-                        </p>
-                      </div>
+                    <td colSpan={visibleColCount} className="py-8">
+                      <EmptyView />
                     </td>
                   </tr>
                 ) : (

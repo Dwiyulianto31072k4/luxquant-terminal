@@ -405,6 +405,8 @@ const SIGNALS_CACHE_KEY = "lq:signals:last";
 // Past this the data is stale enough that a clean load is the better trade.
 const SIGNALS_CACHE_MAX_AGE = 10 * 60 * 1000;
 
+const utcTodayYmd = () => new Date().toISOString().slice(0, 10);
+
 let signalsMemCache = null;
 
 function readSignalsCache() {
@@ -490,10 +492,9 @@ const SignalsPage = () => {
   const [corrDecoupled, setCorrDecoupled] = useState(false);
   const [corrHighAlign, setCorrHighAlign] = useState(false);
   const [verdictFilter, setVerdictFilter] = useState("all"); // 'all' | 'worth_it' | 'avoid'
-  const [selectedDates, setSelectedDates] = useState([]);
-  // Watchlist tab (ala MEXC "Favorites"). Watchlist bisa lintas-tanggal (lebih tua
-  // dari 7 hari), sementara allSignals cuma 7 hari — jadi watchlist punya SUMBER
-  // DATA sendiri (watchlistSignals dari /watchlist/), bukan sekadar filter allSignals.
+  const [selectedDates, setSelectedDates] = useState(() => [utcTodayYmd()]);
+  // Watchlist is a desk mode (not a day tab). It can be older than 7 days, so it
+  // has its own source (/watchlist/) instead of filtering allSignals.
   const [watchlistIds, setWatchlistIds] = useState([]);
   const [watchlistSignals, setWatchlistSignals] = useState([]);
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
@@ -1128,8 +1129,9 @@ const SignalsPage = () => {
   }, [allSignals]);
 
   const dateOptions = useMemo(() => {
-    const options = [{ value: "all", label: "All Days" }];
+    // Today first — the desk default. All days sits at the end as the 7-day tape.
     const now = new Date();
+    const options = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(now);
       d.setUTCDate(d.getUTCDate() - i);
@@ -1145,10 +1147,13 @@ const SignalsPage = () => {
                 timeZone: "UTC",
               });
       const count = allSignals.filter((s) => signalUtcYmd(s.created_at) === dateStr).length;
-      if (count > 0) {
+      // Always show Today and Yesterday, even at 0 — otherwise the default tab
+      // vanishes before the first call of the UTC day lands.
+      if (i <= 1 || count > 0) {
         options.push({ value: dateStr, label: dayLabel, count });
       }
     }
+    options.push({ value: "all", label: "All days", count: allSignals.length });
     return options;
   }, [allSignals]);
 
@@ -1190,7 +1195,7 @@ const SignalsPage = () => {
   // "Advanced filters" toggle. TIDAK lagi memaksa panel terbuka: user boleh
   // apply filter lalu menutup panel; filter tetap berlaku (badge "N active").
   const advancedActiveCount =
-    (statusFilter !== "all" ? 1 : 0) +
+    (statusFilter !== "all" && statusFilter !== "open" && statusFilter !== "updated" ? 1 : 0) +
     (riskFilter !== "all" ? 1 : 0) +
     (streakFilter !== "all" ? 1 : 0) +
     (corrDecoupled ? 1 : 0) +
@@ -1202,6 +1207,10 @@ const SignalsPage = () => {
   // Panel murni dikontrol toggle user (bisa ditutup walau ada filter aktif).
   const advancedOpen = showAdvanced;
 
+  const todayYmd = utcTodayYmd();
+  const dayIsDefault =
+    selectedDates.length === 1 && selectedDates[0] === todayYmd;
+
   const hasActiveFilters =
     searchPair ||
     statusFilter !== "all" ||
@@ -1210,7 +1219,7 @@ const SignalsPage = () => {
     corrDecoupled ||
     corrHighAlign ||
     verdictFilter !== "all" ||
-    selectedDates.length > 0 ||
+    !dayIsDefault ||
     !isDefaultSorts(sorts) ||
     selectedTags.length > 0 ||
     showWatchlistOnly;
@@ -1229,7 +1238,7 @@ const SignalsPage = () => {
     setCorrDecoupled(false);
     setCorrHighAlign(false);
     setVerdictFilter("all");
-    setSelectedDates([]);
+    setSelectedDates([utcTodayYmd()]);
     setSelectedTags([]);
     setTagMatchMode("any");
     setShowWatchlistOnly(false);
@@ -1237,7 +1246,27 @@ const SignalsPage = () => {
     setPage(1);
   }, []);
 
-  /** Apply a full recipe / saved-view state (Cara cepat + My recipes). */
+  const enterWatchlist = useCallback(() => {
+    setShowWatchlistOnly(true);
+    setSelectedTags([]);
+    setTagMatchMode("any");
+    setVerdictFilter("all");
+    setStatusFilter("all");
+    setRiskFilter("all");
+    setStreakFilter("all");
+    setCorrDecoupled(false);
+    setCorrHighAlign(false);
+    setSorts([...DEFAULT_SORTS]);
+    setPage(1);
+  }, []);
+
+  /** Apply a recipe / saved-view (Hunt, Strongest, + View).
+   *
+   * Hunt is a mode; the day tabs and the search box are slices inside it.
+   * Wiping dates here is what forced the awkward order "Hunt first, then the
+   * day" — picking Today then Hunt bounced you back to All Days. Leave the
+   * current day and an empty search alone. A saved view that actually stored a
+   * pair still restores it. Watchlist is a different source, so leave it. */
   const applyRecipeState = useCallback((state) => {
     if (!state || typeof state !== "object") return;
     setSelectedTags(Array.isArray(state.selectedTags) ? state.selectedTags : []);
@@ -1251,10 +1280,9 @@ const SignalsPage = () => {
     } else {
       setSorts(sortsFromLegacy(state.sortBy || "created_at", state.sortOrder || "desc"));
     }
-    setSearchPair(state.searchPair || "");
+    if (state.searchPair) setSearchPair(state.searchPair);
     setCorrDecoupled(!!state.corrDecoupled);
     setCorrHighAlign(!!state.corrHighAlign);
-    setSelectedDates([]);
     setShowWatchlistOnly(false);
     setPage(1);
   }, []);
@@ -1262,14 +1290,8 @@ const SignalsPage = () => {
 
 
   const toggleDateFilter = (dateVal) => {
-    if (dateVal === "all") {
-      setSelectedDates([]);
-    } else {
-      setSelectedDates((prev) => {
-        if (prev.includes(dateVal)) return prev.filter((d) => d !== dateVal);
-        return [...prev, dateVal];
-      });
-    }
+    if (dateVal === "all") setSelectedDates([]);
+    else setSelectedDates([dateVal]);
   };
 
   const { signals, totalPages, totalSignals, shariahHidden } = useMemo(() => {
@@ -1433,6 +1455,71 @@ const SignalsPage = () => {
     watchlistSignals,
     getVerdictForSignal,
   ]);
+
+  const emptyState = useMemo(() => {
+    const onToday = selectedDates.length === 1 && selectedDates[0] === utcTodayYmd();
+    const huntOn = verdictFilter === "worth_it" && selectedTags.length > 0;
+    if (showWatchlistOnly) {
+      return {
+        title: "No starred calls",
+        hint: "Star a call to keep it here — watchlist is not limited to the last 7 days.",
+        actionLabel: "Back to desk",
+        action: "all",
+      };
+    }
+    if (searchPair) {
+      return {
+        title: `No ${searchPair.toUpperCase()} in this view`,
+        hint: "Nothing here matches that pair. Clear search, or open All days.",
+        actionLabel: "Clear search",
+        action: "search",
+      };
+    }
+    if (huntOn && onToday) {
+      return {
+        title: "No Hunt setups today",
+        hint: "Hunt is on for this day. Open All days, or switch the mode to All.",
+        actionLabel: "Show all days",
+        action: "days",
+      };
+    }
+    if (statusFilter === "open" && onToday) {
+      return {
+        title: "No open calls today",
+        hint: "Nothing still running on this UTC day. Open All days to see the week.",
+        actionLabel: "Show all days",
+        action: "days",
+      };
+    }
+    if (onToday) {
+      return {
+        title: "No calls today",
+        hint: "The desk is quiet so far. Open All days to see the last week.",
+        actionLabel: "Show all days",
+        action: "days",
+      };
+    }
+    return {
+      title: "No signals found",
+      hint: "Nothing matches this view. Reset to today’s desk.",
+      actionLabel: "Reset",
+      action: "reset",
+    };
+  }, [showWatchlistOnly, searchPair, selectedDates, verdictFilter, selectedTags, statusFilter]);
+
+  const onEmptyAction = useCallback(
+    (action) => {
+      if (action === "search") setSearchPair("");
+      else if (action === "days") {
+        setShowWatchlistOnly(false);
+        setSelectedDates([]);
+      } else if (action === "all") {
+        setShowWatchlistOnly(false);
+      } else resetFilters();
+      setPage(1);
+    },
+    [resetFilters]
+  );
 
   /** Table header click — Shift/⌘/Ctrl adds a secondary sort level. */
   const handleSort = useCallback((field, ev) => {
@@ -1967,7 +2054,7 @@ const SignalsPage = () => {
         strict={shariah.strict}
       />
 
-      {/* FILTER CONSOLE */}
+      {/* FILTER CONSOLE — mode → day → search / Open / Hit */}
       <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-4">
         <div className="mb-3 flex items-center justify-between border-b border-ink/[0.06] pb-3">
           <div className="flex items-center gap-2">
@@ -2003,32 +2090,37 @@ const SignalsPage = () => {
           )}
         </div>
 
-        {/* ── TAB BAR — Watchlist + day tabs (full width, fade + panah kanan ala MEXC) ── */}
-        <div className="relative edge-fade-r border-b border-ink/[0.07] mb-3">
+        <div className="mb-3">
+          <EdgeRecipesBar
+            tagWr={tagWr}
+            selectedTags={selectedTags}
+            tagMatchMode={tagMatchMode}
+            verdictFilter={verdictFilter}
+            statusFilter={statusFilter}
+            riskFilter={riskFilter}
+            streakFilter={streakFilter}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            sorts={sorts}
+            searchPair={searchPair}
+            corrDecoupled={corrDecoupled}
+            corrHighAlign={corrHighAlign}
+            onApplyState={applyRecipeState}
+            showRecipes={isSubscriber}
+            watchlistCount={watchlistIds.length}
+            watchlistActive={showWatchlistOnly}
+            onWatchlist={enterWatchlist}
+          />
+        </div>
+
+        {/* Day tabs — single-select. Watchlist lives in the mode rail above. */}
+        <div
+          className={`relative edge-fade-r mb-3 border-b border-ink/[0.07] ${showWatchlistOnly ? "opacity-40" : ""}`}
+        >
           <div
             ref={tabScrollRef}
             className="flex items-center gap-6 overflow-x-auto no-scrollbar pr-12"
           >
-            {/* Watchlist (tanpa bintang biar hemat tempat) */}
-            <button
-              onClick={() => setShowWatchlistOnly((v) => !v)}
-              className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                showWatchlistOnly
-                  ? "text-text-primary border-ink/30"
-                  : "text-text-primary/50 border-transparent hover:text-text-primary/80"
-              }`}
-            >
-              Watchlist
-              {watchlistIds.length > 0 && (
-                <span
-                  className={`font-mono text-[12px] tabular-nums ${showWatchlistOnly ? "text-text-primary" : "text-text-primary/40"}`}
-                >
-                  {watchlistIds.length}
-                </span>
-              )}
-            </button>
-
-            {/* Day tabs — bisa pilih satu / semua */}
             {dateOptions.map((opt) => {
               const active =
                 !showWatchlistOnly &&
@@ -2038,6 +2130,7 @@ const SignalsPage = () => {
               return (
                 <button
                   key={opt.value}
+                  type="button"
                   onClick={() => {
                     setShowWatchlistOnly(false);
                     toggleDateFilter(opt.value);
@@ -2060,14 +2153,14 @@ const SignalsPage = () => {
               );
             })}
           </div>
-          {/* Panah kanan — geser lihat hari sebelumnya (MEXC-style, di atas fade) */}
           <button
+            type="button"
             onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
             aria-label="View previous day"
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 text-text-primary/60 hover:text-text-primary transition-colors"
+            className="absolute right-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-text-primary/60 transition-colors hover:text-text-primary"
           >
             <svg
-              className="w-4 h-4"
+              className="h-4 w-4"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -2080,13 +2173,8 @@ const SignalsPage = () => {
           </button>
         </div>
 
-        {/* ── Controls row — search + multi-sort stack ── */}
-        <div className="mb-4 space-y-2">
-          {/* Wraps below sm so the field owns a full row. It used to sit as the
-              only shrinkable item next to three flex-shrink-0 controls, so on a
-              440px phone the sort select, direction toggle and More button took
-              ~285px and the search collapsed to just its own icon padding —
-              a box with nowhere to type. */}
+        {/* ── Controls row — search + Open/Hit + sort ── */}
+        <div className="mb-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative order-1 basis-full min-w-0 sm:order-none sm:basis-auto sm:flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
@@ -2112,6 +2200,41 @@ const SignalsPage = () => {
                 </button>
               ) : null}
             </div>
+            <button
+              type="button"
+              onClick={() => setStatusFilter((v) => (v === "open" ? "all" : "open"))}
+              className={`flex-shrink-0 rounded-md border px-2.5 py-2 font-mono text-[10px] uppercase tracking-wider transition-all ${
+                statusFilter === "open"
+                  ? "border-ink/15 bg-ink/10 text-text-primary"
+                  : "border-ink/[0.08] bg-surface text-text-primary/70 hover:border-ink/12 hover:text-text-primary"
+              }`}
+            >
+              Open
+            </button>
+            <button
+              type="button"
+              title="Calls that just moved — TP, SL, or an update"
+              onClick={() => {
+                if (statusFilter === "updated") {
+                  setStatusFilter("all");
+                  return;
+                }
+                setStatusFilter("updated");
+                if (sortBy === "created_at") setSortBy("last_update");
+              }}
+              className={`flex-shrink-0 inline-flex items-center gap-1 rounded-md border px-2.5 py-2 font-mono text-[10px] uppercase tracking-wider transition-all ${
+                statusFilter === "updated"
+                  ? "border-ink/15 bg-ink/10 text-text-primary"
+                  : "border-ink/[0.08] bg-surface text-text-primary/70 hover:border-ink/12 hover:text-text-primary"
+              }`}
+            >
+              Hit
+              {updatedCount > 0 && statusFilter !== "updated" ? (
+                <span className="rounded-sm bg-ink/[0.06] px-1 font-mono text-[9px] tabular-nums text-text-primary">
+                  {updatedCount}
+                </span>
+              ) : null}
+            </button>
             <div className="relative flex-shrink-0">
               <select
                 value={sortBy}
@@ -2166,7 +2289,7 @@ const SignalsPage = () => {
           </div>
         </div>
 
-        {/* MORE — helper filters, sort stack, playbook. First screen stays date + search + Hunt. */}
+        {/* MORE — helper filters, sort stack, playbook. First screen is mode (above) + date + search. */}
         {advancedOpen && (
           <div className="mt-4 space-y-5 animate-slideDown">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -2528,34 +2651,6 @@ const SignalsPage = () => {
         )}
       </div>
 
-      {isSubscriber && (
-        <EdgeRecipesBar
-          tagWr={tagWr}
-          selectedTags={selectedTags}
-          tagMatchMode={tagMatchMode}
-          verdictFilter={verdictFilter}
-          statusFilter={statusFilter}
-          riskFilter={riskFilter}
-          streakFilter={streakFilter}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          sorts={sorts}
-          searchPair={searchPair}
-          corrDecoupled={corrDecoupled}
-          corrHighAlign={corrHighAlign}
-          onApplyState={applyRecipeState}
-          onScrollToPlaybook={() => {
-            setShowAdvanced(true);
-            requestAnimationFrame(() => {
-              document.getElementById("edge-playbook")?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            });
-          }}
-        />
-      )}
-
       {/* Sticky current-filter chips */}
       <EdgeActiveFilters
         variant="bar"
@@ -2573,6 +2668,7 @@ const SignalsPage = () => {
         sorts={sorts}
         selectedDates={selectedDates}
         searchPair={searchPair}
+        watchlistActive={showWatchlistOnly}
         filteredCount={totalSignals}
         totalUnfiltered={allSignals?.length}
         onRemoveTag={(tag) => {
@@ -2620,7 +2716,11 @@ const SignalsPage = () => {
           setPage(1);
         }}
         onClearDates={() => {
-          setSelectedDates([]);
+          setSelectedDates([utcTodayYmd()]);
+          setPage(1);
+        }}
+        onClearWatchlist={() => {
+          setShowWatchlistOnly(false);
           setPage(1);
         }}
         onClearSearch={() => {
@@ -2870,6 +2970,8 @@ const SignalsPage = () => {
           page={page}
           totalPages={totalPages}
           totalSignals={totalSignals}
+          emptyState={emptyState}
+          onEmptyAction={onEmptyAction}
           onPageChange={setPage}
           onPricesUpdate={handlePricesUpdate}
           allPairs={allPairs}
