@@ -423,7 +423,7 @@ export default function EdgePlaybook({
                 }}
                 className="rounded-lg border border-accent/35 bg-accent/15 px-3 py-1.5 text-[12px] font-semibold text-text-primary hover:bg-accent/25"
               >
-                Hunt full TP · Worth
+                Runners · Worth
               </button>
               <button
                 type="button"

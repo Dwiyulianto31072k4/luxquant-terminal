@@ -446,6 +446,12 @@ function writeSignalsCache(payload) {
 /** The three states that answer "is this call still running?". Everything else
  *  in statusOptions answers "how far did it get?", which is a different
  *  question and gets its own row in the filter sheet. */
+/** Names the dimension a rail varies on. Same voice as the sheet's headings,
+ *  and the fixed width on sm+ makes the two rails start on one left edge
+ *  instead of each one beginning wherever its label ends. */
+const CONSOLE_LABEL =
+  "font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted sm:w-10 sm:shrink-0";
+
 const PLAIN_STATUS = ["all", "open", "updated"];
 
 const SignalsPage = () => {
@@ -1279,11 +1285,11 @@ const SignalsPage = () => {
     setPage(1);
   }, []);
 
-  /** Apply a recipe / saved-view (Hunt, Strongest, + View).
+  /** Apply a mode recipe (Runners, Top rated).
    *
-   * Hunt is a mode; the day tabs and the search box are slices inside it.
-   * Wiping dates here is what forced the awkward order "Hunt first, then the
-   * day" — picking Today then Hunt bounced you back to All Days. Leave the
+   * A mode is a mode; the day tabs and the search box are slices inside it.
+   * Wiping dates here is what forced the awkward order "mode first, then the
+   * day" — picking Today then a mode bounced you back to All Days. Leave the
    * current day and an empty search alone. A saved view that actually stored a
    * pair still restores it. Watchlist is a different source, so leave it. */
   const applyRecipeState = useCallback((state) => {
@@ -1496,8 +1502,8 @@ const SignalsPage = () => {
     }
     if (huntOn && onToday) {
       return {
-        title: "No Hunt setups today",
-        hint: "Hunt is on for this day. Open All days, or switch the mode to All.",
+        title: "No Runners today",
+        hint: "Runners is on for this day. Open All days, or switch the mode to All.",
         actionLabel: "Show all days",
         action: "days",
       };
@@ -2103,7 +2109,9 @@ const SignalsPage = () => {
           status, sort and the advanced filters moved into a sheet, and the
           chip bar under this card reports what is on. */}
       <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-3 sm:p-4">
-        <EdgeRecipesBar
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+          <span className={CONSOLE_LABEL}>Mode</span>
+          <EdgeRecipesBar
           tagWr={tagWr}
           selectedTags={selectedTags}
           tagMatchMode={tagMatchMode}
@@ -2129,7 +2137,8 @@ const SignalsPage = () => {
             setShowGuide(true);
           }}
           onTutorials={() => navigate("/tips?lesson=anatomy-of-a-call")}
-        />
+          />
+        </div>
 
         {/* Day strip — eight-plus options, so not a segmented control: Apple
             caps those at five equal segments on a phone, which is why cramming
@@ -2137,8 +2146,12 @@ const SignalsPage = () => {
             Chips that snap, with the next one peeking past the fade — on touch
             the peek is the affordance, so the arrow is pointer-only. */}
         <div
-          className={`edge-fade-raised-r relative mt-2.5 sm:mt-3 ${showWatchlistOnly ? "opacity-40" : ""}`}
+          className={`mt-2.5 flex flex-col gap-1 sm:mt-3 sm:flex-row sm:items-center sm:gap-3 ${
+            showWatchlistOnly ? "opacity-40" : ""
+          }`}
         >
+          <span className={CONSOLE_LABEL}>Day</span>
+          <div className="edge-fade-raised-r relative min-w-0 flex-1">
           <div
             ref={tabScrollRef}
             className="flex snap-x snap-proximity gap-1.5 overflow-x-auto no-scrollbar pr-10"
@@ -2185,6 +2198,7 @@ const SignalsPage = () => {
               <path d="M9 5l7 7-7 7" />
             </svg>
           </button>
+          </div>
         </div>
 
         <div className="mt-2.5 flex items-center gap-2 sm:mt-3">
@@ -2686,36 +2700,6 @@ const SignalsPage = () => {
               </div>
             </details>
 
-          {/* Saved views live here now: a saved view IS a saved filter state,
-              so this is its subject. It used to sit beside the mode rail. */}
-          {isSubscriber ? (
-            <section>
-              <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Saved views
-              </h3>
-              <EdgeRecipesBar
-                variant="views"
-                tagWr={tagWr}
-                selectedTags={selectedTags}
-                tagMatchMode={tagMatchMode}
-                verdictFilter={verdictFilter}
-                statusFilter={statusFilter}
-                riskFilter={riskFilter}
-                streakFilter={streakFilter}
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                sorts={sorts}
-                searchPair={searchPair}
-                corrDecoupled={corrDecoupled}
-                corrHighAlign={corrHighAlign}
-                onApplyState={applyRecipeState}
-                showRecipes={isSubscriber}
-                watchlistCount={watchlistIds.length}
-                watchlistActive={showWatchlistOnly}
-                onWatchlist={enterWatchlist}
-              />
-            </section>
-          ) : null}
         </div>
       </Modal>
 

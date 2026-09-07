@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { captureRecipeState, sameRecipeState } from "./EdgeRecipesBar";
 
-// What "Hunt full TP" applies.
+// What the Runners mode (key `full_tp`) applies.
 const hunt = captureRecipeState({
   selectedTags: ["BTC_VOLATILE", "VOL_CLIMAX"],
   tagMatchMode: "any",

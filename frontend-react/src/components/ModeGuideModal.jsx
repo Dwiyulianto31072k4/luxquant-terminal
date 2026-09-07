@@ -1,5 +1,5 @@
 // ModeGuideModal — short briefing when a Signals desk mode is pressed.
-// One surface for All / Hunt / Strongest / Watchlist. Hunt can show live
+// One surface for All / Runners / Top rated / Watchlist. Runners can show live
 // closed-call results; the deep RecipeExplainModal stays one tap behind.
 
 import { useEffect, useState } from "react";
@@ -9,7 +9,7 @@ import { HuntResults } from "./RecipeExplainModal";
 
 const MUTE_KEY = "lq:signals:mode-guide:mute";
 
-/** How far back the Hunt numbers are counted. Kept from the old panel — the
+/** How far back the Runner numbers are counted. Kept from the old panel — the
  *  window is part of reading the figure, not a detail to bury. */
 const HUNT_WINDOWS = [
   { key: "7", label: "7d" },
@@ -68,10 +68,10 @@ export const MODE_GUIDES = {
     eyebrow: "Default desk",
     title: "All calls",
     oneLiner: "The full tape for the day you picked. No extra shortlist.",
-    does: "Shows every call in the selected day, newest first. Hunt tags, Worth and Watchlist are off.",
+    does: "Shows every call in the selected day, newest first. Runner tags, Worth and Watchlist are off.",
     see: "Today’s list if you left the day tab on Today — or the whole 7-day tape if you chose All days.",
-    not: "Not a quality filter. Weak and strong setups sit together. Use Hunt or Strongest when you want a slice.",
-    changes: "Clears Hunt / Strongest / Watchlist. Keeps the day tab and anything you typed in search.",
+    not: "Not a quality filter. Weak and strong setups sit together. Use Runners or Top rated when you want a slice.",
+    changes: "Clears Runners / Top rated / Watchlist. Keeps the day tab and anything you typed in search.",
     steps: [
       { n: "1", t: "Pick a day", d: "Today is the default. All days is the last week." },
       { n: "2", t: "Open or Hit", d: "Optional. Open = still running. Hit = just moved." },
@@ -80,29 +80,29 @@ export const MODE_GUIDES = {
   },
   full_tp: {
     key: "full_tp",
-    label: "Hunt",
+    label: "Runners",
     eyebrow: "Optional shortlist",
-    title: "Hunt full TP",
-    oneLiner: "Setups whose entry tags historically ran to later targets more often.",
-    does: "Keeps Worth calls that wore runner tags at publish — tags that reached TP3/TP4 more often on closed history. Sorts by Edge, then newest.",
-    see: "A shorter list. Runner badges. The day tab still slices: Hunt + Today is the usual view.",
-    not: "Not a buy button, and not the default desk. Tags are stamped when the call goes out — not added after it already won. Past mix ≠ your fill.",
+    title: "Runners",
+    oneLiner: "Calls whose entry tags historically ran past TP3 more often than the rest.",
+    does: "Keeps Worth calls that wore runner tags at publish — tags that reached TP3/TP4 more often on closed history. The tag list is recalculated from closed calls since 10 Mar 2026, so it changes on its own as the record grows. Sorts by Edge, then newest.",
+    see: "A shorter list, and the Runner badge on the rows that earned it. The day tab still slices: Runners + Today is the usual view.",
+    not: "Not a list of calls that already ran. The tag is stamped when the call goes out and describes the setup’s history, not this call’s fate — and a qualifying tag reaches TP3+ more often than others, not most of the time.",
     changes: "Worth · runner tags (any) · sort Edge → Called. Search and the day tab stay.",
     steps: [
-      { n: "1", t: "Read the mix", d: "Closed Hunt calls vs all closed. Open rows are not in those bars." },
-      { n: "2", t: "Keep the day", d: "Today still means today. Hunt does not wipe the tab." },
+      { n: "1", t: "Read the mix", d: "Closed Runner calls vs all closed. Open rows are not in those bars." },
+      { n: "2", t: "Keep the day", d: "Today still means today. Runners does not wipe the tab." },
       { n: "3", t: "Open a row", d: "Edge is a ranking prior. The stop is still the stop." },
     ],
   },
   strongest: {
     key: "strongest",
-    label: "Strongest",
+    label: "Top rated",
     eyebrow: "Optional shortlist",
-    title: "Strongest setups",
-    oneLiner: "Open Worth calls, ranked by the pair’s own track record — not Hunt tags.",
+    title: "Top rated",
+    oneLiner: "Calls still running, ranked by the pair’s own track record — not by runner tags.",
     does: "Keeps calls that are still running on pairs marked Worth. Sorts by verdict, then Edge, then newest.",
     see: "A quiet open book: coins whose past LuxQuant calls usually reached at least TP1.",
-    not: "Not a Hunt. A quiet pair with a strong record can sit above a loud runner. Worth is the pair’s history, not this tag.",
+    not: "Not Runners. A quiet pair with a strong record can sit above a loud runner. Worth is the pair’s history, not this call’s tag.",
     changes: "Open · Worth · sort Verdict → Edge → Called. No runner-tag filter.",
     steps: [
       { n: "1", t: "Still running", d: "Closed calls drop out. This is the live book." },
@@ -118,8 +118,8 @@ export const MODE_GUIDES = {
     oneLiner: "Calls you starred — any day, including older than the 7-day desk.",
     does: "Switches the source to your stars. Day tabs do not apply until you leave Watchlist.",
     see: "Only what you starred. Star sits on every row. Count on the mode rail is how many you keep.",
-    not: "Not a quality score. Star anything you want to revisit. It is not Hunt and not Strongest.",
-    changes: "Leaves Hunt / Strongest. Ignores the day tab. Search still filters inside the list.",
+    not: "Not a quality score. Star anything you want to revisit. It is not Runners and not Top rated.",
+    changes: "Leaves Runners / Top rated. Ignores the day tab. Search still filters inside the list.",
     steps: [
       { n: "1", t: "Star a call", d: "The star on a row adds it. Works on days you have already left." },
       { n: "2", t: "Come back here", d: "Watchlist is a mode, not a day. The day strip dims on purpose." },
@@ -155,8 +155,8 @@ export default function ModeGuideModal({
     { key: "all", label: "All" },
     ...(showRecipes
       ? [
-          { key: "full_tp", label: "Hunt" },
-          { key: "strongest", label: "Strongest" },
+          { key: "full_tp", label: "Runners" },
+          { key: "strongest", label: "Top rated" },
         ]
       : []),
     { key: "watchlist", label: "Watchlist" },
@@ -280,7 +280,7 @@ export default function ModeGuideModal({
               {onHuntDays ? (
                 <SegGroup
                   size="sm"
-                  aria-label="Hunt results window"
+                  aria-label="Runner results window"
                   value={huntDays}
                   onChange={onHuntDays}
                   options={HUNT_WINDOWS}

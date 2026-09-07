@@ -1,34 +1,16 @@
-// EdgeRecipesBar — desk mode rail: All · Hunt · Strongest · Watchlist.
-// Stats live in the explain panel. Hunt is a mode; day/search are slices.
+// EdgeRecipesBar — desk mode rail: All · Runners · Top rated · Watchlist.
+// Stats live in the explain panel. A mode is a mode; day/search are slices.
+//
+// Labels only. The keys stay `full_tp` and `strongest` — they are in saved
+// state and in the analytics path, and renaming them would break both.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildRunnerTagSet } from "./EdgePlaybook";
 import RecipeExplainModal from "./RecipeExplainModal";
 import ModeGuideModal, { isModeGuideMuted } from "./ModeGuideModal";
-import { SegGroup, deskGhostClass } from "./ui/SegGroup";
+import { SegGroup } from "./ui/SegGroup";
 import edgeLabApi from "../services/edgeLabApi";
 
-const SAVED_KEY = "lq:edge-recipes:v1";
-
-function loadSaved() {
-  try {
-    const raw = localStorage.getItem(SAVED_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list.slice(0, 12) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistSaved(list) {
-  try {
-    localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0, 12)));
-  } catch {
-    /* ignore quota */
-  }
-}
-
-/** Desk default: no Hunt / Strongest / watchlist. Day and search are slices — not here. */
 export const ALL_MODE_STATE = {
   selectedTags: [],
   tagMatchMode: "any",
@@ -73,15 +55,15 @@ export function captureRecipeState(s) {
  *
  * Equality, not identity: the search box and the day tabs narrow WITHIN a
  * recipe rather than replacing it. Comparing them too meant typing a coin name
- * while Hunt was on made the bar go dark and claim Hunt was off, while every
+ * while a mode was on made the bar go dark and claim the mode was off, while every
  * one of its filters was still applied and still listed in the chip bar. Dates
- * are not even captured — they are a slice, so Today then Hunt must stay on
+ * are not even captured — they are a slice, so Today then a mode must stay on
  * Today. The recipe is defined by the filters it sets — tags, verdict, status,
  * risk, streak, correlation and the sort chain — so only those decide.
  *
  * The bar used to STORE which recipe was clicked, and persist it. That made the
  * highlight drift the moment anything else touched the filters: "Clear all"
- * wiped every filter while the bar kept insisting "Hunt is on", and localStorage
+ * wiped every filter while the bar kept insisting the mode was on, and localStorage
  * carried the claim across reloads. Derived, the highlight cannot lie.
  */
 export function sameRecipeState(a, b) {
@@ -123,17 +105,11 @@ export default function EdgeRecipesBar({
   watchlistCount = 0,
   watchlistActive = false,
   onWatchlist,
-  /** "modes" is the desk rail; "views" is just the saved-view list, which the
-   *  filter sheet renders. Same component so the list has one owner. */
-  variant = "modes",
   guideMode: guideModeProp = null,
   onGuideMode,
   onDeskGuide,
   onTutorials,
 }) {
-  const [saved, setSaved] = useState(() => loadSaved());
-  const [showSave, setShowSave] = useState(false);
-  const [saveName, setSaveName] = useState("");
   const [explainId, setExplainId] = useState(null);
   // Controlled by SignalsPage when it wants the ? on the search row to open
   // the briefing; otherwise this component keeps its own.
@@ -209,7 +185,7 @@ export default function EdgeRecipesBar({
       {
         id: "strongest",
         icon: "◆",
-        label: "Strongest setups",
+        label: "Top rated",
         hint: "Open · Worth · Verdict→Edge→Called",
         tone: "accent",
         build: () => ({
@@ -234,7 +210,7 @@ export default function EdgeRecipesBar({
       {
         id: "full_tp",
         icon: "▲",
-        label: "Hunt full TP",
+        label: "Runners",
         hint: "Runner tags · Worth · Edge→Called",
         tone: "positive",
         build: () => ({
@@ -320,50 +296,11 @@ export default function EdgeRecipesBar({
     for (const r of builtins) {
       if (sameRecipeState(liveState, captureRecipeState(r.build()))) return r.id;
     }
-    for (const r of saved) {
-      if (r?.state && sameRecipeState(liveState, captureRecipeState(r.state))) return r.id;
-    }
     return null;
-  }, [liveState, builtins, saved, watchlistActive]);
+  }, [liveState, builtins, watchlistActive]);
 
   const applyBuiltin = (r) => {
     onApplyState?.(r.build());
-  };
-
-  const applySaved = (r) => {
-    if (!r?.state) return;
-    onApplyState?.(r.state);
-  };
-
-  const handleSave = () => {
-    const name = (saveName || "").trim().slice(0, 40);
-    if (!name) return;
-    const state = captureRecipeState({
-      selectedTags,
-      tagMatchMode,
-      verdictFilter,
-      statusFilter,
-      riskFilter,
-      streakFilter,
-      sortBy,
-      sortOrder,
-      sorts,
-      searchPair,
-      corrDecoupled,
-      corrHighAlign,
-    });
-    const id = `user_${Date.now().toString(36)}`;
-    const next = [{ id, name, state, savedAt: new Date().toISOString() }, ...saved].slice(0, 12);
-    setSaved(next);
-    persistSaved(next);
-    setSaveName("");
-    setShowSave(false);
-  };
-
-  const removeSaved = (id) => {
-    const next = saved.filter((x) => x.id !== id);
-    setSaved(next);
-    persistSaved(next);
   };
 
   const modeValue = watchlistActive
@@ -376,11 +313,15 @@ export default function EdgeRecipesBar({
     { key: "all", label: "All", title: "Every call in the selected day" },
     ...(showRecipes
       ? [
-          { key: "full_tp", label: "Hunt", title: "Setups that historically ran to later targets" },
+          {
+      key: "full_tp",
+      label: "Runners",
+      title: "Calls whose entry tags historically ran past TP3 more often",
+    },
           {
             key: "strongest",
-            label: "Strongest",
-            title: "Open Worth calls, ranked by the pair’s track record",
+            label: "Top rated",
+            title: "Still-running calls on the pairs with the best record",
           },
         ]
       : []),
@@ -421,68 +362,6 @@ export default function EdgeRecipesBar({
     applyModeKey(key);
     setGuideMode(key);
   };
-
-  // Saved views moved into the filter sheet, where their subject is. Rendering
-  // them from here keeps one owner of the localStorage list and of activeId.
-  const savedViews = (
-    <div className="flex flex-wrap items-center gap-1">
-      {saved.map((r) => (
-        <span key={r.id} className="inline-flex items-center">
-          <button
-            type="button"
-            onClick={() => applySaved(r)}
-            className={`${deskGhostClass({ bordered: true })} ${
-              !watchlistActive && activeId === r.id ? "bg-surface-secondary text-text-primary" : ""
-            }`}
-          >
-            {r.name}
-          </button>
-          <button
-            type="button"
-            onClick={() => removeSaved(r.id)}
-            className="px-1 font-mono text-[11px] text-text-muted hover:text-loss"
-            aria-label={`Delete ${r.name}`}
-          >
-            ×
-          </button>
-        </span>
-      ))}
-      {!showSave ? (
-        <button
-          type="button"
-          onClick={() => setShowSave(true)}
-          className={deskGhostClass({ bordered: true })}
-        >
-          + Save this view
-        </button>
-      ) : (
-        <span className="inline-flex items-center gap-1">
-          <input
-            value={saveName}
-            onChange={(e) => setSaveName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSave();
-              if (e.key === "Escape") setShowSave(false);
-            }}
-            placeholder="Name…"
-            maxLength={40}
-            className="h-10 w-28 rounded-md border border-ink/[0.1] bg-surface-secondary px-2 font-mono text-[11px] text-text-primary outline-none focus:border-ink/20 sm:h-8"
-            autoFocus
-          />
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!saveName.trim()}
-            className={deskGhostClass({ bordered: true })}
-          >
-            Save
-          </button>
-        </span>
-      )}
-    </div>
-  );
-
-  if (variant === "views") return savedViews;
 
   return (
     <div>

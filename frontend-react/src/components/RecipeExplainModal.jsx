@@ -1,5 +1,5 @@
 // Drill-down explain for Quick path recipes. Compact page, deep modal.
-// Hunt full TP carries live SL / TP1–TP4 mix vs all closed calls.
+// Runners carries live SL / TP1–TP4 mix vs all closed calls.
 
 import { useMemo, useState } from "react";
 import Modal from "./ui/Modal";
@@ -9,8 +9,8 @@ import { OUTCOME_LABELS, RECIPE_EXPLAIN } from "./recipeExplain";
 
 const RECIPE_TABS = [
   { key: "quick", label: "Overview" },
-  { key: "full_tp", label: "Hunt" },
-  { key: "strongest", label: "Strongest" },
+  { key: "full_tp", label: "Runners" },
+  { key: "strongest", label: "Top rated" },
   { key: "caution", label: "Caution" },
 ];
 
@@ -112,7 +112,7 @@ export function HuntResults({ stats, loading, error }) {
   if (loading && !stats) {
     return (
       <div className="rounded-xl border border-ink/[0.08] bg-ink/[0.02] px-3 py-3 text-[12px] text-text-muted">
-        Loading Hunt results…
+        Loading Runner results…
       </div>
     );
   }
@@ -138,13 +138,13 @@ export function HuntResults({ stats, loading, error }) {
             {stats.window_label ? ` · ${stats.window_label}` : ""}
           </p>
           <p className="mt-0.5 text-[12px] leading-snug text-text-primary">
-            {fmtN(hunt.n)} Hunt calls vs {fmtN(base?.n)} all closed · {windowLabel}
+            {fmtN(hunt.n)} Runner calls vs {fmtN(base?.n)} all closed · {windowLabel}
           </p>
           <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
             Open calls are not in these bars — same as Performance. A call counts when it hits TP or
             SL.
             {stats.tags_selected_from?.label
-              ? ` Hunt tags picked ${stats.tags_selected_from.label}.`
+              ? ` Runner tags picked ${stats.tags_selected_from.label}.`
               : ""}
           </p>
         </div>
@@ -162,7 +162,7 @@ export function HuntResults({ stats, loading, error }) {
 
       <div className="mt-3">
         <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-text-muted">
-          <span>Hunt</span>
+          <span>Runners</span>
           <span className="tabular-nums">
             SL {fmtPct(hunt.sl_rate)} · win {fmtPct(hunt.win_rate)} · TP3+ {fmtPct(hunt.full_tp_rate)}
           </span>
@@ -298,7 +298,7 @@ function TagDrill({ tag, view }) {
         </div>
       ) : null}
       <p className="mt-1.5 text-[10.5px] leading-snug text-text-muted">
-        Overlapping — this tag’s n can exceed its share of the Hunt union. A call with two
+        Overlapping — this tag’s n can exceed its share of the Runner union. A call with two
         runner tags is one row in Results so far, and counted in both tag chips.
       </p>
     </div>
@@ -360,8 +360,8 @@ export default function RecipeExplainModal({
   const copy = RECIPE_EXPLAIN[id];
 
   const applyLabel = useMemo(() => {
-    if (id === "full_tp") return "Shortlist Hunt full TP";
-    if (id === "strongest") return "Shortlist Strongest setups";
+    if (id === "full_tp") return "Shortlist Runners";
+    if (id === "strongest") return "Shortlist Top rated";
     if (id === "caution") return "Show Caution first";
     return null;
   }, [id]);

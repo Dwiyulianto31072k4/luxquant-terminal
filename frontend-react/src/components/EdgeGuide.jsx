@@ -48,7 +48,7 @@ const SECTIONS = [
     id: "actions",
     title: "Buttons (Screen / Filter)",
     simple:
-      "By default the full list stays open. Quick path: “Strongest setups”, “Hunt full TP”, “Caution first”, plus Reset. Use the graph to multi-select tags. Clear / Reset returns the full list.",
+      "By default the full list stays open. Quick path: “Top rated”, “Runners”, “Caution first”, plus Reset. Use the graph to multi-select tags. Clear / Reset returns the full list.",
     expert:
       "Opt-in only. Recipes map to filter state (open/worth/tags/sort edge_score). Screen runners → worth_it + runner tags OR + sort edge_score. Apply edge → worth_it + top WR tags. Clear resets all. Open ranked uses the same Edge Score as the table column.",
   },
@@ -114,7 +114,7 @@ export default function EdgeGuide({ compact = false }) {
           </p>
           <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-[12px] leading-snug text-text-primary/90">
             <li>
-              Above the table: tap <strong>Strongest setups</strong> (Quick path).
+              Above the table: tap <strong>Top rated</strong> (Quick path).
             </li>
             <li>
               Read the <strong>Edge</strong> column — score + short “why”.
