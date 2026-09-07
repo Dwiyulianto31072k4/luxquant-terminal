@@ -443,6 +443,11 @@ function writeSignalsCache(payload) {
 // ================================================================
 // MAIN PAGE
 // ================================================================
+/** The three states that answer "is this call still running?". Everything else
+ *  in statusOptions answers "how far did it get?", which is a different
+ *  question and gets its own row in the filter sheet. */
+const PLAIN_STATUS = ["all", "open", "updated"];
+
 const SignalsPage = () => {
   const { t } = useTranslation();
 
@@ -539,6 +544,7 @@ const SignalsPage = () => {
   // doesn't push the table far down the page. Always force-open when an advanced
   // filter is active so the user can see/clear what's applied.
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAllSorts, setShowAllSorts] = useState(false);
   // Lifted out of EdgeRecipesBar so the single ? on the search row can open the
   // briefing for whichever mode is current. "__current" means exactly that.
   const [guideMode, setGuideMode] = useState(null);
@@ -1551,6 +1557,13 @@ const SignalsPage = () => {
     { value: "closed_loss", label: "Loss", icon: Icon.x, accent: "red" },
   ];
 
+  // Expanded on request, or automatically when the active sort is not one of
+  // the six — the selected row must never be hidden behind a toggle.
+  const sortListExpanded = showAllSorts || !COMMON_SORTS.includes(sortBy);
+  const visibleSortOptions = sortListExpanded
+    ? sortOptions
+    : sortOptions.filter((o) => COMMON_SORTS.includes(o.value));
+
   const riskOptions = [
     { value: "all", label: "All" },
     { value: "low", label: "Low", dotColor: "bg-profit" },
@@ -1560,6 +1573,18 @@ const SignalsPage = () => {
     // Low/Normal/High and could only be reached by clearing the filter, so the
     // three options silently failed to add up to the whole set.
     { value: "unrated", label: "Unrated", dotColor: "bg-ink/30" },
+  ];
+
+  // The six a reader recognises without being told what they mean. The other
+  // ten are one tap away — a list of sixteen identical rows is not a menu, it
+  // is a wall, and a first-time reader stops at it.
+  const COMMON_SORTS = [
+    "created_at",
+    "last_update",
+    "edge_score",
+    "max_target",
+    "win_rate",
+    "volume",
   ];
 
   const sortOptions = [
@@ -2259,14 +2284,17 @@ const SignalsPage = () => {
           {/* Status is ONE tri-state, not two toggles. Open and Hit as separate
               buttons implied they could both be on; they never could. */}
           <section>
-            <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+            <h3 className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
               Status
             </h3>
+            <p className="mb-2 text-[12px] leading-snug text-text-muted">
+              Open is still running. Hit has already reached a target or its stop.
+            </p>
             <SegGroup
               size="touch"
               fill
               aria-label="Call status"
-              value={statusFilter === "open" || statusFilter === "updated" ? statusFilter : "all"}
+              value={PLAIN_STATUS.includes(statusFilter) ? statusFilter : ""}
               onChange={(k) => {
                 if (k === "updated" && sortBy === "created_at") setSortBy("last_update");
                 setStatusFilter(k);
@@ -2278,14 +2306,40 @@ const SignalsPage = () => {
                 { key: "updated", label: "Hit", badge: updatedCount > 0 ? updatedCount : null },
               ]}
             />
+            {/* The exact milestone is the same single filter, but it is a
+                different question and there are five of them — past the five
+                Apple caps a phone segmented control at, so chips. */}
+            <p className="mb-1.5 mt-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
+              Or by how far it got
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {statusOptions
+                .filter((opt) => !PLAIN_STATUS.includes(opt.value))
+                .map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(statusFilter === opt.value ? "all" : opt.value);
+                      setPage(1);
+                    }}
+                    className={deskChipClass(statusFilter === opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+            </div>
           </section>
 
           <section>
             <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
               Sort by
             </h3>
+            <p className="mb-2 text-[12px] leading-snug text-text-muted">
+              What decides the order of the list. Direction is below.
+            </p>
             <div className="grid grid-cols-2 gap-1">
-              {sortOptions.map((opt) => {
+              {visibleSortOptions.map((opt) => {
                 const on = sortBy === opt.value;
                 return (
                   <button
@@ -2304,6 +2358,25 @@ const SignalsPage = () => {
                 );
               })}
             </div>
+            {sortListExpanded ? (
+              showAllSorts ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSorts(false)}
+                  className={`mt-1 ${deskGhostClass({ bordered: true })}`}
+                >
+                  Show fewer
+                </button>
+              ) : null
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAllSorts(true)}
+                className={`mt-1 ${deskGhostClass({ bordered: true })}`}
+              >
+                All {sortOptions.length} fields
+              </button>
+            )}
             <div className="mt-2">
               <SegGroup
                 size="touch"
@@ -2319,7 +2392,147 @@ const SignalsPage = () => {
             </div>
           </section>
 
+          {/* Refine — the filters a regular reader actually reaches for. Both
+              now carry a plain line saying what they mean, because "Risk
+              Profile" and "Intelligence Filters" tell a first-time reader
+              nothing on their own. */}
+          <section>
+            <h3 className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+              Risk profile
+            </h3>
+            <p className="mb-2 text-[12px] leading-snug text-text-muted">
+              The grade published with the call itself. Unrated means it arrived without one.
+            </p>
+            <SegGroup
+              size="touch"
+              fill
+              aria-label="Risk profile"
+              value={riskFilter}
+              onChange={(k) => {
+                setRiskFilter(k);
+                setPage(1);
+              }}
+              options={riskOptions.map((opt) => ({
+                key: opt.value,
+                label: opt.label,
+                icon: opt.dotColor ? (
+                  <span className={`h-1.5 w-1.5 rounded-full ${opt.dotColor}`} />
+                ) : null,
+              }))}
+            />
+          </section>
 
+            {/* Intelligence Filters */}
+            <section className="border-t border-ink/[0.06] pt-5">
+              <h3 className="mb-1 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                What the pair's history says
+                <InfoTip side="bottom" title={t("guide.sec_intel")} text={t("guide.worth_d")} />
+              </h3>
+              <p className="mb-2 text-[12px] leading-snug text-text-muted">
+                Scored from this pair's own closed calls, as of the entry — not from this call's
+                outcome. Tap one to keep only those.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
+                  className={deskChipClass(streakFilter === "hot")}
+                >
+                  <span className={streakFilter === "hot" ? "text-profit" : "opacity-70"}>
+                    {Icon.flame("w-3 h-3")}
+                  </span>
+                  <span>High Win Streak</span>
+                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">
+                    ≥{HOT_STREAK_MIN}
+                  </span>
+                  {hotStreakCount > 0 && streakFilter !== "hot" && (
+                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
+                      {hotStreakCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setCorrDecoupled((v) => !v)}
+                  className={deskChipClass(corrDecoupled)}
+                >
+                  <span className={corrDecoupled ? "text-accent" : "opacity-70"}>
+                    {Icon.zap("w-3 h-3")}
+                  </span>
+                  <span>Decoupled from BTC</span>
+                  {corrCounts.dec > 0 && !corrDecoupled && (
+                    <span className="px-1 py-0 bg-accent/10 text-accent text-[9px] tabular-nums rounded-sm">
+                      {corrCounts.dec}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setCorrHighAlign((v) => !v)}
+                  className={deskChipClass(corrHighAlign)}
+                >
+                  <span className={corrHighAlign ? "text-profit" : "opacity-70"}>
+                    {Icon.target("w-3 h-3")}
+                  </span>
+                  <span>High BTC Alignment</span>
+                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">
+                    ≥70
+                  </span>
+                  {corrCounts.hi > 0 && !corrHighAlign && (
+                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
+                      {corrCounts.hi}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() =>
+                    setVerdictFilter(verdictFilter === "worth_it" ? "all" : "worth_it")
+                  }
+                  title="As-of-entry: closed rows exclude their own outcome"
+                  className={deskChipClass(verdictFilter === "worth_it")}
+                >
+                  <span className={verdictFilter === "worth_it" ? "text-profit" : "opacity-70"}>
+                    ✓
+                  </span>
+                  <span>Worth It</span>
+                  {verdictCounts.worth > 0 && verdictFilter !== "worth_it" && (
+                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
+                      {verdictCounts.worth}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setVerdictFilter(verdictFilter === "avoid" ? "all" : "avoid")}
+                  title="As-of-entry: closed rows exclude their own outcome"
+                  className={deskChipClass(verdictFilter === "avoid")}
+                >
+                  <span className={verdictFilter === "avoid" ? "text-loss" : "opacity-70"}>⛔</span>
+                  <span>Avoid</span>
+                  {verdictCounts.avoid > 0 && verdictFilter !== "avoid" && (
+                    <span className="px-1 py-0 bg-loss/10 text-loss text-[9px] tabular-nums rounded-sm">
+                      {verdictCounts.avoid}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </section>
+
+            {/* Advanced — everything that only makes sense once you already
+                read the desk. Collapsed, so a first-time reader is never asked
+                to parse a four-level sort stack to find "newest first". */}
+            <details className="group rounded-md border border-ink/[0.08] bg-surface-secondary/40 px-3 py-2.5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted [&::-webkit-details-marker]:hidden">
+                Advanced
+                <span className="transition-transform group-open:rotate-180" aria-hidden>
+                  ▾
+                </span>
+              </summary>
+              <p className="mt-1.5 text-[12px] leading-snug text-text-muted">
+                Stack several sort levels, and filter by the entry tags a call carried. Nothing
+                here is needed to read the desk.
+              </p>
+              <div className="mt-4 space-y-5">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted mr-0.5">
                 Sort
@@ -2394,207 +2607,6 @@ const SignalsPage = () => {
               </span>
             </div>
 
-            {/* Status + Risk */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              {/* Status */}
-              <div className="lg:col-span-8">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70">
-                    Signal Status
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {statusOptions.map((opt) => {
-                    const isActive = statusFilter === opt.value;
-                    const accentColor =
-                      opt.accent === "emerald"
-                        ? "text-profit"
-                        : opt.accent === "red"
-                          ? "text-loss"
-                          : opt.accent === "gold"
-                            ? "text-text-primary"
-                            : "text-text-primary/70";
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => {
-                          setStatusFilter(opt.value);
-                          if (opt.value === "updated" && sortBy === "created_at")
-                            setSortBy("last_update");
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                          isActive
-                            ? "bg-ink/10 border border-ink/[0.08] text-text-primary"
-                            : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                        }`}
-                      >
-                        {opt.icon && (
-                          <span className={isActive ? accentColor : "opacity-70"}>
-                            {opt.icon("w-3 h-3")}
-                          </span>
-                        )}
-                        <span>{opt.label}</span>
-                        {opt.value === "updated" && updatedCount > 0 && !isActive && (
-                          <span className="px-1 py-0 bg-ink/[0.06] text-text-primary text-[9px] tabular-nums rounded-sm">
-                            {updatedCount}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Risk */}
-              <div className="lg:col-span-4 lg:border-l lg:border-ink/[0.06] lg:pl-5">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70">
-                    Risk Profile
-                  </span>
-                </div>
-                <div className="flex bg-ink/[0.02] border border-ink/[0.06] rounded-sm p-0.5">
-                  {riskOptions.map((opt) => {
-                    const isActive = riskFilter === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => setRiskFilter(opt.value)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                          isActive
-                            ? "bg-ink/10 text-text-primary"
-                            : "text-text-primary/70 hover:text-text-primary hover:bg-ink/[0.03]"
-                        }`}
-                      >
-                        {opt.dotColor && (
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${opt.dotColor} ${isActive ? "" : "opacity-50"}`}
-                          />
-                        )}
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Intelligence Filters */}
-            <div className="pt-5 border-t border-ink/[0.06]">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-primary/70">
-                  Intelligence Filters
-                  <InfoTip side="bottom" title={t("guide.sec_intel")} text={t("guide.worth_d")} />
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/40">
-                  powered by coin intelligence
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    streakFilter === "hot"
-                      ? "bg-profit/15 border border-profit/30 text-profit"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={streakFilter === "hot" ? "text-profit" : "opacity-70"}>
-                    {Icon.flame("w-3 h-3")}
-                  </span>
-                  <span>High Win Streak</span>
-                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">
-                    ≥{HOT_STREAK_MIN}
-                  </span>
-                  {hotStreakCount > 0 && streakFilter !== "hot" && (
-                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
-                      {hotStreakCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setCorrDecoupled((v) => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    corrDecoupled
-                      ? "bg-accent/15 border border-accent/40 text-accent"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={corrDecoupled ? "text-accent" : "opacity-70"}>
-                    {Icon.zap("w-3 h-3")}
-                  </span>
-                  <span>Decoupled from BTC</span>
-                  {corrCounts.dec > 0 && !corrDecoupled && (
-                    <span className="px-1 py-0 bg-accent/10 text-accent text-[9px] tabular-nums rounded-sm">
-                      {corrCounts.dec}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setCorrHighAlign((v) => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    corrHighAlign
-                      ? "bg-profit/15 border border-profit/30 text-profit"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={corrHighAlign ? "text-profit" : "opacity-70"}>
-                    {Icon.target("w-3 h-3")}
-                  </span>
-                  <span>High BTC Alignment</span>
-                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">
-                    ≥70
-                  </span>
-                  {corrCounts.hi > 0 && !corrHighAlign && (
-                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
-                      {corrCounts.hi}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() =>
-                    setVerdictFilter(verdictFilter === "worth_it" ? "all" : "worth_it")
-                  }
-                  title="As-of-entry: closed rows exclude their own outcome"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    verdictFilter === "worth_it"
-                      ? "bg-profit/15 border border-profit/30 text-profit"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={verdictFilter === "worth_it" ? "text-profit" : "opacity-70"}>
-                    ✓
-                  </span>
-                  <span>Worth It</span>
-                  {verdictCounts.worth > 0 && verdictFilter !== "worth_it" && (
-                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
-                      {verdictCounts.worth}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setVerdictFilter(verdictFilter === "avoid" ? "all" : "avoid")}
-                  title="As-of-entry: closed rows exclude their own outcome"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    verdictFilter === "avoid"
-                      ? "bg-loss/15 border border-loss/30 text-loss"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={verdictFilter === "avoid" ? "text-loss" : "opacity-70"}>⛔</span>
-                  <span>Avoid</span>
-                  {verdictCounts.avoid > 0 && verdictFilter !== "avoid" && (
-                    <span className="px-1 py-0 bg-loss/10 text-loss text-[9px] tabular-nums rounded-sm">
-                      {verdictCounts.avoid}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-
             {/* Pattern Filters */}
             {sortedTagsForChips.length > 0 && (
               <div className="pt-5 border-t border-ink/[0.06]">
@@ -2632,11 +2644,7 @@ const SignalsPage = () => {
                         key={t.tag}
                         onClick={() => toggleTag(t.tag)}
                         title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                          active
-                            ? "bg-ink/10 border border-ink/15 text-text-primary"
-                            : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                        }`}
+                        className={deskChipClass(active)}
                       >
                         <span className="normal-case">
                           {t.tag.replace(/_/g, " ").toLowerCase()}
@@ -2675,6 +2683,9 @@ const SignalsPage = () => {
                 </p>
               </div>
             )}
+              </div>
+            </details>
+
           {/* Saved views live here now: a saved view IS a saved filter state,
               so this is its subject. It used to sit beside the mode rail. */}
           {isSubscriber ? (
