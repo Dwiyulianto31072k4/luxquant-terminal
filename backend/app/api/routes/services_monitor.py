@@ -421,6 +421,51 @@ class ServiceActionRequest(BaseModel):
 # Endpoints
 # ════════════════════════════════════════════════════════════════════
 
+def _pair_timers(services: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Fold each timer into the service it fires.
+
+    systemd models a scheduled job as two units: foo.timer arms the schedule
+    and foo.service does the work. They are one thing to anyone reading this
+    page, and listing both produced 22 pairs of rows with the same name and the
+    same description sitting next to each other — which reads as a bug in the
+    dashboard, not as a fact about systemd.
+
+    Worse, the pair tells a confusing story on its own: the service of a
+    scheduled job sits in "inactive (dead)" between runs, which the health
+    rules call idle. A perfectly healthy nightly job therefore showed up as one
+    green row and one grey row, and there was no way to tell that apart from a
+    worker that had quietly stopped.
+
+    Merged, the timer's state answers "is this still scheduled" and its last
+    trigger answers "did it actually run", which together are the only two
+    questions worth asking about a cron-shaped thing.
+    """
+    by_name: dict[str, dict[str, dict[str, Any]]] = {}
+    for s_ in services:
+        by_name.setdefault(s_.get("name", ""), {})[s_.get("kind", "")] = s_
+
+    out: list[dict[str, Any]] = []
+    for name, kinds in by_name.items():
+        timer, svc = kinds.get("timer"), kinds.get("service")
+        if timer and svc:
+            merged = dict(svc)
+            merged["scheduled"] = True
+            # The schedule's health, not the between-runs state of the job.
+            merged["health"] = timer.get("health", svc.get("health"))
+            merged["last_run"] = timer.get("last_trigger_usec") or ""
+            merged["next_run"] = timer.get("next_elapse") or ""
+            merged["timer_unit"] = timer.get("unit")
+            # A description on either half is better than none on both.
+            merged["description"] = svc.get("description") or timer.get("description", "")
+            merged["fn"] = svc.get("fn") or timer.get("fn", "")
+            out.append(merged)
+        else:
+            only = timer or svc
+            if only:
+                out.append(dict(only, scheduled=bool(timer)))
+    return out
+
+
 @router.get("/services")
 def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     """Live health of every monitored LuxQuant + infra unit."""
@@ -452,6 +497,7 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     services = [s for s in services if not s.get("name", "").endswith("@")]
     for s in services:
         s["fn"] = _fn_for(s.get("name", ""))
+    services = _pair_timers(services)
 
     # sort: unhealthy first, then by category, then name
     order = {"down": 0, "warn": 1, "unknown": 2, "ok": 3, "idle": 4}

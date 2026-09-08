@@ -268,6 +268,20 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
 // Main tab
 // ════════════════════════════════════════════════════════════════════
 
+// systemd hands back its own formatted stamp ("Tue 2026-09-08 07:52:58 UTC").
+// For a scheduled job the useful reading is not how long the unit has been up
+// — it exits between runs — but whether it actually fired recently.
+const fmtLastRun = (stamp) => {
+  if (!stamp) return null;
+  const t = Date.parse(stamp);
+  if (Number.isNaN(t)) return null;
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 90) return "just ran";
+  if (s < 5400) return `ran ${Math.round(s / 60)}m ago`;
+  if (s < 172800) return `ran ${Math.round(s / 3600)}h ago`;
+  return `ran ${Math.round(s / 86400)}d ago`;
+};
+
 // Groups keep their worst-first order: a category holding a dead unit floats
 // above one that is entirely healthy, so the eye lands on the section that
 // needs it before reading a single name. "Other" is always last — it is the
@@ -338,20 +352,27 @@ const ServiceRow = ({ svc, onAction, busyAction, open, onToggle }) => {
           )}
         </span>
 
-        {isTimer && (
+        {svc.scheduled && (
           <span className="text-[9.5px] px-1.5 py-0.5 rounded shrink-0"
                 style={{ background: "rgb(var(--ink) / 0.05)", color: "rgb(var(--fg-muted))" }}>
-            timer
+            scheduled
           </span>
         )}
 
-        <span className="text-[11px] tabular-nums shrink-0 hidden sm:block w-20 text-right"
+        {/* A long-running worker is judged on uptime and memory; a scheduled
+            one on whether it last fired. Showing uptime for a job that exits
+            between runs was a column of dashes, which is worse than empty —
+            it looks like missing data rather than a question that does not
+            apply. */}
+        <span className="text-[11px] tabular-nums shrink-0 hidden sm:block w-24 text-right"
               style={{ color: "rgb(var(--fg-muted))" }}>
-          {fmtUptime(svc.uptime_seconds) || "—"}
+          {svc.scheduled
+            ? fmtLastRun(svc.last_run) || "never run"
+            : fmtUptime(svc.uptime_seconds) || ""}
         </span>
         <span className="text-[11px] tabular-nums shrink-0 hidden md:block w-16 text-right"
               style={{ color: "rgb(var(--fg-muted))" }}>
-          {fmtBytes(svc.memory_bytes) || "—"}
+          {svc.scheduled ? "" : fmtBytes(svc.memory_bytes) || ""}
         </span>
         <span className="text-[11px] shrink-0 w-14 text-right"
               style={{ color: alarming ? meta.color : "rgb(var(--fg-muted))" }}>
@@ -369,6 +390,8 @@ const ServiceRow = ({ svc, onAction, busyAction, open, onToggle }) => {
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] mb-2"
                style={{ color: "rgb(var(--fg-muted))" }}>
             <span>{svc.unit}</span>
+            {svc.timer_unit ? <span>{svc.timer_unit}</span> : null}
+            {svc.scheduled && svc.last_run ? <span>last {svc.last_run}</span> : null}
             {svc.restarts ? <span>{svc.restarts} restarts</span> : null}
             {svc.main_pid ? <span>pid {svc.main_pid}</span> : null}
             <span>{svc.active_state}/{svc.sub_state}</span>
