@@ -37,6 +37,7 @@ import { AiCostTab } from "./admin/workspace/AiCostTab";
 import { ApiHealthTab } from "./admin/workspace/ApiHealthTab";
 import { EdgeHealthTab } from "./admin/workspace/EdgeHealthTab";
 import { XTrackerTab } from "./admin/workspace/XTrackerTab";
+import { BroadcastTab } from "./admin/workspace/BroadcastTab";
 import { StatusTab } from "./admin/workspace/StatusTab";
 import { LearningStudioTab } from "./admin/workspace/LearningStudioTab";
 import SocialPostsAdminPage from "./SocialPostsAdminPage";
@@ -231,6 +232,13 @@ const TABS = [
     id: "delivery",
     label: "Delivery",
     description: "Cloudflare 522 & origin vs edge",
+    Icon: ActivityIcon,
+    group: "platform",
+  },
+  {
+    id: "broadcast",
+    label: "Broadcast",
+    description: "Is anything actually going out",
     Icon: ActivityIcon,
     group: "platform",
   },
@@ -988,6 +996,7 @@ const AdminWorkspacePage = () => {
               {activeTab === "aicost" && <AiCostTab />}
               {activeTab === "apihealth" && <ApiHealthTab />}
               {activeTab === "delivery" && <EdgeHealthTab />}
+              {activeTab === "broadcast" && <BroadcastTab />}
               {activeTab === "xtracker" && <XTrackerTab />}
             </RouteErrorBoundary>
           </div>
