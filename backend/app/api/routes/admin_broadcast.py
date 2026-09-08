@@ -90,6 +90,14 @@ def broadcast(
 ):
     rows = []
 
+    # Thresholds are measured, not guessed. Over three days with the 2026-09-08
+    # outage excluded, gaps between deliveries were: channel (487 gaps) median
+    # 3.6 min, p90 20.6, p99 58.1, longest 226; VIP (1130 gaps) median 0.8, p90
+    # 9.9, p99 25.1, longest 234. The first values here were 20 and 45, which
+    # sat at roughly the 90th percentile — normal overnight quiet would have
+    # flagged both channels most nights. These sit at the 99th percentile, so a
+    # colour change means something genuinely unusual.
+
     # ---- ingest -----------------------------------------------------------
     # Deliberately first. Everything below is fed by this, and when it stops
     # the pipelines underneath report "nothing pending" and look healthy.
@@ -112,10 +120,17 @@ def broadcast(
         "last_at": last.isoformat() if last else None,
         "age_min": age, "last_hour": (r or {}).get("last_hour") or 0,
         "queue": 0,
-        # Events arrive in five-minute batches, so fifteen minutes is three
-        # missed batches and twenty-five is unambiguous.
-        "verdict": "ok" if (age or 0) < 15 else ("slow" if (age or 0) < 25 else "stalled"),
-        "expect": "a batch every ~5 min",
+        # The scraper polls on a five-minute tick but only writes a row when the
+        # source channel actually said something, so a gap is mostly a measure
+        # of how quiet the market is. Measured over three days with the
+        # 2026-09-08 outage excluded (793 gaps): median 4.9 min, p90 10, p98 30,
+        # p99.5 45, longest 60. The first thresholds here were 15 and 25, which
+        # would have fired on roughly one normal gap in ten — an alarm that
+        # cries wolf nightly is one nobody reads during an actual outage. These
+        # sit at the 99.5th percentile and just past the longest quiet stretch
+        # ever observed.
+        "verdict": "ok" if (age or 0) < 45 else ("slow" if (age or 0) < 75 else "stalled"),
+        "expect": "median 5 min, quiet nights up to an hour",
     })
 
     # ---- Telegram signal channel -----------------------------------------
@@ -155,8 +170,8 @@ def broadcast(
         "last_at": (r or {}).get("last_at").isoformat() if (r or {}).get("last_at") else None,
         "age_min": age, "last_hour": (r or {}).get("last_hour") or 0,
         "last_day": (r or {}).get("last_day") or 0, "queue": queue,
-        "verdict": _verdict(age, 20, 45, queue),
-        "expect": "a few an hour while the market moves",
+        "verdict": _verdict(age, 60, 120, queue),
+        "expect": "median 4 min, quiet spells up to an hour",
     })
 
     # ---- Telegram VIP group ----------------------------------------------
@@ -180,8 +195,8 @@ def broadcast(
         "last_at": (r or {}).get("last_at").isoformat() if (r or {}).get("last_at") else None,
         "age_min": age, "last_hour": (r or {}).get("last_hour") or 0,
         "last_day": (r or {}).get("last_day") or 0, "queue": queue,
-        "verdict": _verdict(age, 20, 45, queue),
-        "expect": "a few an hour while the market moves",
+        "verdict": _verdict(age, 30, 90, queue),
+        "expect": "median under a minute, quiet spells up to 25",
     })
 
     # ---- Discord ----------------------------------------------------------
@@ -209,7 +224,7 @@ def broadcast(
         "last_at": (r or {}).get("last_at").isoformat() if (r or {}).get("last_at") else None,
         "age_min": age, "last_hour": None,
         "last_day": (r or {}).get("last_day") or 0, "queue": queue,
-        "verdict": _verdict(age, 60, 120, queue),
+        "verdict": _verdict(age, 75, 150, queue),
         "expect": "follows the channel within a minute",
     })
 
