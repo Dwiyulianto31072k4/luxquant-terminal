@@ -268,6 +268,70 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
 // Main tab
 // ════════════════════════════════════════════════════════════════════
 
+// ── The machines, not the units ──────────────────────────────────────────
+// Everything below reads systemd on the box this API runs on. That box is in
+// Mumbai and it is not the only one: a second VPS in Jakarta carries the SOCKS
+// proxy every Telegram request leaves through, and the Binance flow worker that
+// has to originate from an Indonesian address. Both are load-bearing and
+// neither was visible here, so a failure there would have looked like a failure
+// in Mumbai with nothing to tell them apart.
+//
+// The remote box is read over SSH with a key pinned to one read-only command on
+// the far side, which is why its units carry no action buttons: the dashboard
+// should not be able to stop the proxy that every other service depends on.
+const HostStrip = ({ hosts }) => {
+  if (!hosts?.length) return null;
+  const gb = (n) => (n ? `${(n / 1073741824).toFixed(0)} GB` : "\u2014");
+  return (
+    <div
+      className="grid gap-2.5 mb-4"
+      style={{ gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))" }}
+    >
+      {hosts.map((h) => {
+        const down = (h.services || []).filter((s) => s.health === "down").length;
+        const tone = !h.reachable ? "#dc2626" : down ? "#d97706" : "#16a34a";
+        return (
+          <div
+            key={h.label}
+            className="rounded-lg p-3.5"
+            style={{
+              border: "1px solid rgb(var(--ink) / 0.08)",
+              background: "rgb(var(--ink) / 0.015)",
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: tone }} />
+              <span className="text-[13.5px] font-semibold">{h.label}</span>
+              <span className="text-[11px] ml-auto" style={{ color: "rgb(var(--fg-muted))" }}>
+                {h.local ? "this machine" : "remote, read-only"}
+              </span>
+            </div>
+            <div className="text-[11.5px] mt-1" style={{ color: "rgb(var(--fg-muted))" }}>
+              {h.note}
+            </div>
+            {h.reachable ? (
+              <div
+                className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-[11.5px]"
+                style={{ color: "rgb(var(--fg-secondary))" }}
+              >
+                <span><b>{(h.services || []).length}</b> units</span>
+                {down ? <span style={{ color: "#dc2626" }}><b>{down}</b> down</span> : null}
+                {h.uptime_seconds ? <span>up <b>{(h.uptime_seconds / 86400).toFixed(0)}d</b></span> : null}
+                {h.disk ? <span>disk <b>{h.disk.used_pct}%</b> of {gb(h.disk.total)}</span> : null}
+                {h.load ? <span>load <b>{h.load[0].toFixed(2)}</b></span> : null}
+              </div>
+            ) : (
+              <div className="text-[11.5px] mt-2.5" style={{ color: "#dc2626" }}>
+                unreachable \u2014 {h.reason}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export const SystemTab = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -438,6 +502,8 @@ export const SystemTab = () => {
           {error}
         </div>
       )}
+
+      <HostStrip hosts={data?.hosts} />
 
       {view === "map" && <SystemMap />}
 

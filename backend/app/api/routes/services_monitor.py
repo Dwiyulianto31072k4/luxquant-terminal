@@ -436,9 +436,116 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
         if h in summary:
             summary[h] += 1
 
-    result = {"available": True, "services": services, "summary": summary}
+    # This host is named explicitly rather than left implicit: once a second
+    # box appears in the list, "no host" reads as "unknown host".
+    for s_ in services:
+        s_.setdefault("host", os.getenv("WORKSPACE_LOCAL_LABEL", "Mumbai"))
+
+    hosts = [{
+        "label": os.getenv("WORKSPACE_LOCAL_LABEL", "Mumbai"),
+        "note": "app, database, workers",
+        "target": "local", "reachable": True, "local": True,
+        # A copy, not the same list. The flat `services` below keeps growing as
+        # remote boxes are read, and sharing the object put Jakarta's units
+        # inside Mumbai's card as well.
+        "services": list(services),
+    }]
+    for spec in REMOTE_HOSTS:
+        h = _remote_host(spec)
+        hosts.append(h)
+        # Merged into the flat list too, so existing views keep working and a
+        # failure on the far box shows up in the same summary as a local one.
+        for rs in h.get("services", []):
+            services.append(rs)
+            if rs.get("health") in summary:
+                summary[rs["health"]] += 1
+                summary["total"] += 1
+
+    result = {"available": True, "services": services, "summary": summary, "hosts": hosts}
     cache_set("workspace:services", result, ttl=15)
     return result
+
+
+# ════════════════════════════════════════════════════════════════════
+# The second box
+# ════════════════════════════════════════════════════════════════════
+# Everything above reads systemd on the machine this API runs on, which is the
+# Mumbai VPS. It is not the only machine: a second VPS in Jakarta carries the
+# SOCKS proxy that all Telegram traffic leaves through, and the Binance flow
+# worker that has to originate from an Indonesian address. Both are load-bearing
+# and neither appeared anywhere in the dashboard, so an outage there would have
+# looked like an outage here with no way to tell them apart.
+#
+# It is reached over SSH with a key pinned to one read-only command on the far
+# side (restrict,command="/usr/local/bin/lq-host-status"), so this process can
+# ask that box how it is and can do nothing else to it — the dashboard should
+# not be able to hold a shell on a machine just to draw a status dot.
+REMOTE_HOSTS = [
+    h.strip() for h in os.getenv(
+        "WORKSPACE_REMOTE_HOSTS", "ubuntu@103.197.189.58|Jakarta|proxy + Binance flow"
+    ).split(",") if h.strip()
+]
+
+
+def _remote_health(active_state: str, sub_state: str, result: str) -> str:
+    return _health(active_state, sub_state, result)
+
+
+def _remote_host(spec: str) -> dict[str, Any]:
+    """Ask one remote box for its status. Never raises, never blocks for long."""
+    parts = spec.split("|")
+    target = parts[0]
+    label = parts[1] if len(parts) > 1 else target
+    note = parts[2] if len(parts) > 2 else ""
+
+    rc, out, err = _run([
+        "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=6",
+        "-o", "StrictHostKeyChecking=accept-new", target,
+    ], timeout=14)
+    if rc != 0 or not out.strip():
+        return {"label": label, "note": note, "target": target, "reachable": False,
+                "reason": (err or "no response").strip()[:160], "services": []}
+
+    try:
+        import json as _json
+        d = _json.loads(out)
+    except Exception as e:
+        return {"label": label, "note": note, "target": target, "reachable": False,
+                "reason": f"unreadable reply: {e}"[:160], "services": []}
+
+    services = []
+    for u in d.get("units", []):
+        unit = u.get("unit", "")
+        services.append({
+            "unit": unit,
+            "name": unit.rsplit(".", 1)[0],
+            "kind": unit.rsplit(".", 1)[-1],
+            "category": _category(unit),
+            "description": u.get("description", ""),
+            "health": _remote_health(u.get("active_state", ""), u.get("sub_state", ""),
+                                     u.get("result", "")),
+            "load_state": u.get("load_state", ""),
+            "active_state": u.get("active_state", ""),
+            "sub_state": u.get("sub_state", ""),
+            "result": u.get("result", ""),
+            "uptime_seconds": u.get("uptime_s"),
+            "restarts": 0,
+            "memory_bytes": u.get("mem_bytes"),
+            "main_pid": None,
+            "host": label,
+            # Control actions are local-only by design: the far key cannot run
+            # systemctl, and widening it to allow that would hand the dashboard
+            # the ability to stop the proxy every other service depends on.
+            "read_only": True,
+        })
+    return {
+        "label": label, "note": note, "target": target, "reachable": True,
+        "hostname": d.get("host", ""),
+        "uptime_seconds": d.get("uptime_s"),
+        "load": d.get("load"),
+        "disk": d.get("disk"),
+        "services": services,
+    }
 
 
 @router.get("/services/topology")
