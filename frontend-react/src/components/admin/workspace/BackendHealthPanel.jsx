@@ -48,27 +48,36 @@ const gauge = (pct) =>
   pct >= 85 ? palette.red[400] : pct >= 70 ? palette.amber[400] : palette.green[400];
 
 // ── building blocks ──
-const Tile = ({ color, Icon, label, children }) => (
-  <div
-    className="rounded-xl p-3 flex-1 min-w-[150px]"
-    style={{
-      background: "rgb(var(--surface-raised))",
-      border: `1px solid ${tint(color, 0.16)}`,
-      boxShadow: "0 4px 14px rgb(var(--scrim) / 0.3)",
-    }}
-  >
-    <div className="flex items-center gap-1.5 mb-1.5">
-      <Icon size={12} style={{ color }} />
-      <span
-        className="text-[9px] uppercase tracking-[0.14em] font-semibold"
-        style={{ color: tint(color, 0.85) }}
-      >
-        {label}
-      </span>
+// Seven tiles at identical weight is seven things to read before knowing
+// whether any of them wants attention — and on a healthy box that is seven
+// readings to reach "nothing". The colour each tile already computes says
+// which state it is in, so a calm tile recedes to a flat outline and a tile
+// that has gone amber or red keeps the raised surface and the shadow. Nothing
+// is hidden; the eye is simply told where to land first.
+const Tile = ({ color, Icon, label, children }) => {
+  const calm = color === palette.green[400];
+  return (
+    <div
+      className="rounded-xl p-3 flex-1 min-w-[150px]"
+      style={{
+        background: calm ? "transparent" : "rgb(var(--surface-raised))",
+        border: `1px solid ${tint(color, calm ? 0.09 : 0.3)}`,
+        boxShadow: calm ? "none" : "0 4px 14px rgb(var(--scrim) / 0.3)",
+      }}
+    >
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Icon size={12} style={{ color, opacity: calm ? 0.55 : 1 }} />
+        <span
+          className="text-[9px] uppercase tracking-[0.14em] font-semibold"
+          style={{ color: tint(color, calm ? 0.5 : 0.9) }}
+        >
+          {label}
+        </span>
+      </div>
+      {children}
     </div>
-    {children}
-  </div>
-);
+  );
+};
 
 const Bar = ({ pct, color }) => (
   <div
