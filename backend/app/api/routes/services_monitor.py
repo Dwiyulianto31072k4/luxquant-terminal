@@ -225,7 +225,11 @@ def _uptime_seconds(props: dict[str, str]) -> float | None:
 
 
 def _category(name: str) -> str:
-    low = name.lower()
+    # Callers pass the full unit ("luxquant.service"), so any rule that tests
+    # the whole string for equality never fires. Strip the suffix once here
+    # rather than making every rule remember to.
+    low = name.lower().rsplit(".", 1)[0] if name.lower().endswith((".service", ".timer")) \
+        else name.lower()
     if _is_infra_unit(name):
         return "Infrastructure"
     if "backend" in low:
@@ -242,8 +246,25 @@ def _category(name: str) -> str:
         return "Distribution"
     if any(k in low for k in ("binance", "liquidation", "correlation", "coin", "money-flow", "realtime", "chart", "pnl", "price")):
         return "Market Data"
-    if any(k in low for k in ("journey", "signal", "enrichment", "call", "sync", "scraper")):
+    if any(k in low for k in ("journey", "signal", "enrichment", "call", "sync", "scraper",
+                              "shariah", "hourly")):
         return "Signals"
+    # Everything below was landing in "Other" — a quarter of the estate, which
+    # makes the bucket useless: a category nobody can act on is a category
+    # nobody reads. Each of these is named after what it does, so the rule is
+    # just the name nobody had written down yet.
+    if any(k in low for k in ("x-publisher", "x-quote", "x-breaker", "x-metrics", "btc-pulse")):
+        return "Distribution"          # the X accounts and the BTC pulse posts
+    if any(k in low for k in ("flow-worker", "delisting")):
+        return "Market Data"
+    if any(k in low for k in ("prune", "watchdog", "backup", "cleanup")):
+        return "Maintenance"           # housekeeping: nothing breaks when idle
+    if "poller" in low:
+        return "Core API"              # the background workers the API cannot run itself
+    if "danted" in low:
+        return "Infrastructure"        # the SOCKS proxy every Telegram request leaves through
+    if any(k in low for k in ("streamlit", "marketing", "tools", "luxquanttrade")) or low == "luxquant":
+        return "Standalone apps"       # separate apps sharing the box, not part of the pipeline
     return "Other"
 
 
@@ -423,6 +444,12 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     services = [_describe(u, include_log=True) for u in units]
     # Drop units systemd doesn't actually know (avoids ghost cards).
     services = [s for s in services if s.get("load_state") != "not-found"]
+    # Drop systemd templates. "foo@.service" is the pattern instances are made
+    # from, never a thing that runs, so systemctl reports no state for it and it
+    # arrives here as a permanent "unknown" — two rows that can never turn green
+    # and can never be acted on. Its instances (foo@a, foo@b) are listed on
+    # their own and are the ones that matter.
+    services = [s for s in services if not s.get("name", "").endswith("@")]
     for s in services:
         s["fn"] = _fn_for(s.get("name", ""))
 

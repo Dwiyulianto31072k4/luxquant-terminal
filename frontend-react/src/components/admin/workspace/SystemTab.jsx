@@ -268,6 +268,24 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
 // Main tab
 // ════════════════════════════════════════════════════════════════════
 
+// Groups keep their worst-first order: a category holding a dead unit floats
+// above one that is entirely healthy, so the eye lands on the section that
+// needs it before reading a single name. "Other" is always last — it is the
+// bucket for units nobody has classified, not a category anyone looks for.
+const groupByCategory = (rows) => {
+  const map = new Map();
+  for (const r of rows) {
+    const cat = r.category || "Other";
+    if (!map.has(cat)) map.set(cat, []);
+    map.get(cat).push(r);
+  }
+  const worst = (items) => Math.min(...items.map((i) => HEALTH_ORDER[i.health] ?? 9));
+  return Array.from(map.entries()).sort((a, b) => {
+    if ((a[0] === "Other") !== (b[0] === "Other")) return a[0] === "Other" ? 1 : -1;
+    return worst(a[1]) - worst(b[1]) || a[0].localeCompare(b[0]);
+  });
+};
+
 // ── One line per unit ────────────────────────────────────────────────────
 // A hundred units, each carrying one line of information, is a scanning job.
 // Cards are for browsing and lists are for scanning, and a card grid put twelve
@@ -302,10 +320,22 @@ const ServiceRow = ({ svc, onAction, busyAction, open, onToggle }) => {
                 style={{ background: meta.color }} />
         </span>
 
-        <span className="text-[12.5px] font-medium truncate"
-              style={{ minWidth: 0, flex: "1 1 auto",
-                       color: alarming ? meta.color : "rgb(var(--fg-primary))" }}>
-          {svc.name}
+        <span className="min-w-0" style={{ flex: "1 1 auto" }}>
+          <span className="text-[12.5px] font-medium truncate block"
+                style={{ color: alarming ? meta.color : "rgb(var(--fg-primary))" }}>
+            {svc.name}
+          </span>
+          {/* A unit name is a filename, not an explanation. Reading a list of a
+              hundred of them and knowing which matter takes knowledge nobody
+              new to the box has, so each row says what the thing is for: the
+              curated line where one exists, systemd's own Description
+              otherwise. Between them they cover every unit. */}
+          {(svc.fn || svc.description) && (
+            <span className="text-[10.5px] truncate block"
+                  style={{ color: "rgb(var(--fg-muted))" }}>
+              {svc.fn || svc.description}
+            </span>
+          )}
         </span>
 
         {isTimer && (
@@ -664,20 +694,50 @@ export const SystemTab = () => {
                   </span>
                 </div>
                 {h.reachable ? (
-                  rows.map((svc) => (
-                    <ServiceRow
-                      key={`${h.label}:${svc.unit}`}
-                      svc={svc}
-                      onAction={handleAction}
-                      busyAction={busy[svc.unit]}
-                      open={openUnit === `${h.label}:${svc.unit}`}
-                      onToggle={() =>
-                        setOpenUnit(
-                          openUnit === `${h.label}:${svc.unit}` ? null : `${h.label}:${svc.unit}`
-                        )
-                      }
-                    />
-                  ))
+                  // Grouped by what the units do, not just listed. A hundred
+                  // names in one run is a wall; "Distribution 28 · all ok" is a
+                  // sentence you can skip past, which is the point — attention
+                  // should be spent on the group that is not fine.
+                  groupByCategory(rows).map(([cat, items]) => {
+                    const bad = items.filter((x) => x.health === "down").length;
+                    return (
+                      <div key={cat}>
+                        <div className="flex items-center gap-2 px-3 py-1.5"
+                             style={{ background: "rgb(var(--ink) / 0.015)",
+                                      borderTop: "1px solid rgb(var(--ink) / 0.05)" }}>
+                          <span className="text-[10px] uppercase tracking-[0.1em] font-semibold"
+                                style={{ color: "rgb(var(--fg-secondary))" }}>
+                            {cat}
+                          </span>
+                          <span className="text-[10.5px]" style={{ color: "rgb(var(--fg-muted))" }}>
+                            {items.length}
+                          </span>
+                          {bad ? (
+                            <span className="text-[10.5px] font-semibold"
+                                  style={{ color: palette.red[400] }}>
+                              {bad} down
+                            </span>
+                          ) : null}
+                        </div>
+                        {items.map((svc) => (
+                          <ServiceRow
+                            key={`${h.label}:${svc.unit}`}
+                            svc={svc}
+                            onAction={handleAction}
+                            busyAction={busy[svc.unit]}
+                            open={openUnit === `${h.label}:${svc.unit}`}
+                            onToggle={() =>
+                              setOpenUnit(
+                                openUnit === `${h.label}:${svc.unit}`
+                                  ? null
+                                  : `${h.label}:${svc.unit}`
+                              )
+                            }
+                          />
+                        ))}
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="px-3 py-3 text-[11.5px]" style={{ color: palette.red[400] }}>
                     Cannot reach this machine — {h.reason}. Its units are not
