@@ -1270,7 +1270,7 @@ const SignalsTable = ({
     const reachedAt = at(reachedPrice);
 
     return (
-      <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
+      <div className="group/card overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
         {/* Pair, E→TP, SL, live. Tap opens the call — star is the only other target. */}
         <div className="relative flex items-start gap-2 p-3.5">
           <button
@@ -1455,7 +1455,7 @@ const SignalsTable = ({
                   used to run together unlabelled: "-0.01% now 0.096790 81.5% ·
                   n=81 vol $8.0M 16m ago" is six facts in one sentence, and the
                   81.5% never said what it was the win rate OF. */}
-              <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1.5 border-t border-ink/[0.06] pt-2.5 text-xs">
+              <div className="relative mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1.5 border-t border-ink/[0.06] pt-2.5 pr-6 text-xs">
                 <span className="flex items-baseline gap-1.5">
                   <span className="text-[11px] text-text-muted">Now</span>
                   <span className="font-mono tabular-nums text-text-primary">
@@ -1565,6 +1565,25 @@ const SignalsTable = ({
                     </span>
                   );
                 })()}
+                {/* The card has always opened the call. Nothing on it said so,
+                    so the chevron sits where a reader's eye finishes — bottom
+                    right, after the last figure. */}
+                <span
+                  aria-hidden
+                  className="absolute bottom-0 right-0 text-text-muted/70 transition-colors group-hover/card:text-accent"
+                >
+                  <svg
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </span>
               </div>
             </div>
           </button>

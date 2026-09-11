@@ -511,13 +511,32 @@ async def _fetch_binance_tickers(client):
                     "high_24h": float(item.get("highPrice", 0) or 0),
                     "low_24h": float(item.get("lowPrice", 0) or 0),
                 }
-            # Overlay the live stream where it has a price for a symbol REST
-            # already listed. Never introduces symbols, never removes any.
+            # Overlay the live stream's PRICE ONLY, and only where it agrees
+            # with REST. The blob comes from wss://stream.binancefuture.com,
+            # which is Binance's TESTNET futures tape — the mainnet host
+            # (fstream.binance.com) does not connect from this box, which is why
+            # it was pointed there. Testnet marks track mainnet closely, so the
+            # price is usable for freshness: measured across 536 symbols the
+            # median disagreement is 0.038%, 82% are inside 0.1% and 99% inside
+            # 0.5%. Its TAPE quantities are not: testnet 24h quote volume is a
+            # median 136x mainnet (p90 501x, max 2281x) because the place is full
+            # of bots trading play money, and only 0.4% of symbols land within
+            # 10% of the truth. That number was being served as "Vol 24h" on the
+            # Signals desk — MET read $2.46B against a real $115M — so volume,
+            # change and the 24h high/low now stay as REST returned them.
+            #
+            # The 5% guard is for the tail: one symbol's testnet price was 2045%
+            # off, and a stale bot book can sit anywhere.
             ws = _tickers_from_ws()
             if ws:
                 for sym, v in ws.items():
-                    if sym in tickers and v.get("price"):
-                        tickers[sym] = v
+                    base = tickers.get(sym)
+                    live = v.get("price")
+                    if not base or not live or not base.get("price"):
+                        continue
+                    if abs(live - base["price"]) / base["price"] > 0.05:
+                        continue
+                    base["price"] = live
             return tickers
         else:
             if response.status_code in (418, 429):
