@@ -1,0 +1,141 @@
+"""Typed, data-backed Custom rules. Catalog and SQL share this registry.
+
+Legacy saved criteria retain their original evaluator. New screens use rules_v2.
+No live market requests or placeholder enrichment scores are used here.
+"""
+import math
+from fastapi import HTTPException
+from sqlalchemy import text
+
+BOOK_START = "date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' - interval '7 days'"
+JOINS = "FROM signals s LEFT JOIN signal_enrichment e USING(signal_id) LEFT JOIN signal_btc_correlation bc USING(signal_id) LEFT JOIN _cache_outcomes o USING(signal_id)"
+TAGS = "COALESCE(e.entry_snapshot->'facts'->'tags_annotated', e.entry_snapshot->'tags_annotated')"
+MCAP_CLEAN = "upper(regexp_replace(coalesce(s.market_cap, ''), '[,$[:space:]]', '', 'g'))"
+MCAP = f"CASE WHEN {MCAP_CLEAN} ~ '^[0-9]+([.][0-9]+)?[KMBT]?$' THEN regexp_replace({MCAP_CLEAN}, '[KMBT]$', '')::numeric * CASE right({MCAP_CLEAN},1) WHEN 'T' THEN 1e12 WHEN 'B' THEN 1e9 WHEN 'M' THEN 1e6 WHEN 'K' THEN 1e3 ELSE 1 END ELSE NULL END"
+FIELDS = []
+
+def field(key, label, group, kind, expr, hint, **extra):
+    FIELDS.append(dict(key=key, label=label, group=group, kind=kind, expr=expr, hint=hint, **extra))
+
+field('pair', 'Pair', 'Signal', 'choice', 's.pair', 'Exact pair from Signals. Select one or more pairs.')
+field('status', 'Status', 'Signal', 'choice', "COALESCE(o.outcome, 'open')", 'Current outcome, as shown on the signal. TP levels are exact; SL is a stopped signal.')
+field('risk', 'Risk', 'Signal', 'choice', "NULLIF(s.risk_level, '')", 'Original risk label on the signal. Medium and Normal remain separate.')
+field('tags', 'Tags', 'Deep Analysis', 'tags', TAGS, 'Important tags from the stored entry analysis, as shown in Signal details. Some historical context tags were reconstructed later.')
+field('entry', 'Entry', 'Entry & Targets', 'number', 's.entry', 'Published entry price, in USDT.', unit='USDT', min=0)
+for n in range(1, 5):
+    field(f'tp{n}', f'TP{n}', 'Entry & Targets', 'number', f's.target{n}', f'Published TP{n} price, in USDT. A missing target is unavailable.', unit='USDT', min=0)
+    field(f'tp{n}_pct', f'TP{n} %', 'Entry & Targets', 'number', f'round(((s.target{n}::numeric - s.entry::numeric) / NULLIF(s.entry::numeric, 0) * 100), 2)', f'Percentage from Entry to TP{n}, as shown beside the level. Signed price change, not leveraged return.', unit='%')
+for n in (1, 2):
+    field(f'sl{n}', f'SL{n}', 'Entry & Targets', 'number', f's.stop{n}', f'Published SL{n} price. SL1 is shown as SL when there is only one stop.', unit='USDT', min=0)
+field('sl_distance', 'SL distance', 'Entry & Targets', 'number', 'abs(s.entry - s.stop1) / NULLIF(abs(s.entry), 0) * 100', 'Distance from Entry to SL1: |Entry − SL1| ÷ |Entry| × 100. Uses the published levels.', unit='%', min=0)
+field('mcap', 'MCap', 'Market', 'number', MCAP, 'Market cap recorded with the signal, in USD. This is not the live Market sheet value.', unit='USD', min=0)
+field('volume_rank', 'Volume Rank', 'Market', 'number', 's.volume_rank_num', 'Published volume rank numerator (#). Lower is a higher rank. Not Vol 24h or order-book liquidity.', unit='#', min=1, integer=True)
+for key, label, column, hint, limits in [
+    ('btc_align', 'BTC Alignment', "(bc.interpretation->>'alignment_score')::numeric", 'Composite BTC alignment score, not a win probability or correlation percentage.', {'min':0,'max':100}),
+    ('btc_rho', 'Correlation ρ', 'bc.corr_4h_30d', 'Long-window Pearson correlation with BTC. −1 opposite, 0 no linear relationship, +1 same direction. Up to 720 hourly samples.', {'min':-1,'max':1}),
+    ('btc_rho_short', 'Correlation ρ · 7d', 'bc.corr_1h_7d', 'Short-window correlation with BTC, up to 168 hourly samples. Check Sample size and Confidence.', {'min':-1,'max':1}),
+    ('btc_beta', 'Beta', 'bc.beta_30d', 'Sensitivity to BTC returns, as shown in BTC Correlation. Negative values are valid.', {}),
+    ('btc_r2', 'R²', 'bc.r_squared_30d', 'Explained variance in BTC Correlation, expressed from 0 to 1.', {'min':0,'max':1}),
+    ('btc_z', 'Z-score', 'bc.corr_zscore', 'Signed correlation z-score from BTC Correlation.', {}),
+    ('btc_tail_down', 'Tail ρ (BTC ↓)', 'bc.tail_corr_btc_down', 'Correlation on hourly BTC returns below their mean, matching Advanced Metrics. Requires sufficient tail samples.', {'min':-1,'max':1}),
+    ('btc_tail_up', 'Tail ρ (BTC ↑)', 'bc.tail_corr_btc_up', 'Correlation on hourly BTC returns above their mean, matching Advanced Metrics.', {'min':-1,'max':1}),
+    ('btc_downside_beta', 'Downside β', 'bc.downside_beta', 'Beta on BTC-below-mean hourly returns, as shown in Advanced Metrics.', {}),
+    ('btc_lead_lag', 'Lead/Lag', 'bc.lead_lag_hours', 'Estimated hours: positive means the coin leads BTC; negative means it lags. Not a prediction.', {'integer':True,'unit':'h'}),
+    ('btc_vol_ratio', 'Vol Ratio', 'bc.volatility_ratio', 'Coin volatility divided by BTC volatility, as shown in Advanced Metrics.', {'min':0,'unit':'×'}),
+    ('btc_coin_vol', 'Coin annualized volatility', 'bc.coin_volatility_pct', 'Annualized volatility from hourly returns, as shown under Advanced Metrics.', {'min':0,'unit':'%'}),
+    ('btc_samples', 'Sample size', 'bc.sample_size', 'Number of overlapping samples used for BTC analysis. A nominal window may have fewer samples.', {'min':1,'integer':True}),
+]:
+    field(key, label, 'BTC Correlation', 'number', f"CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' THEN {column} END", hint, **limits)
+field('btc_confidence', 'Confidence · BTC', 'BTC Correlation', 'choice', "NULLIF(bc.confidence, 'insufficient_data')", 'Data confidence shown inside BTC Correlation. Unavailable analysis does not match.', options=['high','medium','low'])
+field('btc_decoupled', 'Decoupled', 'BTC Correlation', 'boolean', "CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' AND bc.corr_4h_30d IS NOT NULL THEN bc.is_decoupled END", 'BTC Correlation flag: |z-score| > 2 and |correlation| < 0.5. Unavailable analysis is neither Yes nor No.')
+BY_KEY = {f['key']:f for f in FIELDS}
+OPS = {'number': {'gte','lte','between','eq'}, 'choice': {'in','not_in'}, 'tags': {'any','all','none'}, 'boolean': {'eq'}}
+
+def validate_rules(rules):
+    def bad(message):
+        raise HTTPException(422, message)
+    if not isinstance(rules, list) or not 1 <= len(rules) <= len(FIELDS):
+        bad('Add at least one filter.')
+    seen = set()
+    for r in rules:
+        if not isinstance(r, dict) or set(r) != {'field','op','value'} or not isinstance(r['field'], str) or not isinstance(r['op'], str):
+            bad('Invalid filter structure.')
+        f = BY_KEY.get(r['field'])
+        if not f or r['field'] in seen:
+            bad('Unknown or duplicate filter field.')
+        seen.add(r['field'])
+        if r['op'] not in OPS[f['kind']]:
+            bad(f"Invalid condition for {f['label']}.")
+        value = r['value']
+        if f['kind'] == 'number':
+            values = value if r['op'] == 'between' else [value]
+            if not isinstance(values, list) or len(values) != (2 if r['op'] == 'between' else 1):
+                bad(f"Enter valid bounds for {f['label']}.")
+            for v in values:
+                if isinstance(v, bool) or not isinstance(v, (int,float)) or not math.isfinite(v):
+                    bad(f"Enter a number for {f['label']}.")
+                if ('min' in f and v < f['min']) or ('max' in f and v > f['max']) or (f.get('integer') and int(v) != v):
+                    bad(f"Value outside the supported range for {f['label']}.")
+            if len(values) == 2 and values[0] > values[1]:
+                bad('Minimum cannot exceed maximum.')
+        elif f['kind'] == 'boolean':
+            if not isinstance(value, bool):
+                bad('Choose Yes or No.')
+        else:
+            if not isinstance(value, list) or not 1 <= len(value) <= 600 or any(not isinstance(v,str) or not v.strip() or len(v)>100 for v in value):
+                bad(f"Choose at least one value for {f['label']}.")
+            if len(set(value)) != len(value):
+                bad('Duplicate values are not allowed.')
+            if f.get('options') and any(v not in f['options'] for v in value):
+                bad('Unsupported option.')
+    return rules
+
+
+def rule_conditions(rules):
+    validate_rules(rules)
+    where, known, params = [], [], {}
+    for i, r in enumerate(rules):
+        f = BY_KEY[r['field']]
+        expr = '(' + f['expr'] + ')'
+        param = f'rule_{i}'
+        known.append(f'{expr} IS NOT NULL')
+        params[param] = r['value']
+        if f['kind'] == 'tags':
+            match = f"(SELECT count(DISTINCT t->>'name') FROM jsonb_array_elements(COALESCE({expr}, '[]'::jsonb)) t WHERE (t->>'important')::boolean IS TRUE AND t->>'name' = ANY(:{param}))"
+            if r['op'] == 'all':
+                params[param+'_n'] = len(r['value'])
+                cond = f'{match} = :{param}_n'
+            else:
+                cond = f"{match} {'= 0' if r['op']=='none' else '> 0'}"
+        elif r['op'] in ('in','not_in'):
+            cond = f"{expr} {'= ANY' if r['op']=='in' else '<> ALL'}(:{param})"
+        elif r['op'] == 'between':
+            params[param], params[param+'_max'] = r['value']
+            cond = f'{expr} BETWEEN :{param} AND :{param}_max'
+        else:
+            operator = {'gte':'>=', 'lte':'<=', 'eq':'='}[r['op']]
+            cond = f'{expr} {operator} :{param}'
+        where.append(f'({expr} IS NOT NULL AND {cond})')
+    return where, known, params
+
+
+def evaluate_rules(rules, db):
+    where, known, params = rule_conditions(rules)
+    rows = db.execute(text(f"SELECT s.signal_id, ({' AND '.join(where)}) matched, ({' AND '.join(known)}) available {JOINS} WHERE s.created_at::timestamptz >= {BOOK_START}"), params).fetchall()
+    return {'signal_ids': [str(r[0]) for r in rows if r[1]], 'total':len(rows),
+            'unavailable':sum(1 for r in rows if not r[2])}
+
+
+def catalog(db):
+    fields = [{k:v for k,v in f.items() if k != 'expr'} for f in FIELDS]
+    counts_sql = ', '.join(f"count(*) FILTER (WHERE ({f['expr']}) IS NOT NULL)" for f in FIELDS)
+    coverage = db.execute(text(f'SELECT {counts_sql} {JOINS} WHERE s.created_at::timestamptz >= {BOOK_START}')).one()
+    for index, f in enumerate(fields):
+        source = BY_KEY[f['key']]['expr']
+        f['available'] = coverage[index]
+        if f['key'] in ('pair','risk','status'):
+            f['options'] = [r[0] for r in db.execute(text(f'SELECT DISTINCT ({source}) value {JOINS} WHERE s.created_at::timestamptz >= {BOOK_START} AND ({source}) IS NOT NULL ORDER BY value')).fetchall()]
+        elif f['key'] == 'tags':
+            f['options'] = [r[0] for r in db.execute(text(f"SELECT DISTINCT t->>'name' value FROM signals s JOIN signal_enrichment e USING(signal_id) CROSS JOIN LATERAL jsonb_array_elements(COALESCE({TAGS}, '[]'::jsonb)) t WHERE s.created_at::timestamptz >= {BOOK_START} AND (t->>'important')::boolean IS TRUE ORDER BY value")).fetchall()]
+    row = db.execute(text(f'SELECT count(*), {BOOK_START}, now() FROM signals s WHERE s.created_at::timestamptz >= {BOOK_START}')).one()
+    return {'fields':fields, 'total':row[0], 'window_start':row[1].isoformat(), 'as_of':row[2].isoformat()}

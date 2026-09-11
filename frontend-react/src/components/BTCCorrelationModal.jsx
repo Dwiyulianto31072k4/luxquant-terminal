@@ -135,7 +135,7 @@ export default function BTCCorrelationModal({
           </span>
         </div>
         <p className="truncate text-[10px] text-text-muted">
-          BTC Correlation · snapshot at signal entry
+          BTC Correlation · stored analysis
         </p>
       </div>
     </div>
@@ -352,23 +352,23 @@ function CoreMetricsGrid({ metrics }) {
       </p>
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
         <MetricCard
-          label="ρ 1h/7d"
+          label="Correlation ρ · 7d"
           value={metrics.corr_1h_7d}
           hint="Short-term"
           digits={2}
           signed
         />
         <MetricCard
-          label="ρ 4h/30d"
+          label="Correlation ρ"
           value={metrics.corr_4h_30d}
-          hint="Long-term"
+          hint="Up to 30d · hourly"
           digits={2}
           signed
         />
         <MetricCard label="Beta" value={metrics.beta_30d} hint="vs BTC" digits={2} />
         <MetricCard label="R²" value={metrics.r_squared_30d} hint="Explained" digits={2} />
         <MetricCard
-          label="Z-Score"
+          label="Z-score"
           value={metrics.corr_zscore}
           hint="Deviation"
           digits={2}

@@ -1,6 +1,7 @@
 import api from "./api";
 
 export const signalAlertApi = {
+  catalog: async () => (await api.get("/signal-filters/catalog")).data,
   preview: async (criteria, signal) => {
     const { data } = await api.post("/signal-filters/preview", { criteria }, { signal });
     return data;

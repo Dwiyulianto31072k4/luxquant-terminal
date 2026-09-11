@@ -71,6 +71,10 @@ def _with_live_runners(criteria: dict, db) -> dict:
 
 def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
     """Translate saved criteria into SQL. Unknown keys are ignored, not guessed."""
+    if "rules_v2" in criteria:
+        from app.services.custom_signal_rules import rule_conditions
+        where, _, params = rule_conditions(criteria["rules_v2"])
+        return where, params
     where: list[str] = []
     params: dict = {}
 
@@ -224,6 +228,18 @@ def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
 
 
 def _describe(criteria: dict) -> str:
+    if "rules_v2" in criteria:
+        from app.services.custom_signal_rules import BY_KEY
+        labels = {'gte':'at least', 'lte':'at most', 'between':'between', 'eq':'equals', 'in':'is any of', 'not_in':'is not', 'any':'has any of', 'all':'has all of', 'none':'has none of'}
+        def describe_rule(r):
+            value = r['value']
+            if isinstance(value, list):
+                value = (' – ' if r['op'] == 'between' else ', ').join(str(v).replace('_', ' ') for v in value)
+            elif isinstance(value, bool):
+                value = 'Yes' if value else 'No'
+            f = BY_KEY[r['field']]
+            return f"{f['label']} {labels[r['op']]} {value}" + (f" {f['unit']}" if f.get('unit') else '')
+        return "; ".join(describe_rule(r) for r in criteria['rules_v2'])
     bits = []
     if _as_list(criteria.get("status")):
         bits.append("/".join(_as_list(criteria["status"])).lower())
@@ -282,7 +298,7 @@ def generate_filter_match_notifications(db) -> int:
         rows = db.execute(text(f"""
             SELECT s.signal_id, s.pair, s.entry, s.risk_level, e.rating, e.confidence_score
             FROM signals s
-            JOIN signal_enrichment e ON e.signal_id = s.signal_id
+            LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
             LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
             WHERE s.created_at::timestamptz >= GREATEST(
                       :since, now() - interval '{MAX_LOOKBACK_HOURS} hours')
@@ -309,7 +325,7 @@ def generate_filter_match_notifications(db) -> int:
                 "title": f"{coin} matches “{name}”",
                 "body": (
                     f"Entry {entry_str} · risk {risk_level or 'n/a'} · "
-                    f"{(rating or 'n/a').lower()} · score {score if score is not None else 'n/a'}"
+                    + ("Matches your saved filters" if "rules_v2" in criteria else f"{(rating or 'n/a').lower()} · score {score if score is not None else 'n/a'}")
                     + (f"\nFilter: {summary}" if summary else "")
                 ),
                 "data": json.dumps({

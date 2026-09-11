@@ -22,6 +22,9 @@ def match_screen(criteria, db):
 
 
 def _evaluate_screen(criteria, db):
+    if "rules_v2" in criteria:
+        from app.services.custom_signal_rules import evaluate_rules
+        return evaluate_rules(criteria["rules_v2"], db)["signal_ids"]
     criteria = _with_live_runners(criteria, db)
     where, params = _build_conditions(criteria)
     params = dict(params)

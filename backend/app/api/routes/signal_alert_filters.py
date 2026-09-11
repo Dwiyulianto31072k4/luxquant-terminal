@@ -18,6 +18,7 @@ router = APIRouter(prefix="/signal-filters", tags=["signal-filters"])
 
 MAX_FILTERS = 5
 ALLOWED_KEYS = {
+    "rules_v2",
     "tags",
     "tag_match",
     "exclude_tags",
@@ -58,6 +59,11 @@ class FilterPatch(BaseModel):
 def _clean_criteria(raw: dict) -> dict:
     if not isinstance(raw, dict):
         return {}
+    if "rules_v2" in raw:
+        from app.services.custom_signal_rules import validate_rules
+        if set(raw) != {"rules_v2"}:
+            raise HTTPException(422, "Do not mix legacy and current filters.")
+        return {"rules_v2": validate_rules(raw["rules_v2"])}
     out = {k: v for k, v in raw.items() if k in ALLOWED_KEYS}
     if str(out.get("tag_match") or "").lower() not in ("any", "all"):
         out.pop("tag_match", None)
@@ -158,6 +164,8 @@ def create_filter(
     ).scalar()
     if n >= MAX_FILTERS:
         raise HTTPException(status_code=400, detail=f"At most {MAX_FILTERS} saved screens.")
+    if not current_user.has_active_access:
+        raise HTTPException(403, "Subscription required")
     criteria = _clean_criteria(data.criteria)
     _require_configured(criteria)
     name = data.name.strip()
@@ -192,6 +200,8 @@ def patch_filter(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not current_user.has_active_access:
+        raise HTTPException(403, "Subscription required")
     existing = db.execute(
         text(
             "SELECT id FROM signal_alert_filters WHERE id = :id AND user_id = :uid"
@@ -262,6 +272,18 @@ def preview_filter(data: PreviewIn, current_user: User = Depends(get_current_use
         raise HTTPException(403, "Subscription required")
     from app.services.signal_screen import match_screen
     try:
-        return {"signal_ids": match_screen(_clean_criteria(data.criteria), db)}
+        criteria = _clean_criteria(data.criteria)
+        if "rules_v2" in criteria:
+            from app.services.custom_signal_rules import evaluate_rules
+            return evaluate_rules(criteria["rules_v2"], db)
+        return {"signal_ids": match_screen(criteria, db)}
     except (TypeError, ValueError):
         raise HTTPException(400, "Invalid Custom criteria")
+
+
+@router.get("/catalog")
+def filter_catalog(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.has_active_access:
+        raise HTTPException(403, "Subscription required")
+    from app.services.custom_signal_rules import catalog
+    return catalog(db)

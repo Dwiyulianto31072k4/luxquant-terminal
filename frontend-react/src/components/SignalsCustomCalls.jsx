@@ -1,682 +1,659 @@
-// Custom — full call screen. Coins are picked from a preview as BASEUSDT.
-// Worth / pair WR are not options.
-
 import { useEffect, useMemo, useRef, useState } from "react";
-import CoinLogo from "./CoinLogo";
-import { GEN_COINS } from "../content/coins.generated";
 import Modal from "./ui/Modal";
-import { SegGroup, DESK_SHELL, deskSegClass, deskChipClass } from "./ui/SegGroup";
+import { signalAlertApi, criteriaToDeskState } from "../services/signalAlertApi";
 import {
-  signalAlertApi,
-  emptyCriteria,
-  collectAlertCriteria,
-  criteriaIsEmpty,
-  criteriaToDeskState,
-  MCAP_PRESETS,
-  toUsdtPair,
-  pairBase,
-} from "../services/signalAlertApi";
+  CONDITION_LABELS,
+  newRule,
+  prepareRules,
+  ruleSummary,
+  displayRuleValue,
+} from "../utils/customSignalRules";
 
-function ChipRow({ options, value, onToggle }) {
-  const selected = value || [];
-  return (
-    <div className={`${DESK_SHELL} flex-wrap`}>
-      {options.map((o) => {
-        const on = selected.includes(o.key);
-        return (
-          <button
-            key={o.key}
-            type="button"
-            className={deskSegClass(on)}
-            onClick={() => onToggle(o.key, on)}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
+const INPUT =
+  "min-h-[44px] w-full min-w-0 rounded-lg border border-ink/[0.12] bg-surface-secondary px-3 py-2 text-[14px] text-text-primary focus:outline-none focus:ring-2 focus:ring-accent";
+const BUTTON =
+  "min-h-[44px] rounded-lg border border-ink/[0.12] px-3 py-2 text-[13px] font-medium text-text-primary hover:bg-ink/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40";
+const errorText = (e) =>
+  typeof e?.response?.data?.detail === "string"
+    ? e.response.data.detail
+    : "Could not load or save this screen. Please try again.";
+
+function Values({ field, value, onChange }) {
+  const [search, setSearch] = useState("");
+  const options = [...new Set([...(field.options || []), ...(value || [])])];
+  const visible = options.filter((v) =>
+    v.toLowerCase().replaceAll("_", " ").includes(search.toLowerCase().replaceAll("_", " "))
   );
-}
-
-function Pill({ children, logo, onRemove }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-ink/[0.1] bg-surface-secondary py-0.5 pl-1 pr-1.5 font-mono text-[10px] uppercase text-text-primary">
-      {logo}
-      {children}
-      <button type="button" onClick={onRemove} className="text-text-muted hover:text-loss">
-        ×
-      </button>
-    </span>
-  );
-}
-
-const LBL = "mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted";
-
-function CoinPicker({ catalog, selected, onAdd, onRemove, placeholder }) {
-  const [q, setQ] = useState("");
-  const [hi, setHi] = useState(0);
-  const box = useRef(null);
-
-  const hits = useMemo(() => {
-    const raw = q.trim();
-    if (raw.length < 1) return [];
-    const needle = raw.toUpperCase().replace(/[-/_\s]/g, "");
-    const want = toUsdtPair(raw);
-    const sel = new Set((selected || []).map((p) => toUsdtPair(p)));
-    const hits = catalog
-      .filter((c) => {
-        if (sel.has(c.pair)) return false;
-        const name = (c.name || "").toUpperCase().replace(/[-/_\s]/g, "");
-        return (
-          c.pair === want ||
-          c.base === needle ||
-          c.base.startsWith(needle) ||
-          c.pair.startsWith(needle) ||
-          name.startsWith(needle) ||
-          name.includes(needle)
-        );
-      })
-      .sort((a, b) => {
-        const score = (c) =>
-          c.pair === want || c.base === needle ? 0 : c.base.startsWith(needle) ? 1 : 2;
-        return score(a) - score(b) || a.base.localeCompare(b.base);
-      })
-      .slice(0, 8);
-    if (
-      !hits.length &&
-      /^[A-Z0-9]{2,15}$/.test(needle) &&
-      !sel.has(want)
-    ) {
-      return [{ pair: want, base: pairBase(want), name: null, future: true }];
-    }
-    return hits;
-  }, [q, catalog, selected]);
-
-  const pick = (pair) => {
-    onAdd(toUsdtPair(pair));
-    setQ("");
-    setHi(0);
-  };
-
-  return (
-    <div ref={box} className="relative">
-      <input
-        value={q}
-        placeholder={placeholder}
-        autoComplete="off"
-        spellCheck={false}
-        onChange={(e) => {
-          setQ(e.target.value);
-          setHi(0);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setHi((i) => Math.min(i + 1, Math.max(0, hits.length - 1)));
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setHi((i) => Math.max(i - 1, 0));
-          } else if (e.key === "Enter") {
-            e.preventDefault();
-            if (hits[hi]) pick(hits[hi].pair);
-          } else if (e.key === "Escape") {
-            setQ("");
-          }
-        }}
-        className="w-full rounded-md border border-ink/[0.1] bg-surface-secondary px-2.5 py-2 font-mono text-[12px] text-text-primary"
-      />
-      {q.trim() && (
-        <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-raised shadow-lg">
-          {hits.length === 0 ? (
-            <p className="px-3 py-2.5 text-[12px] text-text-muted">
-              No ticker matches. Try the Binance symbol (XPL), not a long name.
-            </p>
-          ) : (
-            hits.map((c, i) => (
-              <button
-                key={c.pair}
-                type="button"
-                onMouseEnter={() => setHi(i)}
-                onClick={() => pick(c.pair)}
-                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left ${
-                  i === hi ? "bg-accent/10" : "hover:bg-ink/[0.04]"
-                }`}
-              >
-                <CoinLogo pair={c.pair} size={22} />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-mono text-[12px] font-semibold text-text-primary">
-                    {c.base}
-                  </span>
-                  <span className="block font-mono text-[10px] text-text-muted">
-                    {c.pair}
-                    {c.name && c.name.toUpperCase() !== c.base ? ` · ${c.name}` : ""}
-                    {c.future ? " · not on this week's desk — still ok for Telegram" : ""}
-                    {c.onDesk === false && !c.future ? " · history" : ""}
-                  </span>
-                </span>
-                {c.pair === toUsdtPair(q) ? (
-                  <span className="font-mono text-[9px] uppercase tracking-wider text-accent">exact</span>
-                ) : null}
-              </button>
-            ))
-          )}
-        </div>
+    <div className="space-y-2">
+      {options.length > 7 && (
+        <input
+          className={INPUT}
+          aria-label={`Search ${field.label} values`}
+          placeholder={`Search ${field.label.toLowerCase()}…`}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       )}
-      {selected?.length ? (
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {selected.map((p) => (
-            <Pill
-              key={p}
-              logo={<CoinLogo pair={toUsdtPair(p)} size={14} />}
-              onRemove={() => onRemove(p)}
+      {!!value.length && (
+        <div className="flex flex-wrap gap-1.5">
+          {value.map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="min-h-[36px] max-w-full break-words rounded-md bg-accent/10 px-2 py-1 text-left text-[12px] text-text-primary"
+              aria-label={`Remove ${v}`}
+              onClick={() => onChange(value.filter((x) => x !== v))}
             >
-              {pairBase(p)}
-              <span className="text-text-muted">USDT</span>
-            </Pill>
+              {displayRuleValue(v, field)} <span aria-hidden>×</span>
+            </button>
           ))}
         </div>
-      ) : null}
+      )}
+      <div className="max-h-[200px] overflow-y-auto rounded-lg border border-ink/[0.08]">
+        {visible.map((v) => (
+          <label
+            key={v}
+            className="flex min-h-[44px] cursor-pointer items-center gap-3 border-b border-ink/[0.04] px-3 py-2 text-[13px] text-text-primary hover:bg-ink/[0.03]"
+          >
+            <input
+              type="checkbox"
+              className="h-4 w-4 shrink-0 accent-[#e6ad00]"
+              checked={value.includes(v)}
+              onChange={(e) =>
+                onChange(e.target.checked ? [...value, v] : value.filter((x) => x !== v))
+              }
+            />
+            <span className="min-w-0 break-words">{displayRuleValue(v, field)}</span>
+          </label>
+        ))}
+        {!visible.length && (
+          <p className="p-3 text-[13px] text-text-muted">No matching values in this signal book.</p>
+        )}
+      </div>
     </div>
   );
 }
 
-function TagPicker({ catalog, selected, onToggle }) {
-  const [q, setQ] = useState("");
-  const hits = useMemo(() => {
-    const n = q.trim().toUpperCase().replace(/\s+/g, "_");
-    if (!n) return catalog.slice(0, 24);
-    return catalog.filter((t) => t.key.includes(n) || t.label.toUpperCase().includes(q.trim().toUpperCase())).slice(0, 24);
-  }, [q, catalog]);
-  return (
-    <div>
-      <input
-        value={q}
-        placeholder="Search tags…"
-        onChange={(e) => setQ(e.target.value)}
-        className="mb-1.5 w-full rounded-md border border-ink/[0.1] bg-surface-secondary px-2.5 py-1.5 font-mono text-[12px] text-text-primary"
-      />
-      <ChipRow
-        options={hits}
-        value={selected}
-        onToggle={onToggle}
-      />
-    </div>
-  );
-}
-
-export default function SignalsCustomCalls({
-  deskState,
-  active = false,
-  onApply,
-  show,
-  tagWr = [],
-  pairs = [],
-}) {
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState([]);
-  const [telegramLinked, setTelegramLinked] = useState(false);
-  const [telegram, setTelegram] = useState(false);
-  const [name, setName] = useState("Custom");
-  const [form, setForm] = useState(emptyCriteria);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [appliedId, setAppliedId] = useState(null);
-
-  const set = (patch) => setForm((f) => ({ ...f, ...patch }));
-
-  const catalog = useMemo(() => {
-    const desk = new Set((pairs || []).map((p) => toUsdtPair(p)).filter(Boolean));
-    const seen = new Set();
-    const out = [];
-    const add = (pair, name) => {
-      const p = toUsdtPair(pair);
-      if (!p || seen.has(p)) return;
-      seen.add(p);
-      out.push({
-        pair: p,
-        base: pairBase(p),
-        name: name || null,
-        onDesk: desk.has(p),
-      });
-    };
-    for (const c of GEN_COINS || []) add(c.symbol, c.name);
-    for (const raw of pairs || []) add(raw, null);
-    out.sort((a, b) => Number(b.onDesk) - Number(a.onDesk) || a.base.localeCompare(b.base));
-    return out;
-  }, [pairs]);
-
-  const refresh = () =>
-    signalAlertApi
-      .list()
-      .then((d) => {
-        setItems(d.items || []);
-        setTelegramLinked(!!d.telegram_linked);
-        setTelegram(!!d.telegram);
-        const first = d.items?.[0];
-        if (first?.criteria) {
-          setForm({ ...emptyCriteria(), ...first.criteria });
-          setName(first.name || "Custom");
-        }
-      })
-      .catch(() => {});
-
+function RuleCard({ rule, field, onChange, onRemove, focus }) {
+  const cardRef = useRef(null);
   useEffect(() => {
-    if (show) refresh();
-  }, [show]);
-
-  const tagOptions = useMemo(
-    () =>
-      (tagWr || [])
-        .filter((t) => t?.tag)
-        .map((t) => ({
-          key: t.tag,
-          label: String(t.tag).replace(/_/g, " "),
-        })),
-    [tagWr]
+    if (focus) cardRef.current?.querySelector("select, input")?.focus();
+  }, [focus]);
+  const ops =
+    field.kind === "number"
+      ? ["gte", "lte", "between", "eq"]
+      : field.kind === "tags"
+        ? ["any", "all", "none"]
+        : field.kind === "boolean"
+          ? ["eq"]
+          : ["in", "not_in"];
+  return (
+    <section ref={cardRef} className="rounded-xl border border-ink/[0.1] bg-surface-raised p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] text-text-muted">{field.group}</p>
+          <h3 className="mt-0.5 text-[15px] font-semibold text-text-primary">{field.label}</h3>
+        </div>
+        <button
+          type="button"
+          className="min-h-[44px] min-w-[44px] rounded-lg text-[22px] text-text-muted hover:bg-ink/[0.05]"
+          aria-label={`Remove ${field.label} filter`}
+          onClick={onRemove}
+        >
+          ×
+        </button>
+      </div>
+      <p className="mb-3 text-[12px] leading-relaxed text-text-muted">{field.hint}</p>
+      <div className="space-y-3">
+        {field.kind !== "boolean" && (
+          <select
+            aria-label={`${field.label} condition`}
+            className={INPUT}
+            value={rule.op}
+            onChange={(e) =>
+              onChange({
+                ...rule,
+                op: e.target.value,
+                value:
+                  field.kind === "number"
+                    ? e.target.value === "between"
+                      ? ["", ""]
+                      : ""
+                    : rule.value,
+              })
+            }
+          >
+            {ops.map((op) => (
+              <option key={op} value={op}>
+                {CONDITION_LABELS[op]}
+              </option>
+            ))}
+          </select>
+        )}
+        {field.kind === "number" ? (
+          <div className="flex items-center gap-2">
+            {(rule.op === "between" ? rule.value : [rule.value]).map((v, i) => (
+              <label key={i} className="min-w-0 flex-1">
+                <span className="mb-1 block text-[11px] text-text-muted">
+                  {rule.op === "between" ? (i === 0 ? "Minimum" : "Maximum") : "Value"}
+                  {field.unit ? ` (${field.unit})` : ""}
+                </span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step={field.integer ? "1" : "any"}
+                  min={field.min}
+                  max={field.max}
+                  className={INPUT}
+                  aria-label={`${field.label} ${rule.op === "between" ? (i ? "maximum" : "minimum") : "value"}`}
+                  value={v}
+                  onChange={(e) =>
+                    onChange({
+                      ...rule,
+                      value:
+                        rule.op === "between"
+                          ? rule.value.map((x, j) => (i === j ? e.target.value : x))
+                          : e.target.value,
+                    })
+                  }
+                />
+              </label>
+            ))}
+          </div>
+        ) : field.kind === "boolean" ? (
+          <div className="flex gap-2">
+            {[true, false].map((v) => (
+              <button
+                key={String(v)}
+                type="button"
+                aria-pressed={rule.value === v}
+                onClick={() => onChange({ ...rule, value: v })}
+                className={`${BUTTON} flex-1 ${rule.value === v ? "border-accent bg-accent/10" : ""}`}
+              >
+                {v ? "Yes" : "No"}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <Values
+            field={field}
+            value={rule.value}
+            onChange={(value) => onChange({ ...rule, value })}
+          />
+        )}
+      </div>
+    </section>
   );
+}
 
-  if (!show) return null;
-  const mine = items[0] || null;
-
-  const toggleList = (key, item, on) => {
-    const cur = form[key] || [];
-    set({ [key]: on ? cur.filter((x) => x !== item) : [...cur, item] });
-  };
-
-  const apply = (row) => {
-    const c = { ...emptyCriteria(), ...(row.criteria || {}) };
-    onApply?.(criteriaToDeskState(c));
-    setAppliedId(row.id);
-    setForm(c);
-    setName(row.name || "Custom");
-  };
-
-  const persist = async () => {
-    if (criteriaIsEmpty(form)) {
-      setError("Pick at least one rule.");
-      return null;
-    }
+export default function SignalsCustomCalls({ active = false, onApply, show }) {
+  const [open, setOpen] = useState(false);
+  const [catalog, setCatalog] = useState(null);
+  const [items, setItems] = useState([]);
+  const [selected, setSelected] = useState("new");
+  const [rules, setRules] = useState([]);
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [search, setSearch] = useState("");
+  const [focusField, setFocusField] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [previewRetry, setPreviewRetry] = useState(0);
+  const [legacy, setLegacy] = useState(false);
+  const [linked, setLinked] = useState(false);
+  const [notify, setNotify] = useState(false);
+  const [telegram, setTelegram] = useState(false);
+  const [savedSignature, setSavedSignature] = useState("");
+  const addRef = useRef(null);
+  const fields = catalog?.fields || [];
+  const prepared = useMemo(() => prepareRules(rules, catalog?.fields || []), [rules, catalog]);
+  const wire = prepared.criteria ? JSON.stringify(prepared.criteria) : "";
+  const signature = JSON.stringify({ rules, name, notify, telegram });
+  const dirty = signature !== savedSignature;
+  const current = items.find((i) => String(i.id) === selected);
+  function loadRow(row, tg = telegram) {
+    const next = row?.criteria?.rules_v2 || [];
+    setSelected(row ? String(row.id) : "new");
+    setRules(next);
+    setName(row?.name || "");
+    setNotify(!!row?.enabled);
+    setTelegram(tg);
+    setLegacy(!!row && !row.criteria?.rules_v2);
+    setSavedSignature(
+      JSON.stringify({ rules: next, name: row?.name || "", notify: !!row?.enabled, telegram: tg })
+    );
     setError("");
-    const payload = { name: name.trim() || "Custom", criteria: form };
-    const row = mine
-      ? await signalAlertApi.patch(mine.id, payload)
-      : await signalAlertApi.create({ ...payload, enabled: false });
-    setItems((prev) => {
-      if (mine) return prev.map((x) => (x.id === row.id ? row : x));
-      return [...prev, row];
-    });
-    setAppliedId(row.id);
-    onApply?.(criteriaToDeskState(form));
-    return row;
-  };
-
-  const save = async () => {
-    setBusy(true);
+    setMessage("");
+    setPicker(false);
+    setFocusField(null);
+  }
+  async function start() {
+    setOpen(true);
+    setLoading(true);
+    setError("");
+    setPreview(null);
     try {
-      await persist();
+      const [c, d] = await Promise.all([signalAlertApi.catalog(), signalAlertApi.list()]);
+      setCatalog(c);
+      setItems(d.items || []);
+      setLinked(d.telegram_linked);
+      if (!(active && rules.length)) loadRow(d.items?.[0], !!d.telegram);
     } catch (e) {
-      const d = e?.response?.data?.detail;
-      setError(typeof d === "string" ? d : "Could not save.");
+      setCatalog(null);
+      setError(errorText(e));
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
-  };
-
-  const toggleTelegram = async (on) => {
+  }
+  useEffect(() => {
+    if (!open || !wire || legacy || loading) {
+      setPreview(null);
+      setChecking(false);
+      return;
+    }
+    const controller = new AbortController();
+    setChecking(true);
+    setPreview(null);
+    const timer = setTimeout(
+      () =>
+        signalAlertApi
+          .preview(JSON.parse(wire), controller.signal)
+          .then((data) => {
+            if (!controller.signal.aborted) {
+              setPreview({ ...data, wire });
+              setChecking(false);
+            }
+          })
+          .catch((e) => {
+            if (!controller.signal.aborted) {
+              setPreview({ error: errorText(e), wire });
+              setChecking(false);
+            }
+          }),
+      400
+    );
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [open, wire, legacy, loading, previewRetry]);
+  const ready =
+    !loading && !legacy && !!wire && !checking && preview?.wire === wire && !preview?.error;
+  function apply() {
+    if (!ready) return;
+    onApply?.(criteriaToDeskState(prepared.criteria));
+    setOpen(false);
+  }
+  async function save() {
+    if (!ready || !name.trim()) return;
     setBusy(true);
     setError("");
+    setMessage("");
     try {
-      let row = mine;
-      if (!row) {
-        row = await persist();
-        if (!row) return;
+      const payload = { name: name.trim(), criteria: prepared.criteria, enabled: notify };
+      let row;
+      if (current) row = await signalAlertApi.patch(current.id, { ...payload, telegram });
+      else {
+        row = await signalAlertApi.create({ ...payload, enabled: false });
+        // Record the created screen before optional delivery settings, so retry
+        // updates it instead of accidentally creating a duplicate.
+        setItems((prev) => [...prev, row]);
+        setSelected(String(row.id));
+        if (notify || telegram) row = await signalAlertApi.patch(row.id, { ...payload, telegram });
       }
-      row = await signalAlertApi.patch(row.id, {
-        telegram: on,
-        enabled: on ? true : row.enabled,
-      });
-      setTelegram(on);
-      setItems((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+      setItems((prev) => [...prev.filter((i) => i.id !== row.id), row].sort((a, b) => a.id - b.id));
+      setSelected(String(row.id));
+      setSavedSignature(signature);
+      setMessage("Screen saved.");
     } catch (e) {
-      const detail = e?.response?.data?.detail;
-      setError(
-        detail === "LINK_TELEGRAM_REQUIRED"
-          ? "Link Telegram in Notifications first."
-          : detail || "Could not update Telegram."
-      );
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
-  };
-
-  const mcapKey =
-    MCAP_PRESETS.find((p) => p.min === form.min_mcap && p.max === form.max_mcap)?.key || "any";
-
+  }
+  const availableFields = fields.filter(
+    (f) =>
+      !rules.some((r) => r.field === f.key) &&
+      `${f.label} ${f.group}`.toLowerCase().includes(search.toLowerCase())
+  );
+  const groups = [...new Set(availableFields.map((f) => f.group))];
+  if (!show) return null;
   return (
     <>
       <button
         type="button"
-        className={`${deskChipClass(active)} !h-11 justify-center !px-2 sm:!h-7 sm:!px-2.5`}
-        title="Build a custom call screen"
-        onClick={() => {
-          if (mine && (!active || appliedId !== mine.id)) apply(mine);
-          else setOpen(true);
-        }}
+        onClick={start}
+        className={`${BUTTON} ${active ? "border-accent bg-accent/10" : "bg-surface-secondary"}`}
       >
-        Custom
+        Custom{active ? " · active" : ""}
       </button>
-
       <Modal
         isOpen={open}
         onClose={() => setOpen(false)}
-        size="full"
-        eyebrow="Filters"
-        title="Custom"
-        subtitle="Rules match the desk and notifications. Edge percentile uses the full 7-day book; days and search only narrow your view."
-        footer={() => (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-start">
-              <span className="min-w-0">
-                <span className="block text-[13px] font-medium text-text-primary">Send to Telegram</span>
-                <span className="text-[11.5px] text-text-muted">
-                  {telegramLinked
-                    ? "DM when a new call matches this screen"
-                    : "Link Telegram in Notifications first"}
+        title="Custom signals"
+        eyebrow="SIGNALS"
+        subtitle="Filter the same values you see in the signal table and details."
+        size="2xl"
+        footer={
+          <div className="space-y-3">
+            <div aria-live="polite" className="text-[13px] text-text-primary">
+              {checking ? (
+                "Checking matching signals…"
+              ) : preview?.error ? (
+                <span className="text-loss">{preview.error} <button type="button" className={BUTTON} onClick={() => setPreviewRetry(v => v + 1)}>Retry results</button></span>
+              ) : ready ? (
+                <>
+                  <strong>{preview.signal_ids.length}</strong> of {preview.total} signals match
+                  <span className="mt-0.5 block text-[11px] text-text-muted">
+                    {preview.unavailable} missing required data · excluded from these results
+                  </span>
+                </>
+              ) : (
+                <span className="text-text-muted">
+                  {legacy ? "Choose a new screen to use the current filters." : prepared.error}
                 </span>
-              </span>
-              <button
-                type="button"
-                disabled={busy || !telegramLinked}
-                onClick={() => toggleTelegram(!telegram)}
-                className={`h-7 w-12 shrink-0 rounded-full border ${
-                  telegram ? "border-accent bg-accent" : "border-ink/20 bg-ink/[0.06]"
-                }`}
-                aria-label="Send to Telegram"
-                aria-pressed={telegram}
-              >
-                <span
-                  className={`block h-5 w-5 rounded-full bg-surface-raised shadow-sm transition-transform ${
-                    telegram ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
-              {mine ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    apply(mine);
-                    setOpen(false);
-                  }}
-                  className="rounded-md border border-ink/[0.1] px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted"
-                >
-                  Show on desk
-                </button>
-              ) : null}
               <button
                 type="button"
-                disabled={busy}
-                onClick={save}
-                className="rounded-md bg-accent px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-accent-fg disabled:opacity-40"
+                disabled={!ready || busy}
+                onClick={apply}
+                className="min-h-[44px] flex-1 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-accent-fg disabled:opacity-40"
               >
-                {mine ? "Save & show" : "Save this screen"}
+                View results{ready ? ` · ${preview.signal_ids.length}` : ""}
+              </button>
+              <button
+                type="button"
+                disabled={!ready || !name.trim() || busy || (!current && items.length >= 5)}
+                onClick={save}
+                className={`${BUTTON} flex-1`}
+              >
+                {busy ? "Saving…" : "Save screen"}
               </button>
             </div>
           </div>
-        )}
+        }
       >
-        <div className="grid gap-6 lg:grid-cols-2">
+        {loading ? (
+          <p className="py-12 text-center text-text-muted">Loading available filters…</p>
+        ) : (
           <div className="space-y-5">
-            <section>
-              <p className={LBL}>Start from</p>
-              <div className={`${DESK_SHELL} flex-wrap`}>
-                {[
-                  ["blank", "Blank", emptyCriteria()],
-                  ["runners", "Runners", { ...emptyCriteria(), runners: true, exclude_confound: true, edge_top: 20 }],
-                  ["liquid", "Liquid", { ...emptyCriteria(), max_volume_rank: 40 }],
-                  ["tight", "Tight stop", { ...emptyCriteria(), max_sl_pct: 2.5, risk_level: ["low"] }],
-                  ["desk", "This desk", collectAlertCriteria(deskState)],
-                ].map(([k, lab, crit]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    className={deskSegClass(false)}
-                    onClick={() => setForm({ ...emptyCriteria(), ...crit })}
-                  >
-                    {lab}
+            {error && (
+              <div
+                role="alert"
+                className="rounded-lg border border-loss/20 bg-loss/5 p-3 text-[13px] text-loss"
+              >
+                {error}
+                {!catalog && (
+                  <button className={`${BUTTON} ml-2`} onClick={start}>
+                    Retry
                   </button>
-                ))}
+                )}
               </div>
-            </section>
-
-            <section>
-              <p className={LBL}>Name</p>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value.slice(0, 40))}
-                className="w-full rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-2 text-[13px] text-text-primary"
-              />
-            </section>
-
-            <section>
-              <p className={LBL}>Only these coins</p>
-              <CoinPicker
-                catalog={catalog}
-                selected={form.pairs}
-                placeholder="Search BTC, bitcoin, BTCUSDT…"
-                onAdd={(p) => {
-                  if (!form.pairs?.includes(p)) toggleList("pairs", p, false);
-                }}
-                onRemove={(p) => toggleList("pairs", p, true)}
-              />
-              <p className={`${LBL} mt-3`}>Never these</p>
-              <CoinPicker
-                catalog={catalog}
-                selected={form.exclude_pairs}
-                placeholder="Exclude a pair…"
-                onAdd={(p) => {
-                  if (!form.exclude_pairs?.includes(p)) toggleList("exclude_pairs", p, false);
-                }}
-                onRemove={(p) => toggleList("exclude_pairs", p, true)}
-              />
-            </section>
-
-            <section>
-              <p className={LBL}>Setup at publish</p>
-              <ChipRow
-                options={[{ key: "runners", label: "Runners tags (live)" }]}
-                value={form.runners ? ["runners"] : []}
-                onToggle={() => set({ runners: !form.runners })}
-              />
-              <div className="mt-2">
-                <SegGroup
-                  size="sm"
-                  aria-label="Tag match"
-                  value={form.tag_match || "any"}
-                  onChange={(k) => set({ tag_match: k })}
-                  options={[
-                    { key: "any", label: "Any tag" },
-                    { key: "all", label: "All tags" },
-                  ]}
-                />
-              </div>
-              <div className="mt-2">
-                <TagPicker catalog={tagOptions} selected={form.tags} onToggle={(k, on) => toggleList("tags", k, on)} />
-              </div>
-              <div className="mt-2">
-                <ChipRow
-                  options={[
-                    { key: "ex", label: "Skip late / parabolic" },
-                    { key: "smc", label: "SMC golden only" },
-                  ]}
-                  value={[
-                    ...(form.exclude_confound ? ["ex"] : []),
-                    ...(form.smc_golden ? ["smc"] : []),
-                  ]}
-                  onToggle={(k, on) => {
-                    if (k === "ex") set({ exclude_confound: !on });
-                    if (k === "smc") set({ smc_golden: !on });
-                  }}
-                />
-              </div>
-            </section>
-          </div>
-
-          <div className="space-y-5">
-            <section>
-              <p className={LBL}>Quality</p>
-              <ChipRow
-                options={[
-                  { key: "low", label: "Low" },
-                  { key: "normal", label: "Normal" },
-                  { key: "high", label: "High" },
-                ]}
-                value={form.risk_level}
-                onToggle={(k, on) => toggleList("risk_level", k, on)}
-              />
-              <div className="mt-2">
-                <ChipRow
-                  options={[
-                    { key: "long", label: "Long" },
-                    { key: "short", label: "Short" },
-                  ]}
-                  value={form.direction}
-                  onToggle={(k, on) => toggleList("direction", k, on)}
-                />
-              </div>
-              <div className="mt-2">
-                <ChipRow
-                  options={[
-                    { key: "A", label: "A" },
-                    { key: "B", label: "B" },
-                    { key: "C", label: "C" },
-                  ]}
-                  value={form.rating}
-                  onToggle={(k, on) => toggleList("rating", k, on)}
-                />
-              </div>
-              <div className="mt-2">
-                <p className={LBL}>Min confidence</p>
-                <SegGroup
-                  size="sm"
-                  value={String(form.min_confidence || "0")}
-                  onChange={(k) => set({ min_confidence: Number(k) || null })}
-                  options={[
-                    { key: "0", label: "Off" },
-                    { key: "60", label: "60" },
-                    { key: "70", label: "70" },
-                    { key: "80", label: "80" },
-                  ]}
-                />
-              </div>
-            </section>
-
-            <section>
-              <p className={LBL}>Size &amp; stop</p>
-              <SegGroup
-                size="sm"
-                value={mcapKey}
-                onChange={(k) => {
-                  const p = MCAP_PRESETS.find((x) => x.key === k) || MCAP_PRESETS[0];
-                  set({ min_mcap: p.min, max_mcap: p.max });
-                }}
-                options={MCAP_PRESETS.map((p) => ({ key: p.key, label: p.label }))}
-              />
-              <div className="mt-2">
-                <p className={LBL}>Volume rank at most</p>
-                <SegGroup
-                  size="sm"
-                  value={String(form.max_volume_rank || "0")}
-                  onChange={(k) => set({ max_volume_rank: Number(k) || null })}
-                  options={[
-                    { key: "0", label: "Any" },
-                    { key: "20", label: "Top 20" },
-                    { key: "50", label: "Top 50" },
-                    { key: "100", label: "Top 100" },
-                  ]}
-                />
-              </div>
-              <div className="mt-2">
-                <p className={LBL}>Stop distance</p>
-                <SegGroup
-                  size="sm"
-                  value={
-                    form.max_sl_pct === 1.5
-                      ? "tight"
-                      : form.max_sl_pct === 3
-                        ? "mid"
-                        : form.min_sl_pct === 3
-                          ? "wide"
-                          : "any"
-                  }
-                  onChange={(k) => {
-                    if (k === "tight") set({ min_sl_pct: null, max_sl_pct: 1.5 });
-                    else if (k === "mid") set({ min_sl_pct: null, max_sl_pct: 3 });
-                    else if (k === "wide") set({ min_sl_pct: 3, max_sl_pct: null });
-                    else set({ min_sl_pct: null, max_sl_pct: null });
-                  }}
-                  options={[
-                    { key: "any", label: "Any" },
-                    { key: "tight", label: "≤ 1.5%" },
-                    { key: "mid", label: "≤ 3%" },
-                    { key: "wide", label: "≥ 3%" },
-                  ]}
-                />
-              </div>
-            </section>
-
-            <section>
-              <p className={LBL}>Vs BTC</p>
-              <ChipRow
-                options={[
-                  { key: "dec", label: "Decoupled" },
-                  { key: "al", label: "Align ≥ 70" },
-                ]}
-                value={[
-                  ...(form.btc_decoupled ? ["dec"] : []),
-                  ...(form.min_btc_align >= 70 ? ["al"] : []),
-                ]}
-                onToggle={(k, on) => {
-                  if (k === "dec") set({ btc_decoupled: !on });
-                  if (k === "al") set({ min_btc_align: on ? null : 70 });
-                }}
-              />
-            </section>
-
-            <section>
-              <p className={LBL}>On the desk (not Telegram)</p>
-              <p className="mb-1.5 text-[11.5px] text-text-muted">
-                New Telegram calls arrive as open. These only shape the list here.
+            )}
+            {message && (
+              <p role="status" className="text-[13px] text-profit">
+                {message}
               </p>
-              <SegGroup
-                size="sm"
-                value={form.status?.[0] || "all"}
-                onChange={(k) => set({ status: k === "all" ? [] : [k] })}
-                options={[
-                  { key: "all", label: "Any status" },
-                  { key: "open", label: "Open" },
-                  { key: "updated", label: "Hit" },
-                ]}
-              />
-              <div className="mt-2">
-                <p className={LBL}>Edge cut</p>
-                <SegGroup
-                  size="sm"
-                  value={String(form.edge_top || "0")}
-                  onChange={(k) => set({ edge_top: Number(k) || null })}
-                  options={[
-                    { key: "0", label: "Off" },
-                    { key: "20", label: "Top 20%" },
-                    { key: "10", label: "Top 10%" },
-                  ]}
-                />
-              </div>
-            </section>
-
-            {error ? <p className="text-[12px] text-loss">{error}</p> : null}
+            )}
+            {catalog && (
+              <>
+                {!!items.length && (
+                  <label className="block text-[12px] text-text-muted">
+                    Saved screens
+                    <select
+                      className={`${INPUT} mt-1`}
+                      value={selected}
+                      onChange={(e) => loadRow(items.find((i) => String(i.id) === e.target.value))}
+                    >
+                      <option value="new">New screen</option>
+                      {items.map((i) => (
+                        <option key={i.id} value={String(i.id)}>
+                          {i.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {legacy ? (
+                  <div className="rounded-xl border border-ink/[0.1] p-4 text-[13px] text-text-secondary">
+                    This screen uses the previous filter system. Its saved rules have been kept.
+                    Create a new screen to use fields from the signal details.
+                    <button className={`${BUTTON} mt-3 block`} onClick={() => loadRow(null)}>
+                      Create new screen
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h2 className="text-[15px] font-semibold text-text-primary">
+                          Match all conditions
+                        </h2>
+                        <p className="mt-1 text-[12px] text-text-muted">
+                          Across the signal book since{" "}
+                          {new Date(catalog.window_start).toLocaleDateString(undefined, {
+                            day: "numeric",
+                            month: "short",
+                            timeZone: "UTC",
+                          })}{" "}
+                          · 00:00 UTC. Day and search controls can narrow your results afterwards.
+                        </p>
+                      </div>
+                      {!!rules.length && (
+                        <button
+                          type="button"
+                          className={BUTTON}
+                          onClick={() => {
+                            setRules([]);
+                            setMessage("");
+                          }}
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
+                    {!rules.length && (
+                      <div className="rounded-xl border border-dashed border-ink/[0.15] px-5 py-8 text-center">
+                        <h3 className="text-[16px] font-semibold text-text-primary">
+                          Start with a field you know
+                        </h3>
+                        <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-text-muted">
+                          Choose Pair, Status, Risk, a price level, or a value from BTC Correlation
+                          and Deep Analysis. You set the conditions.
+                        </p>
+                        <button
+                          type="button"
+                          className={`${BUTTON} mt-4 border-accent bg-accent/10`}
+                          onClick={() => setPicker(true)}
+                        >
+                          + Add filter
+                        </button>
+                      </div>
+                    )}
+                    <div className="grid items-start gap-3 md:grid-cols-2">
+                      {rules.map((r, i) => {
+                        const f = fields.find((f) => f.key === r.field);
+                        return f ? (
+                          <RuleCard
+                            key={r.field}
+                            focus={focusField === r.field}
+                            rule={r}
+                            field={f}
+                            onRemove={() => setRules((prev) => prev.filter((_, j) => i !== j))}
+                            onChange={(next) =>
+                              setRules((prev) => prev.map((r, j) => (i === j ? next : r)))
+                            }
+                          />
+                        ) : null;
+                      })}
+                    </div>
+                    {!!rules.length && (
+                      <button
+                        ref={addRef}
+                        type="button"
+                        className={`${BUTTON} w-full border-dashed`}
+                        onClick={() => {
+                          setPicker(!picker);
+                          setSearch("");
+                        }}
+                        aria-expanded={picker}
+                      >
+                        + Add filter
+                      </button>
+                    )}
+                    {picker && (
+                      <section
+                        className="rounded-xl border border-ink/[0.12] bg-surface-secondary p-3 sm:p-4"
+                        aria-label="Available filters"
+                      >
+                        <div className="mb-3 flex items-center justify-between">
+                          <h3 className="text-[14px] font-semibold text-text-primary">
+                            Choose a field
+                          </h3>
+                          <button
+                            type="button"
+                            aria-label="Close field picker"
+                            className={BUTTON}
+                            onClick={() => setPicker(false)}
+                          >
+                            Close
+                          </button>
+                        </div>
+                        <input
+                          autoFocus
+                          className={INPUT}
+                          aria-label="Search filter fields"
+                          placeholder="Search fields…"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                        />
+                        <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto">
+                          {groups.map((group) => (
+                            <div key={group}>
+                              <p className="mb-1 text-[11px] font-semibold text-text-muted">
+                                {group}
+                              </p>
+                              <div className="grid gap-1 sm:grid-cols-2">
+                                {availableFields
+                                  .filter((f) => f.group === group)
+                                  .map((f) => (
+                                    <button
+                                      key={f.key}
+                                      type="button"
+                                      className="min-h-[52px] rounded-lg bg-surface-raised p-3 text-left hover:bg-accent/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                                      onClick={() => {
+                                        setFocusField(f.key);
+                                        setRules((prev) => [...prev, newRule(f)]);
+                                        setPicker(false);
+                                        setSearch("");
+                                      }}
+                                    >
+                                      <span className="block text-[13px] font-medium text-text-primary">
+                                        {f.label}
+                                      </span>
+                                      <span className="block text-[11px] text-text-muted">
+                                        {f.available} signals with data
+                                        {f.unit ? ` · ${f.unit}` : ""}
+                                      </span>
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          ))}
+                          {!groups.length && (
+                            <p className="p-3 text-[13px] text-text-muted">
+                              No other fields match your search.
+                            </p>
+                          )}
+                        </div>
+                        <p className="mt-3 text-[11px] leading-relaxed text-text-muted">
+                          Price and Vol 24h are live values. Edge uses a separate score calculation.
+                          These are not available as saved filters yet.
+                        </p>
+                      </section>
+                    )}
+                    {!!wire && (
+                      <details className="rounded-lg border border-ink/[0.08] p-3">
+                        <summary className="cursor-pointer text-[13px] font-medium text-text-primary">
+                          Review {rules.length} condition{rules.length === 1 ? "" : "s"}
+                        </summary>
+                        <ul className="mt-2 space-y-2 text-[12px] leading-relaxed text-text-muted">
+                          {prepared.criteria.rules_v2.map((r) => (
+                            <li key={r.field} className="break-words">
+                              {ruleSummary(
+                                r,
+                                fields.find((f) => f.key === r.field)
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                    <section className="space-y-3 border-t border-ink/[0.08] pt-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-[14px] font-semibold text-text-primary">
+                          Save for later
+                        </h3>
+                        {dirty && !!rules.length && (
+                          <span className="text-[11px] text-text-muted">Unsaved changes</span>
+                        )}
+                      </div>
+                      <label className="block text-[12px] text-text-muted">
+                        Screen name
+                        <input
+                          className={`${INPUT} mt-1`}
+                          maxLength={40}
+                          placeholder="Give your screen a name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                        />
+                      </label>
+                      <details>
+                        <summary className="min-h-[44px] cursor-pointer py-3 text-[13px] font-medium text-text-primary">
+                          Notifications <span className="text-text-muted">· optional</span>
+                        </summary>
+                        <div className="space-y-2 pb-2 text-[13px] text-text-primary">
+                          <label className="flex min-h-[44px] items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={notify}
+                              onChange={(e) => setNotify(e.target.checked)}
+                            />
+                            Notify me about new matching calls
+                          </label>
+                          <label
+                            className={`flex min-h-[44px] items-center gap-3 ${!linked ? "opacity-50" : ""}`}
+                          >
+                            <input
+                              type="checkbox"
+                              disabled={!linked}
+                              checked={telegram}
+                              onChange={(e) => setTelegram(e.target.checked)}
+                            />
+                            Send signal-match notifications to Telegram
+                          </label>
+                          <p className="text-[11px] leading-relaxed text-text-muted">
+                            {!linked ? "Link Telegram in Notifications first. " : ""}Telegram
+                            delivery applies to all your enabled Custom screens. Changes take effect
+                            when you save. Alerts use these same conditions for new calls after
+                            saving, with a 12-hour lookback; older desk results are not sent.
+                          </p>
+                        </div>
+                      </details>
+                    </section>
+                  </>
+                )}
+              </>
+            )}
           </div>
-        </div>
+        )}
       </Modal>
     </>
   );
