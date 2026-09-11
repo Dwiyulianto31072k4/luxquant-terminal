@@ -14,12 +14,16 @@ const INPUT =
   "min-h-[38px] w-full min-w-0 rounded-lg border border-ink/[0.12] bg-surface-secondary px-2.5 py-1.5 text-[13px] text-text-primary focus:outline-none focus:ring-2 focus:ring-accent";
 const BUTTON =
   "min-h-[40px] rounded-lg border border-ink/[0.12] px-3 py-2 text-[13px] font-medium text-text-primary hover:bg-ink/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40";
-const pill = (on) =>
+const pill = (on, extra = "") =>
   `min-h-[32px] rounded-full border px-2.5 py-1 text-[12px] leading-tight transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
     on
       ? "border-accent bg-accent/15 font-semibold text-text-primary"
       : "border-ink/[0.14] text-text-secondary hover:bg-ink/[0.05]"
-  }`;
+  } ${extra}`;
+// Presets are a fixed two-column grid rather than a wrapping row: variable-width
+// chips left "Custom" stranded alone on a second line under every range card,
+// and equal cells are what make twelve different controls look like one thing.
+const PRESET_GRID = "grid grid-cols-2 gap-1.5";
 const errorText = (e) =>
   typeof e?.response?.data?.detail === "string"
     ? e.response.data.detail
@@ -45,7 +49,7 @@ function Chips({ field, rule, onChange }) {
               key={v}
               type="button"
               aria-pressed={on}
-              className={pill(on)}
+              className={pill(on, "px-3")}
               onClick={() => emit(on ? value.filter((x) => x !== v) : [...value, v])}
             >
               {displayRuleValue(v, field)}
@@ -147,7 +151,7 @@ function TagPicker({ field, rule, onChange }) {
   const emit = (next, nextOp = op) =>
     onChange(next.length ? { field: field.key, op: nextOp, value: next } : null);
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-1.5">
         {/* Labelled so a highlighted mode reads as a setting, not as a filter
             that is already narrowing anything. */}
@@ -186,7 +190,9 @@ function TagPicker({ field, rule, onChange }) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
-      <div className="max-h-[150px] overflow-y-auto rounded-lg border border-ink/[0.08]">
+      {/* Kept short on purpose: this list sets the height of its whole grid row,
+          and 46 tags behind a search box do not need to be 150px of it. */}
+      <div className="max-h-[104px] overflow-y-auto rounded-lg border border-ink/[0.08]">
         {visible.map((v) => (
           <label
             key={v}
@@ -232,8 +238,8 @@ function RangePicker({ field, rule, onChange, minLabel = "Min", maxLabel = "Max"
     else onChange(null);
   };
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="space-y-1.5">
+      <div className={PRESET_GRID}>
         {presets.map((p) => {
           const on = isPreset(rule, p);
           return (
@@ -241,7 +247,7 @@ function RangePicker({ field, rule, onChange, minLabel = "Min", maxLabel = "Max"
               key={p.label}
               type="button"
               aria-pressed={on}
-              className={pill(on)}
+              className={pill(on, "w-full truncate")}
               onClick={() => {
                 setCustom(false);
                 setLo("");
@@ -256,7 +262,7 @@ function RangePicker({ field, rule, onChange, minLabel = "Min", maxLabel = "Max"
         <button
           type="button"
           aria-pressed={custom}
-          className={pill(custom)}
+          className={pill(custom, "w-full")}
           onClick={() => {
             const next = !custom;
             setCustom(next);
@@ -316,7 +322,7 @@ function RecencyPicker({ field, rule, onChange }) {
 
 function BoolPicker({ field, rule, onChange }) {
   return (
-    <div className="flex gap-1.5">
+    <div className="grid grid-cols-3 gap-1.5">
       {[
         ["Any", null],
         ["Yes", true],
@@ -328,7 +334,7 @@ function BoolPicker({ field, rule, onChange }) {
             key={label}
             type="button"
             aria-pressed={on}
-            className={`${pill(on)} flex-1`}
+            className={pill(on, "w-full")}
             onClick={() => onChange(v === null ? null : { field: field.key, op: "eq", value: v })}
           >
             {label}
@@ -414,47 +420,56 @@ function FilterCard({ field, rule, total, onChange }) {
   const coverage = total ? Math.round((field.available / total) * 100) : 100;
   const active = !!rule;
   return (
+    // h-full, and no items-start on the grid: cards in a row share a height, so
+    // twelve controls of different sizes read as one instrument panel instead of
+    // a ragged stack.
     <section
-      className={`rounded-xl border p-3 transition-colors ${
-        active ? "border-accent/45 bg-accent/[0.05]" : "border-ink/[0.1] bg-surface-raised"
+      className={`flex h-full flex-col rounded-xl border p-3 transition-colors ${
+        active
+          ? "border-accent bg-accent/[0.04] shadow-[inset_3px_0_0_0_rgb(var(--accent))]"
+          : "border-ink/[0.1] bg-surface-raised"
       }`}
     >
-      <div className="mb-1 flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-[13px] font-semibold leading-tight text-text-primary">
             {field.label}
           </h3>
           {field.sublabel && (
-            <p className="text-[10.5px] leading-tight text-text-muted">{field.sublabel}</p>
+            <p className="mt-0.5 text-[10px] leading-tight text-text-muted">{field.sublabel}</p>
           )}
         </div>
-        {active ? (
-          <button
-            type="button"
-            className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
-            onClick={() => onChange(null)}
-          >
-            Clear
-          </button>
-        ) : (
-          coverage < 80 && (
-            /* A filter that quietly drops three signals in five is not the same
-               instrument as one that covers the book. "No match" and "we never
-               recorded it" read identically in a result count, so the card has
-               to say which one it is before anyone relies on it. */
+        <div className="flex shrink-0 items-center gap-1">
+          {/* Coverage stays on the card while it is active. It used to be
+              replaced by Clear, which removed the number at exactly the moment
+              it started costing results: "no match" and "we never recorded it"
+              are the same count on screen and completely different answers. */}
+          {coverage < 80 && (
             <span
-              className="shrink-0 rounded-full bg-ink/[0.06] px-1.5 py-0.5 text-[10px] text-text-muted"
-              title={`${field.available.toLocaleString()} of ${total.toLocaleString()} calls carry this value. The rest can never match.`}
+              className="rounded-full bg-ink/[0.06] px-1.5 py-0.5 text-[10px] leading-none text-text-muted"
+              title={`${field.available.toLocaleString()} of ${total.toLocaleString()} calls carry this value. The rest can never match once this filter is set.`}
             >
-              {coverage}% have it
+              {coverage}%
             </span>
-          )
-        )}
+          )}
+          {active && (
+            <button
+              type="button"
+              className="rounded-md px-1.5 py-0.5 text-[11px] text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
+              onClick={() => onChange(null)}
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
-      <p className="mb-2 line-clamp-2 text-[11px] leading-snug text-text-muted" title={field.hint}>
-        {field.hint}
+      {/* One line, never clamped mid-word. The full sentence is the tooltip. */}
+      <p className="mt-1 truncate text-[11px] leading-snug text-text-muted" title={field.hint}>
+        {field.short || field.hint}
       </p>
-      <Control field={field} rule={rule} onChange={onChange} />
+      <div className="mt-2.5">
+        <Control field={field} rule={rule} onChange={onChange} />
+      </div>
     </section>
   );
 }
@@ -643,10 +658,12 @@ export default function SignalsCustomCalls({ active = false, onApply, show }) {
                 <>
                   <strong>{preview.signal_ids.length.toLocaleString()}</strong> of{" "}
                   {preview.total.toLocaleString()} calls match
-                  <span className="mt-0.5 block text-[11px] text-text-muted">
-                    {preview.unavailable.toLocaleString()} excluded — one of your filters was never
-                    recorded for them
-                  </span>
+                  {preview.unavailable > 0 && (
+                    <span className="mt-0.5 block text-[11px] text-text-muted">
+                      {preview.unavailable.toLocaleString()} excluded — one of your filters was
+                      never recorded for them
+                    </span>
+                  )}
                 </>
               ) : (
                 <span className="text-text-muted">
@@ -757,10 +774,10 @@ export default function SignalsCustomCalls({ active = false, onApply, show }) {
                         filter nobody uses. */}
                     {groups.map((group) => (
                       <div key={group}>
-                        <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                           {group}
                         </p>
-                        <div className="grid items-start gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           {primary
                             .filter((f) => f.group === group)
                             .map((f) => (
@@ -788,7 +805,7 @@ export default function SignalsCustomCalls({ active = false, onApply, show }) {
                         </span>
                       </button>
                       {advanced && (
-                        <div className="mt-2.5 grid items-start gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           {rest.map((f) => (
                             <FilterCard
                               key={`${f.key}:${resetToken}`}

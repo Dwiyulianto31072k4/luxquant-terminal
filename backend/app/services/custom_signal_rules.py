@@ -40,16 +40,20 @@ def preset(label, op, value):
 # Groups are the question a person is asking, not the table the value lives in.
 # "Entry & Targets" mixed a coin's price with the size of its move; those are
 # different questions and only one of them can be compared across pairs.
-WHEN, MOVE, LIQ, BTC, DEEP = 'What & when', 'Move size', 'Liquidity', 'Bitcoin', 'Analysis'
+CALL, SETUP = 'The call', 'The setup'
 LADDER, PRICES, BTCX = 'Ladder detail', 'Published prices', 'BTC detail'
+
+# Two hints per field. `short` is one line that always fits the card, because a
+# sentence cut mid-word by a line clamp reads as a broken page; `hint` is the
+# whole sentence, carried to the tooltip.
 
 # Age in days, from a TEXT timestamp column. Both created_at and last_update_at
 # are stored as text in production, so the cast is not optional.
 AGE = "EXTRACT(EPOCH FROM (now() - {}::timestamptz)) / 86400.0"
 RECENCY = [preset('24 hours', 'lte', 1), preset('7 days', 'lte', 7), preset('30 days', 'lte', 30), preset('90 days', 'lte', 90)]
 
-field('pair', 'Pair', WHEN, 'choice', 's.pair', 'Exact pair from Signals. Select one or more pairs.', tier='primary', control='pairs')
-field('status', 'Status', WHEN, 'choice', "COALESCE(o.outcome, 'open')", 'Highest level the call reached. TP levels are exact; SL is a stopped signal.', tier='primary', control='chips', order_by="CASE value WHEN 'open' THEN 0 WHEN 'sl' THEN 9 ELSE 1 END, value")
+field('pair', 'Pair', CALL, 'choice', 's.pair', 'Exact pair from Signals. Select one or more pairs.', short='Exact pair, as published.', tier='primary', control='pairs')
+field('status', 'Status', CALL, 'choice', "COALESCE(o.outcome, 'open')", 'Highest level the call reached. TP levels are exact; SL is a stopped signal.', short='Highest level the call reached.', tier='primary', control='chips', order_by="CASE value WHEN 'open' THEN 0 WHEN 'sl' THEN 9 ELSE 1 END, value")
 # The scraper changed case and spelling mid-book, and the screen was showing
 # every spelling as its own chip: picking "High" returned 10,279 calls out of
 # the 30,595 that are high risk, silently, because the other 20,316 are stored
@@ -58,11 +62,11 @@ field('status', 'Status', WHEN, 'choice', "COALESCE(o.outcome, 'open')", 'Highes
 # Medium and Normal, which really are different labels, stay apart.
 RISK = "CASE lower(NULLIF(s.risk_level, '')) WHEN 'med' THEN 'Medium' WHEN '' THEN NULL ELSE initcap(lower(s.risk_level)) END"
 RISK_ORDER = "CASE value WHEN 'Low' THEN 1 WHEN 'Normal' THEN 2 WHEN 'Medium' THEN 3 WHEN 'High' THEN 4 ELSE 5 END"
-field('risk', 'Risk', WHEN, 'choice', RISK, 'Risk label published with the signal. Older calls spelled these differently; the spellings are folded together, but Medium and Normal remain the separate labels they are.', tier='primary', control='chips', order_by=RISK_ORDER)
+field('risk', 'Risk', CALL, 'choice', RISK, 'Risk label published with the signal. Older calls spelled these differently; the spellings are folded together, but Medium and Normal remain the separate labels they are.', short='Risk label published with the call.', tier='primary', control='chips', order_by=RISK_ORDER)
 # Without these two, "calls from the last 30 days" — the first question anyone
 # asks of a fifteen-month book — could not be expressed at all.
-field('called_days', 'Called', WHEN, 'number', AGE.format('s.created_at'), 'How long ago the call was published. The book runs from December 2023 to today.', tier='primary', control='recency', unit='days ago', min=0, presets=RECENCY)
-field('updated_days', 'Last move', WHEN, 'number', AGE.format('lu.last_update_at'), 'How long ago this call last hit a TP or SL. A call that has never moved has no value here.', tier='primary', control='recency', unit='days ago', min=0, presets=RECENCY[:3])
+field('called_days', 'Called', CALL, 'number', AGE.format('s.created_at'), 'How long ago the call was published. The book runs from December 2023 to today.', short='When the call was published.', tier='primary', control='recency', unit='days ago', min=0, presets=RECENCY)
+field('updated_days', 'Last move', CALL, 'number', AGE.format('lu.last_update_at'), 'How long ago this call last hit a TP or SL. A call that has never moved has no value here.', short='When it last hit a TP or SL.', tier='primary', control='recency', unit='days ago', min=0, presets=RECENCY[:3])
 
 # TP1:TP2:TP3:TP4 are fixed multiples of one distance and SL is another multiple
 # of it. Measured on the live book: corr(TP1%, TP4%) = 0.994, corr(TP1%, SL%) =
@@ -70,13 +74,13 @@ field('updated_days', 'Last move', WHEN, 'number', AGE.format('lu.last_update_at
 # opposite bounds on two rungs (TP1% >= 5 with TP4% <= 10) match exactly nothing.
 # So one rung is promoted to stand for the whole ladder and the rest move to
 # Ladder detail, where family='ladder' lets the screen warn about the collision.
-field('tp4_pct', 'Target size', MOVE, 'number', 'round(((s.target4::numeric - s.entry::numeric) / NULLIF(s.entry::numeric, 0) * 100), 2)', 'Distance from Entry to the final target, in percent. The other targets sit at fixed fractions of this, so this one number describes the whole ladder.', tier='primary', control='range', unit='%', sublabel='Entry → TP4', family='ladder', presets=[preset('Small · under 10%', 'lte', 10), preset('Normal · 10–20%', 'between', [10, 20]), preset('Big · 20%+', 'gte', 20)])
-field('sl_distance', 'Stop distance', MOVE, 'number', 'abs(s.entry - s.stop1) / NULLIF(abs(s.entry), 0) * 100', 'Distance from Entry to SL1: |Entry − SL1| ÷ |Entry| × 100. Moves with the target size, at roughly a fifth of it.', tier='primary', control='range', unit='%', sublabel='Entry → SL1', family='ladder', min=0, presets=[preset('Tight · under 2.5%', 'lte', 2.5), preset('Normal · 2.5–4.5%', 'between', [2.5, 4.5]), preset('Wide · 4.5%+', 'gte', 4.5)])
+field('tp4_pct', 'Target size', SETUP, 'number', 'round(((s.target4::numeric - s.entry::numeric) / NULLIF(s.entry::numeric, 0) * 100), 2)', 'Distance from Entry to the final target, in percent. The other targets sit at fixed fractions of this, so this one number describes the whole ladder.', short='How far the final target sits from entry.', tier='primary', control='range', unit='%', sublabel='Entry → TP4', family='ladder', presets=[preset('Small <10%', 'lte', 10), preset('Normal 10–20%', 'between', [10, 20]), preset('Big 20%+', 'gte', 20)])
+field('sl_distance', 'Stop distance', SETUP, 'number', 'abs(s.entry - s.stop1) / NULLIF(abs(s.entry), 0) * 100', 'Distance from Entry to SL1: |Entry − SL1| ÷ |Entry| × 100. Moves with the target size, at roughly a fifth of it.', short='How far the stop sits from entry.', tier='primary', control='range', unit='%', sublabel='Entry → SL1', family='ladder', min=0, presets=[preset('Tight <2.5%', 'lte', 2.5), preset('Normal 2.5–4.5%', 'between', [2.5, 4.5]), preset('Wide 4.5%+', 'gte', 4.5)])
 
-field('mcap', 'Market cap', LIQ, 'number', MCAP, 'Market cap recorded with the signal, in USD. This is not the live Market sheet value.', tier='primary', control='range', unit='USD', min=0, presets=[preset('Micro · under $10m', 'lte', 1e7), preset('Small · $10–100m', 'between', [1e7, 1e8]), preset('Mid · $100m–1b', 'between', [1e8, 1e9]), preset('Large · $1b+', 'gte', 1e9)])
-field('volume_rank', 'Volume rank', LIQ, 'number', 's.volume_rank_num', 'Published volume rank (#) at call time. Lower is a busier coin. Not Vol 24h or order-book liquidity.', tier='primary', control='range', unit='#', sublabel='lower is busier', min=1, integer=True, presets=[preset('Top 100', 'lte', 100), preset('Top 250', 'lte', 250), preset('Top 500', 'lte', 500)])
+field('mcap', 'Market cap', SETUP, 'number', MCAP, 'Market cap recorded with the signal, in USD. This is not the live Market sheet value.', short='Market cap recorded at call time.', tier='primary', control='range', unit='USD', min=0, presets=[preset('Micro <$10m', 'lte', 1e7), preset('Small $10–100m', 'between', [1e7, 1e8]), preset('Mid $100m–1b', 'between', [1e8, 1e9]), preset('Large $1b+', 'gte', 1e9)])
+field('volume_rank', 'Volume rank', SETUP, 'number', 's.volume_rank_num', 'Published volume rank (#) at call time. Lower is a busier coin. Not Vol 24h or order-book liquidity.', short='Volume rank at call time. Lower is busier.', tier='primary', control='range', unit='#', min=1, integer=True, presets=[preset('Top 100', 'lte', 100), preset('Top 250', 'lte', 250), preset('Top 500', 'lte', 500)])
 
-field('tags', 'Tags', DEEP, 'tags', TAGS, 'Important tags from the stored entry analysis, as shown in Signal details. Some historical context tags were reconstructed later.', tier='primary', control='tags')
+field('tags', 'Tags', CALL, 'tags', TAGS, 'Important tags from the stored entry analysis, as shown in Signal details. Some historical context tags were reconstructed later.', short='Important tags from the entry analysis.', tier='primary', control='tags')
 
 for n in range(1, 4):
     field(f'tp{n}_pct', f'TP{n} %', LADDER, 'number', f'round(((s.target{n}::numeric - s.entry::numeric) / NULLIF(s.entry::numeric, 0) * 100), 2)', f'Percentage from Entry to TP{n}. Moves with Target size — filtering both rarely does what it looks like.', unit='%', family='ladder')
@@ -90,8 +94,8 @@ for n in range(1, 5):
 for n in (1, 2):
     field(f'sl{n}', f'SL{n}', PRICES, 'number', f's.stop{n}', f'Published SL{n} price. SL1 is shown as SL when there is only one stop.', unit='USDT', min=0)
 
-field('btc_align', 'BTC alignment', BTC, 'number', "CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' THEN (bc.interpretation->>'alignment_score')::numeric END", 'Composite BTC alignment score, not a win probability or correlation percentage.', tier='primary', control='range', min=0, max=100, presets=[preset('Low · under 50', 'lte', 50), preset('Medium · 50–65', 'between', [50, 65]), preset('High · 65+', 'gte', 65)])
-field('btc_decoupled', 'Decoupled from BTC', BTC, 'boolean', "CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' AND bc.corr_4h_30d IS NOT NULL THEN bc.is_decoupled END", 'BTC Correlation flag: |z-score| > 2 and |correlation| < 0.5. Unavailable analysis is neither Yes nor No.', tier='primary', control='bool')
+field('btc_align', 'BTC alignment', SETUP, 'number', "CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' THEN (bc.interpretation->>'alignment_score')::numeric END", 'Composite BTC alignment score, not a win probability or correlation percentage.', short='How closely the coin tracked BTC.', tier='primary', control='range', min=0, max=100, presets=[preset('Low <50', 'lte', 50), preset('Mid 50–65', 'between', [50, 65]), preset('High 65+', 'gte', 65)])
+field('btc_decoupled', 'Decoupled from BTC', SETUP, 'boolean', "CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' AND bc.corr_4h_30d IS NOT NULL THEN bc.is_decoupled END", 'BTC Correlation flag: |z-score| > 2 and |correlation| < 0.5. Unavailable analysis is neither Yes nor No.', short='Broke away from BTC at call time.', tier='primary', control='bool')
 for key, label, column, hint, limits in [
     ('btc_rho', 'Correlation ρ', 'bc.corr_4h_30d', 'Long-window Pearson correlation with BTC. −1 opposite, 0 no linear relationship, +1 same direction. Up to 720 hourly samples.', {'min':-1,'max':1}),
     ('btc_rho_short', 'Correlation ρ · 7d', 'bc.corr_1h_7d', 'Short-window correlation with BTC, up to 168 hourly samples. Check Sample size and Confidence.', {'min':-1,'max':1}),
