@@ -2,6 +2,13 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
+import {
+  turnoverRatio,
+  turnoverBand,
+  formatTurnover,
+  turnoverSentence,
+  turnoverToneClass,
+} from "../utils/turnover";
 import StarButton from "./StarButton";
 import { useAuth } from "../context/AuthContext";
 import { watchlistApi } from "../services/watchlistApi";
@@ -47,6 +54,10 @@ const SIGNAL_COLUMNS = [
   { key: "risk_level", label: "Risk" },
   { key: "market_cap", label: "MCap" },
   { key: "volume", label: "Vol 24h" },
+  // Volume on its own says nothing across sizes: $101B is quiet for BTC and
+  // impossible for a micro cap. Against market cap it becomes one comparable
+  // number — how much of the coin changed hands today.
+  { key: "turnover", label: "Turnover" },
   { key: "track_record", label: "Track Record" },
   { key: "edge_score", label: "Edge" },
   { key: "btc_corr", label: "BTC Corr" },
@@ -1176,14 +1187,29 @@ const SignalsTable = ({
     const showVol = !!mf.vol;
     const showCalled = !!mf.called_time;
     const edge = getEdge(signal.signal_id);
+    // "E65" is a number with no unit, no scale and no direction. The bands are
+    // the ones already colouring it; the words just say out loud what the
+    // colour was hinting. They describe how this setup's own history compares
+    // with the desk's average — not what this call will do.
+    const edgeWord =
+      edge && edge.score != null
+        ? edge.score >= 68
+          ? "well above average"
+          : edge.score >= 62
+            ? "above average"
+            : edge.score >= 55
+              ? "about average"
+              : "below average"
+        : null;
     const edgeChip =
       edge && edge.score != null ? (
-        <span
-          key="edge"
-          title={edgeTitle(edge)}
-          className={`rounded-md border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${edgeToneCls(edge.score)}`}
-        >
-          E{Number(edge.score).toFixed(0)}
+        <span key="edge" className="flex items-baseline gap-1.5" title={edgeTitle(edge)}>
+          <span
+            className={`rounded-md border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${edgeToneCls(edge.score)}`}
+          >
+            Edge {Number(edge.score).toFixed(0)}
+          </span>
+          <span className="text-[11px] text-text-muted">{edgeWord}</span>
         </span>
       ) : null;
     // Where the price actually stands between the stop and the target. The card
@@ -1353,7 +1379,7 @@ const SignalsTable = ({
                     className="flex items-baseline gap-1.5"
                     title={`This pair has closed ${v.coin.closed_trades ?? 0} calls, ${v.coin.win_rate}% of which reached TP1 or better`}
                   >
-                    <span className="text-[11px] text-text-muted">Pair</span>
+                    <span className="text-[11px] text-text-muted">This pair</span>
                     <span
                       className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${
                         v.band === "below"
@@ -1363,12 +1389,15 @@ const SignalsTable = ({
                             : "bg-ink/[0.04] text-text-secondary"
                       }`}
                     >
-                      {v.coin.win_rate}% of {v.coin.closed_trades ?? 0}
+                      {v.coin.win_rate}% of {v.coin.closed_trades ?? 0} past calls hit TP1+
                     </span>
                   </span>
                 ) : showVerdict && wr != null ? (
-                  <span className="flex items-baseline gap-1.5" title="This pair's win rate">
-                    <span className="text-[11px] text-text-muted">Pair</span>
+                  <span
+                    className="flex items-baseline gap-1.5"
+                    title="Share of this pair's past calls that reached TP1 or better"
+                  >
+                    <span className="text-[11px] text-text-muted">This pair</span>
                     <span
                       className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums ${wr >= 70 ? "bg-profit/12 text-profit" : wr >= 50 ? "bg-accent/12 text-accent" : "bg-negative/12 text-loss"}`}
                     >
@@ -1376,14 +1405,44 @@ const SignalsTable = ({
                     </span>
                   </span>
                 ) : null}
-                {showVol && currentVol ? (
-                  <span className="flex items-baseline gap-1.5">
-                    <span className="text-[11px] text-text-muted">Vol</span>
-                    <span className="font-mono text-[11px] tabular-nums text-text-secondary">
-                      {formatVolume(currentVol)}
+                {/* Volume and turnover are the same fact twice — the dollars and
+                    what they mean for a coin this size — so they share a line
+                    rather than each taking one. */}
+                {(() => {
+                  const ratio = turnoverRatio(currentVol, signal.market_cap);
+                  if (!showVol || !currentVol) {
+                    if (ratio == null) return null;
+                    return (
+                      <span className="flex items-baseline gap-1.5" title={turnoverSentence(ratio)}>
+                        <span className="text-[11px] text-text-muted">Turnover</span>
+                        <span className={`font-mono text-[11px] tabular-nums ${turnoverToneClass(ratio)}`}>
+                          {formatTurnover(ratio)}
+                        </span>
+                        <span className="text-[11px] text-text-muted">of mcap</span>
+                      </span>
+                    );
+                  }
+                  return (
+                    <span
+                      className="flex items-baseline gap-1.5"
+                      title={ratio != null ? turnoverSentence(ratio) : undefined}
+                    >
+                      <span className="text-[11px] text-text-muted">Vol</span>
+                      <span className="font-mono text-[11px] tabular-nums text-text-secondary">
+                        {formatVolume(currentVol)}
+                      </span>
+                      {ratio != null ? (
+                        <span className="text-[11px] text-text-muted">
+                          ·{" "}
+                          <span className={`font-mono tabular-nums ${turnoverToneClass(ratio)}`}>
+                            {formatTurnover(ratio)}
+                          </span>{" "}
+                          of mcap, {turnoverBand(ratio).label.toLowerCase()}
+                        </span>
+                      ) : null}
                     </span>
-                  </span>
-                ) : null}
+                  );
+                })()}
               </div>
             </div>
           </button>
@@ -1755,6 +1814,9 @@ const SignalsTable = ({
                   {effectiveCols.volume && (
                     <SortableHeader field="volume" label="Vol 24h" align="right" />
                   )}
+                  {effectiveCols.turnover && (
+                    <SortableHeader field="turnover" label="Turnover" align="right" />
+                  )}
                   {effectiveCols.track_record && (
                     <th className="select-none px-3 py-2.5 text-center">
                       <span className="inline-flex items-center justify-center gap-1.5 text-[11px] font-medium">
@@ -2065,6 +2127,41 @@ const SignalsTable = ({
                             ) : (
                               <span className="text-text-muted">—</span>
                             )}
+                          </td>
+                        )}
+
+                        {effectiveCols.turnover && (
+                          <td className="text-right">
+                            {(() => {
+                              const ratio = turnoverRatio(currentVol, signal.market_cap);
+                              if (ratio == null)
+                                return (
+                                  <span
+                                    className="text-text-muted"
+                                    title={
+                                      currentVol
+                                        ? "No market cap was recorded with this call, so turnover cannot be worked out."
+                                        : "Live 24h volume is unavailable for this pair."
+                                    }
+                                  >
+                                    —
+                                  </span>
+                                );
+                              const band = turnoverBand(ratio);
+                              return (
+                                <span
+                                  className="inline-flex flex-col items-end leading-tight"
+                                  title={turnoverSentence(ratio)}
+                                >
+                                  <span
+                                    className={`font-mono text-[13px] tabular-nums ${turnoverToneClass(ratio)}`}
+                                  >
+                                    {formatTurnover(ratio)}
+                                  </span>
+                                  <span className="text-[10px] text-text-muted">{band.label}</span>
+                                </span>
+                              );
+                            })()}
                           </td>
                         )}
 

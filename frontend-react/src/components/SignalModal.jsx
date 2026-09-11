@@ -18,6 +18,12 @@ import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
 import BTCCorrelationBadge from "./BTCCorrelationBadge";
 import BTCCorrelationModal from "./BTCCorrelationModal";
 import { Ic } from "./signalIcons";
+import {
+  turnoverRatio,
+  turnoverBand,
+  formatTurnover,
+  turnoverSentence,
+} from "../utils/turnover";
 import { shareSignal } from "../services/shareSignal";
 import IndicatorGuideModal from "./IndicatorGuideModal";
 import {
@@ -80,6 +86,30 @@ const SignalModal = ({
   const [overrideSignal, setOverrideSignal] = useState(null);
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
   const [showMarket, setShowMarket] = useState(false);
+  // Your own fill, which is almost never the published entry. Kept in this
+  // browser only: it is one person's position, it is not ours to store, and the
+  // reader can clear it by emptying the box. Wrapped because a private window
+  // or blocked site data makes the accessor itself throw.
+  const [myEntry, setMyEntry] = useState("");
+  const myEntryKey = signal?.signal_id ? `lq:signal:my-entry:${signal.signal_id}` : null;
+  useEffect(() => {
+    if (!myEntryKey) return;
+    try {
+      setMyEntry(localStorage.getItem(myEntryKey) || "");
+    } catch {
+      setMyEntry("");
+    }
+  }, [myEntryKey]);
+  const saveMyEntry = (value) => {
+    setMyEntry(value);
+    if (!myEntryKey) return;
+    try {
+      if (value.trim()) localStorage.setItem(myEntryKey, value.trim());
+      else localStorage.removeItem(myEntryKey);
+    } catch {
+      /* storage unavailable — the figure still works for this session */
+    }
+  };
   const [showCoinUtility, setShowCoinUtility] = useState(false);
 
   // ── Shariah Check ──────────────────────────────────────────────
@@ -1718,6 +1748,96 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               })}
             </div>
           </div>
+
+          {/* Turnover — volume alone cannot be compared across sizes. $101B is a
+              quiet day for BTC and impossible for a micro cap; against market
+              cap it becomes one number anyone can read. */}
+          {(() => {
+            const ratio = turnoverRatio(derivMetrics?.volume24h, signal?.market_cap);
+            if (ratio == null) return null;
+            const band = turnoverBand(ratio);
+            return (
+              <div
+                className="border-t border-ink/[0.06] px-3 py-2"
+                title={turnoverSentence(ratio)}
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    Turnover · 24h
+                  </span>
+                  <span className="font-mono text-[13px] font-semibold tabular-nums text-text-primary">
+                    {formatTurnover(ratio)}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
+                  {formatTurnover(ratio)} of this coin&rsquo;s market cap changed hands today —{" "}
+                  {band.label.toLowerCase()}, {band.share}. Volume is live; market cap is the figure
+                  recorded with the call.
+                </p>
+              </div>
+            );
+          })()}
+
+          {/* Your own fill. The badge above tracks the published entry, which is
+              almost never the price anyone actually got. */}
+          {(() => {
+            const myNum = Number(String(myEntry).replace(",", "."));
+            const valid = myEntry.trim() !== "" && Number.isFinite(myNum) && myNum > 0;
+            const rawPnl = valid && livePrice ? ((livePrice - myNum) / myNum) * 100 : null;
+            const myPnl = isShortDir && rawPnl !== null ? -rawPnl : rawPnl;
+            return (
+              <div className="border-t border-ink/[0.06] px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    Your entry
+                  </span>
+                  {myPnl !== null && (
+                    <span
+                      className={`font-mono text-[13px] font-semibold tabular-nums ${
+                        myPnl > 0 ? "text-positive" : myPnl < 0 ? "text-negative" : "text-text-muted"
+                      }`}
+                    >
+                      {myPnl > 0 ? "+" : myPnl < 0 ? "−" : ""}
+                      {Math.abs(myPnl).toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    aria-label="Your entry or average entry price"
+                    placeholder={signal?.entry ? formatPrice(signal.entry) : "Your fill"}
+                    value={myEntry}
+                    onChange={(e) => saveMyEntry(e.target.value)}
+                    className="min-h-9 w-full min-w-0 rounded-lg border border-ink/[0.12] bg-surface-secondary px-2.5 py-1.5 font-mono text-[13px] tabular-nums text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                  {myEntry.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() => saveMyEntry("")}
+                      className="min-h-9 shrink-0 rounded-lg px-2 text-[11px] text-text-muted hover:bg-ink/[0.05] hover:text-text-primary"
+                    >
+                      Clear
+                    </button>
+                  ) : signal?.entry ? (
+                    <button
+                      type="button"
+                      onClick={() => saveMyEntry(String(signal.entry))}
+                      className="min-h-9 shrink-0 whitespace-nowrap rounded-lg border border-ink/[0.12] px-2 text-[11px] text-text-secondary hover:bg-ink/[0.04] hover:text-text-primary"
+                    >
+                      Use call entry
+                    </button>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-[11px] leading-snug text-text-muted">
+                  {valid
+                    ? "Price change from your fill. Not a leveraged return, and fees and funding are not included."
+                    : "Enter your average fill to track it against the live price. Saved in this browser only."}
+                </p>
+              </div>
+            );
+          })()}
 
           {signalDetail?.enrichment && (
             <button

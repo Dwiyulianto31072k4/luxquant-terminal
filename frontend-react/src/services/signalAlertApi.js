@@ -127,9 +127,21 @@ export function criteriaIsEmpty(c) {
   );
 }
 
-export function criteriaToDeskState(c = {}) {
+export function criteriaToDeskState(c = {}, meta = {}) {
   // Preserve every rule. The backend also evaluates these for notifications.
-  return { extra: { criteria: structuredClone(c) }, searchPair: "" };
+  // `meta` carries which saved screen this is and whether it is actually
+  // alerting, so the desk can say so instead of an anonymous "Custom · active".
+  // A screen with unsaved edits arrives with no name on purpose: the rules on
+  // screen are no longer the rules that name refers to.
+  return {
+    extra: {
+      criteria: structuredClone(c),
+      name: meta.name || null,
+      notify: !!meta.notify,
+      telegram: !!meta.telegram,
+    },
+    searchPair: "",
+  };
 }
 
 export const MCAP_PRESETS = [

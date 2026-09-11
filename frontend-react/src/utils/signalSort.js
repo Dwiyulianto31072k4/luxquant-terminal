@@ -275,6 +275,14 @@ export function sortValue(signal, field, ctx = {}) {
       return { v: parseMcap(signal.market_cap), kind: "num" };
     case "volume":
       return { v: getVol(signal.pair), kind: "num" };
+    // Live volume against the market cap recorded with the call — the same
+    // ratio utils/turnover.js renders. Kept local because this module has no
+    // imports by design; a call missing either half has no turnover to rank.
+    case "turnover": {
+      const vol = getVol(signal.pair);
+      const mc = parseMcap(signal.market_cap);
+      return { v: vol > 0 && mc > 0 ? vol / mc : null, kind: "num" };
+    }
     case "win_streak":
       return { v: getStreak(signal.pair), kind: "num" };
     case "win_rate":

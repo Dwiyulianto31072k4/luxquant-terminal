@@ -1666,6 +1666,7 @@ const SignalsPage = () => {
     { value: "btc_corr", label: "BTC Alignment" },
     { value: "market_cap", label: "Market Cap" },
     { value: "volume", label: "Volume 24H" },
+    { value: "turnover", label: "Turnover (vol ÷ mcap)" },
   ];
 
   // Expanded on request, or automatically when the active sort is not one of
@@ -1964,6 +1965,7 @@ const SignalsPage = () => {
             <SignalsCustomCalls
               show
               active={!!mineExtra}
+              activeName={mineExtra?.name || null}
               tagWr={tagWr}
               pairs={allPairs}
               deskState={{
@@ -2102,8 +2104,40 @@ const SignalsPage = () => {
       </div>
 
       {mineExtra ? (
-        <div role="status" className="flex flex-wrap items-center gap-2 rounded-xl border border-ink/[0.07] bg-surface-raised p-3 text-sm text-text-secondary">
-          <span className="flex-1">{!customReady ? "Checking Custom rules…" : customMatch?.error ? "Custom could not load. Retry to see matching calls." : "Custom active · same rules as notifications. Days and search narrow this view."}</span>
+        <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-ink/[0.07] bg-surface-raised p-3 text-sm text-text-secondary">
+          <span className="flex-1 min-w-[12rem]">
+            {!customReady ? (
+              "Checking Custom rules…"
+            ) : customMatch?.error ? (
+              "Custom could not load. Retry to see matching calls."
+            ) : (
+              <>
+                {/* Which screen, and whether it is actually alerting. "Custom
+                    active · same rules as notifications" was true of a saved,
+                    enabled screen and wrong about every other one — and it
+                    never said WHICH screen was doing the filtering. */}
+                <span className="font-medium text-text-primary">
+                  {mineExtra.name ? `Custom: ${mineExtra.name}` : "Custom: unsaved rules"}
+                </span>
+                <span
+                  className={`ml-2 rounded-full px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
+                    mineExtra.notify
+                      ? "bg-profit/12 text-profit"
+                      : "bg-ink/[0.06] text-text-muted"
+                  }`}
+                >
+                  {mineExtra.notify ? "Alerts on" : "Alerts off"}
+                </span>
+                <span className="mt-0.5 block text-[12px] text-text-muted">
+                  {mineExtra.name
+                    ? mineExtra.notify
+                      ? "New calls matching this screen are sent to you. Days and search narrow this view."
+                      : "Saved, but not sending alerts. Days and search narrow this view."
+                    : "Save this screen to keep it or to get alerts. Days and search narrow this view."}
+                </span>
+              </>
+            )}
+          </span>
           {customMatch?.error && customReady ? <button type="button" className="min-h-11 px-3 text-accent" onClick={() => setCustomRetry((v) => v + 1)}>Retry</button> : null}
           <button type="button" className="min-h-11 px-3" onClick={() => setMineExtra(null)}>Clear Custom</button>
         </div>

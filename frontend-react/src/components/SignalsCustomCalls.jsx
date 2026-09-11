@@ -474,7 +474,7 @@ function FilterCard({ field, rule, total, onChange }) {
   );
 }
 
-export default function SignalsCustomCalls({ active = false, onApply, show }) {
+export default function SignalsCustomCalls({ active = false, activeName = null, onApply, show }) {
   const [open, setOpen] = useState(false);
   const [catalog, setCatalog] = useState(null);
   const [items, setItems] = useState([]);
@@ -591,7 +591,14 @@ export default function SignalsCustomCalls({ active = false, onApply, show }) {
     !loading && !legacy && !!wire && !checking && preview?.wire === wire && !preview?.error;
   function apply() {
     if (!ready) return;
-    onApply?.(criteriaToDeskState(prepared.criteria));
+    onApply?.(
+      criteriaToDeskState(prepared.criteria, {
+        // Only a saved, unedited screen may lend its name to the desk bar.
+        name: current && !dirty ? current.name : null,
+        notify: !!(current && !dirty && current.enabled),
+        telegram: !!(current && !dirty && telegram),
+      })
+    );
     setOpen(false);
   }
   async function save() {
@@ -629,7 +636,7 @@ export default function SignalsCustomCalls({ active = false, onApply, show }) {
         onClick={start}
         className={`${BUTTON} ${active ? "border-accent bg-accent/10" : "bg-surface-secondary"}`}
       >
-        Custom{active ? " · active" : ""}
+        Custom{activeName ? ` · ${activeName}` : active ? " · active" : ""}
       </button>
       <Modal
         isOpen={open}
