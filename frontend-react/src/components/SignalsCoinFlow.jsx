@@ -359,12 +359,14 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
               {/* Desktop table */}
               <div className="no-scrollbar -mx-1 hidden overflow-x-auto sm:block">
                 {/* Capped, not full-width: a row of small figures spread across a
-                    1600px desk puts a third of a screen between each number, and
+                    1900px desk puts a third of a screen between each number, and
                     the No call view drops to four columns where that is worse.
-                    The cap follows the column count. */}
+                    The cap follows the column count — and it is CENTRED, because
+                    a capped block pinned left just moves the same dead space to
+                    one side and makes the panel look half-loaded. */}
                 <table
-                  className={`w-full min-w-[480px] border-collapse ${
-                    showCallCols ? "max-w-[1000px]" : "max-w-[600px]"
+                  className={`mx-auto w-full min-w-[480px] border-collapse ${
+                    showCallCols ? "max-w-[1100px]" : "max-w-[640px]"
                   }`}
                 >
                   <thead>

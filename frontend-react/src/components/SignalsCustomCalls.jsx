@@ -692,7 +692,9 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
                 onClick={apply}
                 className="min-h-[44px] flex-1 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-accent-fg disabled:opacity-40"
               >
-                View results{ready ? ` · ${preview.signal_ids.length.toLocaleString()}` : ""}
+                {/* It does not preview anything — it puts these rules on the
+                    desk and closes. "View results" read like a dry run. */}
+                Activate{ready ? ` · ${preview.signal_ids.length.toLocaleString()}` : ""}
               </button>
               <button
                 type="button"
