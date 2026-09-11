@@ -49,8 +49,16 @@ AGE = "EXTRACT(EPOCH FROM (now() - {}::timestamptz)) / 86400.0"
 RECENCY = [preset('24 hours', 'lte', 1), preset('7 days', 'lte', 7), preset('30 days', 'lte', 30), preset('90 days', 'lte', 90)]
 
 field('pair', 'Pair', WHEN, 'choice', 's.pair', 'Exact pair from Signals. Select one or more pairs.', tier='primary', control='pairs')
-field('status', 'Status', WHEN, 'choice', "COALESCE(o.outcome, 'open')", 'Highest level the call reached. TP levels are exact; SL is a stopped signal.', tier='primary', control='chips')
-field('risk', 'Risk', WHEN, 'choice', "NULLIF(s.risk_level, '')", 'Original risk label on the signal. Medium and Normal remain separate.', tier='primary', control='chips')
+field('status', 'Status', WHEN, 'choice', "COALESCE(o.outcome, 'open')", 'Highest level the call reached. TP levels are exact; SL is a stopped signal.', tier='primary', control='chips', order_by="CASE value WHEN 'open' THEN 0 WHEN 'sl' THEN 9 ELSE 1 END, value")
+# The scraper changed case and spelling mid-book, and the screen was showing
+# every spelling as its own chip: picking "High" returned 10,279 calls out of
+# the 30,595 that are high risk, silently, because the other 20,316 are stored
+# as "high". The handover dates prove the pairs — "med" stops on 2026-02-09 and
+# "Medium" starts the same day — so casing and that one abbreviation fold, and
+# Medium and Normal, which really are different labels, stay apart.
+RISK = "CASE lower(NULLIF(s.risk_level, '')) WHEN 'med' THEN 'Medium' WHEN '' THEN NULL ELSE initcap(lower(s.risk_level)) END"
+RISK_ORDER = "CASE value WHEN 'Low' THEN 1 WHEN 'Normal' THEN 2 WHEN 'Medium' THEN 3 WHEN 'High' THEN 4 ELSE 5 END"
+field('risk', 'Risk', WHEN, 'choice', RISK, 'Risk label published with the signal. Older calls spelled these differently; the spellings are folded together, but Medium and Normal remain the separate labels they are.', tier='primary', control='chips', order_by=RISK_ORDER)
 # Without these two, "calls from the last 30 days" — the first question anyone
 # asks of a fifteen-month book — could not be expressed at all.
 field('called_days', 'Called', WHEN, 'number', AGE.format('s.created_at'), 'How long ago the call was published. The book runs from December 2023 to today.', tier='primary', control='recency', unit='days ago', min=0, presets=RECENCY)
@@ -209,7 +217,11 @@ def _build_catalog(db):
         source = BY_KEY[f['key']]['expr']
         f['available'] = coverage[index]
         if f['key'] in ('pair','risk','status'):
-            f['options'] = [r[0] for r in db.execute(text(f'SELECT DISTINCT ({source}) value {JOINS} WHERE s.created_at::timestamptz >= {BOOK_START} AND ({source}) IS NOT NULL ORDER BY value')).fetchall()]
+            # SELECT DISTINCT refuses an ORDER BY expression that is not in its
+            # select list, so the distinct pass is wrapped and the declared
+            # ordering — written against `value` — runs outside it.
+            order = BY_KEY[f['key']].get('order_by', 'value')
+            f['options'] = [r[0] for r in db.execute(text(f'SELECT value FROM (SELECT DISTINCT ({source}) value {JOINS} WHERE s.created_at::timestamptz >= {BOOK_START} AND ({source}) IS NOT NULL) t ORDER BY {order}')).fetchall()]
         elif f['key'] == 'tags':
             f['options'] = [r[0] for r in db.execute(text(f"SELECT DISTINCT t->>'name' value FROM signals s JOIN signal_enrichment e USING(signal_id) CROSS JOIN LATERAL jsonb_array_elements(COALESCE({TAGS}, '[]'::jsonb)) t WHERE s.created_at::timestamptz >= {BOOK_START} AND (t->>'important')::boolean IS TRUE ORDER BY value")).fetchall()]
     row = db.execute(text(f'SELECT count(*), {BOOK_START}, now() FROM signals s WHERE s.created_at::timestamptz >= {BOOK_START}')).one()

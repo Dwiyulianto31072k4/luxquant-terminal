@@ -148,7 +148,10 @@ function TagPicker({ field, rule, onChange }) {
     onChange(next.length ? { field: field.key, op: nextOp, value: next } : null);
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {/* Labelled so a highlighted mode reads as a setting, not as a filter
+            that is already narrowing anything. */}
+        <span className="text-[10px] uppercase tracking-wide text-text-muted">Match</span>
         {["any", "all", "none"].map((o) => (
           <button
             key={o}
