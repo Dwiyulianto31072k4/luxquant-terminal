@@ -983,11 +983,17 @@ const SignalsTable = ({
       label = "Open";
       live = true;
     } else if (s === "closed_loss" || s === "sl") {
+      // "SL" for the same reason closed_win now reads TP4: it names the level
+      // that was hit. "Loss" asserted a financial outcome the desk does not
+      // measure — a call that touched TP1 and later stopped out is recorded as
+      // a win by the published definition, and could well have been one.
       cls = "bg-negative/12 text-loss";
-      label = "Loss";
+      label = "SL";
     } else if (s === "closed_win") {
+      // closed_win is exactly tp4 (see outcome_to_status in signals.py), and
+      // "Win" was the only status that did not name the level it reached.
       cls = "bg-profit/12 text-profit";
-      label = "Win";
+      label = "TP4";
     } else if (s.startsWith("tp")) {
       cls = "bg-profit/12 text-profit";
       label = s.toUpperCase();
@@ -1243,6 +1249,25 @@ const SignalsTable = ({
       railSpan && v != null ? Math.max(0, Math.min(100, ((Number(v) - railLo) / railSpan) * 100)) : null;
     const entryAt = at(signal.entry);
     const nowAt = at(currentPrice);
+    // Which rung this call actually reached. The card already said "Win" in the
+    // corner, but the rail drew the same picture whether a call had touched TP4
+    // or never left entry — the one fact a closed call is read for was missing
+    // from the one place that shows the journey.
+    const st = String(signal.status || "").toLowerCase();
+    const reachedTp =
+      st === "closed_win" || st === "tp4"
+        ? 4
+        : st === "tp3"
+          ? 3
+          : st === "tp2"
+            ? 2
+            : st === "tp1"
+              ? 1
+              : 0;
+    const stoppedOut = st === "sl" || st === "closed_loss";
+    const tpLevels = [signal.target1, signal.target2, signal.target3, signal.target4];
+    const reachedPrice = reachedTp > 0 ? tpLevels[reachedTp - 1] : stoppedOut ? sl : null;
+    const reachedAt = at(reachedPrice);
 
     return (
       <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
@@ -1334,6 +1359,36 @@ const SignalsTable = ({
                         }}
                       />
                     ) : null}
+                    {/* How far it got, drawn solid over the live band: on a call
+                        that has closed, where the price is now and how far it
+                        travelled are two different facts. */}
+                    {reachedAt != null && entryAt != null ? (
+                      <span
+                        className={`absolute top-0 h-full rounded-full ${
+                          stoppedOut ? "bg-loss" : "bg-profit"
+                        }`}
+                        style={{
+                          left: `${Math.min(entryAt, reachedAt)}%`,
+                          width: `${Math.abs(reachedAt - entryAt)}%`,
+                        }}
+                      />
+                    ) : null}
+                    {/* Every rung, so an unreached one is visibly unreached. */}
+                    {tpLevels.map((tp, i) => {
+                      const pos = at(tp);
+                      if (pos == null) return null;
+                      const hit = i < reachedTp;
+                      return (
+                        <span
+                          key={`tp${i}`}
+                          title={`TP${i + 1} ${formatPrice(tp)}${hit ? " — reached" : ""}`}
+                          className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-sm ${
+                            hit ? "h-3 w-[3px] bg-profit" : "h-2 w-px bg-ink/30"
+                          }`}
+                          style={{ left: `${pos}%` }}
+                        />
+                      );
+                    })}
                     <span
                       className="absolute top-1/2 h-3 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-text-muted"
                       style={{ left: `${entryAt}%` }}
@@ -1353,8 +1408,14 @@ const SignalsTable = ({
                   {/* Three labels, not two: an unlabelled tick between Stop and
                       Target is the one mark on the card a reader has to guess at. */}
                   <div className="relative mt-1 h-3 font-mono text-[9px] uppercase tracking-wide text-text-muted">
-                    <span className="absolute left-0">
-                      {Number(sl) < Number(maxTarget) ? "Stop" : "Target"}
+                    <span
+                      className={`absolute left-0 ${stoppedOut ? "font-semibold text-loss" : ""}`}
+                    >
+                      {Number(sl) < Number(maxTarget)
+                        ? stoppedOut
+                          ? "Stop ✓"
+                          : "Stop"
+                        : "Target"}
                     </span>
                     <span
                       className="absolute -translate-x-1/2 whitespace-nowrap text-text-secondary"
@@ -1362,9 +1423,31 @@ const SignalsTable = ({
                     >
                       Entry
                     </span>
-                    <span className="absolute right-0">
-                      {Number(sl) < Number(maxTarget) ? "Target" : "Stop"}
+                    {/* The far end is TP4 by construction, so when the call got
+                        there the end label says so rather than staying generic. */}
+                    <span
+                      className={`absolute right-0 ${reachedTp === 4 ? "font-semibold text-profit" : ""}`}
+                    >
+                      {Number(sl) < Number(maxTarget)
+                        ? reachedTp === 4
+                          ? "TP4 ✓"
+                          : "Target"
+                        : "Stop"}
                     </span>
+                    {/* A rung short of the end gets its own marker where it sits.
+                        Held clear of the Entry label, which is only a few percent
+                        away on a tight ladder. */}
+                    {reachedTp > 0 && reachedTp < 4 && reachedAt != null ? (
+                      <span
+                        className="absolute -translate-x-1/2 whitespace-nowrap font-semibold text-profit"
+                        style={{
+                          left: `${Math.max(Math.min(entryAt + 16, 82), Math.min(reachedAt, 82))}%`,
+                        }}
+                      >
+                        TP{reachedTp} ✓
+                      </span>
+                    ) : null}
+
                   </div>
                 </div>
               ) : null}
