@@ -9,6 +9,8 @@ import {
   turnoverSentence,
   turnoverToneClass,
 } from "../utils/turnover";
+import { readAllMyEntries, myEntryPnl, MY_ENTRY_EVENT } from "../utils/myEntries";
+import { isShortSignal } from "../utils/signalDirection";
 import StarButton from "./StarButton";
 import { useAuth } from "../context/AuthContext";
 import { watchlistApi } from "../services/watchlistApi";
@@ -471,6 +473,19 @@ const SignalsTable = ({
     );
 
   // ── Column visibility (desktop table) ──
+  // Fills saved from the signal modal. Re-read on the modal's own event (same
+  // tab) and on `storage` (another tab), because neither one covers both.
+  const [myEntries, setMyEntries] = useState(readAllMyEntries);
+  useEffect(() => {
+    const refresh = () => setMyEntries(readAllMyEntries());
+    window.addEventListener(MY_ENTRY_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(MY_ENTRY_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
   const [visibleCols, setVisibleCols] = useState(loadVisibleCols);
   // Not persisted and not toggleable: this is the wall, not a preference. A
   // subscriber's own saved choice is left untouched underneath.
@@ -1374,6 +1389,30 @@ const SignalsTable = ({
                     </span>
                   ) : null}
                 </span>
+                {(() => {
+                  const mine = myEntries[signal.signal_id];
+                  if (!mine) return null;
+                  const pnl = myEntryPnl(mine, currentPrice, isShortSignal(signal));
+                  return (
+                    <span
+                      className="flex items-baseline gap-1.5"
+                      title="Your own fill, saved on this device"
+                    >
+                      <span className="text-[11px] text-text-muted">Your fill</span>
+                      <span className="font-mono text-[11px] tabular-nums text-text-secondary">
+                        {formatPrice(mine)}
+                      </span>
+                      {pnl != null ? (
+                        <span
+                          className={`font-mono text-[11px] font-medium tabular-nums ${pnl >= 0 ? "text-profit" : "text-loss"}`}
+                        >
+                          {pnl >= 0 ? "+" : ""}
+                          {pnl.toFixed(2)}%
+                        </span>
+                      ) : null}
+                    </span>
+                  );
+                })()}
                 {showVerdict && v && v.coin?.win_rate != null ? (
                   <span
                     className="flex items-baseline gap-1.5"
@@ -1815,7 +1854,29 @@ const SignalsTable = ({
                     <SortableHeader field="volume" label="Vol 24h" align="right" />
                   )}
                   {effectiveCols.turnover && (
-                    <SortableHeader field="turnover" label="Turnover" align="right" />
+                    <th className="select-none px-3 py-2.5 text-right">
+                      <span className="inline-flex items-center justify-end gap-1.5 text-[11px] font-medium">
+                        {/* The explanation belongs beside the number, not in a
+                            hover title a phone can never open. */}
+                        <InfoTip
+                          side="bottom"
+                          title="Turnover · 24h"
+                          text="24h volume divided by market cap — how much of the coin changed hands today. Volume is live; market cap is the figure recorded with the call. Across coins: very heavy is 30%+ (top 5%), heavy 10–30%, active 4–10%, and half of all coins sit below 4%. It measures activity, not direction."
+                        />
+                        <button
+                          type="button"
+                          title={
+                            sortRank("turnover")
+                              ? `Sort level ${sortRank("turnover")} · Shift+click to stack`
+                              : "Click sort · Shift+click add"
+                          }
+                          onClick={(e) => onSort && onSort("turnover", e)}
+                          className={`inline-flex items-center gap-0.5 transition-colors ${sortRank("turnover") ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
+                        >
+                          Turnover
+                        </button>
+                      </span>
+                    </th>
                   )}
                   {effectiveCols.track_record && (
                     <th className="select-none px-3 py-2.5 text-center">
@@ -2029,6 +2090,27 @@ const SignalsTable = ({
                             <span className="whitespace-nowrap font-mono text-[13px] tabular-nums text-text-secondary">
                               {formatPrice(signal.entry)}
                             </span>
+                            {(() => {
+                              const mine = myEntries[signal.signal_id];
+                              if (!mine) return null;
+                              const pnl = myEntryPnl(mine, currentPrice, isShortSignal(signal));
+                              return (
+                                <span
+                                  className="mt-0.5 block whitespace-nowrap font-mono text-[10px] tabular-nums text-text-muted"
+                                  title="Your own fill, saved on this device"
+                                >
+                                  you {formatPrice(mine)}
+                                  {pnl != null ? (
+                                    <span
+                                      className={`ml-1 font-medium ${pnl >= 0 ? "text-profit" : "text-loss"}`}
+                                    >
+                                      {pnl >= 0 ? "+" : ""}
+                                      {pnl.toFixed(2)}%
+                                    </span>
+                                  ) : null}
+                                </span>
+                              );
+                            })()}
                           </td>
                         )}
 
@@ -2311,8 +2393,8 @@ const SignalsTable = ({
                               const showHint = showVerdictHint && idx === firstVerdictIdx;
                               const modalCoin = v.fullCoin || v.coin;
                               const title = v.asOfEntry
-                                ? "This pair’s record excluding this call’s own outcome — a record, not a prediction"
-                                : "This pair’s record — a record, not a prediction";
+                                ? `${rate}% of this pair's ${closed ?? 0} past calls reached TP1 or better, excluding this call's own outcome — a record, not a prediction`
+                                : `${rate}% of this pair's ${closed ?? 0} past calls reached TP1 or better — a record, not a prediction`;
                               return (
                                 <div className="relative inline-block">
                                   <button
@@ -2332,7 +2414,10 @@ const SignalsTable = ({
                                   >
                                     <span>{rate}%</span>
                                     {closed != null && (
-                                      <span className="text-[10px] opacity-60">n={closed}</span>
+                                      // "n=99" is a statistician's shorthand in a
+                                      // column read by traders; "of 99" says the
+                                      // same thing without the training.
+                                      <span className="text-[10px] opacity-60">of {closed}</span>
                                     )}
                                     <svg
                                       className="h-2.5 w-2.5 opacity-50 transition-all group-hover/vd:translate-x-0.5 group-hover/vd:opacity-100"

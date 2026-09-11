@@ -24,6 +24,8 @@ import {
   formatTurnover,
   turnoverSentence,
 } from "../utils/turnover";
+import { readMyEntry, writeMyEntry } from "../utils/myEntries";
+import { InfoTip } from "./GuideInfo";
 import { shareSignal } from "../services/shareSignal";
 import IndicatorGuideModal from "./IndicatorGuideModal";
 import {
@@ -91,24 +93,16 @@ const SignalModal = ({
   // reader can clear it by emptying the box. Wrapped because a private window
   // or blocked site data makes the accessor itself throw.
   const [myEntry, setMyEntry] = useState("");
-  const myEntryKey = signal?.signal_id ? `lq:signal:my-entry:${signal.signal_id}` : null;
+  const mySignalId = signal?.signal_id || null;
   useEffect(() => {
-    if (!myEntryKey) return;
-    try {
-      setMyEntry(localStorage.getItem(myEntryKey) || "");
-    } catch {
-      setMyEntry("");
-    }
-  }, [myEntryKey]);
+    const saved = readMyEntry(mySignalId);
+    setMyEntry(saved != null ? String(saved) : "");
+  }, [mySignalId]);
   const saveMyEntry = (value) => {
     setMyEntry(value);
-    if (!myEntryKey) return;
-    try {
-      if (value.trim()) localStorage.setItem(myEntryKey, value.trim());
-      else localStorage.removeItem(myEntryKey);
-    } catch {
-      /* storage unavailable — the figure still works for this session */
-    }
+    // Written through the shared store so the desk behind this modal picks the
+    // change up in the same tab — `storage` alone never fires on the writer.
+    writeMyEntry(mySignalId, value);
   };
   const [showCoinUtility, setShowCoinUtility] = useState(false);
 
@@ -1762,18 +1756,19 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 title={turnoverSentence(ratio)}
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Turnover · 24h
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Turnover · 24h
+                    </span>
+                    <InfoTip side="bottom" title="Turnover · 24h" text={turnoverSentence(ratio)} />
                   </span>
-                  <span className="font-mono text-[13px] font-semibold tabular-nums text-text-primary">
-                    {formatTurnover(ratio)}
+                  <span className="inline-flex items-baseline gap-1.5">
+                    <span className="font-mono text-[13px] font-semibold tabular-nums text-text-primary">
+                      {formatTurnover(ratio)}
+                    </span>
+                    <span className="text-[11px] text-text-muted">{band.label.toLowerCase()}</span>
                   </span>
                 </div>
-                <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
-                  {formatTurnover(ratio)} of this coin&rsquo;s market cap changed hands today —{" "}
-                  {band.label.toLowerCase()}, {band.share}. Volume is live; market cap is the figure
-                  recorded with the call.
-                </p>
               </div>
             );
           })()}
@@ -1832,8 +1827,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 </div>
                 <p className="mt-1 text-[11px] leading-snug text-text-muted">
                   {valid
-                    ? "Price change from your fill. Not a leveraged return, and fees and funding are not included."
-                    : "Enter your average fill to track it against the live price. Saved in this browser only."}
+                    ? "Saved — this call now shows your fill on the desk too. Price change from your fill: not a leveraged return, and fees and funding are not included."
+                    : "Enter your average fill to track it against the live price. Kept in this browser only."}
                 </p>
               </div>
             );
