@@ -1036,6 +1036,18 @@ const SignalsTable = ({
     );
   };
 
+  // "11 Sep 20:51". The desktop Called column already printed this shape; the
+  // card only ever had "9m ago", which says how long but never when.
+  const formatCalledAt = (dt) => {
+    if (!dt) return null;
+    const d = new Date(dt);
+    if (Number.isNaN(d.getTime())) return null;
+    return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} ${d.toLocaleTimeString(
+      "en-GB",
+      { hour: "2-digit", minute: "2-digit", hour12: false }
+    )}`;
+  };
+
   const formatTimeAgo = (dt) => {
     if (!dt) return "";
     const now = new Date();
@@ -1285,9 +1297,19 @@ const SignalsTable = ({
                   the rest steps down a level. */}
               <div className="flex min-h-9 items-center gap-2 pr-9">
                 <CoinLogo pair={signal.pair} size={28} />
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
-                  {getCoinName(signal.pair)}
-                  <span className="text-text-muted">/USDT</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-text-primary">
+                    {getCoinName(signal.pair)}
+                    <span className="text-text-muted">/USDT</span>
+                  </span>
+                  {signal.created_at ? (
+                    <span
+                      className="block truncate font-mono text-[10.5px] tabular-nums text-text-muted"
+                      title={`Called ${formatTimeAgo(signal.created_at)}`}
+                    >
+                      {formatCalledAt(signal.created_at)}
+                    </span>
+                  ) : null}
                 </span>
                 {getStatusBadge(signal.status)}
               </div>
@@ -1300,9 +1322,10 @@ const SignalsTable = ({
                       {getRiskLabel(signal.risk_level)}
                     </span>
                   ) : null}
+                  {/* formatTimeAgo already carries the word. */}
                   {showCalled && signal.created_at ? (
                     <span className="font-mono tabular-nums">
-                      called {formatTimeAgo(signal.created_at)}
+                      {formatTimeAgo(signal.created_at)}
                     </span>
                   ) : null}
                 </div>
@@ -1496,12 +1519,19 @@ const SignalsTable = ({
                     </span>
                   );
                 })()}
+                {/* "Win rate" is what the desk calls this everywhere else —
+                    Desk WR and Lifetime WR sit at the top of the same page — so
+                    spelling the definition out on the card made one number read
+                    as a different quantity from its own header. The definition
+                    lives in the tooltip instead, where it is still one tap away
+                    and still says TP1+, because the published rate means the
+                    highest level reached and not profit. */}
                 {showVerdict && v && v.coin?.win_rate != null ? (
                   <span
                     className="flex items-baseline gap-1.5"
-                    title={`This pair has closed ${v.coin.closed_trades ?? 0} calls, ${v.coin.win_rate}% of which reached TP1 or better`}
+                    title={`${v.coin.win_rate}% of this pair's ${v.coin.closed_trades ?? 0} closed calls reached TP1 or better — the same definition as the desk win rate, so it counts levels reached, not profit`}
                   >
-                    <span className="text-[11px] text-text-muted">This pair</span>
+                    <span className="text-[11px] text-text-muted">Pair WR</span>
                     <span
                       className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${
                         v.band === "below"
@@ -1511,15 +1541,18 @@ const SignalsTable = ({
                             : "bg-ink/[0.04] text-text-secondary"
                       }`}
                     >
-                      {v.coin.win_rate}% of {v.coin.closed_trades ?? 0} past calls hit TP1+
+                      {v.coin.win_rate}%
+                    </span>
+                    <span className="text-[11px] text-text-muted">
+                      of {v.coin.closed_trades ?? 0} calls
                     </span>
                   </span>
                 ) : showVerdict && wr != null ? (
                   <span
                     className="flex items-baseline gap-1.5"
-                    title="Share of this pair's past calls that reached TP1 or better"
+                    title="This pair's win rate — the share of its closed calls that reached TP1 or better"
                   >
-                    <span className="text-[11px] text-text-muted">This pair</span>
+                    <span className="text-[11px] text-text-muted">Pair WR</span>
                     <span
                       className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums ${wr >= 70 ? "bg-profit/12 text-profit" : wr >= 50 ? "bg-accent/12 text-accent" : "bg-negative/12 text-loss"}`}
                     >
