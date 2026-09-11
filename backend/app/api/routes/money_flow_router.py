@@ -211,7 +211,11 @@ def money_flow_macro(db: Session = Depends(get_db)):
 # ════════════════════════════════════════════
 @router.get("/coins")
 def money_flow_coins(
-    limit: int = Query(30, ge=1, le=100),
+    # A snapshot holds 250 coins and 108 of them are currently called. Capping
+    # the reply at 100 of the busiest meant any "called" view built on this
+    # endpoint could only ever see 45 of those 108 — a screen that silently
+    # hides more than it shows. The cap is now the snapshot itself.
+    limit: int = Query(30, ge=1, le=250),
     luxquant_only: bool = Query(False, description="Cuma koin yang lagi di-call LuxQuant"),
     db: Session = Depends(get_db),
 ):

@@ -892,7 +892,7 @@ const SignalsPage = () => {
     refreshWatchlist();
   }, [refreshWatchlist]);
 
-  // Coin Flow Intensity (top-10, exclude stablecoin) untuk strip — sumber Money Flow.
+  // Coin Flow Intensity (exclude stablecoin) untuk strip — sumber Money Flow.
   useEffect(() => {
     let alive = true;
     const STABLE = new Set([
@@ -913,14 +913,18 @@ const SignalsPage = () => {
       "USR",
       "USD1",
     ]);
+    // The whole snapshot, not its busiest eightieth. Coin flow can filter to
+    // the coins LuxQuant has called, and 63 of the 108 called coins rank below
+    // 80th by turnover — asking for 80 made that filter hide more than half of
+    // its own subject while looking complete.
     import("../services/moneyFlowApi")
-      .then((m) => m.default.getCoins({ limit: 80 }))
+      .then((m) => m.default.getCoins({ limit: 250 }))
       .then((res) => {
         const coins = Array.isArray(res) ? res : res?.coins || [];
         const filtered = (coins || []).filter(
           (c) => c.symbol && !STABLE.has(c.symbol.toUpperCase())
         );
-        if (alive) setFlowCoins(filtered.slice(0, 60));
+        if (alive) setFlowCoins(filtered);
       })
       .catch(() => {});
     return () => {
