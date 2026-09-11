@@ -25,7 +25,7 @@ BOOK_START = (
     if BOOK_DAYS > 0
     else "'1970-01-01'::timestamptz"
 )
-JOINS = "FROM signals s LEFT JOIN signal_enrichment e USING(signal_id) LEFT JOIN signal_btc_correlation bc USING(signal_id) LEFT JOIN _cache_outcomes o USING(signal_id)"
+JOINS = "FROM signals s LEFT JOIN signal_enrichment e USING(signal_id) LEFT JOIN signal_btc_correlation bc USING(signal_id) LEFT JOIN _cache_outcomes o USING(signal_id) LEFT JOIN _cache_last_updates lu USING(signal_id)"
 TAGS = "COALESCE(e.entry_snapshot->'facts'->'tags_annotated', e.entry_snapshot->'tags_annotated')"
 MCAP_CLEAN = "upper(regexp_replace(coalesce(s.market_cap, ''), '[,$[:space:]]', '', 'g'))"
 MCAP = f"CASE WHEN {MCAP_CLEAN} ~ '^[0-9]+([.][0-9]+)?[KMBT]?$' THEN regexp_replace({MCAP_CLEAN}, '[KMBT]$', '')::numeric * CASE right({MCAP_CLEAN},1) WHEN 'T' THEN 1e12 WHEN 'B' THEN 1e9 WHEN 'M' THEN 1e6 WHEN 'K' THEN 1e3 ELSE 1 END ELSE NULL END"
@@ -34,21 +34,57 @@ FIELDS = []
 def field(key, label, group, kind, expr, hint, **extra):
     FIELDS.append(dict(key=key, label=label, group=group, kind=kind, expr=expr, hint=hint, **extra))
 
-field('pair', 'Pair', 'Signal', 'choice', 's.pair', 'Exact pair from Signals. Select one or more pairs.')
-field('status', 'Status', 'Signal', 'choice', "COALESCE(o.outcome, 'open')", 'Current outcome, as shown on the signal. TP levels are exact; SL is a stopped signal.')
-field('risk', 'Risk', 'Signal', 'choice', "NULLIF(s.risk_level, '')", 'Original risk label on the signal. Medium and Normal remain separate.')
-field('tags', 'Tags', 'Deep Analysis', 'tags', TAGS, 'Important tags from the stored entry analysis, as shown in Signal details. Some historical context tags were reconstructed later.')
-field('entry', 'Entry', 'Entry & Targets', 'number', 's.entry', 'Published entry price, in USDT.', unit='USDT', min=0)
+def preset(label, op, value):
+    return {'label': label, 'op': op, 'value': value}
+
+# Groups are the question a person is asking, not the table the value lives in.
+# "Entry & Targets" mixed a coin's price with the size of its move; those are
+# different questions and only one of them can be compared across pairs.
+WHEN, MOVE, LIQ, BTC, DEEP = 'What & when', 'Move size', 'Liquidity', 'Bitcoin', 'Analysis'
+LADDER, PRICES, BTCX = 'Ladder detail', 'Published prices', 'BTC detail'
+
+# Age in days, from a TEXT timestamp column. Both created_at and last_update_at
+# are stored as text in production, so the cast is not optional.
+AGE = "EXTRACT(EPOCH FROM (now() - {}::timestamptz)) / 86400.0"
+RECENCY = [preset('24 hours', 'lte', 1), preset('7 days', 'lte', 7), preset('30 days', 'lte', 30), preset('90 days', 'lte', 90)]
+
+field('pair', 'Pair', WHEN, 'choice', 's.pair', 'Exact pair from Signals. Select one or more pairs.', tier='primary', control='pairs')
+field('status', 'Status', WHEN, 'choice', "COALESCE(o.outcome, 'open')", 'Highest level the call reached. TP levels are exact; SL is a stopped signal.', tier='primary', control='chips')
+field('risk', 'Risk', WHEN, 'choice', "NULLIF(s.risk_level, '')", 'Original risk label on the signal. Medium and Normal remain separate.', tier='primary', control='chips')
+# Without these two, "calls from the last 30 days" — the first question anyone
+# asks of a fifteen-month book — could not be expressed at all.
+field('called_days', 'Called', WHEN, 'number', AGE.format('s.created_at'), 'How long ago the call was published. The book runs from December 2023 to today.', tier='primary', control='recency', unit='days ago', min=0, presets=RECENCY)
+field('updated_days', 'Last move', WHEN, 'number', AGE.format('lu.last_update_at'), 'How long ago this call last hit a TP or SL. A call that has never moved has no value here.', tier='primary', control='recency', unit='days ago', min=0, presets=RECENCY[:3])
+
+# TP1:TP2:TP3:TP4 are fixed multiples of one distance and SL is another multiple
+# of it. Measured on the live book: corr(TP1%, TP4%) = 0.994, corr(TP1%, SL%) =
+# 0.981. Filtering two rungs at once is filtering the same number twice, and
+# opposite bounds on two rungs (TP1% >= 5 with TP4% <= 10) match exactly nothing.
+# So one rung is promoted to stand for the whole ladder and the rest move to
+# Ladder detail, where family='ladder' lets the screen warn about the collision.
+field('tp4_pct', 'Target size', MOVE, 'number', 'round(((s.target4::numeric - s.entry::numeric) / NULLIF(s.entry::numeric, 0) * 100), 2)', 'Distance from Entry to the final target, in percent. The other targets sit at fixed fractions of this, so this one number describes the whole ladder.', tier='primary', control='range', unit='%', sublabel='Entry → TP4', family='ladder', presets=[preset('Small · under 10%', 'lte', 10), preset('Normal · 10–20%', 'between', [10, 20]), preset('Big · 20%+', 'gte', 20)])
+field('sl_distance', 'Stop distance', MOVE, 'number', 'abs(s.entry - s.stop1) / NULLIF(abs(s.entry), 0) * 100', 'Distance from Entry to SL1: |Entry − SL1| ÷ |Entry| × 100. Moves with the target size, at roughly a fifth of it.', tier='primary', control='range', unit='%', sublabel='Entry → SL1', family='ladder', min=0, presets=[preset('Tight · under 2.5%', 'lte', 2.5), preset('Normal · 2.5–4.5%', 'between', [2.5, 4.5]), preset('Wide · 4.5%+', 'gte', 4.5)])
+
+field('mcap', 'Market cap', LIQ, 'number', MCAP, 'Market cap recorded with the signal, in USD. This is not the live Market sheet value.', tier='primary', control='range', unit='USD', min=0, presets=[preset('Micro · under $10m', 'lte', 1e7), preset('Small · $10–100m', 'between', [1e7, 1e8]), preset('Mid · $100m–1b', 'between', [1e8, 1e9]), preset('Large · $1b+', 'gte', 1e9)])
+field('volume_rank', 'Volume rank', LIQ, 'number', 's.volume_rank_num', 'Published volume rank (#) at call time. Lower is a busier coin. Not Vol 24h or order-book liquidity.', tier='primary', control='range', unit='#', sublabel='lower is busier', min=1, integer=True, presets=[preset('Top 100', 'lte', 100), preset('Top 250', 'lte', 250), preset('Top 500', 'lte', 500)])
+
+field('tags', 'Tags', DEEP, 'tags', TAGS, 'Important tags from the stored entry analysis, as shown in Signal details. Some historical context tags were reconstructed later.', tier='primary', control='tags')
+
+for n in range(1, 4):
+    field(f'tp{n}_pct', f'TP{n} %', LADDER, 'number', f'round(((s.target{n}::numeric - s.entry::numeric) / NULLIF(s.entry::numeric, 0) * 100), 2)', f'Percentage from Entry to TP{n}. Moves with Target size — filtering both rarely does what it looks like.', unit='%', family='ladder')
+# Absolute prices span seven orders of magnitude on this book — 0.00000925 to
+# 124,300 — so no threshold means the same thing on two different pairs. They
+# describe a result; they cannot screen across the book. Kept valid so saved
+# screens keep working, kept out of the way so nobody reaches for them first.
+field('entry', 'Entry', PRICES, 'number', 's.entry', 'Published entry price, in USDT. A price threshold only compares within one pair.', unit='USDT', min=0)
 for n in range(1, 5):
-    field(f'tp{n}', f'TP{n}', 'Entry & Targets', 'number', f's.target{n}', f'Published TP{n} price, in USDT. A missing target is unavailable.', unit='USDT', min=0)
-    field(f'tp{n}_pct', f'TP{n} %', 'Entry & Targets', 'number', f'round(((s.target{n}::numeric - s.entry::numeric) / NULLIF(s.entry::numeric, 0) * 100), 2)', f'Percentage from Entry to TP{n}, as shown beside the level. Signed price change, not leveraged return.', unit='%')
+    field(f'tp{n}', f'TP{n}', PRICES, 'number', f's.target{n}', f'Published TP{n} price, in USDT. A missing target is unavailable.', unit='USDT', min=0)
 for n in (1, 2):
-    field(f'sl{n}', f'SL{n}', 'Entry & Targets', 'number', f's.stop{n}', f'Published SL{n} price. SL1 is shown as SL when there is only one stop.', unit='USDT', min=0)
-field('sl_distance', 'SL distance', 'Entry & Targets', 'number', 'abs(s.entry - s.stop1) / NULLIF(abs(s.entry), 0) * 100', 'Distance from Entry to SL1: |Entry − SL1| ÷ |Entry| × 100. Uses the published levels.', unit='%', min=0)
-field('mcap', 'MCap', 'Market', 'number', MCAP, 'Market cap recorded with the signal, in USD. This is not the live Market sheet value.', unit='USD', min=0)
-field('volume_rank', 'Volume Rank', 'Market', 'number', 's.volume_rank_num', 'Published volume rank numerator (#). Lower is a higher rank. Not Vol 24h or order-book liquidity.', unit='#', min=1, integer=True)
+    field(f'sl{n}', f'SL{n}', PRICES, 'number', f's.stop{n}', f'Published SL{n} price. SL1 is shown as SL when there is only one stop.', unit='USDT', min=0)
+
+field('btc_align', 'BTC alignment', BTC, 'number', "CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' THEN (bc.interpretation->>'alignment_score')::numeric END", 'Composite BTC alignment score, not a win probability or correlation percentage.', tier='primary', control='range', min=0, max=100, presets=[preset('Low · under 50', 'lte', 50), preset('Medium · 50–65', 'between', [50, 65]), preset('High · 65+', 'gte', 65)])
+field('btc_decoupled', 'Decoupled from BTC', BTC, 'boolean', "CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' AND bc.corr_4h_30d IS NOT NULL THEN bc.is_decoupled END", 'BTC Correlation flag: |z-score| > 2 and |correlation| < 0.5. Unavailable analysis is neither Yes nor No.', tier='primary', control='bool')
 for key, label, column, hint, limits in [
-    ('btc_align', 'BTC Alignment', "(bc.interpretation->>'alignment_score')::numeric", 'Composite BTC alignment score, not a win probability or correlation percentage.', {'min':0,'max':100}),
     ('btc_rho', 'Correlation ρ', 'bc.corr_4h_30d', 'Long-window Pearson correlation with BTC. −1 opposite, 0 no linear relationship, +1 same direction. Up to 720 hourly samples.', {'min':-1,'max':1}),
     ('btc_rho_short', 'Correlation ρ · 7d', 'bc.corr_1h_7d', 'Short-window correlation with BTC, up to 168 hourly samples. Check Sample size and Confidence.', {'min':-1,'max':1}),
     ('btc_beta', 'Beta', 'bc.beta_30d', 'Sensitivity to BTC returns, as shown in BTC Correlation. Negative values are valid.', {}),
@@ -57,14 +93,18 @@ for key, label, column, hint, limits in [
     ('btc_tail_down', 'Tail ρ (BTC ↓)', 'bc.tail_corr_btc_down', 'Correlation on hourly BTC returns below their mean, matching Advanced Metrics. Requires sufficient tail samples.', {'min':-1,'max':1}),
     ('btc_tail_up', 'Tail ρ (BTC ↑)', 'bc.tail_corr_btc_up', 'Correlation on hourly BTC returns above their mean, matching Advanced Metrics.', {'min':-1,'max':1}),
     ('btc_downside_beta', 'Downside β', 'bc.downside_beta', 'Beta on BTC-below-mean hourly returns, as shown in Advanced Metrics.', {}),
-    ('btc_lead_lag', 'Lead/Lag', 'bc.lead_lag_hours', 'Estimated hours: positive means the coin leads BTC; negative means it lags. Not a prediction.', {'integer':True,'unit':'h'}),
     ('btc_vol_ratio', 'Vol Ratio', 'bc.volatility_ratio', 'Coin volatility divided by BTC volatility, as shown in Advanced Metrics.', {'min':0,'unit':'×'}),
     ('btc_coin_vol', 'Coin annualized volatility', 'bc.coin_volatility_pct', 'Annualized volatility from hourly returns, as shown under Advanced Metrics.', {'min':0,'unit':'%'}),
-    ('btc_samples', 'Sample size', 'bc.sample_size', 'Number of overlapping samples used for BTC analysis. A nominal window may have fewer samples.', {'min':1,'integer':True}),
+    # Neither of these separates anything on this book: lead/lag is 0 from the
+    # 25th to the 95th percentile, and sample size runs 979 to 999. They stay
+    # filterable because saved screens may use them, and stay last because a
+    # filter that cannot divide the book is not a filter.
+    ('btc_lead_lag', 'Lead/Lag', 'bc.lead_lag_hours', 'Estimated hours: positive means the coin leads BTC; negative means it lags. Nearly every signal on this book is 0.', {'integer':True,'unit':'h'}),
+    ('btc_samples', 'Sample size', 'bc.sample_size', 'Number of overlapping samples used for BTC analysis. A data-quality note rather than a screening criterion: almost every signal has 979–999.', {'min':1,'integer':True}),
 ]:
-    field(key, label, 'BTC Correlation', 'number', f"CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' THEN {column} END", hint, **limits)
-field('btc_confidence', 'Confidence · BTC', 'BTC Correlation', 'choice', "NULLIF(bc.confidence, 'insufficient_data')", 'Data confidence shown inside BTC Correlation. Unavailable analysis does not match.', options=['high','medium','low'])
-field('btc_decoupled', 'Decoupled', 'BTC Correlation', 'boolean', "CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' AND bc.corr_4h_30d IS NOT NULL THEN bc.is_decoupled END", 'BTC Correlation flag: |z-score| > 2 and |correlation| < 0.5. Unavailable analysis is neither Yes nor No.')
+    field(key, label, BTCX, 'number', f"CASE WHEN bc.confidence IS NOT NULL AND bc.confidence <> 'insufficient_data' THEN {column} END", hint, **limits)
+field('btc_confidence', 'Confidence · BTC', BTCX, 'choice', "NULLIF(bc.confidence, 'insufficient_data')", 'Data confidence shown inside BTC Correlation. Unavailable analysis does not match.', options=['high','medium','low'])
+
 BY_KEY = {f['key']:f for f in FIELDS}
 OPS = {'number': {'gte','lte','between','eq'}, 'choice': {'in','not_in'}, 'tags': {'any','all','none'}, 'boolean': {'eq'}}
 
