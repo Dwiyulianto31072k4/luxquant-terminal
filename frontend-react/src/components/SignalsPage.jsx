@@ -19,6 +19,7 @@ import EdgeActiveFilters from "./EdgeActiveFilters";
 import EdgeCorrelationPanel from "./EdgeCorrelationPanel";
 import EdgeRecipesBar, { ALL_MODE_STATE } from "./EdgeRecipesBar";
 import SignalsCoinFlow from "./SignalsCoinFlow";
+import SignalsNarrativeFlow from "./SignalsNarrativeFlow";
 import SignalsCustomCalls from "./SignalsCustomCalls";
 import { signalAlertApi } from "../services/signalAlertApi";
 import Modal from "./ui/Modal";
@@ -574,6 +575,14 @@ const SignalsPage = () => {
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   // Coin Flow Intensity (top-5) — di-inject dari Money Flow, "More" ke /money-flow.
   const [flowCoins, setFlowCoins] = useState([]);
+  // Narrative row — CoinGecko categories the desk has 3+ calls in, plus how
+  // each category is trading. Its own source: the money-flow snapshot alone
+  // knows the category move, and allSignals alone knows what we called.
+  const [narrativeData, setNarrativeData] = useState(null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
+  const [narrativeDays, setNarrativeDays] = useState(30);
+  // { category_id, name, pairs:Set } — the desk filtered to one narrative.
+  const [narrative, setNarrative] = useState(null);
   const navigate = useNavigate();
   // Every blurred number is a button, and they all lead here.
   const goPricing = () => navigate("/pricing?src=signals_locked");
@@ -865,6 +874,7 @@ const SignalsPage = () => {
     setPage(1);
   }, [
     searchPair,
+    narrative,
     statusFilter,
     riskFilter,
     streakFilter,
@@ -931,6 +941,28 @@ const SignalsPage = () => {
       alive = false;
     };
   }, []);
+
+  // Narrative row. Re-runs on window change; the endpoint caches for 15m and
+  // the snapshot behind it only moves every 4h, so this is cheap to re-ask.
+  useEffect(() => {
+    let alive = true;
+    setNarrativeLoading(true);
+    const token = localStorage.getItem("access_token");
+    fetch(`${API_BASE}/api/v1/analytics/narrative-flow?days=${narrativeDays}&limit=40`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d) setNarrativeData(d);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setNarrativeLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [narrativeDays]);
 
   const updatedCount = useMemo(() => {
     return allSignals.filter((s) => s.last_update_at).length;
@@ -1071,6 +1103,9 @@ const SignalsPage = () => {
     if (searchPair) {
       f = f.filter((s) => pairMatchesQuery(s.pair, searchPair));
     }
+    if (narrative?.pairs?.size) {
+      f = f.filter((s) => narrative.pairs.has(s.pair));
+    }
     if (!showWatchlistOnly && selectedDates.length > 0) {
       f = f.filter(
         (s) => s.created_at && selectedDates.includes(signalUtcYmd(s.created_at))
@@ -1136,6 +1171,7 @@ const SignalsPage = () => {
   }, [
     allSignals,
     searchPair,
+    narrative,
     selectedDates,
     statusFilter,
     riskFilter,
@@ -1275,6 +1311,7 @@ const SignalsPage = () => {
 
   const hasActiveFilters =
     !!mineExtra ||
+    !!narrative ||
     searchPair ||
     statusFilter !== "all" ||
     riskFilter !== "all" ||
@@ -1295,6 +1332,7 @@ const SignalsPage = () => {
 
   const resetFilters = useCallback(() => {
     setSearchPair("");
+    setNarrative(null);
     setStatusFilter("all");
     setRiskFilter("all");
     setStreakFilter("all");
@@ -1406,6 +1444,9 @@ const SignalsPage = () => {
 
     if (searchPair) {
       filtered = filtered.filter((s) => pairMatchesQuery(s.pair, searchPair));
+    }
+    if (narrative?.pairs?.size) {
+      filtered = filtered.filter((s) => narrative.pairs.has(s.pair));
     }
 
     // Filter tanggal hanya berlaku di mode non-watchlist (watchlist lintas-tanggal).
@@ -1532,6 +1573,7 @@ const SignalsPage = () => {
     allSignals,
     shariah,
     searchPair,
+    narrative,
     statusFilter,
     riskFilter,
     streakFilter,
@@ -1843,6 +1885,33 @@ const SignalsPage = () => {
           onMore={() => navigate("/money-flow")}
         />
       )}
+
+      <SignalsNarrativeFlow
+        data={narrativeData}
+        loading={narrativeLoading}
+        days={narrativeDays}
+        onDaysChange={setNarrativeDays}
+        activeId={narrative?.category_id || null}
+        onMore={() => navigate("/money-flow")}
+        onPick={(n) => {
+          // Tapping the narrative you are already in clears it, so the row is
+          // its own off switch and never strands the desk on an empty filter.
+          if (narrative?.category_id === n.category_id) {
+            setNarrative(null);
+          } else {
+            setNarrative({
+              category_id: n.category_id,
+              name: n.name,
+              pairs: new Set(n.pairs || []),
+            });
+            // The narrative window is 30-90 days but the day tabs default to
+            // today, so filtering without widening the dates would usually
+            // land on an empty table and read as a broken filter.
+            setSelectedDates([]);
+          }
+          setPage(1);
+        }}
+      />
 
 
       {!isSubscriber && vipSamples.length > 0 && (

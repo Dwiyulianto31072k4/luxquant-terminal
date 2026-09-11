@@ -35,6 +35,7 @@ from datetime import datetime, timedelta, date
 import math
 
 from app.core.database import get_db
+from app.api.deps import require_subscription
 from app.core.redis import cache_get, cache_set, cache_get_with_stale
 from app.services.hunt_recipe import (
     RUNNER_MIN_FULL,
@@ -116,6 +117,13 @@ def _wr(wins: int, total: int):
 
 def _safe_float(v):
     return float(v) if v is not None else None
+
+
+def _pct_change_local(now_val, then_val):
+    """Delta % between two snapshots. None if either side is missing or zero."""
+    if now_val is None or then_val is None or then_val == 0:
+        return None
+    return round((now_val - then_val) / then_val * 100, 2)
 
 
 def _eb_rate(wins: int, n: int, prior_p: float, strength: float = 40.0) -> Optional[float]:
@@ -2081,4 +2089,179 @@ async def get_wr_vs_btc(
         "series": series,
     }
     cache_set(cache_key, response, ttl=21600)  # 6h; key already rotates daily
+    return response
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# NARRATIVE FLOW — which CoinGecko narratives the desk is calling into
+# ════════════════════════════════════════════════════════════════════════════
+# Grouped by CoinGecko category (mf_sector_snapshots), NOT by coins.sector.
+# The two taxonomies have no shared key, but coins.categories_raw holds
+# CoinGecko category *names*, and 221 of the 420 distinct names in that column
+# match a snapshotted category exactly — enough to cover 671 of 687 coins
+# (97.7%), at an average of 4.28 matched categories each. That name match is
+# the join; there is no category_id in coins and none is invented here.
+#
+# A coin belongs to ~4.8 narratives at once, so a call is deliberately counted
+# under each of them. These are overlapping sets, not a partition: the column
+# reads "how much of this narrative we have called", never "share of the book".
+#
+# Two floors keep the row honest, and both are load-bearing:
+#   min_coins — below 3 called coins a "narrative move" is one coin's move
+#               wearing a category label.
+#   min_cap   — mf_sector_snapshots carries micro-cap categories whose 24h
+#               change is a constituent change, not a market move. Measured
+#               2026-09-12: ETF +9262% on a $1.25M cap, IDR Stablecoin +928%.
+#               (/money-flow/sectors sorts by that field with no floor, which
+#               is why its top row is currently junk.)
+# Together they cut 343 narratives to 122 and the 24h range to -8.1%..+6.4%.
+MIN_NARRATIVE_CAP_USD = 50_000_000
+CATEGORY_SENTINEL = '["manual_override"]'  # 33 coins carry this; not a narrative
+
+
+@router.get("/analytics/narrative-flow")
+def get_narrative_flow(
+    days: int = Query(30, ge=7, le=180, description="lookback window, by hit date"),
+    min_coins: int = Query(3, ge=1, le=50, description="min distinct called coins per narrative"),
+    min_cap_usd: float = Query(MIN_NARRATIVE_CAP_USD, ge=0, description="category market-cap floor"),
+    limit: int = Query(40, ge=1, le=120),
+    _user=Depends(require_subscription),
+    db: Session = Depends(get_db),
+):
+    """Per-narrative desk record + live category move, for the Signals desk row.
+
+    WR here is the same definition as Desk WR on the page header: the highest
+    level the call reached was TP1 or better. It is not profit, and a call that
+    hit SL1 before running to TP counts as a win.
+    """
+    end_date = datetime.utcnow().date()
+    start_date = end_date - timedelta(days=days - 1)
+    start_str, end_str = start_date.isoformat(), end_date.isoformat()
+
+    cache_key = (
+        f"lq:edge-lab:narrative-flow:v1:{days}:{min_coins}:"
+        f"{int(min_cap_usd)}:{limit}:{start_str}:{end_str}"
+    )
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    latest = db.execute(text(
+        "SELECT MAX(snapshot_at) AS at FROM mf_sector_snapshots"
+    )).scalar()
+    if latest is None:
+        return {"narratives": [], "note": "no sector snapshot yet — the worker has not run"}
+
+    # Nearest snapshot ~7d back, +6h tolerance so a 4h boundary shift does not
+    # null the delta. Same rule money_flow_router uses.
+    at_7d = db.execute(text("""
+        SELECT snapshot_at FROM mf_sector_snapshots
+        WHERE snapshot_at <= NOW() - INTERVAL '7 days' + INTERVAL '6 hours'
+        ORDER BY snapshot_at DESC LIMIT 1
+    """)).scalar()
+    cap_7d = {}
+    if at_7d is not None:
+        cap_7d = {
+            r.category_id: float(r.market_cap) if r.market_cap is not None else None
+            for r in db.execute(text(
+                "SELECT category_id, market_cap FROM mf_sector_snapshots WHERE snapshot_at = :at"
+            ), {"at": at_7d}).fetchall()
+        }
+
+    rows = db.execute(text(f"""
+        WITH {OUTCOMES_CTE},
+        latest_snap AS (
+            SELECT category_id, name, market_cap, market_cap_change_24h, volume_24h
+            FROM mf_sector_snapshots
+            WHERE snapshot_at = :at AND market_cap >= :min_cap
+        ),
+        scoped AS (
+            SELECT r.signal_id, r.outcome, s.peak_pct, s.pair
+            FROM resolved r
+            JOIN signals s ON s.signal_id = r.signal_id
+            WHERE r.hit_date >= :start AND r.hit_date <= :end
+        ),
+        linked AS (
+            SELECT ls.category_id, sc.outcome, sc.peak_pct, sc.pair
+            FROM scoped sc
+            JOIN coins c ON c.pair = sc.pair
+            CROSS JOIN LATERAL jsonb_array_elements_text(c.categories_raw) AS cat(v)
+            JOIN latest_snap ls ON LOWER(ls.name) = LOWER(cat.v)
+            WHERE c.categories_raw IS NOT NULL
+              AND c.categories_raw::text <> :sentinel
+        ),
+        agg AS (
+            SELECT category_id,
+                   COUNT(DISTINCT pair) AS coins_called,
+                   COUNT(*) AS n,
+                   COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')) AS wins,
+                   COUNT(*) FILTER (WHERE outcome IN ('tp3','tp4')) AS full_tp_n,
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY peak_pct)
+                       FILTER (WHERE peak_pct IS NOT NULL) AS median_peak
+            FROM linked GROUP BY category_id
+        ),
+        per_pair AS (
+            SELECT category_id, pair, COUNT(*) AS pair_n FROM linked GROUP BY 1, 2
+        ),
+        pairs_agg AS (
+            SELECT category_id, ARRAY_AGG(pair ORDER BY pair_n DESC, pair) AS pairs
+            FROM per_pair GROUP BY category_id
+        )
+        SELECT ls.category_id, ls.name, ls.market_cap, ls.market_cap_change_24h,
+               ls.volume_24h, a.coins_called, a.n, a.wins, a.full_tp_n,
+               a.median_peak, p.pairs
+        FROM agg a
+        JOIN pairs_agg p ON p.category_id = a.category_id
+        JOIN latest_snap ls ON ls.category_id = a.category_id
+        WHERE a.coins_called >= :min_coins
+        ORDER BY a.coins_called DESC, a.n DESC
+        LIMIT :limit
+    """), {
+        "at": latest, "start": start_str, "end": end_str,
+        "min_cap": min_cap_usd, "min_coins": min_coins,
+        "sentinel": CATEGORY_SENTINEL, "limit": limit,
+    }).fetchall()
+
+    # Prior for the shrink: the whole window, so a 21-call narrative is pulled
+    # toward the book's own rate rather than toward an invented 80%.
+    tot_n = sum(int(r.n or 0) for r in rows)
+    tot_w = sum(int(r.wins or 0) for r in rows)
+    base_p = (tot_w / tot_n) if tot_n else 0.86
+
+    narratives = []
+    for r in rows:
+        n = int(r.n or 0)
+        wins = int(r.wins or 0)
+        lo, hi, half = _wilson_ci(wins, n)
+        mcap = float(r.market_cap) if r.market_cap is not None else None
+        narratives.append({
+            "category_id": r.category_id,
+            "name": r.name,
+            "market_cap": mcap,
+            "volume_24h": _safe_float(r.volume_24h),
+            "mcap_change_24h": (round(float(r.market_cap_change_24h), 2)
+                                if r.market_cap_change_24h is not None else None),
+            "mcap_change_7d": _pct_change_local(mcap, cap_7d.get(r.category_id)),
+            "coins_called": int(r.coins_called or 0),
+            "n": n,
+            "wr": _wr(wins, n),
+            # Shrunk rate is for RANKING only — the surface shows the raw WR
+            # beside its n, the way tag-wr does.
+            "wr_shrunk": round((_eb_rate(wins, n, base_p) or 0) * 100, 2),
+            "wr_ci_half": round(half, 2) if half is not None else None,
+            "full_tp_rate": _wr(int(r.full_tp_n or 0), n),
+            "median_peak": round(float(r.median_peak), 2) if r.median_peak is not None else None,
+            "pairs": list(r.pairs or []),
+        })
+
+    response = {
+        "narratives": narratives,
+        "days": days,
+        "snapshot_at": latest.isoformat() if latest else None,
+        "has_7d": at_7d is not None,
+        "min_coins": min_coins,
+        "min_cap_usd": min_cap_usd,
+        "base_wr": round(base_p * 100, 2),
+    }
+    cache_set(cache_key, response, ttl=900)  # 15m; the snapshot behind it is 4-hourly
     return response
