@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import CoinLogo from "./CoinLogo";
 import Modal from "./ui/Modal";
 import { signalAlertApi, criteriaToDeskState } from "../services/signalAlertApi";
 import {
@@ -45,6 +46,9 @@ function Values({ field, value, onChange }) {
               aria-label={`Remove ${v}`}
               onClick={() => onChange(value.filter((x) => x !== v))}
             >
+              {field.key === "pair" ? (
+                <CoinLogo pair={v} size={14} className="mr-1 inline-block align-[-2px]" />
+              ) : null}
               {displayRuleValue(v, field)} <span aria-hidden>×</span>
             </button>
           ))}
@@ -64,11 +68,23 @@ function Values({ field, value, onChange }) {
                 onChange(e.target.checked ? [...value, v] : value.filter((x) => x !== v))
               }
             />
+            {field.key === "pair" ? (
+              <CoinLogo pair={v} size={20} className="shrink-0" />
+            ) : null}
             <span className="min-w-0 break-words">{displayRuleValue(v, field)}</span>
           </label>
         ))}
         {!visible.length && (
-          <p className="p-3 text-[13px] text-text-muted">No matching values in this signal book.</p>
+          /* Two different situations used to share one sentence. With the book
+             no longer clipped to a week, "nothing matches your search" and
+             "this field has no values at all" are genuinely different answers,
+             and telling someone their pair is not in the book when it is was
+             the whole complaint. */
+          <p className="p-3 text-[13px] text-text-muted">
+            {search.trim()
+              ? `No ${field.label.toLowerCase()} matches “${search.trim()}”.`
+              : `No ${field.label.toLowerCase()} values in the signal book yet.`}
+          </p>
         )}
       </div>
     </div>
