@@ -35,8 +35,10 @@ import { SystemTab } from "./admin/workspace/SystemTab";
 import { ProfitSharingTab } from "./admin/workspace/ProfitSharingTab";
 import { AiCostTab } from "./admin/workspace/AiCostTab";
 import { ApiHealthTab } from "./admin/workspace/ApiHealthTab";
+import { EmailTab } from "./admin/workspace/EmailTab";
 import { EdgeHealthTab } from "./admin/workspace/EdgeHealthTab";
 import { XTrackerTab } from "./admin/workspace/XTrackerTab";
+import { BroadcastTab } from "./admin/workspace/BroadcastTab";
 import { StatusTab } from "./admin/workspace/StatusTab";
 import { LearningStudioTab } from "./admin/workspace/LearningStudioTab";
 import SocialPostsAdminPage from "./SocialPostsAdminPage";
@@ -228,9 +230,23 @@ const TABS = [
     group: "platform",
   },
   {
+    id: "email",
+    label: "Email",
+    description: "What went out, and what bounced",
+    Icon: MegaphoneIcon,
+    group: "platform",
+  },
+  {
     id: "delivery",
     label: "Delivery",
     description: "Cloudflare 522 & origin vs edge",
+    Icon: ActivityIcon,
+    group: "platform",
+  },
+  {
+    id: "broadcast",
+    label: "Broadcast",
+    description: "Is anything actually going out",
     Icon: ActivityIcon,
     group: "platform",
   },
@@ -987,7 +1003,9 @@ const AdminWorkspacePage = () => {
               {activeTab === "profitshare" && <ProfitSharingTab />}
               {activeTab === "aicost" && <AiCostTab />}
               {activeTab === "apihealth" && <ApiHealthTab />}
+              {activeTab === "email" && <EmailTab />}
               {activeTab === "delivery" && <EdgeHealthTab />}
+              {activeTab === "broadcast" && <BroadcastTab />}
               {activeTab === "xtracker" && <XTrackerTab />}
             </RouteErrorBoundary>
           </div>

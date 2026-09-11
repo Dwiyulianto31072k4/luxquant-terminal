@@ -32,6 +32,7 @@ NOTIF_REGISTRY = [
     {"type": "daily_results",    "label": "Daily Results",   "group": "signals", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "btcdom_call",      "label": "BTC Dominance",   "group": "signals", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "coin_called",      "label": "Watchlist Calls", "group": "signals", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
+    {"type": "signal_match",     "label": "Custom calls",    "group": "signals", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "watchlist_update", "label": "Watchlist TP/SL", "group": "signals", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "entry_pullback",   "label": "Back at Entry",   "group": "signals", "telegram_eligible": True, "default_in_app": True, "default_telegram": True},
     {"type": "news",             "label": "News",            "group": "market",  "telegram_eligible": True, "default_in_app": True, "default_telegram": False},

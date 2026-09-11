@@ -126,6 +126,42 @@ async function main() {
   const { GLOSSARY } = await import("../src/content/glossary.js");
   const { POSTS } = await import("../src/content/posts.js");
   const { COINS, ALL_COINS, COIN_STATS } = await import("../src/content/coins.js");
+
+  // Integrity check on the generated coin list, which is 95% of every page this
+  // script writes and the one input that can vanish without raising.
+  //
+  // Comparing against the previous sitemap does not work: `vite build` empties
+  // dist/ before this runs, so there is never a previous sitemap to compare to.
+  // This reads the generated file straight off disk instead and asks whether
+  // what was imported matches what is stored — no history, no state.
+  //
+  // Why it exists: on 2026-09-08 a build lost GEN_COINS, wrote a 56-URL sitemap
+  // over the 664-URL one, and reported success. The 634 coin pages were still on
+  // disk serving 200; only the map to them disappeared.
+  let coinsDegraded = false;
+  try {
+    const genPath = resolve(__dirname, "../src/content/coins.generated.js");
+    if (existsSync(genPath)) {
+      // gen-coins.mjs emits JSON object literals — {"slug":"arpa",...} — so the
+      // key is quoted. Size is the fallback: whatever the emitter's format
+      // becomes, a file this large is never an empty list, and a check that
+      // silently matches nothing is worse than no check at all.
+      const raw = readFileSync(genPath, "utf8");
+      const onDisk =
+        (raw.match(/"slug"/g) || []).length ||
+        (raw.length > 20000 ? 500 : 0);
+      if (onDisk > 50 && ALL_COINS.length < onDisk * 0.5) {
+        coinsDegraded = true;
+        console.error(
+          `[prerender] COIN DATA DEGRADED: coins.generated.js holds ${onDisk} entries ` +
+            `but only ${ALL_COINS.length} coins imported. Coin pages and the sitemap ` +
+            `would be written short — sitemap will NOT be replaced.`
+        );
+      }
+    }
+  } catch (e) {
+    console.error(`[prerender] could not verify coin data: ${e.message}`);
+  }
   const { LANDING_FAQ, landingFaqJsonLd, faqText } = await import("../src/content/faq.js");
   const termBy = (slug) => GLOSSARY.find((t) => t.slug === slug);
   const postBy = (slug) => POSTS.find((p) => p.slug === slug);
@@ -247,7 +283,9 @@ async function main() {
         description:
           `${num(TR.total_signals)} crypto trade signals published since December 2023. ` +
           `${num(TR.closed_trades)} resolved at a ${TR.win_rate}% win rate across ${num(TR.active_pairs)} pairs — every call timestamped, losses included.`,
-        url: `${SITE}/#performance`,
+        // A real page now, not an anchor on the homepage. A Dataset whose url
+        // is a fragment gives search engines nothing of its own to rank.
+        url: `${SITE}/performance`,
         isAccessibleForFree: true,
         temporalCoverage: "2023-12-24/..",
         creator: { "@type": "Organization", name: "LuxQuant", url: SITE },
@@ -270,24 +308,12 @@ async function main() {
       "LuxQuant Terminal turns market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Trade smarter, with confidence. Informed by data, decided by you.",
     // One FAQPage per page: the landing questions and the track-record
     // questions are merged into a single block rather than competing.
-    jsonLd: [
-      (() => {
-        const base = landingFaqJsonLd(SITE);
-        if (!trFaq.length || !Array.isArray(base?.mainEntity)) return base;
-        return {
-          ...base,
-          mainEntity: [
-            ...base.mainEntity,
-            ...trFaq.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          ],
-        };
-      })(),
-      trDatasetLd,
-    ].filter(Boolean),
+    // The track-record questions used to be merged in here as well. They now
+    // live on /performance, which is their subject and, since 2026-09-07, a real
+    // indexable page. The same FAQPage entries on two URLs is duplicate
+    // structured data describing one thing twice, and the weaker page wins
+    // nothing by it. The homepage keeps the landing questions, which are its own.
+    jsonLd: [landingFaqJsonLd(SITE), trDatasetLd].filter(Boolean),
     body:
       `<h1>LuxQuant Terminal — Quantitative Crypto Intelligence</h1>` +
       // Front-loaded figures: answer engines quote the opening of a page, so the
@@ -300,6 +326,7 @@ async function main() {
       `<nav aria-label="Popular pages"><ul>` +
       [
         ["Market Overview", "/home"],
+        ["Signal Track Record", "/performance"],
         ["Pricing & Plans", "/pricing"],
         ["Crypto Coins", "/coins"],
         ["Bitcoin (BTC)", "/coins/btc"],
@@ -390,6 +417,66 @@ async function main() {
       `<li><strong>Payment</strong> — USDT on BNB Smart Chain (BEP-20). Unique address per invoice. Verified on-chain. No auto-renewal, no card on file.</li>` +
       `</ul>` +
       `<p><a href="/login">Create free account</a> · <a href="/">Back to homepage</a> · <a href="/learn">Glossary</a></p>`,
+  });
+
+  // ── Signal track record (public since 2026-09-07) ────────────────
+  // The page the whole product rests on, and until now the only major surface
+  // Google could not see: RequireAuth bounced crawlers to /login and stamped
+  // noindex on the way. The figures below are the same ones the homepage and
+  // llms.txt publish, fetched once at build time, so the three can never
+  // disagree in front of a reader checking all of them.
+  pages.push({
+    path: "/performance",
+    title: TR
+      ? `Signal track record — ${TR.win_rate}% win rate over ${num(TR.closed_trades)} calls | LuxQuant`
+      : "Signal Track Record — every call, timestamped | LuxQuant",
+    description: TR
+      ? `Every LuxQuant signal since December 2023: ${num(TR.total_signals)} published, ${num(TR.closed_trades)} resolved at a ${TR.win_rate}% win rate across ${num(TR.active_pairs)} pairs. Timestamped, losses included, free to audit.`
+      : "Every LuxQuant signal since December 2023 — entries, targets, stops and outcomes, timestamped and free to audit. Losing trades included.",
+    jsonLd: [
+      breadcrumbLd([{ label: "Home", to: "/" }, { label: "Signal Track Record", self: "/performance" }]),
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "LuxQuant signal track record",
+        url: `${SITE}/performance`,
+        description:
+          "Public, auditable record of every LuxQuant trade signal: entry, targets, stop and final outcome, with losses included.",
+        isPartOf: { "@type": "WebSite", url: `${SITE}/` },
+        isAccessibleForFree: true,
+      },
+      trDatasetLd,
+      trFaq.length
+        ? {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: trFaq.map((f) => ({
+              "@type": "Question",
+              name: f.q,
+              acceptedAnswer: { "@type": "Answer", text: f.a },
+            })),
+          }
+        : null,
+    ].filter(Boolean),
+    body:
+      crumb([{ label: "Home", to: "/" }, { label: "Signal Track Record" }]) +
+      `<h1>LuxQuant signal track record</h1>` +
+      (TR
+        ? `<p>Every signal LuxQuant has published since December 2023 is on this page: entry, targets, stop-loss and final outcome, each one timestamped. ` +
+          `<strong>${num(TR.total_signals)} published</strong>, <strong>${num(TR.closed_trades)} resolved at a ${TR.win_rate}% win rate</strong> across <strong>${num(TR.active_pairs)} pairs</strong>. ` +
+          `Losing trades are never removed — ${num(TR.sl_count)} stopped-out calls are counted in that figure. Free to read, no account required.</p>`
+        : `<p>Every signal LuxQuant has published since December 2023: entry, targets, stop-loss and final outcome, each one timestamped. Losing trades are never removed. Free to read, no account required.</p>`) +
+      trBlock +
+      (trFaq.length
+        ? `<h2>Questions about the record</h2>` +
+          trFaq.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join("")
+        : "") +
+      `<h2>Read it a different way</h2><ul>` +
+      `<li><a href="/performance?view=overview">Overview</a> — the full resolved record and how it trends</li>` +
+      `<li><a href="/performance?view=daily">Daily</a> — what resolved today, and yesterday</li>` +
+      `<li><a href="/performance?view=edge">Edge Lab</a> — win rate by sector, by pair and against Bitcoin</li>` +
+      `</ul>` +
+      `<p><a href="/coins">Per-coin records</a> · <a href="/learn">What the numbers mean</a> · <a href="/pricing">Pricing</a></p>`,
   });
 
   // ── Status ──
@@ -613,6 +700,8 @@ async function main() {
     urls.push(`  <url><loc>${loc}</loc><lastmod>${today}</lastmod><priority>${priority}</priority></url>`);
   };
   addUrl("/", "1.0");
+  // Second only to the homepage: it is the claim every other page refers back to.
+  addUrl("/performance", "0.9");
   addUrl("/pricing", "0.9");
   addUrl("/coins", "0.8");
   addUrl("/learn", "0.7");
@@ -627,7 +716,28 @@ async function main() {
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
     urls.join("\n") +
     `\n</urlset>\n`;
-  writeFileSync(resolve(DIST, "sitemap.xml"), sitemap, "utf8");
+
+  // Floor guard: never replace a good sitemap with a collapsed one.
+  //
+  // This file is deliberately fail-safe — every error is swallowed so a problem
+  // here can never fail a deploy. The cost showed up on 2026-09-08: a build at
+  // 07:55 lost the generated coin list, wrote a 56-URL sitemap over the 664-URL
+  // one, and reported success. The 634 coin pages were still on disk and still
+  // served 200; only the map to them disappeared, which is the kind of silent
+  // damage nobody notices until traffic does.
+  //
+  // Keeping the previous sitemap is strictly safer than writing the new one: the
+  // pages it points at are still there (the writer above only ever adds files,
+  // it never deletes), so a stale map is valid where a truncated one is a lie.
+  if (coinsDegraded) {
+    console.error(
+      `[prerender] SITEMAP GUARD: not writing a ${urls.length}-url sitemap from degraded ` +
+        `coin data. The deploy still ships; whatever sitemap is already live stays, and ` +
+        `the pages it points at are untouched. Fix src/content/coins.generated.js, then rebuild.`
+    );
+  } else {
+    writeFileSync(resolve(DIST, "sitemap.xml"), sitemap, "utf8");
+  }
 
   // ── llms.txt: give AI crawlers the figures, not just the page list ──
   // Answer engines read this file directly. Static prose describes the site;
@@ -647,7 +757,7 @@ async function main() {
           ? `- Last ${TR30.days} days: ${num(TR30.signals_resolved)} resolved, ${TR30.win_rate}% win rate\n`
           : "") +
         `- Win-rate method: a call counts as a win when price reaches at least TP1 before the stop-loss; each call is recorded at its highest milestone; open signals excluded.\n` +
-        `- Full auditable record: ${SITE}/#performance\n`;
+        `- Full auditable record: ${SITE}/performance\n`;
       const existing = readFileSync(llmsPath, "utf8").replace(
         /\n## Verified track record[\s\S]*?(?=\n## |$)/,
         ""
@@ -656,7 +766,11 @@ async function main() {
     }
   }
 
-  console.log(`[prerender] wrote ${n} static content pages + sitemap (${urls.length} urls)`);
+  console.log(
+    coinsDegraded
+      ? `[prerender] wrote ${n} static content pages · SITEMAP NOT WRITTEN (guard held it back)`
+      : `[prerender] wrote ${n} static content pages + sitemap (${urls.length} urls)`
+  );
 }
 
 main().catch((e) => {

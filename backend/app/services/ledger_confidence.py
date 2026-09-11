@@ -57,7 +57,23 @@ _HIT = ("CLEAN_HIT", "LATE_HIT")
 _MISS = ("INVALIDATED_FIRST",)
 
 
-def compute_projection_track_record(db, days: int = 90, market_mode: str | None = None) -> dict:
+# One window, one answer. The clamp measured 90 days while the scoreboard the
+# model reads measures 14, so the two disagreed about the same question: on
+# 2026-09-09, SELECTIVE_RISK_ON read 68.5% over 90 days and 26.5% over 14. The
+# long window is the wrong one — 65 of its 178 resolutions come from the week of
+# 17 August, the only trending week in the sample (efficiency ratio 0.345
+# against a 0.001-0.13 range elsewhere), which scored 96.9%. Drop that single
+# week and the same 90-day figure falls from 78.5% to 63.3%. A ceiling built on
+# one exceptional week lets every later report publish a confidence the model
+# has not earned since.
+#
+# Imported rather than repeated so the two can never drift apart again.
+from app.services.compass_knowledge import TRACK_RECORD_DAYS as _LEDGER_WINDOW_DAYS
+
+
+def compute_projection_track_record(
+    db, days: int = _LEDGER_WINDOW_DAYS, market_mode: str | None = None
+) -> dict:
     """Directional hit-rate from the live projection ledger, shaped for
     apply_ledger_confidence(). Never raises — an empty dict simply means no clamp."""
     from sqlalchemy import text as _text

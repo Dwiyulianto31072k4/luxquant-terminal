@@ -1214,6 +1214,36 @@ def approve_payment(
     db.commit()
     db.refresh(p)
 
+    # Same receipt as the self-serve path. This endpoint is a plain `def`, so
+    # FastAPI runs it in a worker thread with no event loop of its own —
+    # asyncio.run is correct here and would not be inside an async route.
+    try:
+        import asyncio as _asyncio
+        from app.services import billing_delivery as _bd
+        _exp = user.subscription_expires_at
+        _asyncio.run(_bd.deliver_receipt(
+            db,
+            telegram_id=user.telegram_id,
+            email=user.email,
+            plan=(plan.label if plan else "LuxQuant"),
+            amount=float(p.final_amount or p.amount_usdt),
+            duration_days=duration_days,
+            paid_at=now.strftime("%d %b %Y, %H:%M UTC"),
+            tx_hash=p.tx_hash,
+            method=(None if p.method == "onchain_bsc" else p.method),
+            receipt_no=f"LQ-{p.id:06d}",
+            account=user.username,
+            telegram=user.telegram_username,
+            access_from=now.strftime("%d %b %Y"),
+            access_to=_exp.strftime("%d %b %Y") if _exp else None,
+            list_price=float(p.amount_usdt),
+            discount=float(p.discount_amount or 0),
+            credit=float(p.credit_redeemed or 0),
+        ))
+    except Exception as _e:
+        logger.warning("Receipt email failed for payment %s: %s", p.id, _e)
+
+
     wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
 
     return {

@@ -176,7 +176,24 @@ export default function LandingPageV2() {
               width: 512,
               height: 512,
             },
-            sameAs: ["https://x.com/luxquantalgo", "https://t.me/LuxQuantSignal"],
+            // Same @id as the Organization block in index.html, so the two are
+            // merged by consumers rather than compared. They listed different
+            // profiles, which is the one thing an entity signal must not do:
+            // "luxquant" is already contested by LuxAlgo, LuxQuanta and
+            // luxquant.online, and a disagreeing sameAs weakens exactly the
+            // claim that is under pressure. Keep the two lists identical.
+            //
+            // Only profiles verified live and owned. luxquantapp is in the
+            // poster env but returns 404, and a sameAs pointing at a dead page
+            // is a worse signal than a shorter list.
+            sameAs: [
+              "https://x.com/luxquantalgo",
+              "https://twitter.com/luxquantalgo",
+              "https://x.com/luxquantcrypto",
+              "https://www.instagram.com/luxquant.tw",
+              "https://t.me/LuxQuantSignal",
+              "https://t.me/LuxQuantTerminalBot",
+            ],
             knowsAbout: [
               "cryptocurrency trading",
               "algorithmic trading signals",

@@ -18,6 +18,7 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
 import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
+import BillingBar from "./components/BillingBar";
 import TelegramNudgeModal from "./components/TelegramNudgeModal";
 import OpenInvoiceCard from "./components/subscription/OpenInvoiceCard";
 import FreeOnboardingModal from "./components/FreeOnboardingModal";
@@ -1389,6 +1390,14 @@ function AppShell({ children }) {
  Bumping the sheet to z-[9999] could never fix that; only removing this could.
  `relative` alone is enough to clear the fixed .luxury-bg (z-index:0) — main comes
  after it in DOM order, so it already paints on top. See constants/zIndex.js. */}
+      {/* Tier-1 billing state — an invoice about to lapse, access about to end.
+          Above the content and outside the bell, because A1 measured what
+          happens when money messages sit behind an icon: checkout_pending was
+          read 3 times out of 324. It renders nothing at all when there is
+          nothing to say, and it is the only channel that reaches the ~490
+          accounts with no real mailbox. */}
+      <BillingBar />
+
       <main className="relative max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">
         <RouteErrorBoundary>
           <Suspense fallback={<ContentLoader />}>{children}</Suspense>
@@ -1710,11 +1719,12 @@ function App() {
                   <Route
                     path="/performance"
                     element={
-                      <RequireAuth>
-                        <AppShell>
-                          <PerformanceHub />
-                        </AppShell>
-                      </RequireAuth>
+                      // Public: see the note in utils/routeAccess.js. RequireAuth
+                      // would inject noindex and bounce crawlers to /login, which
+                      // is why this page has never been indexed.
+                      <AppShell>
+                        <PerformanceHub />
+                      </AppShell>
                     }
                   />
                   {/* Legacy routes → redirect into the hub (keep bookmarks alive) */}

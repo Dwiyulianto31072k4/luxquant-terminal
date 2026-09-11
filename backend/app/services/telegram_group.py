@@ -150,6 +150,74 @@ async def kick_member(telegram_id: int) -> bool:
     return True
 
 
+async def can_message(telegram_id: int) -> bool | None:
+    """Whether the bot is currently allowed to open a chat with this user.
+
+    `sendChatAction` is a WRITE, so Telegram enforces the same permission it
+    enforces on `sendMessage`, but it delivers no message and raises no
+    notification. `getChat` is not a substitute — it answers 200 for accounts
+    the bot may not write to, because it resolves a chat rather than testing
+    permission.
+
+    Returns True / False / None, and None matters: a network failure is not a
+    "no", and treating it as one would mark a reachable customer unreachable.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=15.0, proxy=_TG_PROXY) as client:
+            resp = await client.post(
+                f"{TELEGRAM_API}/sendChatAction",
+                json={"chat_id": telegram_id, "action": "typing"},
+            )
+        if resp.status_code == 200:
+            return True
+        if resp.status_code == 403:
+            return False
+        return None
+    except Exception as e:
+        logger.warning("can_message check failed for %s: %s", telegram_id, type(e).__name__)
+        return None
+
+
+async def send_document(telegram_id: int, path: str, filename: str,
+                        caption: str = "") -> bool:
+    """Send a file to a user's DM.
+
+    Not routed through `_post`: that helper posts JSON, and a document has to go
+    as multipart. Same contract though — never raises, False on any failure, so
+    a missing PDF can cost the attachment but never the message beside it.
+
+    Telegram caps a document caption at 1024 characters and silently rejects the
+    whole send when it is longer, so it is trimmed here rather than discovered
+    in production.
+    """
+    from pathlib import Path as _Path
+    p = _Path(path)
+    if not p.exists():
+        logger.warning("send_document: %s missing", path)
+        return False
+    data = {"chat_id": str(telegram_id), "parse_mode": "HTML"}
+    if caption:
+        data["caption"] = caption[:1024]
+    try:
+        async with httpx.AsyncClient(timeout=60.0, proxy=_TG_PROXY) as client:
+            with p.open("rb") as fh:
+                resp = await client.post(
+                    f"{TELEGRAM_API}/sendDocument",
+                    data=data,
+                    files={"document": (filename, fh, "application/pdf")},
+                )
+        if resp.status_code != 200:
+            logger.warning("Telegram sendDocument HTTP %s: %s",
+                           resp.status_code, resp.text[:200])
+            return False
+        if not resp.json().get("ok"):
+            return False
+        return True
+    except Exception as e:
+        logger.error("Telegram sendDocument error: %s", e)
+        return False
+
+
 async def send_dm(telegram_id: int, text: str) -> bool:
     """
     Kirim DM ke user (mis. reminder grace period).

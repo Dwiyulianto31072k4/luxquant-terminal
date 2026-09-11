@@ -1,0 +1,22 @@
+Fonts served from this directory
+===============================
+
+All families here are licensed under the SIL Open Font License, Version 1.1,
+which permits self-hosting and redistribution with the software.
+
+  Open Sauce One   — https://github.com/marcologous/Open-Sauce-Fonts
+                     (landing typography; see OpenSauceOne-OFL.txt)
+  Space Grotesk    — https://github.com/floriankarsten/space-grotesk
+  JetBrains Mono   — https://github.com/JetBrains/JetBrainsMono
+  Playfair Display — https://github.com/clauseggers/Playfair-Display
+
+Space Grotesk, JetBrains Mono and Playfair Display are the Google Fonts
+variable builds, latin and latin-ext subsets, downloaded 2026-09-07. They are
+self-hosted rather than requested from fonts.googleapis.com so that every
+visitor renders the same typography regardless of what their machine has
+installed or whether that CDN is reachable.
+
+To refresh one, fetch the css2 URL with a current desktop user-agent, keep the
+@font-face blocks whose unicode-range starts U+0000-00FF (latin) or U+0100-02BA
+(latin-ext), and replace the matching file here. The @font-face rules live in
+src/styles/index.css.

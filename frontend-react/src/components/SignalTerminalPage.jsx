@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { classifyCoin, classifySignalVerdict } from "./coinIntelShared";
+import { coinDeskBand, signalDeskBand } from "./coinIntelShared";
 import CoinLogo from "./CoinLogo";
 import {
   ResponsiveContainer,
@@ -181,6 +181,8 @@ export default function SignalTerminalPage() {
 
   const [signals, setSignals] = useState([]);
   const [coinIntel, setCoinIntel] = useState({});
+  // The desk's own win rate — every per-coin rate is read against it.
+  const [deskWr, setDeskWr] = useState(null);
   const [flowCoins, setFlowCoins] = useState({}); // {SYMBOL: coin}
   const [sectors, setSectors] = useState([]);
   const [macro, setMacro] = useState(null);
@@ -234,6 +236,7 @@ export default function SignalTerminalPage() {
         const map = {};
         for (const c of all) if (c && c.pair) map[c.pair] = c;
         setCoinIntel(map);
+        setDeskWr(intel.platform_avg_wr ?? null);
       }
       if (flowR.status === "fulfilled" && flowR.value.ok) {
         const fd = await flowR.value.json();
@@ -264,32 +267,29 @@ export default function SignalTerminalPage() {
   // (live-price polling is defined below, after `filteredSignals`, so it fetches
   // prices ONLY for the pairs currently in view — not all 7-day signals.)
 
-  // Pair-level map (recipes / chips). Filters use per-signal LOO.
+  // Where each pair sits against the desk. Display only — nothing filters on
+  // it, because a pair's record was measured to carry no information about its
+  // next call.
   const verdictByPair = useMemo(() => {
     const map = {};
-    for (const pair in coinIntel) map[pair] = classifyCoin(coinIntel[pair]);
+    for (const pair in coinIntel) map[pair] = coinDeskBand(coinIntel[pair], deskWr);
     return map;
-  }, [coinIntel]);
+  }, [coinIntel, deskWr]);
 
   const getVerdictForSignal = useCallback(
     (signal) => {
       if (!signal?.pair) return null;
       const coin = coinIntel?.[signal.pair];
       if (!coin) return null;
-      return classifySignalVerdict(coin, signal);
+      return signalDeskBand(coin, signal, deskWr);
     },
-    [coinIntel]
+    [coinIntel, deskWr]
   );
 
-  // filtered signals — SAME logic as Potential Trades (LOO verdict)
+  // filtered signals — SAME logic as Potential Trades
   const filteredSignals = useMemo(
-    () =>
-      applySignalFilters(signals, filters, {
-        coinIntel,
-        verdictByPair,
-        getVerdictForSignal,
-      }),
-    [signals, filters, coinIntel, verdictByPair, getVerdictForSignal]
+    () => applySignalFilters(signals, filters, { coinIntel }),
+    [signals, filters, coinIntel]
   );
 
   // Live prices — ONLY for the pairs currently in view (filtered), refreshed
@@ -367,7 +367,7 @@ export default function SignalTerminalPage() {
         btc_align: s.btc_align_score ?? null,
         decoupled: !!s.btc_decoupled,
         max_target: maxTargetPct(s),
-        verdict: getVerdictForSignal(s) || "neutral",
+        verdict: getVerdictForSignal(s) || "in_line",
         entry,
         price: livePrice,
         _sig: s,
@@ -556,20 +556,6 @@ function FilterBar({ filters, setF }) {
         onClick={() => setF({ corrHighAlign: !filters.corrHighAlign })}
       >
         High BTC Align
-      </div>
-      <div
-        className={chip(filters.verdictFilter === "worth_it")}
-        onClick={() =>
-          setF({ verdictFilter: filters.verdictFilter === "worth_it" ? "all" : "worth_it" })
-        }
-      >
-        Worth It
-      </div>
-      <div
-        className={chip(filters.verdictFilter === "avoid")}
-        onClick={() => setF({ verdictFilter: filters.verdictFilter === "avoid" ? "all" : "avoid" })}
-      >
-        Avoid
       </div>
       <div className="flex-1" />
       <button

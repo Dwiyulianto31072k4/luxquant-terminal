@@ -1209,22 +1209,53 @@ async def get_top_performers(
     db: Session = Depends(get_db),
 ):
     """Top Gainers (peak-based) & Fastest Hits — deduplicated per pair."""
+    # One ranking, one cache entry. The key used to carry `limit`, so the same
+    # board was stored several times over -- and each copy expired and re-warmed
+    # on its own clock. Two callers asking for the same day with different
+    # limits could therefore read snapshots taken minutes apart: on 2026-09-08
+    # the daily recap card (limit=10) named $RAYSOL its standout while the proof
+    # slide beside it (limit=5) rendered $UAI, in one bundle rendered seconds
+    # apart. Worse, the pre-warmer only ever warmed limits 10 and 20, so limit=5
+    # was never fresh and paid for the heavy CTE plus the Binance sparkline
+    # fetches inline. The board is computed once at the maximum and sliced on
+    # the way out, so every caller sees the same snapshot.
     if date_from and date_to:
         actual_from = date_from
         actual_to = date_to
-        cache_key = f"lq:signals:top-performers:v10:custom:{date_from}:{date_to}:{limit}"
+        cache_key = f"lq:signals:top-performers:v11:custom:{date_from}:{date_to}"
     elif date_from:
         actual_from = date_from
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:v10:from:{date_from}:{limit}"
+        cache_key = f"lq:signals:top-performers:v11:from:{date_from}"
     else:
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
         actual_to = None
-        cache_key = f"lq:signals:top-performers:v10:{days}:{limit}"
+        # actual_from belongs in the key. Without it the rolling window silently
+        # aliases across midnight: `days=1` keys to the same string every day, so
+        # for the first five minutes of a new UTC day the endpoint kept serving
+        # the board computed for *yesterday's* window. The social cards run at
+        # 00:00:37, squarely inside that gap -- which is how $RAYSOL was named
+        # standout call on two consecutive daily recaps with the same +69%,
+        # having dropped out of the window entirely on the second.
+        cache_key = f"lq:signals:top-performers:v11:{days}:{actual_from}"
+
+    # The stored board always holds this many rows; `limit` only trims the copy
+    # handed back. Matches the Query ceiling above -- raise both together.
+    BOARD_SIZE = 20
+
+    def _trim(board: dict) -> dict:
+        if not isinstance(board, dict):
+            return board
+        out = dict(board)
+        for key in ("top_gainers", "fastest_hits"):
+            rows = out.get(key)
+            if isinstance(rows, list):
+                out[key] = rows[:limit]
+        return out
 
     cached = cache_get(cache_key)
     if cached:
-        return cached
+        return _trim(cached)
 
     # Fresh cache expired → serve the recent stale copy INSTANTLY instead of
     # recomputing inline. The poller re-warms the fresh key every cycle; this
@@ -1233,10 +1264,10 @@ async def get_top_performers(
     # spikes. (Threadpool offload below still makes any true cold-start non-fatal.)
     stale, _ = cache_get_with_stale(cache_key)
     if stale:
-        return stale
+        return _trim(stale)
 
     date_conditions_hit = "AND su.update_at >= :date_from"
-    params = {"date_from": actual_from, "limit": limit}
+    params = {"date_from": actual_from, "limit": BOARD_SIZE}
     if actual_to:
         date_conditions_hit += " AND su.update_at <= :date_to"
         params["date_to"] = f"{actual_to}T23:59:59"
@@ -1517,11 +1548,11 @@ async def get_top_performers(
         # The long TTL keeps last-good data serving even if the poller falls
         # behind during a peak-load crunch.
         cache_set(cache_key, result, ttl=300)
-        return result
+        return _trim(result)
     except Exception as e:
         stale, _ = cache_get_with_stale(cache_key)
         if stale:
-            return stale
+            return _trim(stale)
         raise HTTPException(status_code=500, detail=f"Query error: {str(e)}")
     
     

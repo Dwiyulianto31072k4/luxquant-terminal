@@ -40,6 +40,9 @@ const NULLS_LAST = new Set([
   "win_rate",
   "verdict",
   "edge_score",
+  // A call with no usable stop has no risk distance to rank; treating that as
+  // 0% would put it at the top of "least risk".
+  "stop_loss",
 ]);
 
 /** Live metrics: 0 / missing sink. */
@@ -206,6 +209,17 @@ function maxTargetPct(s) {
   return entry > 0 ? ((maxT - entry) / entry) * 100 : 0;
 }
 
+// Signed distance from entry to the stop, as a percentage — the number the
+// "Stop" column prints. Kept local like maxTargetPct and parseMcap above: this
+// module deliberately has no imports. (All three are also in signalFilters.js;
+// worth folding into one place, but that is a separate change.)
+function stopLossPct(s) {
+  const entry = parseFloat(s?.entry);
+  const stop = parseFloat(s?.stop1);
+  if (!Number.isFinite(entry) || entry <= 0 || !Number.isFinite(stop) || stop <= 0) return null;
+  return ((stop - entry) / entry) * 100;
+}
+
 function riskRank(r) {
   const rl = (r || "").toLowerCase();
   if (rl.startsWith("low")) return 1;
@@ -269,7 +283,11 @@ export function sortValue(signal, field, ctx = {}) {
     case "max_target":
       return { v: maxTargetPct(signal), kind: "num" };
     case "stop_loss":
-      return { v: parseFloat(signal.stop1) || 0, kind: "num" };
+      // The % from entry, which is what the column prints — not the raw price.
+      // Sorting the price ranked 16.78 above 0.0982 and told you nothing about
+      // which call risks more, the same class of bug as "Called" sorting on the
+      // message id instead of the timestamp.
+      return { v: stopLossPct(signal), kind: "num" };
     case "status":
       return {
         v: STATUS_RANK[(signal.status || "").toLowerCase()] ?? 9,

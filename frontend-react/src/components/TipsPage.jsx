@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { learningApi } from "../services/learningApi";
+import { trackGrowth } from "../utils/growthAnalytics";
 import { MODULE_COVERS } from "../content/tutorialCovers";
 import AssistantWidget from "./assistant/AssistantWidget";
 import "./learning/Learning.css";
@@ -172,6 +173,14 @@ function LearningHome() {
       .catalog()
       .then(setData)
       .catch(() => setError("Learning is temporarily unavailable."));
+  }, []);
+
+  // The denominator. learning_progress only ever recorded a finished step, so
+  // the tutorials looked like a feature 10 people use rather than one that
+  // some number of people open and abandon. Fired once per mount, not per
+  // render, and fire-and-forget like every other funnel event.
+  useEffect(() => {
+    trackGrowth("tutorial_viewed", { path: "/tips" });
   }, []);
   const courses = data?.courses || [];
   const visible = filter === "all" ? courses : courses.filter((c) => c.category === filter);
@@ -430,6 +439,17 @@ function CourseDetail({ slug }) {
       .course(slug)
       .then(setCourse)
       .catch(() => setError("Course not found."));
+  }, [slug]);
+
+  // Keyed on the slug, so moving between courses is counted as two opens
+  // rather than one. Which course people actually pick is the part that says
+  // where the curriculum is working.
+  useEffect(() => {
+    trackGrowth("tutorial_course_opened", {
+      path: `/tips/${slug}`,
+      entity_type: "course",
+      entity_id: slug,
+    });
   }, [slug]);
   if (error)
     return (

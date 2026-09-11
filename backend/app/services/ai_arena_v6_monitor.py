@@ -36,6 +36,13 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+
+# httpx logs the full request URL at INFO, and the BGeometrics URL carries the
+# API token as a query parameter — so every fetch wrote the credential into
+# journald in clear text. Same shape as the Telegram bot token leak: the secret
+# is in the URL, and the URL is the log line. Warnings and errors still come
+# through; only the per-request line goes quiet.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 

@@ -45,7 +45,7 @@ class ApiKeyCreated(BaseModel):
     key: str
     key_prefix: str
     created_at: datetime
-    message: str = "Simpan key ini sekarang — tidak akan ditampilkan lagi."
+    message: str = "Save this key now — it will not be shown again."
 
 
 class ApiKeyOut(BaseModel):

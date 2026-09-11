@@ -417,13 +417,13 @@ def preview_redemption(
     if redeemable <= Decimal("0"):
         will_succeed = False
         msg = (
-            f"Tidak bisa redeem. Saldo: ${available:.2f}, "
-            f"sisa invoice: ${remaining:.2f}, diminta: ${requested:.2f}."
+            f"Cannot redeem. Credit ${available:.2f}, "
+            f"invoice remaining ${remaining:.2f}, requested ${requested:.2f}."
         )
     elif available < requested:
         will_succeed = False
         msg = (
-            f"Saldo tidak cukup. Tersedia: ${available:.2f}, diminta: ${requested:.2f}."
+            f"Not enough credit. Available ${available:.2f}, requested ${requested:.2f}."
         )
     else:
         will_succeed = True
@@ -484,7 +484,7 @@ def execute_redemption(
     available = Decimal(str(user.referral_credit_usdt or 0))
     if available < amount_dec:
         raise ValueError(
-            f"Saldo tidak cukup. Tersedia: ${available:.2f}, diminta: ${amount_dec:.2f}."
+            f"Not enough credit. Available ${available:.2f}, requested ${amount_dec:.2f}."
         )
 
     # ── Fetch real payment ──
@@ -511,8 +511,8 @@ def execute_redemption(
 
     if amount_dec > remaining:
         raise ValueError(
-            f"Jumlah redeem melebihi sisa invoice. Sisa: ${remaining:.2f}, "
-            f"diminta: ${amount_dec:.2f}."
+            f"That is more than the invoice has left. Remaining ${remaining:.2f}, "
+            f"requested ${amount_dec:.2f}."
         )
 
     # ── 1. Decrement user balance ──

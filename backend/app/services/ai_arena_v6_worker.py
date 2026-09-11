@@ -1137,6 +1137,10 @@ async def generate_v6_report(
     # Daily macro/on-chain is calculated once after the UTC daily close. Every
     # later report reuses that snapshot and refreshes only the fast market tape.
     bg = bg_advanced.BGClient()
+    # Layers that went out thinner than intended. Collected rather than raised:
+    # the run still publishes, and the reader is told which part is standing on
+    # less than usual instead of being shown yesterday's read with no warning.
+    degraded_layers: list[str] = []
     reusing_daily_snapshot = _has_daily_snapshot(daily_outlook_context)
     if reusing_daily_snapshot:
         source_id = daily_outlook_context.get("source_report_id")
@@ -1157,10 +1161,30 @@ async def generate_v6_report(
         _log("No reusable daily snapshot; fetching the full daily backdrop (23 endpoints)")
         bg_snapshot = await bg.fetch_all()
         ok_count = sum(1 for metric in bg_snapshot.values() if metric.ok)
-        if ok_count < 18:
-            raise RuntimeError(
-                f"BG daily snapshot incomplete: only {ok_count}/23 endpoints succeeded. "
-                f"Failed: {[key for key, metric in bg_snapshot.items() if not metric.ok]}"
+        # ~78% of what can actually arrive. Three endpoints left with the lapsed
+        # plan and now 403 permanently, so the reachable set is 19, not 23.
+        #
+        # Falling under it degrades the cycle read; it does not invalidate the
+        # 24h one, which is what the page leads with — six of that tape's seven
+        # inputs come from Binance and spend no BGeometrics quota at all. This
+        # used to raise, which let the layer with the least bearing on the
+        # headline hold a veto over it. BG thinness is structural now: a
+        # 10/hour ceiling against 13 endpoints lets the warmer refresh about
+        # six an hour, so "incomplete" is the normal state, not an incident.
+        # Downstream is already built for it — cycle_position marks a missing
+        # metric `available=False` in the "unavailable" zone and
+        # confluence_engine averages only what it has — so a sparse snapshot
+        # renders as unavailable metrics rather than as a missing report.
+        floor = max(1, int(len(bg_advanced.ALL_ENDPOINTS) * 0.78))
+        if ok_count < floor:
+            failed = [key for key, metric in bg_snapshot.items() if not metric.ok]
+            degraded_layers.append(
+                f"daily backdrop {ok_count}/{len(bg_advanced.ALL_ENDPOINTS)} (floor {floor})"
+            )
+            _log(
+                f"WARN Daily backdrop thin: {ok_count}/{len(bg_advanced.ALL_ENDPOINTS)} "
+                f"reachable endpoints succeeded (floor {floor}). Cycle and confluence "
+                f"layers will render partially unavailable. Failed: {failed}"
             )
         fast_snapshot = {
             key: metric
@@ -1190,10 +1214,26 @@ async def generate_v6_report(
     cycle_dict = cycle_result.to_dict()
     bg_summary = _summary_from_snapshot(bg_snapshot)
     fast_ok_count = sum(1 for metric in fast_snapshot.values() if metric.ok)
+    # This is the floor that actually matters. The 24h call is built from the
+    # fast tape, so a majority of it has to be live for the headline to mean
+    # anything; the daily backdrop above only shades the 7d and 30d layers.
+    # Six of these seven come from Binance for free, so reaching this is a real
+    # outage rather than a quota running out.
+    fast_floor = max(1, (len(fast_snapshot) // 2) + 1)
+    if fast_ok_count < fast_floor:
+        raise RuntimeError(
+            f"Fast tape too thin to publish a 24h read: only {fast_ok_count}/"
+            f"{len(fast_snapshot)} inputs live (floor {fast_floor}). "
+            f"Dead: {[key for key, metric in fast_snapshot.items() if not metric.ok]}"
+        )
+    if fast_ok_count < len(fast_snapshot):
+        degraded_layers.append(f"fast tape {fast_ok_count}/{len(fast_snapshot)}")
     _log(
         f"Fast tape: {fast_ok_count}/{len(fast_snapshot)} inputs live | "
         f"confluence {confluence_result.strength} {confluence_result.dominant_direction}"
     )
+    if degraded_layers:
+        _log(f"WARN Publishing degraded: {'; '.join(degraded_layers)}")
 
     liquidity_doc, event_risk_doc = await asyncio.gather(
         _fetch_liquidity_doc(btc_price),
@@ -1500,10 +1540,20 @@ async def generate_v6_report(
         # derivatives are already in the snapshot. Levels are stored rather than
         # deltas so the window can be chosen at analysis time instead of frozen
         # here.
+        # ssr and ssr_oscillator join the store so their scoring can move off
+        # fixed cut-offs. Measured over 908 reports both returned +1 every
+        # single time: SSR ranges 4.59-6.27 against a "<7 is bullish" rule, and
+        # its oscillator 0.21-0.43 against ">0.1". Neither can express anything
+        # but bullish, and together they are two permanent votes inside the
+        # macro layer. Percentile scoring needs history before it can replace
+        # them, and this is where that history starts.
         for _feat, _key in (("funding_rate", "funding-rate"),
                             ("basis", "btc-derivatives-basis-1h"),
                             ("top_trader_long", "top-trader-position-1h"),
-                            ("open_interest", "open-interest")):
+                            ("open_interest", "open-interest"),
+                            ("ssr", "ssr"),
+                            ("ssr_oscillator", "ssr-oscillator"),
+                            ("sth_mvrv", "sth-mvrv")):
             _v = _bg(_key)
             if _v is not None:
                 _pc.record(_feat, _v)
@@ -1524,6 +1574,43 @@ async def generate_v6_report(
             _buy, _sell = _imb
             if (_buy + _sell) > 0:
                 _pc.record("order_flow_imbalance", (_buy - _sell) / (_buy + _sell) * 100)
+
+        # How much of the day's range became net displacement: 1.0 is a straight
+        # line, near 0 is price returning to where it started. A directional call
+        # needs the market to go somewhere, and the record says this is what
+        # decides whether it does. Measured weekly over 2026-07..09, weeks where
+        # price travelled somewhere hit 84.8% (n=79) against 39.4% in chop
+        # (n=71), r=+0.74 with weekly hit rate (t=2.69, n=8) — a wider spread
+        # than any feature already stored here. It was never recorded, so the
+        # 24 August collapse from 78.5% to 26.5% could only be explained after
+        # the fact instead of being visible while it happened.
+        #
+        # Costs no request: high, low and the 24h change are already in
+        # price_context, fetched once for the report.
+        try:
+            _hi = (price_context or {}).get("high_24h")
+            _lo = (price_context or {}).get("low_24h")
+            _ch = (price_context or {}).get("change_24h_pct")
+            if _hi and _lo and _ch is not None and float(_hi) > float(_lo):
+                _net = abs(float(btc_price) * float(_ch) / 100.0)
+                _pc.record("efficiency_24h",
+                           min(1.0, _net / (float(_hi) - float(_lo))))
+
+                # Where price sits inside its own 24h range: 1.0 at the high,
+                # 0.0 at the low. The monitor fires *because* price moved, so a
+                # read is written when price is already at an extreme, and the
+                # verdict then calls continuation from there. Measured over 292
+                # resolved contracts, 82% were placed at 0.70 or beyond in the
+                # direction they called, and those scored 60.1% against 67.4%
+                # for the few written mid-range. Placing the same contract
+                # shapes at random moments scored 71.4% against the 60.4% they
+                # actually returned (z=-4.13) — the timing is worth less than
+                # no timing, and this is the number that will show whether that
+                # is still true after anything changes.
+                _pc.record("pos_in_range_24h",
+                           (float(btc_price) - float(_lo)) / (float(_hi) - float(_lo)))
+        except (TypeError, ValueError, ZeroDivisionError):
+            pass
     except Exception as e:
         _log(f"Feature history skipped (non-fatal): {e}", level="WARN")
 

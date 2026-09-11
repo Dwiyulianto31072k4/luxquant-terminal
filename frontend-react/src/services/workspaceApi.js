@@ -51,6 +51,16 @@ export const workspaceApi = {
   },
 
   // ════════════════════════════════════
+  // EMAIL — what went out, what came back
+  // ════════════════════════════════════
+  getEmailOverview: async (days = 30) => {
+    const response = await api.get("/api/v1/admin/email/overview", {
+      params: { days },
+    });
+    return response.data;
+  },
+
+  // ════════════════════════════════════
   // EXTERNAL API HEALTH
   // ════════════════════════════════════
   getApiHealth: async () => {

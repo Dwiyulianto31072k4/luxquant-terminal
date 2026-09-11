@@ -1,5 +1,5 @@
 // Layered copy for Quick path — Simple first, Expert behind a drill.
-// English product language. A win is TP1. Hunt tags are as-of-entry.
+// English product language. A win is TP1. Runner tags are as-of-entry.
 
 export const RECIPE_EXPLAIN = {
   quick: {
@@ -19,7 +19,7 @@ export const RECIPE_EXPLAIN = {
         simple:
           "Quick path sits above the table. Each recipe is a saved combination of filters and sort. Nothing is hidden from you until you opt in.",
         expert:
-          "Recipes write the same filter state as the chips (tags, Worth, status, sort chain). They are client-side views over the loaded desk + tag history. Saved views live in this browser only.",
+          "Recipes write the same filter state as the chips (tags, status, sort chain). They are client-side views over the loaded desk + tag history. Saved views live in this browser only.",
       },
       {
         id: "win",
@@ -37,7 +37,7 @@ export const RECIPE_EXPLAIN = {
         simple:
           "Edge Score ranks setups using how similar tags behaved after past calls. Higher usually meant a slightly better hit rate. Use it to order the list, not as a buy button.",
         expert:
-          "Walk-forward on the tag era (from 10 Mar 2026): top quintile win ~90% vs bottom ~83% (about +7pp), full TP about +6.5pp. Mean score of wins vs losses is close — ranking is a soft prior. Tag filters (Hunt) separate more than sort alone.",
+          "Walk-forward on the tag era (from 10 Mar 2026): top quintile win ~90% vs bottom ~83% (about +7pp), full TP about +6.5pp. Mean score of wins vs losses is close — ranking is a soft prior. Tag filters (Runners) separate more than sort alone.",
       },
       {
         id: "limits",
@@ -46,67 +46,67 @@ export const RECIPE_EXPLAIN = {
         simple:
           "Crypto regimes change. A shortlist that looked strong last month can cool off. Size your own risk. Nothing here is a signal to skip the stop.",
         expert:
-          "Tags overlap (one call can wear several). Runner tags are chosen from the same history as the stats (in-sample). Confound tags like LATE_ENTRY print high win rates because the coin was already flying — that is why they are excluded from Hunt, not because they “lose.”",
+          "Tags overlap (one call can wear several). Runner tags are chosen from the same history as the stats (in-sample). Confound tags like LATE_ENTRY print high win rates because the coin was already flying — that is why they are excluded from Runners, not because they “lose.”",
       },
     ],
   },
   strongest: {
     id: "strongest",
-    label: "Strongest setups",
+    label: "Top rated",
     oneLiner:
-      "Open calls marked Worth, sorted by pair verdict then Edge. A clean desk — not a special tag filter.",
+      "The day\u2019s board in a different order: ranked by Edge score. Nothing is filtered out.",
     simple: [
-      "Shows calls that are still running, on pairs whose own history looks solid (Worth).",
-      "Sorts the strongest pair records first. It does not hunt extra tags.",
+      "Same calls as All, strongest setup first.",
+      "Nothing is hidden — it only reorders.",
     ],
     drills: [
       {
         id: "does",
         title: "What the button does",
-        hint: "Open · Worth · Verdict → Edge → Called",
+        hint: "Edge → Called",
         simple:
-          "Keeps open calls only. Hides Avoid. Sorts by the pair’s Worth score, then Edge Score, then newest.",
+          "Sorts by Edge Score, then newest. No tags added, no rows removed.",
         expert:
-          "Worth comes from classifyCoin on that pair’s closed history (as-of-entry / leave-one-out on resolved rows). Baseline win rate across tagged calls is already high, so Worth is a wide net. No runner tags are applied.",
+          "sorts = edge_score desc, then created_at desc; every filter stays at its default. statusFilter used to be `open` and measured as a dead mode — 0 to 2 rows a day, 0 on four of the last eight days — because only ~7 of 866 recent calls sit at `open`.",
       },
       {
-        id: "worth",
-        title: "What Worth means",
-        hint: "The pair’s track record, not this tag",
+        id: "no_coin_rank",
+        title: "Why it no longer ranks by coin",
+        hint: "The coin\u2019s record was measured and does not predict",
         simple:
-          "Worth means this coin’s past LuxQuant calls mostly reached TP1, without danger flags. Avoid is the opposite.",
+          "This used to put coins with a good past record on top. We measured whether that helps and it does not — a coin\u2019s past does not change the odds on its next call.",
         expert:
-          "Typical gate: win rate ≥ 80% with at least 5 closed trades, or a positive flag without danger. SL rate ≥ 30% with 5+ trades is Avoid. Orthogonal to Hunt’s tags — you can be Worth on a weak tag, or Avoid on a runner tag.",
+          "Reconstructed point-in-time across all 58,075 resolved calls: top vs bottom quartile of a pair\u2019s as-of-publish record differs by -0.46pp on win rate, +0.46pp on SL rate (wrong sign), +0.16pp on last-5 form, +0.13pp on streak, -0.05pp on 30-day rate. The old worth_it gate also passed 487 of 491 pairs, so it ranked almost nothing.",
       },
       {
         id: "limits",
         title: "Limits",
-        hint: "Close to the default good list",
+        hint: "A ranking, not a filter",
         simple:
-          "If most pairs on the desk are already Worth, this shortlist will look a lot like “open calls, best pairs first.” Use Hunt when you want a tighter setup filter.",
+          "Edge is a prior built from the call\u2019s entry tags. It ranks; it does not promise. The stop is still the stop.",
         expert:
-          "No exclusion of LATE_ENTRY / PARABOLIC. A Worth pair that has already run far can still appear. Combine with Hunt or drop confound tags in the graph if you want “still near entry.”",
+          "No exclusion of LATE_ENTRY / PARABOLIC — a call that has already run far can still rank high. Combine with Runners, or drop confound tags in the graph, if you want \u201cstill near entry\u201d.",
       },
     ],
   },
   full_tp: {
     id: "full_tp",
-    label: "Hunt full TP",
+    label: "Runners",
     oneLiner:
       "Calls whose entry tags historically reached TP3/TP4 more often — classified at call time, not after they already won.",
     simple: [
       "This is a filter for setups that more often filled the later targets, not a collector of trades that already hit TP.",
-      "The bars below are closed calls only (hit TP or SL) that wore today’s Hunt tags when they were published, versus every closed call in the same window. Open calls are not counted.",
+      "The bars below are closed calls only (hit TP or SL) that wore today’s runner tags when they were published, versus every closed call in the same window. Open calls are not counted.",
     ],
     drills: [
       {
         id: "does",
         title: "What the button does",
-        hint: "Runner tags · Worth · Edge → Called",
+        hint: "Runner tags · top 20% Edge · Edge → Called",
         simple:
-          "Keeps Worth pairs that carry at least one “runner” tag. Sorts by Edge Score. Includes open and closed, so you can study how those setups finished.",
+          "Keeps calls that carry at least one “runner” tag AND sit in the top 20% of Edge scores on the board. Sorts by Edge Score. Most rows will already have moved — only ~7 of the last 866 calls are still untriggered.",
         expert:
-          "selectedTags = top 4 runner tags (OR). verdictFilter = worth_it. statusFilter = all. sort = edge_score desc, then called time. Live Worth is pair-level and is NOT baked into the historical bars — those bars are the tag union only.",
+          "selectedTags = top 4 runner tags (OR). statusFilter = all — `open` was measured first and returns 0 rows, because tp1/tp2/tp3 are terminal on this desk and only 7 of 866 recent calls sit at `open`. edgeTop = 20, applied BEFORE the tag filter so it means the top fifth of the board, not the top fifth of the tagged rows. sort = edge_score desc, then called time. Walk-forward over 8,674 closed calls whose entry snapshot was written within an hour of the call: tag alone 87.5% win at 52.7% of the book; top-20% Edge with no runner tag 85.6% win / 14.4% SL — both on the baseline of 85.9 / 14.1; tag AND top-20% Edge 89.5% win / 51.5% TP3+ / 10.5% SL. The Edge cut selects, the tag protects the downside. Measured across the whole tag era the same combination reads 90.6 / 50.9 / 9.4, but 47.5% of those snapshots came from a June backfill computed up to 90 days late, so the clean subset is the one quoted. The historical bars are the tag union only.",
       },
       {
         id: "asof",
@@ -115,7 +115,7 @@ export const RECIPE_EXPLAIN = {
         simple:
           "Every tag used here was on the call when it was published. We do not add “winner” tags after TP3 hits. Closed rows in the table are here so you can audit the filter, not because we mined finished trades.",
         expert:
-          "Tags = important names on signal_enrichment.entry_snapshot. Open calls are scored with resolved-only tag-WR (this call is not in the rates). Closed rows use leave-one-out so the badge cannot see its own outcome. Hunt stats below are still in-sample vs the current top-4 list — honest as a description, not a walk-forward paper trade of the button.",
+          "Tags = important names on signal_enrichment.entry_snapshot. Open calls are scored with resolved-only tag-WR (this call is not in the rates). Closed rows use leave-one-out so the badge cannot see its own outcome. Runner stats below are still in-sample vs the current top-4 list — honest as a description, not a walk-forward paper trade of the button.",
       },
       {
         id: "pick",
@@ -124,7 +124,7 @@ export const RECIPE_EXPLAIN = {
         simple:
           "We look at closed history since tags exist (from 10 Mar 2026). A tag qualifies if it has enough samples, a solid win rate, and it reached later targets (or ran a high peak) more often. Late / parabolic / overextended tags are excluded — they look strong because the coin was already flying.",
         expert:
-          "Eligibility: not in {LATE_ENTRY, PARABOLIC, OVEREXTENDED, EXHAUSTION_CANDLE}, n≥150, WR≥78%, and (full_tp_rate≥12% or tp4_rate≥5% or median peak on wins ≥18%). Ranked by full_tp_rate, keep top 4. full_tp = outcome ∈ {tp3, tp4}. Many tags pass the loose gate; the top-4 cap is what makes Hunt a shortlist.",
+          "Eligibility: not in {LATE_ENTRY, PARABOLIC, OVEREXTENDED, EXHAUSTION_CANDLE}, n≥150, WR≥78%, and (full_tp_rate≥12% or tp4_rate≥5% or median peak on wins ≥18%). Ranked by full_tp_rate, keep top 4. full_tp = outcome ∈ {tp3, tp4}. Many tags pass the loose gate; the top-4 cap is what makes Runners a shortlist.",
       },
       {
         id: "read",
@@ -140,9 +140,9 @@ export const RECIPE_EXPLAIN = {
         title: "Limits",
         hint: "Shortlist, not a promise of TP4",
         simple:
-          "Hunt raises the chance of a deeper run versus all calls. It does not mean this open call will hit TP4. Stops still exist. Size yourself.",
+          "Runners raises the chance of a deeper run versus all calls. It does not mean this open call will hit TP4. Stops still exist. Size yourself.",
         expert:
-          "Overlap: a call with two runner tags is one row in the union (not counted twice). RSI_OVERBOUGHT_H1 often dominates sample size. BTC_VOLATILE can have a huge full-TP rate and zero live names. Worth on the live desk may drop some of these rows. Peak ≠ realised. Regime can shift; refresh the bars, don’t freeze them as a brand claim.",
+          "Overlap: a call with two runner tags is one row in the union (not counted twice). RSI_OVERBOUGHT_H1 often dominates sample size. Peak ≠ realised. Regime can shift; refresh the bars, don’t freeze them as a brand claim.",
       },
     ],
   },
@@ -163,7 +163,7 @@ export const RECIPE_EXPLAIN = {
         simple:
           "Shows still-open calls tagged late, parabolic, overextended, or exhaustion. Sorts the lowest Edge scores to the top so the weakest sit first.",
         expert:
-          "selectedTags = LATE_ENTRY, PARABOLIC, OVEREXTENDED, EXHAUSTION_CANDLE (OR). status = open. verdict = all. sort edge_score ascending. EXHAUSTION is the only one that actually underperforms on win rate; the other three print high WR and high full-TP because selection is conditional on a move already underway.",
+          "selectedTags = LATE_ENTRY, PARABOLIC, OVEREXTENDED, EXHAUSTION_CANDLE (OR). status = open. sort edge_score ascending. EXHAUSTION is the only one that actually underperforms on win rate; the other three print high WR and high full-TP because selection is conditional on a move already underway.",
       },
       {
         id: "why",
@@ -179,7 +179,7 @@ export const RECIPE_EXPLAIN = {
         title: "Limits",
         hint: "Teaching tool",
         simple:
-          "If you came here looking for something to take, go back to Hunt full TP. This list is the warning pile.",
+          "If you came here looking for something to take, go back to Runners. This list is the warning pile.",
         expert:
           "Confound set is hard-coded, not fit from WR. Overlap with Hunt exists when a runner tag co-occurs with LATE_ENTRY. Sorting Edge ascending is for review, not expected-value.",
       },
@@ -193,7 +193,7 @@ export const OUTCOME_LABELS = [
     short: "SL",
     title: "Stop",
     final:
-      "Closed at the stop without reaching TP1. Counted as a loss. This is the share of Hunt calls that never made it to the first target.",
+      "Closed at the stop without reaching TP1. Counted as a loss. This is the share of Runner calls that never made it to the first target.",
     reached:
       "Same as the final SL share — calls that did not reach TP1.",
   },

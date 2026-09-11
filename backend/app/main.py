@@ -51,17 +51,22 @@ from app.api.routes import btc_correlation
 from app.api.routes import og_share
 from app.api.routes.autotrade_auth import router as autotrade_auth_router
 from app.api.routes.agent_waitlist import router as agent_waitlist_router
+from app.api.routes.email_prefs import router as email_prefs_router
+from app.api.routes.admin_email import router as admin_email_router
+from app.api.routes.billing_state import router as billing_state_router
 from app.api.routes.agent_disclaimer import router as agent_disclaimer_router
 
 from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.notifications import router as notifications_router
+from app.api.routes.signal_alert_filters import router as signal_alert_filters_router
 from app.api.routes.notification_preferences import router as notification_prefs_router
 from app.api.routes.announcements import router as announcements_router
 from app.api.routes.admin_announcements import router as admin_announcements_router
 from app.api.routes.admin_social_posts import router as admin_social_posts_router
 from app.api.routes.admin_signal_cards import router as admin_signal_cards_router
 from app.api.routes.admin_x_tracker import router as admin_x_tracker_router
+from app.api.routes.admin_broadcast import router as admin_broadcast_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.admin_chat import router as admin_chat_router
 from app.api.routes.coin_watch import router as coin_watch_router
@@ -298,6 +303,7 @@ app.include_router(admin_announcements_router, tags=["admin-announcements"])
 app.include_router(admin_social_posts_router, tags=["admin-social-posts"])
 app.include_router(admin_signal_cards_router, tags=["admin-signal-cards"])
 app.include_router(admin_x_tracker_router, tags=["admin-x-tracker"])
+app.include_router(admin_broadcast_router, tags=["admin-broadcast"])
 app.include_router(chat_router, tags=["chat"])
 app.include_router(admin_chat_router, tags=["admin-chat"])
 app.include_router(signal_journey.router, prefix="/api/v1/signals", tags=["signals-journey"])
@@ -326,6 +332,9 @@ app.include_router(admin_cashout_router, prefix="/api/v1", tags=["admin-cashout"
 app.include_router(admin_api_keys_router, prefix="/api/v1", tags=["admin-api-keys"])
 app.include_router(admin_autotrade_router, prefix="/api/v1", tags=["admin-autotrade"])
 app.include_router(subscription_router, prefix="/api/v1", tags=["subscription"])
+app.include_router(email_prefs_router, prefix="/api/v1", tags=["email"])
+app.include_router(admin_email_router, prefix="/api/v1", tags=["admin-email"])
+app.include_router(billing_state_router, prefix="/api/v1", tags=["billing"])
 app.include_router(calendar_router, prefix="/api/v1", tags=["calendar"])
 app.include_router(whale_router, prefix="/api/v1", tags=["whale"])
 app.include_router(money_flow_router, prefix="/api/v1", tags=["money-flow"])
@@ -338,6 +347,7 @@ app.include_router(enrichment_v3.router, tags=["enrichment-v3"])
 app.include_router(coin_profile_router, prefix="/api/v1/coin-profile", tags=["coin-profile"])
 app.include_router(profile_router, prefix="/api/v1", tags=["profile"])
 app.include_router(notifications_router, prefix="/api/v1", tags=["notifications"])
+app.include_router(signal_alert_filters_router, prefix="/api/v1", tags=["signal-filters"])
 app.include_router(notification_prefs_router, prefix="/api/v1", tags=["notification-preferences"])
 app.include_router(journal_router, prefix="/api/v1")
 app.include_router(market_pulse_router, prefix="/api/v1/market-pulse", tags=["market-pulse"])

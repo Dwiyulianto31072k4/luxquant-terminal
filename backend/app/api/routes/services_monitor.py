@@ -225,7 +225,11 @@ def _uptime_seconds(props: dict[str, str]) -> float | None:
 
 
 def _category(name: str) -> str:
-    low = name.lower()
+    # Callers pass the full unit ("luxquant.service"), so any rule that tests
+    # the whole string for equality never fires. Strip the suffix once here
+    # rather than making every rule remember to.
+    low = name.lower().rsplit(".", 1)[0] if name.lower().endswith((".service", ".timer")) \
+        else name.lower()
     if _is_infra_unit(name):
         return "Infrastructure"
     if "backend" in low:
@@ -242,8 +246,25 @@ def _category(name: str) -> str:
         return "Distribution"
     if any(k in low for k in ("binance", "liquidation", "correlation", "coin", "money-flow", "realtime", "chart", "pnl", "price")):
         return "Market Data"
-    if any(k in low for k in ("journey", "signal", "enrichment", "call", "sync", "scraper")):
+    if any(k in low for k in ("journey", "signal", "enrichment", "call", "sync", "scraper",
+                              "shariah", "hourly")):
         return "Signals"
+    # Everything below was landing in "Other" — a quarter of the estate, which
+    # makes the bucket useless: a category nobody can act on is a category
+    # nobody reads. Each of these is named after what it does, so the rule is
+    # just the name nobody had written down yet.
+    if any(k in low for k in ("x-publisher", "x-quote", "x-breaker", "x-metrics", "btc-pulse")):
+        return "Distribution"          # the X accounts and the BTC pulse posts
+    if any(k in low for k in ("flow-worker", "delisting")):
+        return "Market Data"
+    if any(k in low for k in ("prune", "watchdog", "backup", "cleanup")):
+        return "Maintenance"           # housekeeping: nothing breaks when idle
+    if "poller" in low:
+        return "Core API"              # the background workers the API cannot run itself
+    if "danted" in low:
+        return "Infrastructure"        # the SOCKS proxy every Telegram request leaves through
+    if any(k in low for k in ("streamlit", "marketing", "tools", "luxquanttrade")) or low == "luxquant":
+        return "Standalone apps"       # separate apps sharing the box, not part of the pipeline
     return "Other"
 
 
@@ -400,6 +421,51 @@ class ServiceActionRequest(BaseModel):
 # Endpoints
 # ════════════════════════════════════════════════════════════════════
 
+def _pair_timers(services: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Fold each timer into the service it fires.
+
+    systemd models a scheduled job as two units: foo.timer arms the schedule
+    and foo.service does the work. They are one thing to anyone reading this
+    page, and listing both produced 22 pairs of rows with the same name and the
+    same description sitting next to each other — which reads as a bug in the
+    dashboard, not as a fact about systemd.
+
+    Worse, the pair tells a confusing story on its own: the service of a
+    scheduled job sits in "inactive (dead)" between runs, which the health
+    rules call idle. A perfectly healthy nightly job therefore showed up as one
+    green row and one grey row, and there was no way to tell that apart from a
+    worker that had quietly stopped.
+
+    Merged, the timer's state answers "is this still scheduled" and its last
+    trigger answers "did it actually run", which together are the only two
+    questions worth asking about a cron-shaped thing.
+    """
+    by_name: dict[str, dict[str, dict[str, Any]]] = {}
+    for s_ in services:
+        by_name.setdefault(s_.get("name", ""), {})[s_.get("kind", "")] = s_
+
+    out: list[dict[str, Any]] = []
+    for name, kinds in by_name.items():
+        timer, svc = kinds.get("timer"), kinds.get("service")
+        if timer and svc:
+            merged = dict(svc)
+            merged["scheduled"] = True
+            # The schedule's health, not the between-runs state of the job.
+            merged["health"] = timer.get("health", svc.get("health"))
+            merged["last_run"] = timer.get("last_trigger_usec") or ""
+            merged["next_run"] = timer.get("next_elapse") or ""
+            merged["timer_unit"] = timer.get("unit")
+            # A description on either half is better than none on both.
+            merged["description"] = svc.get("description") or timer.get("description", "")
+            merged["fn"] = svc.get("fn") or timer.get("fn", "")
+            out.append(merged)
+        else:
+            only = timer or svc
+            if only:
+                out.append(dict(only, scheduled=bool(timer)))
+    return out
+
+
 @router.get("/services")
 def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     """Live health of every monitored LuxQuant + infra unit."""
@@ -423,8 +489,15 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     services = [_describe(u, include_log=True) for u in units]
     # Drop units systemd doesn't actually know (avoids ghost cards).
     services = [s for s in services if s.get("load_state") != "not-found"]
+    # Drop systemd templates. "foo@.service" is the pattern instances are made
+    # from, never a thing that runs, so systemctl reports no state for it and it
+    # arrives here as a permanent "unknown" — two rows that can never turn green
+    # and can never be acted on. Its instances (foo@a, foo@b) are listed on
+    # their own and are the ones that matter.
+    services = [s for s in services if not s.get("name", "").endswith("@")]
     for s in services:
         s["fn"] = _fn_for(s.get("name", ""))
+    services = _pair_timers(services)
 
     # sort: unhealthy first, then by category, then name
     order = {"down": 0, "warn": 1, "unknown": 2, "ok": 3, "idle": 4}
@@ -436,9 +509,116 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
         if h in summary:
             summary[h] += 1
 
-    result = {"available": True, "services": services, "summary": summary}
+    # This host is named explicitly rather than left implicit: once a second
+    # box appears in the list, "no host" reads as "unknown host".
+    for s_ in services:
+        s_.setdefault("host", os.getenv("WORKSPACE_LOCAL_LABEL", "Mumbai"))
+
+    hosts = [{
+        "label": os.getenv("WORKSPACE_LOCAL_LABEL", "Mumbai"),
+        "note": "app, database, workers",
+        "target": "local", "reachable": True, "local": True,
+        # A copy, not the same list. The flat `services` below keeps growing as
+        # remote boxes are read, and sharing the object put Jakarta's units
+        # inside Mumbai's card as well.
+        "services": list(services),
+    }]
+    for spec in REMOTE_HOSTS:
+        h = _remote_host(spec)
+        hosts.append(h)
+        # Merged into the flat list too, so existing views keep working and a
+        # failure on the far box shows up in the same summary as a local one.
+        for rs in h.get("services", []):
+            services.append(rs)
+            if rs.get("health") in summary:
+                summary[rs["health"]] += 1
+                summary["total"] += 1
+
+    result = {"available": True, "services": services, "summary": summary, "hosts": hosts}
     cache_set("workspace:services", result, ttl=15)
     return result
+
+
+# ════════════════════════════════════════════════════════════════════
+# The second box
+# ════════════════════════════════════════════════════════════════════
+# Everything above reads systemd on the machine this API runs on, which is the
+# Mumbai VPS. It is not the only machine: a second VPS in Jakarta carries the
+# SOCKS proxy that all Telegram traffic leaves through, and the Binance flow
+# worker that has to originate from an Indonesian address. Both are load-bearing
+# and neither appeared anywhere in the dashboard, so an outage there would have
+# looked like an outage here with no way to tell them apart.
+#
+# It is reached over SSH with a key pinned to one read-only command on the far
+# side (restrict,command="/usr/local/bin/lq-host-status"), so this process can
+# ask that box how it is and can do nothing else to it — the dashboard should
+# not be able to hold a shell on a machine just to draw a status dot.
+REMOTE_HOSTS = [
+    h.strip() for h in os.getenv(
+        "WORKSPACE_REMOTE_HOSTS", "ubuntu@103.197.189.58|Jakarta|proxy + Binance flow"
+    ).split(",") if h.strip()
+]
+
+
+def _remote_health(active_state: str, sub_state: str, result: str) -> str:
+    return _health(active_state, sub_state, result)
+
+
+def _remote_host(spec: str) -> dict[str, Any]:
+    """Ask one remote box for its status. Never raises, never blocks for long."""
+    parts = spec.split("|")
+    target = parts[0]
+    label = parts[1] if len(parts) > 1 else target
+    note = parts[2] if len(parts) > 2 else ""
+
+    rc, out, err = _run([
+        "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=6",
+        "-o", "StrictHostKeyChecking=accept-new", target,
+    ], timeout=14)
+    if rc != 0 or not out.strip():
+        return {"label": label, "note": note, "target": target, "reachable": False,
+                "reason": (err or "no response").strip()[:160], "services": []}
+
+    try:
+        import json as _json
+        d = _json.loads(out)
+    except Exception as e:
+        return {"label": label, "note": note, "target": target, "reachable": False,
+                "reason": f"unreadable reply: {e}"[:160], "services": []}
+
+    services = []
+    for u in d.get("units", []):
+        unit = u.get("unit", "")
+        services.append({
+            "unit": unit,
+            "name": unit.rsplit(".", 1)[0],
+            "kind": unit.rsplit(".", 1)[-1],
+            "category": _category(unit),
+            "description": u.get("description", ""),
+            "health": _remote_health(u.get("active_state", ""), u.get("sub_state", ""),
+                                     u.get("result", "")),
+            "load_state": u.get("load_state", ""),
+            "active_state": u.get("active_state", ""),
+            "sub_state": u.get("sub_state", ""),
+            "result": u.get("result", ""),
+            "uptime_seconds": u.get("uptime_s"),
+            "restarts": 0,
+            "memory_bytes": u.get("mem_bytes"),
+            "main_pid": None,
+            "host": label,
+            # Control actions are local-only by design: the far key cannot run
+            # systemctl, and widening it to allow that would hand the dashboard
+            # the ability to stop the proxy every other service depends on.
+            "read_only": True,
+        })
+    return {
+        "label": label, "note": note, "target": target, "reachable": True,
+        "hostname": d.get("host", ""),
+        "uptime_seconds": d.get("uptime_s"),
+        "load": d.get("load"),
+        "disk": d.get("disk"),
+        "services": services,
+    }
 
 
 @router.get("/services/topology")

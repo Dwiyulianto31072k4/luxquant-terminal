@@ -27,6 +27,7 @@ import hashlib
 
 from app.config import settings
 from app.services.notifier import create_notification, notification_exists
+from app.services import billing_delivery
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -149,7 +150,7 @@ def create_subscription(
 
     if pending:
         if pending.plan_id == data.plan_id:
-            return _invoice_response(pending, plan, "Kamu sudah punya invoice untuk paket ini")
+            return _invoice_response(pending, plan, "You already have an open invoice for this plan")
         else:
             # Different plan — cancel old (refund any redeemed credit first)
             refund_redemption(db, pending)
@@ -389,7 +390,19 @@ async def verify_payment(
             current_user.telegram_grace_until = None
 
         if plan and plan.duration_days:
-            current_user.subscription_expires_at = now + timedelta(days=plan.duration_days)
+            # Stack on time still running, exactly as finance.py:1195 does for an
+            # admin approval. The two paths disagreed: an admin-approved renewal
+            # preserved the remainder while a self-serve one — the path nearly
+            # every customer takes — assigned now + duration and discarded it.
+            #
+            # Historically that cost almost nothing, because almost nobody
+            # renewed early. It is not historical any more: the renewal
+            # reminders shipped this week ask people at T-7, T-3 and T-1 to pay
+            # while they still have access, so the bug would now bite exactly
+            # the people who did what we asked.
+            existing = current_user.subscription_expires_at
+            base = existing if (existing and existing > now) else now
+            current_user.subscription_expires_at = base + timedelta(days=plan.duration_days)
         else:
             current_user.subscription_expires_at = None
 
@@ -440,6 +453,32 @@ async def verify_payment(
                f"to user_id={commission_summary['referrer_id']}" if commission_summary else "")
         )
 
+        # The receipt. Dates come from what was actually written to the user
+        # row, never recomputed here — a receipt that disagrees with the
+        # account it describes is worse than no receipt.
+        try:
+            exp = current_user.subscription_expires_at
+            await billing_delivery.deliver_receipt(
+                db,
+                telegram_id=current_user.telegram_id,
+                email=current_user.email,
+                plan=plan_label,
+                amount=float(payment.final_amount or payment.amount_usdt),
+                duration_days=(plan.duration_days if plan else None),
+                paid_at=now.strftime("%d %b %Y, %H:%M UTC"),
+                tx_hash=payment.tx_hash,
+                receipt_no=f"LQ-{payment.id:06d}",
+                account=current_user.username,
+                telegram=current_user.telegram_username,
+                access_from=now.strftime("%d %b %Y"),
+                access_to=exp.strftime("%d %b %Y") if exp else None,
+                list_price=float(payment.amount_usdt),
+                discount=float(payment.discount_amount or 0),
+                credit=float(payment.credit_redeemed or 0),
+            )
+        except Exception as e:
+            logger.warning(f"Receipt email failed for payment #{payment.id}: {e}")
+
         response = {
             "status": "confirmed",
             "message": "Payment successful! Your subscription is active.",
@@ -475,17 +514,30 @@ async def verify_payment(
         payment.updated_at = datetime.now(timezone.utc)
         db.commit()
 
+        # These buckets read the message text, so they only ever worked on the
+        # messages that were already in English. The verifier used to answer in
+        # Indonesian -- "Jumlah tidak sesuai", "USDT dikirim ke alamat yang
+        # salah" -- and none of those match "amount" or "address", so every
+        # amount and address failure was filed as a generic rejection. The
+        # messages are English now; the order below matters because a single
+        # sentence can carry several of these words.
         error_text = str(result.error or "").lower()
         if getattr(result, "retryable", False):
             reason_code = "retryable_chain_check"
+        elif "reverted" in error_text:
+            reason_code = "transaction_reverted"
         elif "amount" in error_text or "insufficient" in error_text:
             reason_code = "amount_mismatch"
+        elif "not a usdt transfer" in error_text or "bep-20" in error_text \
+                or "network" in error_text or "token" in error_text:
+            reason_code = "network_or_token_mismatch"
         elif "wallet" in error_text or "recipient" in error_text or "address" in error_text:
             reason_code = "wallet_mismatch"
-        elif "not found" in error_text or "transaction" in error_text:
+        # Deliberately not "transaction": nearly every message contains the
+        # word, so it swallowed failures that had nothing to do with a missing
+        # hash.
+        elif "not found" in error_text:
             reason_code = "transaction_not_found"
-        elif "network" in error_text or "token" in error_text:
-            reason_code = "network_or_token_mismatch"
         else:
             reason_code = "verification_rejected"
 

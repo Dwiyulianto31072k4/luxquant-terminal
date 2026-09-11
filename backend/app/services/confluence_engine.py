@@ -170,8 +170,11 @@ def evaluate_macro_liquidity(
     # M2 YoY: the directional signal — historically 5%+ supports BTC
     m2yoy = _safe_float(m2yoy_change)
     if m2yoy is not None:
-        score = 1 if m2yoy > 4 else (-1 if m2yoy < 0 else 0)
-        note = "Liquidity expanding" if score > 0 else ("Contracting" if score < 0 else "Stagnant")
+        score, note = _ranked(
+            "m2yoy_change", m2yoy, +1,
+            lambda v: 1 if v > 4 else (-1 if v < 0 else 0),
+            ("Liquidity expanding", "Contracting", "Stagnant"),
+        )
         metrics.append(MetricSignal(
             key="m2yoy_change", raw_value=m2yoy, score=score,
             label=f"{m2yoy:+.2f}%", note=note,
@@ -181,34 +184,39 @@ def evaluate_macro_liquidity(
             key="m2yoy_change", raw_value=None, score=0, label="—", available=False,
         ))
 
-    # SSR: lower = more dry powder vs BTC market cap
-    ssr_val = _safe_float(ssr)
-    if ssr_val is not None:
-        # Below historical median ~7 = bullish, above 12 = bearish (dry powder exhausted)
-        score = 1 if ssr_val < 7 else (-1 if ssr_val > 12 else 0)
-        note = "Dry powder accumulating" if score > 0 else ("Exhausted" if score < 0 else "Neutral")
-        metrics.append(MetricSignal(
-            key="ssr", raw_value=ssr_val, score=score,
-            label=f"{ssr_val:.2f}", note=note,
-        ))
-    else:
-        metrics.append(MetricSignal(
-            key="ssr", raw_value=None, score=0, label="—", available=False,
-        ))
-
-    # SSR Oscillator: momentum filter on SSR
-    ssr_osc = _safe_float(ssr_oscillator)
-    if ssr_osc is not None:
-        # Positive oscillator = accumulating, negative = depleting
-        score = 1 if ssr_osc > 0.1 else (-1 if ssr_osc < -0.1 else 0)
-        metrics.append(MetricSignal(
-            key="ssr_oscillator", raw_value=ssr_osc, score=score,
-            label=f"{ssr_osc:+.2f}",
-        ))
-    else:
-        metrics.append(MetricSignal(
-            key="ssr_oscillator", raw_value=None, score=0, label="—", available=False,
-        ))
+    # SSR and its oscillator, ranked against their own trailing window for the
+    # same reason funding and basis already are: their fixed cut-offs sit
+    # outside the range the metrics actually occupy, so neither could return
+    # anything but +1.
+    #
+    # Measured across 908 reports: SSR ranged 4.59-6.27 against "below 7 is
+    # bullish", and the oscillator 0.21-0.43 against "above 0.1 is bullish".
+    # Both scored +1 in every single report — two permanent bullish votes in a
+    # three-metric layer, which is part of why 99.4% of SELECTIVE_RISK_ON reads
+    # were BULLISH_CONTINUATION. The cut-offs were written for a level the
+    # metric left behind as stablecoin supply grew.
+    #
+    # Falls back to the old constants until the window fills, so behaviour is
+    # unchanged until there is history to rank against — "no data" must not
+    # look like "neutral".
+    # SSR is inverted — a low reading means dry powder is accumulating, which is
+    # why the old rule scored +1 below 7 — so a low percentile has to come out
+    # positive. Its oscillator runs the other way and passes through unchanged.
+    for _key, _raw, _lbl, _fallback, _notes, _sign in (
+        ("ssr", _safe_float(ssr), lambda v: f"{v:.2f}",
+         lambda v: 1 if v < 7 else (-1 if v > 12 else 0),
+         ("Dry powder accumulating", "Exhausted", "Neutral for its recent range"), -1),
+        ("ssr_oscillator", _safe_float(ssr_oscillator), lambda v: f"{v:+.2f}",
+         lambda v: 1 if v > 0.1 else (-1 if v < -0.1 else 0),
+         ("Accumulating", "Depleting", "Neutral for its recent range"), +1),
+    ):
+        if _raw is None:
+            metrics.append(MetricSignal(key=_key, raw_value=None, score=0,
+                                        label="—", available=False))
+            continue
+        _score, _note = _ranked(_key, _raw, _sign, _fallback, _notes)
+        metrics.append(MetricSignal(key=_key, raw_value=_raw, score=_score,
+                                    label=_lbl(_raw), note=_note))
 
     return _aggregate_layer("macro_liquidity", metrics)
 
@@ -221,6 +229,38 @@ def _percentile_score(feature: str, value: float):
         return _score(feature, value)
     except Exception:
         return None
+
+
+def _ranked(key: str, raw: float, sign: int, fallback, notes: tuple[str, str, str]):
+    """Score a metric against its own trailing window, or fall back to its rule.
+
+    Every fixed cut-off in this file was written for a level the metric has
+    since drifted away from, and the failure is silent: the metric keeps
+    returning the same score and stops carrying information. Measured across
+    908 reports — `ssr` and `ssr_oscillator` returned +1 every single time,
+    `nupl` 99.1%, `m2yoy_change` 90.7%, `top_trader_account` 89.3%.
+
+    Two of those feed the direction score, so the bias was not confined to
+    prose. A percentile rank asks "high or low for this metric lately", which
+    is what an absolute number was approximating before the level moved.
+
+    `sign` is mandatory and carries which end is bullish. SSR, STH-MVRV and
+    NUPL invert — a low SSR is dry powder, a low STH-MVRV is capitulation, and
+    within the band NUPL actually occupies a high reading is closer to euphoria
+    than to belief. Getting this wrong silently flips the metric, which is
+    exactly what happened to SSR on the first attempt and was only caught by
+    scoring a live value against the old rule afterwards. Do that check for any
+    metric added here.
+
+    Returns None when history is too thin, so the caller keeps its old rule —
+    "not enough data" must never be published as "neutral".
+    """
+    p = _percentile_score(key, raw)
+    if p is None:
+        score = fallback(raw)
+        return score, (notes[0] if score > 0 else (notes[1] if score < 0 else notes[2]))
+    score = round(sign * p, 3)
+    return score, (notes[0] if score > 0 else (notes[1] if score < 0 else notes[2]))
 
 
 def evaluate_smart_money(
@@ -244,10 +284,20 @@ def evaluate_smart_money(
     pos = _safe_float(top_trader_position)
     if pos is not None:
         pct_long = pos * 100 if pos <= 1 else pos
-        score = 1 if pct_long > 55 else (-1 if pct_long < 45 else 0)
+        # Crowd positioning is meaningful as a deviation, not a level: retail
+        # sits net long as a matter of course, and 59% is this metric's median,
+        # not a signal. The 55 line therefore read bullish 72% of the time.
+        # Sign kept positive — the contrarian reading measured in 2e31eb0d is a
+        # partial correlation after momentum and is not settled enough to flip a
+        # live metric on.
+        score, _n = _ranked(
+            "top_trader_position", pct_long, +1,
+            lambda v: 1 if v > 55 else (-1 if v < 45 else 0),
+            ("Crowd leaning long", "Crowd leaning short", "Crowd near its usual lean"),
+        )
         metrics.append(MetricSignal(
             key="top_trader_position", raw_value=pos, score=score,
-            label=f"{pct_long:.1f}% long",
+            label=f"{pct_long:.1f}% long", note=_n,
         ))
     else:
         metrics.append(MetricSignal(
@@ -258,10 +308,18 @@ def evaluate_smart_money(
     acc = _safe_float(top_trader_account)
     if acc is not None:
         pct_long_acc = acc * 100 if acc <= 1 else acc
-        score = 1 if pct_long_acc > 52 else (-1 if pct_long_acc < 48 else 0)
+        # Median 61% against a 52 line: the metric spent 89% of 908 reports
+        # scoring +1, a near-constant bullish vote inside the layer that feeds
+        # the 72h direction.
+        score, _n = _ranked(
+            "top_trader_account", pct_long_acc, +1,
+            lambda v: 1 if v > 52 else (-1 if v < 48 else 0),
+            ("More accounts long than usual", "Fewer accounts long than usual",
+             "Accounts near their usual lean"),
+        )
         metrics.append(MetricSignal(
             key="top_trader_account", raw_value=acc, score=score,
-            label=f"{pct_long_acc:.1f}% accounts long",
+            label=f"{pct_long_acc:.1f}% accounts long", note=_n,
         ))
     else:
         metrics.append(MetricSignal(
@@ -375,15 +433,29 @@ def evaluate_onchain(
     # NUPL: 0-0.5 = belief (healthy), >0.75 = euphoria, <0 = capitulation
     nupl_val = _safe_float(nupl)
     if nupl_val is not None:
-        if 0 <= nupl_val <= 0.5:
-            score, note = 1, "Belief zone (healthy uptrend)"
-        elif nupl_val > 0.75:
-            score, note = -1, "Euphoria zone (overheated)"
-        elif nupl_val < 0:
-            # Paradox: capitulation often = bottom signal
-            score, note = 1, "Capitulation (contrarian bullish)"
-        else:
-            score, note = 0, "Mid range"
+        # The published bands describe a full cycle — capitulation below 0,
+        # belief to 0.5, euphoria above 0.75 — but NUPL has ranged 0.10 to 0.35
+        # across 908 reports, entirely inside belief. Both outer branches are
+        # unreachable and the metric returned +1 in 99.1% of them.
+        #
+        # Ranked inside the band it actually occupies, and inverted: more
+        # unrealised profit is closer to euphoria than to belief, so a high
+        # reading is the less bullish end. The cycle bands stay as the fallback
+        # for a market that eventually visits them.
+        def _nupl_fallback(v):
+            if 0 <= v <= 0.5:
+                return 1
+            if v > 0.75:
+                return -1
+            if v < 0:
+                return 1
+            return 0
+
+        score, note = _ranked(
+            "nupl", nupl_val, -1, _nupl_fallback,
+            ("Unrealised profit low for the band", "Unrealised profit high for the band",
+             "Mid-band"),
+        )
         metrics.append(MetricSignal(
             key="nupl", raw_value=nupl_val, score=score,
             label=f"{nupl_val:.2f}", note=note,
@@ -396,8 +468,11 @@ def evaluate_onchain(
     # SOPR: > 1 = profit-taking, < 1 = loss-takers (weak hands selling)
     sopr_val = _safe_float(sopr)
     if sopr_val is not None:
-        score = 1 if sopr_val > 1.005 else (-1 if sopr_val < 0.99 else 0)
-        note = "Profit-taking" if score > 0 else ("Loss-takers active" if score < 0 else "Equilibrium")
+        score, note = _ranked(
+            "sopr", sopr_val, +1,
+            lambda v: 1 if v > 1.005 else (-1 if v < 0.99 else 0),
+            ("Profit-taking", "Loss-takers active", "Equilibrium"),
+        )
         metrics.append(MetricSignal(
             key="sopr", raw_value=sopr_val, score=score,
             label=f"{sopr_val:.3f}", note=note,
@@ -407,17 +482,30 @@ def evaluate_onchain(
             key="sopr", raw_value=None, score=0, label="—", available=False,
         ))
 
-    # STH-MVRV: < 0.95 = STH underwater (classical bottom signal)
+    # STH-MVRV, ranked against its own window for the same reason as SSR: the
+    # distribution-risk branch at >1.30 is unreachable. Across 908 reports the
+    # metric ranged 0.81-1.14, so it could only ever say bullish or nothing, and
+    # the operational health check has been reporting it silent for 120 reports
+    # straight. Falls back to the fixed levels until the window fills.
     sth = _safe_float(sth_mvrv)
     if sth is not None:
-        if sth < 0.85:
-            score, note = 1, "Deep STH capitulation (bottom signal)"
-        elif sth < 0.95:
-            score, note = 1, "STH underwater (bottom-ish)"
-        elif sth > 1.30:
-            score, note = -1, "STH heavily in profit (distribution risk)"
+        _p = _percentile_score("sth_mvrv", sth)
+        if _p is None:
+            if sth < 0.85:
+                score, note = 1, "Deep STH capitulation (bottom signal)"
+            elif sth < 0.95:
+                score, note = 1, "STH underwater (bottom-ish)"
+            elif sth > 1.30:
+                score, note = -1, "STH heavily in profit (distribution risk)"
+            else:
+                score, note = 0, "STH neutral"
         else:
-            score, note = 0, "STH neutral"
+            # Inverted: a low STH-MVRV is the bullish end of this metric, so a
+            # low percentile must score positive.
+            score = round(-_p, 3)
+            note = ("STH low for its recent range" if score > 0 else
+                    ("STH high for its recent range" if score < 0 else
+                     "STH mid-range"))
         metrics.append(MetricSignal(
             key="sth_mvrv", raw_value=sth, score=score,
             label=f"{sth:.2f}", note=note,

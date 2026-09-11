@@ -64,7 +64,17 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "https://luxquant.tw")
 DISCORD_API = "https://discord.com/api/v10"
 DISCORD_OAUTH_URL = "https://discord.com/api/oauth2"
 
-SCOPES = "identify guilds.members.read"
+# `email` costs nothing and Discord returns it verified. Without it every
+# Discord sign-up was minted a synthetic dc_<id>@discord.luxquant.tw address —
+# 57 accounts, 22 of them paying, with no mailbox we can ever reach. The user
+# already sees a consent screen; this adds one line to it.
+SCOPES = "identify guilds.members.read email"
+
+
+def _is_synthetic(email: str | None) -> bool:
+    """Addresses we minted ourselves because a provider gave us none."""
+    return bool(email) and email.lower().endswith(
+        ("@discord.luxquant.tw", "@telegram.luxquant.tw"))
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -232,6 +242,20 @@ async def discord_callback(
     if user:
         # User existing — update info
         user.discord_username = discord_username
+
+        # Upgrade a synthetic address the first time Discord gives a real one.
+        # Everyone who signed in before the `email` scope was requested carries
+        # dc_<id>@discord.luxquant.tw, which is not a mailbox — mail to it goes
+        # nowhere. Guarded against collision: if that address already belongs to
+        # another account, leave this one alone rather than break the unique
+        # constraint or quietly hijack someone else's identity.
+        if discord_email and _is_synthetic(user.email):
+            clash = db.query(User).filter(User.email == discord_email,
+                                          User.id != user.id).first()
+            if clash is None:
+                logger.info("Discord: upgrading synthetic address for user_id=%s", user.id)
+                user.email = discord_email
+
         # Refresh avatar Discord, tapi jangan timpa avatar upload-an user sendiri
         if discord_avatar and not is_uploaded_avatar(user.avatar_url):
             user.avatar_url = f"https://cdn.discordapp.com/avatars/{discord_id}/{discord_avatar}.png?size=256"

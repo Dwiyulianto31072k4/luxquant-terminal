@@ -1005,8 +1005,16 @@ async def signal_cache_loop():
                 try:
                     _t7 = time.time()
                     from app.api.routes.signals import get_top_performers
-                    for (tp_days, tp_limit) in ((7, 10), (1, 10), (7, 20), (1, 20)):
-                        await get_top_performers(days=tp_days, limit=tp_limit, db=db)
+                    # One warm per window, not per limit. The cache no longer
+                    # keys on `limit` -- the board is stored whole and sliced on
+                    # the way out -- so warming (7,10) and (7,20) separately
+                    # computed the same board twice. It also left limit=5 cold,
+                    # which is what the proof-card renderer asks for, so that
+                    # caller paid the full CTE and sparkline cost inline and
+                    # read a board from a different moment than the recap card
+                    # beside it.
+                    for tp_days in (7, 1):
+                        await get_top_performers(days=tp_days, limit=20, db=db)
                         cached += 1
                     _ms7 = round((time.time() - _t7) * 1000)
                 except Exception as e:

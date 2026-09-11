@@ -75,7 +75,7 @@ def money_flow_sectors(
     24h diambil dari field CoinGecko langsung; 7d/30d dari beda snapshot."""
     latest = _latest_snapshot_at(db, "mf_sector_snapshots")
     if latest is None:
-        return {"sectors": [], "note": "no snapshot yet — worker belum jalan"}
+        return {"sectors": [], "note": "no snapshot yet — the worker has not run"}
 
     at_7d = _nearest_snapshot_at(db, "mf_sector_snapshots", 7)
     at_30d = _nearest_snapshot_at(db, "mf_sector_snapshots", 30)
@@ -172,7 +172,7 @@ def money_flow_macro(db: Session = Depends(get_db)):
     Plus delta dominance 7d biar keliatan arah rotasi."""
     latest = _latest_snapshot_at(db, "mf_macro_snapshots")
     if latest is None:
-        return {"note": "no snapshot yet — worker belum jalan"}
+        return {"note": "no snapshot yet — the worker has not run"}
 
     now = db.execute(text("""
         SELECT btc_dominance, eth_dominance, stablecoin_dominance,
@@ -220,7 +220,7 @@ def money_flow_coins(
     Tag DESKRIPTIF: high/elevated/normal turnover — bukan rekomendasi."""
     latest = _latest_snapshot_at(db, "mf_coin_snapshots")
     if latest is None:
-        return {"coins": [], "note": "no snapshot yet — worker belum jalan"}
+        return {"coins": [], "note": "no snapshot yet — the worker has not run"}
 
     at_7d = _nearest_snapshot_at(db, "mf_coin_snapshots", 7)
 

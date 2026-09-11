@@ -156,13 +156,18 @@ function PageHeader({ healthStatus, onRefresh, refreshing }) {
   const healthy = healthStatus === "healthy";
   // "Check" told the reader nothing — not what to check, nor how bad it was.
   // Name the actual state instead; the banner below carries the detail.
+  // "critical" had no label and fell through to the fallback, so the most
+  // severe state the backend can report rendered as the vaguest word on the
+  // page. It is the one that most needs naming.
   const label = healthy
     ? "Healthy"
     : healthStatus === "unavailable"
       ? "Not current"
-      : healthStatus === "degraded"
-        ? "Degraded"
-        : "Check";
+      : healthStatus === "critical"
+        ? "Needs attention"
+        : healthStatus === "degraded"
+          ? "Degraded"
+          : "Check";
   return (
     <header className="flex items-center justify-between gap-3">
       <h1 className="font-display text-[22px] font-semibold tracking-tight text-text-primary sm:text-2xl">
@@ -528,6 +533,12 @@ function ThesisBoard({ report, ledger }) {
 
   const whyFull = [whatChanged, triggerHuman].filter(Boolean).join(" ");
 
+  // Recorded by deterministic_verdict since abdf1cdc, surfaced here for the
+  // first time. `suppressed_bearish` only exists when the raw direction and the
+  // published one disagree, so its presence IS the signal.
+  const suppressedBearish =
+    report?.shadow_deterministic?.suppressed_bearish?.tactical_24h || null;
+
   return (
     <section className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
     <div className="grid grid-cols-1 items-start gap-6 p-4 sm:p-5 lg:grid-cols-12 lg:gap-8 lg:p-6">
@@ -559,6 +570,31 @@ function ThesisBoard({ report, ledger }) {
             <span className="mx-1.5 text-text-muted">·</span>
             <span>{mode}</span>
           </p>
+
+          {/* A read that scored bearish is published neutral, because bearish
+              *contracts* measured EV-negative in both halves of the sample —
+              −0.611% in July, −0.467% in August, against bullish at +0.963%.
+              That is a decision about which trades to put a target on, not a
+              reason to withhold which way the tape is leaning: 20 of the last
+              60 reads scored bearish and every one of them said "Neutral" on
+              this line. The score was already recorded and never shown. */}
+          {suppressedBearish ? (
+            <p className="mt-2 flex items-start gap-2 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-2 text-[12.5px] leading-relaxed text-text-secondary">
+              <span aria-hidden className="mt-[2px] text-loss">↓</span>
+              <span>
+                <span className="font-semibold text-text-primary">
+                  The underlying read is bearish
+                </span>{" "}
+                (score {Number(suppressedBearish.score).toFixed(2)}
+                {Number.isFinite(Number(suppressedBearish.confidence))
+                  ? `, ${suppressedBearish.confidence}% conviction`
+                  : ""}
+                ). It publishes as neutral because downside calls have measured
+                loss-making at this horizon — treat it as a reason not to add
+                risk, not as a short signal.
+              </span>
+            </p>
+          ) : null}
         </div>
 
         <div className="max-w-[42rem] space-y-3 text-[14.5px] leading-[1.7] text-text-secondary">

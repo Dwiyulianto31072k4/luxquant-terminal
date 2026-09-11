@@ -5,7 +5,11 @@ import CoinLogo from "./CoinLogo";
 import StarButton from "./StarButton";
 import { useAuth } from "../context/AuthContext";
 import { watchlistApi } from "../services/watchlistApi";
-import { classifyCoin, getSignalVerdictInfo, CoinDetailModal } from "./coinIntelShared";
+import {
+  coinDeskBand,
+  getSignalDeskBandInfo,
+  CoinDetailModal,
+} from "./coinIntelShared";
 import { InfoTip } from "./GuideInfo";
 import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
@@ -46,7 +50,7 @@ const SIGNAL_COLUMNS = [
   { key: "track_record", label: "Track Record" },
   { key: "edge_score", label: "Edge" },
   { key: "btc_corr", label: "BTC Corr" },
-  { key: "verdict", label: "Verdict" },
+  { key: "verdict", label: "Pair record" },
   { key: "status", label: "Status" },
   // What changed last and how long ago. Sorting on it surfaces the calls that
   // just moved, which is the point: momentum is easier to read from a fresh
@@ -95,7 +99,11 @@ const loadVisibleCols = () => {
 // Default = Telegram-simple; power users can turn extras on.
 // ================================================================
 const MOBILE_FIELDS = [
-  { key: "verdict", label: "Verdict / WR", hint: "Worth · Avoid · win rate" },
+  {
+    key: "verdict",
+    label: "Pair record",
+    hint: "this pair's win rate and how many closed calls it rests on · sorting adjusts for sample size",
+  },
   { key: "risk", label: "Risk", hint: "High · Medium · Low chip" },
   { key: "vol", label: "Volume", hint: "24h volume on the card" },
   { key: "called_time", label: "Called time", hint: "When the call went out" },
@@ -387,6 +395,8 @@ const SignalsTable = ({
   page,
   totalPages,
   totalSignals,
+  emptyState = null,
+  onEmptyAction = null,
   onPageChange,
   sortBy,
   sortOrder,
@@ -405,6 +415,10 @@ const SignalsTable = ({
   coinIntel = {},
   verdictByPair = {},
   currentFlow = null,
+  // The desk's own win rate, from the coin-intel payload. Without it a pair's
+  // rate has nothing to be compared against, so every pair reads "in line" —
+  // never a guess.
+  deskWr = null,
   tagWrMap = {},
   runnerTagSet = null,
   edgeScoreMap = {},
@@ -418,7 +432,6 @@ const SignalsTable = ({
 }) => {
   const { t } = useTranslation();
 
-  const [expandedCards, setExpandedCards] = useState({}); // mobile card expand, keyed by signal_id (survives 15s price refresh)
   const [selectedCoinIntel, setSelectedCoinIntel] = useState(null); // coin object for CoinDetailModal
   const [showVerdictHint, setShowVerdictHint] = useState(false); // verdict coachmark (auto-shows on load)
   const [currentPrices, setCurrentPrices] = useState({});
@@ -772,18 +785,18 @@ const SignalsTable = ({
     const coin = coinIntel?.[pair];
     if (!coin) return null;
     if (signal) {
-      const info = getSignalVerdictInfo(coin, signal);
+      const info = getSignalDeskBandInfo(coin, signal, deskWr);
       if (!info) return null;
       return {
-        verdict: info.verdict,
-        // Badge / LOO metrics for the cell; modal always uses full pair coin.
+        band: info.band,
+        // Chip / LOO metrics for the cell; modal always uses full pair coin.
         coin: info.coin,
         fullCoin: info.fullCoin || coin,
         asOfEntry: !!info.asOfEntry,
       };
     }
-    const v = verdictByPair?.[pair] || classifyCoin(coin);
-    return { verdict: v, coin, fullCoin: coin, asOfEntry: false };
+    const v = verdictByPair?.[pair] || coinDeskBand(coin, deskWr);
+    return { band: v, coin, fullCoin: coin, asOfEntry: false };
   };
 
   // Highest-WR tag a signal carries (for the descriptive tag badge).
@@ -849,15 +862,15 @@ const SignalsTable = ({
   };
   const fmtTag = (tg) => tg.replace(/_H1$/, "").replace(/_/g, " ");
 
-  // Index of the first row (in current page) that has a non-neutral verdict —
-  // the coachmark anchors to this row's verdict cell.
+  // Index of the first row (in current page) whose pair is actually
+  // distinguishable from the desk — the coachmark anchors to that row's cell.
   const firstVerdictIdx = useMemo(() => {
     if (!signals) return -1;
     return signals.findIndex((s) => {
       const v = getVerdict(s);
-      return v && v.verdict !== "neutral";
+      return v && v.band && v.band !== "in_line";
     });
-  }, [signals, coinIntel, verdictByPair]);
+  }, [signals, coinIntel, verdictByPair, deskWr]);
 
   // Auto-show the verdict coachmark whenever the table loads with verdict data
   // visible. Shows for 5s every page open (no localStorage — user asked for it
@@ -1142,6 +1155,29 @@ const SignalsTable = ({
     );
   };
 
+  const EmptyView = () => (
+    <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.03]">
+        <EmptyStateIcon />
+      </div>
+      <p className="text-sm font-medium text-text-primary">
+        {emptyState?.title || "No signals found"}
+      </p>
+      <p className="max-w-sm text-[12.5px] leading-snug text-text-muted">
+        {emptyState?.hint || "Adjust your filters and try again"}
+      </p>
+      {emptyState?.actionLabel && onEmptyAction ? (
+        <button
+          type="button"
+          onClick={() => onEmptyAction(emptyState.action)}
+          className="mt-1 rounded-lg border border-ink/15 bg-surface-raised px-3.5 py-1.5 text-[12.5px] font-semibold text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.04]"
+        >
+          {emptyState.actionLabel}
+        </button>
+      ) : null}
+    </div>
+  );
+
   const MobileSignalCard = ({ signal }) => {
     const livePrice = getPrice(signal.pair);
     const currentPrice =
@@ -1150,15 +1186,9 @@ const SignalsTable = ({
         : livePrice;
     const currentVol = getVolume(signal.pair);
     const priceChange = getPriceChange(signal.entry, currentPrice);
-    const open = !!expandedCards[signal.signal_id];
-    const toggle = () =>
-      setExpandedCards((p) => ({ ...p, [signal.signal_id]: !p[signal.signal_id] }));
     const v = getVerdict(signal);
     const wr = getWinRate(signal.pair);
-    const streak = getStreak(signal.pair);
-    const topTag = getTopTag(signal.signal_id);
     const runner = getRunnerHint(signal.signal_id);
-    const btc = getBtc(signal);
     const maxTarget = getMaxTarget(signal);
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
     const sl = signal.stop1 ?? signal.stop_loss;
@@ -1171,7 +1201,7 @@ const SignalsTable = ({
 
     return (
       <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
-        {/* COLLAPSED — pair, E→TP, SL (price + %), live. Tap opens the call. */}
+        {/* Pair, E→TP, SL, live. Tap opens the call — star is the only other target. */}
         <div className="flex items-start gap-2 p-3.5">
           <button
             type="button"
@@ -1275,12 +1305,17 @@ const SignalsTable = ({
                     now {formatPrice(currentPrice)}
                   </span>
                 ) : null}
-                {showVerdict && v && v.verdict !== "neutral" ? (
+                {showVerdict && v && v.coin?.win_rate != null ? (
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${v.verdict === "avoid" ? "bg-negative/12 text-loss" : "bg-profit/12 text-profit"}`}
+                    className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${
+                      v.band === "below"
+                        ? "bg-negative/12 text-loss"
+                        : v.band === "above"
+                          ? "bg-profit/12 text-profit"
+                          : "bg-ink/[0.04] text-text-secondary"
+                    }`}
                   >
-                    {v.verdict === "avoid" ? "Avoid" : "Worth"}
-                    {v.coin.risk_score != null ? ` ${v.coin.risk_score}` : ""}
+                    {v.coin.win_rate}% · n={v.coin.closed_trades ?? 0}
                   </span>
                 ) : showVerdict && wr != null ? (
                   <span
@@ -1302,238 +1337,19 @@ const SignalsTable = ({
               </div>
             </div>
           </button>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {!teaser ? (
-              <>
-                <div className="px-1.5" onClick={(e) => e.stopPropagation()}>
-                  <CompareBox signal={signal} size={18} />
-                </div>
-                <div onClick={(e) => e.stopPropagation()}>
-                  <StarButton
-                    signalId={signal.signal_id}
-                    isStarred={watchlistIds.includes(signal.signal_id)}
-                    onToggle={handleStarToggle}
-                  />
-                </div>
-              </>
-            ) : null}
-            <button
-              onClick={toggle}
-              aria-label={open ? "Collapse" : "Expand"}
-              className="w-8 h-8 flex items-center justify-center text-text-primary/50 hover:text-text-primary"
+          {!teaser ? (
+            <div
+              className="flex-shrink-0 self-center"
+              onClick={(e) => e.stopPropagation()}
             >
-              <svg
-                className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-          </div>
+              <StarButton
+                signalId={signal.signal_id}
+                isStarred={watchlistIds.includes(signal.signal_id)}
+                onToggle={handleStarToggle}
+              />
+            </div>
+          ) : null}
         </div>
-
-        {/* EXPANDED — detail + open full signal */}
-        {open ? (
-          <div className="space-y-3 border-t border-ink/[0.06] p-3.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${getRiskClasses(signal.risk_level)}`}
-              >
-                {getRiskLabel(signal.risk_level)}
-              </span>
-              {wr != null ? (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${wr >= 70 ? "bg-profit/12 text-profit" : wr >= 50 ? "bg-accent/12 text-accent" : "bg-negative/12 text-loss"}`}
-                >
-                  WR {wr}%
-                </span>
-              ) : null}
-              {streak ? (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${streak.type === "win" ? "bg-profit/12 text-profit" : "bg-negative/12 text-loss"}`}
-                >
-                  {streak.length}
-                  {streak.type === "win" ? "W" : "L"}
-                </span>
-              ) : null}
-              {topTag ? (
-                <span
-                  title={`${fmtTag(topTag.tag)}: ${topTag.wr}% historical win rate when present`}
-                  className="max-w-[160px] truncate rounded-full bg-accent/12 px-2 py-0.5 text-[10px] font-medium text-accent"
-                >
-                  {fmtTag(topTag.tag).toLowerCase()} {topTag.wr}%
-                </span>
-              ) : null}
-            </div>
-
-            {signal.last_update_at ? (
-              <div className="flex items-center justify-between rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
-                  {getUpdateTypeBadge(signal.last_update_type)}
-                </div>
-                <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/45">
-                  {formatTimeAgo(signal.last_update_at)}
-                </span>
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-3">
-              <div>
-                <p className="mb-1 text-[10px] font-medium text-text-muted">Entry</p>
-                <p className="font-mono text-[12.5px] font-medium tabular-nums text-text-primary">
-                  {formatPrice(signal.entry)}
-                </p>
-              </div>
-              <div className="border-x border-ink/[0.05] text-center">
-                <p className="mb-1 text-[10px] font-medium text-text-muted">Current</p>
-                {currentPrice ? (
-                  <p
-                    className={`font-mono text-[12.5px] font-medium tabular-nums ${priceChange !== null ? (priceChange >= 0 ? "text-profit" : "text-loss") : "text-text-primary"}`}
-                  >
-                    {formatPrice(currentPrice)}
-                  </p>
-                ) : (
-                  <p className="text-[12.5px] text-text-muted">—</p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="mb-1 text-[10px] font-medium text-text-muted">P&amp;L</p>
-                {priceChange !== null ? (
-                  <p
-                    className={`font-mono text-[12.5px] font-medium tabular-nums ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
-                  >
-                    {priceChange >= 0 ? "+" : ""}
-                    {priceChange.toFixed(2)}%
-                  </p>
-                ) : (
-                  <p className="text-[12.5px] text-text-muted">—</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-1.5">
-              {[
-                { label: "TP1", value: signal.target1 },
-                { label: "TP2", value: signal.target2 },
-                { label: "TP3", value: signal.target3 },
-                { label: "TP4", value: signal.target4 },
-              ].map((tp, i) => {
-                const pct = tp.value ? calcPct(tp.value, signal.entry) : null;
-                return (
-                  <div
-                    key={i}
-                    className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-1 py-1.5 text-center"
-                  >
-                    <p className="text-[9px] font-medium text-text-muted">{tp.label}</p>
-                    <p className="mt-0.5 font-mono text-[10.5px] font-medium tabular-nums text-text-secondary">
-                      {tp.value ? formatPrice(tp.value) : "—"}
-                    </p>
-                    {pct != null ? (
-                      <p className="mt-0.5 font-mono text-[9px] tabular-nums text-profit/80">
-                        +{pct.toFixed(1)}%
-                      </p>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center justify-between gap-2 text-[10px] font-mono flex-wrap">
-              <div className="flex items-center gap-3 flex-wrap">
-                {signal.market_cap ? (
-                  <span className="text-text-primary/45">
-                    MC{" "}
-                    <span className="text-text-primary/75">
-                      {formatMarketCap(signal.market_cap)}
-                    </span>
-                  </span>
-                ) : null}
-                {currentVol ? (
-                  <span className="text-text-primary/45">
-                    Vol <span className="text-text-primary/75">{formatVolume(currentVol)}</span>
-                  </span>
-                ) : signal.volume_rank_num && signal.volume_rank_den ? (
-                  <span className="text-text-primary/45">
-                    Vol{" "}
-                    <span className="text-text-primary/75">
-                      {signal.volume_rank_num}/{signal.volume_rank_den}
-                    </span>
-                  </span>
-                ) : null}
-                {btc ? (
-                  <span className="text-text-primary/45">
-                    BTC <span className={btcScoreColor(btc.score)}>{btc.score}</span>
-                    {btc.decoupled ? " ⚡" : ""}
-                  </span>
-                ) : null}
-              </div>
-              <span className="text-text-primary/45">
-                Called{" "}
-                <span className="text-text-primary/75 tabular-nums">
-                  {(() => {
-                    const d = new Date(signal.created_at);
-                    const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-                    const time = d.toLocaleTimeString("en-GB", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    });
-                    return `${date}, ${time}`;
-                  })()}
-                </span>
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 border-t border-ink/[0.06] pt-3">
-              <button
-                type="button"
-                onClick={() => onRowClick && onRowClick(signal)}
-                className="text-[12px] font-medium text-accent transition-colors hover:text-accent/80"
-              >
-                Open signal →
-              </button>
-              <div className="flex items-center gap-1.5">
-                {v && v.verdict !== "neutral" ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCoinIntel(v.fullCoin || v.coin)}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${v.verdict === "avoid" ? "bg-negative/12 text-loss" : "bg-profit/12 text-profit"}`}
-                  >
-                    {v.verdict === "avoid" ? "Avoid" : "Worth"} detail
-                    <svg
-                      className="h-2.5 w-2.5 opacity-60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={(e) => handleShareSignal(e, signal)}
-                  title="Share signal"
-                  aria-label="Share signal"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-accent transition-colors hover:bg-accent/12"
-                >
-                  {sharedId === signal.signal_id
-                    ? Ic.check("w-3.5 h-3.5")
-                    : Ic.share("w-3.5 h-3.5")}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
     );
   };
@@ -1722,16 +1538,8 @@ const SignalsTable = ({
         {loading ? (
           <MobileLoadingSkeleton />
         ) : signals?.length === 0 ? (
-          <div className="rounded-xl border border-ink/[0.07] bg-surface-raised p-10 text-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.03]">
-                <EmptyStateIcon />
-              </div>
-              <p className="text-sm font-medium text-text-primary">No signals found</p>
-              <p className="text-[12px] text-text-muted">
-                Adjust your filters and try again
-              </p>
-            </div>
+          <div className="rounded-xl border border-ink/[0.07] bg-surface-raised">
+            <EmptyView />
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -1960,7 +1768,7 @@ const SignalsTable = ({
                     <SortableHeader field="btc_corr" label="BTC Corr" align="center" />
                   )}
                   {effectiveCols.verdict && (
-                    <SortableHeader field="verdict" label="Verdict" align="center" />
+                    <SortableHeader field="verdict" label="Pair record" align="center" />
                   )}
                   {effectiveCols.status && (
                     <SortableHeader field="status" label="Status" align="center" />
@@ -1989,16 +1797,8 @@ const SignalsTable = ({
                   ))
                 ) : signals?.length === 0 ? (
                   <tr>
-                    <td colSpan={visibleColCount} className="py-16 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.03]">
-                          <EmptyStateIcon />
-                        </div>
-                        <p className="text-sm font-medium text-text-primary">No signals found</p>
-                        <p className="text-[12px] text-text-muted">
-                          Adjust your filters and try again
-                        </p>
-                      </div>
+                    <td colSpan={visibleColCount} className="py-8">
+                      <EmptyView />
                     </td>
                   </tr>
                 ) : (
@@ -2221,9 +2021,17 @@ const SignalsTable = ({
                                 {formatVolume(currentVol)}
                               </span>
                             ) : signal.volume_rank_num && signal.volume_rank_den ? (
-                              <span className="font-mono text-[13px] tabular-nums text-text-secondary">
-                                {signal.volume_rank_num}
-                                <span className="text-text-muted">
+                              /* Live volume is missing for this pair, so this is
+                                 the exchange volume RANK recorded at call time —
+                                 a different quantity from the dollars above it.
+                                 Unmarked, "12/50" reads as a number in a column
+                                 headed "Vol 24h". The # says which one it is. */
+                              <span
+                                title={`Volume rank ${signal.volume_rank_num} of ${signal.volume_rank_den} when the call went out — live 24h volume is unavailable for this pair`}
+                                className="font-mono text-[13px] tabular-nums text-text-muted"
+                              >
+                                #{signal.volume_rank_num}
+                                <span className="text-text-muted/60">
                                   /{signal.volume_rank_den}
                                 </span>
                               </span>
@@ -2364,16 +2172,23 @@ const SignalsTable = ({
                           >
                             {(() => {
                               const v = getVerdict(signal);
-                              if (!v || v.verdict === "neutral")
+                              if (!v) return <span className="text-xs text-text-muted">—</span>;
+                              // The cell shows the pair's record, shrunk, with
+                              // the sample it rests on. It used to show a
+                              // Worth / Avoid badge and then an em-dash once
+                              // the badge was retired, which is the one thing
+                              // a column must never be: present and empty.
+                              const rate = v.coin?.win_rate;
+                              const closed = v.coin?.closed_trades ?? null;
+                              if (rate == null)
                                 return <span className="text-xs text-text-muted">—</span>;
-                              const isAvoid = v.verdict === "avoid";
-                              // risk_score stays pair-level (not re-scored LOO)
-                              const score = (v.fullCoin || v.coin).risk_score ?? null;
+                              const isBelow = v.band === "below";
+                              const flagged = v.band === "above" || v.band === "below";
                               const showHint = showVerdictHint && idx === firstVerdictIdx;
                               const modalCoin = v.fullCoin || v.coin;
                               const title = v.asOfEntry
-                                ? "As of entry · excludes this call’s outcome (no look-ahead)"
-                                : "View deep analysis";
+                                ? "This pair’s record excluding this call’s own outcome — a record, not a prediction"
+                                : "This pair’s record — a record, not a prediction";
                               return (
                                 <div className="relative inline-block">
                                   <button
@@ -2383,15 +2198,17 @@ const SignalsTable = ({
                                       setSelectedCoinIntel(modalCoin);
                                     }}
                                     title={title}
-                                    className={`group/vd inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-all hover:brightness-110 ${
-                                      isAvoid
-                                        ? "bg-negative/12 text-loss"
-                                        : "bg-profit/12 text-profit"
+                                    className={`group/vd inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[11px] tabular-nums transition-all hover:brightness-110 ${
+                                      flagged
+                                        ? isBelow
+                                          ? "bg-negative/12 text-loss"
+                                          : "bg-profit/12 text-profit"
+                                        : "bg-ink/[0.04] text-text-secondary"
                                     } ${showHint ? "ring-2 ring-accent/45 ring-offset-1 ring-offset-[rgb(var(--surface-raised))]" : ""}`}
                                   >
-                                    <span>{isAvoid ? "Avoid" : "Worth"}</span>
-                                    {score != null && (
-                                      <span className="tabular-nums opacity-70">{score}</span>
+                                    <span>{rate}%</span>
+                                    {closed != null && (
+                                      <span className="text-[10px] opacity-60">n={closed}</span>
                                     )}
                                     <svg
                                       className="h-2.5 w-2.5 opacity-50 transition-all group-hover/vd:translate-x-0.5 group-hover/vd:opacity-100"
@@ -2438,8 +2255,8 @@ const SignalsTable = ({
                                         </div>
                                         <p className="mb-2 text-[11px] leading-relaxed text-text-secondary">
                                           {v.asOfEntry
-                                            ? "As-of-entry verdict: this call’s outcome is excluded so the label is not look-ahead."
-                                            : "Prior pair history (win rate, streaks, flags) — not a guarantee."}
+                                            ? "This pair’s record with this call’s own outcome excluded. It is a record, not a prediction — a pair’s past does not change the odds on its next call."
+                                            : "This pair’s record so far. It is a record, not a prediction — a pair’s past does not change the odds on its next call."}
                                         </p>
                                         <div className="grid grid-cols-2 gap-1.5 border-t border-ink/[0.06] pt-2">
                                           <div>
@@ -2709,6 +2526,7 @@ const SignalsTable = ({
         <CoinDetailModal
           coin={selectedCoinIntel}
           currentFlow={currentFlow}
+          deskWr={deskWr}
           onClose={() => setSelectedCoinIntel(null)}
         />
       )}

@@ -32,6 +32,7 @@ import PositioningTape from "./signalModal/PositioningTape";
 import { peakContextLabel, daysToPeak, peakIsAfterStop } from "../utils/peakTiming";
 import { buildLevelTimeline } from "../utils/journeyEvents";
 import { requestTelegramWriteAccess } from "../utils/telegramWriteAccess";
+import { isShortSignal } from "../utils/signalDirection";
 
 const SignalModal = ({
   signal,
@@ -328,12 +329,12 @@ const SignalModal = ({
 
     const fetchPeakPrice = async () => {
       try {
-        const entryVal = Number(signalDetail.entry);
         const symbol = (signal.pair || "").replace("USDT", "") + "USDT";
 
-        // Determine direction
-        const firstTp = signal.target1 ? Number(signal.target1) : null;
-        const isShort = firstTp !== null && firstTp < entryVal;
+        // Direction comes from the shared rule, not from TP1: a TP1 that rounds
+        // onto the entry tick is not a short, and reading it as one put the peak
+        // window on the wrong side of the trade.
+        const isShort = isShortSignal({ ...signal, entry: signalDetail.entry });
 
         // Find the highest hit TP and its timestamp
         const tpUpdates =
@@ -1567,7 +1568,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     }
 
     const entryNum = signal?.entry ? Number(signal.entry) : 0;
-    const isShortDir = signal?.target1 && Number(signal.target1) < entryNum;
+    const isShortDir = isShortSignal(signal);
     const pnlRaw = livePrice && entryNum > 0 ? ((livePrice - entryNum) / entryNum) * 100 : null;
     const pnlPct = isShortDir && pnlRaw !== null ? -pnlRaw : pnlRaw;
     const up = pnlPct !== null && pnlPct > 0;

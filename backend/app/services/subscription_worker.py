@@ -37,6 +37,7 @@ from app.models.workspace import AdminFollowup
 from app.services.referral_service import refund_redemption
 from app.services.notifier import create_notification, notification_exists
 from app.services.telegram_group import is_in_group, kick_member, send_dm
+from app.services import billing_delivery, email_lifecycle, payment_recovery, referral_outreach
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,33 @@ def _expired_checkout_msg(plan_label: str, amount, recovery_url: str) -> str:
     )
 
 
+def _mark_bot_reachable(db, user_id) -> None:
+    """Record that the bot really can DM this account.
+
+    `telegram_bot_started_at` is only written when someone sends /start to the
+    Terminal Bot, and the column was added long after the bot existed — so
+    everyone who started it earlier reads as NULL forever. Measured: 12 of 547
+    linked accounts carry the flag, while a DM to a NULL-flagged account (7887444751)
+    delivered a captioned document without complaint.
+
+    A delivered message is the only honest evidence, so it is what gets written.
+    Best-effort by design: failing to record must never fail the send that just
+    worked."""
+    try:
+        db.execute(
+            text("""UPDATE users SET telegram_bot_started_at = NOW(), updated_at = NOW()
+                    WHERE id = :id AND telegram_bot_started_at IS NULL"""),
+            {"id": user_id},
+        )
+        db.commit()
+    except Exception as e:
+        logger.warning("could not record bot reachability for %s: %s", user_id, e)
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
 def _queue_payment_followup(db, row, now, reason: str) -> bool:
     """Create one human fallback for an expired high-intent checkout."""
     token = f"payment_id={row['id']}"
@@ -208,19 +236,34 @@ async def _send_expired_payment_recoveries(db, rows, now):
             db.rollback()
 
         dm_sent = False
-        if row.get("telegram_id") and row.get("telegram_bot_started_at"):
+        # No longer gated on telegram_bot_started_at. That flag says "we have
+        # SEEN a /start", not "a DM would work" — it is set for 12 of 547 linked
+        # accounts, and skipping on it meant never even attempting the ~535
+        # others. Telegram answers the question definitively and for free, and
+        # send_dm returns False rather than raising, so asking costs nothing.
+        if row.get("telegram_id"):
             try:
                 dm_sent = await send_dm(
                     row["telegram_id"],
                     _expired_checkout_msg(row["plan_label"], row["amount"], recovery_url),
                 )
+                if dm_sent:
+                    _mark_bot_reachable(db, row["user_id"])
             except Exception as exc:
                 logger.warning("Expired checkout DM failed for payment %s: %s", row["id"], exc)
+        if not dm_sent:                   # fallback only — see the checkout loop
+            try:
+                await email_lifecycle.invoice_expired(
+                    db, row.get("email"), row["plan_label"], row["amount"],
+                    recovery_url, duration_days=row.get("duration_days"))
+            except Exception as exc:
+                logger.warning("Expired checkout email failed for payment %s: %s", row["id"], exc)
+
         if dm_sent:
             result["dm_sent"] += 1
             continue
 
-        reason = "telegram_not_ready" if not row.get("telegram_bot_started_at") else "dm_failed"
+        reason = "no_telegram" if not row.get("telegram_id") else "dm_failed"
         try:
             if _queue_payment_followup(db, row, now, reason):
                 result["queued"] += 1
@@ -338,7 +381,7 @@ async def _expire_and_start_grace(db, now):
     """T+0: users yang baru expired -> free + set grace + DM reminder #1."""
     rows = db.execute(
         text("""
-            SELECT id, telegram_id, telegram_in_group
+            SELECT id, telegram_id, telegram_in_group, email
             FROM users
             WHERE role IN ('premium', 'subscriber')
               AND subscription_expires_at IS NOT NULL
@@ -371,11 +414,22 @@ async def _expire_and_start_grace(db, now):
     db.commit()
 
     for r in rows:
+        dm_sent = False
         if r.telegram_in_group and r.telegram_id:
             try:
-                await send_dm(r.telegram_id, MSG_EXPIRED)
+                dm_sent = await send_dm(r.telegram_id, MSG_EXPIRED)
+                if dm_sent:
+                    _mark_bot_reachable(db, r.id)
             except Exception as e:
                 logger.warning(f"DM reminder#1 failed for user {r.id}: {e}")
+        # Fallback only. The people this reaches that Telegram cannot are the
+        # ones who signed in with Google and never linked an account — and they
+        # lost access too, in silence, until now.
+        if not dm_sent:
+            try:
+                await email_lifecycle.subscription_ended(db, r.email)
+            except Exception as e:
+                logger.warning(f"Expiry email failed for user {r.id}: {e}")
 
     return len(ids)
 
@@ -409,6 +463,8 @@ async def _send_final_reminders(db, now):
             continue
         try:
             ok = await send_dm(r.telegram_id, MSG_FINAL)
+            if ok:
+                _mark_bot_reachable(db, r.id)
             if ok:
                 sent += 1
         except Exception as e:
@@ -464,10 +520,13 @@ async def _send_checkout_reminders(db, now):
     sent = 0
     rows = db.execute(
         text("""
-            SELECT p.id, p.user_id, p.expires_at,
+            SELECT p.id, p.user_id, p.expires_at, p.created_at, p.wallet_to,
                    COALESCE(p.final_amount, p.amount_usdt) AS amount,
+                   p.discount_amount, p.credit_redeemed,
                    COALESCE(pl.label, 'LuxQuant') AS plan_label,
-                   u.telegram_id,
+                   pl.duration_days, pl.price_usdt AS list_price,
+                   u.telegram_id, u.email, u.username, u.telegram_username,
+                   u.subscription_expires_at,
                    EXTRACT(epoch FROM (p.expires_at - :now)) / 3600.0 AS hours_left
             FROM payments p
             JOIN users u ON u.id = p.user_id
@@ -521,15 +580,61 @@ async def _send_checkout_reminders(db, now):
             logger.warning(f"Checkout notification failed for payment {r['id']}: {e}")
             db.rollback()
 
-        if not r["telegram_id"]:
-            continue
+        # Claim the milestone BEFORE either channel, not after the Telegram
+        # check. The old order returned early for anyone without a linked
+        # Telegram, so their milestone was never marked — which was harmless
+        # while the DM was the only channel and becomes a repeat-send the
+        # moment a second one exists.
         if not _mark_checkout_reminder(r["id"], milestone):
             continue
-        try:
-            if await send_dm(r["telegram_id"], _checkout_msg(r["plan_label"], amount, hours_left)):
-                sent += 1
-        except Exception as e:
-            logger.warning(f"Checkout DM failed for payment {r['id']}: {e}")
+
+        dm_sent = False
+        if r["telegram_id"]:
+            msg = _checkout_msg(r["plan_label"], amount, hours_left)
+            now_utc = datetime.now(timezone.utc)
+            exp = r.get("subscription_expires_at")
+            base = exp if (exp and exp > now_utc) else now_utc
+            days = r.get("duration_days")
+            try:
+                # ONE message: the invoice PDF carrying the reminder as its
+                # caption. Sending the text first and the file after put a wall
+                # of words above an unexplained attachment and rang the phone
+                # twice for a single event.
+                dm_sent = await billing_delivery.invoice_document(
+                    r["telegram_id"],
+                    caption=msg,
+                    invoice_no=f"LQ-{r['id']:06d}",
+                    plan=r["plan_label"], amount=amount, duration_days=days,
+                    issued=r["created_at"].strftime("%d %b %Y, %H:%M UTC") if r.get("created_at") else None,
+                    expires_at=r["expires_at"].strftime("%d %b %Y, %H:%M UTC") if r.get("expires_at") else None,
+                    account=r.get("username"), telegram=r.get("telegram_username"),
+                    wallet_to=r.get("wallet_to"),
+                    covers_from=base.strftime("%d %b %Y") if days else None,
+                    covers_to=(base + timedelta(days=int(days)) - timedelta(days=1)).strftime("%d %b %Y") if days else None,
+                    list_price=float(r["list_price"]) if r.get("list_price") is not None else None,
+                    discount=r.get("discount_amount") or 0,
+                    credit=r.get("credit_redeemed") or 0,
+                )
+                # A document that could not be built must not cost the reminder.
+                if not dm_sent:
+                    dm_sent = await send_dm(r["telegram_id"], msg)
+                if dm_sent:
+                    sent += 1
+                    _mark_bot_reachable(db, r["user_id"])
+            except Exception as e:
+                logger.warning(f"Checkout reminder failed for payment {r['id']}: {e}")
+
+        # Email is a FALLBACK, not a second copy. An in-app notification has
+        # already been written above, so a Telegram user who also got the DM is
+        # on two channels before email is even considered; a third would be
+        # pestering someone who has already been told. It fires for the people
+        # Telegram cannot reach — no linked account, or the DM bounced.
+        if not dm_sent:
+            try:
+                if await email_lifecycle.checkout_open(db, r, hours_left):
+                    sent += 1
+            except Exception as e:
+                logger.warning(f"Checkout email failed for payment {r['id']}: {e}")
 
     return sent
 
@@ -546,7 +651,7 @@ async def _send_renewal_reminders(db, now):
     sent = 0
     rows = db.execute(
         text("""
-            SELECT id, username, telegram_id, subscription_expires_at,
+            SELECT id, username, telegram_id, email, subscription_expires_at,
                    EXTRACT(epoch FROM (subscription_expires_at - :now)) / 86400.0 AS days_left
             FROM users
             WHERE role IN ('premium', 'subscriber')
@@ -587,15 +692,26 @@ async def _send_renewal_reminders(db, now):
             logger.warning(f"Renewal notification failed for user {r['id']}: {e}")
             db.rollback()
 
-        if not r["telegram_id"]:
-            continue
+        # Same reordering as the checkout loop, for the same reason.
         if not _mark_renewal_reminder(r["id"], milestone, exp):
             continue
-        try:
-            if await send_dm(r["telegram_id"], _renew_msg(days_left)):
-                sent += 1
-        except Exception as e:
-            logger.warning(f"Renewal DM failed for user {r['id']}: {e}")
+
+        dm_sent = False
+        if r["telegram_id"]:
+            try:
+                dm_sent = await send_dm(r["telegram_id"], _renew_msg(days_left))
+                if dm_sent:
+                    sent += 1
+                    _mark_bot_reachable(db, r["id"])
+            except Exception as e:
+                logger.warning(f"Renewal DM failed for user {r['id']}: {e}")
+
+        if not dm_sent:                       # fallback only — see the checkout loop
+            try:
+                if await email_lifecycle.renewal_due(db, r["email"], days_left):
+                    sent += 1
+            except Exception as e:
+                logger.warning(f"Renewal email failed for user {r['id']}: {e}")
 
     return sent
 
@@ -763,7 +879,8 @@ async def subscription_expiry_loop():
                         SELECT p.id, p.user_id,
                                COALESCE(p.final_amount, p.amount_usdt) AS amount,
                                COALESCE(pl.label, 'LuxQuant') AS plan_label,
-                               u.telegram_id, u.telegram_bot_started_at
+                               pl.duration_days,
+                               u.telegram_id, u.telegram_bot_started_at, u.email
                         FROM payments p
                         JOIN users u ON u.id = p.user_id
                         LEFT JOIN subscription_plans pl ON pl.id = p.plan_id
@@ -797,6 +914,32 @@ async def subscription_expiry_loop():
                 expired_payments = result_pay.rowcount
                 db.commit()
                 recovery = await _send_expired_payment_recoveries(db, recovery_rows, now)
+
+                # Drain the follow-up backlog a few at a time. Rows accumulate
+                # whenever an invoice lapses and no channel reached the person;
+                # nobody has ever worked the queue, so it holds three weeks of
+                # people who tried to pay and were never contacted. A handful
+                # per cycle, because a domain that has sent five emails and
+                # then sends sixty looks like a domain that was stolen.
+                try:
+                    referrals = await referral_outreach.run(db, now)
+                    if referrals.get("sent") or referrals.get("failed"):
+                        logger.warning("referral outreach: %s", referrals)
+                except Exception as e:
+                    logger.warning("referral outreach failed: %s", e)
+
+                try:
+                    backlog = await payment_recovery.run(db, now)
+                    # Logged whenever it looked at anything, not only when it
+                    # sent something — "no line in the log" and "nothing to do"
+                    # were indistinguishable, which is how a stalled queue
+                    # stayed invisible.
+                    if backlog.get("telegram") or backlog.get("email") or backlog.get("none"):
+                        # WARNING because the poller filters INFO — an INFO
+                        # line here is a line nobody will ever read.
+                        logger.warning("payment recovery backlog: %s", backlog)
+                except Exception as e:
+                    logger.warning("payment recovery backlog failed: %s", e)
 
                 # Churn: referees whose subscription has been expired for longer
                 # than CHURN_AFTER_DAYS without renewal. Reversible — a renewal

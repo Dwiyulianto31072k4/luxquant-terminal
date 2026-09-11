@@ -232,7 +232,31 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   const pageCount = Math.max(1, Math.ceil(filteredTotal / pageSize));
   const start = (page - 1) * pageSize;
   const visible = items.slice(0, pageSize);
-  const hitRate = stats.hit_rate;
+  // Every read is scored against what it claimed, and the two claims are
+  // different. A NEUTRAL_RANGE read says price stays between two levels; it
+  // resolves RANGE_HELD or RANGE_BREAK and never touches the directional
+  // outcomes. A BULLISH/BEARISH read says which way, and resolves CLEAN_HIT,
+  // LATE_HIT or INVALIDATED_FIRST. The split is exact — 295 range reads and
+  // 292 directional ones, no overlap.
+  //
+  // So the headline counts both, because both were right about their own
+  // claim. It is the two rates underneath that must stay visible: range reads
+  // hold far more often than directional reads land, and one number alone
+  // would let the easier claim speak for the harder one.
+  //
+  // (ledger_confidence scores directional-only, correctly — it clamps the
+  // confidence on a directional verdict, where a range read has no vote.)
+  const dir = stats.directional || {};
+  const rng = stats.range || {};
+  const dirHits = dir.hits ?? stats.clean_hits ?? 0;
+  const dirMisses = dir.misses ?? stats.invalidated_first ?? 0;
+  const dirRate = dir.hit_rate;
+  const rangeHeld = rng.held ?? 0;
+  const rangeBroke = rng.broke ?? 0;
+  const rangeRate = (rangeHeld + rangeBroke) ? rangeHeld / (rangeHeld + rangeBroke) : null;
+  const allRight = dirHits + rangeHeld;
+  const allScored = dirHits + dirMisses + rangeHeld + rangeBroke;
+  const hitRate = allScored ? allRight / allScored : stats.hit_rate;
 
   useEffect(() => {
     setPage(1);
@@ -242,14 +266,16 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount]);
 
+  // Every count on this card is directional, matching the rate above it. The
+  // tiles and this bar used to read 400 hits beside a 61% donut because they
+  // still counted RANGE_HELD — three different accountings of the same 587
+  // rows on one card. Range outcomes have their own row instead.
   const outcomeSegments = [
-    {
-      label: "Hits",
-      value: Math.max(0, (stats.clean_hits ?? 0) - (stats.late_hits ?? 0)),
-      hex: COLOR.profit,
-    },
+    { label: "Hits", value: Math.max(0, dirHits - (stats.late_hits ?? 0)), hex: COLOR.profit },
     { label: "Late hits", value: stats.late_hits ?? 0, hex: "#3a9d76" },
-    { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
+    { label: "Invalidated", value: dirMisses, hex: COLOR.loss },
+    { label: "Range held", value: rng.held ?? 0, hex: "#7c8aa5" },
+    { label: "Range broke", value: rng.broke ?? 0, hex: "#a58a7c" },
     { label: "Stale", value: stats.stale ?? 0, hex: "#8a7a6a" },
     { label: "Ambiguous", value: stats.ambiguous ?? 0, hex: COLOR.flat },
     { label: "Live", value: stats.pending ?? 0, hex: COLOR.gold },
@@ -260,8 +286,8 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
     { label: "Live", value: stats.pending ?? 0, tone: "text-text-primary" },
     { label: "Resolved", value: stats.resolved ?? 0, tone: "text-text-primary" },
     { label: "Replaced", value: stats.superseded ?? 0, tone: "text-text-muted" },
-    { label: "Hits", value: stats.clean_hits ?? 0, tone: "text-profit" },
-    { label: "Miss", value: stats.invalidated_first ?? 0, tone: "text-loss" },
+    { label: "Right", value: allRight, tone: "text-profit" },
+    { label: "Wrong", value: dirMisses + rangeBroke, tone: "text-loss" },
   ];
 
   const toggleRow = (id) => {
@@ -277,29 +303,42 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               Projection audit
             </h2>
             <p className="mt-1 max-w-xl text-[13.5px] leading-snug text-text-muted">
-              One live row. Hits and misses score · replaced reads do not.
+              Every read scored against what it claimed. Replaced reads do not score.
             </p>
+            {allScored ? (
+              <p className="mt-1.5 max-w-xl text-[12.5px] leading-snug text-text-muted">
+                <span className="font-semibold text-text-primary">
+                  {rangeRate == null ? "—" : `${Math.round(rangeRate * 100)}%`}
+                </span>{" "}
+                of {rangeHeld + rangeBroke} range reads held ·{" "}
+                <span className="font-semibold text-text-primary">
+                  {dirRate == null ? "—" : `${Math.round(dirRate * 100)}%`}
+                </span>{" "}
+                of {dirHits + dirMisses} directional reads reached target before
+                invalidation. Holding a range is the easier call of the two.
+              </p>
+            ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-4 rounded-xl border border-ink/[0.08] px-3.5 py-2.5">
             <Donut
               size={108}
               thickness={11}
               centerValue={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
-              centerLabel="hit rate"
+              centerLabel="resolved as called"
               segments={[
-                { label: "Hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
-                { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
+                { label: "Right", value: allRight, hex: COLOR.profit },
+                { label: "Wrong", value: dirMisses + rangeBroke, hex: COLOR.loss },
                 { label: "Live", value: stats.pending ?? 0, hex: COLOR.gold },
               ]}
             />
             <div className="hidden space-y-1.5 font-mono text-[12px] text-text-muted sm:block">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ background: COLOR.profit }} />
-                Hits <span className="tabular-nums font-semibold text-text-primary">{stats.clean_hits ?? 0}</span>
+                Right <span className="tabular-nums font-semibold text-text-primary">{allRight}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ background: COLOR.loss }} />
-                Miss <span className="tabular-nums font-semibold text-text-primary">{stats.invalidated_first ?? 0}</span>
+                Wrong <span className="tabular-nums font-semibold text-text-primary">{dirMisses + rangeBroke}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ background: COLOR.gold }} />

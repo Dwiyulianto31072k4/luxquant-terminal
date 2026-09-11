@@ -14,6 +14,33 @@ CONFOUND_TAGS = frozenset({
     "EXHAUSTION_CANDLE",
 })
 
+# Tags whose value is read from Redis at enrichment time and has no historical
+# source, so a re-backfill cannot make them point-in-time. rebackfill_pointintime.py
+# says so in its own header: BTC dominance / BTC change, Fear & Greed and funding
+# rate "stay 'now'". A tag carrying a market reading from whenever the row was
+# enriched, scored against outcomes it could not have known, is not a prior — and
+# the numbers show it:
+#
+#   FNG_NEUTRAL     330 closed, 95.2% TP3+, 0.6% SL — 1 active day (19 Aug only)
+#   BTC_VOLATILE    352 closed, 74.7% TP3+        — 8 active days
+#   BTC_DOM_RISING  849 closed, 51.5% TP3+        — 26 active days
+#
+# All three clear every gate below (n >= 150, WR >= 78, full_tp >= 12) because
+# those gates count samples and never ask how many days the samples came from.
+# BTC_VOLATILE was ranked first in the live Runners set when this was written.
+#
+# Excluded by family rather than by a days-active threshold: the family is the
+# actual defect, and a threshold would also throw out honest tags that happen to
+# be young. Once mf_macro_snapshots covers the call (btc_dominance is archived
+# from 2026-08-05) or an F&G / funding archive is backfilled, the matching
+# prefix can come out of this set.
+APPROXIMATE_CONTEXT_PREFIXES = ("BTC_", "FNG_", "FUNDING_")
+
+
+def is_approximate_context_tag(tag) -> bool:
+    """True for tags whose market reading cannot be reconstructed as-of-entry."""
+    return str(tag or "").startswith(APPROXIMATE_CONTEXT_PREFIXES)
+
 RUNNER_MIN_N = 150
 RUNNER_MIN_WR = 78.0
 RUNNER_MIN_FULL = 12.0
@@ -33,6 +60,8 @@ def _num(v, default=0.0):
 
 def is_runner_tag(t) -> bool:
     if not t or t.get("tag") in CONFOUND_TAGS:
+        return False
+    if is_approximate_context_tag(t.get("tag")):
         return False
     if int(t.get("n") or 0) < RUNNER_MIN_N:
         return False

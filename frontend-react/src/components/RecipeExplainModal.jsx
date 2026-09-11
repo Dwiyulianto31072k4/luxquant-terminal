@@ -1,5 +1,5 @@
 // Drill-down explain for Quick path recipes. Compact page, deep modal.
-// Hunt full TP carries live SL / TP1–TP4 mix vs all closed calls.
+// Runners carries live SL / TP1–TP4 mix vs all closed calls.
 
 import { useMemo, useState } from "react";
 import Modal from "./ui/Modal";
@@ -9,8 +9,7 @@ import { OUTCOME_LABELS, RECIPE_EXPLAIN } from "./recipeExplain";
 
 const RECIPE_TABS = [
   { key: "quick", label: "Overview" },
-  { key: "full_tp", label: "Hunt" },
-  { key: "strongest", label: "Strongest" },
+  { key: "full_tp", label: "Runners" },
   { key: "caution", label: "Caution" },
 ];
 
@@ -44,30 +43,141 @@ function fmtDate(iso) {
   return `${parseInt(p[2], 10)} ${months[parseInt(p[1], 10) - 1]} ${p[0]}`;
 }
 
-const BAR_TONE = {
-  sl: "bg-loss/80",
-  tp1: "bg-ink/25",
-  tp2: "bg-ink/45",
-  tp3: "bg-positive/55",
-  tp4: "bg-positive/85",
+// ── Outcome scale ────────────────────────────────────────────────────────────
+// SL is a status colour: it means loss, so it keeps the loss token. TP1→TP4 are
+// one hue stepped by lightness, because "how far did it get" is an ordered
+// magnitude, not four identities. Both ramps are in index.css and were run
+// through the ordinal checks (monotone L, ΔL ≥ 0.06, end clears the surface).
+const OUTCOME_FILL = {
+  sl: "rgb(var(--neg))",
+  tp1: "var(--viz-tp1)",
+  tp2: "var(--viz-tp2)",
+  tp3: "var(--viz-tp3)",
+  tp4: "var(--viz-tp4)",
 };
 
-function StackedBar({ mix, className = "" }) {
-  const final = mix?.final_pct || {};
+/** value · what it is measured against · both deltas. A rate this close to the
+ *  baseline is easy to oversell with one number, so the tile always carries the
+ *  point difference AND the relative one — the pair is what stops "+9.6" being
+ *  read as "9.6% better" or "nearly double". */
+function Headline({ label, value, baseline, deltaPp, ratio, betterWhen }) {
+  const good = deltaPp == null ? null : betterWhen === "lower" ? deltaPp < 0 : deltaPp > 0;
   return (
-    <div
-      className={`flex h-2.5 overflow-hidden rounded-full bg-ink/[0.06] ${className}`}
-      aria-hidden
-    >
-      {OUTCOME_LABELS.map((o) => {
-        const w = Number(final[o.key]) || 0;
+    <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-2.5">
+      <p className="text-[11.5px] leading-snug text-text-muted">{label}</p>
+      <p className="mt-0.5 font-mono text-[22px] font-semibold leading-none tabular-nums text-text-primary">
+        {fmtPct(value)}
+      </p>
+      <p className="mt-1.5 text-[11.5px] leading-snug text-text-muted tabular-nums">
+        vs {fmtPct(baseline)} with no filter
+      </p>
+      {deltaPp != null ? (
+        <p
+          className={`mt-1 inline-flex items-center gap-1 font-mono text-[11px] tabular-nums ${
+            good ? "text-positive" : "text-loss"
+          }`}
+        >
+          <span aria-hidden>{deltaPp > 0 ? "▲" : "▼"}</span>
+          {fmtPp(deltaPp)}
+          {ratio ? <span className="text-text-muted">· {ratio.toFixed(2)}× as often</span> : null}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function Legend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      {OUTCOME_LABELS.map((o) => (
+        <span key={o.key} className="inline-flex items-center gap-1.5">
+          <span
+            className="h-2 w-2 shrink-0 rounded-[2px]"
+            style={{ background: OUTCOME_FILL[o.key] }}
+            aria-hidden
+          />
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            {o.short}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Coinglass-style long/short track: two dots on one scale so a 2pp gap is visible. */
+function CompareTrack({ label, runners, baseline, betterWhen = "higher" }) {
+  const a = Number(runners);
+  const b = Number(baseline);
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  const lo = Math.min(a, b);
+  const hi = Math.max(a, b);
+  const pad = Math.max(6, (hi - lo) * 1.8);
+  const min = Math.max(0, lo - pad);
+  const max = Math.min(100, hi + pad);
+  const span = max - min || 1;
+  const pos = (v) => `${((v - min) / span) * 100}%`;
+  const delta = a - b;
+  const good = betterWhen === "lower" ? delta < 0 : delta > 0;
+  const leftIsA = a <= b;
+  return (
+    <div className="py-2">
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        <p className="text-[12px] font-medium text-text-primary">{label}</p>
+        <p
+          className={`font-mono text-[12px] tabular-nums ${
+            Math.abs(delta) < 0.15
+              ? "text-text-muted"
+              : good
+                ? "text-positive"
+                : "text-loss"
+          }`}
+        >
+          {Math.abs(delta) < 0.15 ? "same" : `${delta > 0 ? "+" : ""}${delta.toFixed(1)}pp`}
+        </p>
+      </div>
+      <div className="relative h-7">
+        <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-ink/[0.08]" />
+        <div
+          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-accent/35"
+          style={{
+            left: pos(lo),
+            width: `${((hi - lo) / span) * 100}%`,
+          }}
+        />
+        <span
+          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink/25 bg-surface-raised"
+          style={{ left: pos(b) }}
+          title={`No filter ${fmtPct(b)}`}
+        />
+        <span
+          className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent bg-accent shadow-sm"
+          style={{ left: pos(a) }}
+          title={`Runners ${fmtPct(a)}`}
+        />
+      </div>
+      <div className="mt-0.5 flex justify-between font-mono text-[10px] tabular-nums text-text-muted">
+        <span>{leftIsA ? `Runners ${fmtPct(a)}` : `No filter ${fmtPct(b)}`}</span>
+        <span>{leftIsA ? `No filter ${fmtPct(b)}` : `Runners ${fmtPct(a)}`}</span>
+      </div>
+    </div>
+  );
+}
+
+/** 100% stacked mix — Coinglass long/short ratio: the whole bar is the book. */
+function StackedMix({ mix, dim = false }) {
+  const keys = ["sl", "tp1", "tp2", "tp3", "tp4"];
+  return (
+    <div className={`flex h-4 w-full overflow-hidden rounded-sm ${dim ? "opacity-80" : ""}`}>
+      {keys.map((k) => {
+        const w = Number(mix?.final_pct?.[k]) || 0;
         if (w <= 0) return null;
         return (
           <span
-            key={o.key}
-            className={BAR_TONE[o.key]}
-            style={{ width: `${w}%` }}
-            title={`${o.short} ${fmtPct(w)}`}
+            key={k}
+            className="h-full min-w-[2px]"
+            style={{ width: `${w}%`, background: OUTCOME_FILL[k] }}
+            title={`${k.toUpperCase()} ${fmtPct(w)}`}
           />
         );
       })}
@@ -75,6 +185,29 @@ function StackedBar({ mix, className = "" }) {
   );
 }
 
+function plainTakeaway(hunt, base) {
+  const sl = (Number(hunt.sl_rate) || 0) - (Number(base?.sl_rate) || 0);
+  const tp3 = (Number(hunt.full_tp_rate) || 0) - (Number(base?.full_tp_rate) || 0);
+  const bits = [];
+  if (Math.abs(sl) >= 0.4) {
+    bits.push(
+      sl < 0
+        ? `stopped out less often (${sl.toFixed(1)}pp)`
+        : `stopped out more often (+${sl.toFixed(1)}pp)`
+    );
+  }
+  if (Math.abs(tp3) >= 0.4) {
+    bits.push(
+      tp3 > 0
+        ? `reached TP3 a bit more (+${tp3.toFixed(1)}pp)`
+        : `reached TP3 a bit less (${tp3.toFixed(1)}pp)`
+    );
+  }
+  if (!bits.length) return "In this window the two mixes finished almost the same.";
+  return `In this window, Runners ${bits.join(" and ")}.`;
+}
+
+/** The "what does TP2 mean here" popover that rides each row of the table. */
 function OutcomeInfo({ item, view }) {
   const [open, setOpen] = useState(false);
   const text = view === "reached" ? item.reached : item.final;
@@ -99,7 +232,17 @@ function OutcomeInfo({ item, view }) {
   );
 }
 
-export function HuntResults({ stats, loading, error }) {
+const LBL =
+  "font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted";
+
+export function HuntResults({
+  stats,
+  loading,
+  error,
+  windowValue,
+  onWindow,
+  windowOptions,
+}) {
   const [view, setView] = useState("final");
   const [tagOpen, setTagOpen] = useState(null);
 
@@ -112,7 +255,7 @@ export function HuntResults({ stats, loading, error }) {
   if (loading && !stats) {
     return (
       <div className="rounded-xl border border-ink/[0.08] bg-ink/[0.02] px-3 py-3 text-[12px] text-text-muted">
-        Loading Hunt results…
+        Loading Runner results…
       </div>
     );
   }
@@ -129,150 +272,276 @@ export function HuntResults({ stats, loading, error }) {
     ? `${fmtDate(stats.window.start)} – ${fmtDate(stats.window.end)}`
     : "tag era";
 
+  const num = (v) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
+  const ratio = (a, b) => {
+    const x = num(a);
+    const y = num(b);
+    return x != null && y ? x / y : null;
+  };
+
   return (
-    <div className="rounded-xl border border-positive/20 bg-positive/[0.04] p-3 sm:p-3.5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+    <section className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
+      {/* HEADER — what is being counted and over what window. Nothing else. */}
+      <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-ink/[0.08] bg-ink/[0.02] px-3 py-2.5 sm:px-3.5">
         <div className="min-w-0">
-          <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-positive">
-            Results so far · closed only
-            {stats.window_label ? ` · ${stats.window_label}` : ""}
+          <p className={LBL}>Runners vs no filter · closed calls only</p>
+          <p className="mt-1 text-[12.5px] leading-snug text-text-primary tabular-nums">
+            {fmtN(hunt.n)} with runner tags vs {fmtN(base?.n)} unfiltered
           </p>
-          <p className="mt-0.5 text-[12px] leading-snug text-text-primary">
-            {fmtN(hunt.n)} Hunt calls vs {fmtN(base?.n)} all closed · {windowLabel}
-          </p>
-          <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
-            Open calls are not in these bars — same as Performance. A call counts when it hits TP or
-            SL.
-            {stats.tags_selected_from?.label
-              ? ` Hunt tags picked ${stats.tags_selected_from.label}.`
-              : ""}
-          </p>
+          <p className="text-[11px] leading-snug text-text-muted tabular-nums">{windowLabel}</p>
         </div>
-        <SegGroup
-          size="sm"
-          aria-label="Outcome view"
-          value={view}
-          onChange={setView}
-          options={[
-            { key: "final", label: "Final mix" },
-            { key: "reached", label: "Reached ≥" },
-          ]}
-        />
-      </div>
+        {onWindow && windowOptions ? (
+          <SegGroup
+            size="touch"
+            aria-label="Runner results window"
+            value={windowValue}
+            onChange={onWindow}
+            options={windowOptions}
+          />
+        ) : null}
+      </header>
 
-      <div className="mt-3">
-        <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-text-muted">
-          <span>Hunt</span>
-          <span className="tabular-nums">
-            SL {fmtPct(hunt.sl_rate)} · win {fmtPct(hunt.win_rate)} · TP3+ {fmtPct(hunt.full_tp_rate)}
-          </span>
+      <div className="space-y-5 px-3 py-3 sm:px-3.5">
+        <p className="text-[13px] leading-snug text-text-primary">
+          {plainTakeaway(hunt, base)}
+        </p>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Headline
+            label="Hit TP1+"
+            value={hunt.win_rate}
+            baseline={base?.win_rate}
+            deltaPp={
+              num(hunt.win_rate) != null && num(base?.win_rate) != null
+                ? num(hunt.win_rate) - num(base.win_rate)
+                : null
+            }
+            ratio={ratio(hunt.win_rate, base?.win_rate)}
+            betterWhen="higher"
+          />
+          <Headline
+            label="Hit TP3+"
+            value={hunt.full_tp_rate}
+            baseline={base?.full_tp_rate}
+            deltaPp={
+              num(hunt.full_tp_rate) != null && num(base?.full_tp_rate) != null
+                ? num(hunt.full_tp_rate) - num(base.full_tp_rate)
+                : null
+            }
+            ratio={ratio(hunt.full_tp_rate, base?.full_tp_rate)}
+            betterWhen="higher"
+          />
+          <Headline
+            label="Stopped out"
+            value={hunt.sl_rate}
+            baseline={base?.sl_rate}
+            deltaPp={
+              num(hunt.sl_rate) != null && num(base?.sl_rate) != null
+                ? num(hunt.sl_rate) - num(base.sl_rate)
+                : null
+            }
+            ratio={ratio(hunt.sl_rate, base?.sl_rate)}
+            betterWhen="lower"
+          />
         </div>
-        <StackedBar mix={hunt} />
-        {base ? (
-          <>
-            <div className="mb-1 mt-2.5 flex items-center justify-between gap-2 text-[10px] text-text-muted">
-              <span>All closed calls</span>
-              <span className="tabular-nums">
-                SL {fmtPct(base.sl_rate)} · win {fmtPct(base.win_rate)} · TP3+ {fmtPct(base.full_tp_rate)}
-              </span>
-            </div>
-            <StackedBar mix={base} className="opacity-80" />
-          </>
-        ) : null}
-      </div>
 
-      <div className="mt-3 grid grid-cols-5 gap-1">
-        {OUTCOME_LABELS.map((o) => {
-          const pct = hunt[pctKey]?.[o.key];
-          const d = vs?.[deltaKey]?.[o.key];
-          const colorDelta =
-            d == null || d === 0
-              ? null
-              : o.key === "sl"
-                ? d < 0
-                : view === "reached" || o.key === "tp3" || o.key === "tp4"
-                  ? d > 0
-                  : null;
-          return (
-            <div
-              key={o.key}
-              className="rounded-lg border border-ink/[0.07] bg-surface-raised/80 px-1 py-1.5 text-center sm:px-1.5"
-            >
-              <div className="flex items-center justify-center">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
-                  {o.short}
-                </span>
-                <OutcomeInfo item={o} view={view} />
-              </div>
-              <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary sm:text-[14px]">
-                {fmtPct(pct)}
-              </p>
-              <p
-                className={`font-mono text-[9px] tabular-nums ${
-                  colorDelta == null
-                    ? "text-text-muted"
-                    : colorDelta
-                      ? "text-positive"
-                      : "text-loss"
-                }`}
-              >
-                {fmtPp(d)}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      <p className="mt-2.5 text-[11px] leading-snug text-text-muted">
-        {view === "final"
-          ? stats.how_to_read?.final
-          : stats.how_to_read?.reached}{" "}
-        {stats.open_count != null ? (
-          <span className="text-text-primary/80">
-            {stats.open_count} open on the desk now.
-          </span>
-        ) : null}
-      </p>
-      <p className="mt-1 text-[11px] leading-snug text-text-muted">
-        {stats.stats_cover}
-      </p>
-
-      {Array.isArray(stats.per_tag) && stats.per_tag.length > 0 ? (
-        <div className="mt-3 border-t border-ink/[0.06] pt-2.5">
-          <p className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted">
-            Runner tags in this mix · tap for that tag only
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {stats.per_tag.map((t) => {
-              const active = tagOpen === t.tag;
-              return (
-                <button
-                  key={t.tag}
-                  type="button"
-                  onClick={() => setTagOpen(active ? null : t.tag)}
-                  className={`rounded-lg border px-2 py-1 text-left text-[11px] ${
-                    active
-                      ? "border-positive/35 bg-positive/10 text-text-primary"
-                      : "border-ink/[0.1] bg-ink/[0.02] text-text-primary/90 hover:border-ink/20"
-                  }`}
-                >
-                  <span className="block font-medium capitalize">{niceTag(t.tag)}</span>
-                  <span className="font-mono text-[10px] tabular-nums text-text-muted">
-                    n={fmtN(t.n)} · TP3+ {fmtPct(t.full_tp_rate)} · {t.active_count || 0} open
-                  </span>
-                </button>
-              );
-            })}
+        <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-2">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <p className={LBL}>Runners vs no filter</p>
+            <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
+              <span className="mr-2 inline-block h-2 w-2 rounded-full bg-accent align-middle" />
+              Runners
+              <span className="ml-3 mr-2 inline-block h-2 w-2 rounded-full border border-ink/30 bg-surface-raised align-middle" />
+              No filter
+            </p>
           </div>
-          {tagOpen ? (
-            <TagDrill
-              tag={stats.per_tag.find((t) => t.tag === tagOpen)}
-              view={view}
-            />
-          ) : null}
+          <CompareTrack
+            label="Hit TP1+"
+            runners={hunt.win_rate}
+            baseline={base?.win_rate}
+          />
+          <CompareTrack
+            label="Hit TP3+"
+            runners={hunt.full_tp_rate}
+            baseline={base?.full_tp_rate}
+          />
+          <CompareTrack
+            label="Stopped out"
+            runners={hunt.sl_rate}
+            baseline={base?.sl_rate}
+            betterWhen="lower"
+          />
         </div>
-      ) : null}
-    </div>
+
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className={LBL}>How the book finished</p>
+            <Legend />
+          </div>
+          <div className="mt-2 space-y-2">
+            {[
+              { name: "Runners", mix: hunt, dim: false },
+              { name: "No filter", mix: base, dim: true },
+            ]
+              .filter((r) => r.mix)
+              .map((r) => (
+                <div key={r.name}>
+                  <div className="mb-1 flex items-baseline justify-between gap-2">
+                    <span className="text-[11.5px] text-text-primary">{r.name}</span>
+                    <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                      SL {fmtPct(r.mix.sl_rate)} · TP3+ {fmtPct(r.mix.full_tp_rate)}
+                    </span>
+                  </div>
+                  <StackedMix mix={r.mix} dim={r.dim} />
+                </div>
+              ))}
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-text-muted">
+            Each bar is 100% of that mix. Red is stopped out; darker green ran further.
+            {stats.open_count != null
+              ? ` ${stats.open_count} calls are still open and are in neither bar.`
+              : ""}{" "}
+            Live Runners also keeps the top 20% of Edge on the day you are looking at — not in these bars.
+          </p>
+        </div>
+
+        {/* 3 — every step, for anyone who wants the table */}
+        <details className="group rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-2.5">
+          <summary className={`flex cursor-pointer list-none items-center justify-between gap-2 ${LBL} [&::-webkit-details-marker]:hidden`}>
+            Step by step
+            <span className="transition-transform group-open:rotate-180" aria-hidden>
+              ▾
+            </span>
+          </summary>
+
+          <div className="mt-3">
+            <SegGroup
+              size="touch"
+              fill
+              aria-label="Outcome view"
+              value={view}
+              onChange={setView}
+              options={[
+                { key: "final", label: "Ended here" },
+                { key: "reached", label: "Reached ≥" },
+              ]}
+            />
+            <p className="mt-2 text-[11px] leading-snug text-text-muted">
+              {view === "final" ? stats.how_to_read?.final : stats.how_to_read?.reached}
+            </p>
+
+            <div className="mt-2.5 overflow-x-auto">
+              <table className="w-full min-w-[19rem] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-ink/[0.08]">
+                    <th className={`py-1.5 pr-2 ${LBL} font-normal`}>Outcome</th>
+                    <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>Runners</th>
+                    <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>No filter</th>
+                    <th className={`py-1.5 pl-2 text-right ${LBL} font-normal`}>Difference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {OUTCOME_LABELS.map((o) => {
+                    const d = num(vs?.[deltaKey]?.[o.key]);
+                    const good =
+                      d == null || d === 0
+                        ? null
+                        : o.key === "sl"
+                          ? d < 0
+                          : view === "reached" || o.key === "tp3" || o.key === "tp4"
+                            ? d > 0
+                            : null;
+                    return (
+                      <tr key={o.key} className="border-b border-ink/[0.05] last:border-0">
+                        <td className="py-1.5 pr-2">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-[2px]"
+                              style={{ background: OUTCOME_FILL[o.key] }}
+                              aria-hidden
+                            />
+                            <span className="font-mono text-[11px] uppercase tracking-wider text-text-primary">
+                              {o.short}
+                            </span>
+                            <OutcomeInfo item={o} view={view} />
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono text-[12px] tabular-nums text-text-primary">
+                          {fmtPct(hunt[pctKey]?.[o.key])}
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono text-[12px] tabular-nums text-text-muted">
+                          {fmtPct(base?.[pctKey]?.[o.key])}
+                        </td>
+                        <td
+                          className={`py-1.5 pl-2 text-right font-mono text-[12px] tabular-nums ${
+                            good == null ? "text-text-muted" : good ? "text-positive" : "text-loss"
+                          }`}
+                        >
+                          {fmtPp(d)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="mt-2 text-[11px] leading-snug text-text-muted">
+              A difference can be good while it reads negative: fewer calls
+              <span className="text-text-primary"> ending </span>
+              at TP1 or TP2 usually means they carried on to TP3 or TP4. Those two rows are
+              left grey for that reason.
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-text-muted">{stats.stats_cover}</p>
+          </div>
+        </details>
+
+        {/* 4 — the tags the mix is built from */}
+        {Array.isArray(stats.per_tag) && stats.per_tag.length > 0 ? (
+          <div>
+            <p className={LBL}>Runner tags in this mix</p>
+            <p className="mb-2 mt-1 text-[11px] leading-snug text-text-muted">
+              Tap one to see that tag on its own. Tags overlap, so a call with two of them is
+              one row above and appears under both here.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {stats.per_tag.map((t) => {
+                const active = tagOpen === t.tag;
+                return (
+                  <button
+                    key={t.tag}
+                    type="button"
+                    onClick={() => setTagOpen(active ? null : t.tag)}
+                    className={`rounded-lg border px-2.5 py-1.5 text-left transition-colors ${
+                      active
+                        ? "border-accent/45 bg-accent/10"
+                        : "border-ink/[0.1] bg-ink/[0.02] hover:border-ink/20"
+                    }`}
+                  >
+                    <span className="block text-[11.5px] font-medium capitalize text-text-primary">
+                      {niceTag(t.tag)}
+                    </span>
+                    <span className="mt-1 block h-1 overflow-hidden rounded-full bg-ink/[0.08]">
+                      <span
+                        className="block h-full rounded-full bg-accent/80"
+                        style={{ width: `${Math.min(100, Number(t.full_tp_rate) || 0)}%` }}
+                      />
+                    </span>
+                    <span className="mt-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                      TP3+ {fmtPct(t.full_tp_rate)} · n={fmtN(t.n)}
+                      {t.active_count ? ` · ${t.active_count} open` : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {tagOpen ? (
+              <TagDrill tag={stats.per_tag.find((t) => t.tag === tagOpen)} view={view} />
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -298,7 +567,7 @@ function TagDrill({ tag, view }) {
         </div>
       ) : null}
       <p className="mt-1.5 text-[10.5px] leading-snug text-text-muted">
-        Overlapping — this tag’s n can exceed its share of the Hunt union. A call with two
+        Overlapping — this tag’s n can exceed its share of the Runner union. A call with two
         runner tags is one row in Results so far, and counted in both tag chips.
       </p>
     </div>
@@ -360,8 +629,8 @@ export default function RecipeExplainModal({
   const copy = RECIPE_EXPLAIN[id];
 
   const applyLabel = useMemo(() => {
-    if (id === "full_tp") return "Shortlist Hunt full TP";
-    if (id === "strongest") return "Shortlist Strongest setups";
+    if (id === "full_tp") return "Shortlist Runners";
+    if (id === "strongest") return "Shortlist Top rated";
     if (id === "caution") return "Show Caution first";
     return null;
   }, [id]);

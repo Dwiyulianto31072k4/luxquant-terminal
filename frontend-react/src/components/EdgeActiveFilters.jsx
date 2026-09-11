@@ -14,32 +14,34 @@ export default function EdgeActiveFilters({
   variant = "bar",
   selectedTags = [],
   tagMatchMode = "any",
-  verdictFilter = "all",
   statusFilter = "all",
   riskFilter = "all",
   streakFilter = "all",
   corrDecoupled = false,
   corrHighAlign = false,
+  edgeTop = null,
   sortBy = "created_at",
   sortOrder = "desc",
   sorts = null,
   selectedDates = [],
   searchPair = "",
+  watchlistActive = false,
   filteredCount = null,
   totalUnfiltered = null,
   onRemoveTag,
   onTagMatchMode,
-  onVerdictFilter,
   onStatusFilter,
   onRiskFilter,
   onStreakFilter,
   onCorrDecoupled,
   onCorrHighAlign,
+  onEdgeTop,
   onSortReset,
   onRemoveSortLevel,
   onToggleSortLevel,
   onClearDates,
   onClearSearch,
+  onClearWatchlist,
   onClearAll,
   sticky = true,
 }) {
@@ -60,17 +62,41 @@ export default function EdgeActiveFilters({
     });
   }
 
-  if (selectedDates?.length > 0) {
+  if (watchlistActive) {
     chips.push({
-      key: "dates",
-      group: "date",
-      label:
-        selectedDates.length === 1
-          ? `Day: ${selectedDates[0]}`
-          : `Days: ${selectedDates.length}`,
+      key: "watchlist",
+      group: "watchlist",
+      label: "Watchlist",
       tone: "neutral",
-      clear: () => onClearDates?.(),
+      clear: () => onClearWatchlist?.(),
     });
+  } else {
+    const today = new Date().toISOString().slice(0, 10);
+    if (!selectedDates?.length) {
+      chips.push({
+        key: "dates",
+        group: "date",
+        label: "All days",
+        tone: "neutral",
+        clear: () => onClearDates?.(),
+      });
+    } else if (selectedDates.length === 1 && selectedDates[0] !== today) {
+      chips.push({
+        key: "dates",
+        group: "date",
+        label: `Day: ${selectedDates[0]}`,
+        tone: "neutral",
+        clear: () => onClearDates?.(),
+      });
+    } else if (selectedDates.length > 1) {
+      chips.push({
+        key: "dates",
+        group: "date",
+        label: `Days: ${selectedDates.length}`,
+        tone: "neutral",
+        clear: () => onClearDates?.(),
+      });
+    }
   }
 
   if (selectedTags.length > 0) {
@@ -95,13 +121,13 @@ export default function EdgeActiveFilters({
     });
   }
 
-  if (verdictFilter !== "all") {
+  if (edgeTop) {
     chips.push({
-      key: "verdict",
-      group: "verdict",
-      label: `Verdict: ${verdictFilter.replace(/_/g, " ")}`,
-      tone: verdictFilter === "worth_it" ? "good" : "bad",
-      clear: () => onVerdictFilter?.("all"),
+      key: "edgetop",
+      group: "edge",
+      label: `Top ${edgeTop}% Edge`,
+      tone: "good",
+      clear: () => onEdgeTop?.(null),
     });
   }
 
@@ -203,8 +229,10 @@ export default function EdgeActiveFilters({
   const shell =
     variant === "card"
       ? "rounded-2xl border border-ink/[0.1] bg-surface-raised p-3.5 shadow-sm"
-      : `rounded-xl border border-accent/20 bg-accent/[0.06] px-3 py-2.5 sm:px-3.5 ${
-          sticky ? "sticky top-0 z-30 backdrop-blur-md supports-[backdrop-filter]:bg-accent/[0.08]" : ""
+      : `rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2 sm:px-3.5 ${
+          sticky
+            ? "lg:sticky lg:top-0 lg:z-30 lg:backdrop-blur-md lg:supports-[backdrop-filter]:bg-surface-raised/90"
+            : ""
         }`;
 
   return (
@@ -212,8 +240,8 @@ export default function EdgeActiveFilters({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-accent">
-              Current filters
+            <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Filters
             </span>
             <span className="rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
               {chips.length} active

@@ -511,7 +511,20 @@ def get_scenario_ledger(
             COUNT(*) FILTER (WHERE res.outcome IN :miss_outcomes) AS invalidated_first,
             COUNT(*) FILTER (WHERE res.outcome = 'LATE_HIT')       AS late_hits,
             COUNT(*) FILTER (WHERE res.outcome = 'STALE_NO_TOUCH') AS stale,
-            COUNT(*) FILTER (WHERE res.outcome = 'AMBIGUOUS_BAR')  AS ambiguous
+            COUNT(*) FILTER (WHERE res.outcome = 'AMBIGUOUS_BAR')  AS ambiguous,
+            -- Directional scoring, kept apart from the headline. A range that
+            -- held answers "did price stay inside the band", which is not what
+            -- a bullish or bearish read claimed. ledger_confidence already
+            -- scores it this way; the card did not, and 222 of its 400 hits
+            -- were RANGE_HELD -- more than half the number, answering a
+            -- different question. 68.1% against 61.0% for the claim itself.
+            COUNT(*) FILTER (WHERE res.outcome IN ('CLEAN_HIT','LATE_HIT'))
+                                                              AS dir_hits,
+            COUNT(*) FILTER (WHERE res.outcome = 'INVALIDATED_FIRST')
+                                                              AS dir_misses,
+            COUNT(*) FILTER (WHERE res.outcome = 'RANGE_HELD') AS range_held,
+            COUNT(*) FILTER (WHERE res.outcome IN ('RANGE_BREAK_UP','RANGE_BREAK_DOWN'))
+                                                              AS range_broke
         FROM compass_projection_contracts c
         LEFT JOIN compass_projection_resolutions res ON res.projection_id = c.projection_id
     """).bindparams(
@@ -571,6 +584,23 @@ def get_scenario_ledger(
             "stale": int(stats_row.stale or 0),
             "ambiguous": int(stats_row.ambiguous or 0),
             "hit_rate": clean_hits / scored if scored else None,
+            # What the read actually claimed, scored on its own. Published
+            # beside the blended number rather than instead of it, so the two
+            # can be compared instead of one quietly standing for the other.
+            "directional": {
+                "hits": int(stats_row.dir_hits or 0),
+                "misses": int(stats_row.dir_misses or 0),
+                "hit_rate": (
+                    int(stats_row.dir_hits or 0)
+                    / (int(stats_row.dir_hits or 0) + int(stats_row.dir_misses or 0))
+                    if (int(stats_row.dir_hits or 0) + int(stats_row.dir_misses or 0))
+                    else None
+                ),
+            },
+            "range": {
+                "held": int(stats_row.range_held or 0),
+                "broke": int(stats_row.range_broke or 0),
+            },
         },
         "items": items,
     }

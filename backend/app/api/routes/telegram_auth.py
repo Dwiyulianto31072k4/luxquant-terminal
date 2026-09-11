@@ -108,13 +108,18 @@ def _bot_reply_markup(command: str) -> dict:
     return {"inline_keyboard": rows}
 
 
-async def _send_terminal_bot_message(chat_id: int, command: str) -> None:
+async def _send_terminal_bot_message(chat_id: int, command: str,
+                                     override: str | None = None) -> None:
+    """`override` replaces the canned reply for this one message.
+
+    Used by STOP, which needs to confirm what it just did rather than print the
+    help text — a confirmation is the only way the sender learns it worked."""
     if not TELEGRAM_BOT_TOKEN:
         logger.error("Terminal Bot reply skipped: TELEGRAM_BOT_TOKEN is not configured")
         return
     payload = {
         "chat_id": chat_id,
-        "text": reply_for_command(command),
+        "text": override or reply_for_command(command),
         "reply_markup": _bot_reply_markup(command),
         "disable_web_page_preview": True,
     }
@@ -132,6 +137,34 @@ async def _send_terminal_bot_message(chat_id: int, command: str) -> None:
 
 
 @router.post("/telegram/bot/webhook", include_in_schema=False)
+def _opt_out_referral_reminders(db, telegram_id: int) -> bool:
+    """Honour a STOP, and never let failing to honour it break the reply.
+
+    Writes the same `opted_out` flag the admin Pause button writes, which is the
+    flag `_build_referral_ops` already checks — so this needs no new rule, only
+    a way for the person themselves to set it."""
+    from app.models.referral import ReferralReminderPreference
+    try:
+        user = db.query(User).filter(User.telegram_id == telegram_id).first()
+        if not user:
+            return False
+        pref = (db.query(ReferralReminderPreference)
+                  .filter(ReferralReminderPreference.user_id == user.id).first())
+        if not pref:
+            pref = ReferralReminderPreference(user_id=user.id)
+            db.add(pref)
+        pref.opted_out = True
+        pref.reason = "Replied STOP in Telegram"
+        pref.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        logger.info("referral reminders opted out by user_id=%s (STOP)", user.id)
+        return True
+    except Exception:
+        db.rollback()
+        logger.exception("could not record STOP for telegram_id=%s", telegram_id)
+        return False
+
+
 async def telegram_bot_webhook(
     request: Request,
     db: Session = Depends(get_db),
@@ -166,7 +199,28 @@ async def telegram_bot_webhook(
     if chat.get("type") != "private" or not isinstance(chat_id, int):
         return {"ok": True, "handled": False, "reason": "not_private"}
 
-    command = command_from_text(message.get("text"))
+    raw = (message.get("text") or "").strip()
+
+    # "Reply STOP if you do not want referral reminders." — the referral DM has
+    # promised this in every copy it has ever sent, and nothing was listening.
+    # A promised opt-out that silently does nothing is worse than no opt-out:
+    # the person believes they have left and keeps hearing from us.
+    #
+    # Matched on the whole message, not a prefix, so "stop sending me BTC calls"
+    # is not read as consent to anything and reaches a human instead.
+    if raw.lower().rstrip(".!") in {"stop", "unsubscribe", "berhenti"}:
+        sender_id = sender.get("id")
+        if isinstance(sender_id, int):
+            _opt_out_referral_reminders(db, sender_id)
+        await _send_terminal_bot_message(
+            chat_id, "help",
+            override=("Noted — no more referral reminders.\n\n"
+                      "This does not touch anything about your account, your "
+                      "payments or your access. Those still reach you."),
+        )
+        return {"ok": True, "handled": True, "command": "stop"}
+
+    command = command_from_text(raw)
     if command not in {"start", "terminal", "performance", "help"}:
         command = "help"
 

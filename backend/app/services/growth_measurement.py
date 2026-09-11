@@ -31,6 +31,13 @@ CLIENT_GROWTH_EVENTS = frozenset(
         "telegram_write_access_shown",
         "telegram_write_access_allowed",
         "telegram_write_access_cancelled",
+        # Tutorials. learning_progress records who FINISHED a step — 10 users,
+        # 37 rows — but nothing recorded who opened the page and left, so the
+        # feature had a numerator and no denominator. Same shape as the
+        # cta_shown gap: "nobody uses it" and "everybody bounces off it" need
+        # opposite fixes and were indistinguishable.
+        "tutorial_viewed",
+        "tutorial_course_opened",
     }
 )
 

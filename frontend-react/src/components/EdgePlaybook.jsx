@@ -20,6 +20,17 @@ const CONFOUND_TAGS = new Set([
   "EXHAUSTION_CANDLE",
 ]);
 
+// Kept in lockstep with backend/app/services/hunt_recipe.py, which carries the
+// full reasoning. Short version: these families are read from Redis at
+// enrichment time and have no historical source, so no re-backfill can make
+// them as-of-entry — rebackfill_pointintime.py says so itself. FNG_NEUTRAL's
+// 95.2% TP3+ came from a single day (19 Aug), and BTC_VOLATILE, ranked first in
+// the live Runners set, has 8 active days in its whole history.
+const APPROXIMATE_CONTEXT_PREFIXES = ["BTC_", "FNG_", "FUNDING_"];
+
+const isApproximateContextTag = (tag) =>
+  APPROXIMATE_CONTEXT_PREFIXES.some((p) => String(tag || "").startsWith(p));
+
 const nice = (tag) => String(tag || "").replace(/_/g, " ").toLowerCase();
 
 function runnerScore(t) {
@@ -55,7 +66,6 @@ function SectionLabel({ tone = "muted", children, hint }) {
 const SORT_PRESETS = [
   { value: "edge_score", label: "Edge Score" },
   { value: "created_at", label: "Called time" },
-  { value: "verdict", label: "Verdict score" },
   { value: "win_rate", label: "Win rate" },
   { value: "win_streak", label: "Win streak" },
   { value: "max_target", label: "Max target %" },
@@ -67,11 +77,9 @@ const SORT_PRESETS = [
 
 export default function EdgePlaybook({
   tagWr = [],
-  verdictCounts = { worth: 0, avoid: 0 },
   signalTags = {},
   selectedTags = [],
   tagMatchMode = "any",
-  verdictFilter = "all",
   statusFilter = "all",
   riskFilter = "all",
   sortBy = "created_at",
@@ -86,7 +94,6 @@ export default function EdgePlaybook({
   onToggleTag,
   onSetTags,
   onTagMatchMode,
-  onVerdictFilter,
   onStatusFilter,
   onRiskFilter,
   onSort,
@@ -137,11 +144,10 @@ export default function EdgePlaybook({
 
   const topEdgeTags = prefer.slice(0, 3).map((t) => t.tag);
   const topRunnerTags = (runners.length ? runners : prefer).slice(0, 4).map((t) => t.tag);
-  const hasData = prefer.length > 0 || runners.length > 0 || verdictCounts.worth > 0;
+  const hasData = prefer.length > 0 || runners.length > 0;
 
   const activeChipCount =
     selectedTags.length +
-    (verdictFilter !== "all" ? 1 : 0) +
     (statusFilter !== "all" ? 1 : 0) +
     (riskFilter !== "all" ? 1 : 0) +
     (sortBy !== "created_at" ? 1 : 0);
@@ -168,7 +174,6 @@ export default function EdgePlaybook({
             sticky={false}
             selectedTags={selectedTags}
             tagMatchMode={tagMatchMode}
-            verdictFilter={verdictFilter}
             statusFilter={statusFilter}
             riskFilter={riskFilter}
             sortBy={sortBy}
@@ -177,7 +182,6 @@ export default function EdgePlaybook({
             filteredCount={filteredCount}
             onRemoveTag={(tag) => onToggleTag?.(tag)}
             onTagMatchMode={onTagMatchMode}
-            onVerdictFilter={onVerdictFilter}
             onStatusFilter={onStatusFilter}
             onRiskFilter={onRiskFilter}
             onSortReset={() => onSort?.("created_at", "desc")}
@@ -202,7 +206,7 @@ export default function EdgePlaybook({
               <div>
                 <p className="text-[12.5px] font-semibold text-text-primary">Build filters</p>
                 <p className="text-[11px] text-text-muted">
-                  Stack tags + Worth it + status + risk + sort · hero rank = Edge Score
+                  Stack tags + status + risk + sort · hero rank = Edge Score
                 </p>
               </div>
               {edgeFilterActive && (
@@ -232,29 +236,6 @@ export default function EdgePlaybook({
                   onClick={() => onTagMatchMode?.(m.id)}
                   className={`rounded-lg border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${pill(
                     tagMatchMode === m.id
-                  )}`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Verdict */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted">
-                Verdict
-              </span>
-              {[
-                { id: "all", label: "All" },
-                { id: "worth_it", label: `Worth it${verdictCounts.worth ? ` ${verdictCounts.worth}` : ""}` },
-                { id: "avoid", label: `Avoid${verdictCounts.avoid ? ` ${verdictCounts.avoid}` : ""}` },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => onVerdictFilter?.(m.id)}
-                  className={`rounded-lg border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${pill(
-                    verdictFilter === m.id
                   )}`}
                 >
                   {m.label}
@@ -423,7 +404,7 @@ export default function EdgePlaybook({
                 }}
                 className="rounded-lg border border-accent/35 bg-accent/15 px-3 py-1.5 text-[12px] font-semibold text-text-primary hover:bg-accent/25"
               >
-                Hunt full TP · Worth
+                Screen runners
               </button>
               <button
                 type="button"
@@ -433,17 +414,7 @@ export default function EdgePlaybook({
                 }}
                 className="rounded-lg border border-ink/15 bg-ink/[0.04] px-3 py-1.5 text-[12px] font-semibold text-text-primary hover:bg-ink/[0.08]"
               >
-                High win-rate · Worth
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onVerdictFilter?.("worth_it");
-                  onSort?.("edge_score", "desc");
-                }}
-                className="rounded-lg border border-ink/12 px-3 py-1.5 text-[12px] font-medium text-text-primary hover:bg-ink/[0.05]"
-              >
-                Worth · Edge Score
+                High win-rate tags
               </button>
               <button
                 type="button"
@@ -456,12 +427,11 @@ export default function EdgePlaybook({
                 type="button"
                 onClick={() => {
                   onStatusFilter?.("open");
-                  onVerdictFilter?.("worth_it");
                   onSort?.("edge_score", "desc");
                 }}
                 className="rounded-lg border border-ink/12 px-3 py-1.5 text-[12px] font-medium text-text-primary hover:bg-ink/[0.05]"
               >
-                Open · Worth · Edge
+                Open · Edge Score
               </button>
             </div>
           </div>
@@ -482,7 +452,6 @@ export default function EdgePlaybook({
               runners={runners}
               prefer={prefer}
               caution={caution}
-              verdictCounts={verdictCounts}
               signalTags={signalTags}
               selectedTag={selectedTag}
               onSelectTag={setSelectedTag}
@@ -545,22 +514,6 @@ export default function EdgePlaybook({
               Prefer
             </SectionLabel>
             <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() =>
-                  onVerdictFilter?.(verdictFilter === "worth_it" ? "all" : "worth_it")
-                }
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[11px] transition-colors ${
-                  verdictFilter === "worth_it"
-                    ? "border-positive/40 bg-positive/15 text-text-primary"
-                    : "border-ink/[0.07] bg-ink/[0.02] text-text-primary/90"
-                }`}
-              >
-                Worth it pairs
-                {verdictCounts.worth > 0 && (
-                  <span className="tabular-nums text-text-muted">{verdictCounts.worth}</span>
-                )}
-              </button>
               {prefer.map((t) => {
                 const active = selectedTags.includes(t.tag);
                 return (
@@ -585,26 +538,12 @@ export default function EdgePlaybook({
             </div>
           </div>
 
-          {(caution.length > 0 || verdictCounts.avoid > 0) && (
+          {caution.length > 0 && (
             <div>
               <SectionLabel tone="loss" hint="Optional exclude-awareness · can still multi-select">
                 Caution
               </SectionLabel>
               <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => onVerdictFilter?.(verdictFilter === "avoid" ? "all" : "avoid")}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[11px] ${
-                    verdictFilter === "avoid"
-                      ? "border-loss/35 bg-loss/12 text-text-primary"
-                      : "border-ink/[0.06] bg-ink/[0.015] text-text-muted"
-                  }`}
-                >
-                  Avoid pairs
-                  {verdictCounts.avoid > 0 && (
-                    <span className="tabular-nums">{verdictCounts.avoid}</span>
-                  )}
-                </button>
                 {caution.map((t) => {
                   const active = selectedTags.includes(t.tag);
                   return (
@@ -630,7 +569,7 @@ export default function EdgePlaybook({
 
           <p className="text-[10.5px] leading-snug text-text-muted">
             Example: add <span className="text-text-primary/80">smc golden setup</span> +{" "}
-            <span className="text-text-primary/80">vol climax</span> (OR or AND) · Worth it · sort{" "}
+            <span className="text-text-primary/80">vol climax</span> (OR or AND) · sort{" "}
             <span className="text-text-primary/80">Edge Score</span>. Not financial advice.
           </p>
         </div>
@@ -730,6 +669,7 @@ export function buildRunnerTagSet(tagWr = []) {
   const set = new Set();
   for (const t of tagWr || []) {
     if (!t || t.n < 150 || CONFOUND_TAGS.has(t.tag)) continue;
+    if (isApproximateContextTag(t.tag)) continue;
     const wr = Number(t.win_rate) || 0;
     const full = Number(t.full_tp_rate) || 0;
     const tp4 = Number(t.tp4_rate) || 0;

@@ -222,7 +222,12 @@ async def verify_bep20_tx(
             # Check TX status
             tx_status = receipt.get("status", "0x0")
             if tx_status == "0x0":
-                return TxVerificationResult(False, "Transaksi gagal (reverted) di blockchain")
+                return TxVerificationResult(
+                    False,
+                    "This transaction was reverted on-chain, so no USDT ever "
+                    "moved. Nothing was taken from your wallet beyond the gas "
+                    "fee — send again and paste the new hash.",
+                )
 
             logger.info(f"   TX status: success")
             logger.info(f"   Block: {receipt.get('blockNumber')}")
@@ -259,12 +264,14 @@ async def verify_bep20_tx(
                             wrong_to = "0x" + topics[2][-40:]
                             return TxVerificationResult(
                                 False,
-                                f"USDT dikirim ke alamat yang salah: {wrong_to}",
+                                f"The USDT went to a different address "
+                                f"({wrong_to}), not our payment wallet.",
                                 {"expected": wallet_to, "actual": wrong_to}
                             )
                 return TxVerificationResult(
                     False,
-                    "Transaksi bukan transfer USDT ke wallet yang benar",
+                    "This transaction is not a USDT transfer to our payment "
+                    "wallet. We only receive USDT on BNB Smart Chain (BEP-20).",
                     {}
                 )
 
@@ -276,11 +283,17 @@ async def verify_bep20_tx(
 
             logger.info(f"   Actual: {actual_amount} USDT, Expected: {expected_amount} USDT")
 
-            amount_diff = abs(actual_amount - expected_amount)
-            if amount_diff > Decimal("1.0"):
+            # Paying more than asked is still paying. abs() treated a 1.99 USDT
+            # overpayment exactly like a 1.99 shortfall, so someone who sent
+            # 51.99 against a 50.00 invoice was told their payment was wrong and
+            # had to be confirmed by hand. Only a shortfall is a problem; the one
+            # USDT of slack stays, to absorb exchange fees and rounding.
+            shortfall = expected_amount - actual_amount
+            if shortfall > Decimal("1.0"):
                 return TxVerificationResult(
                     False,
-                    f"Jumlah tidak sesuai. Diharapkan: {expected_amount} USDT, Diterima: {actual_amount} USDT",
+                    f"The amount is short. This invoice is for {expected_amount} "
+                    f"USDT and the transaction sent {actual_amount} USDT.",
                     {"expected": str(expected_amount), "actual": str(actual_amount)}
                 )
 

@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import subscriptionApi from "../../services/subscriptionApi";
+import ReceiptEmailPrompt from "./ReceiptEmailPrompt";
 import { loginUrl } from "../../utils/postLoginRedirect";
 import SubscribeViaAdminModal from "./SubscribeViaAdminModal";
 import { trackGrowth } from "../../utils/growthAnalytics";
@@ -692,6 +693,10 @@ const PaymentPage = () => {
                     )}
                   </span>
                 </button>
+
+                {/* Where the receipt goes. Renders nothing unless this
+                    account has no usable address — see the component. */}
+                <ReceiptEmailPrompt />
 
                 {/* Result inline */}
                 {result && (

@@ -21,6 +21,11 @@ const ALLOWED = new Set([
   "telegram_write_access_shown",
   "telegram_write_access_allowed",
   "telegram_write_access_cancelled",
+  // Tutorials. These belong HERE, not in funnelAnalytics: they are
+  // user-linked product milestones behind a login, which is exactly the split
+  // this file's header describes.
+  "tutorial_viewed",
+  "tutorial_course_opened",
 ]);
 
 function randomId(prefix = "g") {

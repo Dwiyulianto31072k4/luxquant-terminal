@@ -4,17 +4,16 @@ import {
   FC,
   mapMarketCondition,
   SEV,
-  wrc,
   fmtDate,
-  RiskGauge,
-  classifyCoin,
+  coinDeskBand,
+  DESK_BANDS,
   CoinDetailModal,
 } from "./coinIntelShared";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-// NOTE: Theme constants, classifyCoin, RiskGauge, and CoinDetailModal now live
-// in ./coinIntelShared so SignalsTable can reuse the exact same logic/modal.
+// NOTE: Theme constants, the desk-band logic, and CoinDetailModal now live in
+// ./coinIntelShared so SignalsTable can reuse the exact same logic/modal.
 // Only the components used solely by this page (MarketConditionLineChart, CoinRow)
 // remain local.
 
@@ -125,14 +124,13 @@ const MarketConditionLineChart = ({ timeline }) => {
 // ═══════════════════════════════════════════
 // COIN ROW (local — main list)
 // ═══════════════════════════════════════════
-const CoinRow = ({ coin, rank, verdict, onClick }) => {
-  const vc = verdict === "avoid" ? "#ef4444" : "#22c55e";
-  const rs = coin.risk_score || 0;
+const CoinRow = ({ coin, rank, band, onClick }) => {
+  const bandInfo = DESK_BANDS[band] || DESK_BANDS.in_line;
   return (
     <div
       onClick={onClick}
       className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all hover:bg-ink/[0.03] active:scale-[0.99] group"
-      style={{ borderLeft: `2px solid ${vc}40` }}
+      style={{ borderLeft: `2px solid ${bandInfo.line}` }}
     >
       <span
         className="w-5 text-center text-[10px] font-bold flex-shrink-0"
@@ -167,10 +165,17 @@ const CoinRow = ({ coin, rank, verdict, onClick }) => {
           </span>
         </p>
       </div>
-      <RiskGauge score={rs} size="sm" />
-      <div className="text-right flex-shrink-0 w-16">
-        <p className="font-mono font-bold text-[14px]" style={{ color: wrc(coin.win_rate) }}>
+      {/* No green/amber/red on the rate. wrc()'s 70/50 thresholds predate a
+          desk that runs at 85.7%, so they painted the one coin measurably
+          BELOW the desk in green — a verdict, and the wrong one. The band on
+          the left border is the only judgement this row makes, and it stays
+          quiet unless the sample earns it. */}
+      <div className="text-right flex-shrink-0 w-[4.75rem]">
+        <p className="font-mono font-bold text-[14px] tabular-nums text-text-primary">
           {coin.win_rate}%
+        </p>
+        <p className="mt-0.5 font-mono text-[9px] tabular-nums text-text-muted">
+          {coin.closed_trades} closed
         </p>
         {coin.current_streak?.length > 0 ? (
           <p
@@ -234,24 +239,27 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
     return () => clearInterval(iv);
   }, [fetchData]);
 
-  const { worthIt, avoid, dateLabel } = useMemo(() => {
-    if (!data) return { worthIt: [], avoid: [], dateLabel: "" };
+  const { coins, flagged, dateLabel } = useMemo(() => {
+    if (!data) return { coins: [], flagged: 0, dateLabel: "" };
     const all = [...(data.top_coins || []), ...(data.rest_coins || [])];
+    const deskWr = data.platform_avg_wr;
 
     let filtered = all;
     if (selectedDates && selectedDates.length > 0) {
       filtered = all.filter((c) => c.active_days?.some((day) => selectedDates.includes(day)));
     }
 
-    const w = [],
-      a = [];
-    for (const c of filtered) {
-      const v = classifyCoin(c);
-      if (v === "avoid") a.push(c);
-      else if (v === "worth_it") w.push(c);
-    }
-    w.sort((x, y) => (y.risk_score || 0) - (x.risk_score || 0));
-    a.sort((x, y) => y.sl_rate - x.sl_rate);
+    // One list, not a good column and a bad column. Splitting the desk in two
+    // implied a difference between the halves, and there is none to imply:
+    // measured against funnel alarm limits, no coin here separates from the
+    // desk average by more than chance produces. Ordered by how much history
+    // the coin actually has, which is the only thing that varies honestly.
+    const list = [...filtered].sort(
+      (x, y) => (y.closed_trades || 0) - (x.closed_trades || 0)
+    );
+    const flaggedCount = filtered.filter(
+      (c) => coinDeskBand(c, deskWr) !== "in_line"
+    ).length;
 
     let label = "All 7 Days";
     if (selectedDates && selectedDates.length > 0) {
@@ -269,7 +277,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
         label = `Selected: ${selectedDates.length} Days`;
       }
     }
-    return { worthIt: w.slice(0, 10), avoid: a.slice(0, 10), dateLabel: label };
+    return { coins: list.slice(0, 20), flagged: flaggedCount, dateLabel: label };
   }, [data, selectedDates]);
 
   if (loading)
@@ -280,7 +288,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
       </div>
     );
   if (error || !data) return null;
-  if (worthIt.length === 0 && avoid.length === 0) return null;
+  if (coins.length === 0) return null;
 
   return (
     <div className="mb-8 space-y-4">
@@ -299,28 +307,19 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
               {dateLabel}
             </span>
             <div className="flex gap-1.5">
-              {avoid.length > 0 && (
+              <span className="rounded-full border border-ink/[0.1] bg-ink/[0.03] px-2 py-0.5 text-[9px] font-bold text-text-muted shadow-sm">
+                {coins.length} coins
+              </span>
+              {flagged > 0 && (
                 <span
                   className="text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm"
                   style={{
-                    background: SEV.danger.bg,
-                    color: SEV.danger.text,
-                    border: `1px solid ${SEV.danger.border}30`,
+                    background: SEV.warning.bg,
+                    color: SEV.warning.text,
+                    border: `1px solid ${SEV.warning.border}30`,
                   }}
                 >
-                  {avoid.length} Avoid
-                </span>
-              )}
-              {worthIt.length > 0 && (
-                <span
-                  className="text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm"
-                  style={{
-                    background: SEV.positive.bg,
-                    color: SEV.positive.text,
-                    border: `1px solid ${SEV.positive.border}30`,
-                  }}
-                >
-                  {worthIt.length} Worth It
+                  {flagged} outside desk range
                 </span>
               )}
             </div>
@@ -388,63 +387,43 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-surface-raised rounded-xl border border-positive/20 shadow-lg overflow-hidden flex flex-col">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-positive/20 bg-gradient-to-r from-positive/10 to-transparent">
-                <div className="w-1 h-4 rounded-full bg-positive shadow-[0_0_8px_#22c55e]" />
-                <h4 className="text-positive text-[11px] font-bold uppercase tracking-widest drop-shadow-sm">
-                  Worth It
-                </h4>
-                <span className="text-text-muted text-[9px] hidden sm:block">
-                  — strong track record
-                </span>
-              </div>
-              <div className="py-2 flex-1">
-                {worthIt.length === 0 ? (
-                  <p className="text-text-muted text-[11px] text-center py-10">
-                    No standout coins for {dateLabel}
-                  </p>
-                ) : (
-                  worthIt.map((c, i) => (
-                    <CoinRow
-                      key={c.pair}
-                      coin={c}
-                      rank={i + 1}
-                      verdict="worth_it"
-                      onClick={() => setSelectedCoin(c)}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
+          {/* Said where the list is read, not in a tooltip, and at the size of
+              the copy it qualifies. This block used to be two columns, Worth It
+              against Avoid, which implied a difference between the halves. The
+              measurement says there is none to imply. */}
+          <p className="rounded-xl border border-ink/[0.07] bg-ink/[0.02] px-3 py-2.5 text-[11px] leading-relaxed text-text-secondary">
+            <span className="font-semibold text-text-primary">
+              A coin&rsquo;s record does not change the odds on its next call.
+            </span>{" "}
+            We measured it across every resolved call, and no coin on this desk
+            wins more or less often than the desk average
+            {data.platform_avg_wr != null ? ` (${data.platform_avg_wr}%)` : ""} by
+            more than chance explains. Read the rates below as history, and read
+            the sample size beside each one: two closed calls is not a track
+            record.
+          </p>
 
-            <div className="bg-surface-raised rounded-xl border border-negative/20 shadow-lg overflow-hidden flex flex-col">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-negative/20 bg-gradient-to-r from-negative/10 to-transparent">
-                <div className="w-1 h-4 rounded-full bg-negative shadow-[0_0_8px_#ef4444]" />
-                <h4 className="text-loss text-[11px] font-bold uppercase tracking-widest drop-shadow-sm">
-                  Avoid
-                </h4>
-                <span className="text-text-muted text-[9px] hidden sm:block">
-                  — red flags detected
-                </span>
-              </div>
-              <div className="py-2 flex-1">
-                {avoid.length === 0 ? (
-                  <p className="text-text-muted text-[11px] text-center py-10">
-                    No red flags for {dateLabel}
-                  </p>
-                ) : (
-                  avoid.map((c, i) => (
-                    <CoinRow
-                      key={c.pair}
-                      coin={c}
-                      rank={i + 1}
-                      verdict="avoid"
-                      onClick={() => setSelectedCoin(c)}
-                    />
-                  ))
-                )}
-              </div>
+          <div className="bg-surface-raised rounded-xl border border-ink/[0.07] shadow-lg overflow-hidden flex flex-col">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-ink/[0.07]">
+              <div className="w-1 h-4 rounded-full bg-accent" />
+              <h4 className="text-text-primary text-[11px] font-bold uppercase tracking-widest">
+                Coins called
+              </h4>
+              <span className="text-text-muted text-[9px] hidden sm:block">
+                — most history first
+                {data.platform_avg_wr != null ? ` · desk average ${data.platform_avg_wr}%` : ""}
+              </span>
+            </div>
+            <div className="py-2 flex-1">
+              {coins.map((c, i) => (
+                <CoinRow
+                  key={c.pair}
+                  coin={c}
+                  rank={i + 1}
+                  band={coinDeskBand(c, data.platform_avg_wr)}
+                  onClick={() => setSelectedCoin(c)}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -454,6 +433,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
         <CoinDetailModal
           coin={selectedCoin}
           currentFlow={data.current_flow}
+          deskWr={data.platform_avg_wr}
           onClose={() => setSelectedCoin(null)}
         />
       )}

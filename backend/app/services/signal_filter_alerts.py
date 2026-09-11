@@ -26,6 +26,8 @@ import logging
 
 from sqlalchemy import text
 
+from app.services.hunt_recipe import CONFOUND_TAGS
+
 log = logging.getLogger(__name__)
 
 # A filter cannot reach further back than this even if it was saved long ago
@@ -36,6 +38,15 @@ MAX_LOOKBACK_HOURS = 12
 MAX_MATCHES_PER_PASS = 10
 
 
+def _norm_pair(p) -> str:
+    u = str(p or "").upper().strip()
+    if not u:
+        return u
+    if u.endswith(("USDT", "USDC", "BUSD")):
+        return u
+    return u + "USDT"
+
+
 def _as_list(value):
     if value is None:
         return []
@@ -44,40 +55,20 @@ def _as_list(value):
     return [str(value)]
 
 
-def _pairs_matching_verdict(wanted: list[str]) -> list[str] | None:
-    """Pairs whose coin-intel verdict is one of `wanted`, or None if unknown.
+def _with_live_runners(criteria: dict, db) -> dict:
+    """Runners is a live recipe, not a frozen tag list — resolve at eval time."""
+    if not criteria.get("runners"):
+        return criteria
+    from app.api.routes.edge_lab import get_tag_wr
+    from app.services.hunt_recipe import select_runner_tags
 
-    Returns None rather than an empty list when coin intel cannot be read: an
-    empty list would silently mean "nothing matches", and a filter that goes
-    quiet looks identical to a market with no setups.
-    """
-    try:
-        from app.api.routes.signals import _compute_coin_intel_once
-
-        intel = _compute_coin_intel_once() or {}
-        if not isinstance(intel, dict):
-            return None
-        coins = list(intel.get("top_coins") or []) + list(intel.get("rest_coins") or [])
-        if not coins:
-            return None
-
-        # A cached payload written before verdict existed has the key on no
-        # coin at all. Defaulting those to "neutral" would quietly answer a
-        # question this data cannot answer, so treat it as unavailable and let
-        # the filter hold until the cache refreshes.
-        if not any("verdict" in c for c in coins if isinstance(c, dict)):
-            log.info("coin intel has no verdict field yet; filter held")
-            return None
-
-        want = set(wanted)
-        return [
-            str(c.get("pair")).upper()
-            for c in coins
-            if isinstance(c, dict) and c.get("pair") and (c.get("verdict") or "neutral") in want
-        ]
-    except Exception as e:  # never let a filter take the worker down
-        log.warning("coin intel unavailable for verdict filter: %s", e)
-        return None
+    tw = get_tag_wr(days=0, min_n=40, db=db)
+    names = [t.get("tag") for t in select_runner_tags(tw.get("tags") or []) if t.get("tag")]
+    out = dict(criteria)
+    extra = _as_list(out.get("tags"))
+    out["tags"] = list(dict.fromkeys([*names, *extra]))
+    out.setdefault("tag_match", "any")
+    return out
 
 
 def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
@@ -98,36 +89,102 @@ def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
     pairs = _as_list(criteria.get("pairs"))
     if pairs:
         where.append("upper(s.pair) = ANY(:pairs)")
-        params["pairs"] = [p.upper() for p in pairs]
+        params["pairs"] = [_norm_pair(p) for p in pairs]
+
+    exclude_pairs = _as_list(criteria.get("exclude_pairs"))
+    if exclude_pairs:
+        where.append("upper(s.pair) <> ALL(:exclude_pairs)")
+        params["exclude_pairs"] = [_norm_pair(p) for p in exclude_pairs]
+
+    statuses = [
+        s.lower()
+        for s in _as_list(criteria.get("status"))
+        if s.lower() not in ("all", "any", "updated")
+    ]
+    if statuses:
+        where.append("lower(s.status) = ANY(:statuses)")
+        params["statuses"] = statuses
 
     min_conf = criteria.get("min_confidence")
     if isinstance(min_conf, (int, float)):
         where.append("e.confidence_score >= :min_conf")
         params["min_conf"] = int(min_conf)
 
-    # verdict (worth_it / avoid / neutral) is a property of the COIN's history,
-    # not of this signal, so it is resolved per pair from coin intel rather than
-    # in SQL. Same function the desk renders, so a saved filter screens on the
-    # definition the user was looking at when they saved it.
-    verdicts = _as_list(criteria.get("verdict"))
-    if verdicts:
-        pairs_for_verdict = _pairs_matching_verdict([v.lower() for v in verdicts])
-        if pairs_for_verdict is None:
-            # Coin intel unavailable — hold the filter rather than firing on a
-            # criterion we cannot actually check.
-            return [], {"__unavailable__": True}
-        where.append("upper(s.pair) = ANY(:verdict_pairs)")
-        params["verdict_pairs"] = pairs_for_verdict
+    directions = _as_list(criteria.get("direction"))
+    if directions:
+        where.append("lower(coalesce(e.signal_direction, '')) = ANY(:directions)")
+        params["directions"] = [d.lower() for d in directions]
+
+    min_mcap = criteria.get("min_mcap")
+    if isinstance(min_mcap, (int, float)):
+        where.append("s.market_cap >= :min_mcap")
+        params["min_mcap"] = float(min_mcap)
+    max_mcap = criteria.get("max_mcap")
+    if isinstance(max_mcap, (int, float)):
+        where.append("s.market_cap <= :max_mcap")
+        params["max_mcap"] = float(max_mcap)
+
+    max_vol_rank = criteria.get("max_volume_rank")
+    if isinstance(max_vol_rank, (int, float)):
+        where.append("s.volume_rank_num IS NOT NULL AND s.volume_rank_num <= :max_vol_rank")
+        params["max_vol_rank"] = int(max_vol_rank)
+
+    min_sl = criteria.get("min_sl_pct")
+    max_sl = criteria.get("max_sl_pct")
+    if isinstance(min_sl, (int, float)) or isinstance(max_sl, (int, float)):
+        where.append("s.entry IS NOT NULL AND s.stop1 IS NOT NULL AND s.entry <> 0")
+        sl_expr = "abs(s.entry - s.stop1) / abs(s.entry) * 100"
+        if isinstance(min_sl, (int, float)):
+            where.append(f"{sl_expr} >= :min_sl_pct")
+            params["min_sl_pct"] = float(min_sl)
+        if isinstance(max_sl, (int, float)):
+            where.append(f"{sl_expr} <= :max_sl_pct")
+            params["max_sl_pct"] = float(max_sl)
+
+    if criteria.get("btc_decoupled"):
+        where.append("bc.is_decoupled IS TRUE")
+    min_align = criteria.get("min_btc_align")
+    if isinstance(min_align, (int, float)):
+        where.append("(bc.interpretation->>'alignment_score')::int >= :min_btc_align")
+        params["min_btc_align"] = int(min_align)
+
+    if criteria.get("smc_golden"):
+        where.append("e.smc_golden_setup IS TRUE")
+
+    # There is deliberately no criterion here for the coin's own track record.
+    # Reconstructed point-in-time over all 58,075 resolved calls, a pair's
+    # record as of publish carries no information about the call being
+    # published: win rate -0.46pp between top and bottom quartile, last-5 form
+    # +0.16pp, streak +0.13pp, 30-day rate -0.05pp. The old `verdict` filter
+    # passed 487 of 491 pairs, so a user who saved "only worth-it coins" was
+    # screening out four coins and being told they had a filter. Offering it
+    # was worse than not offering it: the promise was invisible from both ends.
+    # What does separate is the tag/enrichment side, which is what `tags`,
+    # `rating` and `min_confidence` below screen on.
 
     tags = _as_list(criteria.get("tags"))
     if tags:
         params["tags"] = tags
+        # Two things this used to get wrong, both of which let a saved filter
+        # screen on a different tag set than the desk the user built it on:
+        #
+        #   * the `facts` path. tag-wr and hunt-full-tp both read
+        #     entry_snapshot->'facts'->'tags_annotated' first and fall back to
+        #     the flat key. Reading only the flat key sees a different array on
+        #     every row that has both.
+        #   * the `important` flag. The signals payload sends `important_tags`,
+        #     which is filtered to important = true — 46 of the 113 distinct
+        #     tags. Without the same filter this matched tags that never reach
+        #     the browser, so a filter could fire on a criterion its owner was
+        #     never shown and cannot see on the row.
         tag_sql = """
             SELECT count(DISTINCT t->>'name')
             FROM jsonb_array_elements(
-                COALESCE(e.entry_snapshot->'tags_annotated', '[]'::jsonb)
+                COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                         e.entry_snapshot->'tags_annotated', '[]'::jsonb)
             ) t
             WHERE t->>'name' = ANY(:tags)
+              AND (t->>'important')::boolean IS TRUE
         """
         if str(criteria.get("tag_match") or "any").lower() == "all":
             where.append(f"({tag_sql}) = :tag_total")
@@ -135,17 +192,39 @@ def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
         else:
             where.append(f"({tag_sql}) > 0")
 
+    exclude_tags = _as_list(criteria.get("exclude_tags"))
+    if criteria.get("exclude_confound"):
+        exclude_tags = list(dict.fromkeys([*exclude_tags, *sorted(CONFOUND_TAGS)]))
+    if exclude_tags:
+        params["exclude_tags"] = exclude_tags
+        where.append(f"""
+            (
+              SELECT count(*) FROM jsonb_array_elements(
+                  COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                           e.entry_snapshot->'tags_annotated', '[]'::jsonb)
+              ) t
+              WHERE t->>'name' = ANY(:exclude_tags)
+                AND (t->>'important')::boolean IS TRUE
+            ) = 0
+        """)
+
     return where, params
 
 
 def _describe(criteria: dict) -> str:
     bits = []
+    if _as_list(criteria.get("status")):
+        bits.append("/".join(_as_list(criteria["status"])).lower())
     if _as_list(criteria.get("rating")):
         bits.append("/".join(_as_list(criteria["rating"])).lower())
     if _as_list(criteria.get("risk_level")):
         bits.append("risk " + "/".join(_as_list(criteria["risk_level"])).lower())
+    if criteria.get("runners"):
+        bits.append("runners")
     if isinstance(criteria.get("min_confidence"), (int, float)):
         bits.append(f"score ≥ {int(criteria['min_confidence'])}")
+    if _as_list(criteria.get("pairs")):
+        bits.append("coins " + "/".join(_as_list(criteria["pairs"])[:3]))
     tags = _as_list(criteria.get("tags"))
     if tags:
         joiner = " + " if str(criteria.get("tag_match") or "any").lower() == "all" else " / "
@@ -172,13 +251,15 @@ def generate_filter_match_notifications(db) -> int:
                 log.warning("filter %s has unreadable criteria; skipped", fid)
                 continue
         criteria = criteria or {}
+        try:
+            criteria = _with_live_runners(criteria, db)
+        except Exception as e:
+            log.warning("filter %s runners resolve failed: %s", fid, e)
+            continue
 
         # An empty filter matches everything. That is never what someone means
         # by "alert me", so it is treated as not yet configured.
         where, params = _build_conditions(criteria)
-        if params.pop("__unavailable__", False):
-            log.info("filter %s held: verdict data unavailable this pass", fid)
-            continue
         if not where:
             continue
 
@@ -187,6 +268,7 @@ def generate_filter_match_notifications(db) -> int:
             SELECT s.signal_id, s.pair, s.entry, s.risk_level, e.rating, e.confidence_score
             FROM signals s
             JOIN signal_enrichment e ON e.signal_id = s.signal_id
+            LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
             WHERE s.created_at::timestamptz >= GREATEST(
                       :since, now() - interval '{MAX_LOOKBACK_HOURS} hours')
               AND {' AND '.join(where)}

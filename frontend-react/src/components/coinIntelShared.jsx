@@ -54,11 +54,21 @@ export const JC = {
   sl: "#dc2626",
 };
 
+// KNOWN MISCALIBRATION, kept deliberately and scoped.
+//
+// These thresholds date from before anyone measured the desk. It runs at
+// 85.7%, so "70% and above is green" paints a coin that is measurably WORSE
+// than average as good — which is how ASRUSDT (74.3% over 105 calls, the one
+// pair outside the funnel alarm limits) rendered in green.
+//
+// The two headline numbers that presented this as a verdict (a coin's win rate
+// and its 30-day rate) no longer use it. The remaining callers are secondary
+// breakdowns inside the coin modal — day-of-week, best hour, per-call platform
+// WR, reach-TP. Re-baselining the constants would only move the arbitrary
+// line; the fix is to colour against the desk rate, which needs the rate
+// threaded into each of those call sites. Left as its own change rather than
+// half-migrated here.
 export const wrc = (w) => (w >= 70 ? "#16a34a" : w >= 50 ? "#ca8a04" : "#dc2626");
-export const scoreColor = (s) =>
-  s >= 80 ? "#16a34a" : s >= 65 ? "#65a30d" : s >= 45 ? "#ca8a04" : s >= 25 ? "#ea580c" : "#dc2626";
-export const scoreGrade = (s) =>
-  s >= 80 ? "Excellent" : s >= 65 ? "Good" : s >= 45 ? "Average" : s >= 25 ? "Poor" : "Very Poor";
 export const primarySev = (f) => {
   for (const s of ["danger", "warning", "positive", "info"])
     if (f?.some((x) => x.severity === s)) return s;
@@ -84,32 +94,123 @@ export const fmtDate = (d) => {
     : d;
 };
 
-export const classifyCoin = (c) => {
-  if (!c) return "neutral";
-  const f = c.anomaly_flags || [],
-    ft = f.map((x) => x.type),
-    hd = f.some((x) => x.severity === "danger"),
-    hw = f.some((x) => x.severity === "warning"),
-    hp = f.some((x) => x.severity === "positive");
-  if (hd) return "avoid";
-  if (ft.includes("wr_decline") && c.win_rate < 70) return "avoid";
-  if (ft.includes("flow_underperformer")) return "avoid";
-  if (c.sl_rate >= 30 && c.closed_trades >= 5) return "avoid";
-  if (hw && !hp && c.win_rate < 75) return "avoid";
-  if (c.win_rate >= 80 && c.closed_trades >= 5) return "worth_it";
-  if (hp && !hd) return "worth_it";
-  if (ft.includes("hot_streak") && c.current_streak?.length >= 5) return "worth_it";
-  if (c.win_rate >= 85) return "worth_it";
-  if (c.win_rate < 65 && c.closed_trades >= 5) return "avoid";
-  return hp ? "worth_it" : "neutral";
+// ── What a pair's record is worth ────────────────────────────────────
+//
+// This used to be classifyCoin: ten first-match-wins rules that returned
+// "worth it" / "avoid" / "neutral". It was retired, not repaired, and the
+// measurement is the reason.
+//
+// Reconstructed point-in-time across all 58,075 resolved calls, a pair's
+// record as of the moment a call is published tells you nothing about that
+// call. Top quartile against bottom quartile: win rate -0.46pp, SL rate
+// +0.46pp (the wrong way round), last-5 form +0.16pp, streak +0.13pp,
+// 30-day rate -0.05pp. A pair on a ten-call winning streak went on to
+// 85.38%; a pair that had just lost went on to 86.15%; the desk sits at
+// 85.65%. The 9.5pp spread the old all-time numbers showed was leakage --
+// the "record" contained the very call being judged and everything after it.
+//
+// The dominant rule was `win_rate >= 80 && closed >= 5`. With the desk at
+// 85.7%, that threshold sits BELOW the average it was meant to filter
+// against, so it passed 487 of 491 pairs. A badge that certifies 99.2% of
+// the universe is not a judgement, it is decoration.
+//
+// What replaces it is descriptive, not evaluative: the pair's record, shrunk,
+// with its sample size and the desk average beside it. A coin is called out
+// by name only if it clears funnel-plot alarm limits (Spiegelhalter 2005),
+// and on this desk nothing does -- see DESK_ALARM_Z below for the counts.
+//
+// Goldstein & Spiegelhalter (1996) is why this had to go rather than be
+// tuned: a league table whose intervals overlap must not be published as a
+// judgement, and here every pair's interval overlaps the base rate.
+
+// Explicit tone / line / wash rather than one colour plus string-concatenated
+// alpha: the neutral band has to work as a token (`rgb(var(--fg-muted))`),
+// and `"rgb(var(--fg-muted))" + "40"` is not a colour.
+export const DESK_BANDS = {
+  above: {
+    label: "Above desk",
+    tone: "#16a34a",
+    line: "rgba(22,163,74,0.25)",
+    wash: "rgba(22,163,74,0.07)",
+  },
+  in_line: {
+    label: "In line with desk",
+    tone: "rgb(var(--fg-muted))",
+    line: "rgb(var(--ink) / 0.12)",
+    wash: "rgb(var(--ink) / 0.03)",
+  },
+  below: {
+    label: "Below desk",
+    tone: "#dc2626",
+    line: "rgba(220,38,38,0.25)",
+    wash: "rgba(220,38,38,0.07)",
+  },
 };
 
-// ── Leave-one-out / as-of-entry verdict ─────────────────────────────
-// Pair-level coin-intel includes every closed trade. Showing Avoid/Worth
-// on a *resolved* row using that aggregate leaks the row's own outcome
-// into the label (e.g. this SL → "Avoid" on the same row). Best practice:
-// open rows → full pair prior history; closed rows → reverse this outcome
-// then re-classify (leave-one-out / as-of-entry).
+// Spiegelhalter's outer ("alarm") limit, 3.09 SD — not 1.96. This is the
+// multiplicity correction, and leaving it out is how the first read of this
+// data went wrong. With ~500 pairs on the desk, 95% limits are EXPECTED to
+// flag 500 × 0.05 = 25 by chance; production flags 23. At 99.8% the
+// expectation is 1.0 and production flags exactly 1. At every threshold the
+// count is at or below chance, so no pair here is distinguishable from the
+// desk average.
+//
+// Kept rather than deleted because it is the guard against the old mistake
+// returning: nothing may call a coin good or bad unless this fires. It is
+// expected to stay quiet. Mirrors band_vs_desk in coin_intel_worker.py.
+export const DESK_ALARM_Z = 3.09;
+
+/** Where a pair sits against the desk. Funnel-plot limits; ties read in_line.
+ *
+ *  `basePct` is the desk's own win rate (platform_avg_wr). Without it there
+ *  is nothing to compare against, so everything reads in_line — the
+ *  conservative answer, never a guess.
+ */
+export function bandVsDesk(wins, closed, basePct) {
+  if (!closed || closed < 2 || basePct == null) return "in_line";
+  const p = basePct / 100;
+  if (!(p > 0 && p < 1)) return "in_line";
+  const se = Math.sqrt((p * (1 - p)) / closed);
+  const observed = (wins || 0) / closed;
+  if (observed > p + DESK_ALARM_Z * se) return "above";
+  if (observed < p - DESK_ALARM_Z * se) return "below";
+  return "in_line";
+}
+
+/** Band for a coin-intel payload. Server ships `desk_band`; this recomputes
+ *  it for the leave-one-out case, where the counts have changed. */
+export function coinDeskBand(coin, basePct) {
+  if (!coin) return "in_line";
+  if (!coin._loo && coin.desk_band) return coin.desk_band;
+  const d = coin.outcome_dist || {};
+  const wins = (d.tp1 || 0) + (d.tp2 || 0) + (d.tp3 || 0) + (d.tp4 || 0);
+  return bandVsDesk(wins, coin.closed_trades || 0, basePct ?? coin._base_wr);
+}
+
+// Shrinkage is deliberately NOT applied to any number this UI prints.
+//
+// The worker fits the prior by maximum likelihood and on production it comes
+// out around 4,500 calls of strength: the posterior for every pair collapses
+// onto the desk average. That is the correct thing to believe about a pair's
+// true rate, and it is a useless thing to print -- 491 rows of "85.7%", with
+// the actual record hidden behind it.
+//
+// So the split is: the raw rate and its sample size are what a reader sees,
+// because those are facts they can weigh, and shrinkage is what the SORT uses
+// (win_rate_shrunk on the payload), because that is where a raw proportion
+// does damage -- 100% from 2 calls must not outrank 90% from 228. That is
+// Evan Miller's "How Not To Sort By Average Rating", applied where it belongs.
+
+// ── Leave-one-out / as-of-entry ─────────────────────────────────────
+// Pair-level coin-intel includes every closed trade. Reading a band off that
+// aggregate on a *resolved* row leaks the row's own outcome into its own
+// label (this SL → "below desk" on the same row). Open rows use the full
+// prior history; closed rows reverse this outcome first.
+//
+// Worth being clear about what this does and does not buy: it removes the
+// self-inclusion, which is a real honesty fix, but it does not create
+// signal. The measurement above was fully as-of — self excluded AND every
+// later call excluded — and still came out flat.
 
 const MIN_CLOSED_RELIABLE = 5;
 const WIN_OUTCOMES = new Set(["tp1", "tp2", "tp3", "tp4"]);
@@ -280,32 +381,32 @@ export function leaveOneOutCoin(coin, outcome) {
 }
 
 /**
- * Per-signal verdict (anti-leak):
- * - open / unresolved → classifyCoin(pair)  // prior history only
- * - closed            → classifyCoin(leaveOneOut(pair, this outcome))
+ * Per-signal band (anti-leak):
+ * - open / unresolved → the pair's full prior history
+ * - closed            → that history with this outcome reversed out
  *
- * @returns {"avoid"|"worth_it"|"neutral"|null}
+ * @returns {"above"|"in_line"|"below"|null}
  */
-export function classifySignalVerdict(coin, signal) {
+export function signalDeskBand(coin, signal, basePct) {
   if (!coin) return null;
   const outcome = resolveOutcomeFromStatus(signal?.status);
-  if (!outcome) return classifyCoin(coin);
-  return classifyCoin(leaveOneOutCoin(coin, outcome));
+  if (!outcome) return coinDeskBand(coin, basePct);
+  return coinDeskBand(leaveOneOutCoin(coin, outcome), basePct);
 }
 
 /**
- * Row helper: verdict + coin snapshot for display.
- * Modal still opens full pair intel; badge uses LOO when closed.
+ * Row helper: band + coin snapshot for display.
+ * Modal still opens full pair intel; the chip uses LOO when closed.
  */
-export function getSignalVerdictInfo(coin, signal) {
+export function getSignalDeskBandInfo(coin, signal, basePct) {
   if (!coin) return null;
   const outcome = resolveOutcomeFromStatus(signal?.status);
   if (!outcome) {
-    return { verdict: classifyCoin(coin), coin, asOfEntry: false };
+    return { band: coinDeskBand(coin, basePct), coin, asOfEntry: false };
   }
   const loo = leaveOneOutCoin(coin, outcome);
   return {
-    verdict: classifyCoin(loo),
+    band: coinDeskBand(loo, basePct),
     coin: loo,
     fullCoin: coin,
     asOfEntry: true,
@@ -317,46 +418,6 @@ export function getSignalVerdictInfo(coin, signal) {
 // MICRO COMPONENTS
 // ═══════════════════════════════════════════
 
-export const RiskGauge = ({ score, size = "sm" }) => {
-  const c = scoreColor(score),
-    pct = Math.min(score, 100),
-    isSm = size === "sm";
-  return (
-    <div className={`relative ${isSm ? "w-8 h-8" : "w-16 h-16"}`}>
-      <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-        <circle
-          cx="18"
-          cy="18"
-          r="15"
-          fill="none"
-          stroke="rgb(var(--ink) / 0.04)"
-          strokeWidth={isSm ? "3" : "2.5"}
-        />
-        <circle
-          cx="18"
-          cy="18"
-          r="15"
-          fill="none"
-          stroke={c}
-          strokeWidth={isSm ? "3" : "2.5"}
-          strokeDasharray={`${pct * 0.94} 100`}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dasharray 0.8s ease" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span
-          className={`font-mono font-bold ${isSm ? "text-[8px]" : "text-[15px]"}`}
-          style={{ color: c }}
-        >
-          {score}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-/** Monthly WR trend — ECharts area line (theme-aware). */
 export const MonthlyLineChart = ({ data }) => {
   const tokens = useChartTokens();
   const option = useMemo(() => {
@@ -632,7 +693,7 @@ const StatBox = ({ label, value, color }) => (
 // ═══════════════════════════════════════════
 // FULL PAGE MODAL (deep analysis)
 // ═══════════════════════════════════════════
-export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
+export const CoinDetailModal = ({ coin, currentFlow, deskWr, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
   const [histPage, setHistPage] = useState(1); // pagination Signal History
   const HIST_PER_PAGE = 10;
@@ -665,10 +726,9 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
 
   if (!coin) return null;
 
-  const verdict = classifyCoin(coin);
-  const vc = verdict === "avoid" ? "#ef4444" : "#22c55e";
+  const band = coinDeskBand(coin, deskWr);
+  const bandInfo = DESK_BANDS[band] || DESK_BANDS.in_line;
   const st = SEV[primarySev(coin.anomaly_flags)];
-  const rs = coin.risk_score || 0;
 
   const trendIcon =
     coin.win_rate_30d_trend === "up" ? (
@@ -684,11 +744,31 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
     ) : null;
 
   const statCards = [
-    { l: "Win Rate", v: `${coin.win_rate}%`, c: wrc(coin.win_rate), i: trendIcon },
+    {
+      l: "Win Rate",
+      // Deliberately not colour-coded. wrc()'s 70/50 thresholds predate a desk
+      // running at 85.7%, so green here meant "good" for a coin measurably
+      // below the desk. Colour is a verdict, and the verdict is what was
+      // retired; the band pill in the header carries the only claim made.
+      v: `${coin.win_rate}%`,
+      c: "rgb(var(--fg))",
+      i: trendIcon,
+      // The sample size and the desk average ride with the rate, at the size
+      // of the rate. 100% from two calls is only misleading when it is
+      // printed alone.
+      sub:
+        deskWr != null
+          ? [`${coin.closed_trades} closed`, `desk ${deskWr}%`]
+          : [`${coin.closed_trades} closed`],
+    },
     {
       l: "SL Rate",
       v: `${coin.sl_rate}%`,
-      c: coin.sl_rate >= 30 ? "#ef4444" : "rgb(var(--fg-muted))",
+      c: "rgb(var(--fg))",
+      sub:
+        deskWr != null
+          ? [`${coin.closed_trades} closed`, `desk ${(100 - deskWr).toFixed(1)}%`]
+          : [`${coin.closed_trades} closed`],
     },
     {
       l: "Avg Outcome",
@@ -711,9 +791,12 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
             : "#ef4444",
     },
     {
+      // Same reason as Win Rate: two win rates sitting side by side, one
+      // black and one green, would read as a judgement on the green one.
       l: "30d WR",
       v: coin.win_rate_30d != null ? `${coin.win_rate_30d}%` : "—",
-      c: coin.win_rate_30d != null ? wrc(coin.win_rate_30d) : "rgb(var(--fg-muted))",
+      c: coin.win_rate_30d != null ? "rgb(var(--fg))" : "rgb(var(--fg-muted))",
+      sub: deskWr != null ? [`desk ${deskWr}%`] : null,
     },
   ];
 
@@ -725,7 +808,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
       <div className={`cdm-overlay ${isClosing ? "cdm-closing" : ""}`}>
         <div className="cdm-backdrop" onClick={handleClose} aria-hidden="true" />
         <div className="cdm-container">
-          <div className="cdm-content" style={{ "--vc": vc }}>
+          <div className="cdm-content">
             <div className="flex shrink-0 justify-center pt-2.5 sm:hidden">
               <div className="h-1 w-10 rounded-full bg-ink/20" />
             </div>
@@ -745,24 +828,19 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     <span className="ml-1 text-[12px] font-medium text-text-muted">USDT</span>
                   </h2>
                   <span
-                    className="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                    style={{ background: `${vc}18`, color: vc }}
+                    className="shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                    style={{
+                      borderColor: bandInfo.line,
+                      background: bandInfo.wash,
+                      color: bandInfo.tone,
+                    }}
                   >
-                    {verdict === "avoid" ? "Avoid" : "Worth it"}
+                    {bandInfo.label}
                   </span>
                 </div>
                 <p className="mt-0.5 font-mono text-[11px] tabular-nums text-text-muted">
                   {coin.total_calls} calls · {coin.closed_trades} closed · {coin.open_trades} open
                 </p>
-              </div>
-              <div className="hidden shrink-0 flex-col items-center sm:flex">
-                <RiskGauge score={rs} size="sm" />
-                <span
-                  className="mt-0.5 text-[9px] font-bold uppercase tracking-wider"
-                  style={{ color: scoreColor(rs) }}
-                >
-                  {scoreGrade(rs)}
-                </span>
               </div>
               <button type="button" onClick={handleClose} className={iconBtn} aria-label="Close">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -773,6 +851,22 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
 
             <div className="cdm-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-5 sm:py-5">
               <div className="mx-auto max-w-5xl space-y-4 sm:space-y-5">
+                {/* Said before any number, at the size of the numbers, because
+                    a qualifier hidden in a tooltip is not a qualifier. What is
+                    below is a record of what happened on this pair. We measured
+                    whether it predicts the next call and it does not, so it is
+                    context for reading a call — never a reason to take one. */}
+                <p className="rounded-xl border border-ink/[0.07] bg-ink/[0.02] px-3 py-2.5 text-[11px] leading-relaxed text-text-secondary sm:text-[12px]">
+                  <span className="font-semibold text-text-primary">
+                    This is a record of what happened, not a prediction.
+                  </span>{" "}
+                  A pair&rsquo;s past win rate does not change the odds on its
+                  next call — we measured that across every resolved call, and
+                  no coin on this desk wins more or less often than the desk
+                  average by more than chance explains. Read the number of
+                  closed calls next to every rate: two calls is not a track
+                  record.
+                </p>
                 {coin.anomaly_flags?.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {coin.anomaly_flags.map((f, i) => (
@@ -807,6 +901,14 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                         </p>
                         {s.i}
                       </div>
+                      {s.sub?.map((line) => (
+                        <p
+                          key={line}
+                          className="mt-0.5 whitespace-nowrap font-mono text-[9px] tabular-nums text-text-muted"
+                        >
+                          {line}
+                        </p>
+                      ))}
                     </div>
                   ))}
                 </div>

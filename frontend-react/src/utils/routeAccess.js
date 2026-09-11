@@ -5,13 +5,25 @@
 // section CTAs — can tell a free route from a premium one instead of guessing.
 // App.jsx remains the only place that enforces them.
 
+// /performance and its alias /analytics are deliberately NOT here.
+//
+// The public track record is the one claim the whole product rests on, and the
+// pinned Telegram post already promises it can be checked rather than trusted.
+// The figures were public anyway — the homepage prerender publishes the win
+// rate, the resolved count and the pair count to anyone, signed in or not — so
+// gating the page while publishing its headline numbers was a contradiction,
+// not a strategy.
+//
+// It also cost the site its strongest page in search. RequireAuth bounces an
+// anonymous visitor to /login AND injects `noindex, nofollow`, so Google could
+// never index it. Every endpoint the page needs (signals/analyze,
+// analytics/edge-lab, analytics/daily/dashboard) already answers anonymously,
+// verified 2026-09-07, so nothing renders empty for a logged-out reader.
 const LOGIN_REQUIRED = [
   "/market-pulse",
   "/crypto-news",
   "/signals",
   "/terminal",
-  "/analytics",
-  "/performance",
   "/bitcoin",
   "/markets",
   "/watchlist",

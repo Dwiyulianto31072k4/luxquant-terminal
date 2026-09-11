@@ -36,8 +36,24 @@
       })();
     </script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fonts are self-hosted from /fonts (see src/styles/index.css), so there is
+         no preconnect to fonts.googleapis.com any more. Preload the two faces the
+         first screen actually paints with, so they arrive with the stylesheet
+         rather than one round trip behind it. -->
+    <link
+      rel="preload"
+      href="/fonts/SpaceGrotesk-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/JetBrainsMono-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
     <link rel="preconnect" href="https://unpkg.com" />
 
@@ -110,7 +126,7 @@
             "@type": "Organization",
             "@id": "https://luxquant.tw/#organization",
             "name": "LuxQuant",
-            "alternateName": ["LuxQuant Terminal", "Lux Quant"],
+            "alternateName": ["LuxQuant Terminal", "LuxQuant Crypto", "Lux Quant"],
             "url": "https://luxquant.tw/",
             "description": "Quantitative crypto market intelligence — algorithmic signals with a transparent track record since 2023, money-flow and on-chain intelligence, risk scoring, and AI research.",
             "foundingDate": "2023",
@@ -125,8 +141,10 @@
             "sameAs": [
               "https://x.com/luxquantalgo",
               "https://twitter.com/luxquantalgo",
+              "https://x.com/luxquantcrypto",
               "https://www.instagram.com/luxquant.tw",
-              "https://t.me/LuxQuantSignal"
+              "https://t.me/LuxQuantSignal",
+              "https://t.me/LuxQuantTerminalBot"
             ],
             "knowsAbout": [
               "cryptocurrency",
@@ -284,11 +302,6 @@
     </script>
 
     <script async src="https://telegram.org/js/telegram-widget.js?22"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-
     <!-- ════════════════════════════════════════════════
          INSTANT PRE-BOOT LOADER (zero-JS)
          Paints before the JS bundle loads so nobody sees a blank screen.

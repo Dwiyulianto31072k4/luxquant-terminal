@@ -8,24 +8,32 @@ import { useAuth } from "../context/AuthContext";
 import { isEntitled } from "../utils/entitlement";
 import SignalModal from "./SignalModal";
 import BtcDomAlert from "./BtcDomAlert";
-import { classifyCoin, classifySignalVerdict } from "./coinIntelShared";
+import { coinDeskBand } from "./coinIntelShared";
 import { InfoTip, GuideModal } from "./GuideInfo";
 import { watchlistApi } from "../services/watchlistApi";
 import { signalsApi } from "../services/api";
-import CoinLogo from "./CoinLogo";
 import CompassSnapshot from "./aiArenaV6/CompassSnapshot";
 import AssistantWidget from "./assistant/AssistantWidget";
 import EdgePlaybook, { buildRunnerTagSet } from "./EdgePlaybook";
 import EdgeActiveFilters from "./EdgeActiveFilters";
 import EdgeCorrelationPanel from "./EdgeCorrelationPanel";
-import EdgeRecipesBar from "./EdgeRecipesBar";
+import EdgeRecipesBar, { ALL_MODE_STATE } from "./EdgeRecipesBar";
+import SignalsCoinFlow from "./SignalsCoinFlow";
+import SignalsCustomCalls from "./SignalsCustomCalls";
+import Modal from "./ui/Modal";
+import {
+  SegGroup,
+  deskBadgeClass,
+  deskChipClass,
+  deskGhostClass,
+} from "./ui/SegGroup";
 import { buildEdgeScoreMap, plainEdgeWhy } from "../utils/edgeScore";
+import { edgeTopThreshold } from "../utils/signalFilters";
 import {
   DEFAULT_SORTS,
   MAX_SORTS,
   MULTI_SORT_PRESETS,
   applySortClick,
-  formatSortChain,
   isDefaultSorts,
   normalizeSorts,
   orderLabel,
@@ -405,6 +413,8 @@ const SIGNALS_CACHE_KEY = "lq:signals:last";
 // Past this the data is stale enough that a clean load is the better trade.
 const SIGNALS_CACHE_MAX_AGE = 10 * 60 * 1000;
 
+const utcTodayYmd = () => new Date().toISOString().slice(0, 10);
+
 let signalsMemCache = null;
 
 function readSignalsCache() {
@@ -435,6 +445,59 @@ function writeSignalsCache(payload) {
 // ================================================================
 // MAIN PAGE
 // ================================================================
+/** The three states that answer "is this call still running?". Everything else
+ *  in statusOptions answers "how far did it get?", which is a different
+ *  question and gets its own row in the filter sheet. */
+/** Names the dimension a rail varies on. Same voice as the sheet's headings,
+ *  and the fixed width on sm+ makes the two rails start on one left edge
+ *  instead of each one beginning wherever its label ends. */
+const CONSOLE_LABEL =
+  "w-9 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted sm:w-[3.9rem]";
+
+/** The way into the mode briefings.
+ *
+ *  This was a 12px ⓘ riding the word MODE, and it did not invite anyone to read
+ *  anything. NN/G is blunt about why: an icon needs a text label beside it, the
+ *  label has to be visible without interaction — hover does not exist on a
+ *  phone — and an unlabelled icon is "reduced to mere eye candy… visual noise".
+ *  Their guidance on wording is the other half: a help control should name what
+ *  it explains, which is why this says what these mean rather than "Learn more"
+ *  or "Info".
+ *
+ *  Sentence case on purpose. Every other control on this console is uppercase
+ *  mono; prose in the middle of that reads as something to be read rather than
+ *  operated, which is the whole job. Presence comes from the resting border,
+ *  not from colour or motion. */
+function ModeGuideLink({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="What these mean"
+      title="What these mean"
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-7 sm:w-auto sm:gap-1.5 sm:px-2.5 sm:font-mono sm:text-[10px] sm:font-semibold sm:uppercase sm:tracking-[0.06em]"
+    >
+      <svg
+        className="h-3.5 w-3.5 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 16v-4" />
+        <path d="M12 8h.01" />
+      </svg>
+      <span className="hidden sm:inline">What these mean</span>
+    </button>
+  );
+}
+
+const PLAIN_STATUS = ["all", "open", "updated"];
+
 const SignalsPage = () => {
   const { t } = useTranslation();
 
@@ -475,6 +538,10 @@ const SignalsPage = () => {
   // Coin Intelligence map { pair: coinObj } — used to join win-streak (and other
   // anomaly data) onto signal rows for the new column / filter / sort.
   const [coinIntel, setCoinIntel] = useState(() => bootCache?.coinIntel || {});
+  // The desk's own win rate. Every per-coin rate is read against it, so it
+  // travels with coinIntel — including through the boot cache, or a returning
+  // reader sees a coin's rate with nothing to compare it to for a beat.
+  const [deskWr, setDeskWr] = useState(() => bootCache?.deskWr ?? null);
   const [currentFlow, setCurrentFlow] = useState(() => bootCache?.currentFlow ?? null);
 
   const currentPricesRef = useRef({});
@@ -489,19 +556,20 @@ const SignalsPage = () => {
   const [streakFilter, setStreakFilter] = useState("all"); // 'all' | 'hot'
   const [corrDecoupled, setCorrDecoupled] = useState(false);
   const [corrHighAlign, setCorrHighAlign] = useState(false);
-  const [verdictFilter, setVerdictFilter] = useState("all"); // 'all' | 'worth_it' | 'avoid'
-  const [selectedDates, setSelectedDates] = useState([]);
-  // Watchlist tab (ala MEXC "Favorites"). Watchlist bisa lintas-tanggal (lebih tua
-  // dari 7 hari), sementara allSignals cuma 7 hari — jadi watchlist punya SUMBER
-  // DATA sendiri (watchlistSignals dari /watchlist/), bukan sekadar filter allSignals.
+  // Keep only the top N% of the visible book by Edge Score. A percentile, not
+  // a score: the share clearing any fixed score swings by a factor of two
+  // between months, so a fixed bar would make this list double and halve on
+  // its own. Runners sets it to 20.
+  const [edgeTop, setEdgeTop] = useState(null);
+  const [mineExtra, setMineExtra] = useState(null);
+  const [selectedDates, setSelectedDates] = useState(() => [utcTodayYmd()]);
+  // Watchlist is a desk mode (not a day tab). It can be older than 7 days, so it
+  // has its own source (/watchlist/) instead of filtering allSignals.
   const [watchlistIds, setWatchlistIds] = useState([]);
   const [watchlistSignals, setWatchlistSignals] = useState([]);
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   // Coin Flow Intensity (top-5) — di-inject dari Money Flow, "More" ke /money-flow.
   const [flowCoins, setFlowCoins] = useState([]);
-  const [flowOpen, setFlowOpen] = useState(false); // default tertutup biar hemat tempat
-  const [flowCount, setFlowCount] = useState(10); // berapa koin ditampilkan (min 10)
-  const [flowSort, setFlowSort] = useState({ key: "intensity", dir: "desc" }); // sort tabel flow
   const navigate = useNavigate();
   // Every blurred number is a button, and they all lead here.
   const goPricing = () => navigate("/pricing?src=signals_locked");
@@ -532,6 +600,10 @@ const SignalsPage = () => {
   // doesn't push the table far down the page. Always force-open when an advanced
   // filter is active so the user can see/clear what's applied.
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAllSorts, setShowAllSorts] = useState(false);
+  // Lifted out of EdgeRecipesBar so the single ? on the search row can open the
+  // briefing for whichever mode is current. "__current" means exactly that.
+  const [guideMode, setGuideMode] = useState(null);
 
   // Min win-streak length to count as a "High Win Streak" (matches the
   // Coin Intelligence hot-streak heuristic).
@@ -589,8 +661,10 @@ const SignalsPage = () => {
         }
         snapshot.coinIntel = map;
         snapshot.currentFlow = intel.current_flow ?? null;
+        snapshot.deskWr = intel.platform_avg_wr ?? null;
         setCoinIntel(map);
         setCurrentFlow(snapshot.currentFlow);
+        setDeskWr(snapshot.deskWr);
       }
       // Tag WR is best-effort: failure just hides the tag filter / badges.
       if (tagWrRes.status === "fulfilled" && tagWrRes.value.ok) {
@@ -613,6 +687,7 @@ const SignalsPage = () => {
         stats: snapshot.stats ?? bootCache?.stats ?? null,
         coinIntel: snapshot.coinIntel ?? bootCache?.coinIntel ?? {},
         currentFlow: snapshot.currentFlow ?? bootCache?.currentFlow ?? null,
+        deskWr: snapshot.deskWr ?? bootCache?.deskWr ?? null,
         tagWr: snapshot.tagWr ?? bootCache?.tagWr ?? [],
       });
     } catch (err) {
@@ -791,7 +866,7 @@ const SignalsPage = () => {
     streakFilter,
     corrDecoupled,
     corrHighAlign,
-    verdictFilter,
+    edgeTop,
     selectedDates,
     sorts,
     selectedTags,
@@ -872,37 +947,17 @@ const SignalsPage = () => {
     return { dec, hi };
   }, [allSignals]);
 
-  // Pair-level verdict (coin detail / recipes). Row filters use LOO below.
+  // Where each pair sits against the desk. Display only — there is no filter
+  // on it any more. The old Worth It / Avoid filter passed 487 of 491 pairs,
+  // so it screened out four coins while presenting itself as a screen, and a
+  // pair's record was measured to carry no information about its next call.
   const verdictByPair = useMemo(() => {
     const map = {};
     for (const pair in coinIntel) {
-      map[pair] = classifyCoin(coinIntel[pair]);
+      map[pair] = coinDeskBand(coinIntel[pair], deskWr);
     }
     return map;
-  }, [coinIntel]);
-
-  // Per-signal Avoid/Worth: leave-one-out when closed so the row's own
-  // outcome cannot invent the label (as-of-entry best practice).
-  const getVerdictForSignal = useCallback(
-    (signal) => {
-      if (!signal?.pair) return null;
-      const coin = coinIntel?.[signal.pair];
-      if (!coin) return null;
-      return classifySignalVerdict(coin, signal);
-    },
-    [coinIntel]
-  );
-
-  const verdictCounts = useMemo(() => {
-    let worth = 0,
-      avoid = 0;
-    for (const s of allSignals) {
-      const v = getVerdictForSignal(s);
-      if (v === "worth_it") worth++;
-      else if (v === "avoid") avoid++;
-    }
-    return { worth, avoid };
-  }, [allSignals, getVerdictForSignal]);
+  }, [coinIntel, deskWr]);
 
   // Tag WR lookup { tagName: { wr, n, median_peak } } — for chip labels & badges.
   const tagWrMap = useMemo(() => {
@@ -1070,7 +1125,6 @@ const SignalsPage = () => {
     }
     if (corrDecoupled) f = f.filter((s) => s.btc_decoupled === true);
     if (corrHighAlign) f = f.filter((s) => (s.btc_align_score ?? -1) >= 70);
-    if (verdictFilter !== "all") f = f.filter((s) => getVerdictForSignal(s) === verdictFilter);
     return f;
   }, [
     allSignals,
@@ -1081,8 +1135,6 @@ const SignalsPage = () => {
     streakFilter,
     corrDecoupled,
     corrHighAlign,
-    verdictFilter,
-    getVerdictForSignal,
     coinIntel,
     showWatchlistOnly,
     watchlistSignals,
@@ -1128,8 +1180,9 @@ const SignalsPage = () => {
   }, [allSignals]);
 
   const dateOptions = useMemo(() => {
-    const options = [{ value: "all", label: "All Days" }];
+    // Today first — the desk default. All days sits at the end as the 7-day tape.
     const now = new Date();
+    const options = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(now);
       d.setUTCDate(d.getUTCDate() - i);
@@ -1145,10 +1198,13 @@ const SignalsPage = () => {
                 timeZone: "UTC",
               });
       const count = allSignals.filter((s) => signalUtcYmd(s.created_at) === dateStr).length;
-      if (count > 0) {
+      // Always show Today and Yesterday, even at 0 — otherwise the default tab
+      // vanishes before the first call of the UTC day lands.
+      if (i <= 1 || count > 0) {
         options.push({ value: dateStr, label: dayLabel, count });
       }
     }
+    options.push({ value: "all", label: "All days", count: allSignals.length });
     return options;
   }, [allSignals]);
 
@@ -1184,23 +1240,31 @@ const SignalsPage = () => {
     return wr == null ? null : wr;
   };
 
-  const getOrderLabel = () => orderLabel(sortBy, sortOrder);
-
   // Count of active advanced (secondary) filters — drives the badge on the
   // "Advanced filters" toggle. TIDAK lagi memaksa panel terbuka: user boleh
   // apply filter lalu menutup panel; filter tetap berlaku (badge "N active").
   const advancedActiveCount =
-    (statusFilter !== "all" ? 1 : 0) +
+    (statusFilter !== "all" && statusFilter !== "open" && statusFilter !== "updated" ? 1 : 0) +
     (riskFilter !== "all" ? 1 : 0) +
     (streakFilter !== "all" ? 1 : 0) +
     (corrDecoupled ? 1 : 0) +
     (corrHighAlign ? 1 : 0) +
-    (verdictFilter !== "all" ? 1 : 0) +
+    (edgeTop ? 1 : 0) +
     (selectedTags.length > 0 ? 1 : 0) +
     (!isDefaultSorts(sorts) ? 1 : 0);
 
   // Panel murni dikontrol toggle user (bisa ditutup walau ada filter aktif).
   const advancedOpen = showAdvanced;
+
+  // What the Filter button reports. Status moved into the sheet, so it counts
+  // here now — advancedActiveCount deliberately ignores open/updated because
+  // those used to be their own buttons on the console.
+  const sheetActiveCount =
+    advancedActiveCount + (statusFilter === "open" || statusFilter === "updated" ? 1 : 0);
+
+  const todayYmd = utcTodayYmd();
+  const dayIsDefault =
+    selectedDates.length === 1 && selectedDates[0] === todayYmd;
 
   const hasActiveFilters =
     searchPair ||
@@ -1209,8 +1273,8 @@ const SignalsPage = () => {
     streakFilter !== "all" ||
     corrDecoupled ||
     corrHighAlign ||
-    verdictFilter !== "all" ||
-    selectedDates.length > 0 ||
+    !!edgeTop ||
+    !dayIsDefault ||
     !isDefaultSorts(sorts) ||
     selectedTags.length > 0 ||
     showWatchlistOnly;
@@ -1228,8 +1292,9 @@ const SignalsPage = () => {
     setStreakFilter("all");
     setCorrDecoupled(false);
     setCorrHighAlign(false);
-    setVerdictFilter("all");
-    setSelectedDates([]);
+    setEdgeTop(null);
+    setMineExtra(null);
+    setSelectedDates([utcTodayYmd()]);
     setSelectedTags([]);
     setTagMatchMode("any");
     setShowWatchlistOnly(false);
@@ -1237,12 +1302,31 @@ const SignalsPage = () => {
     setPage(1);
   }, []);
 
-  /** Apply a full recipe / saved-view state (Cara cepat + My recipes). */
+  const enterWatchlist = useCallback(() => {
+    setShowWatchlistOnly(true);
+    setSelectedTags([]);
+    setTagMatchMode("any");
+    setStatusFilter("all");
+    setRiskFilter("all");
+    setStreakFilter("all");
+    setCorrDecoupled(false);
+    setCorrHighAlign(false);
+    setEdgeTop(null);
+    setSorts([...DEFAULT_SORTS]);
+    setPage(1);
+  }, []);
+
+  /** Apply a mode recipe (Runners).
+   *
+   * A mode is a mode; the day tabs and the search box are slices inside it.
+   * Wiping dates here is what forced the awkward order "mode first, then the
+   * day" — picking Today then a mode bounced you back to All Days. Leave the
+   * current day and an empty search alone. A saved view that actually stored a
+   * pair still restores it. Watchlist is a different source, so leave it. */
   const applyRecipeState = useCallback((state) => {
     if (!state || typeof state !== "object") return;
     setSelectedTags(Array.isArray(state.selectedTags) ? state.selectedTags : []);
     setTagMatchMode(state.tagMatchMode === "all" ? "all" : "any");
-    setVerdictFilter(state.verdictFilter || "all");
     setStatusFilter(state.statusFilter || "all");
     setRiskFilter(state.riskFilter || "all");
     setStreakFilter(state.streakFilter || "all");
@@ -1251,10 +1335,10 @@ const SignalsPage = () => {
     } else {
       setSorts(sortsFromLegacy(state.sortBy || "created_at", state.sortOrder || "desc"));
     }
-    setSearchPair(state.searchPair || "");
+    if (state.searchPair) setSearchPair(state.searchPair);
     setCorrDecoupled(!!state.corrDecoupled);
     setCorrHighAlign(!!state.corrHighAlign);
-    setSelectedDates([]);
+    setEdgeTop(state.edgeTop || null);
     setShowWatchlistOnly(false);
     setPage(1);
   }, []);
@@ -1264,12 +1348,12 @@ const SignalsPage = () => {
   const toggleDateFilter = (dateVal) => {
     if (dateVal === "all") {
       setSelectedDates([]);
-    } else {
-      setSelectedDates((prev) => {
-        if (prev.includes(dateVal)) return prev.filter((d) => d !== dateVal);
-        return [...prev, dateVal];
-      });
+      return;
     }
+    setSelectedDates((prev) => {
+      if (prev.includes(dateVal)) return prev.filter((d) => d !== dateVal);
+      return [...prev, dateVal];
+    });
   };
 
   const { signals, totalPages, totalSignals, shariahHidden } = useMemo(() => {
@@ -1374,9 +1458,18 @@ const SignalsPage = () => {
       filtered = filtered.filter((s) => (s.btc_align_score ?? -1) >= 70);
     }
 
-    // Verdict filter — per-signal LOO (closed rows exclude own outcome).
-    if (verdictFilter !== "all") {
-      filtered = filtered.filter((s) => getVerdictForSignal(s) === verdictFilter);
+    // Edge cut, deliberately BEFORE the tag filter. "Runner tag AND top 20%"
+    // has to mean the top 20% of the book; the top 20% OF the tagged rows is a
+    // different, larger and weaker set, and the measurement was taken the
+    // first way round.
+    if (edgeTop) {
+      const cut = edgeTopThreshold(filtered, edgeScoreMap, edgeTop);
+      if (cut != null) {
+        filtered = filtered.filter((s) => {
+          const sc = edgeScoreMap?.[s.signal_id]?.score;
+          return typeof sc === "number" && sc >= cut;
+        });
+      }
     }
 
     // Tag filter — multi-select; match mode any (OR) or all (AND).
@@ -1390,6 +1483,36 @@ const SignalsPage = () => {
       });
     }
 
+    if (mineExtra) {
+      const exT = mineExtra.excludeTags || [];
+      const exP = (mineExtra.excludePairs || []).map((p) => String(p).toUpperCase());
+      filtered = filtered.filter((s) => {
+        const tags = signalTags[s.signal_id] || s.important_tags || [];
+        if (mineExtra.excludeConfound) {
+          const bad = ["LATE_ENTRY", "PARABOLIC", "OVEREXTENDED", "EXHAUSTION_CANDLE"];
+          if (tags.some((t) => bad.includes(t))) return false;
+        }
+        if (exT.length && tags.some((t) => exT.includes(t))) return false;
+        const pair = (s.pair || "").toUpperCase();
+        if (exP.length && exP.includes(pair)) return false;
+        const mcap = Number(s.market_cap);
+        if (mineExtra.minMcap != null && !(mcap >= mineExtra.minMcap)) return false;
+        if (mineExtra.maxMcap != null && !(mcap <= mineExtra.maxMcap)) return false;
+        if (mineExtra.maxVolRank != null) {
+          if (s.volume_rank_num == null || s.volume_rank_num > mineExtra.maxVolRank) return false;
+        }
+        if (mineExtra.minSlPct != null || mineExtra.maxSlPct != null) {
+          const e = Number(s.entry);
+          const sl = Number(s.stop1 ?? s.stop_loss);
+          if (!e || !sl) return false;
+          const pct = (Math.abs(e - sl) / Math.abs(e)) * 100;
+          if (mineExtra.minSlPct != null && pct < mineExtra.minSlPct) return false;
+          if (mineExtra.maxSlPct != null && pct > mineExtra.maxSlPct) return false;
+        }
+        return true;
+      });
+    }
+
     // Multi-level sort: e.g. verdict ↓ → edge ↓ → called ↓ (stable tiebreak inside).
     filtered = sortSignals(filtered, sorts, {
       getPriceVal,
@@ -1398,8 +1521,7 @@ const SignalsPage = () => {
       getWinRateVal,
       edgeScoreMap,
       coinIntel,
-      getVerdictForSignal,
-    });
+      });
 
     const total = filtered.length;
     const pages = Math.max(1, Math.ceil(total / pageSize));
@@ -1416,8 +1538,7 @@ const SignalsPage = () => {
     streakFilter,
     corrDecoupled,
     corrHighAlign,
-    verdictFilter,
-    getVerdictForSignal,
+    edgeTop,
     selectedDates,
     sorts,
     page,
@@ -1431,8 +1552,73 @@ const SignalsPage = () => {
     showWatchlistOnly,
     watchlistIds,
     watchlistSignals,
-    getVerdictForSignal,
+    mineExtra,
   ]);
+
+  const emptyState = useMemo(() => {
+    const onToday = selectedDates.length === 1 && selectedDates[0] === utcTodayYmd();
+    const huntOn = selectedTags.length > 0;
+    if (showWatchlistOnly) {
+      return {
+        title: "No starred calls",
+        hint: "Star a call to keep it here — watchlist is not limited to the last 7 days.",
+        actionLabel: "Back to desk",
+        action: "all",
+      };
+    }
+    if (searchPair) {
+      return {
+        title: `No ${searchPair.toUpperCase()} in this view`,
+        hint: "Nothing here matches that pair. Clear search, or open All days.",
+        actionLabel: "Clear search",
+        action: "search",
+      };
+    }
+    if (huntOn && onToday) {
+      return {
+        title: "No Runners today",
+        hint: "Runners is on for this day. Open All days, or switch the mode to All.",
+        actionLabel: "Show all days",
+        action: "days",
+      };
+    }
+    if (statusFilter === "open" && onToday) {
+      return {
+        title: "No open calls today",
+        hint: "Nothing still running on this UTC day. Open All days to see the week.",
+        actionLabel: "Show all days",
+        action: "days",
+      };
+    }
+    if (onToday) {
+      return {
+        title: "No calls today",
+        hint: "The desk is quiet so far. Open All days to see the last week.",
+        actionLabel: "Show all days",
+        action: "days",
+      };
+    }
+    return {
+      title: "No signals found",
+      hint: "Nothing matches this view. Reset to today’s desk.",
+      actionLabel: "Reset",
+      action: "reset",
+    };
+  }, [showWatchlistOnly, searchPair, selectedDates, selectedTags, statusFilter]);
+
+  const onEmptyAction = useCallback(
+    (action) => {
+      if (action === "search") setSearchPair("");
+      else if (action === "days") {
+        setShowWatchlistOnly(false);
+        setSelectedDates([]);
+      } else if (action === "all") {
+        setShowWatchlistOnly(false);
+      } else resetFilters();
+      setPage(1);
+    },
+    [resetFilters]
+  );
 
   /** Table header click — Shift/⌘/Ctrl adds a secondary sort level. */
   const handleSort = useCallback((field, ev) => {
@@ -1451,15 +1637,16 @@ const SignalsPage = () => {
     { value: "closed_loss", label: "Loss", icon: Icon.x, accent: "red" },
   ];
 
-  const riskOptions = [
-    { value: "all", label: "All" },
-    { value: "low", label: "Low", dotColor: "bg-profit" },
-    { value: "normal", label: "Normal", dotColor: "bg-accent" },
-    { value: "high", label: "High", dotColor: "bg-negative" },
-    // ~9% of signals carry no risk_level. Without this they matched none of
-    // Low/Normal/High and could only be reached by clearing the filter, so the
-    // three options silently failed to add up to the whole set.
-    { value: "unrated", label: "Unrated", dotColor: "bg-ink/30" },
+  // The six a reader recognises without being told what they mean. The other
+  // ten are one tap away — a list of sixteen identical rows is not a menu, it
+  // is a wall, and a first-time reader stops at it.
+  const COMMON_SORTS = [
+    "created_at",
+    "last_update",
+    "edge_score",
+    "max_target",
+    "win_rate",
+    "volume",
   ];
 
   const sortOptions = [
@@ -1476,9 +1663,26 @@ const SignalsPage = () => {
     { value: "win_rate", label: "Win Rate" },
     { value: "win_streak", label: "Win Streak" },
     { value: "btc_corr", label: "BTC Alignment" },
-    { value: "verdict", label: "Verdict (Worth→Avoid)" },
     { value: "market_cap", label: "Market Cap" },
     { value: "volume", label: "Volume 24H" },
+  ];
+
+  // Expanded on request, or automatically when the active sort is not one of
+  // the six — the selected row must never be hidden behind a toggle.
+  const sortListExpanded = showAllSorts || !COMMON_SORTS.includes(sortBy);
+  const visibleSortOptions = sortListExpanded
+    ? sortOptions
+    : sortOptions.filter((o) => COMMON_SORTS.includes(o.value));
+
+  const riskOptions = [
+    { value: "all", label: "All" },
+    { value: "low", label: "Low", dotColor: "bg-profit" },
+    { value: "normal", label: "Normal", dotColor: "bg-accent" },
+    { value: "high", label: "High", dotColor: "bg-negative" },
+    // ~9% of signals carry no risk_level. Without this they matched none of
+    // Low/Normal/High and could only be reached by clearing the filter, so the
+    // three options silently failed to add up to the whole set.
+    { value: "unrated", label: "Unrated", dotColor: "bg-ink/30" },
   ];
 
   return (
@@ -1629,268 +1833,15 @@ const SignalsPage = () => {
         )}
       </header>
 
-      {/* Coin flow — header only until expanded. Chip rail hid so the desk stays the table. */}
-      {flowCoins.length > 0 &&
-        (() => {
-          const findSignal = (sym) =>
-            allSignals.find(
-              (s) =>
-                (s.pair || "").replace(/USDT$/i, "").toUpperCase() === String(sym).toUpperCase()
-            );
-          const statusRank = (st) => {
-            const s = (st || "").toLowerCase();
-            if (!st) return -1;
-            if (s === "sl" || s === "closed_loss") return 0;
-            if (s === "open") return 1;
-            if (s.startsWith("tp")) return 1 + (parseInt(s.slice(2)) || 1);
-            if (s === "closed_win") return 6;
-            return 1;
-          };
-          // enrich (signal + from-call %) lalu sort per kolom, baru slice
-          const enriched = flowCoins.map((c) => {
-            const sig = findSignal(c.symbol);
-            const entry = sig?.entry ? Number(sig.entry) : null;
-            const fromCall = entry && c.price ? ((c.price - entry) / entry) * 100 : null;
-            return { c, sig, fromCall };
-          });
-          const sortVal = (x, key) => {
-            switch (key) {
-              case "coin":
-                return x.c.symbol || "";
-              case "chg":
-                return x.c.price_change_24h ?? -Infinity;
-              case "intensity":
-                return x.c.flow_intensity ?? -Infinity;
-              case "fromcall":
-                return x.fromCall ?? -Infinity;
-              case "status":
-                return x.sig ? statusRank(x.sig.status) : -Infinity;
-              case "called":
-                return x.sig?.created_at ? new Date(x.sig.created_at).getTime() : -Infinity;
-              default:
-                return 0;
-            }
-          };
-          const sortedFlow = [...enriched].sort((a, b) => {
-            const va = sortVal(a, flowSort.key),
-              vb = sortVal(b, flowSort.key);
-            const cmp = typeof va === "string" ? String(va).localeCompare(String(vb)) : va - vb;
-            return flowSort.dir === "asc" ? cmp : -cmp;
-          });
-          const rows = sortedFlow.slice(0, flowCount);
-          const maxInt = Math.max(...rows.map((r) => r.c.flow_intensity || 0), 0.0001);
-          const toggleSort = (key) =>
-            setFlowSort((s) =>
-              s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }
-            );
-          const SortHead = ({ label, k, align = "right" }) => (
-            <th className={`py-2 px-2 ${align === "left" ? "text-left" : "text-right"}`}>
-              <button
-                onClick={() => toggleSort(k)}
-                className={`inline-flex items-center gap-1 font-mono text-[8.5px] uppercase tracking-[0.14em] transition-colors ${flowSort.key === k ? "text-text-primary" : "text-text-primary/35 hover:text-text-primary/60"} ${align === "left" ? "" : "flex-row-reverse"}`}
-              >
-                {label}
-                <span className="text-[7px]">
-                  {flowSort.key === k ? (flowSort.dir === "desc" ? "▼" : "▲") : "⇅"}
-                </span>
-              </button>
-            </th>
-          );
-          const timeAgo = (iso) => {
-            if (!iso) return null;
-            const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-            if (m < 1) return "now";
-            if (m < 60) return `${m}m ago`;
-            const h = Math.floor(m / 60);
-            if (h < 24) return `${h}h ago`;
-            return `${Math.floor(h / 24)}d ago`;
-          };
-          const fmtDT = (iso) =>
-            iso
-              ? new Date(iso).toLocaleString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                })
-              : "—";
-          const statusMeta = (st) => {
-            const s = (st || "").toLowerCase();
-            if (s === "sl" || s === "closed_loss")
-              return { l: "SL", c: "text-loss border-loss/25 bg-loss/10" };
-            if (s === "closed_win")
-              return { l: "WIN", c: "text-profit border-profit/25 bg-profit/10" };
-            if (s.startsWith("tp"))
-              return { l: s.toUpperCase(), c: "text-profit border-profit/25 bg-profit/10" };
-            return { l: "OPEN", c: "text-accent border-accent/30 bg-accent/10" };
-          };
-          const openCoin = (c) => {
-            const sig = findSignal(c.symbol);
-            if (sig) openSignal(sig);
-            else navigate("/money-flow");
-          };
-          return (
-            <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
-              <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 sm:px-4">
-                <button
-                  type="button"
-                  onClick={() => setFlowOpen((v) => !v)}
-                  className="group flex min-w-0 items-center gap-2"
-                >
-                  <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-transform group-hover:bg-ink/[0.05] ${flowOpen ? "" : "-rotate-90"}`}
-                  >
-                    <svg
-                      className="h-3 w-3"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
-                  </span>
-                  <span className="text-[13px] font-medium text-text-primary">Coin flow</span>
-                  <span className="hidden text-[12px] text-text-muted sm:inline">
-                    capital rotation
-                  </span>
-                </button>
-                <div className="flex items-center gap-2">
-                  {flowOpen && (
-                    <select
-                      value={flowCount}
-                      onChange={(e) => setFlowCount(Number(e.target.value))}
-                      className="cursor-pointer appearance-none rounded-md border border-ink/[0.08] bg-ink/[0.03] py-1 pl-2 pr-7 text-[11px] text-text-secondary focus:outline-none"
-                    >
-                      {[10, 20, 30, 50].map((n) => (
-                        <option key={n} value={n}>
-                          Top {n}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => navigate("/money-flow")}
-                    className="text-[12px] font-medium text-text-muted transition-colors hover:text-accent"
-                  >
-                    More →
-                  </button>
-                </div>
-              </div>
+      {flowCoins.length > 0 && (
+        <SignalsCoinFlow
+          coins={flowCoins}
+          signals={allSignals}
+          onOpenSignal={openSignal}
+          onMore={() => navigate("/money-flow")}
+        />
+      )}
 
-              {flowOpen && (
-                <div className="border-t border-ink/[0.06] px-2 pb-2 sm:px-3">
-                  <p className="px-1.5 py-2 text-[11px] text-text-muted">
-                    Intensity = 24h volume ÷ market cap. Click a row to open its call.
-                  </p>
-                  <div className="no-scrollbar -mx-1 overflow-x-auto">
-                    <table className="w-full min-w-[640px] border-collapse">
-                      <thead>
-                        <tr className="border-b border-ink/[0.06]">
-                          <SortHead label="Coin" k="coin" align="left" />
-                          <SortHead label="24h" k="chg" />
-                          <SortHead label="Intensity" k="intensity" />
-                          <SortHead label="From Call" k="fromcall" align="left" />
-                          <SortHead label="Status" k="status" align="left" />
-                          <SortHead label="Called" k="called" align="left" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map(({ c, sig, fromCall }) => {
-                          const chg = c.price_change_24h;
-                          const up = chg != null && chg >= 0;
-                          const barW = Math.max(
-                            5,
-                            Math.round(((c.flow_intensity || 0) / maxInt) * 100)
-                          );
-                          const sm = sig ? statusMeta(sig.status) : null;
-                          return (
-                            <tr
-                              key={c.coin_id || c.symbol}
-                              onClick={() => openCoin(c)}
-                              className="cursor-pointer border-b border-ink/[0.04] transition-colors last:border-0 hover:bg-ink/[0.03]"
-                            >
-                              <td className="px-2 py-2">
-                                <div className="flex items-center gap-2">
-                                  <CoinLogo pair={`${c.symbol}USDT`} size={20} />
-                                  <span className="text-[12px] font-medium text-text-primary">
-                                    {c.symbol}
-                                  </span>
-                                  {c.is_luxquant_signal && (
-                                    <span className="rounded bg-accent/10 px-1 py-0.5 text-[9px] font-medium text-accent">
-                                      Call
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td
-                                className={`px-2 py-2 text-right font-mono text-[12px] font-medium tabular-nums ${chg == null ? "text-text-muted" : up ? "text-profit" : "text-loss"}`}
-                              >
-                                {chg == null ? "—" : `${up ? "+" : ""}${chg.toFixed(2)}%`}
-                              </td>
-                              <td className="px-2 py-2">
-                                <div className="flex items-center justify-end gap-2">
-                                  <div className="hidden h-1 w-14 overflow-hidden rounded-full bg-ink/[0.07] sm:block">
-                                    <div
-                                      className="h-full rounded-full bg-ink/40"
-                                      style={{ width: `${barW}%` }}
-                                    />
-                                  </div>
-                                  <span className="w-9 text-right font-mono text-[11px] tabular-nums text-text-secondary">
-                                    {c.flow_intensity != null ? c.flow_intensity.toFixed(2) : "—"}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-2 py-2 text-left">
-                                {fromCall != null ? (
-                                  <span
-                                    className={`font-mono text-[11px] font-medium tabular-nums ${fromCall >= 0 ? "text-profit" : "text-loss"}`}
-                                  >
-                                    {fromCall >= 0 ? "+" : ""}
-                                    {fromCall.toFixed(2)}%
-                                  </span>
-                                ) : (
-                                  <span className="text-[11px] text-text-muted">—</span>
-                                )}
-                              </td>
-                              <td className="px-2 py-2 text-left">
-                                {sm ? (
-                                  <span
-                                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${sm.c.replace(/border-\S+/g, "").trim()}`}
-                                  >
-                                    {sm.l}
-                                  </span>
-                                ) : (
-                                  <span className="text-[11px] text-text-muted">—</span>
-                                )}
-                              </td>
-                              <td className="px-2 py-2 text-left whitespace-nowrap">
-                                {sig ? (
-                                  <span className="font-mono text-[11px] tabular-nums text-text-secondary">
-                                    {fmtDT(sig.created_at)}
-                                    <span className="ml-1.5 text-text-muted">
-                                      {timeAgo(sig.created_at)}
-                                    </span>
-                                  </span>
-                                ) : (
-                                  <span className="text-[11px] text-text-muted">—</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })()}
 
       {!isSubscriber && vipSamples.length > 0 && (
         <>
@@ -1949,6 +1900,7 @@ const SignalsPage = () => {
               coinIntel={vipSampleIntel}
               verdictByPair={{}}
               currentFlow={currentFlow}
+              deskWr={deskWr}
               tagWrMap={tagWrMap}
               runnerTagSet={runnerTagSet}
               edgeScoreMap={edgeScoreMap}
@@ -1967,68 +1919,90 @@ const SignalsPage = () => {
         strict={shariah.strict}
       />
 
-      {/* FILTER CONSOLE */}
-      <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-4">
-        <div className="mb-3 flex items-center justify-between border-b border-ink/[0.06] pb-3">
-          <div className="flex items-center gap-2">
-            {Icon.filter("w-3.5 h-3.5 text-text-muted")}
-            <h2 className="text-[13px] font-medium text-text-primary">Filters</h2>
-            <button
-              type="button"
-              onClick={() => setShowGuide(true)}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
-            >
-              <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ink/15 text-[9px] leading-none">
-                ?
-              </span>
-              {t("guide.button")}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/tips?lesson=anatomy-of-a-call")}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
-            >
-              Tutorials
-            </button>
-          </div>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
-            >
-              {Icon.close("w-3 h-3")}
-              Reset
-            </button>
-          )}
+      {/* FILTER CONSOLE — rebuilt from scratch. One question per row:
+          1. which set of calls?   (mode)
+          2. how recent?           (day)
+          3. narrow it down        (search + everything else, behind one button)
+
+          The old console put five rails of controls on the first screen, which
+          pushed the first signal a full phone-screen below the fold — it showed
+          the filters instead of the product. Refinement is not selection, so
+          status, sort and the advanced filters moved into a sheet, and the
+          chip bar under this card reports what is on. */}
+      <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-3 sm:p-4">
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <span className={CONSOLE_LABEL}>Mode</span>
+          <EdgeRecipesBar
+          tagWr={tagWr}
+          selectedTags={selectedTags}
+          tagMatchMode={tagMatchMode}
+            statusFilter={statusFilter}
+          riskFilter={riskFilter}
+          streakFilter={streakFilter}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sorts={sorts}
+          searchPair={searchPair}
+          corrDecoupled={corrDecoupled}
+          corrHighAlign={corrHighAlign}
+          edgeTop={edgeTop}
+          onApplyState={applyRecipeState}
+          showRecipes={isSubscriber}
+          watchlistCount={watchlistIds.length}
+          watchlistActive={showWatchlistOnly}
+          onWatchlist={enterWatchlist}
+          guideMode={guideMode}
+          onGuideMode={setGuideMode}
+          onDeskGuide={() => {
+            setGuideMode(null);
+            setShowGuide(true);
+          }}
+          onTutorials={() => navigate("/tips?lesson=anatomy-of-a-call")}
+          />
+          {isSubscriber ? (
+            <SignalsCustomCalls
+              show
+              tagWr={tagWr}
+              pairs={allPairs}
+              deskState={{
+                selectedTags,
+                tagMatchMode,
+                riskFilter,
+                statusFilter,
+                searchPair,
+                corrDecoupled,
+                corrHighAlign,
+              }}
+              onApply={(s) => {
+                applyRecipeState({
+                  ...ALL_MODE_STATE,
+                  ...s,
+                  edgeTop: s.edgeTop ?? null,
+                });
+                setSearchPair(s.searchPair || "");
+                setMineExtra(s.extra || null);
+              }}
+            />
+          ) : null}
+          <ModeGuideLink onClick={() => setGuideMode("__browse")} />
         </div>
 
-        {/* ── TAB BAR — Watchlist + day tabs (full width, fade + panah kanan ala MEXC) ── */}
-        <div className="relative edge-fade-r border-b border-ink/[0.07] mb-3">
+        {/* Day strip — eight-plus options, so not a segmented control: Apple
+            caps those at five equal segments on a phone, which is why cramming
+            the days into one shell clipped the last label behind a chevron.
+            Chips that snap, with the next one peeking past the fade — on touch
+            the peek is the affordance, so the arrow is pointer-only. */}
+        <div
+          className={`mt-2 flex items-center gap-1.5 sm:mt-3 sm:gap-3 ${
+            showWatchlistOnly ? "opacity-40" : ""
+          }`}
+        >
+          <span className={CONSOLE_LABEL}>Day</span>
+          <div className="edge-fade-raised-r relative min-w-0 flex-1">
           <div
             ref={tabScrollRef}
-            className="flex items-center gap-6 overflow-x-auto no-scrollbar pr-12"
+            className="flex snap-x snap-proximity gap-1.5 overflow-x-auto no-scrollbar pr-10"
           >
-            {/* Watchlist (tanpa bintang biar hemat tempat) */}
-            <button
-              onClick={() => setShowWatchlistOnly((v) => !v)}
-              className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                showWatchlistOnly
-                  ? "text-text-primary border-ink/30"
-                  : "text-text-primary/50 border-transparent hover:text-text-primary/80"
-              }`}
-            >
-              Watchlist
-              {watchlistIds.length > 0 && (
-                <span
-                  className={`font-mono text-[12px] tabular-nums ${showWatchlistOnly ? "text-text-primary" : "text-text-primary/40"}`}
-                >
-                  {watchlistIds.length}
-                </span>
-              )}
-            </button>
-
-            {/* Day tabs — bisa pilih satu / semua */}
             {dateOptions.map((opt) => {
               const active =
                 !showWatchlistOnly &&
@@ -2038,36 +2012,34 @@ const SignalsPage = () => {
               return (
                 <button
                   key={opt.value}
+                  type="button"
+                  title={
+                    opt.value === "all"
+                      ? "Whole 7-day tape"
+                      : "Click to add or remove this day. Several days can be on at once."
+                  }
                   onClick={() => {
                     setShowWatchlistOnly(false);
                     toggleDateFilter(opt.value);
                   }}
-                  className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                    active
-                      ? "text-text-primary border-ink/30"
-                      : "text-text-primary/50 border-transparent hover:text-text-primary/80"
-                  }`}
+                  className={deskChipClass(active)}
                 >
                   {opt.label}
-                  {opt.count != null && (
-                    <span
-                      className={`font-mono text-[12px] tabular-nums ${active ? "text-text-primary" : "text-text-primary/35"}`}
-                    >
-                      {opt.count}
-                    </span>
-                  )}
+                  {opt.count != null ? (
+                    <span className={deskBadgeClass(active)}>{opt.count}</span>
+                  ) : null}
                 </button>
               );
             })}
           </div>
-          {/* Panah kanan — geser lihat hari sebelumnya (MEXC-style, di atas fade) */}
           <button
+            type="button"
             onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
             aria-label="View previous day"
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 text-text-primary/60 hover:text-text-primary transition-colors"
+            className="absolute right-0 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-secondary hover:text-text-primary sm:flex"
           >
             <svg
-              className="w-4 h-4"
+              className="h-4 w-4"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -2078,97 +2050,312 @@ const SignalsPage = () => {
               <path d="M9 5l7 7-7 7" />
             </svg>
           </button>
-        </div>
-
-        {/* ── Controls row — search + multi-sort stack ── */}
-        <div className="mb-4 space-y-2">
-          {/* Wraps below sm so the field owns a full row. It used to sit as the
-              only shrinkable item next to three flex-shrink-0 controls, so on a
-              440px phone the sort select, direction toggle and More button took
-              ~285px and the search collapsed to just its own icon padding —
-              a box with nowhere to type. */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative order-1 basis-full min-w-0 sm:order-none sm:basis-auto sm:flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
-                {Icon.search("w-3.5 h-3.5")}
-              </span>
-              <input
-                type="text"
-                placeholder="Search pair (e.g. BTC, ETH, SOL)..."
-                value={searchPair}
-                onChange={(e) => setSearchPair(e.target.value)}
-                className={`w-full py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-ink/15 focus:outline-none focus:bg-ink/[0.02] transition-all pl-9 ${
-                  searchPair ? "pr-9" : "pr-3"
-                }`}
-              />
-              {searchPair ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchPair("")}
-                  aria-label="Clear search"
-                  className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-primary/45 transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
-                >
-                  {Icon.close ? Icon.close("w-3 h-3") : <span className="text-[13px] leading-none">×</span>}
-                </button>
-              ) : null}
-            </div>
-            <div className="relative flex-shrink-0">
-              <select
-                value={sortBy}
-                onChange={(e) => setSorts((prev) => promoteSortField(prev, e.target.value))}
-                title="Primary sort. Any extra levels stay on as tiebreakers — Shift+click table headers to add them."
-                className="pl-3 pr-8 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-ink/15 focus:outline-none appearance-none cursor-pointer transition-all"
-              >
-                {sortOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value} className="bg-surface">
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-primary/70 pointer-events-none">
-                {Icon.chevronDown("w-3 h-3")}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-ink/[0.08] hover:border-ink/12 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
-              title="Toggle primary sort direction"
-            >
-              {sortOrder === "desc" ? Icon.arrowDown("w-3 h-3") : Icon.arrowUp("w-3 h-3")}
-              <span className="hidden sm:inline">{getOrderLabel()}</span>
-              {sorts.length > 1 && (
-                <span
-                  className="rounded-sm bg-ink/10 px-1 tabular-nums text-[9px] text-text-primary"
-                  title={`Sorting on ${sorts.length} levels: ${formatSortChain(sorts)}`}
-                >
-                  +{sorts.length - 1}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAdvanced((v) => !v)}
-              aria-expanded={advancedOpen}
-              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-ink/[0.08] bg-surface font-mono text-[10px] uppercase tracking-wider text-text-primary/80 hover:border-ink/15 hover:text-text-primary"
-            >
-              {Icon.sliders("w-3.5 h-3.5")}
-              More
-              {advancedActiveCount > 0 && (
-                <span className="rounded-sm bg-ink/10 px-1.5 font-mono text-[9px] tabular-nums text-text-primary">
-                  {advancedActiveCount}
-                </span>
-              )}
-              <span className={advancedOpen ? "rotate-180" : ""}>
-                {Icon.chevronDown("w-3 h-3")}
-              </span>
-            </button>
           </div>
         </div>
 
-        {/* MORE — helper filters, sort stack, playbook. First screen stays date + search + Hunt. */}
-        {advancedOpen && (
-          <div className="mt-4 space-y-5 animate-slideDown">
+        <div className="mt-2.5 flex items-center gap-2 sm:mt-3">
+          <div className="relative min-w-0 flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
+              {Icon.search("w-3.5 h-3.5")}
+            </span>
+            <input
+              type="text"
+              placeholder="Search pair"
+              value={searchPair}
+              onChange={(e) => setSearchPair(e.target.value)}
+              className={`h-10 w-full rounded-md border border-ink/[0.1] bg-surface-secondary font-mono text-xs text-text-primary placeholder-text-secondary/50 focus:border-ink/20 focus:outline-none sm:h-8 pl-9 ${
+                searchPair ? "pr-9" : "pr-3"
+              }`}
+            />
+            {searchPair ? (
+              <button
+                type="button"
+                onClick={() => setSearchPair("")}
+                aria-label="Clear search"
+                className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text-primary/45 transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
+              >
+                {Icon.close ? Icon.close("w-3 h-3") : <span className="text-[13px] leading-none">×</span>}
+              </button>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(true)}
+            aria-expanded={advancedOpen}
+            className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors sm:h-8 ${
+              sheetActiveCount > 0
+                ? "border-accent/50 bg-accent/10 text-text-primary"
+                : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {Icon.sliders("w-3.5 h-3.5")}
+            Filter
+            {sheetActiveCount > 0 ? (
+              <span className={deskBadgeClass(false)}>{sheetActiveCount}</span>
+            ) : null}
+          </button>
+
+        </div>
+      </div>
+
+      {/* FILTER SHEET — a bottom sheet on a phone, a centred dialog on a desk
+          (Modal already does both). Refinement belongs behind a deliberate tap:
+          it is used once and then wanted out of the way, which is exactly the
+          case bottom sheets exist for. */}
+      <Modal
+        isOpen={advancedOpen}
+        onClose={() => setShowAdvanced(false)}
+        size="lg"
+        eyebrow="Signals"
+        title="Filter & sort"
+        subtitle={
+          allSignals?.length
+            ? `${totalSignals} of ${allSignals.length} calls match`
+            : "Narrow the desk down"
+        }
+        footer={() => (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={resetFilters}
+              disabled={!hasActiveFilters}
+              className={`inline-flex h-11 items-center rounded-md border border-ink/[0.1] px-4 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-text-muted transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 sm:h-9`}
+            >
+              Reset all
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(false)}
+              className="ml-auto inline-flex h-11 items-center rounded-md bg-accent px-5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-accent-fg shadow-sm sm:h-9"
+            >
+              Show {totalSignals} {totalSignals === 1 ? "call" : "calls"}
+            </button>
+          </div>
+        )}
+      >
+        <div className="space-y-6">
+          {/* Status is ONE tri-state, not two toggles. Open and Hit as separate
+              buttons implied they could both be on; they never could. */}
+          <section>
+            <h3 className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+              Status
+            </h3>
+            <p className="mb-2 text-[12px] leading-snug text-text-muted">
+              Open is still running. Hit has already reached a target or its stop.
+            </p>
+            <SegGroup
+              size="touch"
+              fill
+              aria-label="Call status"
+              value={PLAIN_STATUS.includes(statusFilter) ? statusFilter : ""}
+              onChange={(k) => {
+                if (k === "updated" && sortBy === "created_at") setSortBy("last_update");
+                setStatusFilter(k);
+                setPage(1);
+              }}
+              options={[
+                { key: "all", label: "All" },
+                { key: "open", label: "Open" },
+                { key: "updated", label: "Hit", badge: updatedCount > 0 ? updatedCount : null },
+              ]}
+            />
+            {/* The exact milestone is the same single filter, but it is a
+                different question and there are five of them — past the five
+                Apple caps a phone segmented control at, so chips. */}
+            <p className="mb-1.5 mt-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
+              Or by how far it got
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {statusOptions
+                .filter((opt) => !PLAIN_STATUS.includes(opt.value))
+                .map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(statusFilter === opt.value ? "all" : opt.value);
+                      setPage(1);
+                    }}
+                    className={deskChipClass(statusFilter === opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+              Sort by
+            </h3>
+            <p className="mb-2 text-[12px] leading-snug text-text-muted">
+              What decides the order of the list. Direction is below.
+            </p>
+            <div className="grid grid-cols-2 gap-1">
+              {visibleSortOptions.map((opt) => {
+                const on = sortBy === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSorts((prev) => promoteSortField(prev, opt.value))}
+                    className={`flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-left font-mono text-[11px] leading-tight transition-colors sm:min-h-[36px] ${
+                      on
+                        ? "border-accent/50 bg-accent/10 text-text-primary"
+                        : "border-ink/[0.08] bg-surface-secondary text-text-muted hover:text-text-primary"
+                    }`}
+                  >
+                    {opt.label}
+                    {on ? <span className="text-accent">✓</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+            {sortListExpanded ? (
+              showAllSorts ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSorts(false)}
+                  className={`mt-1 ${deskGhostClass({ bordered: true })}`}
+                >
+                  Show fewer
+                </button>
+              ) : null
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAllSorts(true)}
+                className={`mt-1 ${deskGhostClass({ bordered: true })}`}
+              >
+                All {sortOptions.length} fields
+              </button>
+            )}
+            <div className="mt-2">
+              <SegGroup
+                size="touch"
+                fill
+                aria-label="Sort direction"
+                value={sortOrder}
+                onChange={(k) => setSortOrder(k === "asc" ? "asc" : "desc")}
+                options={[
+                  { key: "desc", label: orderLabel(sortBy, "desc") },
+                  { key: "asc", label: orderLabel(sortBy, "asc") },
+                ]}
+              />
+            </div>
+          </section>
+
+          {/* Refine — the filters a regular reader actually reaches for. Both
+              now carry a plain line saying what they mean, because "Risk
+              Profile" and "Intelligence Filters" tell a first-time reader
+              nothing on their own. */}
+          <section>
+            <h3 className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+              Risk profile
+            </h3>
+            <p className="mb-2 text-[12px] leading-snug text-text-muted">
+              The grade published with the call itself. Unrated means it arrived without one.
+            </p>
+            <SegGroup
+              size="touch"
+              fill
+              aria-label="Risk profile"
+              value={riskFilter}
+              onChange={(k) => {
+                setRiskFilter(k);
+                setPage(1);
+              }}
+              options={riskOptions.map((opt) => ({
+                key: opt.value,
+                label: opt.label,
+                icon: opt.dotColor ? (
+                  <span className={`h-1.5 w-1.5 rounded-full ${opt.dotColor}`} />
+                ) : null,
+              }))}
+            />
+          </section>
+
+            {/* Intelligence Filters */}
+            <section className="border-t border-ink/[0.06] pt-5">
+              <h3 className="mb-1 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                What the pair's history says
+                <InfoTip side="bottom" title={t("guide.sec_intel")} text={t("guide.worth_d")} />
+              </h3>
+              <p className="mb-2 text-[12px] leading-snug text-text-muted">
+                Scored from this pair's own closed calls, as of the entry — not from this call's
+                outcome. Tap one to keep only those.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
+                  className={deskChipClass(streakFilter === "hot")}
+                >
+                  <span className={streakFilter === "hot" ? "text-profit" : "opacity-70"}>
+                    {Icon.flame("w-3 h-3")}
+                  </span>
+                  <span>High Win Streak</span>
+                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">
+                    ≥{HOT_STREAK_MIN}
+                  </span>
+                  {hotStreakCount > 0 && streakFilter !== "hot" && (
+                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
+                      {hotStreakCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setCorrDecoupled((v) => !v)}
+                  className={deskChipClass(corrDecoupled)}
+                >
+                  <span className={corrDecoupled ? "text-accent" : "opacity-70"}>
+                    {Icon.zap("w-3 h-3")}
+                  </span>
+                  <span>Decoupled from BTC</span>
+                  {corrCounts.dec > 0 && !corrDecoupled && (
+                    <span className="px-1 py-0 bg-accent/10 text-accent text-[9px] tabular-nums rounded-sm">
+                      {corrCounts.dec}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setCorrHighAlign((v) => !v)}
+                  className={deskChipClass(corrHighAlign)}
+                >
+                  <span className={corrHighAlign ? "text-profit" : "opacity-70"}>
+                    {Icon.target("w-3 h-3")}
+                  </span>
+                  <span>High BTC Alignment</span>
+                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">
+                    ≥70
+                  </span>
+                  {corrCounts.hi > 0 && !corrHighAlign && (
+                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
+                      {corrCounts.hi}
+                    </span>
+                  )}
+                </button>
+
+              </div>
+            </section>
+
+            {/* Advanced — everything that only makes sense once you already
+                read the desk. Collapsed, so a first-time reader is never asked
+                to parse a four-level sort stack to find "newest first". */}
+            <details className="group rounded-md border border-ink/[0.08] bg-surface-secondary/40 px-3 py-2.5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted [&::-webkit-details-marker]:hidden">
+                Advanced
+                <span className="transition-transform group-open:rotate-180" aria-hidden>
+                  ▾
+                </span>
+              </summary>
+              <p className="mt-1.5 text-[12px] leading-snug text-text-muted">
+                Stack several sort levels, and filter by the entry tags a call carried. Nothing
+                here is needed to read the desk.
+              </p>
+              <div className="mt-4 space-y-5">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted mr-0.5">
                 Sort
@@ -2243,207 +2430,6 @@ const SignalsPage = () => {
               </span>
             </div>
 
-            {/* Status + Risk */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              {/* Status */}
-              <div className="lg:col-span-8">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70">
-                    Signal Status
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {statusOptions.map((opt) => {
-                    const isActive = statusFilter === opt.value;
-                    const accentColor =
-                      opt.accent === "emerald"
-                        ? "text-profit"
-                        : opt.accent === "red"
-                          ? "text-loss"
-                          : opt.accent === "gold"
-                            ? "text-text-primary"
-                            : "text-text-primary/70";
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => {
-                          setStatusFilter(opt.value);
-                          if (opt.value === "updated" && sortBy === "created_at")
-                            setSortBy("last_update");
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                          isActive
-                            ? "bg-ink/10 border border-ink/[0.08] text-text-primary"
-                            : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                        }`}
-                      >
-                        {opt.icon && (
-                          <span className={isActive ? accentColor : "opacity-70"}>
-                            {opt.icon("w-3 h-3")}
-                          </span>
-                        )}
-                        <span>{opt.label}</span>
-                        {opt.value === "updated" && updatedCount > 0 && !isActive && (
-                          <span className="px-1 py-0 bg-ink/[0.06] text-text-primary text-[9px] tabular-nums rounded-sm">
-                            {updatedCount}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Risk */}
-              <div className="lg:col-span-4 lg:border-l lg:border-ink/[0.06] lg:pl-5">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70">
-                    Risk Profile
-                  </span>
-                </div>
-                <div className="flex bg-ink/[0.02] border border-ink/[0.06] rounded-sm p-0.5">
-                  {riskOptions.map((opt) => {
-                    const isActive = riskFilter === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => setRiskFilter(opt.value)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                          isActive
-                            ? "bg-ink/10 text-text-primary"
-                            : "text-text-primary/70 hover:text-text-primary hover:bg-ink/[0.03]"
-                        }`}
-                      >
-                        {opt.dotColor && (
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${opt.dotColor} ${isActive ? "" : "opacity-50"}`}
-                          />
-                        )}
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Intelligence Filters */}
-            <div className="pt-5 border-t border-ink/[0.06]">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-primary/70">
-                  Intelligence Filters
-                  <InfoTip side="bottom" title={t("guide.sec_intel")} text={t("guide.worth_d")} />
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/40">
-                  powered by coin intelligence
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    streakFilter === "hot"
-                      ? "bg-profit/15 border border-profit/30 text-profit"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={streakFilter === "hot" ? "text-profit" : "opacity-70"}>
-                    {Icon.flame("w-3 h-3")}
-                  </span>
-                  <span>High Win Streak</span>
-                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">
-                    ≥{HOT_STREAK_MIN}
-                  </span>
-                  {hotStreakCount > 0 && streakFilter !== "hot" && (
-                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
-                      {hotStreakCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setCorrDecoupled((v) => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    corrDecoupled
-                      ? "bg-accent/15 border border-accent/40 text-accent"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={corrDecoupled ? "text-accent" : "opacity-70"}>
-                    {Icon.zap("w-3 h-3")}
-                  </span>
-                  <span>Decoupled from BTC</span>
-                  {corrCounts.dec > 0 && !corrDecoupled && (
-                    <span className="px-1 py-0 bg-accent/10 text-accent text-[9px] tabular-nums rounded-sm">
-                      {corrCounts.dec}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setCorrHighAlign((v) => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    corrHighAlign
-                      ? "bg-profit/15 border border-profit/30 text-profit"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={corrHighAlign ? "text-profit" : "opacity-70"}>
-                    {Icon.target("w-3 h-3")}
-                  </span>
-                  <span>High BTC Alignment</span>
-                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">
-                    ≥70
-                  </span>
-                  {corrCounts.hi > 0 && !corrHighAlign && (
-                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
-                      {corrCounts.hi}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() =>
-                    setVerdictFilter(verdictFilter === "worth_it" ? "all" : "worth_it")
-                  }
-                  title="As-of-entry: closed rows exclude their own outcome"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    verdictFilter === "worth_it"
-                      ? "bg-profit/15 border border-profit/30 text-profit"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={verdictFilter === "worth_it" ? "text-profit" : "opacity-70"}>
-                    ✓
-                  </span>
-                  <span>Worth It</span>
-                  {verdictCounts.worth > 0 && verdictFilter !== "worth_it" && (
-                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
-                      {verdictCounts.worth}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setVerdictFilter(verdictFilter === "avoid" ? "all" : "avoid")}
-                  title="As-of-entry: closed rows exclude their own outcome"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    verdictFilter === "avoid"
-                      ? "bg-loss/15 border border-loss/30 text-loss"
-                      : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                  }`}
-                >
-                  <span className={verdictFilter === "avoid" ? "text-loss" : "opacity-70"}>⛔</span>
-                  <span>Avoid</span>
-                  {verdictCounts.avoid > 0 && verdictFilter !== "avoid" && (
-                    <span className="px-1 py-0 bg-loss/10 text-loss text-[9px] tabular-nums rounded-sm">
-                      {verdictCounts.avoid}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-
             {/* Pattern Filters */}
             {sortedTagsForChips.length > 0 && (
               <div className="pt-5 border-t border-ink/[0.06]">
@@ -2481,11 +2467,7 @@ const SignalsPage = () => {
                         key={t.tag}
                         onClick={() => toggleTag(t.tag)}
                         title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                          active
-                            ? "bg-ink/10 border border-ink/15 text-text-primary"
-                            : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
-                        }`}
+                        className={deskChipClass(active)}
                       >
                         <span className="normal-case">
                           {t.tag.replace(/_/g, " ").toLowerCase()}
@@ -2524,37 +2506,11 @@ const SignalsPage = () => {
                 </p>
               </div>
             )}
-          </div>
-        )}
-      </div>
+              </div>
+            </details>
 
-      {isSubscriber && (
-        <EdgeRecipesBar
-          tagWr={tagWr}
-          selectedTags={selectedTags}
-          tagMatchMode={tagMatchMode}
-          verdictFilter={verdictFilter}
-          statusFilter={statusFilter}
-          riskFilter={riskFilter}
-          streakFilter={streakFilter}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          sorts={sorts}
-          searchPair={searchPair}
-          corrDecoupled={corrDecoupled}
-          corrHighAlign={corrHighAlign}
-          onApplyState={applyRecipeState}
-          onScrollToPlaybook={() => {
-            setShowAdvanced(true);
-            requestAnimationFrame(() => {
-              document.getElementById("edge-playbook")?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            });
-          }}
-        />
-      )}
+        </div>
+      </Modal>
 
       {/* Sticky current-filter chips */}
       <EdgeActiveFilters
@@ -2562,29 +2518,30 @@ const SignalsPage = () => {
         sticky
         selectedTags={selectedTags}
         tagMatchMode={tagMatchMode}
-        verdictFilter={verdictFilter}
         statusFilter={statusFilter}
         riskFilter={riskFilter}
         streakFilter={streakFilter}
         corrDecoupled={corrDecoupled}
         corrHighAlign={corrHighAlign}
+        edgeTop={edgeTop}
         sortBy={sortBy}
         sortOrder={sortOrder}
         sorts={sorts}
         selectedDates={selectedDates}
         searchPair={searchPair}
+        watchlistActive={showWatchlistOnly}
         filteredCount={totalSignals}
         totalUnfiltered={allSignals?.length}
+        onEdgeTop={(v) => {
+          setEdgeTop(v || null);
+          setPage(1);
+        }}
         onRemoveTag={(tag) => {
           toggleTag(tag);
           setPage(1);
         }}
         onTagMatchMode={(mode) => {
           setTagMatchMode(mode === "all" ? "all" : "any");
-          setPage(1);
-        }}
-        onVerdictFilter={(v) => {
-          setVerdictFilter(v);
           setPage(1);
         }}
         onStatusFilter={(v) => {
@@ -2620,7 +2577,11 @@ const SignalsPage = () => {
           setPage(1);
         }}
         onClearDates={() => {
-          setSelectedDates([]);
+          setSelectedDates([utcTodayYmd()]);
+          setPage(1);
+        }}
+        onClearWatchlist={() => {
+          setShowWatchlistOnly(false);
           setPage(1);
         }}
         onClearSearch={() => {
@@ -2636,19 +2597,16 @@ const SignalsPage = () => {
       <EdgePlaybook
         defaultOpen={false}
         tagWr={tagWr}
-        verdictCounts={verdictCounts}
         signalTags={signalTags}
         selectedTags={selectedTags}
         tagMatchMode={tagMatchMode}
-        verdictFilter={verdictFilter}
         statusFilter={statusFilter}
         riskFilter={riskFilter}
         sortBy={sortBy}
         sortOrder={sortOrder}
         sorts={sorts}
         edgeFilterActive={
-          verdictFilter !== "all" ||
-          selectedTags.length > 0 ||
+                selectedTags.length > 0 ||
           statusFilter !== "all" ||
           riskFilter !== "all" ||
           !isDefaultSorts(sorts)
@@ -2665,10 +2623,6 @@ const SignalsPage = () => {
         }}
         onTagMatchMode={(mode) => {
           setTagMatchMode(mode === "all" ? "all" : "any");
-          setPage(1);
-        }}
-        onVerdictFilter={(v) => {
-          setVerdictFilter(v);
           setPage(1);
         }}
         onStatusFilter={(v) => {
@@ -2690,13 +2644,11 @@ const SignalsPage = () => {
           setPage(1);
         }}
         onApplyEdge={(tags) => {
-          setVerdictFilter("worth_it");
           if (tags?.length) {
             setSelectedTags((prev) => [...new Set([...prev, ...tags])]);
           }
           setSorts(
             normalizeSorts([
-              { field: "verdict", order: "desc" },
               { field: "edge_score", order: "desc" },
               { field: "created_at", order: "desc" },
             ])
@@ -2704,7 +2656,6 @@ const SignalsPage = () => {
           setPage(1);
         }}
         onScreenRunners={(tags) => {
-          setVerdictFilter("worth_it");
           if (tags?.length) {
             setSelectedTags((prev) => [...new Set([...prev, ...tags])]);
           }
@@ -2759,11 +2710,11 @@ const SignalsPage = () => {
         onSelectPair={(pair, signalId) => {
           setSelectedTags([]);
           setTagMatchMode("any");
-          setVerdictFilter("all");
-          setRiskFilter("all");
+                setRiskFilter("all");
           setStreakFilter("all");
           setCorrDecoupled(false);
           setCorrHighAlign(false);
+          setEdgeTop(null);
           setSelectedDates([]);
           setShowWatchlistOnly(false);
           if (pair) setSearchPair(String(pair).replace(/USDT$/i, ""));
@@ -2793,12 +2744,12 @@ const SignalsPage = () => {
         onApplyToTable={({ statusFilter: st, sortBy: sb, sortOrder: so }) => {
           setSelectedTags([]);
           setTagMatchMode("any");
-          setVerdictFilter("all");
-          setStatusFilter(st || "all");
+                setStatusFilter(st || "all");
           setRiskFilter("all");
           setStreakFilter("all");
           setCorrDecoupled(false);
           setCorrHighAlign(false);
+          setEdgeTop(null);
           setSelectedDates([]);
           setShowWatchlistOnly(false);
           setSearchPair("");
@@ -2809,12 +2760,12 @@ const SignalsPage = () => {
         onShowOpenOnDesk={() => {
           setSelectedTags([]);
           setTagMatchMode("any");
-          setVerdictFilter("all");
-          setStatusFilter("open");
+                setStatusFilter("open");
           setRiskFilter("all");
           setStreakFilter("all");
           setCorrDecoupled(false);
           setCorrHighAlign(false);
+          setEdgeTop(null);
           setSelectedDates([]);
           setShowWatchlistOnly(false);
           setSearchPair("");
@@ -2870,12 +2821,15 @@ const SignalsPage = () => {
           page={page}
           totalPages={totalPages}
           totalSignals={totalSignals}
+          emptyState={emptyState}
+          onEmptyAction={onEmptyAction}
           onPageChange={setPage}
           onPricesUpdate={handlePricesUpdate}
           allPairs={allPairs}
           coinIntel={coinIntel}
           verdictByPair={verdictByPair}
           currentFlow={currentFlow}
+          deskWr={deskWr}
           tagWrMap={tagWrMap}
           runnerTagSet={runnerTagSet}
           edgeScoreMap={edgeScoreMap}

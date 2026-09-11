@@ -492,7 +492,10 @@ def build_evidence_matrix(
         _confluence_row(
             key="derivatives",
             label="Derivatives",
-            source="BGeometrics derivatives",
+            # Two of the three come from Binance since 4bac4ba2; only basis
+            # is still BGeometrics. Naming one provider for a mixed row told
+            # the reader the wrong thing about where the number came from.
+            source="Binance + BGeometrics basis",
             signal=_subset_signal(
                 smart_layer,
                 {"funding_rate", "basis", "taker_volume"},
@@ -502,7 +505,9 @@ def build_evidence_matrix(
         _confluence_row(
             key="smart_money",
             label="Fast positioning",
-            source="BGeometrics top traders",
+            # Entirely Binance since 4bac4ba2 — the long/short ratios moved
+            # off BGeometrics and the label did not follow.
+            source="Binance top traders",
             signal=_subset_signal(
                 smart_layer,
                 {

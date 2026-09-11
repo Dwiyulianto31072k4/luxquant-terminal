@@ -125,7 +125,12 @@ def _metric_signal(confluence: dict | None, keys: set[str]) -> float | None:
 #   "suppress" — publish neutral instead, but keep scoring the bearish call
 #                behind the scenes so we can see when it starts working again.
 #   "publish"  — the old behaviour.
-_BEARISH_POLICY = os.getenv("COMPASS_BEARISH_POLICY", "suppress").lower()
+# Read at call time, not import time. As a module constant it was fixed by
+# whichever import happened to run before load_dotenv(), so the flag could be
+# set correctly and still not take — and changing it needed a restart to be
+# sure. The default stays "suppress" so nothing changes by accident.
+def _bearish_policy() -> str:
+    return os.getenv("COMPASS_BEARISH_POLICY", "suppress").strip().lower()
 
 
 def _raw_direction(score: float) -> str:
@@ -140,8 +145,21 @@ def _raw_direction(score: float) -> str:
 def _direction(score: float) -> str:
     """Direction as published.
 
-    Bearish calls are withheld by default, and that is a measured decision, not
-    a hunch. Across 106 resolved bearish contracts the expected value per call
+    **Live policy is `publish` as of 2026-09-09, set by the owner.** Every
+    direction now goes out as computed: bullish is bullish, neutral is neutral,
+    bearish is bearish, and each is scored against the barriers it was given.
+    The evidence below is why the default is still `suppress` and what has to
+    be re-measured before anyone argues about the setting again — it is a
+    record, not the current behaviour.
+
+    The case for withholding rested on bearish *contracts* losing money, which
+    is a claim about which trades deserve a target, not about whether the tape
+    is falling. Publishing neutral while the read scored bearish also hid the
+    direction 20 times in 60 reports, and the reason for not adding risk is
+    exactly what a subscriber needs.
+
+    Bearish calls were withheld by default, and that was a measured decision,
+    not a hunch. Across 106 resolved bearish contracts the expected value per call
     was **negative in both halves of the sample** — July −0.611% (n=73), August
     −0.467% (n=33) — while bullish ran +0.963%. The geometry made it worse: a
     bearish contract needed a 63.6% hit rate to break even and delivered 46.7%,
@@ -176,7 +194,7 @@ def _direction(score: float) -> str:
     it is what should be re-measured before flipping the policy back.
     """
     raw = _raw_direction(score)
-    if raw == "bearish" and _BEARISH_POLICY == "suppress":
+    if raw == "bearish" and _bearish_policy() == "suppress":
         return "neutral"
     return raw
 
@@ -272,7 +290,7 @@ def compute_deterministic_direction(
         "tactical_24h": {"direction": _direction(s24), "confidence": _confidence(s24, cov24), "score": round(s24, 3)},
         "secondary_7d": {"direction": _direction(s72), "confidence": _confidence(s72, cov72), "score": round(s72, 3)},
         "coverage": {"tactical_24h": round(cov24, 3), "secondary_7d": round(cov72, 3)},
-        "bearish_policy": _BEARISH_POLICY,
+        "bearish_policy": _bearish_policy(),
         "suppressed_bearish": suppressed or None,
         "cycle_context": {"score": cyc.get("score"), "phase": cyc.get("phase")},
         "inputs": {

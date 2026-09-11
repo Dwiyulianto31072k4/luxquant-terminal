@@ -105,8 +105,9 @@ def submit_cashout_request(
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Kamu masih punya cashout request aktif (#{active.id}, status: {active.status}). "
-                f"Tunggu admin proses atau cancel dulu sebelum buat baru."
+                f"You already have a cashout request open (#{active.id}, "
+                f"{active.status}). Wait for it to be processed, or cancel it "
+                f"before starting another."
             ),
         )
 
@@ -195,8 +196,8 @@ def cancel_cashout_request(
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Cashout tidak bisa di-cancel (status: {cashout.status}). "
-                f"Hanya request 'pending' yang bisa di-cancel."
+                f"This cashout cannot be cancelled — it is {cashout.status}. "
+                f"Only a pending request can be cancelled."
             ),
         )
 
@@ -232,8 +233,8 @@ def admin_approve_cashout(
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Hanya request 'pending' yang bisa di-approve. "
-                f"Status saat ini: {cashout.status}."
+                f"Only a pending request can be approved. "
+                f"This one is {cashout.status}."
             ),
         )
 
@@ -275,8 +276,8 @@ def admin_complete_cashout(
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Hanya request 'pending' atau 'approved' yang bisa di-complete. "
-                f"Status saat ini: {cashout.status}."
+                f"Only a pending or approved request can be completed. "
+                f"This one is {cashout.status}."
             ),
         )
 
@@ -346,8 +347,8 @@ def admin_reject_cashout(
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Hanya request 'pending' atau 'approved' yang bisa di-reject. "
-                f"Status saat ini: {cashout.status}."
+                f"Only a pending or approved request can be rejected. "
+                f"This one is {cashout.status}."
             ),
         )
 

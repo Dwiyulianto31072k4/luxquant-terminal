@@ -91,9 +91,19 @@ def _systemd_is_active(unit: str) -> dict[str, Any]:
             "available": False,
             "error": f"{type(exc).__name__}: {exc}",
         }
+    enabled_state = "unknown"
+    try:
+        enabled = subprocess.run(
+            ["systemctl", "is-enabled", unit],
+            check=False, capture_output=True, text=True, timeout=3,
+        )
+        enabled_state = (enabled.stdout or enabled.stderr or "").strip() or "unknown"
+    except Exception:
+        pass
     return {
         "unit": unit,
         "active_state": (result.stdout or result.stderr or "").strip() or "unknown",
+        "enabled_state": enabled_state,
         "available": True,
         "returncode": result.returncode,
     }
@@ -125,6 +135,25 @@ def _status_check_for_unit(
             status="unknown",
             severity="warning",
             detail=f"Could not inspect {unit_state.get('unit')} from this runtime.",
+            runbook=runbook,
+            metadata=unit_state,
+        )
+    # A disabled unit is a decision, not a failure. Two of these were retired
+    # deliberately -- the 4x/day arena timer, replaced by the event-driven
+    # monitor, and the verdict evaluator, switched off in 9fca2277 because it
+    # read a table that has never held a row. Both reported critical for weeks,
+    # which pinned the overall status at critical permanently and rendered in
+    # the header as "Check", the vaguest word available. A health check that
+    # cries wolf about something switched off on purpose is one nobody reads
+    # when a timer really does die.
+    enabled_state = unit_state.get("enabled_state")
+    if enabled_state in ("disabled", "masked"):
+        return _check(
+            key=key,
+            label=label,
+            status="healthy",
+            severity="info",
+            detail=f"{unit_state.get('unit')} is {enabled_state} — retired on purpose, not running by design.",
             runbook=runbook,
             metadata=unit_state,
         )
@@ -348,8 +377,21 @@ def _feature_health_check() -> dict[str, Any]:
     finally:
         db.close()
 
+    # A metric the plan no longer carries is absent on purpose, the same way a
+    # disabled timer is stopped on purpose. m2global held this check at critical
+    # — and with it the whole rollup, and with that the header badge — because
+    # BGeometrics answers 403 INVALID_TOKEN for it on the free tier. Reporting
+    # that as a wiring bug sends someone looking for a fault that is a billing
+    # decision.
+    try:
+        from app.services.bg_advanced import PLAN_GATED as _gated
+    except Exception:
+        _gated = frozenset()
+
     never_worked, stopped_working, one_sided = [], [], []
     for key, r in recent.items():
+        if key in _gated:
+            continue
         if r["n"] < FEATURE_MIN_SAMPLES:
             continue
         if r["avail"] == 0:

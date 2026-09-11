@@ -125,7 +125,22 @@ TIERS: dict[str, tuple[str, ...]] = {
     "risk": TIER_RISK,
 }
 
-ALL_ENDPOINTS = TIER_CYCLE + TIER_MACRO + TIER_SMART + TIER_ONCHAIN + TIER_RISK  # 22 total
+# Not on the free tier. Each returns 403 INVALID_TOKEN, not 429 — the plan that
+# lapsed on 2026-08-30 carried them and the free one does not, so no amount of
+# waiting or quota will make them arrive. Left in the tier tuples above because
+# the evidence matrix still lists the keys and renders them unavailable, exactly
+# as it already did; they are only removed from the fetch list.
+#
+# Requesting them anyway cost three of ten hourly slots on every full refresh
+# and pinned feature_health at critical ("never contributes: m2global"), which
+# held the whole operational rollup at critical and rendered in the header as
+# the word "Check".
+PLAN_GATED = frozenset({"m2global", "miner-net-flow", "exchange-netflow-btc"})
+
+ALL_ENDPOINTS = tuple(
+    e for e in (TIER_CYCLE + TIER_MACRO + TIER_SMART + TIER_ONCHAIN + TIER_RISK)
+    if e not in PLAN_GATED
+)  # 19 reachable of 22 defined
 
 # ─── Field mapping (endpoint → response field name) ─────────────────
 # BGeometrics returns {"d": date, "unixTs": ts, "<fieldName>": value}.
@@ -531,6 +546,26 @@ class BGClient:
             cached = await _cache_get(endpoint)
             if cached and not cached.is_stale:
                 return cached
+
+        # The six Binance-backed metrics spend no BGeometrics quota, so the
+        # breaker has no business stopping them. It used to: the cooldown was
+        # checked before _http_fetch, which is where the free dispatch happens,
+        # so every time BG hit its 10/hour ceiling the intraday layer froze with
+        # it. Funding, positioning, open interest and basis are exactly the
+        # inputs that move within the hour, and they were being served up to six
+        # hours old while the dashboard flagged derivatives and smart_money
+        # stale. This guard predates 4bac4ba2, which moved them to Binance.
+        if endpoint in BINANCE_BACKED:
+            async with httpx.AsyncClient() as client:
+                free_metric = await _fetch_free(client, endpoint)
+            if free_metric.ok:
+                await _cache_set(free_metric)
+                return free_metric
+            stale = await _cache_get(endpoint)
+            if stale and stale.value is not None:
+                stale.is_stale = True
+                return stale
+            return free_metric
 
         # Rate-limit breaker: while it is armed, make no request at all. Serving
         # stale data (or failing) costs nothing; hammering keeps the quota at
