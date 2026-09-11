@@ -14,7 +14,7 @@ import { watchlistApi } from "../services/watchlistApi";
 import { signalsApi } from "../services/api";
 import CompassSnapshot from "./aiArenaV6/CompassSnapshot";
 import AssistantWidget from "./assistant/AssistantWidget";
-import EdgePlaybook, { buildRunnerTagSet } from "./EdgePlaybook";
+import EdgePlaybook from "./EdgePlaybook";
 import EdgeActiveFilters from "./EdgeActiveFilters";
 import EdgeCorrelationPanel from "./EdgeCorrelationPanel";
 import EdgeRecipesBar, { ALL_MODE_STATE } from "./EdgeRecipesBar";
@@ -984,7 +984,6 @@ const SignalsPage = () => {
   }, [tagWr]);
 
   // Tags historically associated with fuller targets / higher peak (for row badges)
-  const runnerTagSet = useMemo(() => buildRunnerTagSet(tagWr), [tagWr]);
 
   // Map { signal_id: [tagName, ...] } built from each signal's own tags
   // (provided by bulk-7d). This is what makes the filter dynamic — it reflects
@@ -1904,7 +1903,6 @@ const SignalsPage = () => {
               currentFlow={currentFlow}
               deskWr={deskWr}
               tagWrMap={tagWrMap}
-              runnerTagSet={runnerTagSet}
               edgeScoreMap={edgeScoreMap}
               signalTags={signalTags}
             />
@@ -2843,7 +2841,6 @@ const SignalsPage = () => {
           currentFlow={currentFlow}
           deskWr={deskWr}
           tagWrMap={tagWrMap}
-          runnerTagSet={runnerTagSet}
           edgeScoreMap={edgeScoreMap}
           signalTags={signalTags}
           onWatchlistChange={(signalId, newState) => {

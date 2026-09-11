@@ -665,6 +665,23 @@ export default function EdgePlaybook({
 }
 
 /** Lockstep with backend/app/services/hunt_recipe.py `is_runner_tag`. */
+// The set behind the Runners MODE. It was also driving a per-row RUNNER badge
+// until 2026-09-11; that badge is gone, and the measurement is worth keeping
+// here because it is a fact about this gate, not about the card it was on.
+//
+// Measured on the live book: 620 of 622 calls in the last seven days carried
+// the badge — 99.7%, and 100% of every call with any tags at all. All 32
+// eligible tags passed the gate; not one failed. The thresholds sit far below
+// the distribution they are meant to select from: WR >= 78 against a median
+// eligible tag of 86.5, full_tp >= 12 against a median of 44.4.
+//
+// Nor is it a threshold that can simply be raised. A call carries ~9.5
+// important tags (median 9) out of those 32, whose full-TP rates all fall
+// between 41% and 62%, so "carries at least one of them" is near-universal by
+// construction — at full_tp >= 49, the top four tags of thirty-two, 54% of
+// calls still matched. As a filter the reader switches on deliberately this is
+// still a defensible prior; as a mark claiming to single one row out from its
+// neighbours it was a constant.
 export function buildRunnerTagSet(tagWr = []) {
   const set = new Set();
   for (const t of tagWr || []) {

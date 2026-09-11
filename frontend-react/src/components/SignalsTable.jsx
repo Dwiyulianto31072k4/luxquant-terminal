@@ -420,7 +420,6 @@ const SignalsTable = ({
   // never a guess.
   deskWr = null,
   tagWrMap = {},
-  runnerTagSet = null,
   edgeScoreMap = {},
   signalTags = {},
   onWatchlistChange = null,
@@ -809,24 +808,6 @@ const SignalsTable = ({
     }
     return best;
   };
-  // Runner badge if signal carries any high-runner tag (90d fuller TP / peak).
-  const getRunnerHint = (signalId) => {
-    if (!runnerTagSet || runnerTagSet.size === 0) return null;
-    const tags = signalTags?.[signalId];
-    if (!tags?.length) return null;
-    let best = null;
-    for (const tg of tags) {
-      if (!runnerTagSet.has(tg)) continue;
-      const meta = tagWrMap?.[tg];
-      const full = meta?.full_tp_rate ?? 0;
-      const peak = meta?.median_peak_wins ?? meta?.median_peak ?? 0;
-      if (!best || full > (best.full || 0)) {
-        best = { tag: tg, full, peak, tp4: meta?.tp4_rate };
-      }
-    }
-    return best;
-  };
-
   const getEdge = (signalId) => edgeScoreMap?.[signalId] || null;
   const edgeToneCls = (score) => {
     if (score == null) return "text-text-muted";
@@ -1185,7 +1166,6 @@ const SignalsTable = ({
     const priceChange = getPriceChange(signal.entry, currentPrice);
     const v = getVerdict(signal);
     const wr = getWinRate(signal.pair);
-    const runner = getRunnerHint(signal.signal_id);
     const maxTarget = getMaxTarget(signal);
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
     const sl = signal.stop1 ?? signal.stop_loss;
@@ -1195,6 +1175,33 @@ const SignalsTable = ({
     const showRisk = !!mf.risk;
     const showVol = !!mf.vol;
     const showCalled = !!mf.called_time;
+    const edge = getEdge(signal.signal_id);
+    const edgeChip =
+      edge && edge.score != null ? (
+        <span
+          key="edge"
+          title={edgeTitle(edge)}
+          className={`rounded-md border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${edgeToneCls(edge.score)}`}
+        >
+          E{Number(edge.score).toFixed(0)}
+        </span>
+      ) : null;
+    // Where the price actually stands between the stop and the target. The card
+    // printed all four numbers and never their relationship, so "now 0.096790"
+    // against an entry of 0.096800 and a target of 0.111000 was arithmetic the
+    // reader had to do on every row. Built from min/max rather than assuming
+    // stop < target, because the book contains calls that read the other way.
+    const railLo = [sl, signal.entry, maxTarget].filter((n) => n != null).length === 3
+      ? Math.min(Number(sl), Number(signal.entry), Number(maxTarget))
+      : null;
+    const railHi = railLo != null
+      ? Math.max(Number(sl), Number(signal.entry), Number(maxTarget))
+      : null;
+    const railSpan = railHi != null && railHi > railLo ? railHi - railLo : null;
+    const at = (v) =>
+      railSpan && v != null ? Math.max(0, Math.min(100, ((Number(v) - railLo) / railSpan) * 100)) : null;
+    const entryAt = at(signal.entry);
+    const nowAt = at(currentPrice);
 
     return (
       <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
@@ -1206,109 +1213,175 @@ const SignalsTable = ({
             className="min-w-0 flex-1 text-left"
           >
             <div className="min-w-0 flex-1">
-              {/* line 1 — identity */}
-              <div className="flex min-h-9 flex-wrap items-center gap-2 pr-9">
+              {/* line 1 — who and where it stands. Five badges of four different
+                  shapes used to share this row with no hierarchy; the pair and
+                  its status are what identify a call, so they get the row and
+                  the rest steps down a level. */}
+              <div className="flex min-h-9 items-center gap-2 pr-9">
                 <CoinLogo pair={signal.pair} size={28} />
-                <span className="text-sm font-semibold text-text-primary">
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
                   {getCoinName(signal.pair)}
                   <span className="text-text-muted">/USDT</span>
                 </span>
-                {runner ? (
-                  <span
-                    title={[
-                      "Historically fuller targets / higher peak",
-                      runner.full != null ? `${Number(runner.full).toFixed(0)}% TP3+` : null,
-                      runner.peak != null ? `med peak +${Number(runner.peak).toFixed(0)}%` : null,
-                      runner.tag ? fmtTag(runner.tag) : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                    className="rounded-md border border-accent/25 bg-accent/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-accent"
-                  >
-                    Runner
-                  </span>
-                ) : null}
-                {(() => {
-                  const e = getEdge(signal.signal_id);
-                  if (!e || e.score == null) return null;
-                  return (
-                    <span
-                      title={edgeTitle(e)}
-                      className={`rounded-md border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[9px] tabular-nums ${edgeToneCls(e.score)}`}
-                    >
-                      E{Number(e.score).toFixed(0)}
-                    </span>
-                  );
-                })()}
                 {getStatusBadge(signal.status)}
-                {showRisk ? (
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${getRiskClasses(signal.risk_level)}`}
-                  >
-                    {getRiskLabel(signal.risk_level)}
-                  </span>
-                ) : null}
               </div>
+              {/* line 2 — the qualifiers, quiet and in one shape */}
+              {(edgeChip || showRisk || showCalled) && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 pr-9 text-[11px] text-text-muted">
+                  {edgeChip}
+                  {showRisk ? (
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${getRiskClasses(signal.risk_level)}`}>
+                      {getRiskLabel(signal.risk_level)}
+                    </span>
+                  ) : null}
+                  {showCalled && signal.created_at ? (
+                    <span className="font-mono tabular-nums">
+                      called {formatTimeAgo(signal.created_at)}
+                    </span>
+                  ) : null}
+                </div>
+              )}
+              {/* line 3 — the three published prices. Percentages sit beside the
+                  price they belong to rather than a line below it, so a column
+                  is one fact and not two stacked ones. */}
               <div className="mt-3 grid grid-cols-3 gap-2 border-t border-ink/[0.06] pt-3">
                 <div className="min-w-0">
                   <div className="text-[11px] text-text-muted">Entry</div>
-                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-text-primary">{formatPrice(signal.entry)}</div>
+                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-text-primary">
+                    {formatPrice(signal.entry)}
+                  </div>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[11px] text-text-muted">Target</div>
-                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-profit">{maxTarget != null ? formatPrice(maxTarget) : "—"}</div>
-                  {potentialPct != null ? <div className="mt-0.5 font-mono text-[11px] tabular-nums text-profit">+{potentialPct.toFixed(1)}%</div> : null}
+                  <div className="text-[11px] text-text-muted">
+                    Target{" "}
+                    {potentialPct != null ? (
+                      <span className="font-mono tabular-nums text-profit">
+                        +{potentialPct.toFixed(1)}%
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-profit">
+                    {maxTarget != null ? formatPrice(maxTarget) : "—"}
+                  </div>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[11px] text-text-muted">Stop</div>
-                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-loss">{sl != null ? formatPrice(sl) : "—"}</div>
-                  {slPct != null ? <div className="mt-0.5 font-mono text-[11px] tabular-nums text-loss">{slPct.toFixed(1)}%</div> : null}
+                  <div className="text-[11px] text-text-muted">
+                    Stop{" "}
+                    {slPct != null ? (
+                      <span className="font-mono tabular-nums text-loss">
+                        {slPct.toFixed(1)}%
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-loss">
+                    {sl != null ? formatPrice(sl) : "—"}
+                  </div>
                 </div>
               </div>
-              {/* line 3 — live + optional quality / vol / time */}
-              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-ink/[0.06] pt-2.5 font-mono text-xs">
-                {priceChange !== null ? (
-                  <span
-                    className={`font-medium tabular-nums ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
-                  >
-                    {priceChange >= 0 ? "+" : ""}
-                    {priceChange.toFixed(2)}%
+              {/* line 4 — stop · entry · now · target on one rail */}
+              {railSpan ? (
+                <div className="mt-3">
+                  <div className="relative h-1.5 rounded-full bg-ink/[0.07]">
+                    {nowAt != null && entryAt != null ? (
+                      <span
+                        className={`absolute top-0 h-full rounded-full ${
+                          priceChange != null && priceChange < 0 ? "bg-loss/45" : "bg-profit/45"
+                        }`}
+                        style={{
+                          left: `${Math.min(entryAt, nowAt)}%`,
+                          width: `${Math.abs(nowAt - entryAt)}%`,
+                        }}
+                      />
+                    ) : null}
+                    <span
+                      className="absolute top-1/2 h-3 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-text-muted"
+                      style={{ left: `${entryAt}%` }}
+                    />
+                    {nowAt != null ? (
+                      <span
+                        title={`Now ${formatPrice(currentPrice)}`}
+                        className={`absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-surface-raised ${
+                          priceChange != null && priceChange < 0 ? "bg-loss" : "bg-profit"
+                        }`}
+                        // Held off the ends: at a true 0% or 100% the dot is
+                        // half outside the track and reads as clipped.
+                        style={{ left: `${Math.max(2, Math.min(98, nowAt))}%` }}
+                      />
+                    ) : null}
+                  </div>
+                  {/* Three labels, not two: an unlabelled tick between Stop and
+                      Target is the one mark on the card a reader has to guess at. */}
+                  <div className="relative mt-1 h-3 font-mono text-[9px] uppercase tracking-wide text-text-muted">
+                    <span className="absolute left-0">
+                      {Number(sl) < Number(maxTarget) ? "Stop" : "Target"}
+                    </span>
+                    <span
+                      className="absolute -translate-x-1/2 whitespace-nowrap text-text-secondary"
+                      style={{ left: `${Math.max(12, Math.min(88, entryAt))}%` }}
+                    >
+                      Entry
+                    </span>
+                    <span className="absolute right-0">
+                      {Number(sl) < Number(maxTarget) ? "Target" : "Stop"}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+              {/* line 5 — live price, then the optional facts. Every number here
+                  used to run together unlabelled: "-0.01% now 0.096790 81.5% ·
+                  n=81 vol $8.0M 16m ago" is six facts in one sentence, and the
+                  81.5% never said what it was the win rate OF. */}
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1.5 border-t border-ink/[0.06] pt-2.5 text-xs">
+                <span className="flex items-baseline gap-1.5">
+                  <span className="text-[11px] text-text-muted">Now</span>
+                  <span className="font-mono tabular-nums text-text-primary">
+                    {currentPrice ? formatPrice(currentPrice) : "—"}
                   </span>
-                ) : (
-                  <span className="text-text-muted">—</span>
-                )}
-                {currentPrice ? (
-                  <span className="tabular-nums text-text-muted">
-                    now {formatPrice(currentPrice)}
-                  </span>
-                ) : null}
+                  {priceChange !== null ? (
+                    <span
+                      className={`font-mono text-[11px] font-medium tabular-nums ${
+                        priceChange >= 0 ? "text-profit" : "text-loss"
+                      }`}
+                    >
+                      {priceChange >= 0 ? "+" : ""}
+                      {priceChange.toFixed(2)}%
+                    </span>
+                  ) : null}
+                </span>
                 {showVerdict && v && v.coin?.win_rate != null ? (
                   <span
-                    className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${
-                      v.band === "below"
-                        ? "bg-negative/12 text-loss"
-                        : v.band === "above"
-                          ? "bg-profit/12 text-profit"
-                          : "bg-ink/[0.04] text-text-secondary"
-                    }`}
+                    className="flex items-baseline gap-1.5"
+                    title={`This pair has closed ${v.coin.closed_trades ?? 0} calls, ${v.coin.win_rate}% of which reached TP1 or better`}
                   >
-                    {v.coin.win_rate}% · n={v.coin.closed_trades ?? 0}
+                    <span className="text-[11px] text-text-muted">Pair</span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] tabular-nums ${
+                        v.band === "below"
+                          ? "bg-negative/12 text-loss"
+                          : v.band === "above"
+                            ? "bg-profit/12 text-profit"
+                            : "bg-ink/[0.04] text-text-secondary"
+                      }`}
+                    >
+                      {v.coin.win_rate}% of {v.coin.closed_trades ?? 0}
+                    </span>
                   </span>
                 ) : showVerdict && wr != null ? (
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${wr >= 70 ? "bg-profit/12 text-profit" : wr >= 50 ? "bg-accent/12 text-accent" : "bg-negative/12 text-loss"}`}
-                  >
-                    {wr}%
+                  <span className="flex items-baseline gap-1.5" title="This pair's win rate">
+                    <span className="text-[11px] text-text-muted">Pair</span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums ${wr >= 70 ? "bg-profit/12 text-profit" : wr >= 50 ? "bg-accent/12 text-accent" : "bg-negative/12 text-loss"}`}
+                    >
+                      {wr}%
+                    </span>
                   </span>
                 ) : null}
                 {showVol && currentVol ? (
-                  <span className="tabular-nums text-text-muted">
-                    vol {formatVolume(currentVol)}
-                  </span>
-                ) : null}
-                {showCalled && signal.created_at ? (
-                  <span className="tabular-nums text-text-muted">
-                    {formatTimeAgo(signal.created_at)}
+                  <span className="flex items-baseline gap-1.5">
+                    <span className="text-[11px] text-text-muted">Vol</span>
+                    <span className="font-mono text-[11px] tabular-nums text-text-secondary">
+                      {formatVolume(currentVol)}
+                    </span>
                   </span>
                 ) : null}
               </div>
@@ -1833,29 +1906,6 @@ const SignalsTable = ({
                                 {getCoinName(signal.pair)}
                                 <span className="text-text-muted">/USDT</span>
                               </p>
-                              {(() => {
-                                const runner = getRunnerHint(signal.signal_id);
-                                if (!runner) return null;
-                                return (
-                                  <span
-                                    title={[
-                                      "Historically fuller targets / higher peak",
-                                      runner.full != null
-                                        ? `${Number(runner.full).toFixed(0)}% TP3+`
-                                        : null,
-                                      runner.peak != null
-                                        ? `med peak +${Number(runner.peak).toFixed(0)}%`
-                                        : null,
-                                      runner.tag ? fmtTag(runner.tag) : null,
-                                    ]
-                                      .filter(Boolean)
-                                      .join(" · ")}
-                                    className="mt-0.5 inline-flex rounded-md border border-accent/25 bg-accent/10 px-1 py-px font-mono text-[9px] font-semibold uppercase tracking-wider text-accent"
-                                  >
-                                    Runner
-                                  </span>
-                                );
-                              })()}
                             </div>
                           </div>
                         </td>
