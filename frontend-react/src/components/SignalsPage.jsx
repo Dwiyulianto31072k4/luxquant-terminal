@@ -20,6 +20,7 @@ import EdgeCorrelationPanel from "./EdgeCorrelationPanel";
 import EdgeRecipesBar, { ALL_MODE_STATE } from "./EdgeRecipesBar";
 import SignalsCoinFlow from "./SignalsCoinFlow";
 import SignalsCustomCalls from "./SignalsCustomCalls";
+import { signalAlertApi } from "../services/signalAlertApi";
 import Modal from "./ui/Modal";
 import {
   SegGroup,
@@ -452,7 +453,7 @@ function writeSignalsCache(payload) {
  *  and the fixed width on sm+ makes the two rails start on one left edge
  *  instead of each one beginning wherever its label ends. */
 const CONSOLE_LABEL =
-  "w-9 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted sm:w-[3.9rem]";
+  "hidden sm:block w-9 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted sm:w-[3.9rem]";
 
 /** The way into the mode briefings.
  *
@@ -475,7 +476,7 @@ function ModeGuideLink({ onClick }) {
       onClick={onClick}
       aria-label="What these mean"
       title="What these mean"
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-7 sm:w-auto sm:gap-1.5 sm:px-2.5 sm:font-mono sm:text-[10px] sm:font-semibold sm:uppercase sm:tracking-[0.06em]"
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-7 sm:w-auto sm:gap-1.5 sm:px-2.5 sm:font-mono sm:text-[10px] sm:font-semibold sm:uppercase sm:tracking-[0.06em]"
     >
       <svg
         className="h-3.5 w-3.5 shrink-0"
@@ -562,6 +563,9 @@ const SignalsPage = () => {
   // its own. Runners sets it to 20.
   const [edgeTop, setEdgeTop] = useState(null);
   const [mineExtra, setMineExtra] = useState(null);
+  const [customMatch, setCustomMatch] = useState(null);
+  const [customRetry, setCustomRetry] = useState(0);
+
   const [selectedDates, setSelectedDates] = useState(() => [utcTodayYmd()]);
   // Watchlist is a desk mode (not a day tab). It can be older than 7 days, so it
   // has its own source (/watchlist/) instead of filtering allSignals.
@@ -1267,6 +1271,7 @@ const SignalsPage = () => {
     selectedDates.length === 1 && selectedDates[0] === todayYmd;
 
   const hasActiveFilters =
+    !!mineExtra ||
     searchPair ||
     statusFilter !== "all" ||
     riskFilter !== "all" ||
@@ -1303,6 +1308,7 @@ const SignalsPage = () => {
   }, []);
 
   const enterWatchlist = useCallback(() => {
+    setMineExtra(null);
     setShowWatchlistOnly(true);
     setSelectedTags([]);
     setTagMatchMode("any");
@@ -1325,6 +1331,7 @@ const SignalsPage = () => {
    * pair still restores it. Watchlist is a different source, so leave it. */
   const applyRecipeState = useCallback((state) => {
     if (!state || typeof state !== "object") return;
+    setMineExtra(null);
     setSelectedTags(Array.isArray(state.selectedTags) ? state.selectedTags : []);
     setTagMatchMode(state.tagMatchMode === "all" ? "all" : "any");
     setStatusFilter(state.statusFilter || "all");
@@ -1355,6 +1362,20 @@ const SignalsPage = () => {
       return [...prev, dateVal];
     });
   };
+
+  useEffect(() => {
+    if (!mineExtra?.criteria) { setCustomMatch(null); return; }
+    const controller = new AbortController();
+    signalAlertApi.preview(mineExtra.criteria, controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setCustomMatch({ criteria: mineExtra.criteria, book: allSignals, ids: new Set(data.signal_ids) });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setCustomMatch({ criteria: mineExtra.criteria, book: allSignals, error: true });
+      });
+    return () => controller.abort();
+  }, [mineExtra, allSignals, customRetry]);
+  const customReady = customMatch?.criteria === mineExtra?.criteria && customMatch?.book === allSignals;
 
   const { signals, totalPages, totalSignals, shariahHidden } = useMemo(() => {
     // Watchlist mode: sumbernya data watchlist penuh (lintas-tanggal), BUKAN allSignals
@@ -1483,34 +1504,9 @@ const SignalsPage = () => {
       });
     }
 
-    if (mineExtra) {
-      const exT = mineExtra.excludeTags || [];
-      const exP = (mineExtra.excludePairs || []).map((p) => String(p).toUpperCase());
-      filtered = filtered.filter((s) => {
-        const tags = signalTags[s.signal_id] || s.important_tags || [];
-        if (mineExtra.excludeConfound) {
-          const bad = ["LATE_ENTRY", "PARABOLIC", "OVEREXTENDED", "EXHAUSTION_CANDLE"];
-          if (tags.some((t) => bad.includes(t))) return false;
-        }
-        if (exT.length && tags.some((t) => exT.includes(t))) return false;
-        const pair = (s.pair || "").toUpperCase();
-        if (exP.length && exP.includes(pair)) return false;
-        const mcap = Number(s.market_cap);
-        if (mineExtra.minMcap != null && !(mcap >= mineExtra.minMcap)) return false;
-        if (mineExtra.maxMcap != null && !(mcap <= mineExtra.maxMcap)) return false;
-        if (mineExtra.maxVolRank != null) {
-          if (s.volume_rank_num == null || s.volume_rank_num > mineExtra.maxVolRank) return false;
-        }
-        if (mineExtra.minSlPct != null || mineExtra.maxSlPct != null) {
-          const e = Number(s.entry);
-          const sl = Number(s.stop1 ?? s.stop_loss);
-          if (!e || !sl) return false;
-          const pct = (Math.abs(e - sl) / Math.abs(e)) * 100;
-          if (mineExtra.minSlPct != null && pct < mineExtra.minSlPct) return false;
-          if (mineExtra.maxSlPct != null && pct > mineExtra.maxSlPct) return false;
-        }
-        return true;
-      });
+    if (mineExtra?.criteria) {
+      filtered = customReady && customMatch?.ids
+        ? filtered.filter((s) => customMatch.ids.has(String(s.signal_id))) : [];
     }
 
     // Multi-level sort: e.g. verdict ↓ → edge ↓ → called ↓ (stable tiebreak inside).
@@ -1553,6 +1549,8 @@ const SignalsPage = () => {
     watchlistIds,
     watchlistSignals,
     mineExtra,
+    customMatch,
+    customReady,
   ]);
 
   const emptyState = useMemo(() => {
@@ -1930,7 +1928,7 @@ const SignalsPage = () => {
           status, sort and the advanced filters moved into a sheet, and the
           chip bar under this card reports what is on. */}
       <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-3 sm:p-4">
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:gap-3">
           <span className={CONSOLE_LABEL}>Mode</span>
           <EdgeRecipesBar
           tagWr={tagWr}
@@ -1947,6 +1945,7 @@ const SignalsPage = () => {
           corrHighAlign={corrHighAlign}
           edgeTop={edgeTop}
           onApplyState={applyRecipeState}
+          customActive={!!mineExtra}
           showRecipes={isSubscriber}
           watchlistCount={watchlistIds.length}
           watchlistActive={showWatchlistOnly}
@@ -1962,6 +1961,7 @@ const SignalsPage = () => {
           {isSubscriber ? (
             <SignalsCustomCalls
               show
+              active={!!mineExtra}
               tagWr={tagWr}
               pairs={allPairs}
               deskState={{
@@ -2022,7 +2022,7 @@ const SignalsPage = () => {
                     setShowWatchlistOnly(false);
                     toggleDateFilter(opt.value);
                   }}
-                  className={deskChipClass(active)}
+                  className={`${deskChipClass(active)} !h-11 sm:!h-7`}
                 >
                   {opt.label}
                   {opt.count != null ? (
@@ -2063,7 +2063,7 @@ const SignalsPage = () => {
               placeholder="Search pair"
               value={searchPair}
               onChange={(e) => setSearchPair(e.target.value)}
-              className={`h-10 w-full rounded-md border border-ink/[0.1] bg-surface-secondary font-mono text-xs text-text-primary placeholder-text-secondary/50 focus:border-ink/20 focus:outline-none sm:h-8 pl-9 ${
+              className={`h-11 w-full rounded-md border border-ink/[0.1] bg-surface-secondary font-mono text-base sm:text-xs text-text-primary placeholder-text-secondary/50 focus:border-ink/20 focus:outline-none sm:h-8 pl-9 ${
                 searchPair ? "pr-9" : "pr-3"
               }`}
             />
@@ -2083,7 +2083,7 @@ const SignalsPage = () => {
             type="button"
             onClick={() => setShowAdvanced(true)}
             aria-expanded={advancedOpen}
-            className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors sm:h-8 ${
+            className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors sm:h-8 ${
               sheetActiveCount > 0
                 ? "border-accent/50 bg-accent/10 text-text-primary"
                 : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:text-text-primary"
@@ -2098,6 +2098,14 @@ const SignalsPage = () => {
 
         </div>
       </div>
+
+      {mineExtra ? (
+        <div role="status" className="flex flex-wrap items-center gap-2 rounded-xl border border-ink/[0.07] bg-surface-raised p-3 text-sm text-text-secondary">
+          <span className="flex-1">{!customReady ? "Checking Custom rules…" : customMatch?.error ? "Custom could not load. Retry to see matching calls." : "Custom active · same rules as notifications. Days and search narrow this view."}</span>
+          {customMatch?.error && customReady ? <button type="button" className="min-h-11 px-3 text-accent" onClick={() => setCustomRetry((v) => v + 1)}>Retry</button> : null}
+          <button type="button" className="min-h-11 px-3" onClick={() => setMineExtra(null)}>Clear Custom</button>
+        </div>
+      ) : null}
 
       {/* FILTER SHEET — a bottom sheet on a phone, a centred dialog on a desk
           (Modal already does both). Refinement belongs behind a deliberate tap:
@@ -2467,7 +2475,7 @@ const SignalsPage = () => {
                         key={t.tag}
                         onClick={() => toggleTag(t.tag)}
                         title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
-                        className={deskChipClass(active)}
+                        className={`${deskChipClass(active)} !h-11 sm:!h-7`}
                       >
                         <span className="normal-case">
                           {t.tag.replace(/_/g, " ").toLowerCase()}

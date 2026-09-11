@@ -11,6 +11,7 @@ function money(val) {
 }
 
 function pct(val, digits = 2) {
+  if (val == null || val === "") return "—";
   const n = Number(val);
   if (!Number.isFinite(n)) return "—";
   return `${n > 0 ? "+" : n < 0 ? "" : ""}${n.toFixed(digits)}%`;
@@ -104,8 +105,7 @@ export default function MarketSheet({
         <div className="px-4 py-8 text-center">
           <p className="text-[13px] font-medium text-text-primary">Live data unavailable</p>
           <p className="mx-auto mt-1 max-w-[260px] text-[11px] leading-relaxed text-text-muted">
-            Funding, open interest and tape are blocked on this network. Turn on a VPN and reopen the
-            signal.
+            Market data is temporarily unavailable. We will retry automatically; your call levels stay available.
           </p>
         </div>
       ) : (
@@ -113,13 +113,13 @@ export default function MarketSheet({
           <Row
             label="Funding"
             hint={
-              Number.isFinite(Number(funding))
+              funding != null && Number.isFinite(Number(funding))
                 ? `${fundingPos ? "Longs pay shorts" : "Shorts pay longs"}${next ? ` · next ${next}` : ""}`
                 : "Perp funding on this pair"
             }
           >
             <span className={tone(Number(funding))}>
-              {Number.isFinite(Number(funding))
+              {funding != null && Number.isFinite(Number(funding))
                 ? `${Number(funding) >= 0 ? "+" : ""}${Number(funding).toFixed(4)}%`
                 : "—"}
             </span>
@@ -203,9 +203,9 @@ export default function MarketSheet({
             )}
           </div>
 
-          <Row label="Taker buy" hint="Share of 24h volume that lifted the offer">
+          <Row label="Taker buy" hint="Share of taker volume in the latest available interval">
             <span className="text-text-primary">
-              {Number.isFinite(Number(deriv?.takerBuyPct))
+              {deriv?.takerBuyPct != null && Number.isFinite(Number(deriv.takerBuyPct))
                 ? `${Number(deriv.takerBuyPct).toFixed(1)}%`
                 : "—"}
             </span>

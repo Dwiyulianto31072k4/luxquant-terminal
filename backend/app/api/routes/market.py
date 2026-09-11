@@ -11,7 +11,7 @@ OPTIMIZED v3:
 v4: /prices endpoint now returns {price, volume} per symbol
 v5: /prices Bybit fallback when Binance is blocked/unavailable
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from typing import Optional, List, Any
 import asyncio
 import time
@@ -1202,3 +1202,11 @@ async def get_btc_full():
         "onchain": onchain,
         "news": news,
     }
+
+@router.get("/exchange-data")
+async def get_exchange_data(request: Request, provider: str, path: str):
+    from app.services.public_market import exchange_data
+    params = dict(request.query_params)
+    params.pop("provider", None)
+    params.pop("path", None)
+    return await exchange_data(provider, path, params)

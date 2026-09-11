@@ -1,3 +1,4 @@
+import { fetchPublicMarket } from "../services/publicMarket";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -288,18 +289,21 @@ const SignalModal = ({
     setShowMarket(false);
     setActiveTab(initialTab);
 
+    const controller = new AbortController();
     const fetchDetail = async () => {
       try {
         // Attach Authorization header if user is logged in
         const token = localStorage.getItem("access_token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const r = await fetch(`/api/v1/signals/detail/${currentSignal.signal_id}`, { headers });
-        if (r.ok) setSignalDetail(await r.json());
+        const r = await fetch(`/api/v1/signals/detail/${currentSignal.signal_id}`, { headers, signal: controller.signal });
+        const detail = r.ok ? await r.json() : null;
+        if (detail && !controller.signal.aborted) setSignalDetail(detail);
       } catch (e) {
-        console.error("Failed to fetch signal detail:", e);
+        if (e.name !== "AbortError") console.error("Failed to fetch signal detail:", e);
       }
     };
     fetchDetail();
+    return () => controller.abort();
   }, [isOpen, signalKey]);
 
   // 3. Fetch data CoinGecko saat buka tab Research
@@ -310,23 +314,26 @@ const SignalModal = ({
     const sym = (signal.pair || "").replace(/USDT$/i, "").toUpperCase();
     if (!sym) return;
 
+    const controller = new AbortController();
     coinInfoFetchedRef.current = true;
     setCoinInfoLoading(true);
 
-    fetch(`/api/v1/coingecko/coin-info/${sym}`)
+    fetch(`/api/v1/coingecko/coin-info/${sym}`, { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data && !data.error) setCoinInfo(data);
+        if (!controller.signal.aborted && data && !data.error) setCoinInfo(data);
       })
-      .catch((err) => console.error("[SignalModal] coin-info error:", err))
-      .finally(() => setCoinInfoLoading(false));
-  }, [isOpen, signal, activeTab, coinInfo]);
+      .catch(() => { if (!controller.signal.aborted) coinInfoFetchedRef.current = false; })
+      .finally(() => { if (!controller.signal.aborted) setCoinInfoLoading(false); });
+    return () => { controller.abort(); coinInfoFetchedRef.current = false; };
+  }, [isOpen, signal?.pair, activeTab]);
 
   // 4. Fetch Peak Price AFTER highest TP hit — Binance → Bybit fallback chain
   // Shows how much higher price went BEYOND the last target hit
   useEffect(() => {
     if (!isOpen || !signal || !signalDetail?.entry || !signal.created_at) return;
 
+    let alive = true;
     const fetchPeakPrice = async () => {
       try {
         const symbol = (signal.pair || "").replace("USDT", "") + "USDT";
@@ -418,7 +425,7 @@ const SignalModal = ({
 
         // === 1. BINANCE FUTURES ===
         if (peak === null) try {
-          const res = await fetch(
+          const res = await fetchPublicMarket(
             `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`
           );
           if (res.ok) {
@@ -433,7 +440,7 @@ const SignalModal = ({
         // === 2. BINANCE SPOT ===
         if (peak === null) {
           try {
-            const res = await fetch(
+            const res = await fetchPublicMarket(
               `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`
             );
             if (res.ok) {
@@ -450,12 +457,13 @@ const SignalModal = ({
         if (peak === null) {
           try {
             const endTime = Date.now();
-            const res = await fetch(
+            const res = await fetchPublicMarket(
               `https://api.bybit.id/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`
             );
             if (res.ok) {
               const json = await res.json();
               const list = (json?.result?.list || []).map((k) => ({
+                ts: k[0],
                 high: k[2],
                 low: k[3],
               }));
@@ -470,12 +478,13 @@ const SignalModal = ({
         if (peak === null) {
           try {
             const endTime = Date.now();
-            const res = await fetch(
+            const res = await fetchPublicMarket(
               `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`
             );
             if (res.ok) {
               const json = await res.json();
               const list = (json?.result?.list || []).map((k) => ({
+                ts: k[0],
                 high: k[2],
                 low: k[3],
               }));
@@ -490,12 +499,13 @@ const SignalModal = ({
         if (peak === null) {
           try {
             const endTime = Date.now();
-            const res = await fetch(
+            const res = await fetchPublicMarket(
               `https://api.bybit.id/v5/market/kline?category=spot&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`
             );
             if (res.ok) {
               const json = await res.json();
               const list = (json?.result?.list || []).map((k) => ({
+                ts: k[0],
                 high: k[2],
                 low: k[3],
               }));
@@ -507,7 +517,7 @@ const SignalModal = ({
         }
 
         // Only show if peak exists (strictly beyond highest TP)
-        if (peak !== null) {
+        if (alive && peak !== null) {
           setPeakPrice(peak.price);
           setPeakAt(peak.at || null);
         }
@@ -517,6 +527,7 @@ const SignalModal = ({
     };
 
     fetchPeakPrice();
+    return () => { alive = false; };
   }, [isOpen, signalKey, signalDetail]);
 
   // Latest price in a ref, so the key-levels effect can read it without taking
@@ -532,6 +543,8 @@ const SignalModal = ({
     let alive = true;
     setLiveBlocked(false); // reset saat pair ganti / modal buka
     setDerivMetrics(null);
+    setLivePrice(null);
+    setLiveChange24h(null);
 
     const n = (v) => {
       const x = parseFloat(v);
@@ -580,27 +593,27 @@ const SignalModal = ({
     const fetchBinance = async () => {
       const [pmRes, oiRes, posRes, accRes, globRes, oi24Res, tickRes, takerRes, fundRes, klineRes, spotRes] =
         await Promise.allSettled([
-          fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
-          fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`),
-          fetch(
+          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
+          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`),
+          fetchPublicMarket(
             `https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`
           ),
-          fetch(
+          fetchPublicMarket(
             `https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`
           ),
-          fetch(
+          fetchPublicMarket(
             `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`
           ),
-          fetch(
+          fetchPublicMarket(
             `https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=25`
           ),
-          fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`),
-          fetch(
+          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`),
+          fetchPublicMarket(
             `https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${symbol}&period=5m&limit=1`
           ),
-          fetch(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=6`),
-          fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=8`),
-          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),
+          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=6`),
+          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=8`),
+          fetchPublicMarket(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),
         ]);
       if (pmRes.status !== "fulfilled" || !pmRes.value.ok) return null;
       const pm = await pmRes.value.json();
@@ -708,20 +721,20 @@ const SignalModal = ({
     // --- Bybit (fallback — accessible from ID/more regions) ---
     const fetchBybit = async () => {
       const [tkRes, oiRes, lsRes, fundRes, klineRes, spotRes] = await Promise.allSettled([
-        fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`),
-        fetch(
+        fetchPublicMarket(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`),
+        fetchPublicMarket(
           `https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${symbol}&intervalTime=1h&limit=25`
         ),
-        fetch(
+        fetchPublicMarket(
           `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1`
         ),
-        fetch(
+        fetchPublicMarket(
           `https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${symbol}&limit=6`
         ),
-        fetch(
+        fetchPublicMarket(
           `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=D&limit=8`
         ),
-        fetch(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}`),
+        fetchPublicMarket(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}`),
       ]);
       if (tkRes.status !== "fulfilled" || !tkRes.value.ok) return null;
       const tj = await tkRes.value.json();
@@ -809,7 +822,10 @@ const SignalModal = ({
       return out;
     };
 
+    let fetching = false;
     const fetchLiveData = async () => {
+      if (!alive || fetching || document.visibilityState === "hidden") return;
+      fetching = true;
       let data = null;
       try {
         data = await fetchBinance();
@@ -819,14 +835,17 @@ const SignalModal = ({
           data = await fetchBybit();
         } catch {}
       }
-      // Kedua provider gagal → tandai blocked (fallback pesan VPN di UI).
+      // Kedua provider gagal → tampilkan status data tidak tersedia.
       if (alive) setLiveBlocked(!data);
       applyData(data);
+      fetching = false;
     };
 
     fetchLiveData();
-    const iv = setInterval(fetchLiveData, 10000);
+    const iv = setInterval(fetchLiveData, 15000);
+    document.addEventListener("visibilitychange", fetchLiveData);
     return () => {
+      document.removeEventListener("visibilitychange", fetchLiveData);
       alive = false;
       clearInterval(iv);
     };
@@ -2041,7 +2060,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       <div className={`signal-modal-overlay ${isClosing ? "signal-modal-closing" : ""}`}>
         <div className="signal-modal-backdrop" onClick={handleCloseClick} aria-hidden="true" />
         <div className="signal-modal-container">
-          <div className="signal-modal-content">
+          <div className="signal-modal-content" role="dialog" aria-modal="true" aria-label={`${signal?.pair || "Signal"} details`}>
             {/* Drag handle mobile */}
             <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
               <div className="w-10 h-1 rounded-full bg-ink/20" />
@@ -2054,7 +2073,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 onClick={handleCloseClick}
                 title="Close"
                 aria-label="Close"
-                className="absolute right-2.5 top-2.5 z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.08] sm:right-3 sm:top-3 sm:h-9 sm:w-9"
+                className="absolute right-2.5 top-2.5 z-30 flex h-11 w-11 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.08] sm:right-3 sm:top-3 sm:h-9 sm:w-9"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path
@@ -2276,7 +2295,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     title="More actions"
                     aria-label="More actions"
                     aria-expanded={moreActionsOpen}
-                    className="relative z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:hidden"
+                    className="relative z-30 flex h-11 w-11 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:hidden"
                   >
                     <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <circle cx="5" cy="12" r="1.6" />

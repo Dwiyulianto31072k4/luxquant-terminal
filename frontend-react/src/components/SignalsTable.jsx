@@ -544,7 +544,6 @@ const SignalsTable = ({
   const { isAuthenticated } = useAuth();
   const [watchlistIds, setWatchlistIds] = useState([]);
 
-  const pairsRef = useRef("");
   const intervalRef = useRef(null);
   const pricesAccumRef = useRef({}); // accumulated price map (merge target)
   const noticeShownRef = useRef(false); // ensures the notice shows at most once per mount
@@ -599,18 +598,11 @@ const SignalsTable = ({
     if (onPricesUpdateRef.current) onPricesUpdateRef.current(merged);
   };
 
+  const pricePairsKey = JSON.stringify([...new Set(
+    (allPairs?.length ? allPairs : (signals || []).map((s) => s.pair)).filter(Boolean)
+  )].sort());
   useEffect(() => {
-    // Prefer the full set of pairs (all signals) so volume sort has complete data.
-    // Fall back to current-page pairs if allPairs wasn't provided.
-    const sourcePairs =
-      allPairs && allPairs.length > 0 ? allPairs : (signals || []).map((s) => s.pair);
-
-    const uniquePairs = [...new Set(sourcePairs.filter(Boolean))].sort();
-    const newKey = uniquePairs.join(",");
-
-    if (newKey === pairsRef.current) return;
-    pairsRef.current = newKey;
-
+    const uniquePairs = JSON.parse(pricePairsKey);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -618,6 +610,7 @@ const SignalsTable = ({
 
     if (uniquePairs.length === 0) return;
 
+    let alive = true;
     const wanted = new Set(uniquePairs);
 
     // Fetch all requested symbols THROUGH THE BACKEND PROXY, in chunks.
@@ -672,7 +665,7 @@ const SignalsTable = ({
       try {
         const proxied = await fetchViaProxy(uniquePairs);
         if (proxied) {
-          applyMap(proxied);
+          if (alive) applyMap(proxied);
           return;
         }
       } catch (err) {
@@ -683,7 +676,7 @@ const SignalsTable = ({
       try {
         const linear = await fromBybit("linear");
         if (linear) {
-          applyMap(linear);
+          if (alive) applyMap(linear);
           return;
         }
       } catch (err2) {
@@ -693,21 +686,24 @@ const SignalsTable = ({
       // 3) Fallback: direct Bybit spot
       try {
         const spot = await fromBybit("spot");
-        if (spot) applyMap(spot);
+        if (alive && spot) applyMap(spot);
       } catch (err3) {
         console.warn("[Prices] All providers failed:", err3.message);
       }
     };
 
+    let fetching = false;
     const runFetch = async () => {
-      await fetchPrices();
+      if (!alive || fetching) return;
+      fetching = true;
+      try { await fetchPrices(); } finally { fetching = false; }
       // "Failed" only when the WHOLE map is still empty after every provider
       // tried. Individual unlisted coins staying blank is normal, not a failure.
-      setPricesFailed(Object.keys(pricesAccumRef.current).length === 0);
+      if (alive) setPricesFailed(Object.keys(pricesAccumRef.current).length === 0);
     };
 
     setPricesLoading(true);
-    runFetch().finally(() => setPricesLoading(false));
+    runFetch().finally(() => { if (alive) setPricesLoading(false); });
 
     // Prices come straight from the exchange, so this costs the user's data and
     // battery rather than our server — which is exactly why a hidden tab should
@@ -724,13 +720,14 @@ const SignalsTable = ({
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      alive = false;
       document.removeEventListener("visibilitychange", onVisible);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [allPairs, signals]);
+  }, [pricePairsKey]);
 
   const getPrice = (pair) => {
     const data = currentPrices[pair];
@@ -1202,17 +1199,17 @@ const SignalsTable = ({
     return (
       <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
         {/* Pair, E→TP, SL, live. Tap opens the call — star is the only other target. */}
-        <div className="flex items-start gap-2 p-3.5">
+        <div className="relative flex items-start gap-2 p-3.5">
           <button
             type="button"
             onClick={() => onRowClick && onRowClick(signal)}
-            className="flex min-w-0 flex-1 items-start gap-2.5 text-left"
+            className="min-w-0 flex-1 text-left"
           >
-            <CoinLogo pair={signal.pair} size={32} />
             <div className="min-w-0 flex-1">
               {/* line 1 — identity */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[13.5px] font-medium text-text-primary">
+              <div className="flex min-h-9 flex-wrap items-center gap-2 pr-9">
+                <CoinLogo pair={signal.pair} size={28} />
+                <span className="text-sm font-semibold text-text-primary">
                   {getCoinName(signal.pair)}
                   <span className="text-text-muted">/USDT</span>
                 </span>
@@ -1252,44 +1249,24 @@ const SignalsTable = ({
                   </span>
                 ) : null}
               </div>
-              {/* line 2 — entry → target (upside) */}
-              <div className="mt-1 flex flex-wrap items-baseline gap-1 font-mono text-[11px]">
-                <span className="text-text-muted">E</span>
-                <span className="tabular-nums text-text-secondary">
-                  {formatPrice(signal.entry)}
-                </span>
-                {maxTarget != null ? (
-                  <>
-                    <span className="text-text-muted/50">→</span>
-                    <span className="tabular-nums text-profit">{formatPrice(maxTarget)}</span>
-                    {potentialPct != null ? (
-                      <span className="font-semibold tabular-nums text-profit">
-                        +{potentialPct.toFixed(1)}%
-                      </span>
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-              {/* line 3 — stop: price and % risk from entry, always on */}
-              <div className="mt-0.5 flex flex-wrap items-baseline gap-1 font-mono text-[11px]">
-                <span className="text-text-muted">SL</span>
-                {sl != null ? (
-                  <>
-                    <span className="tabular-nums font-medium text-loss">
-                      {formatPrice(sl)}
-                    </span>
-                    {slPct != null ? (
-                      <span className="font-semibold tabular-nums text-loss">
-                        {slPct.toFixed(1)}%
-                      </span>
-                    ) : null}
-                  </>
-                ) : (
-                  <span className="text-text-muted">—</span>
-                )}
+              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-ink/[0.06] pt-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] text-text-muted">Entry</div>
+                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-text-primary">{formatPrice(signal.entry)}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] text-text-muted">Target</div>
+                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-profit">{maxTarget != null ? formatPrice(maxTarget) : "—"}</div>
+                  {potentialPct != null ? <div className="mt-0.5 font-mono text-[11px] tabular-nums text-profit">+{potentialPct.toFixed(1)}%</div> : null}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] text-text-muted">Stop</div>
+                  <div className="mt-1 break-all font-mono text-xs tabular-nums text-loss">{sl != null ? formatPrice(sl) : "—"}</div>
+                  {slPct != null ? <div className="mt-0.5 font-mono text-[11px] tabular-nums text-loss">{slPct.toFixed(1)}%</div> : null}
+                </div>
               </div>
               {/* line 3 — live + optional quality / vol / time */}
-              <div className="mt-0.5 flex flex-wrap items-center gap-2 font-mono text-[11px]">
+              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-ink/[0.06] pt-2.5 font-mono text-xs">
                 {priceChange !== null ? (
                   <span
                     className={`font-medium tabular-nums ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
@@ -1339,7 +1316,7 @@ const SignalsTable = ({
           </button>
           {!teaser ? (
             <div
-              className="flex-shrink-0 self-center"
+              className="absolute right-2 top-2"
               onClick={(e) => e.stopPropagation()}
             >
               <StarButton

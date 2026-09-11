@@ -206,6 +206,7 @@ function TagPicker({ catalog, selected, onToggle }) {
 
 export default function SignalsCustomCalls({
   deskState,
+  active = false,
   onApply,
   show,
   tagWr = [],
@@ -355,10 +356,10 @@ export default function SignalsCustomCalls({
     <>
       <button
         type="button"
-        className={`${deskChipClass(!!appliedId)} !h-8 !px-2 sm:!h-7 sm:!px-2.5`}
+        className={`${deskChipClass(active)} !h-11 justify-center !px-2 sm:!h-7 sm:!px-2.5`}
         title="Build a custom call screen"
         onClick={() => {
-          if (mine && appliedId !== mine.id) apply(mine);
+          if (mine && (!active || appliedId !== mine.id)) apply(mine);
           else setOpen(true);
         }}
       >
@@ -371,7 +372,7 @@ export default function SignalsCustomCalls({
         size="full"
         eyebrow="Filters"
         title="Custom"
-        subtitle="Pick exact pairs from the desk. BTC, BTCUSDT and bitcoin all become BTCUSDT."
+        subtitle="Rules match the desk and notifications. Edge percentile uses the full 7-day book; days and search only narrow your view."
         footer={() => (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-start">

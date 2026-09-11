@@ -77,6 +77,13 @@ describe("Called sorts by when the call went out", () => {
 
 describe("formatSortChain", () => {
   it("numbers the levels so hidden ones are still nameable", () => {
-    expect(formatSortChain(chain)).toBe("1 Verdict ↓ · 2 Edge ↓ · 3 Called ↑");
+    expect(formatSortChain(chain)).toBe("1 Pair record ↓ · 2 Edge ↓ · 3 Called ↑");
   });
+});
+
+it('sorts Pair record by adjusted rate, keeps zero real and unknown last in both directions', () => {
+  const rows = ['a','b','c','d'].map(pair => ({pair,signal_id:pair}));
+  const ctx = { coinIntel: { a:{win_rate:100,win_rate_shrunk:70}, b:{win_rate:85,win_rate_shrunk:82}, c:{win_rate:0} } };
+  expect(sortSignals(rows,[{field:'verdict',order:'desc'}],ctx).map(s=>s.pair)).toEqual(['b','a','c','d']);
+  expect(sortSignals(rows,[{field:'verdict',order:'asc'}],ctx).map(s=>s.pair)).toEqual(['c','a','b','d']);
 });

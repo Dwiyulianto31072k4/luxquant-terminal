@@ -1,6 +1,10 @@
 import api from "./api";
 
 export const signalAlertApi = {
+  preview: async (criteria, signal) => {
+    const { data } = await api.post("/signal-filters/preview", { criteria }, { signal });
+    return data;
+  },
   list: async () => {
     const { data } = await api.get("/signal-filters/");
     return data;
@@ -123,26 +127,8 @@ export function criteriaIsEmpty(c) {
 }
 
 export function criteriaToDeskState(c = {}) {
-  return {
-    selectedTags: Array.isArray(c.tags) ? c.tags : [],
-    tagMatchMode: c.tag_match === "all" ? "all" : "any",
-    riskFilter: c.risk_level?.[0] || "all",
-    statusFilter: c.status?.[0] || "all",
-    searchPair: (c.pairs?.[0] || "").replace(/USDT$/i, ""),
-    corrDecoupled: !!c.btc_decoupled,
-    corrHighAlign: Number(c.min_btc_align) >= 70,
-    edgeTop: c.edge_top || (c.runners ? 20 : null),
-    extra: {
-      excludeTags: c.exclude_tags || [],
-      excludePairs: c.exclude_pairs || [],
-      excludeConfound: !!c.exclude_confound,
-      minMcap: c.min_mcap,
-      maxMcap: c.max_mcap,
-      maxVolRank: c.max_volume_rank,
-      minSlPct: c.min_sl_pct,
-      maxSlPct: c.max_sl_pct,
-    },
-  };
+  // Preserve every rule. The backend also evaluates these for notifications.
+  return { extra: { criteria: structuredClone(c) }, searchPair: "" };
 }
 
 export const MCAP_PRESETS = [

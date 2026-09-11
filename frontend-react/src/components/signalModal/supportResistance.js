@@ -1,3 +1,4 @@
+import { fetchPublicMarket } from "../../services/publicMarket";
 // ── Support / resistance ─────────────────────────────────────────────────────
 // Built to the method the research converges on, not the easy one.
 //
@@ -376,7 +377,7 @@ const BARS = 200;
 
 async function klines(symbol, tf) {
   try {
-    const r = await fetch(
+    const r = await fetchPublicMarket(
       `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=${BARS}`
     );
     if (r.ok) return { rows: await r.json(), newestFirst: false };
@@ -384,7 +385,7 @@ async function klines(symbol, tf) {
     /* fall through */
   }
   try {
-    const r = await fetch(
+    const r = await fetchPublicMarket(
       `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}` +
         `&interval=${BYBIT_TF[tf] || "60"}&limit=${BARS}`
     );
@@ -400,7 +401,7 @@ async function klines(symbol, tf) {
 
 async function orderBook(symbol) {
   try {
-    const r = await fetch(
+    const r = await fetchPublicMarket(
       `https://fapi.binance.com/fapi/v1/depth?symbol=${symbol}&limit=1000`
     );
     if (!r.ok) return null;

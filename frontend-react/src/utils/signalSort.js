@@ -2,8 +2,8 @@
 // Multi-level signal sort — as deep and stable as a desk needs.
 //
 // Chain example: verdict ↓ → edge_score ↓ → created_at ↓
-//   1) Worth / Neutral / Avoid (as-of-entry LOO when provided)
-//   2) Edge Score within same verdict
+//   1) Pair record adjusted for sample size
+//   2) Edge Score within equal pair records
 //   3) Newest call as final tiebreak
 //
 // Interactions (table headers):
@@ -18,7 +18,7 @@ export const SORT_LABELS = {
   edge_score: "Edge",
   created_at: "Called",
   last_update: "Updated",
-  verdict: "Verdict",
+  verdict: "Pair record",
   win_rate: "Win rate",
   win_streak: "Win streak",
   max_target: "Max target %",
@@ -240,30 +240,6 @@ const STATUS_RANK = {
 };
 
 /**
- * Verdict category for sort: Worth > Neutral > Avoid (desc).
- * Uses getVerdictForSignal when provided (LOO-safe).
- */
-function verdictCategory(signal, ctx) {
-  let v = null;
-  if (typeof ctx.getVerdictForSignal === "function") {
-    v = ctx.getVerdictForSignal(signal);
-  } else if (ctx.verdictByPair && signal?.pair) {
-    v = ctx.verdictByPair[signal.pair];
-  }
-  if (v === "worth_it") return 2;
-  if (v === "neutral") return 1;
-  if (v === "avoid") return 0;
-  return null;
-}
-
-function verdictScore(signal, ctx) {
-  const coin = ctx.coinIntel?.[signal?.pair];
-  if (!coin || coin.risk_score == null || coin.risk_score === "") return null;
-  const n = Number(coin.risk_score);
-  return Number.isFinite(n) ? n : null;
-}
-
-/**
  * @returns {{ v: number|string|null, kind: 'num'|'str' }}
  */
 export function sortValue(signal, field, ctx = {}) {
@@ -306,13 +282,10 @@ export function sortValue(signal, field, ctx = {}) {
     case "btc_corr":
       return { v: signal.btc_align_score ?? null, kind: "num" };
     case "verdict": {
-      // Composite: category * 1000 + risk_score so Worth tops, then score within band.
-      // Missing category → null (sinks).
-      const cat = verdictCategory(signal, ctx);
-      if (cat == null) return { v: null, kind: "num" };
-      const sc = verdictScore(signal, ctx);
-      const scorePart = sc != null ? Math.min(999, Math.max(0, sc)) : 0;
-      return { v: cat * 1000 + scorePart, kind: "num" };
+      const coin = ctx.coinIntel?.[signal.pair];
+      const rate = coin?.win_rate_shrunk ?? coin?.win_rate;
+      const value = rate == null || rate === "" ? null : Number(rate);
+      return { v: Number.isFinite(value) ? value : null, kind: "num" };
     }
     case "edge_score":
       return { v: edgeMap[signal.signal_id]?.score ?? null, kind: "num" };
@@ -402,14 +375,14 @@ export function orderLabel(field, order) {
     if (isAlpha) return "Z–A";
     if (isRisk) return "High";
     if (isStatus) return "Latest";
-    if (field === "verdict") return "Worth first";
+    if (field === "verdict") return "Highest WR";
     return "Highest";
   }
   if (isTime) return "Oldest";
   if (isAlpha) return "A–Z";
   if (isRisk) return "Low";
   if (isStatus) return "Early";
-  if (field === "verdict") return "Avoid first";
+  if (field === "verdict") return "Lowest WR";
   return "Lowest";
 }
 

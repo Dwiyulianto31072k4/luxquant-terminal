@@ -102,6 +102,7 @@ export default function EdgeRecipesBar({
   corrHighAlign = false,
   onApplyState,
   showRecipes = true,
+  customActive = false,
   watchlistCount = 0,
   watchlistActive = false,
   onWatchlist,
@@ -305,7 +306,7 @@ export default function EdgeRecipesBar({
     onApplyState?.(r.build());
   };
 
-  const modeValue = watchlistActive
+  const modeValue = customActive ? "custom" : watchlistActive
     ? "watchlist"
     : activeId === "full_tp"
       ? activeId
@@ -338,7 +339,7 @@ export default function EdgeRecipesBar({
       return;
     }
     if (key === "all") {
-      if (modeValue !== "all") onApplyState?.(ALL_MODE_STATE);
+      if (modeValue !== "all" || customActive) onApplyState?.(ALL_MODE_STATE);
       return;
     }
     const r = builtins.find((x) => x.id === key);
@@ -351,12 +352,12 @@ export default function EdgeRecipesBar({
   };
 
   return (
-    <div className="min-w-0 flex-1">
+    <div className="contents sm:block sm:min-w-0 sm:flex-1">
       {/* Three modes on one line; Results is a sibling, not a wrapped leftover. */}
-      <div className="flex min-w-0 flex-1 items-center gap-1.5">
-        <div className="min-w-0 flex-1">
+      <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:items-center sm:gap-1.5">
+        <div className="col-span-3 min-w-0 sm:flex-1">
           <SegGroup
-            size="sm"
+            size="touch"
             fill="mobile"
             className="w-full"
             aria-label="Desk mode"
@@ -368,7 +369,7 @@ export default function EdgeRecipesBar({
         {showRecipes ? (
           <button
             type="button"
-            className={`${deskChipClass(resultsOpen)} !h-8 !px-2 sm:!h-7 sm:!px-2.5`}
+            className={`${deskChipClass(resultsOpen)} !h-11 justify-center !px-2 sm:!h-7 sm:!px-2.5`}
             title="Closed-call record of Runners vs the unfiltered desk"
             onClick={() => setResultsOpen(true)}
           >

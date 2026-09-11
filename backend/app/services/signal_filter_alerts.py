@@ -65,9 +65,7 @@ def _with_live_runners(criteria: dict, db) -> dict:
     tw = get_tag_wr(days=0, min_n=40, db=db)
     names = [t.get("tag") for t in select_runner_tags(tw.get("tags") or []) if t.get("tag")]
     out = dict(criteria)
-    extra = _as_list(out.get("tags"))
-    out["tags"] = list(dict.fromkeys([*names, *extra]))
-    out.setdefault("tag_match", "any")
+    out["_runner_tags"] = names or ["__NO_RUNNER_TAGS__"]
     return out
 
 
@@ -78,7 +76,7 @@ def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
 
     risks = _as_list(criteria.get("risk_level"))
     if risks:
-        where.append("lower(s.risk_level) = ANY(:risks)")
+        where.append("(CASE WHEN lower(s.risk_level) LIKE 'low%' THEN 'low' WHEN lower(s.risk_level) LIKE 'high%' THEN 'high' WHEN lower(s.risk_level) LIKE 'med%' OR lower(s.risk_level) LIKE 'nor%' THEN 'normal' ELSE 'unrated' END) = ANY(:risks)")
         params["risks"] = [r.lower() for r in risks]
 
     ratings = _as_list(criteria.get("rating"))
@@ -96,14 +94,19 @@ def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
         where.append("upper(s.pair) <> ALL(:exclude_pairs)")
         params["exclude_pairs"] = [_norm_pair(p) for p in exclude_pairs]
 
-    statuses = [
-        s.lower()
-        for s in _as_list(criteria.get("status"))
-        if s.lower() not in ("all", "any", "updated")
-    ]
-    if statuses:
-        where.append("lower(s.status) = ANY(:statuses)")
-        params["statuses"] = statuses
+    statuses = [s.lower() for s in _as_list(criteria.get("status"))]
+    if statuses and not {"all", "any"}.intersection(statuses):
+        aliases = {"tp1_plus": ["tp1", "tp2", "tp3", "tp4"],
+                   "tp2_plus": ["tp2", "tp3", "tp4"], "full_tp": ["tp3", "tp4"],
+                   "closed_win": ["tp4"], "closed_loss": ["sl"]}
+        concrete = list({v for st in statuses if st != "updated" for v in aliases.get(st, [st])})
+        status_where = []
+        if concrete:
+            status_where.append("COALESCE((SELECT o.outcome FROM _cache_outcomes o WHERE o.signal_id=s.signal_id), 'open') = ANY(:statuses)")
+            params["statuses"] = concrete
+        if "updated" in statuses:
+            status_where.append("EXISTS (SELECT 1 FROM _cache_last_updates u WHERE u.signal_id=s.signal_id AND u.last_update_at IS NOT NULL)")
+        where.append("(" + " OR ".join(status_where) + ")")
 
     min_conf = criteria.get("min_confidence")
     if isinstance(min_conf, (int, float)):
@@ -115,13 +118,16 @@ def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
         where.append("lower(coalesce(e.signal_direction, '')) = ANY(:directions)")
         params["directions"] = [d.lower() for d in directions]
 
+    # Stored values include "$250M" and "N/A". Unknown size must stay NULL.
+    mcap_clean = "upper(regexp_replace(coalesce(s.market_cap, ''), '[,$[:space:]]', '', 'g'))"
+    mcap_number = f"(CASE WHEN {mcap_clean} ~ '^[0-9]+([.][0-9]+)?[KMBT]?$' THEN regexp_replace({mcap_clean}, '[KMBT]$', '')::numeric * CASE right({mcap_clean},1) WHEN 'T' THEN 1e12 WHEN 'B' THEN 1e9 WHEN 'M' THEN 1e6 WHEN 'K' THEN 1e3 ELSE 1 END ELSE NULL END)"
     min_mcap = criteria.get("min_mcap")
     if isinstance(min_mcap, (int, float)):
-        where.append("s.market_cap >= :min_mcap")
+        where.append(f"{mcap_number} >= :min_mcap")
         params["min_mcap"] = float(min_mcap)
     max_mcap = criteria.get("max_mcap")
     if isinstance(max_mcap, (int, float)):
-        where.append("s.market_cap <= :max_mcap")
+        where.append(f"{mcap_number} <= :max_mcap")
         params["max_mcap"] = float(max_mcap)
 
     max_vol_rank = criteria.get("max_volume_rank")
@@ -192,6 +198,12 @@ def _build_conditions(criteria: dict) -> tuple[list[str], dict]:
         else:
             where.append(f"({tag_sql}) > 0")
 
+    # Runner gate is ANDed with the user's tag rules, not merged into their OR.
+    if criteria.get("_runner_tags"):
+        runner_where, runner_params = _build_conditions({"tags": criteria["_runner_tags"]})
+        where.extend(w.replace(":tags", ":runner_tags") for w in runner_where)
+        params["runner_tags"] = runner_params["tags"]
+
     exclude_tags = _as_list(criteria.get("exclude_tags"))
     if criteria.get("exclude_confound"):
         exclude_tags = list(dict.fromkeys([*exclude_tags, *sorted(CONFOUND_TAGS)]))
@@ -251,17 +263,20 @@ def generate_filter_match_notifications(db) -> int:
                 log.warning("filter %s has unreadable criteria; skipped", fid)
                 continue
         criteria = criteria or {}
-        try:
-            criteria = _with_live_runners(criteria, db)
-        except Exception as e:
-            log.warning("filter %s runners resolve failed: %s", fid, e)
-            continue
-
         # An empty filter matches everything. That is never what someone means
         # by "alert me", so it is treated as not yet configured.
         where, params = _build_conditions(criteria)
-        if not where:
+        if not where and not criteria.get("edge_top") and not criteria.get("runners"):
             continue
+        try:
+            from app.services.signal_screen import match_screen
+            ids = match_screen(criteria, db)
+        except Exception:
+            log.exception("filter %s evaluation failed; skipped", fid)
+            continue
+        if not ids:
+            continue
+        where, params = ["s.signal_id = ANY(:screen_ids)"], {"screen_ids": ids}
 
         params.update({"fid": fid, "since": updated_at, "lim": MAX_MATCHES_PER_PASS})
         rows = db.execute(text(f"""

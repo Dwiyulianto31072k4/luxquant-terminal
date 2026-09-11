@@ -111,7 +111,7 @@ def _set_telegram(db: Session, user: User, on: bool) -> None:
 
 
 def _require_configured(criteria: dict) -> None:
-    if criteria.get("runners"):
+    if criteria.get("runners") or criteria.get("edge_top"):
         return
     where, _ = _build_conditions(criteria)
     if not where:
@@ -250,3 +250,18 @@ def delete_filter(
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Not found")
     db.commit()
+
+
+class PreviewIn(BaseModel):
+    criteria: dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/preview")
+def preview_filter(data: PreviewIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.has_active_access:
+        raise HTTPException(403, "Subscription required")
+    from app.services.signal_screen import match_screen
+    try:
+        return {"signal_ids": match_screen(_clean_criteria(data.criteria), db)}
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Invalid Custom criteria")
