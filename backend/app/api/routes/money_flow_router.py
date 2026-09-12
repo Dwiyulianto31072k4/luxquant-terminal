@@ -88,9 +88,16 @@ def _pct_change(now_val, then_val):
 @router.get("/sectors")
 def money_flow_sectors(
     limit: int = Query(20, ge=1, le=50),
-    min_cap_usd: float = Query(
-        MIN_SECTOR_CAP_USD, ge=0,
-        description="market-cap floor; 0 disables it and returns every category",
+    # Default is None, not MIN_SECTOR_CAP_USD, because this function is also
+    # called directly (money_flow_overview). Outside a request FastAPI never
+    # resolves the default, so a `Query(...)` object would reach psycopg2 as a
+    # bind parameter and blow up with "can't adapt type 'Query'".
+    min_cap_usd: Optional[float] = Query(
+        None, ge=0,
+        description=(
+            "market-cap floor; omit for the $50M default, 0 to disable it "
+            "and return every category"
+        ),
     ),
     db: Session = Depends(get_db),
 ):
@@ -99,6 +106,15 @@ def money_flow_sectors(
 
     Ranked by 24h market-cap change, so the size floor is not cosmetic — see
     MIN_SECTOR_CAP_USD. Pass min_cap_usd=0 to opt out."""
+    # Not `is None`: called outside a request the parameter is still the
+    # `Query(...)` object itself, never the default inside it. Only a real
+    # number counts as "the caller asked for a specific floor".
+    cap_floor = (
+        float(min_cap_usd)
+        if isinstance(min_cap_usd, (int, float))
+        else MIN_SECTOR_CAP_USD
+    )
+
     latest = _latest_snapshot_at(db, "mf_sector_snapshots")
     if latest is None:
         return {"sectors": [], "note": "no snapshot yet — the worker has not run"}
@@ -120,7 +136,7 @@ def money_flow_sectors(
         FROM mf_sector_snapshots
         WHERE snapshot_at = :at
           AND (:min_cap <= 0 OR market_cap >= :min_cap)
-    """), {"at": latest, "min_cap": min_cap_usd}).fetchall()
+    """), {"at": latest, "min_cap": cap_floor}).fetchall()
 
     # Map historis buat delta
     def _hist(at):
@@ -162,7 +178,7 @@ def money_flow_sectors(
         "snapshot_at": latest.isoformat(),
         "has_7d": at_7d is not None,
         "has_30d": at_30d is not None,
-        "min_cap_usd": min_cap_usd,
+        "min_cap_usd": cap_floor,
         "excluded_below_cap": max(0, total_rows - len(now_rows)),
     }
 
