@@ -1245,7 +1245,10 @@ export function CoinBubble({
   const li = R * 0.7;
   // Unique per drawn position: the same pair can hold two open calls, and two
   // clip paths sharing an id would clip the second logo to the first's circle.
-  const cid = `lqb${sym}-${Math.round(cx)}-${Math.round(cy)}`;
+  // Quantised to 4px so a pan does not rewrite every id on every frame —
+  // pickLabels already keeps named bubbles further apart than that on at least
+  // one axis, so the id stays unique.
+  const cid = `lqb${sym}-${Math.round(cx / 4)}-${Math.round(cy / 4)}`;
   return (
     <g {...click}>
       {title ? <title>{title}</title> : null}
