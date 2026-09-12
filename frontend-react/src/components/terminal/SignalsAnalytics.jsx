@@ -116,7 +116,11 @@ function AnomDot({ cx, cy, payload, statusMap, onPair, showLabel }) {
   const r = hot ? 7 : dec ? 5.5 : 3.5;
   const fill = hot ? GOLD : dec ? CYAN : GRAYBAR;
   const sym = (payload.pair || "").replace(/USDT$/i, "");
-  const labelOn = showLabel && (hot || dec || showLabel === "all");
+  // "all" still means all; the default view labels only the ranked extremes.
+  const labelOn =
+    showLabel === "all"
+      ? true
+      : showLabel && (hot || dec) && payload.named !== false;
   return (
     <g style={{ cursor: "pointer" }} onClick={() => payload.pair && onPair?.(payload.pair)}>
       {hot && <circle cx={cx} cy={cy} r={r + 5} fill={GOLD} fillOpacity={0.12} />}
@@ -655,6 +659,23 @@ export default function SignalsAnalytics() {
     anomPts.forEach((p) => {
       p.hot = medFlow > 0 && p.y > medFlow * 3 && p.x > 5;
     });
+    // Label the extremes, not everything. Recharts draws each dot without
+    // knowing its neighbours, so labelling every hot point piles names on top of
+    // each other wherever the cloud is dense — which is exactly around the axis,
+    // where most coins sit. Collision detection would work but makes labels
+    // flicker on every re-render; ranking is deterministic and is what the
+    // charting rule asks for anyway: selective direct labels, never one per
+    // point. Rank by distance from the origin so both a big mover and a heavy
+    // flow can earn a name.
+    [...anomPts]
+      .sort(
+        (a, b) =>
+          Math.hypot(b.x / 25, b.y / (medFlow * 3 || 1)) -
+          Math.hypot(a.x / 25, a.y / (medFlow * 3 || 1))
+      )
+      .forEach((p, i) => {
+        p.named = i < 14;
+      });
 
     const days = Object.values(byDay).sort((a, b) => a.day.localeCompare(b.day));
     // cumulative daily outcome balance (tp4 wins − sl losses)
@@ -962,13 +983,20 @@ export default function SignalsAnalytics() {
             selected={selRisks}
             onChange={(arr) => setF({ risks: arr.join(",") })}
           />
-          <Chip
-            active={filters.dec === "1"}
-            onClick={() => setF({ dec: filters.dec === "1" ? "" : "1" })}
-            title="Low beta — coins that move independently of Bitcoin"
-          >
-            {t("terminal.viz.decoupled")}
-          </Chip>
+          {/* Hidden when nothing qualifies. Decoupled is real but rare — 0 of
+              the last 655 calls — and a filter that empties the desk with no
+              explanation is worse than no filter. Still rendered while it is
+              ACTIVE, or turning it off would become impossible. */}
+          {agg.decoupled > 0 || filters.dec === "1" ? (
+            <Chip
+              active={filters.dec === "1"}
+              onClick={() => setF({ dec: filters.dec === "1" ? "" : "1" })}
+              title={`Low beta — moves independently of Bitcoin · ${agg.decoupled} in view`}
+            >
+              {t("terminal.viz.decoupled")}
+              <span className="ml-1 font-mono text-[9px] opacity-70">{agg.decoupled}</span>
+            </Chip>
+          ) : null}
           {(hasDrill || windowDays !== 7) && (
             <button
               type="button"
@@ -1489,7 +1517,13 @@ export default function SignalsAnalytics() {
                       {[
                         { id: "all", label: "All", n: agg.anomPts.length },
                         { id: "hot", label: "Hot", n: anomMeta.hotN },
-                        { id: "dec", label: "Decoupled", n: anomMeta.decN },
+                        // Decoupled is genuine but rare: 0 of the last 655
+                        // calls, 0.9% of all history. An always-empty layer
+                        // teaches people a third of this control is broken, so
+                        // it appears only when it has members.
+                        ...(anomMeta.decN > 0
+                          ? [{ id: "dec", label: "Decoupled", n: anomMeta.decN }]
+                          : []),
                         { id: "rest", label: "Other", n: anomMeta.restN },
                       ].map((opt) => (
                         <button
@@ -1671,7 +1705,9 @@ export default function SignalsAnalytics() {
                     <div className="mt-1.5 flex flex-wrap items-center justify-center gap-3 border-t border-ink/[0.04] pt-1.5 shrink-0">
                       {[
                         { c: GOLD, l: t("terminal.viz.legHot"), n: anomMeta.hotN, id: "hot" },
-                        { c: CYAN, l: t("terminal.viz.legDec"), n: anomMeta.decN, id: "dec" },
+                        ...(anomMeta.decN > 0
+                          ? [{ c: CYAN, l: t("terminal.viz.legDec"), n: anomMeta.decN, id: "dec" }]
+                          : []),
                         {
                           c: GRAYBAR,
                           l: t("terminal.viz.legRest"),

@@ -25,8 +25,11 @@ export const authHeaders = () => {
 export const GOLD = "rgb(var(--accent))";
 export const POS = "rgb(var(--pos))";
 export const NEG = "rgb(var(--neg))";
-export const CYAN = "rgb(56 189 248)"; // chart series only
-export const PURPLE = "rgb(167 139 250)"; // chart series only
+// Series colours are TOKENS, not literals. They were rgb() constants, which
+// meant they were never validated for colour vision and — worse — identical in
+// both themes, so a chart kept its dark-desk palette on the Bright desk.
+export const CYAN = "var(--viz-5)"; // chart series only
+export const PURPLE = "var(--viz-4)"; // chart series only
 export const ORANGE = "rgb(var(--neg))"; // alias warn → loss urgency (no decorative orange)
 export const GRAYBAR = "rgb(var(--fg) / 0.18)";
 export const GRID = "rgb(var(--ink) / 0.06)";
@@ -97,17 +100,18 @@ export function heatLabelColor() {
   return "#ffffff";
 }
 // Multi-series (vs BTC lines) — pos/neg first, then distinct chart hues
+// Fixed order, never cycled. Status colours (--pos / --neg) are deliberately
+// absent: they mean "good" and "bad", and reusing them as "series 1" and
+// "series 2" is how a neutral line ends up reading as a verdict.
 export const SERIES = [
-  "rgb(var(--pos))",
-  "rgb(var(--neg))",
-  "rgb(56 189 248)",
-  "rgb(167 139 250)",
-  "rgb(244 114 182)",
+  "var(--viz-1)",
+  "var(--viz-2)",
+  "var(--viz-3)",
+  "var(--viz-4)",
+  "var(--viz-5)",
+  "var(--viz-6)",
   "rgb(var(--accent))",
-  "rgb(45 212 191)",
-  "rgb(148 163 184)",
-  "rgb(251 146 60)",
-  "rgb(234 179 8)",
+  "var(--viz-muted)",
 ];
 
 export const STATUS_ORDER = ["open", "tp1", "tp2", "tp3", "closed_win", "closed_loss"];

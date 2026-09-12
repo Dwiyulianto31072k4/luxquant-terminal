@@ -38,6 +38,7 @@ import {
   GRAYBAR,
   GRID,
   AXIS,
+  MUTED,
   SERIES,
   TICK,
   TICK_SM,
@@ -499,7 +500,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                       {lsrBins.map((b, i) => (
                         <Cell
                           key={i}
-                          fill={b.mid > 2.5 ? NEG : b.mid < 0.7 ? POS : "rgb(148 163 184)"}
+                          fill={b.mid > 2.5 ? NEG : b.mid < 0.7 ? POS : MUTED}
                           fillOpacity={lsBin && Math.abs(lsBin.mid - b.mid) < 0.01 ? 1 : 0.75}
                           stroke={
                             lsBin && Math.abs(lsBin.mid - b.mid) < 0.01

@@ -306,7 +306,7 @@ const atrTier = (v) =>
         ? { k: "HIGH", c: "rgb(var(--warn))" }
         : v >= 35
           ? { k: "MODERATE", c: "rgb(var(--accent))" }
-          : { k: "FRESH", c: "rgb(56 189 248)" };
+          : { k: "FRESH", c: "var(--viz-5)" };
 
 export function AtrLevelsTab({ view, deriv, openPair }) {
   const { t } = useTranslation();
@@ -430,7 +430,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
 // Squeeze tab (funding × L/S); this is pure volatility structure.
 const sqzTier = (v) =>
   v <= 10
-    ? { k: "COILED", c: "rgb(34 211 238)" }
+    ? { k: "COILED", c: "var(--viz-5)" }
     : v <= 25
       ? { k: "TIGHT", c: "rgb(var(--pos))" }
       : v <= 50

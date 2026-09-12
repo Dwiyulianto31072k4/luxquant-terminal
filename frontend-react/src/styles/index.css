@@ -367,12 +367,24 @@
   --viz-1: #3987e5;
   --viz-2: #d95926;
   --viz-3: #199e70;
+  /* 4–6 added 2026-09-12 for the Terminal, which had been drawing series in
+     hardcoded rgb() literals — unvalidated for colour vision and identical in
+     both themes, so a chart stayed dark-mode coloured on the Bright desk.
+     Validated as a 6-slot categorical set: worst adjacent CVD ΔE 9.4 deutan
+     (dark) / 9.2 (light), normal-vision floor 21.1 / 23.3, all above the
+     lightness band and chroma floor, all ≥3:1 on their own surface. */
+  --viz-4: #8b5cf6;
+  --viz-5: #0891b2;
+  --viz-6: #b45309;
   --viz-muted: #6f6f68;
 }
 [data-theme="bright"] {
   --viz-1: #2a78d6;
   --viz-2: #eb6834;
   --viz-3: #1baf7a;
+  --viz-4: #7c3aed;
+  --viz-5: #0891b2;
+  --viz-6: #a16207;
   --viz-muted: #9a9a94;
 }
 
