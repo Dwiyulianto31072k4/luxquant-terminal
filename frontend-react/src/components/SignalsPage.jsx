@@ -2067,6 +2067,8 @@ const SignalsPage = () => {
         days={narrativeDays}
         onDaysChange={setNarrativeDays}
         activeIds={narrativeActiveIds}
+        signals={allSignals}
+        onOpenSignal={openSignal}
         onMore={() => navigate("/money-flow")}
         onPick={(n) => {
           setNarratives((prev) => {

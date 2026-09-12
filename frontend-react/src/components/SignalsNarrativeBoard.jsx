@@ -132,83 +132,6 @@ function OutcomeDonut({ totals }) {
   );
 }
 
-/** Rotation (x) against how far our calls ran (y). Size = coins we called. */
-function Quadrant({ items, medianPeak, activeIds, onPick }) {
-  // Wide viewBox, no height cap: the chart now scales with the column instead of
-  // being pinned to a 340-unit box and centred in whatever space was left.
-  const W = 620;
-  const H = 300;
-  const PAD = { l: 40, r: 14, t: 16, b: 30 };
-  const xs = items.map((i) => i.rs);
-  const ys = items.map((i) => i.peak);
-  const xMax = Math.max(Math.abs(Math.min(...xs)), Math.abs(Math.max(...xs)), 1) * 1.12;
-  const yMin = Math.min(...ys) * 0.92;
-  const yMax = Math.max(...ys) * 1.06;
-  const maxCoins = Math.max(...items.map((i) => i.coins), 1);
-
-  const px = (v) => PAD.l + ((v + xMax) / (2 * xMax)) * (W - PAD.l - PAD.r);
-  const py = (v) => H - PAD.b - ((v - yMin) / (yMax - yMin || 1)) * (H - PAD.t - PAD.b);
-  const rOf = (c) => 4 + Math.sqrt(c / maxCoins) * 10;
-
-  const x0 = px(0);
-  const yMed = py(medianPeak);
-  const active = new Set(activeIds || []);
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img"
-      aria-label="Capital rotation against how far our calls ran">
-      {/* quadrant fields, barely there — they label regions, they are not data */}
-      <rect x={x0} y={PAD.t} width={W - PAD.r - x0} height={yMed - PAD.t} fill="rgb(var(--pos) / 0.05)" />
-      <rect x={PAD.l} y={yMed} width={x0 - PAD.l} height={H - PAD.b - yMed} fill="rgb(var(--neg) / 0.04)" />
-
-      <line x1={x0} y1={PAD.t} x2={x0} y2={H - PAD.b} stroke="rgb(var(--ink) / 0.18)" strokeWidth="1" />
-      <line x1={PAD.l} y1={yMed} x2={W - PAD.r} y2={yMed} strokeDasharray="3 3" stroke="rgb(var(--ink) / 0.18)" strokeWidth="1" />
-
-      <text x={W - PAD.r} y={PAD.t + 9} textAnchor="end" className="fill-text-muted" style={{ fontSize: 8.5 }}>
-        money in · runs far
-      </text>
-      <text x={PAD.l + 2} y={H - PAD.b - 4} className="fill-text-muted" style={{ fontSize: 8.5 }}>
-        money out · runs short
-      </text>
-
-      <text x={x0} y={H - 8} textAnchor="middle" className="fill-text-muted" style={{ fontSize: 8.5, fontFamily: "monospace" }}>
-        0
-      </text>
-      <text x={W - PAD.r} y={H - 8} textAnchor="end" className="fill-text-muted" style={{ fontSize: 8.5, fontFamily: "monospace" }}>
-        +{xMax.toFixed(0)}pp
-      </text>
-      <text x={PAD.l} y={H - 8} className="fill-text-muted" style={{ fontSize: 8.5, fontFamily: "monospace" }}>
-        −{xMax.toFixed(0)}pp
-      </text>
-      <text x={4} y={PAD.t + 8} className="fill-text-muted" style={{ fontSize: 8.5, fontFamily: "monospace" }}>
-        {yMax.toFixed(0)}%
-      </text>
-      <text x={4} y={H - PAD.b} className="fill-text-muted" style={{ fontSize: 8.5, fontFamily: "monospace" }}>
-        {yMin.toFixed(0)}%
-      </text>
-
-      {items.map((i) => {
-        const on = active.has(i.id);
-        return (
-          <circle
-            key={i.id}
-            cx={px(i.rs)}
-            cy={py(i.peak)}
-            r={rOf(i.coins)}
-            fill={on ? "rgb(var(--accent) / 0.9)" : "rgb(var(--accent) / 0.35)"}
-            stroke={on ? "rgb(var(--accent))" : "rgb(var(--accent) / 0.55)"}
-            strokeWidth={on ? 1.5 : 1}
-            className="cursor-pointer transition-all hover:opacity-100"
-            onClick={() => onPick?.(i.raw)}
-          >
-            <title>{`${i.name}\n${i.rs >= 0 ? "+" : ""}${i.rs.toFixed(1)}pp vs market · typical peak +${i.peak.toFixed(1)}% · ${i.coins} coins`}</title>
-          </circle>
-        );
-      })}
-    </svg>
-  );
-}
-
 /** Shared derivation so the strip and the chart can never disagree. */
 function buildModel(narratives, marketChange7d) {
   const m = marketChange7d ?? 0;
@@ -235,34 +158,6 @@ function buildModel(narratives, marketChange7d) {
     total: items.length,
     moved: rows.reduce((t, x) => t + Math.abs(x.flow_usd_7d || 0), 0),
   };
-}
-
-export function NarrativeQuadrant({ narratives = [], marketChange7d = null, activeIds = [], onPick }) {
-  const model = useMemo(() => buildModel(narratives, marketChange7d), [narratives, marketChange7d]);
-  if (!model.items.length) return null;
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="mb-1 flex flex-wrap items-baseline gap-x-2">
-        <span className="text-[12.5px] font-medium text-text-primary">
-          Rotation vs how far our calls ran
-        </span>
-        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-          bubble = coins called
-        </span>
-      </div>
-      <Quadrant
-        items={model.items}
-        medianPeak={model.medianPeak}
-        activeIds={activeIds}
-        onPick={onPick}
-      />
-      <p className="mt-1 text-[11px] leading-snug text-text-muted">
-        Right of the line capital rotated in; above the dashes our calls ran further than the
-        median narrative. The two barely relate — a hot narrative is not a reason to expect more
-        from a call in it.
-      </p>
-    </div>
-  );
 }
 
 export default function SignalsNarrativeBoard({ narratives = [], marketChange7d = null }) {

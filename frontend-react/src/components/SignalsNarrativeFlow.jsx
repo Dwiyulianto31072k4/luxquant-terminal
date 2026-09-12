@@ -21,7 +21,9 @@ import CoinLogo from "./CoinLogo";
 import { SegGroup } from "./ui/SegGroup";
 import { InfoTip } from "./GuideInfo";
 import SignalsNarrativeRotation from "./SignalsNarrativeRotation";
-import SignalsNarrativeBoard, { NarrativeQuadrant } from "./SignalsNarrativeBoard";
+import SignalsNarrativeBoard from "./SignalsNarrativeBoard";
+import SignalsNarrativeBubbles from "./SignalsNarrativeBubbles";
+import NarrativeCallsModal from "./NarrativeCallsModal";
 import { useChartTokens } from "./charts/EChart";
 
 // The TP ladder, ordinal: tp1 → tp4 is "ran further". One validated hue ramp.
@@ -153,7 +155,13 @@ export default function SignalsNarrativeFlow({
   onPick,
   activeIds = [],
   onMore,
+  signals = [],
+  onOpenSignal,
 }) {
+  // Tapping a bubble asks "what did we call in there", which is a different
+  // question from "narrow the desk to it" — so it opens, and filtering stays an
+  // explicit action inside.
+  const [drill, setDrill] = useState(null);
   const [open, setOpen] = useState(false);
   const [sort, setSort] = useState("coins");
   // Phone only: the two halves are a toggle, not a stack. Stacked, the flow
@@ -377,12 +385,31 @@ export default function SignalsNarrativeFlow({
                   view === "table" ? "hidden lg:grid" : ""
                 }`}
               >
-                <NarrativeQuadrant
-                  narratives={narratives}
-                  marketChange7d={data?.market_change_7d ?? null}
-                  activeIds={activeIds}
-                  onPick={onPick}
-                />
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="mb-1 flex flex-wrap items-baseline gap-x-2">
+                    <span className="text-[12.5px] font-medium text-text-primary">
+                      Narrative bubbles
+                    </span>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+                      size = coins called · tap to open
+                    </span>
+                  </div>
+                  <SignalsNarrativeBubbles
+                    narratives={narratives}
+                    marketChange7d={data?.market_change_7d ?? null}
+                    activeIds={activeIds}
+                    onOpen={(n) =>
+                      setDrill({
+                        ...n,
+                        __rs: (n.mcap_change_7d ?? 0) - (data?.market_change_7d ?? 0),
+                      })
+                    }
+                  />
+                  <p className="mt-1 text-[11px] leading-snug text-text-muted">
+                    Bigger means we called more coins there; green means it beat the market this
+                    week, red means it lagged. Tap one for the calls behind it.
+                  </p>
+                </div>
                 <SignalsNarrativeRotation
                   narratives={narratives}
                   marketChange7d={data?.market_change_7d ?? null}
@@ -522,6 +549,15 @@ export default function SignalsNarrativeFlow({
           )}
         </div>
       ) : null}
+
+      <NarrativeCallsModal
+        narrative={drill}
+        signals={signals}
+        isOpen={!!drill}
+        onClose={() => setDrill(null)}
+        onOpenSignal={onOpenSignal}
+        onFilterDesk={onPick}
+      />
     </div>
   );
 }
