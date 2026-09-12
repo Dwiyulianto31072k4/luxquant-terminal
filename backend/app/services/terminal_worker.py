@@ -838,7 +838,19 @@ async def _refresh_cg_volume():
     if not rows:
         return 0
 
-    by_id = {r[0]: r[1] for r in rows}
+    # id -> LIST of symbols, not id -> symbol. One CoinGecko id can be attached
+    # to several pairs here because coins.coingecko_id is filled by substring
+    # matching (COIN/B/C/IN/O all point at "bitcoin"), and a plain dict let each
+    # of those overwrite the last. Measured 2026-09-12: 427 rows collapsed to
+    # 418 ids, so nine symbols silently vanished from the map — BTC among them,
+    # which is why BTCUSDT was still being served single-venue volume.
+    #
+    # Filling every symbol is safe because the overlay is gated against the
+    # venue figure: the real one passes and the mis-mapped ones are rejected as
+    # implausible, which is what that gate is for.
+    by_id = {}
+    for cg_id, sym in rows:
+        by_id.setdefault(cg_id, []).append(sym)
     ids = list(by_id.keys())
     out = {}
     # The shared CoinGecko client, not a hand-rolled header: key injection and
@@ -862,16 +874,17 @@ async def _refresh_cg_volume():
                 print(f"   ⚠️ cg-vol page {i//250 + 1}: HTTP {resp.status_code}")
                 continue
             for it in resp.json() or []:
-                sym = by_id.get(it.get("id"))
+                syms = by_id.get(it.get("id")) or []
                 vol = it.get("total_volume")
-                if not sym or vol is None:
+                if not syms or vol is None:
                     continue
                 try:
                     v = float(vol)
                 except (TypeError, ValueError):
                     continue
                 if v > 0:
-                    out[sym] = v
+                    for sym in syms:
+                        out[sym] = v
         except Exception as e:
             print(f"   ⚠️ cg-vol fetch: {type(e).__name__}: {e}")
         if i + 250 < len(ids):
