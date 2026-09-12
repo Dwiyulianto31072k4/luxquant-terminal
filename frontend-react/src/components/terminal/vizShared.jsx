@@ -364,15 +364,16 @@ export const pickLabels = (items, { cellW = 58, cellH = 18, max = 40 } = {}) => 
 /**
  * Cell size for pickLabels, in the 1000x1000 normalised space its callers use.
  *
- * A named bubble occupies real pixels — about 54 wide (the ticker under it is
- * wider than the disc) and 66 tall (disc + gap + ticker) — but the callers hand
+ * A named bubble occupies real pixels — about 68 wide (the TICKER is what sets
+ * this: a 36px disc under an eight-character name like 1000BONK is a ~58px box,
+ * and 54 left two names just touching) and 66 tall — but the callers hand
  * pickLabels normalised coordinates, and a plot is far wider than it is tall.
  * Using one magic number for both axes packed bubbles vertically and spread
  * them horizontally. Converting through the real plot box is the whole fix.
  * Width is assumed rather than measured: being 20% out makes bubbles slightly
  * sparser, which is recoverable, while measuring costs a layout pass per frame.
  */
-export const labelCells = (plotH, { w = 54, h = 66, plotW = 1400 } = {}) => ({
+export const labelCells = (plotH, { w = 68, h = 66, plotW = 1400 } = {}) => ({
   cellW: (w / plotW) * 1000,
   cellH: (h / Math.max(plotH, 200)) * 1000,
 });
@@ -1421,15 +1422,17 @@ export function CoinBubble({
           <circle cx={cx} cy={cy} r={li} />
         </clipPath>
       </defs>
-      {/* A halo in the page's own colour, so a named bubble lifts off the
-          cluster of plain dots behind it instead of merging into it. */}
+      {/* A ring of the page's own colour, drawn OUTSIDE the bubble. It is what
+          separates two bubbles that end up touching: without it their coloured
+          rims meet and read as one blob with two logos in it. Wide enough to
+          survive being overlapped from either side. */}
       <circle
         cx={cx}
         cy={cy}
-        r={R + 1.5}
+        r={R + 2.5}
         fill="none"
         stroke="rgb(var(--surface-raised))"
-        strokeWidth={3}
+        strokeWidth={5}
       />
       <circle cx={cx} cy={cy} r={R} fill={fill} fillOpacity={0.95} />
       <circle cx={cx} cy={cy} r={li} fill="rgb(var(--surface-hover))" />
@@ -1472,7 +1475,7 @@ export function CoinBubble({
         fontWeight={700}
         fill="rgb(var(--fg) / 0.92)"
         stroke="rgb(var(--surface-raised))"
-        strokeWidth={3.2}
+        strokeWidth={4}
         paintOrder="stroke"
         pointerEvents="none"
       >
@@ -1503,6 +1506,23 @@ export const PairBubble = ({ cx, cy, payload, size, onPair, minR }) => (
     title={payload?.pair}
   />
 );
+
+/**
+ * Draw the named bubbles last.
+ *
+ * Recharts paints a Scatter in data order, so a plain 4px dot that happens to
+ * come later in the array lands ON TOP of a 36px bubble — its logo, its ring
+ * and sometimes its ticker. That is what reads as two coins "mixed together":
+ * not a layout error, a paint order. Named bubbles are the ones a reader is
+ * meant to be able to identify, so they go last and nothing paints over them.
+ * Stable, so everything else keeps whatever order its chart chose.
+ */
+export const namedLast = (rows) => {
+  const plain = [];
+  const named = [];
+  for (const r of rows) (r?.named ? named : plain).push(r);
+  return plain.concat(named);
+};
 
 /**
  * Which points earn a named bubble. Coordinates are normalised out of the axis

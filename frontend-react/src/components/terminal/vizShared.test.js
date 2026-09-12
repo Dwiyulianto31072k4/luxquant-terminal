@@ -8,6 +8,7 @@ import {
   promote,
   pctRange,
   clampRange,
+  namedLast,
 } from "./vizShared";
 
 // ── pickLabels ──────────────────────────────────────────────────────
@@ -227,5 +228,37 @@ describe("clampRange puts an outlier on the rail, never off the chart", () => {
 
   it("treats a missing value as zero rather than NaN", () => {
     expect(clampRange(undefined, [-5, 20])).toBe(0);
+  });
+});
+
+// ── namedLast ───────────────────────────────────────────────────────
+// Recharts paints a Scatter in data order, so a 4px dot later in the array
+// lands on top of a 36px bubble — its logo, its ring, sometimes its ticker.
+describe("namedLast puts the identifiable bubbles on top", () => {
+  it("moves named rows to the end", () => {
+    const out = namedLast([
+      { id: "a", named: true },
+      { id: "b" },
+      { id: "c", named: true },
+      { id: "d", named: false },
+    ]);
+    expect(out.map((r) => r.id)).toEqual(["b", "d", "a", "c"]);
+  });
+
+  it("is stable inside each group, so a chart keeps the order it chose", () => {
+    const rows = Array.from({ length: 20 }, (_, i) => ({ id: i, named: i % 3 === 0 }));
+    const out = namedLast(rows);
+    const plain = out.filter((r) => !r.named).map((r) => r.id);
+    const named = out.filter((r) => r.named).map((r) => r.id);
+    expect(plain).toEqual([...plain].sort((a, b) => a - b));
+    expect(named).toEqual([...named].sort((a, b) => a - b));
+  });
+
+  it("keeps every row", () => {
+    expect(namedLast([{ named: true }, {}, { named: true }]).length).toBe(3);
+  });
+
+  it("survives a hole in the data instead of throwing", () => {
+    expect(() => namedLast([null, { named: true }, undefined])).not.toThrow();
   });
 });

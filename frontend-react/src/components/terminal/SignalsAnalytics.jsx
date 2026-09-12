@@ -84,6 +84,7 @@ import {
   CoinBubble,
   PairBubble,
   promote,
+  namedLast,
   useChartHeight,
   pctRange,
   clampRange,
@@ -1893,11 +1894,13 @@ export default function SignalsAnalytics() {
                             />
                           )}
                           <Scatter
-                            data={anomChartPts.map((p) => ({
-                              ...p,
-                              x: clampRange(p.x, anomXR),
-                              named: anomNamed.has(p.pair),
-                            }))}
+                            data={namedLast(
+                              anomChartPts.map((p) => ({
+                                ...p,
+                                x: clampRange(p.x, anomXR),
+                                named: anomNamed.has(p.pair),
+                              }))
+                            )}
                             shape={(props) => (
                               <AnomDot
                                 {...props}
@@ -2171,12 +2174,14 @@ export default function SignalsAnalytics() {
                           <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                           <Scatter
                             isAnimationActive={false}
-                            data={agg.scatterOpp.map((p) => ({
-                              ...p,
-                              fill: RISK_COLORS[p.risk] || GRAYBAR,
-                              sc: statusColorOf(statusMap, p.pair),
-                              named: oppNamed.has(p.pair),
-                            }))}
+                            data={namedLast(
+                              agg.scatterOpp.map((p) => ({
+                                ...p,
+                                fill: RISK_COLORS[p.risk] || GRAYBAR,
+                                sc: statusColorOf(statusMap, p.pair),
+                                named: oppNamed.has(p.pair),
+                              }))
+                            )}
                             shape={<PairBubble onPair={openPair} />}
                           />
                         </ScatterChart>
@@ -2235,12 +2240,14 @@ export default function SignalsAnalytics() {
                         <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
                         <Scatter
                           isAnimationActive={false}
-                          data={agg.peakPts.map((p) => ({
-                            ...p,
-                            fill: p.win ? GOLD : p.y >= 0 ? POS : NEG,
-                            sc: statusColorOf(statusMap, p.pair),
-                            named: peakNamed.has(p.pair),
-                          }))}
+                          data={namedLast(
+                            agg.peakPts.map((p) => ({
+                              ...p,
+                              fill: p.win ? GOLD : p.y >= 0 ? POS : NEG,
+                              sc: statusColorOf(statusMap, p.pair),
+                              named: peakNamed.has(p.pair),
+                            }))
+                          )}
                           shape={<PairBubble onPair={openPair} />}
                         />
                       </ScatterChart>
@@ -2441,12 +2448,14 @@ export default function SignalsAnalytics() {
                           />
                           <Scatter
                             isAnimationActive={false}
-                            data={agg.scatterBeta.map((p) => ({
-                              ...p,
-                              fill: p.dec ? CYAN : GRAYBAR,
-                              sc: statusColorOf(statusMap, p.pair),
-                              named: betaNamed.has(p.pair),
-                            }))}
+                            data={namedLast(
+                              agg.scatterBeta.map((p) => ({
+                                ...p,
+                                fill: p.dec ? CYAN : GRAYBAR,
+                                sc: statusColorOf(statusMap, p.pair),
+                                named: betaNamed.has(p.pair),
+                              }))
+                            )}
                             shape={<PairBubble onPair={openPair} />}
                           />
                         </ScatterChart>

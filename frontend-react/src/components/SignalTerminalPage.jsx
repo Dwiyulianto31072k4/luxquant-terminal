@@ -28,6 +28,7 @@ import {
   useChartHeight,
   CoinBubble,
   labelCells,
+  namedLast,
   ZoomOverlay,
 } from "./terminal/vizShared";
 import { useSignalStatus, STATUS_META, timeAgo } from "../context/SignalStatusContext";
@@ -994,6 +995,9 @@ function MarketScatter({
       };
     })
     .sort((a, b) => a.z - b.z); // draw big-cap bubbles last → on top, not buried
+  // …and named ones after even those: a 4px dot painted over a 36px bubble is
+  // what reads as two coins mixed together.
+  const drawn = namedLast(data.map((d) => ({ ...d, named: !!d.lab })));
 
   const Dot = (props) => {
     const { cx, cy, payload } = props;
@@ -1085,7 +1089,7 @@ function MarketScatter({
             cursor={{ strokeDasharray: "3 3", stroke: "rgb(var(--ink) / 0.25)" }}
             content={<BubbleTip colorBy={colorKey} />}
           />
-          <Scatter data={data} shape={<Dot />} isAnimationActive={false} />
+          <Scatter data={drawn} shape={<Dot />} isAnimationActive={false} />
         </ScatterChart>
       </ResponsiveContainer>
       {quadrants && (

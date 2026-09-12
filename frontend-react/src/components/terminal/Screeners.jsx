@@ -35,6 +35,7 @@ import {
   clampTo,
   CoinBubble,
   labelCells,
+  namedLast,
   ZoomOverlay,
 } from "./vizShared";
 import { useSignalStatus } from "../../context/SignalStatusContext";
@@ -178,7 +179,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
           pair={payload.pair}
           fill={payload.fill}
           ring={payload.sc}
-          named={labelled.has(payload.pair)}
+          named={payload.named === true}
           title={`${sym(payload.pair)} · RSI ${Math.round(payload.rsi)}`}
         />
       </g>
@@ -302,7 +303,11 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
                 cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
                 content={<RsiTip tf={tf} />}
               />
-              <Scatter data={data} shape={<Dot />} isAnimationActive={false} />
+              <Scatter
+                data={namedLast(data.map((d) => ({ ...d, named: labelled.has(d.pair) })))}
+                shape={<Dot />}
+                isAnimationActive={false}
+              />
             </ScatterChart>
           </ResponsiveContainer>
         </div>
@@ -746,7 +751,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
         pair={payload.pair}
         fill={c}
         ring={payload.sc}
-        named={flowLabels.has(payload.pair)}
+        named={payload.named === true}
         onClick={() => openPair(payload.pair)}
         title={`${sym(payload.pair)} · CVD ${fmtUsd(payload.y)}`}
       />
@@ -824,7 +829,11 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
               <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.25)" />
               <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.25)" />
               <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<FlowTip />} />
-              <Scatter data={plot} shape={<Dot />} isAnimationActive={false} />
+              <Scatter
+                data={namedLast(plot.map((r) => ({ ...r, named: flowLabels.has(r.pair) })))}
+                shape={<Dot />}
+                isAnimationActive={false}
+              />
             </ScatterChart>
           </ResponsiveContainer>
         </div>

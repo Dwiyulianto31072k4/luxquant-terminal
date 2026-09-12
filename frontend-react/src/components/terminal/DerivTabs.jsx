@@ -54,6 +54,7 @@ import {
   CoinBubble,
   PairBubble,
   promote,
+  namedLast,
   useChartHeight,
   SectionBand,
   Kpi,
@@ -154,12 +155,12 @@ export function OITab({ view, deriv, pairFc, openPair }) {
     const xs = Math.max(Math.abs(qxR[0]), Math.abs(qxR[1])) || 1;
     const ys = Math.max(Math.abs(qyR[0]), Math.abs(qyR[1])) || 1;
     const named = promote(quad, qxR, qyR, quadH, 24, (p) => Math.hypot(p.x / xs, p.y / ys));
-    return quad.map((p) => ({
+    return namedLast(quad.map((p) => ({
       ...p,
       fill: p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE,
       sc: statusColorOf(statusMap, p.pair),
       named: named.has(p.pair),
-    }));
+    })));
     // qxR/qyR are rebuilt each render; rows is what changes underneath them.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, quadH, statusMap]);
@@ -376,12 +377,14 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
     const named = promote(divPts, [0, divHi], [0, divHi], divH, 20, (p) =>
       (p.smart ? 1e6 : 0) + Math.hypot(p.x - 1, p.y - 1)
     );
-    return divPts.map((p) => ({
-      ...p,
-      fill: p.smart ? GOLD : GRAYBAR,
-      sc: statusColorOf(statusMap, p.pair),
-      named: named.has(p.pair),
-    }));
+    return namedLast(
+      divPts.map((p) => ({
+        ...p,
+        fill: p.smart ? GOLD : GRAYBAR,
+        sc: statusColorOf(statusMap, p.pair),
+        named: named.has(p.pair),
+      }))
+    );
     // divPts is rebuilt every render, so it cannot be a dependency without
     // defeating the memo; rows is what actually changes underneath it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -780,12 +783,14 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
     const named = promote(fundFc, [-fundXBound, fundXBound], [-30, 30], fundH, 22, (p) =>
       Math.abs(p.y)
     );
-    return fundFc.map((p) => ({
-      ...p,
-      fill: p.neg ? POS : GRAYBAR,
-      sc: statusColorOf(statusMap, p.pair),
-      named: named.has(p.pair),
-    }));
+    return namedLast(
+      fundFc.map((p) => ({
+        ...p,
+        fill: p.neg ? POS : GRAYBAR,
+        sc: statusColorOf(statusMap, p.pair),
+        named: named.has(p.pair),
+      }))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, fundXBound, fundH, statusMap]);
 
@@ -1410,12 +1415,14 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
   // The momentum score is this tab's whole subject, so it decides who is named.
   const momB = useMemo(() => {
     const named = promote(scatter, momXR, momYR, momH, 22, (p) => p.mom);
-    return scatter.map((p) => ({
-      ...p,
-      fill: p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR,
-      sc: statusColorOf(statusMap, p.pair),
-      named: named.has(p.pair),
-    }));
+    return namedLast(
+      scatter.map((p) => ({
+        ...p,
+        fill: p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR,
+        sc: statusColorOf(statusMap, p.pair),
+        named: named.has(p.pair),
+      }))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, momH, statusMap]);
 
@@ -1582,12 +1589,14 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
   // squeeze would actually move — are the ones that get named.
   const sqB = useMemo(() => {
     const named = promote(scatter, [0, 4], [-sqY, sqY], sqH, 20, (p) => p.z);
-    return scatter.map((p) => ({
-      ...p,
-      fill: p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR,
-      sc: statusColorOf(statusMap, p.pair),
-      named: named.has(p.pair),
-    }));
+    return namedLast(
+      scatter.map((p) => ({
+        ...p,
+        fill: p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR,
+        sc: statusColorOf(statusMap, p.pair),
+        named: named.has(p.pair),
+      }))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, sqY, sqH, statusMap]);
 
