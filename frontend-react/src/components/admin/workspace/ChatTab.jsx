@@ -136,7 +136,7 @@ const ConversationRow = ({ row, active, onClick }) => {
 const UserContextStrip = ({ row }) => {
   const state = READ_STATE_META[row.read_state] || null;
   return (
-    <div className="custom-scrollbar hidden flex-nowrap items-center gap-x-4 gap-y-1.5 overflow-x-auto border-b border-ink/[0.07] bg-surface-secondary/30 px-4 py-2.5 sm:flex-wrap sm:overflow-visible xl:flex">
+    <div className="custom-scrollbar hidden flex-nowrap items-center gap-x-4 gap-y-1.5 overflow-x-auto border-b border-ink/[0.07] bg-surface-secondary/30 px-4 py-2.5 sm:flex-wrap sm:overflow-visible lg:flex">
       <div className="flex shrink-0 items-center gap-2.5">
         <span className="text-sm font-semibold text-text-primary">
           {row.username || `#${row.user_id}`}
@@ -835,9 +835,27 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
     }
   };
 
+  // Reading a conversation is a mode, not a panel. While a thread is open on a
+  // phone the workspace header, the live-pulse strip and the section tabs are
+  // all chrome for a screen you are not looking at — measured, they were taking
+  // roughly 200px off a 956px viewport, which is why the messages had so little
+  // room. The class is scoped to the thread, so closing it brings them back.
+  useEffect(() => {
+    const cls = "lq-admin-chat-thread";
+    document.body.classList.toggle(cls, !!selected);
+    return () => document.body.classList.remove(cls);
+  }, [selected]);
+
   return (
     <>
     <style>{`
+      /* One breakpoint for the whole feature. The panes used to split at xl
+         (1280px), which left every laptop between 1024 and 1279 reading a
+         single stacked column on a screen with room for two. */
+      @media (max-width: 1023px) {
+        body.lq-admin-chat-thread .admin-workspace-header,
+        body.lq-admin-chat-thread .admin-mobile-tabbar { display: none !important; }
+      }
       @media (max-width: 767px) {
         body.lq-admin-chat-active .bottom-nav { display: none !important; }
         .admin-chat-workspace {
@@ -956,7 +974,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
       {...(expanded
         ? { role: "dialog", "aria-modal": "true", "aria-label": "Chat, expanded", tabIndex: -1 }
         : {})}
-      className={`admin-chat-shell grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] ${
+      className={`admin-chat-shell grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(272px,340px)_minmax(0,1fr)] ${
         expanded
           ? "lq-below-header fixed inset-0 z-[9998] grid-rows-[minmax(0,1fr)] bg-surface p-3 sm:p-4"
           : ""
@@ -972,9 +990,9 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
         className={`${
           expanded
             ? "h-full min-h-0"
-            : "h-full min-h-0 max-h-none sm:h-[calc(100dvh-10rem)] sm:min-h-[500px] sm:max-h-[960px] xl:h-[calc(100dvh-12.5rem)]"
-        } admin-chat-pane flex-col overflow-hidden xl:flex ${
-          selected ? "hidden xl:flex" : "flex"
+            : "h-full min-h-0 max-h-none sm:h-[calc(100dvh-10rem)] sm:min-h-[500px] sm:max-h-[960px] lg:h-[calc(100dvh-11rem)]"
+        } admin-chat-pane flex-col overflow-hidden lg:flex ${
+          selected ? "hidden lg:flex" : "flex"
         }`}
       >
         <div className="space-y-2.5 border-b border-ink/[0.07] p-3">
@@ -1071,8 +1089,8 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
         className={`${
           expanded
             ? "h-full min-h-0"
-            : "h-full min-h-0 max-h-none sm:h-[calc(100dvh-10rem)] sm:min-h-[500px] sm:max-h-[960px] xl:h-[calc(100dvh-12.5rem)]"
-        } admin-chat-pane flex-col overflow-hidden xl:flex ${selected ? "flex" : "hidden xl:flex"}`}
+            : "h-full min-h-0 max-h-none sm:h-[calc(100dvh-10rem)] sm:min-h-[500px] sm:max-h-[960px] lg:h-[calc(100dvh-11rem)]"
+        } admin-chat-pane flex-col overflow-hidden lg:flex ${selected ? "flex" : "hidden lg:flex"}`}
       >
         {!selected ? (
           <EmptyState
@@ -1085,7 +1103,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
           <>
             {/* Phone-only way back to the list. Without it, switching panes is a
                 trap: the inbox is gone and nothing on screen returns to it. */}
-            <div className="flex shrink-0 items-center gap-2 border-b border-ink/[0.07] bg-surface-raised px-2 py-2 xl:hidden">
+            <div className="flex shrink-0 items-center gap-2 border-b border-ink/[0.07] bg-surface-raised px-2 py-2 lg:hidden">
               <button type="button" onClick={() => setSelected(null)} aria-label="Back to conversations" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-muted hover:bg-ink/5 hover:text-text-primary">
                 <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5"><path d="M12.5 15.5 7 10l5.5-5.5M7.5 10H17" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
@@ -1100,7 +1118,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
 
             <UserContextStrip row={selected} />
 
-            <div className="custom-scrollbar hidden shrink-0 items-center gap-2.5 overflow-x-auto border-b border-ink/[0.07] px-4 py-2 xl:flex">
+            <div className="custom-scrollbar hidden shrink-0 items-center gap-2.5 overflow-x-auto border-b border-ink/[0.07] px-4 py-2 lg:flex">
               <Badge variant="status" value={selected.status} size="xs">
                 {selected.status}
               </Badge>
@@ -1169,9 +1187,12 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                     key={m.id}
                     className={`flex ${m.sender === "user" ? "justify-start" : "justify-end"}`}
                   >
-                    <div className="group relative max-w-[86%] sm:max-w-[78%]">
+                    <div className="group relative max-w-[88%] sm:max-w-[76%] lg:max-w-[68%]">
                       <div
-                        className={`break-words rounded-[14px] text-xs leading-relaxed shadow-sm ${
+                        /* 15px, not the 12px this shipped with. Chat is prose
+                           you read, not a dense table you scan, and 12px is
+                           below what any messaging app sets body text to. */
+                        className={`break-words rounded-[16px] text-[15px] leading-[1.5] shadow-sm ${
                           isChatImage(m) ? "overflow-hidden p-1" : "px-3.5 py-2.5"
                         } ${
                           m.sender === "user"
@@ -1191,8 +1212,8 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(m)}
-                          className={`absolute -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-ink/[0.08] bg-surface-raised text-text-muted opacity-100 shadow-sm transition-all hover:text-loss sm:opacity-0 sm:group-hover:opacity-100 ${
-                            m.sender === "user" ? "-right-8" : "-left-8"
+                          className={`absolute -top-2 flex h-8 w-8 items-center justify-center rounded-full border border-ink/[0.08] bg-surface-raised text-text-muted shadow-sm transition-all hover:text-loss sm:opacity-0 sm:group-hover:opacity-100 ${
+                            m.sender === "user" ? "right-1 sm:-right-9" : "left-1 sm:-left-9"
                           }`}
                           aria-label="Delete message"
                           title="Delete message"
@@ -1205,12 +1226,12 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                           m.sender === "user" ? "justify-start" : "justify-end"
                         }`}
                       >
-                        <span className="font-mono text-[9px] text-text-muted">
+                        <span className="font-mono text-[10.5px] text-text-muted">
                           {m.sender === "user" ? selected.username : m.sender} · {fmtTime(m.created_at)}
                         </span>
                         {m.sender === "admin" && m.seq != null && (
                           <span
-                            className={`font-mono text-[9px] ${
+                            className={`font-mono text-[10.5px] ${
                               userLastReadSeq >= m.seq ? "text-profit" : "text-text-muted/50"
                             }`}
                             title={
@@ -1230,7 +1251,11 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
             </div>
 
             <div
-              className={`border-t border-ink/[0.07] bg-surface-raised p-2.5 sm:p-3 ${
+              /* pb picks up the iPhone home-indicator inset. Without it the
+                 send button sits under the bar on exactly the devices where
+                 this is hardest to use. */
+              style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}
+              className={`border-t border-ink/[0.07] bg-surface-raised px-2.5 pt-2.5 sm:px-3 sm:pt-3 ${
                 expanded ? "[&>*]:mx-auto [&>*]:w-full [&>*]:max-w-3xl" : ""
               }`}
             >
@@ -1261,7 +1286,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                     disabled={sending || mediaSending}
                     title="Send an image"
                     aria-label="Send an image"
-                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.08] text-text-muted transition-colors hover:bg-ink/5 hover:text-text-primary disabled:opacity-30"
+                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.08] text-text-muted transition-colors hover:bg-ink/5 hover:text-text-primary disabled:opacity-30 sm:h-9 sm:w-9"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
@@ -1282,7 +1307,10 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                       }
                     }}
                     placeholder="Write a reply…  (Enter to send, Shift+Enter for a new line)"
-                    className={`${inputCls} min-h-10 max-h-32 flex-1 resize-none py-2.5`}
+                    /* 15px is also the floor below which iOS zooms the whole
+                       page on focus — the shell then sits off-screen and has to
+                       be pinched back. */
+                    className={`${inputCls} min-h-11 max-h-32 flex-1 resize-none py-2.5 !text-[15px] sm:min-h-10`}
                   />
                   <button
                     // Wrapped, not passed by reference: React hands the click
@@ -1292,7 +1320,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                     // only the button was dead, and only where people tap it.
                     onClick={() => sendReply()}
                     disabled={sending || !reply.trim()}
-                    className="lq-cta-md flex h-10 min-w-10 items-center justify-center px-3 text-xs disabled:opacity-30 sm:min-w-[72px] sm:px-4"
+                    className="lq-cta-md flex h-11 min-w-11 items-center justify-center px-3 text-xs disabled:opacity-30 sm:h-10 sm:min-w-[72px] sm:px-4"
                   >
                     {sending ? (
                       <Spinner size={13} />

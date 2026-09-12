@@ -653,7 +653,7 @@ const WorkspaceSidebar = ({ activeTab, badges, collapsed, onSelect }) => (
 );
 
 const MobileTabBar = ({ activeTab, badges, onSelect }) => (
-  <div className="no-scrollbar shrink-0 overflow-x-auto border-b border-ink/[0.07] py-2 lg:hidden">
+  <div className="admin-mobile-tabbar no-scrollbar shrink-0 overflow-x-auto border-b border-ink/[0.07] py-2 lg:hidden">
     <div
       className="flex min-w-max items-center gap-1"
       role="tablist"
@@ -906,7 +906,7 @@ const AdminWorkspacePage = () => {
 
   return (
     <div className={`flex w-full min-w-0 flex-col px-4 py-4 lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden lg:px-6 lg:py-3 ${activeTab === "chat" ? "admin-chat-workspace" : ""}`}>
-      <header className="flex shrink-0 flex-col gap-3 border-b border-ink/[0.07] pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="admin-workspace-header flex shrink-0 flex-col gap-3 border-b border-ink/[0.07] pb-3 sm:flex-row sm:items-center sm:justify-between">
         <WorkspaceTitle
           activeTab={activeTab}
           collapsed={navCollapsed}
