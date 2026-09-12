@@ -56,6 +56,25 @@ def _nearest_snapshot_at(db: Session, table: str, days_ago: int):
     return row.snapshot_at if row else None
 
 
+# Sector ranking is sorted by 24h market-cap change, and mf_sector_snapshots
+# carries CoinGecko categories all the way down to a seven-figure market cap.
+# At that size a "24h change" is a constituent change — a coin joining or
+# leaving the category — not a market move, and because the ranking truncates
+# to `limit` those categories do not merely appear, they EVICT real sectors.
+#
+# Measured against production 2026-09-12, unfiltered top of /sectors:
+#   ETF                    +9262.31%  on a $1.25M cap
+#   IDR Stablecoin          +925.16%  on a $10.85M cap
+#   ST0x Ecosystem           +72.96%  on a $1.24M cap
+# That was the entire visible Sector Rotation strip on the terminal (top 6 of
+# 12) and all three "Leaders" on the Money Flow page.
+#
+# $50M keeps 242 of 343 categories — far more than any caller's limit — and
+# brings the 24h range back to roughly -11%..+13%. Same floor and same reason
+# as MIN_NARRATIVE_CAP_USD in api/routes/edge_lab.py.
+MIN_SECTOR_CAP_USD = 50_000_000
+
+
 def _pct_change(now_val, then_val):
     """Delta % antar dua snapshot. None kalau salah satu nggak ada/0."""
     if now_val is None or then_val is None or then_val == 0:
@@ -69,10 +88,17 @@ def _pct_change(now_val, then_val):
 @router.get("/sectors")
 def money_flow_sectors(
     limit: int = Query(20, ge=1, le=50),
+    min_cap_usd: float = Query(
+        MIN_SECTOR_CAP_USD, ge=0,
+        description="market-cap floor; 0 disables it and returns every category",
+    ),
     db: Session = Depends(get_db),
 ):
     """Ranking sektor: market cap & volume + delta 24h/7d/30d.
-    24h diambil dari field CoinGecko langsung; 7d/30d dari beda snapshot."""
+    24h diambil dari field CoinGecko langsung; 7d/30d dari beda snapshot.
+
+    Ranked by 24h market-cap change, so the size floor is not cosmetic — see
+    MIN_SECTOR_CAP_USD. Pass min_cap_usd=0 to opt out."""
     latest = _latest_snapshot_at(db, "mf_sector_snapshots")
     if latest is None:
         return {"sectors": [], "note": "no snapshot yet — the worker has not run"}
@@ -80,13 +106,21 @@ def money_flow_sectors(
     at_7d = _nearest_snapshot_at(db, "mf_sector_snapshots", 7)
     at_30d = _nearest_snapshot_at(db, "mf_sector_snapshots", 30)
 
-    # Ambil snapshot terbaru
+    # Ambil snapshot terbaru. Floor-nya di SQL, bukan setelah sort: ranking ini
+    # desc by 24h lalu dipotong `limit`, jadi kategori kecil yang lolos ke sini
+    # bukan cuma ikut nimbrung — mereka MENGGUSUR sektor beneran keluar dari
+    # daftar sebelum frontend sempat lihat.
+    total_rows = db.execute(text("""
+        SELECT COUNT(*) FROM mf_sector_snapshots WHERE snapshot_at = :at
+    """), {"at": latest}).scalar() or 0
+
     now_rows = db.execute(text("""
         SELECT category_id, name, market_cap, volume_24h,
                market_cap_change_24h, top_3_coins
         FROM mf_sector_snapshots
         WHERE snapshot_at = :at
-    """), {"at": latest}).fetchall()
+          AND (:min_cap <= 0 OR market_cap >= :min_cap)
+    """), {"at": latest, "min_cap": min_cap_usd}).fetchall()
 
     # Map historis buat delta
     def _hist(at):
@@ -128,6 +162,8 @@ def money_flow_sectors(
         "snapshot_at": latest.isoformat(),
         "has_7d": at_7d is not None,
         "has_30d": at_30d is not None,
+        "min_cap_usd": min_cap_usd,
+        "excluded_below_cap": max(0, total_rows - len(now_rows)),
     }
 
 
