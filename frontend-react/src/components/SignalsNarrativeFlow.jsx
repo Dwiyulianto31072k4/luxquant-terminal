@@ -183,6 +183,13 @@ export default function SignalsNarrativeFlow({
   // A Set, not .includes on an array: this is asked once per chip and once per
   // table row, on every render.
   const activeSet = useMemo(() => new Set(activeIds || []), [activeIds]);
+  // Where each narrative sits in the table right now. The rotation panel prints
+  // it so a row there can be found here instead of looking like another list.
+  const rankOf = useMemo(() => {
+    const m = new Map();
+    sorted.forEach((x, i) => m.set(x.category_id, i + 1));
+    return m;
+  }, [sorted]);
   const activeNames = useMemo(
     () => narratives.filter((x) => activeSet.has(x.category_id)).map((x) => x.name),
     [narratives, activeSet]
@@ -487,11 +494,17 @@ export default function SignalsNarrativeFlow({
               </div>
               </div>
 
-              <div className={`min-w-0 ${view === "table" ? "hidden lg:block" : ""}`}>
+              <div
+                className={`min-w-0 lg:sticky lg:top-2 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto ${
+                  view === "table" ? "hidden lg:block" : ""
+                }`}
+              >
                 <SignalsNarrativeRotation
                   narratives={narratives}
                   marketChange7d={data?.market_change_7d ?? null}
                   activeIds={activeIds}
+                  rankOf={rankOf}
+                  onPick={onPick}
                 />
               </div>
               </div>

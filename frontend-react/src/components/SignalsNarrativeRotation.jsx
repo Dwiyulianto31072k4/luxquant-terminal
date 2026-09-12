@@ -40,14 +40,30 @@ const EXPLAIN =
   "This is not net inflow. Market cap rises when price rises, with no new money required — read " +
   "it as 'gained value faster than the market', not 'this much cash arrived'.";
 
-function Row({ item, maxAbs, market }) {
+function Row({ item, maxAbs, market, rank, active, onPick }) {
   const rs = (item.mcap_change_7d ?? 0) - (market ?? 0);
   const pos = rs >= 0;
   const width = maxAbs > 0 ? Math.min(100, (Math.abs(rs) / maxAbs) * 100) : 0;
   return (
-    <div className="group flex items-center gap-2 py-[5px]">
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={() => onPick?.(item)}
+      title={`${item.name} — tap to filter the desk`}
+      className={`group flex w-full items-center gap-2 rounded-md py-[5px] pl-1 pr-1 text-left transition-colors ${
+        active ? "bg-accent/[0.12]" : "hover:bg-ink/[0.04]"
+      }`}
+    >
+      {/* The rank ties this row to the table beside it. Without it the two
+          panels read as different lists — the top mover is often row 29, and a
+          reader who does not scroll that far assumes it is missing. */}
+      <span className="w-5 shrink-0 text-right font-mono text-[9.5px] tabular-nums text-text-muted">
+        {rank ? `${rank}` : ""}
+      </span>
       <span
-        className="w-[104px] shrink-0 truncate text-[11.5px] text-text-secondary sm:w-[132px]"
+        className={`w-[92px] shrink-0 truncate text-[11.5px] sm:w-[118px] ${
+          active ? "text-text-primary" : "text-text-secondary"
+        }`}
         title={item.name}
       >
         {item.name}
@@ -85,7 +101,7 @@ function Row({ item, maxAbs, market }) {
       <span className="w-[62px] shrink-0 text-right font-mono text-[10.5px] tabular-nums text-text-muted">
         {item.flow_usd_7d != null ? money(item.flow_usd_7d) : "—"}
       </span>
-    </div>
+    </button>
   );
 }
 
@@ -93,9 +109,11 @@ export default function SignalsNarrativeRotation({
   narratives = [],
   marketChange7d = null,
   activeIds = [],
+  rankOf = null,
+  onPick = null,
   perSide = 6,
 }) {
-  const { inflow, outflow, maxAbs } = useMemo(() => {
+  const { inflow, outflow, maxAbs, up, down, moved } = useMemo(() => {
     const active = new Set(activeIds || []);
     const pool = (active.size
       ? narratives.filter((x) => active.has(x.category_id))
@@ -111,7 +129,12 @@ export default function SignalsNarrativeRotation({
     const inflow = withRs.filter((x) => x.rs > 0).slice(0, perSide);
     const outflow = withRs.filter((x) => x.rs < 0).slice(-perSide).reverse();
     const maxAbs = Math.max(...withRs.map((x) => Math.abs(x.rs)), 0.001);
-    return { inflow, outflow, maxAbs };
+    // Counted over EVERY narrative, not the twelve drawn: a summary of the
+    // rows that happen to be on screen is not a summary of the rotation.
+    const up = withRs.filter((x) => x.rs > 0);
+    const down = withRs.filter((x) => x.rs < 0);
+    const moved = withRs.reduce((t, x) => t + Math.abs(x.flow_usd_7d || 0), 0);
+    return { inflow, outflow, maxAbs, up: up.length, down: down.length, moved };
   }, [narratives, marketChange7d, activeIds, perSide]);
 
   if (!inflow.length && !outflow.length) return null;
@@ -141,6 +164,13 @@ export default function SignalsNarrativeRotation({
         </span>
       </div>
 
+      <p className="mb-2 text-[11px] text-text-muted">
+        <span className="font-mono tabular-nums text-profit">{up}</span> ahead of the market,{" "}
+        <span className="font-mono tabular-nums text-loss">{down}</span> behind ·{" "}
+        <span className="font-mono tabular-nums">{money(moved).replace(/^[+−]/, "")}</span> of market
+        cap changed hands
+      </p>
+
       <div className="min-h-0 flex-1 overflow-y-auto">
         {inflow.length ? (
           <>
@@ -148,7 +178,15 @@ export default function SignalsNarrativeRotation({
               Money moved in
             </p>
             {inflow.map((x) => (
-              <Row key={x.category_id} item={x} maxAbs={maxAbs} market={marketChange7d} />
+              <Row
+                key={x.category_id}
+                item={x}
+                maxAbs={maxAbs}
+                market={marketChange7d}
+                rank={rankOf?.get?.(x.category_id)}
+                active={(activeIds || []).includes(x.category_id)}
+                onPick={onPick}
+              />
             ))}
           </>
         ) : null}
@@ -159,7 +197,15 @@ export default function SignalsNarrativeRotation({
               Money moved out
             </p>
             {outflow.map((x) => (
-              <Row key={x.category_id} item={x} maxAbs={maxAbs} market={marketChange7d} />
+              <Row
+                key={x.category_id}
+                item={x}
+                maxAbs={maxAbs}
+                market={marketChange7d}
+                rank={rankOf?.get?.(x.category_id)}
+                active={(activeIds || []).includes(x.category_id)}
+                onPick={onPick}
+              />
             ))}
           </>
         ) : null}
