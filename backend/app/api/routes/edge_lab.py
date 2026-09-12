@@ -2182,7 +2182,7 @@ def get_narrative_flow(
             WHERE r.hit_date >= :start AND r.hit_date <= :end
         ),
         linked AS (
-            SELECT ls.category_id, sc.outcome, sc.peak_pct, sc.pair
+            SELECT ls.category_id, sc.signal_id, sc.outcome, sc.peak_pct, sc.pair
             FROM scoped sc
             JOIN coins c ON c.pair = sc.pair
             CROSS JOIN LATERAL jsonb_array_elements_text(c.categories_raw) AS cat(v)
@@ -2203,16 +2203,41 @@ def get_narrative_flow(
         per_pair AS (
             SELECT category_id, pair, COUNT(*) AS pair_n FROM linked GROUP BY 1, 2
         ),
+        -- Narratives OVERLAP: a coin sits in 4.62 of them on average and up to
+        -- 16, so counting a call once per narrative would inflate the total by
+        -- that factor. A Sankey has to conserve — the ribbons leaving the left
+        -- column must add up to the same number arriving on the right — so each
+        -- call is split evenly across the narratives it belongs to. A coin in
+        -- five narratives contributes a fifth of its call to each, and the
+        -- totals still come to the number of calls.
+        kcount AS (
+            SELECT signal_id, COUNT(*)::numeric AS k FROM linked GROUP BY signal_id
+        ),
+        flow AS (
+            SELECT l.category_id, l.outcome, SUM(1.0 / kc.k) AS w
+            FROM linked l
+            JOIN kcount kc ON kc.signal_id = l.signal_id
+            WHERE l.outcome IS NOT NULL
+            GROUP BY 1, 2
+        ),
+        flow_agg AS (
+            SELECT category_id,
+                   jsonb_object_agg(outcome, ROUND(w, 3)) AS outcome_flow,
+                   SUM(w) AS flow_total
+            FROM flow GROUP BY category_id
+        ),
         pairs_agg AS (
             SELECT category_id, ARRAY_AGG(pair ORDER BY pair_n DESC, pair) AS pairs
             FROM per_pair GROUP BY category_id
         )
         SELECT ls.category_id, ls.name, ls.market_cap, ls.market_cap_change_24h,
                ls.volume_24h, a.coins_called, a.n, a.wins, a.full_tp_n,
-               a.median_peak, p.pairs
+               a.median_peak, p.pairs,
+               f.outcome_flow, f.flow_total
         FROM agg a
         JOIN pairs_agg p ON p.category_id = a.category_id
         JOIN latest_snap ls ON ls.category_id = a.category_id
+        LEFT JOIN flow_agg f ON f.category_id = a.category_id
         WHERE a.coins_called >= :min_coins
         ORDER BY a.coins_called DESC, a.n DESC
         LIMIT :limit
@@ -2252,6 +2277,10 @@ def get_narrative_flow(
             "full_tp_rate": _wr(int(r.full_tp_n or 0), n),
             "median_peak": round(float(r.median_peak), 2) if r.median_peak is not None else None,
             "pairs": list(r.pairs or []),
+            # Fractional by design — see the kcount CTE. Rendered as a Sankey,
+            # so it must conserve.
+            "outcome_flow": r.outcome_flow or {},
+            "flow_total": _safe_float(r.flow_total),
         })
 
     response = {

@@ -20,6 +20,7 @@ import { useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
 import { SegGroup } from "./ui/SegGroup";
 import { InfoTip } from "./GuideInfo";
+import SignalsNarrativeSankey from "./SignalsNarrativeSankey";
 
 const WINDOW_OPTS = [
   { key: "30", label: "30d" },
@@ -127,6 +128,9 @@ export default function SignalsNarrativeFlow({
 }) {
   const [open, setOpen] = useState(false);
   const [sort, setSort] = useState("coins");
+  // Phone only: the two halves are a toggle, not a stack. Stacked, the flow
+  // panel sits under a 40-row table where nobody scrolls to it.
+  const [view, setView] = useState("table");
 
   const narratives = useMemo(() => data?.narratives || [], [data]);
 
@@ -288,6 +292,17 @@ export default function SignalsNarrativeFlow({
               onChange={(k) => onDaysChange?.(Number(k))}
               options={windowOpts}
             />
+            <SegGroup
+              size="sm"
+              className="lg:hidden"
+              aria-label="Table or flow"
+              value={view}
+              onChange={setView}
+              options={[
+                { key: "table", label: "Table" },
+                { key: "flow", label: "Flow" },
+              ]}
+            />
             <span className="flex items-center gap-1.5">
               <p className="text-[11px] leading-snug text-text-muted">
                 Narratives we have 3+ calls in. Tap one to filter the desk.
@@ -300,6 +315,11 @@ export default function SignalsNarrativeFlow({
             <p className="py-6 text-center text-[12.5px] text-text-muted">Loading narratives…</p>
           ) : (
             <>
+              {/* Table and flow are one row on a desk and a toggle on a phone.
+                  The table keeps the wider column: it is the thing you act on,
+                  the Sankey is the thing you read. */}
+              <div className="grid gap-x-4 gap-y-3 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
+              <div className={`min-w-0 ${view === "flow" ? "hidden lg:block" : ""}`}>
               {/* Mobile cards */}
               <div className="space-y-1 sm:hidden">
                 {sorted.map((x, i) => {
@@ -350,7 +370,7 @@ export default function SignalsNarrativeFlow({
                   of a screen between each number, and a capped block pinned
                   left just moves the dead space and looks half-loaded. */}
               <div className="no-scrollbar -mx-1 hidden overflow-x-auto sm:block">
-                <table className="mx-auto w-full min-w-[560px] max-w-[900px] border-collapse">
+                <table className="mx-auto w-full min-w-[560px] max-w-[900px] border-collapse lg:mx-0 lg:max-w-none">
                   <thead>
                     <tr className="border-b border-ink/[0.06]">
                       <th className="w-6 py-1.5 pl-2 text-left font-mono text-[9px] text-text-muted">
@@ -423,6 +443,16 @@ export default function SignalsNarrativeFlow({
                     })}
                   </tbody>
                 </table>
+              </div>
+              </div>
+
+              <div className={`min-w-0 ${view === "table" ? "hidden lg:block" : ""}`}>
+                <SignalsNarrativeSankey
+                  narratives={sorted}
+                  activeIds={activeIds}
+                  height={340}
+                />
+              </div>
               </div>
             </>
           )}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import * as echarts from "echarts/core";
-import { LineChart, BarChart } from "echarts/charts";
+import { LineChart, BarChart, SankeyChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 
@@ -10,12 +10,20 @@ import { CanvasRenderer } from "echarts/renderers";
  * chunk is ~29 KB); registering only the chart types and components we
  * actually draw keeps the cost proportional. Add to this list when a new card
  * needs a new series type — GaugeChart and PieChart are deliberately absent
- * until the Opportunity tab exists.
+ * until the Opportunity tab exists. SankeyChart is in for the narrative flow
+ * panel on /signals.
  */
-echarts.use([LineChart, BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
+echarts.use([LineChart, BarChart, SankeyChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 const TOKENS = [
   "--accent",
+  // The TP ladder is ordinal (tp1 → tp4 is "got further"), and these four are
+  // already a validated single-hue ramp. A chart that colours outcomes must use
+  // them rather than invent a second green.
+  "--viz-tp1",
+  "--viz-tp2",
+  "--viz-tp3",
+  "--viz-tp4",
   "--pos",
   "--neg",
   "--fg",
