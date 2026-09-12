@@ -20,8 +20,17 @@ import { useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
 import { SegGroup } from "./ui/SegGroup";
 import { InfoTip } from "./GuideInfo";
-import SignalsNarrativeSankey, { OUTCOMES } from "./SignalsNarrativeSankey";
+import SignalsNarrativeRotation from "./SignalsNarrativeRotation";
 import { useChartTokens } from "./charts/EChart";
+
+// The TP ladder, ordinal: tp1 → tp4 is "ran further". One validated hue ramp.
+const OUTCOMES = [
+  { key: "tp4", label: "TP4", token: "viz-tp4" },
+  { key: "tp3", label: "TP3", token: "viz-tp3" },
+  { key: "tp2", label: "TP2", token: "viz-tp2" },
+  { key: "tp1", label: "TP1", token: "viz-tp1" },
+  { key: "sl", label: "SL", token: "neg" },
+];
 
 const WINDOW_OPTS = [
   { key: "30", label: "30d" },
@@ -318,7 +327,7 @@ export default function SignalsNarrativeFlow({
               onChange={setView}
               options={[
                 { key: "table", label: "Table" },
-                { key: "flow", label: "Flow" },
+                { key: "flow", label: "Rotation" },
               ]}
             />
             <span className="hidden items-center gap-2.5 lg:flex">
@@ -479,10 +488,10 @@ export default function SignalsNarrativeFlow({
               </div>
 
               <div className={`min-w-0 ${view === "table" ? "hidden lg:block" : ""}`}>
-                <SignalsNarrativeSankey
-                  narratives={sorted}
+                <SignalsNarrativeRotation
+                  narratives={narratives}
+                  marketChange7d={data?.market_change_7d ?? null}
                   activeIds={activeIds}
-                  height={340}
                 />
               </div>
               </div>

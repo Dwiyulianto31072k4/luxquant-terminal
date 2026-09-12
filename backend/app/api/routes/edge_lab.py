@@ -2146,7 +2146,7 @@ def get_narrative_flow(
     # a 40-row reply with no flow in it, and the chart stayed blank for 15
     # minutes. Bump this whenever a field is added or removed.
     cache_key = (
-        f"lq:edge-lab:narrative-flow:v2:{days}:{min_coins}:"
+        f"lq:edge-lab:narrative-flow:v3:{days}:{min_coins}:"
         f"{int(min_cap_usd)}:{limit}:{start_str}:{end_str}"
     )
     cached = cache_get(cache_key)
@@ -2274,6 +2274,14 @@ def get_narrative_flow(
             "mcap_change_24h": (round(float(r.market_cap_change_24h), 2)
                                 if r.market_cap_change_24h is not None else None),
             "mcap_change_7d": _pct_change_local(mcap, cap_7d.get(r.category_id)),
+            # The dollars that moved, not just the percentage. A 12% move on a
+            # $20B narrative and a 12% move on a $2T one are the same number and
+            # nothing like the same event.
+            "flow_usd_7d": (
+                round(mcap - cap_7d[r.category_id], 2)
+                if mcap is not None and cap_7d.get(r.category_id)
+                else None
+            ),
             "coins_called": int(r.coins_called or 0),
             "n": n,
             "wr": _wr(wins, n),
@@ -2290,8 +2298,26 @@ def get_narrative_flow(
             "flow_total": _safe_float(r.flow_total),
         })
 
+    # The market's own move over the same week, from the same snapshots. Without
+    # it a narrative up 1.5% reads as strength when the whole market is up 3% —
+    # rotation is what a narrative did RELATIVE to everything else, and that
+    # baseline is the only thing that separates the two.
+    market_7d = None
+    if cap_7d:
+        cur = sum(
+            float(r.market_cap) for r in rows
+            if r.market_cap is not None and cap_7d.get(r.category_id)
+        )
+        prev = sum(
+            cap_7d[r.category_id] for r in rows
+            if r.market_cap is not None and cap_7d.get(r.category_id)
+        )
+        if prev > 0:
+            market_7d = round((cur - prev) / prev * 100, 2)
+
     response = {
         "narratives": narratives,
+        "market_change_7d": market_7d,
         "days": days,
         "snapshot_at": latest.isoformat() if latest else None,
         "has_7d": at_7d is not None,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import * as echarts from "echarts/core";
-import { LineChart, BarChart, SankeyChart } from "echarts/charts";
+import { LineChart, BarChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 
@@ -10,10 +10,9 @@ import { CanvasRenderer } from "echarts/renderers";
  * chunk is ~29 KB); registering only the chart types and components we
  * actually draw keeps the cost proportional. Add to this list when a new card
  * needs a new series type — GaugeChart and PieChart are deliberately absent
- * until the Opportunity tab exists. SankeyChart is in for the narrative flow
- * panel on /signals.
+ * until the Opportunity tab exists.
  */
-echarts.use([LineChart, BarChart, SankeyChart, GridComponent, TooltipComponent, CanvasRenderer]);
+echarts.use([LineChart, BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 const TOKENS = [
   "--accent",
@@ -39,10 +38,15 @@ const readTokens = () => {
   const cs = getComputedStyle(document.documentElement);
   const out = {};
   for (const name of TOKENS) {
-    // Tokens are stored as "R G B" triplets so Tailwind can add an alpha.
-    const triplet = cs.getPropertyValue(name).trim();
-    out[name.slice(2)] = triplet ? `rgb(${triplet})` : "";
-    out[`${name.slice(2)}Raw`] = triplet;
+    // MOST tokens are "R G B" triplets so Tailwind can add an alpha — but not
+    // all of them: the --viz-* ramps are plain hex, because they are only ever
+    // consumed whole. Wrapping those in rgb() produces `rgb(#5bc9a4)`, which is
+    // invalid, silently drops to the inherited colour, and paints a chart in
+    // grey with no error anywhere. Detect the shape instead of assuming one.
+    const raw = cs.getPropertyValue(name).trim();
+    const isTriplet = /^[\d.]+\s+[\d.]+\s+[\d.]+$/.test(raw);
+    out[name.slice(2)] = raw ? (isTriplet ? `rgb(${raw})` : raw) : "";
+    out[`${name.slice(2)}Raw`] = raw;
   }
   return out;
 };
