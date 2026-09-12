@@ -231,6 +231,30 @@ export const fitBound = (values, floor = 0, pad = 1.18) => {
   return Math.max(floor, m * pad);
 };
 
+// Percentile-fit a scatter axis. fitBound() uses |max|, which hands the whole
+// axis to a single outlier: measured 2026-09-12 the 24h-change field runs
+// -12.3..+98.6 while 96% of coins sit inside -5.7..+12.9, so |max| threw away
+// 83% of the canvas and crushed 400 points into one blob. Volume is worse — 25K
+// to 1.86B, 97% wasted.
+//
+// So the domain comes from a percentile and everything beyond it is CLAMPED to
+// the edge, never dropped. A hidden outlier is a lie; a stacked one at the rail
+// is readable and still says "there is something past here".
+export const pctBound = (values, p = 0.98, floor = 0, pad = 1.08) => {
+  const a = [];
+  for (const v of values) {
+    const n = Math.abs(Number(v));
+    if (Number.isFinite(n)) a.push(n);
+  }
+  if (!a.length) return floor || 1;
+  a.sort((x, y) => x - y);
+  const q = a[Math.min(a.length - 1, Math.floor(p * (a.length - 1)))];
+  return Math.max(floor, (q || a[a.length - 1]) * pad);
+};
+
+/** Pin a value to the axis so an outlier lands on the rail instead of vanishing. */
+export const clampTo = (v, bound) => Math.max(-bound, Math.min(bound, Number(v) || 0));
+
 export function makeBins(values, size, min, max) {
   const bins = [];
   for (let lo = min; lo < max; lo += size) bins.push({ lo, hi: lo + size, count: 0 });
@@ -838,6 +862,14 @@ export function useZoom(x0, x1, y0, y1) {
   const moved = useRef(false);
   const baseRef = useRef({ x0, x1, y0, y1 });
   baseRef.current = { x0, x1, y0, y1 };
+
+  // Follow the base domain when it changes. dom was seeded once from the
+  // initial props, so a data-fitted axis could never actually reach the chart —
+  // and a view left zoomed out stayed zoomed out across filter and tab changes,
+  // which is what made these charts feel stuck.
+  useEffect(() => {
+    setDom({ x0, x1, y0, y1 });
+  }, [x0, x1, y0, y1]);
 
   // soft-clamp the view to ~6× the base domain: roomy enough to pan out to
   // outliers, but never a 700,000% void from infinite zoom-out (best practice).

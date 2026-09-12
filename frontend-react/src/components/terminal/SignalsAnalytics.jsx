@@ -61,6 +61,7 @@ import {
   parseMcap,
   csv,
   makeBins,
+  pctBound,
   PLAUSIBLE_LO,
   PLAUSIBLE_HI,
   SectionBand,
@@ -863,7 +864,15 @@ export default function SignalsAnalytics() {
     return out.sort((a, b) => b.score - a.score).slice(0, 18);
   }, [latestByPair, pairFc]);
 
-  const zAnom = useZoom(-30, 30, 0, 60);
+  // Fitted to the data rather than set by hand. The anomaly cloud is heavily
+  // skewed — 96% of coins move inside ±13% while one freshly listed pair prints
+  // +98% — so a fixed ±30 either hides the tail or crushes everything else into
+  // a dot. Percentile bounds, with outliers clamped to the rail so they are
+  // still visible, keep both readable. Floors stop a quiet day from magnifying
+  // noise into a storm.
+  const anomXB = pctBound(agg.anomPts.map((p) => p.x), 0.98, 12);
+  const anomYB = pctBound(agg.anomPts.map((p) => p.y), 0.97, 20);
+  const zAnom = useZoom(-anomXB, anomXB, 0, anomYB);
   const zOpp = useZoom(-60, 60, 0, 120);
   const zBeta = useZoom(-0.5, 2.5, -60, 60);
   const zPeak = useZoom(-20, 150, -60, 100);

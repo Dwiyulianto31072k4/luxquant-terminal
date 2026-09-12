@@ -47,6 +47,7 @@ import {
   makeBins,
   median,
   fitBound,
+  pctBound,
   SectionBand,
   Kpi,
   XCard,
@@ -110,7 +111,14 @@ export function OITab({ view, deriv, pairFc, openPair }) {
   const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
-  const zQuad = useZoom(-20, 20, -15, 15);
+  // Axes fitted to the DATA, not to constants. ±20/±15 was set by hand and the
+  // book does not look like that: measured 2026-09-12, 96% of 24h moves sit
+  // inside ±13 and 96% of 1h OI moves inside ±5.5, so a fixed ±15 threw away
+  // two thirds of the vertical before anyone touched the zoom. Floors keep a
+  // quiet market from magnifying noise into a storm.
+  const qx = pctBound(rows.map((r) => r.price_chg_24h), 0.98, 8);
+  const qy = pctBound(rows.map((r) => r.oi_chg_1h), 0.98, 4);
+  const zQuad = useZoom(-qx, qx, -qy, qy);
 
   // clamp to the visible window so a freshly-listed pair with a huge OI jump
   // can't blow the axis up to 500,000% (outliers pin to the edge, still shown)
