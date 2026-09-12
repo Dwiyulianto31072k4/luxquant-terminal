@@ -1510,7 +1510,7 @@ export const PairBubble = ({ cx, cy, payload, size, onPair, minR }) => (
  * the spacing the reader sees — not a distance in funding percent or L/S ratio,
  * which are not comparable to each other and change scale per chart.
  */
-export const promote = (pts, [x0, x1], [y0, y1], h, max, priority) =>
+export const promote = (pts, [x0, x1], [y0, y1], h, max, priority, box) =>
   pickLabels(
     pts.map((p) => ({
       id: p.pair,
@@ -1518,7 +1518,7 @@ export const promote = (pts, [x0, x1], [y0, y1], h, max, priority) =>
       y: ((y1 - p.y) / (y1 - y0 || 1)) * 1000,
       priority: priority(p),
     })),
-    { ...labelCells(h), max }
+    { ...labelCells(h, box), max }
   );
 
 export const CoinPill = ({ pair, onPair, className = "" }) => {

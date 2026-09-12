@@ -209,8 +209,9 @@ function AnomDot({ cx, cy, payload, statusMap, onPair, showLabel }) {
   // share red because both are caution; WHERE the dot sits (right of zero or
   // left of it) already says which kind, so the colour does not have to.
   const fill = ANOM_FILL[payload.setup] || GRAYBAR;
-  // "all" still means all; the default view names only the ranked extremes.
-  const named = showLabel === "all" ? true : !!showLabel && payload.named === true;
+  // `named` already encodes "this one has room"; the Names control only decides
+  // how tightly we are willing to pack, and Off turns them all back into dots.
+  const named = !!showLabel && payload.named === true;
   return (
     <g>
       {hot && <circle cx={cx} cy={cy} r={named ? 22 : 12} fill={GOLD} fillOpacity={0.12} />}
@@ -1016,12 +1017,18 @@ export default function SignalsAnalytics() {
       anomXR,
       [Math.log10(ANOM_FLOOR), Math.log10(Math.max(anomYB, ANOM_FLOOR * 10))],
       heroH,
-      anomLayer === "all" ? 16 : 26,
-      (p) => Math.hypot(p.x / 25, (p.y - yRef) / 1.2)
+      // "Ranked" spaces a handful generously. "Most names" packs them as
+      // tightly as a ticker physically fits — which is what that button is for.
+      // It used to mean "draw all 400 regardless", and 400 names in the space
+      // of 40 is not more information, it is a grey smear where a name used to
+      // be readable.
+      anomLabels === "all" ? 400 : anomLayer === "all" ? 16 : 26,
+      (p) => Math.hypot(p.x / 25, (p.y - yRef) / 1.2),
+      anomLabels === "all" ? { w: 44, h: 44 } : undefined
     );
     // anomXR is derived from agg on every render; agg is what changes under it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anomChartPts, agg.medFlow, anomYB, heroH, anomLayer]);
+  }, [anomChartPts, agg.medFlow, anomYB, heroH, anomLayer, anomLabels]);
   const oppNamed = useMemo(
     () => promote(agg.scatterOpp, [-60, 60], [0, 120], stdH, 18, (p) => p.y),
     [agg.scatterOpp, stdH]
@@ -1689,7 +1696,13 @@ export default function SignalsAnalytics() {
                 size="hero"
                 hint={t("terminal.viz.anomHint")}
                 render={(h) => (
-                  <div className="flex flex-col min-w-0" style={{ height: h }}>
+                  // h is the CHART's height, not the card's. It used to cap
+                  // this whole box, so every row of chrome above the plot came
+                  // out of the plot: with the setup strip and the colour key in
+                  // place the chart was left about 250px of a 660px budget and
+                  // 400 points were stacked into a band. The card grows to fit
+                  // its chrome instead.
+                  <div className="flex flex-col min-w-0">
                     {/* Setup shortcuts.
                         The old control was All / Hot / Other, and "Other 378"
                         is not a thing anyone looks for — it is the leftovers.
@@ -1751,7 +1764,7 @@ export default function SignalsAnalytics() {
                       </span>
                       {[
                         { id: "focus", label: "Ranked" },
-                        { id: "all", label: "All names" },
+                        { id: "all", label: "Most names" },
                         { id: "off", label: "Off" },
                       ].map((opt) => (
                         <button
@@ -1776,21 +1789,21 @@ export default function SignalsAnalytics() {
                         that only narrows a cloud teaches nothing; the reason it
                         is worth looking at belongs next to the button. */}
                     {anomSetup && (
-                      <div className="mb-2.5 flex shrink-0 items-start gap-2.5 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2">
+                      <div className="mb-2 flex shrink-0 items-start gap-2.5 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-1.5">
                         <span
                           className={`mt-1 h-2 w-2 shrink-0 rounded-full ${anomSetup.dot}`}
                           aria-hidden
                         />
                         <div className="min-w-0">
-                          <div className="text-[12px] font-medium text-text-primary">
+                          <span className="text-[12px] font-medium text-text-primary">
                             {anomSetup.label}
-                            <span className="ml-2 font-mono text-[10.5px] font-normal text-text-muted">
-                              {anomSetup.what}
-                            </span>
-                          </div>
-                          <div className="mt-0.5 text-[11.5px] leading-snug text-text-muted">
+                          </span>
+                          <span className="ml-2 font-mono text-[10.5px] text-text-muted">
+                            {anomSetup.what}
+                          </span>
+                          <span className="ml-2 text-[11.5px] leading-snug text-text-muted">
                             {anomSetup.why}
-                          </div>
+                          </span>
                         </div>
                         <button
                           type="button"
@@ -1802,47 +1815,15 @@ export default function SignalsAnalytics() {
                       </div>
                     )}
 
-                    {/* Color key — always above the plot so meaning is visible before reading dots */}
-                    <div className="mb-2.5 flex flex-wrap gap-2 shrink-0 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-2.5 py-2">
-                      {[
-                        ...ANOM_SETUPS.filter((x) => x.id !== "dormant").map((x) => ({
-                          c: ANOM_FILL[x.id],
-                          glow: x.id === "breakout",
-                          title: x.label,
-                          body: x.what,
-                        })),
-                        {
-                          c: GRAYBAR,
-                          glow: false,
-                          title: "Ordinary",
-                          body: "Turnover between half and three times the median. Most of the board, most of the time.",
-                        },
-                      ].map((row) => (
-                        <div
-                          key={row.title}
-                          className="flex min-w-[11rem] flex-1 items-start gap-2 rounded-md px-1 py-0.5"
-                        >
-                          <span
-                            className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{
-                              background: row.c,
-                              boxShadow: row.glow
-                                ? "0 0 8px rgb(var(--accent) / 0.55)"
-                                : undefined,
-                            }}
-                            aria-hidden
-                          />
-                          <div className="min-w-0">
-                            <div className="font-mono text-[10.5px] font-semibold uppercase tracking-wide text-text-primary">
-                              {row.title}
-                            </div>
-                            <p className="mt-0.5 text-[10.5px] leading-snug text-text-muted">
-                              {row.body}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                      <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink/[0.05] pt-1.5 mt-0.5 font-mono text-[9.5px] text-text-muted/80">
+                    {/* The five setups were being explained in four places at
+                        once: the buttons carry their counts, the strip above
+                        explains whichever is selected, the legend under the plot
+                        repeats them, and How to read has the long version. The
+                        five-column key was the fourth copy and it cost about
+                        160px of chart. What is left is the axis caption, which
+                        nothing else says. */}
+                    <div className="mb-2 shrink-0 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-2.5 py-1.5">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] text-text-muted/85">
                         <span>
                           <span className="text-text-primary/70">X</span> = 24h price change %
                         </span>
@@ -1858,7 +1839,7 @@ export default function SignalsAnalytics() {
                       </div>
                     </div>
 
-                    <div className="flex-1 min-h-0 min-w-0">
+                    <div className="min-w-0" style={{ height: h }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <ScatterChart margin={{ top: 12, right: 48, left: 0, bottom: 8 }}>
                           <CartesianGrid stroke={GRID} strokeDasharray="3 6" />
