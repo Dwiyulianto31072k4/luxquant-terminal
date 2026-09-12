@@ -21,6 +21,7 @@ import CoinLogo from "./CoinLogo";
 import { SegGroup } from "./ui/SegGroup";
 import { InfoTip } from "./GuideInfo";
 import SignalsNarrativeRotation from "./SignalsNarrativeRotation";
+import SignalsNarrativeBoard from "./SignalsNarrativeBoard";
 import { useChartTokens } from "./charts/EChart";
 
 // The TP ladder, ordinal: tp1 → tp4 is "ran further". One validated hue ramp.
@@ -366,7 +367,14 @@ export default function SignalsNarrativeFlow({
               {/* Table and flow are one row on a desk and a toggle on a phone.
                   The table keeps the wider column: it is the thing you act on,
                   the Sankey is the thing you read. */}
-              <div className="grid gap-x-4 gap-y-3 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
+              <SignalsNarrativeBoard
+                narratives={narratives}
+                marketChange7d={data?.market_change_7d ?? null}
+                activeIds={activeIds}
+                onPick={onPick}
+              />
+
+              <div className="mt-3 grid gap-x-4 gap-y-3 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
               <div className={`min-w-0 ${view === "flow" ? "hidden lg:block" : ""}`}>
               {/* Mobile cards */}
               <div className="space-y-1 sm:hidden">
