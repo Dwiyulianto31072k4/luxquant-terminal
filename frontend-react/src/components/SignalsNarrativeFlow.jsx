@@ -20,7 +20,8 @@ import { useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
 import { SegGroup } from "./ui/SegGroup";
 import { InfoTip } from "./GuideInfo";
-import SignalsNarrativeSankey from "./SignalsNarrativeSankey";
+import SignalsNarrativeSankey, { OUTCOMES } from "./SignalsNarrativeSankey";
+import { useChartTokens } from "./charts/EChart";
 
 const WINDOW_OPTS = [
   { key: "30", label: "30d" },
@@ -73,18 +74,35 @@ function CoinStack({ pairs = [], size = 18 }) {
   );
 }
 
-function CoinsCell({ value, max }) {
-  const pct = Math.max(4, Math.min(100, (value / (max || 1)) * 100));
+/** How those calls ended, as one stacked bar.
+ *
+ *  The bar here used to be coins-relative-to-the-largest — a ranking the row
+ *  number already carries, drawn twice. It now shows the outcome mix, in the
+ *  same TP ramp the flow chart uses, so a row and the Sankey beside it are the
+ *  same statement at two scales. Widths are shares of that narrative's own
+ *  resolved calls, so every bar is full width and rows stay comparable. */
+function OutcomeMix({ flow, coins, tokens }) {
+  const parts = OUTCOMES.map((o) => ({ ...o, w: Number(flow?.[o.key] || 0) })).filter((p) => p.w > 0);
+  const total = parts.reduce((s, p) => s + p.w, 0);
   return (
     <div className="flex items-center justify-end gap-2">
-      <div className="h-1.5 w-12 overflow-hidden rounded-full bg-ink/[0.07] sm:w-16">
-        <div
-          className={`h-full rounded-full ${pct > 70 ? "bg-accent" : "bg-accent/55"}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <span
+        className="flex h-1.5 w-14 overflow-hidden rounded-full bg-ink/[0.07] sm:w-20"
+        title={
+          total
+            ? parts.map((p) => `${p.label} ${Math.round((p.w / total) * 100)}%`).join(" · ")
+            : "no resolved calls yet"
+        }
+      >
+        {parts.map((p) => (
+          <span
+            key={p.key}
+            style={{ width: `${(p.w / total) * 100}%`, background: tokens[p.token] || "currentColor" }}
+          />
+        ))}
+      </span>
       <span className="w-7 text-right font-mono text-[11px] tabular-nums text-text-primary">
-        {value}
+        {coins}
       </span>
     </div>
   );
@@ -131,6 +149,7 @@ export default function SignalsNarrativeFlow({
   // Phone only: the two halves are a toggle, not a stack. Stacked, the flow
   // panel sits under a 40-row table where nobody scrolls to it.
   const [view, setView] = useState("table");
+  const tokens = useChartTokens();
 
   const narratives = useMemo(() => data?.narratives || [], [data]);
 
@@ -150,7 +169,6 @@ export default function SignalsNarrativeFlow({
     [narratives]
   );
 
-  const maxCoins = Math.max(...sorted.map((x) => x.coins_called || 0), 1);
   const lead = stripRows[0];
   const age = snapAge(data?.snapshot_at);
   // A Set, not .includes on an array: this is asked once per chip and once per
@@ -303,6 +321,20 @@ export default function SignalsNarrativeFlow({
                 { key: "flow", label: "Flow" },
               ]}
             />
+            <span className="hidden items-center gap-2.5 lg:flex">
+              {OUTCOMES.map((o) => (
+                <span key={o.key} className="flex items-center gap-1">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-sm"
+                    style={{ background: tokens[o.token] || "currentColor" }}
+                    aria-hidden="true"
+                  />
+                  <span className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted">
+                    {o.label}
+                  </span>
+                </span>
+              ))}
+            </span>
             <span className="flex items-center gap-1.5">
               <p className="text-[11px] leading-snug text-text-muted">
                 Narratives we have 3+ calls in. Tap one to filter the desk.
@@ -355,7 +387,7 @@ export default function SignalsNarrativeFlow({
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
-                        <CoinsCell value={x.coins_called} max={maxCoins} />
+                        <OutcomeMix flow={x.outcome_flow} coins={x.coins_called} tokens={tokens} />
                         <span className="mt-0.5 block font-mono text-[10.5px] tabular-nums text-profit">
                           {x.median_peak == null ? "—" : `+${x.median_peak.toFixed(1)}%`}
                         </span>
@@ -380,7 +412,7 @@ export default function SignalsNarrativeFlow({
                         Narrative
                       </th>
                       <th className="px-2 py-1.5 text-right font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-                        Coins
+                        Mix · coins
                       </th>
                       <th className="px-2 py-1.5 text-right font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
                         24h
@@ -424,7 +456,7 @@ export default function SignalsNarrativeFlow({
                             </div>
                           </td>
                           <td className="px-2 py-2">
-                            <CoinsCell value={x.coins_called} max={maxCoins} />
+                            <OutcomeMix flow={x.outcome_flow} coins={x.coins_called} tokens={tokens} />
                           </td>
                           <td className="px-2 py-2 text-right text-[12px]">
                             <Chg pct={x.mcap_change_24h} className="font-medium" />

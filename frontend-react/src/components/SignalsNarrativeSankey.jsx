@@ -20,7 +20,7 @@
 import { useMemo } from "react";
 import EChart, { useChartTokens, inkAlpha } from "./charts/EChart";
 
-const OUTCOMES = [
+export const OUTCOMES = [
   { key: "tp4", label: "TP4", token: "viz-tp4" },
   { key: "tp3", label: "TP3", token: "viz-tp3" },
   { key: "tp2", label: "TP2", token: "viz-tp2" },

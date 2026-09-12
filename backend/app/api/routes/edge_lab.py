@@ -2138,8 +2138,15 @@ def get_narrative_flow(
     start_date = end_date - timedelta(days=days - 1)
     start_str, end_str = start_date.isoformat(), end_date.isoformat()
 
+    # v2: outcome_flow/flow_total joined the payload. The version in this key is
+    # not decoration — without bumping it, a client keeps being served the OLD
+    # SHAPE for the rest of the TTL, and the panel that needs the new fields
+    # renders nothing with no error anywhere. That is exactly what happened on
+    # the first deploy of the flow panel: a worker that had not rolled yet wrote
+    # a 40-row reply with no flow in it, and the chart stayed blank for 15
+    # minutes. Bump this whenever a field is added or removed.
     cache_key = (
-        f"lq:edge-lab:narrative-flow:v1:{days}:{min_coins}:"
+        f"lq:edge-lab:narrative-flow:v2:{days}:{min_coins}:"
         f"{int(min_cap_usd)}:{limit}:{start_str}:{end_str}"
     )
     cached = cache_get(cache_key)
