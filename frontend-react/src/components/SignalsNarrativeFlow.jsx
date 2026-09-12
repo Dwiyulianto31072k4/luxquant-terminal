@@ -149,6 +149,9 @@ export default function SignalsNarrativeFlow({
   const maxCoins = Math.max(...sorted.map((x) => x.coins_called || 0), 1);
   const lead = stripRows[0];
   const age = snapAge(data?.snapshot_at);
+  const activeName = activeId
+    ? narratives.find((x) => x.category_id === activeId)?.name || null
+    : null;
 
   const sortOpts = SORT_OPTS;
   const windowOpts = WINDOW_OPTS.map((o) => ({
@@ -178,9 +181,21 @@ export default function SignalsNarrativeFlow({
           </span>
           <span className="shrink-0">
             <span className="block text-[13px] font-medium text-text-primary">Narratives</span>
-            <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted sm:block">
-              {lead ? `${narratives.length} called` : "loading"}
-              {age ? ` · ${age}` : ""}
+            {/* Collapsed, the subtitle is the only place that can say this row
+                DOES something when tapped — the expanded panel's explanation is
+                behind a click the user has no reason to make yet. When a
+                narrative is on, it says so instead: a row that silently cut the
+                table below it was the whole complaint. */}
+            <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] sm:block">
+              {activeName ? (
+                <span className="text-accent">Filtering · {activeName}</span>
+              ) : (
+                <span className="text-text-muted">
+                  {lead ? `${narratives.length} called` : "loading"}
+                  {age ? ` · ${age}` : ""}
+                  {lead ? " · tap to filter" : ""}
+                </span>
+              )}
             </span>
           </span>
         </button>

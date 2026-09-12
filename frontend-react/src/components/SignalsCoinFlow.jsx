@@ -267,6 +267,10 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
             <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted sm:block">
               {top ? `${top.symbol} ${Number(top.flow_intensity || 0).toFixed(2)}` : "turnover"}
               {counts.called ? ` · ${counts.called} called` : ""}
+              {/* Not "tap to filter": a coin chip here opens that coin's call.
+                  Only the Narratives row filters the desk, and saying the same
+                  thing on both would make one of them a lie. */}
+              {top ? " · tap to open" : ""}
             </span>
           </span>
         </button>
