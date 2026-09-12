@@ -726,10 +726,26 @@ def coingecko_search(symbol: str, client: httpx.Client) -> Optional[str]:
             coins = r.json().get("coins", [])
             if not coins:
                 continue
-            for c in coins:
-                if c.get("symbol", "").upper() == query_symbol.upper():
-                    return c.get("id")
-            return coins[0].get("id")
+            # EXACT ticker match only. CoinGecko's /search is fuzzy and ranks by
+            # name, so falling back to coins[0] accepted whatever it guessed:
+            # querying COIN returned bit-COIN, THE returned e-THE-reum, LA
+            # returned so-LA-na, ARM returned h-ARM-ony, US returned tether.
+            # Measured 2026-09-12 that had attached 17 pairs to the wrong coin,
+            # giving BUSDT a $1.6T market cap and feeding the wrong categories
+            # into the Narratives row.
+            #
+            # No match now returns None. An empty coingecko_id is a gap someone
+            # can see and fix; a confidently wrong one is not.
+            exact = [
+                c for c in coins
+                if (c.get("symbol") or "").upper() == query_symbol.upper()
+            ]
+            if exact:
+                # Several real coins share a ticker — take the largest, which is
+                # the one a desk means when it says the symbol.
+                exact.sort(key=lambda c: c.get("market_cap_rank") or 10**9)
+                return exact[0].get("id")
+            continue
         except Exception as e:
             logger.error(f"Search parse error for {query_symbol}: {e}")
     return None
