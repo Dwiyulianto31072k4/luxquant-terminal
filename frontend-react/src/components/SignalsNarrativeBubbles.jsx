@@ -53,8 +53,8 @@ export default function SignalsNarrativeBubbles({
         r,
         x: 40 + seeded(i) * (W - 80),
         y: 40 + seeded(i + 99) * (H - 80),
-        vx: (seeded(i + 7) - 0.5) * 0.25,
-        vy: (seeded(i + 13) - 0.5) * 0.25,
+        vx: (seeded(i + 7) - 0.5) * 0.07,
+        vy: (seeded(i + 13) - 0.5) * 0.07,
       };
     });
   }, [narratives, marketChange7d]);
@@ -81,7 +81,10 @@ export default function SignalsNarrativeBubbles({
           const d = Math.hypot(dx, dy) || 0.01;
           const min = a.r + b.r + 3;
           if (d < min) {
-            const push = ((min - d) / d) * 0.5;
+            // Gentle separation. At 0.5 this shoved pairs apart hard enough to
+            // keep injecting energy every frame, and the whole field stayed
+            // agitated — the drift you see is mostly collisions, not velocity.
+            const push = ((min - d) / d) * 0.14;
             a.x -= dx * push;
             a.y -= dy * push;
             b.x += dx * push;
@@ -89,8 +92,12 @@ export default function SignalsNarrativeBubbles({
           }
         }
         // weak pull home, so the field never drifts into a corner
-        a.vx += (W / 2 - a.x) * 0.00012;
-        a.vy += (H / 2 - a.y) * 0.00012;
+        a.vx += (W / 2 - a.x) * 0.00006;
+        a.vy += (H / 2 - a.y) * 0.00006;
+        // Friction. Without it the collision impulses accumulate and the motion
+        // accelerates the longer the panel is open.
+        a.vx *= 0.975;
+        a.vy *= 0.975;
         a.x += a.vx * damp;
         a.y += a.vy * damp;
         if (a.x < a.r) { a.x = a.r; a.vx = Math.abs(a.vx); }
@@ -139,9 +146,9 @@ export default function SignalsNarrativeBubbles({
           // mover and a big one are not the same green.
           const strength = Math.min(1, Math.abs(n.rs) / 12);
           const fill = pos
-            ? `rgb(var(--pos) / ${0.12 + strength * 0.42})`
-            : `rgb(var(--neg) / ${0.1 + strength * 0.38})`;
-          const stroke = pos ? "rgb(var(--pos) / 0.85)" : "rgb(var(--neg) / 0.8)";
+            ? `rgb(var(--pos) / ${(0.34 + strength * 0.46).toFixed(2)})`
+            : `rgb(var(--neg) / ${(0.32 + strength * 0.44).toFixed(2)})`;
+          const stroke = pos ? "rgb(var(--pos))" : "rgb(var(--neg))";
           return (
             <g
               key={n.id}
@@ -153,7 +160,7 @@ export default function SignalsNarrativeBubbles({
                 r={n.r}
                 fill={fill}
                 stroke={on ? "rgb(var(--accent))" : stroke}
-                strokeWidth={on ? 2.5 : 1.2}
+                strokeWidth={on ? 3 : 1.8}
               />
               {n.r > 26 ? (
                 <>
@@ -161,7 +168,7 @@ export default function SignalsNarrativeBubbles({
                     textAnchor="middle"
                     y={-2}
                     className="pointer-events-none fill-text-primary"
-                    style={{ fontSize: Math.min(11, n.r / 3.6), fontWeight: 500 }}
+                    style={{ fontSize: Math.min(11.5, n.r / 3.4), fontWeight: 600 }}
                   >
                     {n.short}
                   </text>
@@ -169,10 +176,14 @@ export default function SignalsNarrativeBubbles({
                     textAnchor="middle"
                     y={Math.min(11, n.r / 3.6) + 4}
                     className="pointer-events-none"
+                    /* Green-on-green vanished once the fill went solid. The
+                       circle already carries direction; the number only has to
+                       be legible. */
                     style={{
-                      fontSize: Math.min(10.5, n.r / 4),
+                      fontSize: Math.min(10.5, n.r / 3.9),
                       fontFamily: "monospace",
-                      fill: pos ? "rgb(var(--pos))" : "rgb(var(--neg))",
+                      fontWeight: 600,
+                      fill: "rgb(var(--fg))",
                     }}
                   >
                     {n.rs >= 0 ? "+" : ""}
