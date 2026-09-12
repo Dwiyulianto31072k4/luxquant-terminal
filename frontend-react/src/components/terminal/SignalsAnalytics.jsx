@@ -105,6 +105,81 @@ const STRONG_TAGS = ["HTF_TREND_STRONG", "MTF_FULL_ALIGNED", "SMC_GOLDEN_SETUP"]
 // floor it sits on. Ticks are the decades either side of it — 0.1%, 1%, 10%,
 // 100% — which is also how anyone reading turnover actually thinks about it.
 const ANOM_FLOOR = 0.02;
+
+// The chart plots price change against turnover, which is the oldest question
+// in volume analysis: volume is EFFORT, price progress is RESULT, and the pairs
+// worth a second look are the ones where the two disagree. These are the five
+// regimes that produces, with the counts they held on production on 2026-09-13
+// across 439 called pairs — measured before shipping, because a filter that is
+// always empty teaches people the control is broken.
+//
+// Heavy = turnover above 3x the desk median (the 3x line already on the chart).
+// Light = below half the median. Big move = more than 5% in 24h, the same
+// threshold the Hot flag has always used.
+const ANOM_FILL = {
+  breakout: GOLD,
+  absorption: PURPLE,
+  thin: NEG,
+  capitulation: NEG,
+  dormant: "rgb(var(--fg) / 0.13)",
+  ordinary: GRAYBAR,
+};
+
+/**
+ * Which regime a point belongs to. Exported so the thresholds can be pinned by
+ * a test rather than living only inside a 200-line memo — they are the whole
+ * meaning of the Setup buttons, and the Hot flag has depended on the same two
+ * numbers since long before those buttons existed.
+ */
+export function anomSetupOf(x, y, medFlow) {
+  if (!(medFlow > 0)) return "ordinary";
+  const heavy = y > medFlow * 3;
+  const light = y < medFlow / 2;
+  if (heavy && x > 5) return "breakout";
+  if (heavy && x < -5) return "capitulation";
+  if (heavy) return "absorption";
+  if (light && x > 5) return "thin";
+  if (light) return "dormant";
+  return "ordinary";
+}
+
+const ANOM_SETUPS = [
+  {
+    id: "breakout",
+    label: "Breakout",
+    dot: "bg-accent",
+    what: "Up more than 5% on turnover above 3x the median.",
+    why: "The move has participation behind it. A break on heavy volume is the one that tends to hold; the identical break on thin volume is the one that gives it back. This is the same set the Hot flag marks.",
+  },
+  {
+    id: "absorption",
+    label: "Absorption",
+    dot: "bg-[var(--viz-4)]",
+    what: "Turnover above 3x the median while price went nowhere.",
+    why: "Effort without result. Heavy trading that moves nothing means one side is soaking up the other at this level — it is the second-largest group on the board and the one the old Hot/Other split hid completely.",
+  },
+  {
+    id: "thin",
+    label: "Thin pump",
+    dot: "bg-negative",
+    what: "Up more than 5% on turnover below half the median.",
+    why: "Price moved and almost nobody traded it. A handful of participants drove it and it can unwind just as fast when they stop. Size and stops, not conviction.",
+  },
+  {
+    id: "capitulation",
+    label: "Capitulation",
+    dot: "bg-negative",
+    what: "Down more than 5% on turnover above 3x the median.",
+    why: "Heavy selling rather than a drift. Sellers spending this much effort is what a washout looks like — a bounce WATCH, not a buy on its own. Rare on a green day, which is why it can read zero.",
+  },
+  {
+    id: "dormant",
+    label: "Dormant",
+    dot: "bg-ink/25",
+    what: "Turnover below half the median, no real direction.",
+    why: "Nothing is trading it. Not a setup — it is here so you can see how much of the book is asleep, and take it out of the picture.",
+  },
+];
 const ANOM_Y_TICKS = [-1.5, -1, 0, 1, 2];
 
 // Constant tag set — module scope keeps its identity stable across renders.
@@ -127,10 +202,15 @@ function AnomDot({ cx, cy, payload, statusMap, onPair, showLabel }) {
   const sc = statusColorOf(statusMap, payload.pair);
   const hot = !!payload.hot;
   const dec = !!payload.dec;
-  const fill = hot ? GOLD : dec ? CYAN : GRAYBAR;
+  // Colour is the regime, full stop. It used to be hot / decoupled / other,
+  // which is a strict subset of what the setup buttons now name — so the board
+  // said "grey" for absorption, capitulation and thin pumps alike and the chips
+  // promised a distinction the chart did not draw. Thin pump and capitulation
+  // share red because both are caution; WHERE the dot sits (right of zero or
+  // left of it) already says which kind, so the colour does not have to.
+  const fill = ANOM_FILL[payload.setup] || GRAYBAR;
   // "all" still means all; the default view names only the ranked extremes.
-  const named =
-    showLabel === "all" ? true : !!showLabel && (hot || dec) && payload.named !== false;
+  const named = showLabel === "all" ? true : !!showLabel && payload.named === true;
   return (
     <g>
       {hot && <circle cx={cx} cy={cy} r={named ? 22 : 12} fill={GOLD} fillOpacity={0.12} />}
@@ -662,7 +742,10 @@ export default function SignalsAnalytics() {
     const flows = anomPts.map((p) => p.y);
     const medFlow = median(flows) || 0;
     anomPts.forEach((p) => {
-      p.hot = medFlow > 0 && p.y > medFlow * 3 && p.x > 5;
+      p.setup = anomSetupOf(p.x, p.y, medFlow);
+      // hot keeps its old meaning exactly — the KPI card and the Hot list read
+      // it, and breakout is defined as the same test it always was.
+      p.hot = p.setup === "breakout";
     });
     // Label the extremes, not everything. Recharts draws each dot without
     // knowing its neighbours, so labelling every hot point piles names on top of
@@ -787,16 +870,29 @@ export default function SignalsAnalytics() {
       ? Math.max(0, Math.round((Date.now() - Date.parse(deriv.generated_at)) / 1000))
       : null;
     const fresh = ageS != null && ageS < 90 && !deriv?.stale;
-    return { hotPts, hotN: hotPts.length, decN, restN, ageS, fresh };
+    // Live count per setup. Shown on every chip, including the zeroes: a
+    // capitulation count of 0 on a green day is the answer to a question, not a
+    // broken control, and hiding it would make the board look like it never has
+    // one.
+    const bySetup = {};
+    ANOM_SETUPS.forEach((x) => {
+      bySetup[x.id] = 0;
+    });
+    agg.anomPts.forEach((p) => {
+      if (bySetup[p.setup] != null) bySetup[p.setup] += 1;
+    });
+    return { hotPts, hotN: hotPts.length, decN, restN, ageS, fresh, bySetup };
   }, [agg.anomPts, deriv?.generated_at, deriv?.stale]);
 
-  // Chart-local layer filter for Price vs volume intensity
+  const anomSetup = ANOM_SETUPS.find((x) => x.id === anomLayer) || null;
+
+  // Which points the chart is showing. "all" is everything; "dec" is the
+  // decoupled cut; anything else is one of the ANOM_SETUPS regimes.
   const anomChartPts = useMemo(() => {
     const pts = agg.anomPts || [];
-    if (anomLayer === "hot") return pts.filter((p) => p.hot);
+    if (anomLayer === "all") return pts;
     if (anomLayer === "dec") return pts.filter((p) => p.dec);
-    if (anomLayer === "rest") return pts.filter((p) => !p.hot && !p.dec);
-    return pts;
+    return pts.filter((p) => p.setup === anomLayer);
   }, [agg.anomPts, anomLayer]);
   // top-10 |movers| → default selection of the vs-BTC chart
   const moversAbs = useMemo(
@@ -905,6 +1001,27 @@ export default function SignalsAnalytics() {
   // how far past the call the peak went, how far a coin has run for its beta.
   const stdH = useChartHeight("std");
   const heroH = useChartHeight("hero");
+
+  // Which points carry a name. This used to be a flat "top 14 by distance from
+  // the origin", drawn with no idea where its neighbours were — which is how
+  // GRIFFAIN and ALCH ended up printed on top of each other as "GIFLOCK:N".
+  // promote() ranks the same way and then refuses a name to anything that would
+  // land on one already placed. It also runs on the FILTERED set, so picking a
+  // setup names that setup's members rather than whichever of the global
+  // fourteen happen to survive the filter.
+  const anomNamed = useMemo(() => {
+    const yRef = Math.log10(Math.max(agg.medFlow * 3, ANOM_FLOOR));
+    return promote(
+      anomChartPts.map((p) => ({ pair: p.pair, x: p.x, y: p.yl })),
+      anomXR,
+      [Math.log10(ANOM_FLOOR), Math.log10(Math.max(anomYB, ANOM_FLOOR * 10))],
+      heroH,
+      anomLayer === "all" ? 16 : 26,
+      (p) => Math.hypot(p.x / 25, (p.y - yRef) / 1.2)
+    );
+    // anomXR is derived from agg on every render; agg is what changes under it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anomChartPts, agg.medFlow, anomYB, heroH, anomLayer]);
   const oppNamed = useMemo(
     () => promote(agg.scatterOpp, [-60, 60], [0, 120], stdH, 18, (p) => p.y),
     [agg.scatterOpp, stdH]
@@ -1573,43 +1690,67 @@ export default function SignalsAnalytics() {
                 hint={t("terminal.viz.anomHint")}
                 render={(h) => (
                   <div className="flex flex-col min-w-0" style={{ height: h }}>
-                    {/* Chart-local filters */}
+                    {/* Setup shortcuts.
+                        The old control was All / Hot / Other, and "Other 378"
+                        is not a thing anyone looks for — it is the leftovers.
+                        These are the five regimes of price against turnover,
+                        each with the count it actually holds right now. */}
                     <div className="mb-2 flex flex-wrap items-center gap-1.5 shrink-0">
                       <span className="mr-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted/60">
-                        Layer
+                        Setup
                       </span>
                       {[
-                        { id: "all", label: "All", n: agg.anomPts.length },
-                        { id: "hot", label: "Hot", n: anomMeta.hotN },
+                        { id: "all", label: "All", n: agg.anomPts.length, dot: null },
+                        ...ANOM_SETUPS.map((x) => ({
+                          id: x.id,
+                          label: x.label,
+                          n: anomMeta.bySetup?.[x.id] ?? 0,
+                          dot: x.dot,
+                        })),
                         // Decoupled is genuine but rare: 0 of the last 655
-                        // calls, 0.9% of all history. An always-empty layer
-                        // teaches people a third of this control is broken, so
-                        // it appears only when it has members.
+                        // calls, 0.9% of all history. An always-empty control
+                        // teaches people it is broken, so it appears only when
+                        // it has members. The setups above are different — they
+                        // are regime-dependent, so a zero on one of those is
+                        // today's answer and stays visible.
                         ...(anomMeta.decN > 0
-                          ? [{ id: "dec", label: "Decoupled", n: anomMeta.decN }]
+                          ? [{ id: "dec", label: "Decoupled", n: anomMeta.decN, dot: "bg-[var(--viz-5)]" }]
                           : []),
-                        { id: "rest", label: "Other", n: anomMeta.restN },
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setAnomLayer(opt.id)}
-                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-[10px] uppercase tracking-wide transition-colors ${
-                            anomLayer === opt.id
-                              ? "border-ink/18 bg-ink/[0.09] font-semibold text-text-primary"
-                              : "border-ink/[0.07] text-text-muted hover:border-ink/14 hover:text-text-primary"
-                          }`}
-                        >
-                          {opt.label}
-                          <span className="tabular-nums text-text-muted/70">{opt.n}</span>
-                        </button>
-                      ))}
+                      ].map((opt) => {
+                        const empty = opt.n === 0;
+                        const on = anomLayer === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            disabled={empty}
+                            onClick={() => setAnomLayer(opt.id)}
+                            title={empty ? `No ${opt.label.toLowerCase()} on the board right now` : undefined}
+                            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-[10px] uppercase tracking-wide transition-colors ${
+                              on
+                                ? "border-ink/18 bg-ink/[0.09] font-semibold text-text-primary"
+                                : empty
+                                  ? "cursor-not-allowed border-ink/[0.05] text-text-muted/40"
+                                  : "border-ink/[0.07] text-text-muted hover:border-ink/14 hover:text-text-primary"
+                            }`}
+                          >
+                            {opt.dot && (
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${opt.dot} ${empty ? "opacity-40" : ""}`}
+                                aria-hidden
+                              />
+                            )}
+                            {opt.label}
+                            <span className="tabular-nums text-text-muted/70">{opt.n}</span>
+                          </button>
+                        );
+                      })}
                       <span className="mx-1 h-3 w-px bg-ink/10" aria-hidden />
                       <span className="mr-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted/60">
                         Names
                       </span>
                       {[
-                        { id: "focus", label: "Hot + Dec" },
+                        { id: "focus", label: "Ranked" },
                         { id: "all", label: "All names" },
                         { id: "off", label: "Off" },
                       ].map((opt) => (
@@ -1631,26 +1772,50 @@ export default function SignalsAnalytics() {
                       </span>
                     </div>
 
+                    {/* What the chosen setup is, and what it means. A filter
+                        that only narrows a cloud teaches nothing; the reason it
+                        is worth looking at belongs next to the button. */}
+                    {anomSetup && (
+                      <div className="mb-2.5 flex shrink-0 items-start gap-2.5 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2">
+                        <span
+                          className={`mt-1 h-2 w-2 shrink-0 rounded-full ${anomSetup.dot}`}
+                          aria-hidden
+                        />
+                        <div className="min-w-0">
+                          <div className="text-[12px] font-medium text-text-primary">
+                            {anomSetup.label}
+                            <span className="ml-2 font-mono text-[10.5px] font-normal text-text-muted">
+                              {anomSetup.what}
+                            </span>
+                          </div>
+                          <div className="mt-0.5 text-[11.5px] leading-snug text-text-muted">
+                            {anomSetup.why}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAnomLayer("all")}
+                          className="ml-auto shrink-0 rounded-md border border-ink/[0.08] px-2 py-1 font-mono text-[9.5px] uppercase tracking-wider text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+
                     {/* Color key — always above the plot so meaning is visible before reading dots */}
                     <div className="mb-2.5 flex flex-wrap gap-2 shrink-0 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-2.5 py-2">
                       {[
-                        {
-                          c: GOLD,
-                          glow: true,
-                          title: "Hot",
-                          body: "Strong 24h up-move + volume intensity above 3× median flow. High activity pumps.",
-                        },
-                        {
-                          c: CYAN,
-                          glow: false,
-                          title: "Decoupled",
-                          body: "Low beta vs BTC — coin is moving on its own, not just following Bitcoin.",
-                        },
+                        ...ANOM_SETUPS.filter((x) => x.id !== "dormant").map((x) => ({
+                          c: ANOM_FILL[x.id],
+                          glow: x.id === "breakout",
+                          title: x.label,
+                          body: x.what,
+                        })),
                         {
                           c: GRAYBAR,
                           glow: false,
-                          title: "Other",
-                          body: "Normal scatter points in view. Not hot and not flagged decoupled.",
+                          title: "Ordinary",
+                          body: "Turnover between half and three times the median. Most of the board, most of the time.",
                         },
                       ].map((row) => (
                         <div
@@ -1750,6 +1915,7 @@ export default function SignalsAnalytics() {
                             data={anomChartPts.map((p) => ({
                               ...p,
                               x: clampRange(p.x, anomXR),
+                              named: anomNamed.has(p.pair),
                             }))}
                             shape={(props) => (
                               <AnomDot
@@ -1775,17 +1941,21 @@ export default function SignalsAnalytics() {
                       </ResponsiveContainer>
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center justify-center gap-3 border-t border-ink/[0.04] pt-1.5 shrink-0">
+                      {/* The legend under the plot is where people look for
+                          "what does this colour mean", so it carries the same
+                          five setups as the buttons above and filters the same
+                          way. It used to offer Hot / Decoupled / Other, which
+                          named three of the six things the chart draws. */}
                       {[
-                        { c: GOLD, l: t("terminal.viz.legHot"), n: anomMeta.hotN, id: "hot" },
+                        ...ANOM_SETUPS.map((x) => ({
+                          c: ANOM_FILL[x.id],
+                          l: x.label,
+                          n: anomMeta.bySetup?.[x.id] ?? 0,
+                          id: x.id,
+                        })),
                         ...(anomMeta.decN > 0
                           ? [{ c: CYAN, l: t("terminal.viz.legDec"), n: anomMeta.decN, id: "dec" }]
                           : []),
-                        {
-                          c: GRAYBAR,
-                          l: t("terminal.viz.legRest"),
-                          n: anomMeta.restN,
-                          id: "rest",
-                        },
                       ].map((e) => (
                         <button
                           key={e.l}
