@@ -41,7 +41,7 @@ from sqlalchemy import text
 
 from app.core.database import SessionLocal
 from app.core.redis import cache_set, cache_get, is_redis_available
-from app.core.http_client import get_binance_client
+from app.core.http_client import get_binance_client, get_coingecko_main_client
 from app.core.leader import is_leader
 
 BINANCE_FUTURES_API = "https://fapi.binance.com"
@@ -77,6 +77,24 @@ FAPI_BAN_KEY = "lq:binance:fapi_ban"
 
 # post-signal historical stats (heavy — runs every ~6h)
 PS_KEY = "lq:terminal:postsignal"
+# ── Aggregate 24h volume, all venues ────────────────────────────────────────
+# Turnover on the Signals desk is volume ÷ market cap, and the market cap comes
+# from CoinGecko — every venue, every pair of the coin. The volume beside it was
+# one venue's perp (Binance futures), so the two halves measured different
+# universes and the ratio read low by design. Measured 2026-09-12: XEC traded
+# $4.17M across all venues against $2.08M on Binance alone, so the published
+# turnover was roughly half the truth even when Binance answered — and when
+# Binance was banned and the chain fell through to Bybit, BANANAS31 was served
+# $69.5K against a real $1.10M, 15.8x low.
+#
+# CoinGecko's total_volume is the matching numerator. 426 of the 437 pairs
+# called in the last 7 days (97.5%) carry a coingecko_id, so this covers
+# effectively the whole desk in two requests per refresh.
+CG_VOL_KEY = "lq:market:cg-vol24h"
+CG_VOL_INTERVAL = 15 * 60
+COINGECKO_MARKETS = "https://api.coingecko.com/api/v3/coins/markets"
+_last_cg_vol = 0.0
+
 PS_INTERVAL = 6 * 3600
 PS_TTL = 8 * 3600
 _last_ps = 0.0
@@ -797,6 +815,75 @@ def compute_postsignal_stats():
         db.close()
 
 
+async def _refresh_cg_volume():
+    """Aggregate 24h volume per base symbol, across every venue, from CoinGecko.
+
+    Keyed by BASE SYMBOL uppercased (ANKR, not ANKRUSDT) because that is what a
+    caller holding a pair can derive without another lookup. Ids come from the
+    coins table for pairs actually called in the last 7 days, so the request is
+    scoped to the desk rather than to the whole of CoinGecko.
+    """
+    db = SessionLocal()
+    try:
+        rows = db.execute(text("""
+            SELECT DISTINCT c.coingecko_id, UPPER(c.base_symbol) AS sym
+            FROM signals s
+            JOIN coins c ON c.pair = s.pair
+            WHERE s.created_at ~ '^[0-9]{4}-'
+              AND (s.created_at)::timestamptz > now() - interval '7 days'
+              AND c.coingecko_id IS NOT NULL AND c.coingecko_id <> ''
+        """)).fetchall()
+    finally:
+        db.close()
+    if not rows:
+        return 0
+
+    by_id = {r[0]: r[1] for r in rows}
+    ids = list(by_id.keys())
+    out = {}
+    # The shared CoinGecko client, not a hand-rolled header: key injection and
+    # the sharded-key strategy live there.
+    client = get_coingecko_main_client()
+    # 250 is CoinGecko's per_page ceiling; the desk fits in two pages.
+    for i in range(0, len(ids), 250):
+        chunk = ids[i:i + 250]
+        try:
+            resp = await client.get(
+                COINGECKO_MARKETS,
+                params={
+                    "vs_currency": "usd",
+                    "ids": ",".join(chunk),
+                    "per_page": 250,
+                    "page": 1,
+                    "sparkline": "false",
+                },
+            )
+            if resp.status_code != 200:
+                print(f"   ⚠️ cg-vol page {i//250 + 1}: HTTP {resp.status_code}")
+                continue
+            for it in resp.json() or []:
+                sym = by_id.get(it.get("id"))
+                vol = it.get("total_volume")
+                if not sym or vol is None:
+                    continue
+                try:
+                    v = float(vol)
+                except (TypeError, ValueError):
+                    continue
+                if v > 0:
+                    out[sym] = v
+        except Exception as e:
+            print(f"   ⚠️ cg-vol fetch: {type(e).__name__}: {e}")
+        if i + 250 < len(ids):
+            await asyncio.sleep(2.5)   # Demo plan is ~30/min; two pages is nothing
+
+    if out:
+        # Long TTL on purpose: a 24h total moves slowly, and a stale aggregate is
+        # far closer to the truth than a fresh number from one venue.
+        cache_set(CG_VOL_KEY, {"generated_at": time.time(), "vol": out}, ttl=45 * 60)
+    return len(out)
+
+
 async def terminal_deriv_loop():
     """Leader-elected background loop (same pattern as the other cache loops)."""
     print(f"🔄 Terminal derivatives worker started (interval: {SWEEP_INTERVAL}s)")
@@ -831,6 +918,30 @@ async def terminal_deriv_loop():
                     db.close()
             except Exception as e:
                 print(f"   ⚠️ screener prewarm: {type(e).__name__}: {e}")
+            # aggregate 24h volume — every ~15 min.
+            #
+            # Due-ness reads the blob's own generated_at, not just _last_cg_vol:
+            # that counter is per-process and leadership moves between gunicorn
+            # workers on every deploy, so an inheriting leader would otherwise
+            # think it had never run and refetch on its first sweep.
+            global _last_cg_vol
+            _cg_due = time.time() - _last_cg_vol > CG_VOL_INTERVAL
+            if _cg_due:
+                _blob = cache_get(CG_VOL_KEY)
+                _age = (time.time() - float(_blob.get("generated_at", 0))) if isinstance(_blob, dict) else None
+                if _age is not None and _age <= CG_VOL_INTERVAL:
+                    _last_cg_vol = time.time() - _age
+                    _cg_due = False
+            if _cg_due:
+                try:
+                    _n = await _refresh_cg_volume()
+                    _last_cg_vol = time.time()
+                    if _n:
+                        print(f"   ✅ aggregate 24h volume: {_n} symbols")
+                except Exception as e:
+                    print(f"   ⚠️ cg-vol refresh: {type(e).__name__}: {e}")
+                    _last_cg_vol = time.time() - CG_VOL_INTERVAL + 180  # retry in 3 min
+
             # post-signal historical stats — every ~6h (heavy journey scan)
             #
             # Due-ness is judged from the BLOB's own generated_at, not only from

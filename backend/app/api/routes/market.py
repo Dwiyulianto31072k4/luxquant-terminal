@@ -14,6 +14,7 @@ v5: /prices Bybit fallback when Binance is blocked/unavailable
 from fastapi import APIRouter, HTTPException, Query, Request
 from typing import Optional, List, Any
 import asyncio
+import re
 import time
 from pydantic import BaseModel
 from datetime import datetime
@@ -45,6 +46,9 @@ def attach_spark24(coins: Any) -> Any:
 # API endpoints
 BINANCE_SPOT_API = "https://api.binance.com"
 BINANCE_FUTURES_API = "https://fapi.binance.com"
+# Written by terminal_worker: base symbol -> 24h volume across every venue.
+CG_VOL_KEY = "lq:market:cg-vol24h"
+_BASE_RE = re.compile(r"(USDT|USDC|USD)$")
 COINGECKO_API = "https://api.coingecko.com/api/v3"
 FEAR_GREED_API = "https://api.alternative.me/fng"
 
@@ -627,10 +631,17 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
         # Try Binance first
         all_tickers = await _fetch_binance_tickers(client)
         
-        # Fallback: Bybit
+        # Fallback: Bybit. Marked, because its 24h turnover is ITS OWN book —
+        # for the same perp Bybit ran 3-6x under Binance on 2026-09-12
+        # (ANKR $239K vs $1.52M) and BANANAS31 15.8x under. Serving that
+        # unlabelled as "Vol 24h" is what made Turnover read Quiet on coins
+        # that were not.
         if not all_tickers:
             general_client = get_general_client()
             all_tickers = await _fetch_bybit_tickers(general_client)
+            if all_tickers:
+                for _v in all_tickers.values():
+                    _v["vol_src"] = "bybit"
         
         # Cache whatever we got
         if all_tickers:
@@ -666,6 +677,40 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
             results[symbol] = all_tickers[symbol]
         else:
             missing.append(symbol)
+
+    # Step 2b: Overlay the ALL-VENUE 24h volume where we have it.
+    #
+    # Turnover is volume / market cap and the market cap is CoinGecko's — every
+    # venue. A single venue's perp volume in the numerator measured a different
+    # universe from the denominator, so the ratio read low even on a healthy
+    # Binance (XEC: $2.08M on Binance vs $4.17M everywhere, 2026-09-12).
+    # terminal_worker refreshes this map every ~15 min; a 24h total moves slowly
+    # enough that a stale aggregate still beats a fresh single-venue number.
+    _cg = cache_get(CG_VOL_KEY)
+    _cg_vol = _cg.get("vol") if isinstance(_cg, dict) else None
+    if _cg_vol:
+        for symbol, row in results.items():
+            if not isinstance(row, dict):
+                continue
+            base = _BASE_RE.sub("", symbol)
+            agg = _cg_vol.get(base)
+            if not agg:
+                continue
+            # Sanity-gate against the venue figure before trusting the map.
+            # coins.coingecko_id is not always right — USUSDT is mapped to
+            # "tether", so its aggregate comes back as $69.5B against a $44M
+            # coin. A real aggregate is the same order as the venue it
+            # contains; 50x is far past any honest spot/perp split and only
+            # ever catches a mis-mapped id.
+            venue = row.get("volume")
+            try:
+                venue = float(venue)
+            except (TypeError, ValueError):
+                venue = 0.0
+            if venue <= 0 or agg > venue * 50:
+                continue
+            row["volume"] = agg
+            row["vol_src"] = "aggregate"
 
     # Step 3: For symbols not found, try spot data
     if missing:
