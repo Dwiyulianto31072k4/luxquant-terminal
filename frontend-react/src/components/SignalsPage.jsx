@@ -20,6 +20,7 @@ import EdgeCorrelationPanel from "./EdgeCorrelationPanel";
 import EdgeRecipesBar, { ALL_MODE_STATE } from "./EdgeRecipesBar";
 import SignalsCoinFlow from "./SignalsCoinFlow";
 import SignalsNarrativeFlow from "./SignalsNarrativeFlow";
+import SignalsJournalRecap from "./SignalsJournalRecap";
 import SignalsCustomCalls from "./SignalsCustomCalls";
 import { signalAlertApi } from "../services/signalAlertApi";
 import Modal from "./ui/Modal";
@@ -2353,88 +2354,14 @@ const SignalsPage = () => {
       </div>
 
       {showWatchlistOnly && journalStats.counts.all > 0 ? (
-        <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 sm:px-3.5">
-            <span className="text-[13px] font-medium text-text-primary">Your journal</span>
-            <span className="text-[11.5px] text-text-muted">
-              {journalStats.counts.all} saved
-              {journalStats.counts.none ? ` · ${journalStats.counts.none} unmarked` : ""}
-            </span>
-            <span className="ml-auto">
-              <InfoTip
-                side="bottom"
-                title="Your journal"
-                text={
-                  "Taken and Skipped are your own answers, kept with your account. Unmarked is a state of its own — every call you saved before this existed is unmarked, and that is not the same as skipped.\n\n" +
-                  "The rates count RESOLVED calls only, and they use the desk's definition of a win: the highest level reached was TP1 or better, not profit. An open call has no outcome yet, so it is left out rather than counted as a loss.\n\n" +
-                  "With a dozen calls each side this is a hint, not a verdict. The sample is printed beside every rate for that reason."
-                }
-              />
-            </span>
-          </div>
+        <div className="space-y-2">
+          <SignalsJournalRecap stats={journalStats} deskWr={deskWr} />
 
-          {journalStats.takenN || journalStats.skippedN ? (
-            <div className="grid grid-cols-1 gap-2 border-t border-ink/[0.06] px-3 py-2.5 sm:grid-cols-3 sm:px-3.5">
-              {[
-                { k: "taken", label: "You took", n: journalStats.takenN, wr: journalStats.takenWr },
-                { k: "skipped", label: "You passed", n: journalStats.skippedN, wr: journalStats.skippedWr },
-              ].map((b) => (
-                <div key={b.k} className="rounded-lg bg-ink/[0.025] px-3 py-2">
-                  <p className="text-[11.5px] text-text-muted">{b.label}</p>
-                  <p className="mt-0.5 font-mono text-[18px] font-medium tabular-nums text-text-primary">
-                    {b.n}
-                    <span className="ml-1 text-[11px] font-normal text-text-muted">resolved</span>
-                  </p>
-                  <p className="mt-0.5 text-[11.5px]">
-                    {b.wr == null ? (
-                      <span className="text-text-muted">no resolved calls yet</span>
-                    ) : (
-                      <>
-                        <span className="font-mono tabular-nums text-profit">
-                          {b.wr.toFixed(0)}%
-                        </span>
-                        <span className="text-text-muted"> reached TP1+</span>
-                      </>
-                    )}
-                  </p>
-                </div>
-              ))}
-              <div className="rounded-lg bg-ink/[0.025] px-3 py-2">
-                <p className="text-[11.5px] text-text-muted">Difference</p>
-                {journalStats.delta == null ? (
-                  <p className="mt-0.5 text-[11.5px] text-text-muted">
-                    Mark calls on both sides to compare.
-                  </p>
-                ) : (
-                  <>
-                    <p
-                      className={`mt-0.5 font-mono text-[18px] font-medium tabular-nums ${
-                        journalStats.delta >= 0 ? "text-profit" : "text-loss"
-                      }`}
-                    >
-                      {journalStats.delta >= 0 ? "+" : ""}
-                      {journalStats.delta.toFixed(0)}pp
-                    </p>
-                    <p className="mt-0.5 text-[11.5px] text-text-muted">
-                      {journalStats.delta >= 0
-                        ? "the ones you took did better"
-                        : "the ones you passed did better"}
-                      {Math.min(journalStats.takenN, journalStats.skippedN) < 10
-                        ? " · thin sample"
-                        : ""}
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="border-t border-ink/[0.06] px-3 py-2.5 text-[12px] text-text-muted sm:px-3.5">
-              Mark a call Yes or No to start the comparison. Nothing leaves this list — a call
-              you passed on stays, so it can be counted against the ones you took.
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-ink/[0.06] px-3 py-2 sm:px-3.5">
+          {/* The filter rail stays OUTSIDE the collapsible panel: on a phone the
+              recap is closed by default, and burying the only way to see just
+              your unmarked calls behind that would cost a tap to reach a
+              control that is not a chart. */}
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-ink/[0.07] bg-surface-raised px-3 py-2 sm:px-3.5">
             {[
               { k: "all", label: "All", n: journalStats.counts.all },
               { k: "taken", label: "Taken", n: journalStats.counts.taken },
