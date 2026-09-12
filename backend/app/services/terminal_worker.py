@@ -920,18 +920,25 @@ async def terminal_deriv_loop():
                 print(f"   ⚠️ screener prewarm: {type(e).__name__}: {e}")
             # aggregate 24h volume — every ~15 min.
             #
-            # Due-ness reads the blob's own generated_at, not just _last_cg_vol:
-            # that counter is per-process and leadership moves between gunicorn
-            # workers on every deploy, so an inheriting leader would otherwise
-            # think it had never run and refetch on its first sweep.
+            # Due-ness is decided by the BLOB, never by _last_cg_vol. That
+            # counter is per-process and leadership moves between workers on
+            # every deploy, so an inheriting leader has no idea when this last
+            # ran. Gating on the counter FIRST is what I shipped and had to
+            # undo: a restart sets it from a healthy blob, so when that blob
+            # later vanished (eviction, flush) the counter still looked recent
+            # and nothing refilled it — turnover would have fallen back to
+            # single-venue volume for a quarter of an hour with no error
+            # anywhere to say so. A missing blob is due immediately.
             global _last_cg_vol
-            _cg_due = time.time() - _last_cg_vol > CG_VOL_INTERVAL
-            if _cg_due:
-                _blob = cache_get(CG_VOL_KEY)
-                _age = (time.time() - float(_blob.get("generated_at", 0))) if isinstance(_blob, dict) else None
-                if _age is not None and _age <= CG_VOL_INTERVAL:
-                    _last_cg_vol = time.time() - _age
-                    _cg_due = False
+            _blob = cache_get(CG_VOL_KEY)
+            _age = (time.time() - float(_blob.get("generated_at", 0))) if isinstance(_blob, dict) else None
+            _cg_due = _age is None or _age > CG_VOL_INTERVAL
+            if _age is not None:
+                _last_cg_vol = time.time() - _age
+            # Floor between attempts so a failing CoinGecko is retried on a
+            # timer, not on every 60s sweep.
+            if _cg_due and time.time() - _last_cg_vol < 180:
+                _cg_due = False
             if _cg_due:
                 try:
                     _n = await _refresh_cg_volume()
@@ -940,7 +947,10 @@ async def terminal_deriv_loop():
                         print(f"   ✅ aggregate 24h volume: {_n} symbols")
                 except Exception as e:
                     print(f"   ⚠️ cg-vol refresh: {type(e).__name__}: {e}")
-                    _last_cg_vol = time.time() - CG_VOL_INTERVAL + 180  # retry in 3 min
+                    # Stamp the attempt so the 180s floor above applies: with
+                    # blob-driven due-ness a failed run leaves no blob, so
+                    # without this it would retry on the very next 60s sweep.
+                    _last_cg_vol = time.time()
 
             # post-signal historical stats — every ~6h (heavy journey scan)
             #
