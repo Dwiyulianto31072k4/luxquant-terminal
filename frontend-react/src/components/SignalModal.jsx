@@ -35,7 +35,6 @@ import {
   subscribeTheme,
 } from "../utils/themeColors";
 import { deriveChartWithCard } from "./signalModal/utils";
-import MarketSheet from "./signalModal/MarketSheet";
 import { fetchAllLevels, SR_TFS } from "./signalModal/supportResistance";
 import PositioningTape from "./signalModal/PositioningTape";
 import { peakContextLabel, daysToPeak, peakIsAfterStop } from "../utils/peakTiming";
@@ -87,7 +86,6 @@ const SignalModal = ({
 
   const [overrideSignal, setOverrideSignal] = useState(null);
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
-  const [showMarket, setShowMarket] = useState(false);
   // Your own fill, which is almost never the published entry. Kept in this
   // browser only: it is one person's position, it is not ours to store, and the
   // reader can clear it by emptying the box. Wrapped because a private window
@@ -310,7 +308,6 @@ const SignalModal = ({
     );
     setPromptCopied(false);
     setShowDeepAnalysis(false);
-    setShowMarket(false);
     setActiveTab(initialTab);
 
     const controller = new AbortController();
@@ -596,8 +593,6 @@ const SignalModal = ({
         nextFundingMs: d.nextFundingMs,
         oiUsd: d.oiUsd,
         oiChange24h: d.oiChange24h,
-        lsLong: d.lsLong,
-        lsShort: d.lsShort,
         lsGlobal: d.lsGlobal ?? null,
         lsTopAccounts: d.lsTopAccounts ?? null,
         lsTopPositions: d.lsTopPositions ?? null,
@@ -649,8 +644,6 @@ const SignalModal = ({
         nextFundingMs: parseInt(pm.nextFundingTime),
         oiUsd: null,
         oiChange24h: null,
-        lsLong: null,
-        lsShort: null,
         lsGlobal: null,
         lsTopAccounts: null,
         lsTopPositions: null,
@@ -690,10 +683,6 @@ const SignalModal = ({
       out.lsTopPositions = lsBook(pos);
       out.lsTopAccounts = lsBook(acc);
       out.lsGlobal = lsBook(glob);
-      if (out.lsTopPositions?.longPct != null) {
-        out.lsLong = Math.round(out.lsTopPositions.longPct);
-        out.lsShort = Math.round(out.lsTopPositions.shortPct);
-      }
       if (tickRes.status === "fulfilled" && tickRes.value.ok) {
         const tk = await tickRes.value.json();
         out.change24h = parseFloat(tk.priceChangePercent);
@@ -777,8 +766,6 @@ const SignalModal = ({
             ? parseFloat(tk.openInterest) * price
             : null,
         oiChange24h: null,
-        lsLong: null,
-        lsShort: null,
         lsGlobal: null,
         lsTopAccounts: null,
         lsTopPositions: null,
@@ -809,10 +796,6 @@ const SignalModal = ({
         if (l) {
           const book = lsBook(l, "buyRatio", "sellRatio", "longShortRatio");
           out.lsGlobal = book;
-          if (book?.longPct != null) {
-            out.lsLong = Math.round(book.longPct);
-            out.lsShort = Math.round(book.shortPct);
-          }
         }
       }
       if (fundRes.status === "fulfilled" && fundRes.value.ok) {
@@ -916,7 +899,6 @@ const SignalModal = ({
     const handleEscape = (e) => {
       if (e.key === "Escape") {
         if (lightboxImg) setLightboxImg(null);
-        else if (showMarket) setShowMarket(false);
         else if (showDeepAnalysis) setShowDeepAnalysis(false);
         else {
           setIsClosing(true);
@@ -929,7 +911,7 @@ const SignalModal = ({
     };
     if (isOpen) document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, lightboxImg, showMarket, showDeepAnalysis, onClose]);
+  }, [isOpen, lightboxImg, showDeepAnalysis, onClose]);
 
   // 6. Handle Render TradingView di Tab Utama (Chart)
   const getUserTimezone = () => {
@@ -1847,17 +1829,6 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               <span aria-hidden className="text-text-muted">→</span>
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowMarket(true)}
-            className="flex w-full items-center justify-between border-t border-ink/[0.06] px-3 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-ink/[0.03] hover:text-text-primary"
-          >
-            <span className="inline-flex items-center gap-1.5">
-              {Ic.bars("w-3.5 h-3.5")}
-              Market
-            </span>
-            <span aria-hidden className="text-text-muted">→</span>
-          </button>
         </div>
 
         {(srLevels || srLoading) && (() => {
@@ -2032,7 +2003,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         )}
 
         {/* ── META: volume / risk / cap ── */}
-        {!isCompact && (signal?.volume_rank_num || signal?.risk_level) && (
+        {(signal?.volume_rank_num || signal?.risk_level) && (
           <div className="lq-card bg-surface-raised p-2 space-y-1.5">
             {signal?.volume_rank_num && (
               <div className="flex items-center justify-between gap-2">
@@ -3293,17 +3264,6 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         isOpen={showDeepAnalysis}
         onClose={() => setShowDeepAnalysis(false)}
         pair={signal?.pair}
-      />
-
-      <MarketSheet
-        isOpen={showMarket}
-        onClose={() => setShowMarket(false)}
-        pair={signal?.pair}
-        deriv={derivMetrics}
-        livePrice={livePrice}
-        signal={signal}
-        liveBlocked={liveBlocked}
-        formatPrice={formatPrice}
       />
 
       {/* === NEW: Coin Utility Detail Modal === */}

@@ -194,6 +194,21 @@ export default function PositioningTape({
   const futSpot = futVol != null && spotVol > 0 ? futVol / spotVol : null;
   const oiFut = oi != null && futVol > 0 ? oi / futVol : null;
 
+  const basis = num(deriv?.basisPct);
+  const high = num(deriv?.high24h);
+  const low = num(deriv?.low24h);
+  const mark = num(livePrice);
+  const span = high != null && low != null && high > low ? high - low : 0;
+  const rangePct =
+    span > 0 && mark != null && mark > 0
+      ? Math.min(100, Math.max(0, ((mark - low) / span) * 100))
+      : null;
+  // Two readings of the same tape: takerBuyPct is the share, takerBuySell the
+  // raw Binance ratio. The share is what a person can read at a glance, so it
+  // leads and the ratio rides along as the hint.
+  const takerPct = num(deriv?.takerBuyPct);
+  const takerRatio = num(deriv?.takerBuySell);
+
 
   return (
     <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised">
@@ -251,7 +266,34 @@ export default function PositioningTape({
           <Kv label="OI / mcap">{oiMcap != null ? `${oiMcap.toFixed(1)}%` : "—"}</Kv>
           <Kv label="Futures / spot">{futSpot != null ? `${futSpot.toFixed(1)}x` : "—"}</Kv>
           <Kv label="OI / fut volume">{oiFut != null ? oiFut.toFixed(2) : "—"}</Kv>
+          <Kv label="Basis" hint="mark vs index">
+            <span className={basis == null ? "" : basis > 0 ? "text-negative" : "text-positive"}>
+              {basis != null ? pct(basis, 3) : "—"}
+            </span>
+          </Kv>
         </div>
+
+        {rangePct != null ? (
+          <div className="py-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[12.5px] text-text-muted">24h range</span>
+              <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                {rangePct.toFixed(0)}% of range
+              </span>
+            </div>
+            <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-ink/[0.08]">
+              <div
+                className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent bg-surface-raised"
+                style={{ left: `${rangePct}%` }}
+              />
+            </div>
+            <div className="mt-1.5 flex items-center justify-between font-mono text-[11px] tabular-nums text-text-muted">
+              <span>{formatPrice ? formatPrice(low) : low ?? "—"}</span>
+              <span className="text-text-primary">{formatPrice ? formatPrice(mark) : mark ?? "—"}</span>
+              <span>{formatPrice ? formatPrice(high) : high ?? "—"}</span>
+            </div>
+          </div>
+        ) : null}
 
         <div className="py-1.5">
           <Kv
@@ -283,8 +325,15 @@ export default function PositioningTape({
           <LsRow label="L/S global" book={deriv?.lsGlobal} />
           <LsRow label="L/S top accounts" book={deriv?.lsTopAccounts} />
           <LsRow label="L/S top positions" book={deriv?.lsTopPositions} />
-          <Kv label="Taker buy/sell">
-            {num(deriv?.takerBuySell) != null ? num(deriv.takerBuySell).toFixed(4) : "—"}
+          <Kv
+            label="Taker buy"
+            hint={takerRatio != null ? `${takerRatio.toFixed(3)} buy/sell` : null}
+          >
+            {takerPct != null
+              ? `${takerPct.toFixed(1)}%`
+              : takerRatio != null
+                ? takerRatio.toFixed(4)
+                : "—"}
           </Kv>
         </div>
       </div>
