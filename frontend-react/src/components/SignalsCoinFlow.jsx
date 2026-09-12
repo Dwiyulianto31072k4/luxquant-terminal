@@ -354,7 +354,7 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
                 activeIds={rows.filter((r) => r.called).map((r) => r.c.coin_id || r.c.symbol)}
                 suffix="%"
                 deltaScale={8}
-                height={320}
+                height={290}
                 onOpen={(c) => openCoin(c)}
               />
               <p className="mt-1 text-[11px] leading-snug text-text-muted">

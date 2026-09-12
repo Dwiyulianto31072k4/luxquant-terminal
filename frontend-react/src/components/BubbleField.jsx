@@ -49,11 +49,15 @@ export default function BubbleField({
     return rows.map((x, i) => {
       const rs = x.delta;
       // sqrt so AREA tracks the value — radius would exaggerate the big ones.
-      const r = 15 + Math.sqrt(x.size / maxSize) * 34;
+      // The floor is what guarantees a label fits: every bubble is named, so no
+      // bubble may be smaller than its own name.
+      const r = 16 + Math.sqrt(x.size / maxSize) * 22;
       return {
         id: x.id,
         name: x.label,
         short: x.label.length > 15 ? `${x.label.slice(0, 14).trim()}…` : x.label,
+        // What survives inside a small bubble — still the name, just shorter.
+        tiny: x.label.length > 7 ? `${x.label.slice(0, 6).trim()}…` : x.label,
         rs,
         sub: x.sub,
         raw: x.raw,
@@ -169,35 +173,32 @@ export default function BubbleField({
                 stroke={on ? "rgb(var(--accent))" : stroke}
                 strokeWidth={on ? 3 : 1.8}
               />
-              {n.r > 26 ? (
-                <>
-                  <text
-                    textAnchor="middle"
-                    y={-2}
-                    className="pointer-events-none fill-text-primary"
-                    style={{ fontSize: Math.min(11.5, n.r / 3.4), fontWeight: 600 }}
-                  >
-                    {n.short}
-                  </text>
-                  <text
-                    textAnchor="middle"
-                    y={Math.min(11, n.r / 3.6) + 4}
-                    className="pointer-events-none"
-                    /* Green-on-green vanished once the fill went solid. The
-                       circle already carries direction; the number only has to
-                       be legible. */
-                    style={{
-                      fontSize: Math.min(10.5, n.r / 3.9),
-                      fontFamily: "monospace",
-                      fontWeight: 600,
-                      fill: "rgb(var(--fg))",
-                    }}
-                  >
-                    {n.rs >= 0 ? "+" : ""}
-                    {n.rs.toFixed(1)}
-                    {suffix}
-                  </text>
-                </>
+              <text
+                textAnchor="middle"
+                y={n.r >= 24 ? -2 : 3}
+                className="pointer-events-none fill-text-primary"
+                style={{ fontSize: Math.max(8, Math.min(11.5, n.r / 3.2)), fontWeight: 600 }}
+              >
+                {n.r >= 24 ? n.short : n.tiny}
+              </text>
+              {/* The figure is dropped, never the name: an unnamed circle is
+                  unreadable, a nameless percentage is just noise. */}
+              {n.r >= 24 ? (
+                <text
+                  textAnchor="middle"
+                  y={Math.min(11, n.r / 3.4) + 4}
+                  className="pointer-events-none"
+                  style={{
+                    fontSize: Math.max(8, Math.min(10.5, n.r / 3.8)),
+                    fontFamily: "monospace",
+                    fontWeight: 600,
+                    fill: "rgb(var(--fg))",
+                  }}
+                >
+                  {n.rs >= 0 ? "+" : ""}
+                  {n.rs.toFixed(1)}
+                  {suffix}
+                </text>
               ) : null}
               <title>{`${n.name}\n${n.rs >= 0 ? "+" : ""}${n.rs.toFixed(1)}${suffix}${n.sub ? ` · ${n.sub}` : ""}`}</title>
             </g>
