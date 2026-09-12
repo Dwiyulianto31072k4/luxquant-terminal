@@ -699,7 +699,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
 export const DarkTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-md bg-surface-secondary border border-ink/12 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-ink/12 px-3 py-2 font-mono text-[11px] shadow-lg">
       {label != null && <div className="text-text-primary/50 mb-1">{label}</div>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2">
@@ -729,7 +729,7 @@ export function ScatterTip({ active, payload, xLabel = "x", yLabel = "y" }) {
     : null;
   const ago = info ? timeAgo(info.created) : null;
   return (
-    <div className="rounded-md bg-surface-secondary border border-ink/12 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-ink/12 px-3 py-2 font-mono text-[11px] shadow-lg">
       <div className="text-text-primary mb-0.5 flex items-center gap-2">
         <span>{p.pair}</span>
         {meta && (

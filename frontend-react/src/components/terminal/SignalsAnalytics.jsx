@@ -94,6 +94,13 @@ import { useSignalStatus } from "../../context/SignalStatusContext";
 // Constant tag set — module scope keeps its identity stable across renders.
 const STRONG_TAGS = ["HTF_TREND_STRONG", "MTF_FULL_ALIGNED", "SMC_GOLDEN_SETUP"];
 
+// Anomaly turnover axis. A log scale cannot contain zero, and a coin that
+// traded nothing still belongs on the chart, so 0.02% of market cap is the
+// floor it sits on. Ticks are the decades either side of it — 0.1%, 1%, 10%,
+// 100% — which is also how anyone reading turnover actually thinks about it.
+const ANOM_FLOOR = 0.02;
+const ANOM_Y_TICKS = [-1.5, -1, 0, 1, 2];
+
 // Constant tag set — module scope keeps its identity stable across renders.
 const WARN_TAGS = [
   "LATE_ENTRY",
@@ -643,6 +650,13 @@ export default function SignalsAnalytics() {
               anomPts.push({
                 x: lv.change,
                 y: volPct,
+                // Turnover is log-normal: the median call trades ~2% of its cap
+                // in a day and a hot micro-cap trades 60%+. On a linear axis the
+                // 97th percentile sets the top and every ordinary coin lands in
+                // the bottom twentieth of the canvas — the chart drew 400 points
+                // and separated none of them. Plot the decade, keep `y` as the
+                // true figure for the tooltip and the lists.
+                yl: Math.log10(Math.max(volPct, ANOM_FLOOR)),
                 pair: s.pair,
                 dec: s.is_decoupled,
                 sector: sec,
@@ -667,12 +681,16 @@ export default function SignalsAnalytics() {
     // flicker on every re-render; ranking is deterministic and is what the
     // charting rule asks for anyway: selective direct labels, never one per
     // point. Rank by distance from the origin so both a big mover and a heavy
-    // flow can earn a name.
+    // flow can earn a name — measured in the space that is actually DRAWN, i.e.
+    // decades of turnover. Ranking on raw turnover handed all 14 names to the
+    // top of the chart, because linearly a 60% coin is 30x a 2% one while on
+    // screen it is a decade and a half.
+    const yRef = Math.log10(Math.max(medFlow * 3, ANOM_FLOOR));
     [...anomPts]
       .sort(
         (a, b) =>
-          Math.hypot(b.x / 25, b.y / (medFlow * 3 || 1)) -
-          Math.hypot(a.x / 25, a.y / (medFlow * 3 || 1))
+          Math.hypot(b.x / 25, (b.yl - yRef) / 1.2) -
+          Math.hypot(a.x / 25, (a.yl - yRef) / 1.2)
       )
       .forEach((p, i) => {
         p.named = i < 14;
@@ -871,8 +889,15 @@ export default function SignalsAnalytics() {
   // still visible, keep both readable. Floors stop a quiet day from magnifying
   // noise into a storm.
   const anomXB = pctBound(agg.anomPts.map((p) => p.x), 0.98, 12);
-  const anomYB = pctBound(agg.anomPts.map((p) => p.y), 0.97, 20);
-  const zAnom = useZoom(-anomXB, anomXB, 0, anomYB);
+  const anomYB = pctBound(agg.anomPts.map((p) => p.y), 0.99, 20);
+  // Y is zoomed and panned in log space, so the gesture stays linear and each
+  // decade keeps the same height on screen.
+  const zAnom = useZoom(
+    -anomXB,
+    anomXB,
+    Math.log10(ANOM_FLOOR),
+    Math.log10(Math.max(anomYB, ANOM_FLOOR * 10))
+  );
   const zOpp = useZoom(-60, 60, 0, 120);
   const zBeta = useZoom(-0.5, 2.5, -60, 60);
   const zPeak = useZoom(-20, 150, -60, 100);
@@ -1530,7 +1555,6 @@ export default function SignalsAnalytics() {
                 zoom={zAnom}
                 size="hero"
                 hint={t("terminal.viz.anomHint")}
-                height={560}
                 render={(h) => (
                   <div className="flex flex-col min-w-0" style={{ height: h }}>
                     {/* Chart-local filters */}
@@ -1644,6 +1668,7 @@ export default function SignalsAnalytics() {
                         <span className="text-ink/15">·</span>
                         <span>
                           <span className="text-text-primary/70">Y</span> = volume / market cap %
+                          (log)
                         </span>
                         <span className="text-ink/15">·</span>
                         <span>
@@ -1669,14 +1694,15 @@ export default function SignalsAnalytics() {
                           />
                           <YAxis
                             type="number"
-                            dataKey="y"
+                            dataKey="yl"
                             tick={TICK}
                             axisLine={false}
                             tickLine={false}
-                            unit="%"
                             domain={zAnom.domY}
                             allowDataOverflow
-                            tickFormatter={fmtAxis}
+                            ticks={ANOM_Y_TICKS}
+                            tickFormatter={(v) => `${fmtAxis(10 ** v)}%`}
+                            width={54}
                           />
                           <Tooltip
                             content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />}
@@ -1689,7 +1715,7 @@ export default function SignalsAnalytics() {
                           />
                           {agg.medFlow > 0 && (
                             <ReferenceLine
-                              y={agg.medFlow * 3}
+                              y={Math.log10(Math.max(agg.medFlow * 3, ANOM_FLOOR))}
                               stroke="rgba(251,146,60,0.55)"
                               strokeDasharray="4 4"
                               label={{
