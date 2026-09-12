@@ -2429,7 +2429,7 @@ const SignalsPage = () => {
             </div>
           ) : (
             <p className="border-t border-ink/[0.06] px-3 py-2.5 text-[12px] text-text-muted sm:px-3.5">
-              Mark a call Ya or Tidak to start the comparison. Nothing leaves this list — a call
+              Mark a call Yes or No to start the comparison. Nothing leaves this list — a call
               you passed on stays, so it can be counted against the ones you took.
             </p>
           )}

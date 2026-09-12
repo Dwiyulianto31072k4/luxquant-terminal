@@ -411,8 +411,8 @@ const pageWindow = (current, total) => {
  */
 function TakenControl({ value, onPick }) {
   const opts = [
-    { key: "taken", label: "Ya", on: "border-profit bg-profit text-white" },
-    { key: "skipped", label: "Tidak", on: "border-ink/25 bg-ink/[0.12] text-text-primary" },
+    { key: "taken", label: "Yes", on: "border-profit bg-profit text-white" },
+    { key: "skipped", label: "No", on: "border-ink/25 bg-ink/[0.12] text-text-primary" },
   ];
   return (
     <span
