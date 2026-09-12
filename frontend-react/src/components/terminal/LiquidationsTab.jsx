@@ -113,7 +113,7 @@ function LiqCell(props) {
           y={y + height - 6}
           textAnchor="end"
           fill="rgb(var(--accent))"
-          fontSize={8}
+          fontSize={10}
           fontWeight={800}
           fontFamily="ui-monospace, monospace"
           letterSpacing="0.06em"
@@ -282,7 +282,7 @@ export function LiquidationsTab({ view }) {
         </div>
       )}
 
-      <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted/45 px-0.5">
+      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/45 px-0.5">
         Coinalyze multi-exchange · ~10 min · risk context only
       </div>
     </div>

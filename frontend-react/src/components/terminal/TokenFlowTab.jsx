@@ -69,7 +69,7 @@ function FlowColumn({ title, sub, rows, color }) {
     <div className="rounded-lg border border-ink/[0.06] bg-surface-raised p-3">
       <div className="mb-2">
         <div className="text-[13px] text-text-primary/90">{title}</div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70">
+        <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/70">
           {sub}
         </div>
       </div>
@@ -181,7 +181,7 @@ export function TokenFlowTab({ view }) {
         </div>
       )}
 
-      <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/50 px-1">
+      <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/50 px-1">
         Source: Dune (Ethereum spot, CEX-labelled) · 24h window · refreshed ~every 6h
       </div>
     </div>

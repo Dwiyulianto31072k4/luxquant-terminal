@@ -37,6 +37,9 @@ import {
   useZoom,
   API_BASE,
   authHeaders,
+  logTicks,
+  pickLabels,
+  useChartHeight,
 } from "./vizShared";
 
 const nice = (tag) => (tag || "").replaceAll("_", " ").toLowerCase();
@@ -214,13 +217,38 @@ export function EdgeTab() {
     ysA.length ? Math.max(...ysA) : 100
   );
 
+  const edgeH = useChartHeight("hero");
+
+  // Every reliable pattern used to be labelled. Reliable means well-sampled,
+  // well-sampled means far right, so ~30 names landed in the same corner and
+  // overprinted into a grey smear. Rank by what the chart is asking — distance
+  // from the baseline, weighted by sample — and label only where a name fits.
+  const edgeLabels = useMemo(() => {
+    const xs = pts.map((p) => Math.log10(Math.max(p.x, 1)));
+    const lo = xs.length ? Math.min(...xs) : 0;
+    const hi = xs.length ? Math.max(...xs) : 1;
+    const ys = pts.map((p) => p.y);
+    const yLo = ys.length ? Math.min(...ys) : 0;
+    const yHi = ys.length ? Math.max(...ys) : 100;
+    const base = baseline ?? 0;
+    return pickLabels(
+      pts.map((p) => ({
+        id: p.d.pattern,
+        x: ((Math.log10(Math.max(p.x, 1)) - lo) / (hi - lo || 1)) * 1000,
+        y: ((yHi - p.y) / (yHi - yLo || 1)) * 1000,
+        priority: Math.abs(p.y - base) * Math.log10(Math.max(p.d.count, 1) + 1),
+      })),
+      { cellW: 104, cellH: 44, max: 16 }
+    );
+  }, [pts, baseline]);
+
   const Dot = (props) => {
     const { cx, cy, payload } = props;
     if (cx == null || cy == null) return null;
     const p = payload.d;
     const r = 5 + Math.min(15, Math.sqrt(p.count) * 1.1);
     const active = sel === p.pattern;
-    const show = p.reliability === "reliable" || active;
+    const show = active || edgeLabels.has(p.pattern);
     return (
       <g style={{ cursor: "pointer" }} onClick={() => openDrill(p.pattern)}>
         <circle
@@ -238,8 +266,12 @@ export function EdgeTab() {
             y={cy - r - 3}
             textAnchor="middle"
             fontFamily="monospace"
-            fontSize={8.5}
-            fill="rgb(var(--ink) / 0.6)"
+            fontSize={10}
+            fontWeight={600}
+            fill="rgb(var(--ink) / 0.72)"
+            stroke="rgb(var(--surface-raised))"
+            strokeWidth={2.6}
+            paintOrder="stroke"
             pointerEvents="none"
           >
             {nice(p.pattern)}
@@ -258,7 +290,7 @@ export function EdgeTab() {
       />
 
       <div className="flex items-center gap-1 rounded-md bg-surface-raised border border-ink/[0.1] p-0.5 w-fit">
-        <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">
+        <span className="px-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/70">
           {t("terminal.viz.edgeLookback")}
         </span>
         {[7, 30, 90].map((dv) => (
@@ -369,7 +401,7 @@ export function EdgeTab() {
                 />
               </div>
               <div className="px-4 pb-4 space-y-1.5">
-                <div className="font-mono text-[9px] uppercase tracking-widest text-text-muted/60 mb-1">
+                <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted/60 mb-1">
                   Where winners exit · share &amp; avg P/L
                 </div>
                 {economics.tiers.map((tt) => {
@@ -417,7 +449,7 @@ export function EdgeTab() {
             </div>
             <div
               className="p-3"
-              style={{ height: 460, touchAction: "none", cursor: "grab" }}
+              style={{ height: edgeH, touchAction: "none", cursor: "grab" }}
               ref={zEdge.ref}
               onPointerDown={zEdge.onPointerDown}
               onPointerMove={zEdge.onPointerMove}
@@ -439,13 +471,16 @@ export function EdgeTab() {
                     tick={TICK_SM}
                     axisLine={false}
                     tickLine={false}
+                    ticks={logTicks(Math.max(zEdge.domX[0], 0.9), zEdge.domX[1])}
+                    minTickGap={44}
+                    interval="preserveStartEnd"
                     tickFormatter={(v) => (v >= 1000 ? (v / 1000).toFixed(0) + "k" : Math.round(v))}
                     label={{
                       value: "SAMPLE SIZE (log)",
                       position: "insideBottom",
                       offset: -14,
                       fill: AXIS,
-                      fontSize: 9.5,
+                      fontSize: 11,
                       fontFamily: "monospace",
                     }}
                   />
@@ -464,7 +499,7 @@ export function EdgeTab() {
                       position: "insideLeft",
                       offset: 8,
                       fill: AXIS,
-                      fontSize: 9.5,
+                      fontSize: 11,
                       fontFamily: "monospace",
                     }}
                   />
@@ -477,7 +512,7 @@ export function EdgeTab() {
                       label={{
                         value: `baseline ${baseline.toFixed(0)}%`,
                         fill: AXIS,
-                        fontSize: 9,
+                        fontSize: 10.5,
                         position: "insideTopRight",
                       }}
                     />
@@ -528,7 +563,7 @@ export function EdgeTab() {
                             {(s.pair || "").replace(/USDT$/i, "")}
                           </span>
                           <span
-                            className={`ml-auto font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-sm ${win ? "text-positive bg-positive/10" : "text-negative bg-negative/10"}`}
+                            className={`ml-auto font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-sm ${win ? "text-positive bg-positive/10" : "text-negative bg-negative/10"}`}
                           >
                             {win ? s.outcome || "win" : "sl"}
                           </span>

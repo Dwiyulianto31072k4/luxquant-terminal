@@ -182,8 +182,11 @@ export const fmtAxis = (v) => {
   return v.toFixed(3);
 };
 
-export const TICK = { fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" };
-export const TICK_SM = { fill: AXIS, fontSize: 9, fontFamily: "JetBrains Mono" };
+// Axis type. 10px/9px is below the size at which a monospace digit stays
+// legible on a 1440px desk at arm's length, and every tick on this page is
+// a number someone has to read, not decoration.
+export const TICK = { fill: AXIS, fontSize: 11, fontFamily: "JetBrains Mono" };
+export const TICK_SM = { fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" };
 
 // ── formatting / math ──────────────────────────────────────────────
 export const fmtPct = (v, dp = 1) => {
@@ -254,6 +257,91 @@ export const pctBound = (values, p = 0.98, floor = 0, pad = 1.08) => {
 
 /** Pin a value to the axis so an outlier lands on the rail instead of vanishing. */
 export const clampTo = (v, bound) => Math.max(-bound, Math.min(bound, Number(v) || 0));
+
+/**
+ * Ticks for a log axis, at 1-2-5 per decade.
+ *
+ * Recharts, handed `scale="log"` and no ticks, labels the DATA — so a 740-coin
+ * turnover axis printed ~40 values on top of each other and the row read
+ * "0.1%0.2%0.2%0.4%5%0.6%1%". A log axis has exactly one correct tick set: the
+ * decades it spans. This returns those, thinned to 1-2-5 when a decade would
+ * otherwise crowd, and never more than `max` of them.
+ */
+export const logTicks = (lo, hi, max = 8) => {
+  const a = Math.max(Number(lo) || 0, 1e-9);
+  const b = Math.max(Number(hi) || 0, a * 10);
+  const out = [];
+  const d0 = Math.floor(Math.log10(a));
+  const d1 = Math.ceil(Math.log10(b));
+  const decades = d1 - d0;
+  // Wide spans get decades only; narrow ones can afford 1-2-5 inside each.
+  const mult = decades > max ? [1] : decades * 3 <= max ? [1, 2, 5] : [1];
+  const step = decades > max ? Math.ceil(decades / max) : 1;
+  for (let d = d0; d <= d1; d += step) {
+    for (const m of mult) {
+      const v = m * 10 ** d;
+      if (v >= a && v <= b) out.push(v);
+    }
+  }
+  return out.length ? out : [a, b];
+};
+
+/**
+ * Choose which points may carry a text label, so labels never overlap.
+ *
+ * The terminal's scatters were labelling every point: 393 tickers at 8.5px on
+ * the RSI strip, drawn in data order, producing a band of overstruck letters
+ * where no single ticker could be read. Labelling fewer points is not a loss of
+ * information — an unreadable label carries none.
+ *
+ * Greedy, by priority: walk the points best-first and give each one a label only
+ * if the cell it would occupy is still free. Ties go to whoever asked first, so
+ * the ranking you pass in is the ranking you see.
+ *
+ * @param items  [{ id, x, y, priority }] in pixel space
+ * @returns Set of ids that may draw a label
+ */
+export const pickLabels = (items, { cellW = 58, cellH = 18, max = 40 } = {}) => {
+  const taken = new Set();
+  const keep = new Set();
+  const ranked = items
+    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
+    .sort((p, q) => (q.priority ?? 0) - (p.priority ?? 0));
+  for (const p of ranked) {
+    if (keep.size >= max) break;
+    const cell = `${Math.floor(p.x / cellW)}:${Math.floor(p.y / cellH)}`;
+    if (taken.has(cell)) continue;
+    taken.add(cell);
+    keep.add(p.id);
+  }
+  return keep;
+};
+
+/**
+ * Chart height that follows the viewport instead of a constant.
+ *
+ * Every chart on /terminal was 360px tall regardless of screen. On a 900px desk
+ * that leaves a third of the window empty under a chart with 400 points packed
+ * into it; the points are small because the canvas is small, not because there
+ * are many. "hero" is the one chart a tab is about, "std" a panel in a pair.
+ */
+export const chartH = (kind = "std", vh = typeof window === "undefined" ? 900 : window.innerHeight) => {
+  const usable = Math.max(560, vh);
+  if (kind === "hero") return Math.round(Math.min(660, Math.max(420, usable * 0.56)));
+  if (kind === "compact") return Math.round(Math.min(380, Math.max(260, usable * 0.30)));
+  return Math.round(Math.min(500, Math.max(330, usable * 0.42)));
+};
+
+export function useChartHeight(kind = "std") {
+  const [h, setH] = useState(() => chartH(kind));
+  useEffect(() => {
+    const on = () => setH(chartH(kind));
+    on();
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, [kind]);
+  return h;
+}
 
 export function makeBins(values, size, min, max) {
   const bins = [];
@@ -365,7 +453,7 @@ export const SectionBand = ({ title, desc, badge, guide }) => {
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <div className="text-[15px] font-medium tracking-tight text-text-primary/95">
+            <div className="text-[16.5px] font-medium tracking-tight text-text-primary/95">
               {title}
             </div>
             {g && (
@@ -373,7 +461,7 @@ export const SectionBand = ({ title, desc, badge, guide }) => {
                 type="button"
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
-                className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[8.5px] uppercase tracking-wider transition-colors ${
+                className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
                   open
                     ? "border-accent/40 bg-accent/10 text-accent"
                     : "border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
@@ -381,7 +469,7 @@ export const SectionBand = ({ title, desc, badge, guide }) => {
               >
                 <svg
                   viewBox="0 0 24 24"
-                  className="h-2.5 w-2.5"
+                  className="h-3 w-3"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.2"
@@ -394,7 +482,7 @@ export const SectionBand = ({ title, desc, badge, guide }) => {
             )}
           </div>
           {desc && (
-            <div className="mt-0.5 line-clamp-1 max-w-3xl text-[11px] leading-snug text-text-muted">
+            <div className="mt-1 line-clamp-2 max-w-3xl text-[12px] leading-snug text-text-muted">
               {desc}
             </div>
           )}
@@ -431,7 +519,7 @@ export const Kpi = ({ label, value, desc, tone, sub, subTone, _accent, compact, 
         compact ? "px-3 py-2.5" : "px-3.5 py-3"
       } ${onClick ? "w-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50" : ""}`}
     >
-      <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
         <span className="truncate">{label}</span>
         {badge}
       </div>
@@ -442,13 +530,13 @@ export const Kpi = ({ label, value, desc, tone, sub, subTone, _accent, compact, 
       </div>
       {sub != null && sub !== "" && (
         <div
-          className={`font-mono text-[10.5px] tabular-nums mt-1 truncate ${subTone || "text-text-muted"}`}
+          className={`font-mono text-[11px] tabular-nums mt-1 truncate ${subTone || "text-text-muted"}`}
         >
           {sub}
         </div>
       )}
       {desc && !compact && (
-        <div className="text-[10px] text-text-muted mt-1.5 leading-snug line-clamp-1">{desc}</div>
+        <div className="text-[11px] text-text-muted mt-1.5 leading-snug line-clamp-2">{desc}</div>
       )}
     </Tag>
   );
@@ -519,7 +607,7 @@ export const IconBtn = ({ onClick, title, children }) => (
   <button
     onClick={onClick}
     title={title}
-    className="w-7 h-7 flex items-center justify-center rounded-lg border border-ink/[0.08] bg-ink/[0.02] text-text-muted hover:text-text-primary hover:border-ink/16 hover:bg-ink/[0.04] transition-colors font-mono text-[12px] leading-none"
+    className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.08] bg-ink/[0.02] font-mono text-[14px] leading-none text-text-muted transition-colors hover:border-ink/16 hover:bg-ink/[0.04] hover:text-text-primary"
   >
     {children}
   </button>
@@ -681,8 +769,11 @@ export const LegendChips = ({ entries, activeKey, onPick }) => (
 );
 
 // Expandable metric/chart panel — desk card + fullscreen via portal (above app header)
-export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) {
+export function XCard({ title, desc, render, zoom, hint, guide, height, size = "std" }) {
   const { t } = useTranslation();
+  // A caller may still pin a height; without one the card takes the viewport's.
+  const autoH = useChartHeight(size);
+  const h = height ?? autoH;
   const [big, setBig] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const g = typeof guide === "string" ? VIZ_GUIDES[guide] : guide;
@@ -692,7 +783,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
       onClick={() => setGuideOpen((o) => !o)}
       aria-expanded={guideOpen}
       title="How to read this chart"
-      className={`inline-flex h-6 items-center gap-1 rounded-md border px-1.5 font-mono text-[8.5px] uppercase tracking-wider transition-colors ${
+      className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
         guideOpen
           ? "border-accent/40 bg-accent/10 text-accent"
           : "border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
@@ -754,7 +845,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
         {render(h)}
       </div>
       {hint && (
-        <div className="mt-1.5 text-center font-mono text-[8.5px] uppercase tracking-wider text-text-muted/55">
+        <div className="mt-2 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/80">
           {zoom ? "drag · scroll zoom · ⟲ reset · " : ""}
           {hint}
         </div>
@@ -821,11 +912,11 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
       <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-ink/[0.06] bg-ink/[0.02]">
         <div className="flex items-start justify-between gap-2 border-b border-ink/[0.04] px-3.5 py-2.5">
           <div className="min-w-0">
-            <div className="text-[12.5px] font-medium leading-snug text-text-primary/90">
+            <div className="text-[14px] font-medium leading-snug text-text-primary/90">
               {title}
             </div>
             {desc && (
-              <div className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-text-muted/75">
+              <div className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-text-muted">
                 {desc}
               </div>
             )}
@@ -843,7 +934,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
             <VizGuidePanel guide={g} />
           </div>
         )}
-        <div className="min-h-0 flex-1 p-2.5 sm:p-3">{body(height)}</div>
+        <div className="min-h-0 flex-1 p-2.5 sm:p-3">{body(h)}</div>
       </div>
       {overlay}
     </>

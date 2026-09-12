@@ -23,6 +23,9 @@ import {
   statusColorOf,
   useZoom,
   heatDiverging,
+  logTicks,
+  pickLabels,
+  useChartHeight,
 } from "./terminal/vizShared";
 import { useSignalStatus, STATUS_META, timeAgo } from "../context/SignalStatusContext";
 import {
@@ -192,6 +195,14 @@ export default function SignalTerminalPage() {
 
   // which market-map view — now driven by the left nav (?view=)
   const view = searchParams.get("view") || "treemap";
+
+  // Switching view keeps the scroll offset, so picking Bubble after scrolling
+  // the Treemap drops you into the middle of the new page with its toolbar and
+  // its chart's top edge already gone above the fold. Each view starts at its
+  // own top. `auto`, not `smooth` — this is a page swap, not a nudge.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [view]);
 
   // filters initialized from URL (carried from Potential Trades)
   const [filters, setFilters] = useState(() => parseFilters(searchParams));
@@ -379,7 +390,14 @@ export default function SignalTerminalPage() {
 
   return (
     <div className="space-y-3 pb-6">
-      {/* Filter bar (parity with Potential Trades) */}
+      {/* One sticky rail: the filters and the encoders that drive the chart under
+          them. Two reasons they are together and opaque. The bar used to be
+          bg-surface-raised/95 + blur, so the row scrolling beneath showed
+          through it and read as a broken, half-covered header. And Size/Color
+          are controls for the map you are looking at — scrolling a 740-tile
+          treemap used to put them off-screen, which is exactly when you want
+          to change what the tiles mean. */}
+      <div className="lq-below-header sticky z-30 -mx-1 space-y-2 bg-surface px-1 pb-2 pt-1">
       <FilterBar
         filters={filters}
         setF={setF}
@@ -388,10 +406,9 @@ export default function SignalTerminalPage() {
         signals={signals}
       />
 
-      {/* View chrome — encoders aligned with timeless desk */}
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="min-w-0">
-          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/60">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/60">
             Market map
           </span>
           <div className="font-display text-[15px] font-semibold tracking-tight text-text-primary capitalize leading-tight">
@@ -404,6 +421,7 @@ export default function SignalTerminalPage() {
         <span className="font-mono text-[10px] tabular-nums text-text-muted/55">
           {model.length} pairs
         </span>
+      </div>
       </div>
 
       {/* Macro strip — market context, shown on the treemap overview */}
@@ -468,7 +486,7 @@ const ST_META = {
 function Enc({ label, value, onChange }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">
+      <span className="font-mono text-[10px] uppercase tracking-widest text-text-primary/35">
         {label}
       </span>
       <select
@@ -497,7 +515,7 @@ function FilterBar({ filters, setF }) {
   const sel =
     "appearance-none bg-ink/[0.03] border border-ink/[0.08] rounded-md font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-7 focus:outline-none focus:border-ink/20 cursor-pointer";
   return (
-    <div className="lq-below-header sticky z-30 flex flex-wrap items-center gap-2 rounded-xl border border-ink/[0.06] bg-surface-raised/95 p-2.5 backdrop-blur-md">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-ink/[0.06] bg-surface-raised p-2.5">
       <div className="relative">
         <svg
           className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-primary/30"
@@ -609,7 +627,7 @@ function MacroStrip({ macro, sectors }) {
             {v == null ? "—" : v.toFixed(0)}
           </text>
         </svg>
-        <div className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-text-primary/40">
+        <div className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-text-primary/40">
           {lbl}
         </div>
       </div>
@@ -716,7 +734,7 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
               key={m.k}
               type="button"
               onClick={() => setScaleMode(m.k)}
-              className={`rounded-md border px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-wider transition-colors ${
+              className={`rounded-md border px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-colors ${
                 scaleMode === m.k
                   ? "border-transparent bg-accent text-accent-fg"
                   : "border-ink/10 bg-surface-secondary text-text-muted hover:text-text-primary"
@@ -729,7 +747,7 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="inline-flex items-center gap-1.5 rounded-md border border-ink/10 bg-surface-secondary px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-wider text-text-secondary transition-colors hover:border-ink/18 hover:text-text-primary"
+          className="inline-flex items-center gap-1.5 rounded-md border border-ink/10 bg-surface-secondary px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-text-secondary transition-colors hover:border-ink/18 hover:text-text-primary"
         >
           <svg
             className="h-3.5 w-3.5"
@@ -800,7 +818,7 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
           );
         })}
       </div>
-      <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
+      <div className="mt-1 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
         tile size = {sm.lbl}
         {scaleMode === "balanced" ? " (√)" : scaleMode === "equal" ? " (equal)" : " (linear)"}
         {" · "}color = {METRICS[colorBy].lbl} · click → latest call
@@ -888,11 +906,15 @@ function MarketScatter({
   colorKey,
   onPick,
   logX = false,
-  height = 480,
+  height,
   quadrants = null,
   labelTop = 12,
 }) {
   const { map: statusMap } = useSignalStatus() || {};
+  // 560px on any screen. This is the whole point of the map view, so it takes
+  // the viewport's height unless a caller insists on its own.
+  const autoH = useChartHeight("hero");
+  const h = height ?? autoH;
   const mx = METRICS[xKey],
     my = METRICS[yKey];
   const pts = model
@@ -906,7 +928,7 @@ function MarketScatter({
   if (!pts.length)
     return (
       <div
-        style={{ height }}
+        style={{ height: h }}
         className="flex items-center justify-center font-mono text-[11px] text-text-primary/30"
       >
         No data for these axes.
@@ -923,14 +945,32 @@ function MarketScatter({
     sqHi = Math.sqrt(Math.max(...mcaps));
   const rOf = (mc) => 4 + ((Math.sqrt(mc) - sqLo) / (sqHi - sqLo || 1)) * 20;
 
-  const labSet = new Set(
+  // Which bubbles may carry a ticker. Ranking by market cap alone put BTC, ETH,
+  // BNB, XRP and SOL inside one another — the five names a reader most wants
+  // were the five least readable. Rank by cap, then keep a label only where the
+  // space for it is still free, in a normalised 1000x1000 plot space (log-aware
+  // on x, so the visual gap is the one being measured).
+  const spanX = logX
+    ? Math.log10(Math.max(x1, 1e-9)) - Math.log10(Math.max(x0, 1e-9))
+    : x1 - x0;
+  const normX = (v) =>
+    spanX <= 0
+      ? 0
+      : ((logX ? Math.log10(Math.max(v, 1e-9)) - Math.log10(Math.max(x0, 1e-9)) : v - x0) / spanX) *
+        1000;
+  const normY = (v) => (y1 - y0 <= 0 ? 0 : ((y1 - v) / (y1 - y0)) * 1000);
+  const labSet =
     labelTop > 0
-      ? [...pts]
-          .sort((a, b) => (b.d.market_cap || 0) - (a.d.market_cap || 0))
-          .slice(0, labelTop)
-          .map((p) => p.d.signal_id)
-      : []
-  );
+      ? pickLabels(
+          pts.map((p) => ({
+            id: p.d.signal_id,
+            x: normX(p.xv),
+            y: normY(p.yv),
+            priority: p.d.market_cap || 0,
+          })),
+          { cellW: 62, cellH: 46, max: labelTop }
+        )
+      : new Set();
 
   const data = pts
     .map((p) => {
@@ -968,7 +1008,7 @@ function MarketScatter({
             y={cy - payload.r - 3}
             textAnchor="middle"
             fontFamily="monospace"
-            fontSize={9.5}
+            fontSize={11}
             fontWeight="700"
             fill="#fff"
             stroke="rgb(var(--scrim) / 0.9)"
@@ -990,7 +1030,7 @@ function MarketScatter({
   return (
     <div
       className="relative"
-      style={{ height, touchAction: "none", cursor: "grab" }}
+      style={{ height: h, touchAction: "none", cursor: "grab" }}
       ref={z.ref}
       onPointerDown={z.onPointerDown}
       onPointerMove={z.onPointerMove}
@@ -1013,12 +1053,17 @@ function MarketScatter({
             axisLine={false}
             tickLine={false}
             tickFormatter={fmtTick(mx)}
+            {...(logX
+              ? { ticks: logTicks(Math.max(z.domX[0], 1e-4), z.domX[1]) }
+              : {})}
+            minTickGap={48}
+            interval="preserveStartEnd"
             label={{
               value: mx.lbl + (logX ? " (log)" : ""),
               position: "insideBottom",
               offset: -14,
               fill: AXIS,
-              fontSize: 9.5,
+              fontSize: 11,
               fontFamily: "monospace",
             }}
           />
@@ -1031,13 +1076,14 @@ function MarketScatter({
             axisLine={false}
             tickLine={false}
             tickFormatter={fmtTick(my)}
+            minTickGap={22}
             label={{
               value: my.lbl,
               angle: -90,
               position: "insideLeft",
               offset: 6,
               fill: AXIS,
-              fontSize: 9.5,
+              fontSize: 11,
               fontFamily: "monospace",
             }}
           />
@@ -1053,16 +1099,16 @@ function MarketScatter({
       </ResponsiveContainer>
       {quadrants && (
         <>
-          <span className="pointer-events-none absolute top-2 right-8 font-mono text-[8px] uppercase tracking-wider text-text-primary/20">
+          <span className="pointer-events-none absolute top-2 right-8 font-mono text-[9.5px] uppercase tracking-wider text-text-primary/40">
             {quadrants[0]}
           </span>
-          <span className="pointer-events-none absolute top-2 left-[72px] font-mono text-[8px] uppercase tracking-wider text-text-primary/20">
+          <span className="pointer-events-none absolute top-2 left-[72px] font-mono text-[9.5px] uppercase tracking-wider text-text-primary/40">
             {quadrants[1]}
           </span>
-          <span className="pointer-events-none absolute bottom-[42px] left-[72px] font-mono text-[8px] uppercase tracking-wider text-text-primary/20">
+          <span className="pointer-events-none absolute bottom-[42px] left-[72px] font-mono text-[9.5px] uppercase tracking-wider text-text-primary/40">
             {quadrants[2]}
           </span>
-          <span className="pointer-events-none absolute bottom-[42px] right-8 font-mono text-[8px] uppercase tracking-wider text-text-primary/20">
+          <span className="pointer-events-none absolute bottom-[42px] right-8 font-mono text-[9.5px] uppercase tracking-wider text-text-primary/40">
             {quadrants[3]}
           </span>
         </>
@@ -1081,7 +1127,6 @@ function Bubble({ model, colorBy, onPick }) {
         colorKey={colorBy}
         onPick={onPick}
         logX
-        height={560}
         labelTop={14}
         quadrants={[
           "🔥 Hot money · rising",
@@ -1090,7 +1135,7 @@ function Bubble({ model, colorBy, onPick }) {
           "Heavy churn · falling",
         ]}
       />
-      <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
+      <div className="text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-1">
         X = turnover (Vol/MCap, log) · Y = 24h momentum · size = market cap · color ={" "}
         {METRICS[colorBy].lbl} · dashed = median · labels = largest caps · click → latest call
       </div>
@@ -1202,7 +1247,7 @@ function SectorView({ model, colorBy, onPick }) {
         return (
           <div key={k} className="bg-surface border border-ink/[0.06] rounded-xl p-3">
             <div className="font-mono text-xs font-semibold text-text-primary mb-0.5">{k} risk</div>
-            <div className="font-mono text-[9px] uppercase tracking-wide text-text-primary/35 mb-2">
+            <div className="font-mono text-[10px] uppercase tracking-wide text-text-primary/35 mb-2">
               {list.length} signals
             </div>
             <div className="max-h-[300px] space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
@@ -1247,7 +1292,7 @@ function SectorView({ model, colorBy, onPick }) {
 function MetricPick({ label, value, onChange }) {
   return (
     <label className="flex items-center gap-1.5">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">
+      <span className="font-mono text-[10px] uppercase tracking-widest text-text-primary/35">
         {label}
       </span>
       <select
@@ -1298,10 +1343,9 @@ function ExploreView({ model, onPick }) {
         colorKey={ck}
         onPick={onPick}
         logX={logX}
-        height={560}
         labelTop={labels ? 12 : 0}
       />
-      <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
+      <div className="text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-1">
         X = {mx.lbl} · Y = {my.lbl} · color = {METRICS[ck].lbl} · size = market cap · dashed =
         median · click → latest call
       </div>
@@ -1360,7 +1404,7 @@ function Screener({ model, onPick }) {
                     setDir(sortK === k ? -dir : -1);
                     setSortK(k);
                   }}
-                  className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 cursor-pointer whitespace-nowrap border-b border-ink/[0.08] bg-surface-raised px-2 py-2 text-[9px] font-medium uppercase tracking-wide text-text-primary/40 hover:text-text-primary`}
+                  className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 cursor-pointer whitespace-nowrap border-b border-ink/[0.08] bg-surface-raised px-2 py-2 text-[10px] font-medium uppercase tracking-wide text-text-primary/40 hover:text-text-primary`}
                 >
                   {l}
                   {sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
@@ -1383,7 +1427,7 @@ function Screener({ model, onPick }) {
                 </td>
                 <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right">
                   <span
-                    className="rounded px-1.5 py-0.5 text-[9px] uppercase"
+                    className="rounded px-1.5 py-0.5 text-[10px] uppercase"
                     style={{ color: stColor(d.status), border: `1px solid ${stColor(d.status)}` }}
                   >
                     {d.status}

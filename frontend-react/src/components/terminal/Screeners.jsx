@@ -29,6 +29,10 @@ import {
   ScrollArea,
   statusColorOf,
   useZoom,
+  pickLabels,
+  useChartHeight,
+  pctBound,
+  clampTo,
 } from "./vizShared";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
@@ -134,6 +138,28 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
   const avg = rs.length ? rs.reduce((a, r) => a + rsiOf(r, tf), 0) / rs.length : null;
   const ob = rs.filter((r) => rsiOf(r, tf) >= 70).length;
   const os = rs.filter((r) => rsiOf(r, tf) <= 30).length;
+  const h = useChartHeight("hero");
+
+  // 393 tickers were drawn on this strip, every one labelled, in data order.
+  // The result was a band of overstruck letters in which no single ticker could
+  // be read — the chart carried 393 names and communicated none. Label only
+  // where a name fits, ranked by distance from 50: this tab exists to find the
+  // stretched and the beaten-down, so the extremes keep their names and the
+  // neutral middle (which the RSI bands already describe) gives up its own.
+  // Everything is still a dot, still hoverable, still clickable.
+  const labelled = useMemo(
+    () =>
+      pickLabels(
+        data.map((d) => ({
+          id: d.pair,
+          x: d.x * 1000,
+          y: (100 - d.y) * 10,
+          priority: Math.abs(d.y - 50),
+        })),
+        { cellW: 27, cellH: 30, max: 70 }
+      ),
+    [data]
+  );
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -145,27 +171,29 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
         <circle
           cx={cx}
           cy={cy}
-          r={5.5}
+          r={6.5}
           fill={payload.fill}
           fillOpacity={0.95}
           stroke={payload.sc || "rgba(0,0,0,0.28)"}
           strokeWidth={payload.sc ? 1.8 : 0.7}
         />
-        <text
-          x={cx}
-          y={cy - 9}
-          textAnchor="middle"
-          fontFamily="ui-monospace, monospace"
-          fontSize={8.5}
-          fontWeight={600}
-          fill="rgb(var(--fg) / 0.72)"
-          stroke="rgb(var(--surface-raised))"
-          strokeWidth={2.4}
-          paintOrder="stroke"
-          pointerEvents="none"
-        >
-          {sym(payload.pair)}
-        </text>
+        {labelled.has(payload.pair) && (
+          <text
+            x={cx}
+            y={cy - 10}
+            textAnchor="middle"
+            fontFamily="ui-monospace, monospace"
+            fontSize={10}
+            fontWeight={600}
+            fill="rgb(var(--fg) / 0.82)"
+            stroke="rgb(var(--surface-raised))"
+            strokeWidth={2.8}
+            paintOrder="stroke"
+            pointerEvents="none"
+          >
+            {sym(payload.pair)}
+          </text>
+        )}
       </g>
     );
   };
@@ -179,7 +207,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
           desc={`14-period RSI (${tf}) across every active call. Above 70 = overbought (stretched), below 30 = oversold. Dot ring = signal status.`}
         />
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mr-1">
             Timeframe
           </span>
           {RSI_TFS.map((f) => (
@@ -219,7 +247,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
         <div
           className="p-3"
-          style={{ height: 540, touchAction: "none", cursor: "grab" }}
+          style={{ height: h, touchAction: "none", cursor: "grab" }}
           ref={z.ref}
           onPointerDown={z.onPointerDown}
           onPointerMove={z.onPointerMove}
@@ -254,7 +282,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
                 label={{
                   value: "overbought",
                   fill: "rgb(var(--neg))",
-                  fontSize: 8,
+                  fontSize: 10,
                   position: "right",
                 }}
               />
@@ -266,7 +294,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
                 label={{
                   value: "oversold",
                   fill: "rgb(var(--pos))",
-                  fontSize: 8,
+                  fontSize: 10,
                   position: "right",
                 }}
               />
@@ -278,7 +306,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
                   label={{
                     value: `avg ${avg.toFixed(0)}`,
                     fill: GOLD,
-                    fontSize: 9,
+                    fontSize: 10.5,
                     position: "right",
                   }}
                 />
@@ -373,7 +401,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
       </div>
       <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
-        <div className="px-4 py-2 flex items-center gap-3 border-b border-ink/[0.05] font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70">
+        <div className="px-4 py-2 flex items-center gap-3 border-b border-ink/[0.05] font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
           <span className="w-24">pair</span>
           <span className="flex-1">exhaustion (100% = full expected day)</span>
           <span className="w-14 text-right">used</span>
@@ -465,7 +493,7 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
           desc={`Bollinger band-width percentile (${tf}) vs each coin's own recent history. Low = range has contracted → coiling before expansion. Ring = signal status.`}
         />
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mr-1">
             Timeframe
           </span>
           {RSI_TFS.map((f) => (
@@ -508,7 +536,7 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
       ) : (
         <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
-          <div className="px-4 py-2 flex items-center gap-3 border-b border-ink/[0.05] font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70">
+          <div className="px-4 py-2 flex items-center gap-3 border-b border-ink/[0.05] font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
             <span className="w-24">pair</span>
             <span className="flex-1">coiling (full bar = tightest range)</span>
             <span className="w-14 text-right">bw %ile</span>
@@ -651,16 +679,48 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
     [bookRows]
   );
 
+  // One ETH print at -$11.6M used to set this axis, so the other 32 pairs — all
+  // inside ±$400K — collapsed onto the zero line and the chart said nothing.
+  // Fit to the 94th percentile and pin whatever is beyond it to the rail: a
+  // hidden outlier is a lie, a stacked one at the edge still reads as "there is
+  // something past here".
   const dom = useMemo(() => {
     if (!rowsD.length) return { x: [-10, 10], y: [-1e6, 1e6] };
-    const xs = rowsD.map((r) => r.x),
-      ys = rowsD.map((r) => r.y);
-    const xa = Math.max(Math.abs(Math.min(...xs)), Math.abs(Math.max(...xs)), 2);
-    const ya = Math.max(Math.abs(Math.min(...ys)), Math.abs(Math.max(...ys)), 1000);
-    return { x: [-xa * 1.15, xa * 1.15], y: [-ya * 1.15, ya * 1.15] };
+    const xa = pctBound(rowsD.map((r) => r.x), 0.96, 2);
+    const ya = pctBound(rowsD.map((r) => r.y), 0.94, 1000);
+    return { x: [-xa, xa], y: [-ya, ya] };
   }, [rowsD]);
 
   const z = useZoom(dom.x[0], dom.x[1], dom.y[0], dom.y[1]);
+  const flowH = useChartHeight("hero");
+
+  // Plot against the fitted axis, pinning anything past it to the rail rather
+  // than letting allowDataOverflow clip it out of existence. The tooltip and
+  // the two lists below still carry the true figure.
+  const plot = useMemo(
+    () => rowsD.map((r) => ({ ...r, px: clampTo(r.x, dom.x[1]), py: clampTo(r.y, dom.y[1]) })),
+    [rowsD, dom]
+  );
+
+  // Labels used to be drawn for all 33 pairs stacked on the zero line, which is
+  // where the screenshot's unreadable "FARTDOIN/CRV/ARDUL" smear came from.
+  const flowLabels = useMemo(
+    () =>
+      pickLabels(
+        plot.map((r) => ({
+          id: r.pair,
+          x: ((r.px + dom.x[1]) / (2 * dom.x[1] || 1)) * 1000,
+          y: ((dom.y[1] - r.py) / (2 * dom.y[1] || 1)) * 1000,
+          // The divergence corners are the point of this chart, so they get
+          // first claim on the space: price and flow disagreeing outranks size.
+          priority:
+            (Math.sign(r.x) !== Math.sign(r.y) ? 1e9 : 0) + Math.abs(r.y),
+        })),
+        { cellW: 46, cellH: 40, max: 26 }
+      ),
+    [plot, dom]
+  );
+
   const distrib = rowsD
     .filter((r) => r.x >= 0 && r.y < 0)
     .sort((a, b) => a.y - b.y)
@@ -701,17 +761,23 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
           stroke={payload.sc || "rgb(var(--scrim) / 0.35)"}
           strokeWidth={payload.sc ? 1.6 : 0.5}
         />
-        <text
-          x={cx}
-          y={cy - 8}
-          textAnchor="middle"
-          fontFamily="monospace"
-          fontSize={8}
-          fill="rgb(var(--ink) / 0.55)"
-          pointerEvents="none"
-        >
-          {sym(payload.pair)}
-        </text>
+        {flowLabels.has(payload.pair) && (
+          <text
+            x={cx}
+            y={cy - 10}
+            textAnchor="middle"
+            fontFamily="monospace"
+            fontSize={10}
+            fontWeight={600}
+            fill="rgb(var(--ink) / 0.72)"
+            stroke="rgb(var(--surface-raised))"
+            strokeWidth={2.6}
+            paintOrder="stroke"
+            pointerEvents="none"
+          >
+            {sym(payload.pair)}
+          </text>
+        )}
       </g>
     );
   };
@@ -748,7 +814,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
         <div
           className="p-3"
-          style={{ height: 520, touchAction: "none", cursor: "grab" }}
+          style={{ height: flowH, touchAction: "none", cursor: "grab" }}
           ref={z.ref}
           onPointerDown={z.onPointerDown}
           onPointerMove={z.onPointerMove}
@@ -762,37 +828,39 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
               <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
               <XAxis
                 type="number"
-                dataKey="x"
+                dataKey="px"
                 domain={z.domX}
                 allowDataOverflow
                 tick={TICK_SM}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `${v.toFixed(0)}%`}
+                minTickGap={40}
               />
               <YAxis
                 type="number"
-                dataKey="y"
+                dataKey="py"
                 domain={z.domY}
                 allowDataOverflow
                 tick={TICK_SM}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={fmtUsd}
-                width={52}
+                width={60}
+                minTickGap={22}
               />
               <ZAxis range={[40, 40]} />
               <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.25)" />
               <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.25)" />
               <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<FlowTip />} />
-              <Scatter data={rowsD} shape={<Dot />} isAnimationActive={false} />
+              <Scatter data={plot} shape={<Dot />} isAnimationActive={false} />
             </ScatterChart>
           </ResponsiveContainer>
         </div>
       </div>
       <div className="grid md:grid-cols-2 gap-2">
         <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] p-3">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-negative/80 mb-2">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-negative/80 mb-2">
             Distribution — up but sold into
           </div>
           {distrib.length ? (
@@ -818,7 +886,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
           )}
         </div>
         <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] p-3">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-positive/80 mb-2">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-positive/80 mb-2">
             Accumulation — down but bought
           </div>
           {accum.length ? (
@@ -854,7 +922,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
           />
           <div className="grid md:grid-cols-2 gap-2">
             <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] p-3">
-              <div className="font-mono text-[9px] uppercase tracking-wider text-positive/80 mb-2">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-positive/80 mb-2">
                 Bid-stacked — support below
               </div>
               {bidStacked.map((d) => (
@@ -882,7 +950,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
               ))}
             </div>
             <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] p-3">
-              <div className="font-mono text-[9px] uppercase tracking-wider text-negative/80 mb-2">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-negative/80 mb-2">
                 Ask-stacked — resistance above
               </div>
               {askStacked.map((d) => (

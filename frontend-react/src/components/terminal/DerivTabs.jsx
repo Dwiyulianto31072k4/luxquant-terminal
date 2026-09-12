@@ -48,6 +48,7 @@ import {
   median,
   fitBound,
   pctBound,
+  clampTo,
   SectionBand,
   Kpi,
   XCard,
@@ -91,14 +92,14 @@ const NoDerivStrip = ({ noDeriv, onPair }) => {
   if (!noDeriv.length) return null;
   return (
     <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.01] px-4 py-2.5 flex items-center gap-2 flex-wrap">
-      <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70 shrink-0">
+      <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/70 shrink-0">
         {t("terminal.viz.noDeriv")} · {noDeriv.length}
       </span>
       {noDeriv.slice(0, 12).map((d) => (
         <CoinPill key={d.pair} pair={d.pair} onPair={onPair} className="opacity-60" />
       ))}
       {noDeriv.length > 12 && (
-        <span className="font-mono text-[9px] text-text-muted/60">+{noDeriv.length - 12}</span>
+        <span className="font-mono text-[10px] text-text-muted/60">+{noDeriv.length - 12}</span>
       )}
     </div>
   );
@@ -193,6 +194,7 @@ export function OITab({ view, deriv, pairFc, openPair }) {
             guide="oiQuad"
             desc={t("terminal.viz.oiQuadDesc")}
             zoom={zQuad}
+            size="hero"
             hint={t("terminal.viz.oiQuadHint")}
             render={(h) => (
               <div style={{ height: Math.max(h, 300) }}>
@@ -422,11 +424,11 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
           <div className="flex items-center gap-3 font-mono text-[11px] tabular-nums">
             <span className="text-negative">
               {fmtMoney(liq?.long_usd_5m || 0)}{" "}
-              <span className="text-[9px] text-text-muted">L</span>
+              <span className="text-[10px] text-text-muted">L</span>
             </span>
             <span className="text-positive">
               {fmtMoney(liq?.short_usd_5m || 0)}{" "}
-              <span className="text-[9px] text-text-muted">S</span>
+              <span className="text-[10px] text-text-muted">S</span>
             </span>
           </div>
         </div>
@@ -450,7 +452,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                   {(e.pair || "").replace(/USDT$/i, "")}
                 </span>
                 <span
-                  className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded"
+                  className="font-mono text-[9.5px] uppercase tracking-wider px-1.5 py-0.5 rounded"
                   style={{
                     color: e.side === "long" ? NEG : POS,
                     background: `${e.side === "long" ? NEG : POS}18`,
@@ -464,7 +466,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                 >
                   {fmtMoney(e.usd)}
                 </span>
-                <span className="w-8 text-right font-mono text-[9px] text-text-muted/60">
+                <span className="w-8 text-right font-mono text-[10px] text-text-muted/60">
                   {_liqAgo(e.ts)}
                 </span>
               </div>
@@ -478,7 +480,6 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
           title={t("terminal.viz.lsrDistTitle")}
           guide="lsrDist"
           desc={`${t("terminal.viz.lsrDistDesc")} Click a bar to list pairs → open call.`}
-          height={320}
           render={(h) => (
             <div className="flex flex-col" style={{ height: h }}>
               <div className="min-h-0 flex-1">
@@ -533,7 +534,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                     <button
                       type="button"
                       onClick={() => setLsBin(null)}
-                      className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-text-primary"
+                      className="font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary"
                     >
                       Clear
                     </button>
@@ -660,7 +661,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
           render={() => (
             <div className="py-2 space-y-3">
               <div>
-                <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-negative/80 mb-1.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-negative/80 mb-1.5">
                   {t("terminal.viz.kCrowdLong")} — LSR &gt; 2.5
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -681,7 +682,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                 </div>
               </div>
               <div>
-                <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-positive/80 mb-1.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-positive/80 mb-1.5">
                   {t("terminal.viz.kCrowdShort")} — LSR &lt; 0.7
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -719,8 +720,12 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
   // Fit funding (X) to real values so books don't crush onto the center line.
-  const fundXBound = fitBound(
+  // fitBound used |max| here and one −2.4% book took the axis, leaving every
+  // other pair stacked in a 0.3%-wide column: the chart drew 200 dots and
+  // separated none of them. Percentile-fit, and clamp the rest to the rail.
+  const fundXBound = pctBound(
     rows.filter((r) => r.funding != null).map((r) => r.funding * 100),
+    0.97,
     0.04
   );
   const zFund = useZoom(-fundXBound, fundXBound, -30, 30);
@@ -753,7 +758,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
 
   const fundFc = withF
     .filter((r) => r.fc != null)
-    .map((r) => ({ x: r.fPct, y: r.fc, pair: r.pair, neg: r.fPct < 0 }));
+    .map((r) => ({ x: clampTo(r.fPct, fundXBound), y: r.fc, pair: r.pair, neg: r.fPct < 0 }));
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -815,7 +820,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
         render={() => (
           <div className="py-2 space-y-3">
             <div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted mb-1.5">
+              <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted mb-1.5">
                 {t("terminal.viz.shortSqList")}
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -838,7 +843,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
               </div>
             </div>
             <div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/80 mb-1.5">
+              <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80 mb-1.5">
                 {t("terminal.viz.longSqList")}
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -898,6 +903,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
         guide="fundFc"
         desc={t("terminal.viz.fundFcDesc")}
         zoom={zFund}
+        size="hero"
         render={(h) => (
           <div style={{ height: Math.max(h, 280) }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -1007,7 +1013,7 @@ const makeEndLabel = (sym, color, total) => {
           x={cx + r + 3}
           y={y + 3.5}
           fill={color}
-          fontSize={9.5}
+          fontSize={11}
           fontFamily="JetBrains Mono"
           fontWeight="600"
         >
@@ -1119,7 +1125,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
         title={t("terminal.viz.vsChartTitle")}
         guide="vsChart"
         desc={t("terminal.viz.vsChartDesc")}
-        height={380}
+        size="hero"
         render={(h) => (
           <>
             <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
@@ -1241,7 +1247,6 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
           title={t("terminal.viz.rsiTitle")}
           guide="rsiDist"
           desc={t("terminal.viz.rsiDesc")}
-          height={300}
           render={(h) => (
             <>
               <div style={{ height: Math.min(h, 200) }}>
@@ -1278,7 +1283,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
               </div>
               <div className="mt-2 space-y-2">
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-positive/80">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-positive/80">
                     RSI&lt;30
                   </span>
                   {oversold.length === 0 && (
@@ -1297,7 +1302,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-negative/80">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-negative/80">
                     RSI&gt;70
                   </span>
                   {overbought.length === 0 && (
@@ -1324,7 +1329,6 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
           title={t("terminal.viz.volChgTitle")}
           guide="volChg"
           desc={t("terminal.viz.volChgDesc")}
-          height={300}
           render={() =>
             volChg.length === 0 ? (
               <Warming text={t("terminal.viz.derivWarming")} />
@@ -1347,7 +1351,20 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
   const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows } = usePairRows(view, deriv, pairFc);
-  const zM = useZoom(-15, 15, -40, 60);
+  // -15..15 / -40..60 was a guess, and on a normal day it is far too wide:
+  // relative strength sits inside ±4% and the whole field lands in the middle
+  // ninth of the canvas. Fit to the data, clamp the tail to the rail.
+  const momX = pctBound(
+    rows.filter((r) => r.rs_btc != null).map((r) => r.rs_btc),
+    0.97,
+    3
+  );
+  const momY = pctBound(
+    rows.filter((r) => r.vol_chg_1h != null).map((r) => r.vol_chg_1h),
+    0.95,
+    10
+  );
+  const zM = useZoom(-momX, momX, -momY, momY);
 
   const scored = rows.filter((r) => r.momentum != null);
   const accelerating = scored.filter((r) => r.momentum >= 65).length;
@@ -1367,7 +1384,12 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
     .map((r) => ({ pair: r.pair, v: r.vol_chg_1h }));
   const scatter = rows
     .filter((r) => r.rs_btc != null && r.vol_chg_1h != null)
-    .map((r) => ({ x: r.rs_btc, y: r.vol_chg_1h, mom: r.momentum ?? 0, pair: r.pair }));
+    .map((r) => ({
+      x: clampTo(r.rs_btc, momX),
+      y: clampTo(r.vol_chg_1h, momY),
+      mom: r.momentum ?? 0,
+      pair: r.pair,
+    }));
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -1410,6 +1432,7 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
         guide="momScatter"
         desc={t("terminal.viz.momScatterDesc")}
         zoom={zM}
+        size="hero"
         hint={t("terminal.viz.momScatterHint")}
         render={(h) => (
           <div style={{ height: Math.max(h, 320) }}>
@@ -1510,7 +1533,14 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
   const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows } = usePairRows(view, deriv, pairFc);
-  const zSq = useZoom(0, 4, -0.5, 0.5);
+  // Funding is a per-8h rate: it lives inside ±0.05%, so a ±0.5% axis drew
+  // every book on the zero line and the vertical dimension carried nothing.
+  const sqY = pctBound(
+    rows.filter((r) => r.funding != null).map((r) => r.funding * 100),
+    0.96,
+    0.012
+  );
+  const zSq = useZoom(0, 4, -sqY, sqY);
 
   const scored = rows.filter((r) => r.squeeze != null);
   const crowdedLong = scored.filter((r) => r.squeeze_side === "long" && r.squeeze >= 45);
@@ -1529,7 +1559,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
     .filter((r) => r.lsr != null && r.funding != null)
     .map((r) => ({
       x: Math.min(r.lsr, 4),
-      y: r.funding * 100,
+      y: clampTo(r.funding * 100, sqY),
       z: Math.max(r.oi || 1, 1),
       side: r.squeeze_side,
       pair: r.pair,
@@ -1576,6 +1606,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
         desc={t("terminal.viz.sqScatterDesc")}
         hint={t("terminal.viz.sqScatterHint")}
         zoom={zSq}
+        size="hero"
         render={(h) => (
           <div style={{ height: Math.max(h, 320) }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -1595,7 +1626,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
                     position: "insideBottom",
                     offset: -4,
                     fill: AXIS,
-                    fontSize: 9,
+                    fontSize: 10.5,
                     fontFamily: "monospace",
                   }}
                 />
@@ -1614,7 +1645,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
                     angle: -90,
                     position: "insideLeft",
                     fill: AXIS,
-                    fontSize: 9,
+                    fontSize: 10.5,
                     fontFamily: "monospace",
                   }}
                 />

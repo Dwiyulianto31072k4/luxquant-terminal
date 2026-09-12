@@ -198,7 +198,7 @@ function FngBadge({ value, label }) {
   const pos = Math.max(2, Math.min(98, value));
   return (
     <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] px-3.5 py-2.5 flex items-center gap-3">
-      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted shrink-0">
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted shrink-0">
         Fear &amp; Greed
       </span>
       <div className="relative flex-1 min-w-[100px]">
@@ -295,7 +295,7 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, _
             {fc == null ? "—" : fmtPct(fc)}
           </div>
           {/* the number meant nothing without saying what it measures */}
-          <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.1em] text-text-muted/70">
+          <div className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted/70">
             from entry
           </div>
           <div className="mt-1.5 flex justify-end">

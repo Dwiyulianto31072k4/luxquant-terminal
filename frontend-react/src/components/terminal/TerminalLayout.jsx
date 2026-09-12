@@ -561,7 +561,7 @@ export default function TerminalLayout() {
             {GROUPS.map(({ g, items }) => (
               <div key={g}>
                 {!navCollapsed && (
-                  <div className="px-2 mb-1 font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/55">
+                  <div className="px-2 mb-1 font-mono text-[9.5px] uppercase tracking-[0.16em] text-text-muted/70">
                     {t(`terminal.viz.${g}`)}
                   </div>
                 )}
@@ -575,7 +575,7 @@ export default function TerminalLayout() {
                       type="button"
                       onClick={() => go(id, route)}
                       title={t(tabKey(id))}
-                      className={`relative flex items-center rounded-md text-left text-[12px] font-medium transition-colors ${
+                      className={`relative flex items-center rounded-md text-left text-[13px] font-medium transition-colors ${
                         navCollapsed
                           ? "w-full justify-center px-0 py-2"
                           : "w-full gap-2 pl-2.5 pr-2 py-1.5"

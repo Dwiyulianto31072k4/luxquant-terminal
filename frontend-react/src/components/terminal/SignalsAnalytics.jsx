@@ -204,11 +204,11 @@ function RegimeGauge({ macro, deriv, winRate, closedN, tpHitPct }) {
 
   const comp = (lbl, score, raw, sub) => (
     <div className="rounded-lg border border-ink/[0.05] bg-ink/[0.02] px-2.5 py-2">
-      <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/80">
+      <div className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-text-muted/80">
         {lbl}
       </div>
       <div className="mt-0.5 font-mono text-[13px] tabular-nums text-text-primary">{raw}</div>
-      {sub && <div className="mt-0.5 font-mono text-[8px] text-text-muted/55">{sub}</div>}
+      {sub && <div className="mt-0.5 font-mono text-[9.5px] text-text-muted/55">{sub}</div>}
       <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-ink/[0.06]">
         <div
           className="h-full rounded-full bg-text-primary/55"
@@ -222,7 +222,7 @@ function RegimeGauge({ macro, deriv, winRate, closedN, tpHitPct }) {
     <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-3.5">
       <div className="mb-2.5 flex items-end justify-between gap-3">
         <div>
-          <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
             Market regime
           </div>
           <div
@@ -253,7 +253,7 @@ function RegimeGauge({ macro, deriv, winRate, closedN, tpHitPct }) {
           />
         )}
       </div>
-      <div className="mt-1 flex justify-between font-mono text-[8px] uppercase tracking-wider text-text-muted/50">
+      <div className="mt-1 flex justify-between font-mono text-[9.5px] uppercase tracking-wider text-text-muted/50">
         <span>Risk-off</span>
         <span>Neutral</span>
         <span>Risk-on</span>
@@ -879,6 +879,17 @@ export default function SignalsAnalytics() {
 
   const derivProps = { view, deriv, pairFc, openPair, openSignalRow, liq };
 
+  // Every tab shares one scroll pane, and it used to keep its offset across a
+  // tab change. Click "Open Interest" after scrolling "Anomaly" and you land
+  // halfway down the new tab — its heading, its KPI labels and the top of its
+  // chart already cut off above the fold, which reads as a broken, half-covered
+  // page rather than as scroll. A new tab starts at its own top.
+  const paneRef = useRef(null);
+  useEffect(() => {
+    const el = paneRef.current;
+    if (el) el.scrollTop = 0;
+  }, [tab]);
+
   // ════════════════════════════════════════════════════════════
   // Layout: filter chrome is OUTSIDE the scroll pane (never overlays cards).
   // Parent TerminalLayout main is flex-col; we fill height and scroll body only.
@@ -957,7 +968,7 @@ export default function SignalsAnalytics() {
             role="group"
             aria-label="Time window"
           >
-            <span className="hidden sm:inline px-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/55">
+            <span className="hidden sm:inline px-1.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-text-muted/55">
               Window
             </span>
             {[
@@ -1003,7 +1014,7 @@ export default function SignalsAnalytics() {
               title={`Low beta — moves independently of Bitcoin · ${agg.decoupled} in view`}
             >
               {t("terminal.viz.decoupled")}
-              <span className="ml-1 font-mono text-[9px] opacity-70">{agg.decoupled}</span>
+              <span className="ml-1 font-mono text-[10px] opacity-70">{agg.decoupled}</span>
             </Chip>
           ) : null}
           {(hasDrill || windowDays !== 7) && (
@@ -1013,21 +1024,24 @@ export default function SignalsAnalytics() {
                 resetF();
                 setWindowDays(7);
               }}
-              className="ml-0.5 px-2 py-1 rounded-md font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-negative/5 border border-transparent hover:border-negative/20 transition-colors"
+              className="ml-0.5 px-2 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-negative/5 border border-transparent hover:border-negative/20 transition-colors"
             >
               {t("terminal.viz.reset")}
             </button>
           )}
 
           {/* mobile meta */}
-          <div className="ml-auto flex lg:hidden items-center gap-2 font-mono text-[9px] text-text-muted/65">
+          <div className="ml-auto flex lg:hidden items-center gap-2 font-mono text-[10px] text-text-muted/65">
             <span className="tabular-nums">{view.length} sig</span>
           </div>
         </div>
       </div>
 
       {/* ── scrollable tab body only ── */}
-      <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden space-y-3 pt-3 pb-20 lg:pb-8 [scrollbar-width:thin] [scrollbar-color:rgb(var(--ink)_/_0.12)_transparent]">
+      <div
+        ref={paneRef}
+        className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden space-y-3 pt-3 pb-20 lg:pb-8 [scrollbar-width:thin] [scrollbar-color:rgb(var(--ink)_/_0.12)_transparent]"
+      >
       {/* ── loading / error (only when nothing hydrated) ── */}
       {loading && !data && (
         <div className="rounded-lg bg-surface-raised border border-ink/[0.07] py-24 flex flex-col items-center gap-3">
@@ -1360,7 +1374,7 @@ export default function SignalsAnalytics() {
                 guide="anomaly"
                 desc={t("terminal.viz.sectionAnomDesc")}
                 badge={
-                  <span className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-ink/[0.08] bg-ink/[0.02] font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                  <span className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-ink/[0.08] bg-ink/[0.02] font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${anomMeta.fresh ? "bg-positive animate-pulse" : "bg-warning"}`}
                     />
@@ -1446,21 +1460,21 @@ export default function SignalsAnalytics() {
                         <span className="font-mono text-[11.5px] font-semibold text-text-primary group-hover:text-text-primary">
                           {(s.pair || "").replace(/USDT$/i, "")}
                         </span>
-                        <span className="rounded bg-ink/[0.06] px-1 py-px font-mono text-[8.5px] uppercase tracking-wide text-text-muted">
+                        <span className="rounded bg-ink/[0.06] px-1 py-px font-mono text-[10px] uppercase tracking-wide text-text-muted">
                           {STATUS_LABEL[status] || status}
                         </span>
                         {golden && (
-                          <span className="rounded border border-ink/10 px-1 py-px font-mono text-[8px] uppercase text-text-primary/55">
+                          <span className="rounded border border-ink/10 px-1 py-px font-mono text-[9.5px] uppercase text-text-primary/55">
                             golden
                           </span>
                         )}
                         {!golden && htf && (
-                          <span className="font-mono text-[8px] uppercase text-text-muted">
+                          <span className="font-mono text-[9.5px] uppercase text-text-muted">
                             htf
                           </span>
                         )}
                         {!golden && !htf && aligned && (
-                          <span className="font-mono text-[8px] uppercase text-text-muted">
+                          <span className="font-mono text-[9.5px] uppercase text-text-muted">
                             mtf
                           </span>
                         )}
@@ -1484,7 +1498,7 @@ export default function SignalsAnalytics() {
               {anomMeta.hotN > 0 && (
                 <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised px-3.5 py-2.5">
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
                       {t("terminal.viz.hotNow")}
                     </span>
@@ -1514,13 +1528,14 @@ export default function SignalsAnalytics() {
                 guide="anom"
                 desc={t("terminal.viz.anomDesc")}
                 zoom={zAnom}
+                size="hero"
                 hint={t("terminal.viz.anomHint")}
                 height={560}
                 render={(h) => (
                   <div className="flex flex-col min-w-0" style={{ height: h }}>
                     {/* Chart-local filters */}
                     <div className="mb-2 flex flex-wrap items-center gap-1.5 shrink-0">
-                      <span className="mr-0.5 font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted/60">
+                      <span className="mr-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted/60">
                         Layer
                       </span>
                       {[
@@ -1550,7 +1565,7 @@ export default function SignalsAnalytics() {
                         </button>
                       ))}
                       <span className="mx-1 h-3 w-px bg-ink/10" aria-hidden />
-                      <span className="mr-0.5 font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted/60">
+                      <span className="mr-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted/60">
                         Names
                       </span>
                       {[
@@ -1681,7 +1696,7 @@ export default function SignalsAnalytics() {
                                 value: "3× flow",
                                 position: "insideTopRight",
                                 fill: "rgba(251,146,60,0.7)",
-                                fontSize: 9,
+                                fontSize: 10.5,
                                 fontFamily: "JetBrains Mono",
                               }}
                             />
@@ -1728,7 +1743,7 @@ export default function SignalsAnalytics() {
                           key={e.l}
                           type="button"
                           onClick={() => setAnomLayer(anomLayer === e.id ? "all" : e.id)}
-                          className={`inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider transition-colors ${
+                          className={`inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors ${
                             anomLayer === e.id
                               ? "bg-ink/[0.08] text-text-primary"
                               : "text-text-muted hover:text-text-primary"
@@ -1756,7 +1771,7 @@ export default function SignalsAnalytics() {
                   title={t("terminal.viz.spikeTitle")}
                   guide="spike"
                   desc={t("terminal.viz.spikeDesc")}
-                  height={380}
+                  size="hero"
                   render={() =>
                     session.spikes.length === 0 ? (
                       <div className="py-14 text-center">
@@ -1886,7 +1901,6 @@ export default function SignalsAnalytics() {
                   title={t("terminal.viz.fcDistTitle")}
                   guide="fcDist"
                   desc={t("terminal.viz.fcDistDesc")}
-                  height={320}
                   render={(h) => (
                     <div style={{ height: h }}>
                       <ResponsiveContainer width="100%" height="100%">
@@ -1923,7 +1937,6 @@ export default function SignalsAnalytics() {
                   guide="opp"
                   desc={t("terminal.viz.oppDesc")}
                   zoom={zOpp}
-                  height={320}
                   hint={t("terminal.viz.oppHint")}
                   render={(h) => (
                     <div style={{ height: h }}>
@@ -1990,6 +2003,7 @@ export default function SignalsAnalytics() {
                 guide="peak"
                 desc={t("terminal.viz.peakDesc")}
                 zoom={zPeak}
+                size="hero"
                 hint={t("terminal.viz.peakHint")}
                 render={(h) => (
                   <div style={{ height: Math.max(h, 280) }}>
@@ -2363,7 +2377,7 @@ export default function SignalsAnalytics() {
                             dataKey="sector"
                             tick={{
                               fill: AXIS,
-                              fontSize: 9.5,
+                              fontSize: 11,
                               fontFamily: "JetBrains Mono",
                               fontWeight: 600,
                             }}
@@ -2480,7 +2494,7 @@ export default function SignalsAnalytics() {
                         <button
                           type="button"
                           onClick={() => setF({ sectors: "" })}
-                          className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-text-primary"
+                          className="font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary"
                         >
                           Clear filter
                         </button>
@@ -2511,7 +2525,7 @@ export default function SignalsAnalytics() {
                                   <span className="truncate font-mono text-[12.5px] font-semibold text-text-primary">
                                     {(s.pair || "").replace(/USDT$/i, "")}
                                   </span>
-                                  <span className="rounded bg-ink/[0.05] px-1 py-px font-mono text-[8.5px] uppercase text-text-muted">
+                                  <span className="rounded bg-ink/[0.05] px-1 py-px font-mono text-[10px] uppercase text-text-muted">
                                     {STATUS_LABEL[s.status] || s.status}
                                   </span>
                                 </div>
