@@ -402,6 +402,44 @@ const pageWindow = (current, total) => {
   return out;
 };
 
+/** Three states, answered in one tap.
+ *
+ *  Ya / Tidak, and tapping the state a row is already in clears it back to
+ *  unmarked — so a mis-tap is undoable without a menu, and "I have not decided"
+ *  stays reachable. Rendered as two buttons rather than a checkbox because a
+ *  checkbox has no way to say "not answered".
+ */
+function TakenControl({ value, onPick }) {
+  const opts = [
+    { key: "taken", label: "Ya", on: "border-profit bg-profit text-white" },
+    { key: "skipped", label: "Tidak", on: "border-ink/25 bg-ink/[0.12] text-text-primary" },
+  ];
+  return (
+    <span
+      className="inline-flex overflow-hidden rounded-md border border-ink/[0.12]"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {opts.map((o) => {
+        const active = value === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            aria-pressed={active}
+            title={active ? "Tap again to unmark" : `Mark as ${o.label}`}
+            onClick={() => onPick(active ? null : o.key)}
+            className={`px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors ${
+              active ? o.on : "text-text-muted hover:bg-ink/[0.05] hover:text-text-primary"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </span>
+  );
+}
+
 const SignalsTable = ({
   signals,
   loading,
@@ -436,6 +474,12 @@ const SignalsTable = ({
   edgeScoreMap = {},
   signalTags = {},
   onWatchlistChange = null,
+  // Journal mode — only the Watchlist desk. The column is injected here rather
+  // than added to COLS because it is meaningless on every other view, and a
+  // toggle in the Columns menu that does nothing 90% of the time is worse than
+  // no toggle at all.
+  journalMode = false,
+  onMarkTaken = null,
   // Showcase / teaser: Price = max(live, recorded peak). Live only wins
   // when the coin is still printing a new high.
   preferBestPrice = false,
@@ -1495,6 +1539,17 @@ const SignalsTable = ({
                     </span>
                   ) : null}
                 </span>
+                {/* The journal answer rides beside your fill, where the other
+                    "this is yours, not the desk's" facts already live. */}
+                {journalMode ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-text-muted">Taken</span>
+                    <TakenControl
+                      value={signal.taken || null}
+                      onPick={(next) => onMarkTaken?.(signal.signal_id, next)}
+                    />
+                  </span>
+                ) : null}
                 {(() => {
                   const mine = myEntries[signal.signal_id];
                   if (!mine) return null;
@@ -1963,6 +2018,18 @@ const SignalsTable = ({
                     </>
                   ) : null}
                   <SortableHeader field="pair" label="Pair" />
+                  {journalMode && (
+                    <th className="select-none px-3 py-2.5 text-center">
+                      <span className="inline-flex items-center justify-center gap-1.5 text-[11px] font-medium">
+                        <InfoTip
+                          side="bottom"
+                          title="Did you take it?"
+                          text="Your own record, kept per call. Unmarked is its own state — every call you saved before this existed is unmarked, and that is not the same as skipped. Marking a call skipped keeps it on the list on purpose: the point is to compare what you entered against what you passed on."
+                        />
+                        Taken
+                      </span>
+                    </th>
+                  )}
                   {effectiveCols.current_price && (
                     <SortableHeader
                       field="current_price"
@@ -2167,6 +2234,15 @@ const SignalsTable = ({
                             </div>
                           </div>
                         </td>
+
+                        {journalMode && (
+                          <td className="text-center">
+                            <TakenControl
+                              value={signal.taken || null}
+                              onPick={(next) => onMarkTaken?.(signal.signal_id, next)}
+                            />
+                          </td>
+                        )}
 
                         {effectiveCols.current_price && (
                           <td className="text-right">

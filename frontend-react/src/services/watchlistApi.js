@@ -20,6 +20,15 @@ export const watchlistApi = {
     return response.data;
   },
 
+  // Mark whether you actually entered this call.
+  // null clears the answer — the row stays on the list, unanswered.
+  setTaken: async (signalId, taken) => {
+    const response = await api.patch(`/api/v1/watchlist/${signalId}/taken`, {
+      taken: taken ?? null,
+    });
+    return response.data;
+  },
+
   // Check if signal is in watchlist
   checkInWatchlist: async (signalId) => {
     const response = await api.get(`/api/v1/watchlist/check/${signalId}`);

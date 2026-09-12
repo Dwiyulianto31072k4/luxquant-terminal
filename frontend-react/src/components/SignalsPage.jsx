@@ -918,6 +918,58 @@ const SignalsPage = () => {
     refreshWatchlist();
   }, [refreshWatchlist]);
 
+  // What the journal actually says, once enough calls are marked. Resolved
+  // only: an open call has no outcome to compare, and counting it as a loss is
+  // how a journal starts lying to its owner.
+  const journalStats = useMemo(() => {
+    const counts = { all: 0, taken: 0, skipped: 0, none: 0 };
+    const res = { taken: { n: 0, w: 0 }, skipped: { n: 0, w: 0 } };
+    for (const w of watchlistSignals) {
+      counts.all += 1;
+      const k = w.taken === "taken" ? "taken" : w.taken === "skipped" ? "skipped" : "none";
+      counts[k] += 1;
+      if (k === "none") continue;
+      const st = String(w.status || "").toLowerCase();
+      const win = st.startsWith("tp") || st === "closed_win";
+      const loss = st === "sl" || st === "closed_loss";
+      if (!win && !loss) continue;
+      res[k].n += 1;
+      if (win) res[k].w += 1;
+    }
+    const rate = (b) => (b.n ? (b.w / b.n) * 100 : null);
+    const takenWr = rate(res.taken);
+    const skippedWr = rate(res.skipped);
+    return {
+      counts,
+      takenN: res.taken.n,
+      skippedN: res.skipped.n,
+      takenWr,
+      skippedWr,
+      // Only a comparison when BOTH sides have something to compare.
+      delta: takenWr != null && skippedWr != null ? takenWr - skippedWr : null,
+    };
+  }, [watchlistSignals]);
+
+  // all | taken | skipped | none — only meaningful on the Watchlist desk.
+  const [journalFilter, setJournalFilter] = useState("all");
+
+  // Optimistic: the answer is the user's own, so the row should flip under the
+  // thumb and only reconcile if the server disagrees. A failed write refetches
+  // rather than guessing what the server now holds.
+  const markTaken = useCallback(
+    async (signalId, next) => {
+      setWatchlistSignals((prev) =>
+        prev.map((w) => (w.signal_id === signalId ? { ...w, taken: next } : w))
+      );
+      try {
+        await watchlistApi.setTaken(signalId, next);
+      } catch {
+        refreshWatchlist();
+      }
+    },
+    [refreshWatchlist]
+  );
+
   // Coin Flow Intensity (exclude stablecoin) untuk strip — sumber Money Flow.
   useEffect(() => {
     let alive = true;
@@ -1122,6 +1174,11 @@ const SignalsPage = () => {
     if (narrativePairSet?.size) {
       f = f.filter((s) => narrativePairSet.has(s.pair));
     }
+    if (showWatchlistOnly && journalFilter !== "all") {
+      f = f.filter((s) =>
+        journalFilter === "none" ? !s.taken : s.taken === journalFilter
+      );
+    }
     if (!showWatchlistOnly && selectedDates.length > 0) {
       f = f.filter(
         (s) => s.created_at && selectedDates.includes(signalUtcYmd(s.created_at))
@@ -1188,6 +1245,7 @@ const SignalsPage = () => {
     allSignals,
     searchPair,
     narrativePairSet,
+    journalFilter,
     selectedDates,
     statusFilter,
     riskFilter,
@@ -1442,6 +1500,7 @@ const SignalsPage = () => {
   const resetFilters = useCallback(() => {
     setSearchPair("");
     setNarratives([]);
+    setJournalFilter("all");
     setStatusFilter("all");
     setRiskFilter("all");
     setStreakFilter("all");
@@ -1556,6 +1615,11 @@ const SignalsPage = () => {
     }
     if (narrativePairSet?.size) {
       filtered = filtered.filter((s) => narrativePairSet.has(s.pair));
+    }
+    if (showWatchlistOnly && journalFilter !== "all") {
+      filtered = filtered.filter((s) =>
+        journalFilter === "none" ? !s.taken : s.taken === journalFilter
+      );
     }
 
     // Filter tanggal hanya berlaku di mode non-watchlist (watchlist lintas-tanggal).
@@ -1683,6 +1747,7 @@ const SignalsPage = () => {
     shariah,
     searchPair,
     narrativePairSet,
+    journalFilter,
     statusFilter,
     riskFilter,
     streakFilter,
@@ -2286,6 +2351,126 @@ const SignalsPage = () => {
 
         </div>
       </div>
+
+      {showWatchlistOnly && journalStats.counts.all > 0 ? (
+        <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 sm:px-3.5">
+            <span className="text-[13px] font-medium text-text-primary">Your journal</span>
+            <span className="text-[11.5px] text-text-muted">
+              {journalStats.counts.all} saved
+              {journalStats.counts.none ? ` · ${journalStats.counts.none} unmarked` : ""}
+            </span>
+            <span className="ml-auto">
+              <InfoTip
+                side="bottom"
+                title="Your journal"
+                text={
+                  "Taken and Skipped are your own answers, kept with your account. Unmarked is a state of its own — every call you saved before this existed is unmarked, and that is not the same as skipped.\n\n" +
+                  "The rates count RESOLVED calls only, and they use the desk's definition of a win: the highest level reached was TP1 or better, not profit. An open call has no outcome yet, so it is left out rather than counted as a loss.\n\n" +
+                  "With a dozen calls each side this is a hint, not a verdict. The sample is printed beside every rate for that reason."
+                }
+              />
+            </span>
+          </div>
+
+          {journalStats.takenN || journalStats.skippedN ? (
+            <div className="grid grid-cols-1 gap-2 border-t border-ink/[0.06] px-3 py-2.5 sm:grid-cols-3 sm:px-3.5">
+              {[
+                { k: "taken", label: "You took", n: journalStats.takenN, wr: journalStats.takenWr },
+                { k: "skipped", label: "You passed", n: journalStats.skippedN, wr: journalStats.skippedWr },
+              ].map((b) => (
+                <div key={b.k} className="rounded-lg bg-ink/[0.025] px-3 py-2">
+                  <p className="text-[11.5px] text-text-muted">{b.label}</p>
+                  <p className="mt-0.5 font-mono text-[18px] font-medium tabular-nums text-text-primary">
+                    {b.n}
+                    <span className="ml-1 text-[11px] font-normal text-text-muted">resolved</span>
+                  </p>
+                  <p className="mt-0.5 text-[11.5px]">
+                    {b.wr == null ? (
+                      <span className="text-text-muted">no resolved calls yet</span>
+                    ) : (
+                      <>
+                        <span className="font-mono tabular-nums text-profit">
+                          {b.wr.toFixed(0)}%
+                        </span>
+                        <span className="text-text-muted"> reached TP1+</span>
+                      </>
+                    )}
+                  </p>
+                </div>
+              ))}
+              <div className="rounded-lg bg-ink/[0.025] px-3 py-2">
+                <p className="text-[11.5px] text-text-muted">Difference</p>
+                {journalStats.delta == null ? (
+                  <p className="mt-0.5 text-[11.5px] text-text-muted">
+                    Mark calls on both sides to compare.
+                  </p>
+                ) : (
+                  <>
+                    <p
+                      className={`mt-0.5 font-mono text-[18px] font-medium tabular-nums ${
+                        journalStats.delta >= 0 ? "text-profit" : "text-loss"
+                      }`}
+                    >
+                      {journalStats.delta >= 0 ? "+" : ""}
+                      {journalStats.delta.toFixed(0)}pp
+                    </p>
+                    <p className="mt-0.5 text-[11.5px] text-text-muted">
+                      {journalStats.delta >= 0
+                        ? "the ones you took did better"
+                        : "the ones you passed did better"}
+                      {Math.min(journalStats.takenN, journalStats.skippedN) < 10
+                        ? " · thin sample"
+                        : ""}
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="border-t border-ink/[0.06] px-3 py-2.5 text-[12px] text-text-muted sm:px-3.5">
+              Mark a call Ya or Tidak to start the comparison. Nothing leaves this list — a call
+              you passed on stays, so it can be counted against the ones you took.
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-ink/[0.06] px-3 py-2 sm:px-3.5">
+            {[
+              { k: "all", label: "All", n: journalStats.counts.all },
+              { k: "taken", label: "Taken", n: journalStats.counts.taken },
+              { k: "skipped", label: "Skipped", n: journalStats.counts.skipped },
+              { k: "none", label: "Unmarked", n: journalStats.counts.none },
+            ].map((o) => {
+              const on = journalFilter === o.k;
+              return (
+                <button
+                  key={o.k}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => {
+                    setJournalFilter(o.k);
+                    setPage(1);
+                  }}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] transition-colors ${
+                    on
+                      ? "border-accent bg-accent text-accent-fg"
+                      : "border-ink/[0.12] text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  {o.label}
+                  <span
+                    className={`font-mono text-[10px] tabular-nums ${
+                      on ? "text-accent-fg/80" : "text-text-muted"
+                    }`}
+                  >
+                    {o.n}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {activeFilterChips.length > 0 ? (
         <div
@@ -3078,6 +3263,8 @@ const SignalsPage = () => {
           isSubscriber={isSubscriber}
           onSubscribe={goPricing}
           hiddenCount={hiddenCount}
+          journalMode={showWatchlistOnly}
+          onMarkTaken={markTaken}
           // A free account only ever sees finished calls, so the live chart is
           // the wrong landing tab for every one of them.
           onRowClick={(sig) => openSignal(sig, isSubscriber ? "chart" : "trade")}

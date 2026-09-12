@@ -38,11 +38,21 @@ class WatchlistItem(BaseModel):
     # Volume Rank - ADDED
     volume_rank_num: Optional[int] = None
     volume_rank_den: Optional[int] = None
+    # Did you actually take this call? None = not answered yet, and that is a
+    # state of its own — 741 rows predate this field and none of them means
+    # "skipped". Only the two answers a person can give are stored.
+    taken: Optional[str] = None
+    taken_at: Optional[datetime] = None
 
 
 class WatchlistResponse(BaseModel):
     items: List[WatchlistItem]
     total: int
+
+
+class WatchlistTaken(BaseModel):
+    # None clears the answer back to "not marked" — the row stays watched.
+    taken: Optional[str] = None
 
 
 # ============ Endpoints ============
@@ -60,6 +70,8 @@ def get_watchlist(
                 w.id,
                 w.signal_id,
                 w.created_at,
+                w.taken,
+                w.taken_at,
                 s.pair,
                 s.entry,
                 s.status,
@@ -81,23 +93,28 @@ def get_watchlist(
     )
     
     items = []
+    # By name, not by position: adding two columns to the SELECT above shifted
+    # every index after created_at, which is a silent way to serve entry prices
+    # as risk levels.
     for row in result.fetchall():
         items.append(WatchlistItem(
-            id=row[0],
-            signal_id=row[1],
-            created_at=row[2],
-            pair=row[3],
-            entry=row[4],
-            status=row[5],
-            risk_level=row[6],
-            target1=row[7],
-            target2=row[8],
-            target3=row[9],
-            target4=row[10],
-            stop1=row[11],
-            stop2=row[12],
-            volume_rank_num=row[13],
-            volume_rank_den=row[14]
+            id=row.id,
+            signal_id=row.signal_id,
+            created_at=row.created_at,
+            pair=row.pair,
+            entry=row.entry,
+            status=row.status,
+            risk_level=row.risk_level,
+            target1=row.target1,
+            target2=row.target2,
+            target3=row.target3,
+            target4=row.target4,
+            stop1=row.stop1,
+            stop2=row.stop2,
+            volume_rank_num=row.volume_rank_num,
+            volume_rank_den=row.volume_rank_den,
+            taken=row.taken,
+            taken_at=row.taken_at,
         ))
     
     return WatchlistResponse(items=items, total=len(items))
@@ -175,6 +192,49 @@ def remove_from_watchlist(
         )
     
     return {"message": "Signal dihapus dari watchlist", "signal_id": signal_id}
+
+
+@router.patch("/{signal_id}/taken")
+def set_taken(
+    signal_id: str,
+    data: WatchlistTaken,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Mark whether you actually entered this call.
+
+    'taken' / 'skipped' / null. Null is not a third opinion — it is the absence
+    of one, and it is what every row created before this field looks like.
+
+    Marking never removes the row: the journal is the point, so a call you
+    skipped stays on the list precisely so it can be counted against the ones
+    you took.
+    """
+    value = (data.taken or "").strip().lower() or None
+    if value not in (None, "taken", "skipped"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="taken must be 'taken', 'skipped', or null",
+        )
+
+    result = db.execute(
+        text("""
+            UPDATE watchlist
+               SET taken = :taken,
+                   taken_at = CASE WHEN :taken IS NULL THEN NULL ELSE NOW() END
+             WHERE user_id = :user_id AND signal_id = :signal_id
+        """),
+        {"taken": value, "user_id": current_user.id, "signal_id": signal_id},
+    )
+    db.commit()
+
+    if result.rowcount == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Signal is not in your watchlist",
+        )
+
+    return {"signal_id": signal_id, "taken": value}
 
 
 @router.get("/check/{signal_id}")
