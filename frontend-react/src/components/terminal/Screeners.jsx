@@ -33,6 +33,8 @@ import {
   useChartHeight,
   pctBound,
   clampTo,
+  CoinBubble,
+  labelCells,
 } from "./vizShared";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
@@ -140,13 +142,13 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
   const os = rs.filter((r) => rsiOf(r, tf) <= 30).length;
   const h = useChartHeight("hero");
 
-  // 393 tickers were drawn on this strip, every one labelled, in data order.
-  // The result was a band of overstruck letters in which no single ticker could
-  // be read — the chart carried 393 names and communicated none. Label only
-  // where a name fits, ranked by distance from 50: this tab exists to find the
-  // stretched and the beaten-down, so the extremes keep their names and the
-  // neutral middle (which the RSI bands already describe) gives up its own.
-  // Everything is still a dot, still hoverable, still clickable.
+  // 393 tickers were drawn on this strip, every one labelled, in data order —
+  // a band of overstruck letters in which no single ticker could be read. Now a
+  // point that has room around it becomes a bubble carrying the coin's own mark
+  // and ticker, and the rest stay dots. Ranked by distance from 50, because
+  // this tab exists to find the stretched and the beaten-down; the neutral
+  // middle is what the RSI bands already describe. Every point stays clickable
+  // and keeps its tooltip either way.
   const labelled = useMemo(
     () =>
       pickLabels(
@@ -156,9 +158,9 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
           y: (100 - d.y) * 10,
           priority: Math.abs(d.y - 50),
         })),
-        { cellW: 27, cellH: 30, max: 70 }
+        { ...labelCells(h), max: 44 }
       ),
-    [data]
+    [data, h]
   );
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
@@ -168,32 +170,16 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
     if (cx == null || cy == null) return null;
     return (
       <g style={{ cursor: "pointer" }} onClick={() => openPair(payload.pair)}>
-        <circle
+        <CoinBubble
           cx={cx}
           cy={cy}
-          r={6.5}
+          r={7}
+          pair={payload.pair}
           fill={payload.fill}
-          fillOpacity={0.95}
-          stroke={payload.sc || "rgba(0,0,0,0.28)"}
-          strokeWidth={payload.sc ? 1.8 : 0.7}
+          ring={payload.sc}
+          named={labelled.has(payload.pair)}
+          title={`${sym(payload.pair)} · RSI ${Math.round(payload.rsi)}`}
         />
-        {labelled.has(payload.pair) && (
-          <text
-            x={cx}
-            y={cy - 10}
-            textAnchor="middle"
-            fontFamily="ui-monospace, monospace"
-            fontSize={10}
-            fontWeight={600}
-            fill="rgb(var(--fg) / 0.82)"
-            stroke="rgb(var(--surface-raised))"
-            strokeWidth={2.8}
-            paintOrder="stroke"
-            pointerEvents="none"
-          >
-            {sym(payload.pair)}
-          </text>
-        )}
       </g>
     );
   };
@@ -716,9 +702,9 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
           priority:
             (Math.sign(r.x) !== Math.sign(r.y) ? 1e9 : 0) + Math.abs(r.y),
         })),
-        { cellW: 46, cellH: 40, max: 26 }
+        { ...labelCells(flowH), max: 26 }
       ),
-    [plot, dom]
+    [plot, dom, flowH]
   );
 
   const distrib = rowsD
@@ -751,34 +737,17 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
     if (cx == null || cy == null) return null;
     const c = payload.y >= 0 ? "rgb(var(--pos))" : "rgb(var(--neg))";
     return (
-      <g style={{ cursor: "pointer" }} onClick={() => openPair(payload.pair)}>
-        <circle
-          cx={cx}
-          cy={cy}
-          r={5}
-          fill={c}
-          fillOpacity={0.8}
-          stroke={payload.sc || "rgb(var(--scrim) / 0.35)"}
-          strokeWidth={payload.sc ? 1.6 : 0.5}
-        />
-        {flowLabels.has(payload.pair) && (
-          <text
-            x={cx}
-            y={cy - 10}
-            textAnchor="middle"
-            fontFamily="monospace"
-            fontSize={10}
-            fontWeight={600}
-            fill="rgb(var(--ink) / 0.72)"
-            stroke="rgb(var(--surface-raised))"
-            strokeWidth={2.6}
-            paintOrder="stroke"
-            pointerEvents="none"
-          >
-            {sym(payload.pair)}
-          </text>
-        )}
-      </g>
+      <CoinBubble
+        cx={cx}
+        cy={cy}
+        r={7}
+        pair={payload.pair}
+        fill={c}
+        ring={payload.sc}
+        named={flowLabels.has(payload.pair)}
+        onClick={() => openPair(payload.pair)}
+        title={`${sym(payload.pair)} · CVD ${fmtUsd(payload.y)}`}
+      />
     );
   };
 

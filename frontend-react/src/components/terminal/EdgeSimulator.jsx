@@ -39,6 +39,7 @@ import {
   authHeaders,
   logTicks,
   pickLabels,
+  labelCells,
   useChartHeight,
 } from "./vizShared";
 
@@ -238,9 +239,10 @@ export function EdgeTab() {
         y: ((yHi - p.y) / (yHi - yLo || 1)) * 1000,
         priority: Math.abs(p.y - base) * Math.log10(Math.max(p.d.count, 1) + 1),
       })),
-      { cellW: 104, cellH: 44, max: 16 }
+      // A pattern name is far wider than a ticker, so it claims more room.
+      { ...labelCells(edgeH, { w: 118, h: 46 }), max: 16 }
     );
-  }, [pts, baseline]);
+  }, [pts, baseline, edgeH]);
 
   const Dot = (props) => {
     const { cx, cy, payload } = props;

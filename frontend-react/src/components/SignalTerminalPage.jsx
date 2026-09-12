@@ -26,6 +26,8 @@ import {
   logTicks,
   pickLabels,
   useChartHeight,
+  CoinBubble,
+  labelCells,
 } from "./terminal/vizShared";
 import { useSignalStatus, STATUS_META, timeAgo } from "../context/SignalStatusContext";
 import {
@@ -972,7 +974,7 @@ function MarketScatter({
             y: normY(p.yv),
             priority: p.d.market_cap || 0,
           })),
-          { cellW: 62, cellH: 46, max: labelTop }
+          { ...labelCells(h), max: labelTop }
         )
       : new Set();
 
@@ -996,34 +998,18 @@ function MarketScatter({
     const { cx, cy, payload } = props;
     if (cx == null || cy == null) return null;
     return (
-      <g style={{ cursor: "pointer" }} onClick={() => onPick(payload.d)}>
-        <circle
-          cx={cx}
-          cy={cy}
-          r={payload.r}
-          fill={payload.fill}
-          fillOpacity={0.88}
-          stroke={payload.sc || "rgba(0,0,0,0.35)"}
-          strokeWidth={payload.sc ? 2 : 0.8}
-        />
-        {payload.lab && (
-          <text
-            x={cx}
-            y={cy - payload.r - 3}
-            textAnchor="middle"
-            fontFamily="monospace"
-            fontSize={11}
-            fontWeight="700"
-            fill="#fff"
-            stroke="rgb(var(--scrim) / 0.9)"
-            strokeWidth={2.6}
-            paintOrder="stroke"
-            pointerEvents="none"
-          >
-            {payload.lab}
-          </text>
-        )}
-      </g>
+      <CoinBubble
+        cx={cx}
+        cy={cy}
+        r={payload.r}
+        pair={payload.d.pair}
+        fill={payload.fill}
+        ring={payload.sc}
+        named={!!payload.lab}
+        minR={17}
+        onClick={() => onPick(payload.d)}
+        title={payload.d.sym}
+      />
     );
   };
   const fmtTick = (m) => (v) => {

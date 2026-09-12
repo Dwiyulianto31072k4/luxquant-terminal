@@ -81,6 +81,10 @@ import {
   statusColorOf,
   fmtAxis,
   SectorGlyph,
+  CoinBubble,
+  PairBubble,
+  promote,
+  useChartHeight,
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { LiquidationsTab } from "./LiquidationsTab";
@@ -121,40 +125,24 @@ function AnomDot({ cx, cy, payload, statusMap, onPair, showLabel }) {
   const sc = statusColorOf(statusMap, payload.pair);
   const hot = !!payload.hot;
   const dec = !!payload.dec;
-  const r = hot ? 7 : dec ? 5.5 : 3.5;
   const fill = hot ? GOLD : dec ? CYAN : GRAYBAR;
-  const sym = (payload.pair || "").replace(/USDT$/i, "");
-  // "all" still means all; the default view labels only the ranked extremes.
-  const labelOn =
-    showLabel === "all"
-      ? true
-      : showLabel && (hot || dec) && payload.named !== false;
+  // "all" still means all; the default view names only the ranked extremes.
+  const named =
+    showLabel === "all" ? true : !!showLabel && (hot || dec) && payload.named !== false;
   return (
-    <g style={{ cursor: "pointer" }} onClick={() => payload.pair && onPair?.(payload.pair)}>
-      {hot && <circle cx={cx} cy={cy} r={r + 5} fill={GOLD} fillOpacity={0.12} />}
-      <circle
+    <g>
+      {hot && <circle cx={cx} cy={cy} r={named ? 22 : 12} fill={GOLD} fillOpacity={0.12} />}
+      <CoinBubble
         cx={cx}
         cy={cy}
-        r={r}
+        r={hot ? 8 : dec ? 6.5 : 4.5}
+        pair={payload.pair}
         fill={fill}
-        fillOpacity={hot ? 0.95 : dec ? 0.85 : 0.55}
-        stroke={sc || (hot ? "rgba(240,216,144,0.7)" : "transparent")}
-        strokeWidth={sc ? 2 : hot ? 1 : 0}
+        ring={sc || (hot ? "rgba(240,216,144,0.7)" : undefined)}
+        named={named}
+        onClick={() => payload.pair && onPair?.(payload.pair)}
+        title={payload.pair}
       />
-      {labelOn && sym && (
-        <text
-          x={cx + r + 4}
-          y={cy + 3.5}
-          fill={hot ? "rgb(var(--fg))" : dec ? CYAN : "rgb(var(--fg-muted))"}
-          fillOpacity={hot || dec ? 0.92 : 0.7}
-          fontSize={10}
-          fontFamily="JetBrains Mono, ui-monospace, monospace"
-          fontWeight={hot ? 600 : 500}
-          style={{ pointerEvents: "none", userSelect: "none" }}
-        >
-          {sym}
-        </text>
-      )}
     </g>
   );
 }
@@ -901,6 +889,23 @@ export default function SignalsAnalytics() {
   const zOpp = useZoom(-60, 60, 0, 120);
   const zBeta = useZoom(-0.5, 2.5, -60, 60);
   const zPeak = useZoom(-20, 150, -60, 100);
+  // Which points on each of these three carry a coin's mark and ticker. The
+  // ranking is each chart's own question: how much room is left to the target,
+  // how far past the call the peak went, how far a coin has run for its beta.
+  const stdH = useChartHeight("std");
+  const heroH = useChartHeight("hero");
+  const oppNamed = useMemo(
+    () => promote(agg.scatterOpp, [-60, 60], [0, 120], stdH, 18, (p) => p.y),
+    [agg.scatterOpp, stdH]
+  );
+  const peakNamed = useMemo(
+    () => promote(agg.peakPts, [-20, 150], [-60, 100], heroH, 20, (p) => p.x),
+    [agg.peakPts, heroH]
+  );
+  const betaNamed = useMemo(
+    () => promote(agg.scatterBeta, [-0.5, 2.5], [-60, 60], stdH, 18, (p) => Math.abs(p.y)),
+    [agg.scatterBeta, stdH]
+  );
 
   const derivProps = { view, deriv, pairFc, openPair, openSignalRow, liq };
 
@@ -1996,27 +2001,16 @@ export default function SignalsAnalytics() {
                             cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
                           />
                           <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
-                          <Scatter isAnimationActive={false}
-                            data={agg.scatterOpp}
-                            fillOpacity={0.8}
-                            onClick={(p) => {
-                              const d = p?.payload || p;
-                              if (d?.pair) openPair(d.pair);
-                            }}
-                          >
-                            {agg.scatterOpp.map((p, i) => {
-                              const sc = statusColorOf(statusMap, p.pair);
-                              return (
-                                <Cell
-                                  key={i}
-                                  fill={RISK_COLORS[p.risk] || GRAYBAR}
-                                  stroke={sc || undefined}
-                                  strokeWidth={sc ? 2 : 0}
-                                  cursor="pointer"
-                                />
-                              );
-                            })}
-                          </Scatter>
+                          <Scatter
+                            isAnimationActive={false}
+                            data={agg.scatterOpp.map((p) => ({
+                              ...p,
+                              fill: RISK_COLORS[p.risk] || GRAYBAR,
+                              sc: statusColorOf(statusMap, p.pair),
+                              named: oppNamed.has(p.pair),
+                            }))}
+                            shape={<PairBubble onPair={openPair} />}
+                          />
                         </ScatterChart>
                       </ResponsiveContainer>
                     </div>
@@ -2071,27 +2065,16 @@ export default function SignalsAnalytics() {
                           strokeDasharray="4 4"
                         />
                         <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
-                        <Scatter isAnimationActive={false}
-                          data={agg.peakPts}
-                          fillOpacity={0.8}
-                          onClick={(p) => {
-                            const d = p?.payload || p;
-                            if (d?.pair) openPair(d.pair);
-                          }}
-                        >
-                          {agg.peakPts.map((p, i) => {
-                            const sc = statusColorOf(statusMap, p.pair);
-                            return (
-                              <Cell
-                                key={i}
-                                fill={p.win ? GOLD : p.y >= 0 ? POS : NEG}
-                                stroke={sc || undefined}
-                                strokeWidth={sc ? 2 : 0}
-                                cursor="pointer"
-                              />
-                            );
-                          })}
-                        </Scatter>
+                        <Scatter
+                          isAnimationActive={false}
+                          data={agg.peakPts.map((p) => ({
+                            ...p,
+                            fill: p.win ? GOLD : p.y >= 0 ? POS : NEG,
+                            sc: statusColorOf(statusMap, p.pair),
+                            named: peakNamed.has(p.pair),
+                          }))}
+                          shape={<PairBubble onPair={openPair} />}
+                        />
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>
@@ -2288,27 +2271,16 @@ export default function SignalsAnalytics() {
                             stroke="rgb(var(--ink) / 0.15)"
                             strokeDasharray="3 3"
                           />
-                          <Scatter isAnimationActive={false}
-                            data={agg.scatterBeta}
-                            fillOpacity={0.8}
-                            onClick={(p) => {
-                              const d = p?.payload || p;
-                              if (d?.pair) openPair(d.pair);
-                            }}
-                          >
-                            {agg.scatterBeta.map((p, i) => {
-                              const sc = statusColorOf(statusMap, p.pair);
-                              return (
-                                <Cell
-                                  key={i}
-                                  fill={p.dec ? CYAN : GRAYBAR}
-                                  stroke={sc || undefined}
-                                  strokeWidth={sc ? 2 : 0}
-                                  cursor="pointer"
-                                />
-                              );
-                            })}
-                          </Scatter>
+                          <Scatter
+                            isAnimationActive={false}
+                            data={agg.scatterBeta.map((p) => ({
+                              ...p,
+                              fill: p.dec ? CYAN : GRAYBAR,
+                              sc: statusColorOf(statusMap, p.pair),
+                              named: betaNamed.has(p.pair),
+                            }))}
+                            shape={<PairBubble onPair={openPair} />}
+                          />
                         </ScatterChart>
                       </ResponsiveContainer>
                     </div>

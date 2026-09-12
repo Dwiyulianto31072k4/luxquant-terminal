@@ -49,6 +49,10 @@ import {
   fitBound,
   pctBound,
   clampTo,
+  CoinBubble,
+  PairBubble,
+  promote,
+  useChartHeight,
   SectionBand,
   Kpi,
   XCard,
@@ -135,6 +139,20 @@ export function OITab({ view, deriv, pairFc, openPair }) {
         })),
     [rows]
   );
+  const quadH = useChartHeight("hero");
+  // The corners are what this chart is about — price and OI both moving hard —
+  // so distance from the origin decides who gets a name.
+  const quadB = useMemo(() => {
+    const named = promote(quad, [-qx, qx], [-qy, qy], quadH, 24, (p) =>
+      Math.hypot(p.x / (qx || 1), p.y / (qy || 1))
+    );
+    return quad.map((p) => ({
+      ...p,
+      fill: p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE,
+      sc: statusColorOf(statusMap, p.pair),
+      named: named.has(p.pair),
+    }));
+  }, [quad, qx, qy, quadH, statusMap]);
   const oiTotal = rows.reduce((a, r) => a + (r.oi || 0), 0);
   const gain = [...rows]
     .filter((r) => r.oi_chg_1h != null)
@@ -245,35 +263,11 @@ export function OITab({ view, deriv, pairFc, openPair }) {
                     />
                     <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.15)" />
                     <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                    <Scatter isAnimationActive={false}
-                      data={quad}
-                      fillOpacity={0.85}
-                      onClick={(p) => {
-                        const d = p?.payload || p;
-                        if (d?.pair) openPair(d.pair);
-                      }}
-                    >
-                      {quad.map((p, i) => {
-                        const sc = statusColorOf(statusMap, p.pair);
-                        return (
-                          <Cell
-                            key={i}
-                            cursor="pointer"
-                            fill={
-                              p.x >= 0 && p.y >= 0
-                                ? POS
-                                : p.x < 0 && p.y >= 0
-                                  ? NEG
-                                  : p.x >= 0
-                                    ? CYAN
-                                    : ORANGE
-                            }
-                            stroke={sc || undefined}
-                            strokeWidth={sc ? 2 : 0}
-                          />
-                        );
-                      })}
-                    </Scatter>
+                    <Scatter
+                      isAnimationActive={false}
+                      data={quadB}
+                      shape={<PairBubble onPair={openPair} />}
+                    />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
@@ -365,6 +359,23 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
       pair: r.pair,
       smart: (r.lsr > 1.5 && r.top_lsr < 0.9) || (r.lsr < 0.8 && r.top_lsr > 1.3),
     }));
+  const divH = useChartHeight("std");
+  // Smart money fading retail is the read here, so those points get first claim
+  // on the space; after them, distance from the balanced (1, 1) corner.
+  const divB = useMemo(() => {
+    const named = promote(divPts, [0, divHi], [0, divHi], divH, 20, (p) =>
+      (p.smart ? 1e6 : 0) + Math.hypot(p.x - 1, p.y - 1)
+    );
+    return divPts.map((p) => ({
+      ...p,
+      fill: p.smart ? GOLD : GRAYBAR,
+      sc: statusColorOf(statusMap, p.pair),
+      named: named.has(p.pair),
+    }));
+    // divPts is rebuilt every render, so it cannot be a dependency without
+    // defeating the memo; rows is what actually changes underneath it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, divHi, divH, statusMap]);
   const takers = [...rows]
     .filter((r) => r.taker != null)
     .map((r) => ({ pair: r.pair, v: (r.taker - 1) * 100 }))
@@ -625,27 +636,11 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                   />
                   <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
                   <ReferenceLine y={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
-                  <Scatter isAnimationActive={false}
-                    data={divPts}
-                    fillOpacity={0.85}
-                    onClick={(p) => {
-                      const d = p?.payload || p;
-                      if (d?.pair) openPair(d.pair);
-                    }}
-                  >
-                    {divPts.map((p, i) => {
-                      const sc = statusColorOf(statusMap, p.pair);
-                      return (
-                        <Cell
-                          key={i}
-                          fill={p.smart ? GOLD : GRAYBAR}
-                          stroke={sc || undefined}
-                          strokeWidth={sc ? 2 : 0}
-                          cursor="pointer"
-                        />
-                      );
-                    })}
-                  </Scatter>
+                  <Scatter
+                    isAnimationActive={false}
+                    data={divB}
+                    shape={<PairBubble onPair={openPair} />}
+                  />
                 </ScatterChart>
               </ResponsiveContainer>
             </div>
@@ -767,6 +762,22 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
   const fundFc = withF
     .filter((r) => r.fc != null)
     .map((r) => ({ x: clampTo(r.fPct, fundXBound), y: r.fc, pair: r.pair, neg: r.fPct < 0 }));
+
+  const fundH = useChartHeight("hero");
+  // A call riding free funding, or fighting expensive funding, is the thing
+  // worth naming: rank by how far the call has travelled either way.
+  const fundB = useMemo(() => {
+    const named = promote(fundFc, [-fundXBound, fundXBound], [-30, 30], fundH, 22, (p) =>
+      Math.abs(p.y)
+    );
+    return fundFc.map((p) => ({
+      ...p,
+      fill: p.neg ? POS : GRAYBAR,
+      sc: statusColorOf(statusMap, p.pair),
+      named: named.has(p.pair),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, fundXBound, fundH, statusMap]);
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -945,27 +956,11 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
                 />
                 <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                 <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
-                <Scatter isAnimationActive={false}
-                  data={fundFc}
-                  fillOpacity={0.85}
-                  onClick={(p) => {
-                    const d = p?.payload || p;
-                    if (d?.pair) openPair(d.pair);
-                  }}
-                >
-                  {fundFc.map((p, i) => {
-                    const sc = statusColorOf(statusMap, p.pair);
-                    return (
-                      <Cell
-                        key={i}
-                        fill={p.neg ? POS : GRAYBAR}
-                        stroke={sc || undefined}
-                        strokeWidth={sc ? 2 : 0}
-                        cursor="pointer"
-                      />
-                    );
-                  })}
-                </Scatter>
+                <Scatter
+                  isAnimationActive={false}
+                  data={fundB}
+                  shape={<PairBubble onPair={openPair} />}
+                />
               </ScatterChart>
             </ResponsiveContainer>
           </div>
@@ -1399,6 +1394,19 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
       pair: r.pair,
     }));
 
+  const momH = useChartHeight("hero");
+  // The momentum score is this tab's whole subject, so it decides who is named.
+  const momB = useMemo(() => {
+    const named = promote(scatter, [-momX, momX], [-momY, momY], momH, 22, (p) => p.mom);
+    return scatter.map((p) => ({
+      ...p,
+      fill: p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR,
+      sc: statusColorOf(statusMap, p.pair),
+      named: named.has(p.pair),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, momX, momY, momH, statusMap]);
+
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
   return (
@@ -1483,27 +1491,11 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
                 />
                 <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.15)" />
                 <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                <Scatter isAnimationActive={false}
-                  data={scatter}
-                  fillOpacity={0.85}
-                  onClick={(p) => {
-                    const d = p?.payload || p;
-                    if (d?.pair) openPair(d.pair);
-                  }}
-                >
-                  {scatter.map((p, i) => {
-                    const sc = statusColorOf(statusMap, p.pair);
-                    return (
-                      <Cell
-                        key={i}
-                        cursor="pointer"
-                        fill={p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR}
-                        stroke={sc || undefined}
-                        strokeWidth={sc ? 2 : 0}
-                      />
-                    );
-                  })}
-                </Scatter>
+                <Scatter
+                  isAnimationActive={false}
+                  data={momB}
+                  shape={<PairBubble onPair={openPair} />}
+                />
               </ScatterChart>
             </ResponsiveContainer>
           </div>
@@ -1572,6 +1564,20 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
       side: r.squeeze_side,
       pair: r.pair,
     }));
+
+  const sqH = useChartHeight("hero");
+  // Size already encodes open interest here, so the biggest books — the ones a
+  // squeeze would actually move — are the ones that get named.
+  const sqB = useMemo(() => {
+    const named = promote(scatter, [0, 4], [-sqY, sqY], sqH, 20, (p) => p.z);
+    return scatter.map((p) => ({
+      ...p,
+      fill: p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR,
+      sc: statusColorOf(statusMap, p.pair),
+      named: named.has(p.pair),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, sqY, sqH, statusMap]);
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -1664,27 +1670,11 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
                 />
                 <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" />
                 <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                <Scatter isAnimationActive={false}
-                  data={scatter}
-                  fillOpacity={0.88}
-                  onClick={(p) => {
-                    const d = p?.payload || p;
-                    if (d?.pair) openPair(d.pair);
-                  }}
-                >
-                  {scatter.map((p, i) => {
-                    const sc = statusColorOf(statusMap, p.pair);
-                    return (
-                      <Cell
-                        key={i}
-                        cursor="pointer"
-                        fill={p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR}
-                        stroke={sc || "rgba(0,0,0,0.28)"}
-                        strokeWidth={sc ? 2 : 0.6}
-                      />
-                    );
-                  })}
-                </Scatter>
+                <Scatter
+                  isAnimationActive={false}
+                  data={sqB}
+                  shape={<PairBubble onPair={openPair} />}
+                />
               </ScatterChart>
             </ResponsiveContainer>
           </div>

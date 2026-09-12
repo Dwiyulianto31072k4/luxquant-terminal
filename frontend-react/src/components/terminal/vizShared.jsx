@@ -6,7 +6,7 @@ import { useState, useContext, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
-import CoinLogo from "../CoinLogo";
+import CoinLogo, { getLogoSources } from "../CoinLogo";
 import { SignalStatusContext, STATUS_META, timeAgo } from "../../context/SignalStatusContext";
 import { VIZ_GUIDES } from "./vizGuides";
 
@@ -287,35 +287,62 @@ export const logTicks = (lo, hi, max = 8) => {
 };
 
 /**
- * Choose which points may carry a text label, so labels never overlap.
+ * Choose which points may carry a label, so labels never overlap.
  *
  * The terminal's scatters were labelling every point: 393 tickers at 8.5px on
  * the RSI strip, drawn in data order, producing a band of overstruck letters
  * where no single ticker could be read. Labelling fewer points is not a loss of
  * information — an unreadable label carries none.
  *
- * Greedy, by priority: walk the points best-first and give each one a label only
- * if the cell it would occupy is still free. Ties go to whoever asked first, so
- * the ranking you pass in is the ranking you see.
+ * Greedy, by priority: walk the points best-first and keep one only if nothing
+ * already kept sits within `cellW` x `cellH` of it. That distance test is the
+ * whole algorithm, and it replaced a grid of buckets: on a grid two points a
+ * pixel apart land in different cells whenever a cell boundary runs between
+ * them, so the exact thing this exists to prevent happened on every boundary.
  *
- * @param items  [{ id, x, y, priority }] in pixel space
+ * Cost is O(n x kept) and `max` bounds `kept`, so the worst case is a few
+ * thousand comparisons — far less than drawing one more bubble would cost.
+ *
+ * @param items  [{ id, x, y, priority }] in a shared 2D space (see labelCells)
  * @returns Set of ids that may draw a label
  */
 export const pickLabels = (items, { cellW = 58, cellH = 18, max = 40 } = {}) => {
-  const taken = new Set();
-  const keep = new Set();
+  const kept = new Set();
+  const placed = [];
   const ranked = items
     .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
     .sort((p, q) => (q.priority ?? 0) - (p.priority ?? 0));
   for (const p of ranked) {
-    if (keep.size >= max) break;
-    const cell = `${Math.floor(p.x / cellW)}:${Math.floor(p.y / cellH)}`;
-    if (taken.has(cell)) continue;
-    taken.add(cell);
-    keep.add(p.id);
+    if (kept.size >= max) break;
+    let clear = true;
+    for (let i = 0; i < placed.length; i += 1) {
+      if (Math.abs(placed[i][0] - p.x) < cellW && Math.abs(placed[i][1] - p.y) < cellH) {
+        clear = false;
+        break;
+      }
+    }
+    if (!clear) continue;
+    placed.push([p.x, p.y]);
+    kept.add(p.id);
   }
-  return keep;
+  return kept;
 };
+
+/**
+ * Cell size for pickLabels, in the 1000x1000 normalised space its callers use.
+ *
+ * A named bubble occupies real pixels — about 54 wide (the ticker under it is
+ * wider than the disc) and 66 tall (disc + gap + ticker) — but the callers hand
+ * pickLabels normalised coordinates, and a plot is far wider than it is tall.
+ * Using one magic number for both axes packed bubbles vertically and spread
+ * them horizontally. Converting through the real plot box is the whole fix.
+ * Width is assumed rather than measured: being 20% out makes bubbles slightly
+ * sparser, which is recoverable, while measuring costs a layout pass per frame.
+ */
+export const labelCells = (plotH, { w = 54, h = 66, plotW = 1400 } = {}) => ({
+  cellW: (w / plotW) * 1000,
+  cellH: (h / Math.max(plotH, 200)) * 1000,
+});
 
 /**
  * Chart height that follows the viewport instead of a constant.
@@ -1158,6 +1185,175 @@ export function useZoom(x0, x1, y0, y1) {
 
 // coin pill: logo + pair. Hovering the NAME (not just the logo) shows signal
 // status + when it was called; the logo carries the status dot + click-modal.
+/**
+ * A scatter point that can carry its own identity.
+ *
+ * A 5px disc tells you a coin exists and nothing else: to find out WHICH coin,
+ * you have to hover it, and on a 400-point chart nobody hovers 400 times. So a
+ * point that has room around it is promoted to a bubble — the coin's own mark
+ * inside a ring of the series colour, its ticker underneath — and everything
+ * else stays a plain dot. Which points get promoted is pickLabels()' decision,
+ * so the promotion is deterministic and two bubbles never overlap.
+ *
+ * The colour encoding survives because the logo sits in a well, not over the
+ * fill: what you read as the point's colour is the annulus around the mark.
+ *
+ * An SVG <image> gets no error event to cascade on, so the URL is a single shot
+ * — CoinLogo's own first choice, which is the identity-verified local file for
+ * the 571 symbols that ship one. The ticker's initials are drawn UNDER the
+ * image, so a symbol whose logo 404s degrades to readable letters instead of a
+ * hole.
+ */
+export function CoinBubble({
+  cx,
+  cy,
+  r = 6,
+  pair,
+  fill,
+  ring,
+  named = false,
+  onClick,
+  title,
+  minR = 18,
+}) {
+  if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+  const raw = String(pair || "");
+  const sym = raw.replace(/(USDT|BUSD|USDC|USD)$/i, "") || raw;
+  const click = onClick ? { onClick, style: { cursor: "pointer" } } : {};
+
+  if (!named || !sym) {
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill={fill}
+        fillOpacity={0.82}
+        stroke={ring || "rgb(var(--scrim) / 0.3)"}
+        strokeWidth={ring ? 1.6 : 0.6}
+        {...click}
+      >
+        {title ? <title>{title}</title> : null}
+      </circle>
+    );
+  }
+
+  const R = Math.max(r, minR);
+  // 0.70 of the radius, compared side by side at 0.62 / 0.70 / 0.78: below it
+  // the mark is cramped, above it the coloured rim thins to an outline and the
+  // chart loses the variable it is encoding with colour.
+  const li = R * 0.7;
+  // Unique per drawn position: the same pair can hold two open calls, and two
+  // clip paths sharing an id would clip the second logo to the first's circle.
+  const cid = `lqb${sym}-${Math.round(cx)}-${Math.round(cy)}`;
+  return (
+    <g {...click}>
+      {title ? <title>{title}</title> : null}
+      <defs>
+        <clipPath id={cid}>
+          <circle cx={cx} cy={cy} r={li} />
+        </clipPath>
+      </defs>
+      {/* A halo in the page's own colour, so a named bubble lifts off the
+          cluster of plain dots behind it instead of merging into it. */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={R + 1.5}
+        fill="none"
+        stroke="rgb(var(--surface-raised))"
+        strokeWidth={3}
+      />
+      <circle cx={cx} cy={cy} r={R} fill={fill} fillOpacity={0.95} />
+      <circle cx={cx} cy={cy} r={li} fill="rgb(var(--surface-hover))" />
+      <text
+        x={cx}
+        y={cy + li * 0.34}
+        textAnchor="middle"
+        fontFamily="JetBrains Mono, ui-monospace, monospace"
+        fontSize={li * 0.82}
+        fontWeight={700}
+        fill="rgb(var(--fg) / 0.55)"
+        pointerEvents="none"
+      >
+        {sym.slice(0, 2)}
+      </text>
+      <image
+        href={getLogoSources(sym)[0]}
+        x={cx - li}
+        y={cy - li}
+        width={li * 2}
+        height={li * 2}
+        preserveAspectRatio="xMidYMid slice"
+        clipPath={`url(#${cid})`}
+        pointerEvents="none"
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={R}
+        fill="none"
+        stroke={ring || "rgb(var(--ink) / 0.3)"}
+        strokeWidth={ring ? 2.4 : 1.2}
+      />
+      <text
+        x={cx}
+        y={cy + R + 12}
+        textAnchor="middle"
+        fontFamily="JetBrains Mono, ui-monospace, monospace"
+        fontSize={11}
+        fontWeight={700}
+        fill="rgb(var(--fg) / 0.92)"
+        stroke="rgb(var(--surface-raised))"
+        strokeWidth={3.2}
+        paintOrder="stroke"
+        pointerEvents="none"
+      >
+        {sym}
+      </text>
+    </g>
+  );
+}
+
+/**
+ * Every coin scatter on the terminal draws the same thing: a coin, coloured by that
+ * chart's own rule, promoted to a bubble carrying its mark and ticker wherever
+ * there is room for one. `size` arrives from a ZAxis when the chart encodes a
+ * third variable (open interest, on the squeeze map); without one it is a flat
+ * disc big enough to hit with a finger.
+ */
+export const PairBubble = ({ cx, cy, payload, size, onPair, minR }) => (
+  <CoinBubble
+    cx={cx}
+    cy={cy}
+    r={size ? Math.max(5, Math.sqrt(size / Math.PI)) : 7}
+    pair={payload?.pair}
+    fill={payload?.fill}
+    ring={payload?.sc}
+    named={!!payload?.named}
+    minR={minR}
+    onClick={payload?.pair ? () => onPair?.(payload.pair) : undefined}
+    title={payload?.pair}
+  />
+);
+
+/**
+ * Which points earn a named bubble. Coordinates are normalised out of the axis
+ * domain into pickLabels' 1000x1000 space, so the spacing that decides this is
+ * the spacing the reader sees — not a distance in funding percent or L/S ratio,
+ * which are not comparable to each other and change scale per chart.
+ */
+export const promote = (pts, [x0, x1], [y0, y1], h, max, priority) =>
+  pickLabels(
+    pts.map((p) => ({
+      id: p.pair,
+      x: ((p.x - x0) / (x1 - x0 || 1)) * 1000,
+      y: ((y1 - p.y) / (y1 - y0 || 1)) * 1000,
+      priority: priority(p),
+    })),
+    { ...labelCells(h), max }
+  );
+
 export const CoinPill = ({ pair, onPair, className = "" }) => {
   const ctx = useContext(SignalStatusContext);
   const info = ctx?.map && pair ? ctx.map[pair.toUpperCase()] : null;
