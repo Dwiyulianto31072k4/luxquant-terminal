@@ -49,6 +49,8 @@ import {
   fitBound,
   pctBound,
   clampTo,
+  pctRange,
+  clampRange,
   CoinBubble,
   PairBubble,
   promote,
@@ -121,38 +123,46 @@ export function OITab({ view, deriv, pairFc, openPair }) {
   // inside ±13 and 96% of 1h OI moves inside ±5.5, so a fixed ±15 threw away
   // two thirds of the vertical before anyone touched the zoom. Floors keep a
   // quiet market from magnifying noise into a storm.
-  const qx = pctBound(rows.map((r) => r.price_chg_24h), 0.98, 8);
-  const qy = pctBound(rows.map((r) => r.oi_chg_1h), 0.98, 4);
-  const zQuad = useZoom(-qx, qx, -qy, qy);
+  // And fitted per SIDE, not mirrored: on a green day 24h change runs about
+  // -4%..+18%, so mirroring the larger half gave a third of the canvas to a
+  // region holding no coins at all. Zero stays inside — the quadrants are the
+  // whole point of this chart.
+  const qxR = pctRange(rows.map((r) => r.price_chg_24h), 0.98, 0, 8);
+  const qyR = pctRange(rows.map((r) => r.oi_chg_1h), 0.98, 0, 4);
+  const zQuad = useZoom(qxR[0], qxR[1], qyR[0], qyR[1]);
 
-  // clamp to the visible window so a freshly-listed pair with a huge OI jump
-  // can't blow the axis up to 500,000% (outliers pin to the edge, still shown)
-  const clampQ = (v, a, b) => Math.max(a, Math.min(b, v));
+  // Pin to the visible window so a freshly-listed pair with a huge OI jump
+  // can't blow the axis up to 500,000% (outliers sit on the edge, still shown).
   const quad = useMemo(
     () =>
       rows
         .filter((r) => r.oi_chg_1h != null && r.price_chg_24h != null)
         .map((r) => ({
-          x: clampQ(r.price_chg_24h, -20, 20),
-          y: clampQ(r.oi_chg_1h, -15, 15),
+          x: clampRange(r.price_chg_24h, qxR),
+          y: clampRange(r.oi_chg_1h, qyR),
           pair: r.pair,
         })),
+    // qxR/qyR are derived from rows on every render, so listing them would
+    // defeat the memo; rows is the thing that actually changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [rows]
   );
   const quadH = useChartHeight("hero");
   // The corners are what this chart is about — price and OI both moving hard —
   // so distance from the origin decides who gets a name.
   const quadB = useMemo(() => {
-    const named = promote(quad, [-qx, qx], [-qy, qy], quadH, 24, (p) =>
-      Math.hypot(p.x / (qx || 1), p.y / (qy || 1))
-    );
+    const xs = Math.max(Math.abs(qxR[0]), Math.abs(qxR[1])) || 1;
+    const ys = Math.max(Math.abs(qyR[0]), Math.abs(qyR[1])) || 1;
+    const named = promote(quad, qxR, qyR, quadH, 24, (p) => Math.hypot(p.x / xs, p.y / ys));
     return quad.map((p) => ({
       ...p,
       fill: p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE,
       sc: statusColorOf(statusMap, p.pair),
       named: named.has(p.pair),
     }));
-  }, [quad, qx, qy, quadH, statusMap]);
+    // qxR/qyR are rebuilt each render; rows is what changes underneath them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, quadH, statusMap]);
   const oiTotal = rows.reduce((a, r) => a + (r.oi || 0), 0);
   const gain = [...rows]
     .filter((r) => r.oi_chg_1h != null)
@@ -1357,17 +1367,19 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
   // -15..15 / -40..60 was a guess, and on a normal day it is far too wide:
   // relative strength sits inside ±4% and the whole field lands in the middle
   // ninth of the canvas. Fit to the data, clamp the tail to the rail.
-  const momX = pctBound(
+  const momXR = pctRange(
     rows.filter((r) => r.rs_btc != null).map((r) => r.rs_btc),
     0.97,
+    0,
     3
   );
-  const momY = pctBound(
+  const momYR = pctRange(
     rows.filter((r) => r.vol_chg_1h != null).map((r) => r.vol_chg_1h),
     0.95,
+    0,
     10
   );
-  const zM = useZoom(-momX, momX, -momY, momY);
+  const zM = useZoom(momXR[0], momXR[1], momYR[0], momYR[1]);
 
   const scored = rows.filter((r) => r.momentum != null);
   const accelerating = scored.filter((r) => r.momentum >= 65).length;
@@ -1388,8 +1400,8 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
   const scatter = rows
     .filter((r) => r.rs_btc != null && r.vol_chg_1h != null)
     .map((r) => ({
-      x: clampTo(r.rs_btc, momX),
-      y: clampTo(r.vol_chg_1h, momY),
+      x: clampRange(r.rs_btc, momXR),
+      y: clampRange(r.vol_chg_1h, momYR),
       mom: r.momentum ?? 0,
       pair: r.pair,
     }));
@@ -1397,7 +1409,7 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
   const momH = useChartHeight("hero");
   // The momentum score is this tab's whole subject, so it decides who is named.
   const momB = useMemo(() => {
-    const named = promote(scatter, [-momX, momX], [-momY, momY], momH, 22, (p) => p.mom);
+    const named = promote(scatter, momXR, momYR, momH, 22, (p) => p.mom);
     return scatter.map((p) => ({
       ...p,
       fill: p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR,
@@ -1405,7 +1417,7 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
       named: named.has(p.pair),
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, momX, momY, momH, statusMap]);
+  }, [rows, momH, statusMap]);
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 

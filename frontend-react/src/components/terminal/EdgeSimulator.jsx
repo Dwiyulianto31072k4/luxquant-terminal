@@ -41,6 +41,7 @@ import {
   pickLabels,
   labelCells,
   useChartHeight,
+  ZoomOverlay,
 } from "./vizShared";
 
 const nice = (tag) => (tag || "").replaceAll("_", " ").toLowerCase();
@@ -451,7 +452,7 @@ export function EdgeTab() {
             </div>
             <div
               className="p-3"
-              style={{ height: edgeH, touchAction: "none", cursor: "grab" }}
+              style={{ height: edgeH, touchAction: "pan-y", cursor: "grab" }}
               ref={zEdge.ref}
               onPointerDown={zEdge.onPointerDown}
               onPointerMove={zEdge.onPointerMove}
@@ -459,7 +460,7 @@ export function EdgeTab() {
               onPointerLeave={zEdge.onPointerUp}
               onClickCapture={zEdge.onClickCapture}
               onDoubleClick={zEdge.reset}
-              title="drag to pan · wheel to zoom · double-click to reset"
+              title="drag to pan · hold the zoom key and scroll · double-click to reset"
             >
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 16, right: 24, left: 10, bottom: 28 }}>
@@ -527,6 +528,7 @@ export function EdgeTab() {
                 </ScatterChart>
               </ResponsiveContainer>
             </div>
+            <ZoomOverlay zoom={zEdge} />
           </div>
 
           {sel && (

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { pickLabels, logTicks, chartH, labelCells, promote } from "./vizShared";
+import {
+  pickLabels,
+  logTicks,
+  chartH,
+  labelCells,
+  promote,
+  pctRange,
+  clampRange,
+} from "./vizShared";
 
 // ── pickLabels ──────────────────────────────────────────────────────
 // The contract that matters: no two labels come within a label's own width and
@@ -168,5 +176,56 @@ describe("promote measures spacing where the reader sees it", () => {
   it("survives a collapsed domain without producing NaN positions", () => {
     const keep = promote([{ pair: "A", x: 1, y: 1 }], [1, 1], [1, 1], 600, 10, () => 1);
     expect(keep.has("A")).toBe(true);
+  });
+});
+
+// ── pctRange ────────────────────────────────────────────────────────
+// A mirrored axis is only right when the variable is genuinely two-sided. On an
+// up day 24h change runs roughly -4%..+18%, and mirroring the larger half hands
+// a third of the canvas to a region holding no coins.
+describe("pctRange fits each side of an axis on its own", () => {
+  const upDay = [-3, -1, 0, 2, 4, 6, 8, 11, 14, 18];
+
+  it("does not mirror the larger side", () => {
+    const [lo, hi] = pctRange(upDay, 1, 0);
+    expect(Math.abs(lo)).toBeLessThan(hi);
+  });
+
+  it("always keeps the anchor inside, so the reference line stays on screen", () => {
+    const [lo, hi] = pctRange([12, 14, 16, 18], 1, 0);
+    expect(lo).toBeLessThanOrEqual(0);
+    expect(hi).toBeGreaterThan(0);
+  });
+
+  it("honours a minimum span so a quiet market is not magnified into a storm", () => {
+    const [lo, hi] = pctRange([0.1, 0.2, 0.15], 1, 0, 8);
+    expect(hi - lo).toBeGreaterThanOrEqual(8);
+  });
+
+  it("ignores the tail beyond the percentile", () => {
+    const withOutlier = [...upDay, 900];
+    const [, hi] = pctRange(withOutlier, 0.9, 0);
+    expect(hi).toBeLessThan(100);
+  });
+
+  it("returns a usable range from no data at all", () => {
+    const [lo, hi] = pctRange([], 0.97, 0, 4);
+    expect(hi).toBeGreaterThan(lo);
+    expect(Number.isFinite(lo) && Number.isFinite(hi)).toBe(true);
+  });
+});
+
+describe("clampRange puts an outlier on the rail, never off the chart", () => {
+  it("pins past either edge", () => {
+    expect(clampRange(900, [-5, 20])).toBe(20);
+    expect(clampRange(-900, [-5, 20])).toBe(-5);
+  });
+
+  it("leaves a value inside the range alone", () => {
+    expect(clampRange(7, [-5, 20])).toBe(7);
+  });
+
+  it("treats a missing value as zero rather than NaN", () => {
+    expect(clampRange(undefined, [-5, 20])).toBe(0);
   });
 });

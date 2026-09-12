@@ -85,6 +85,8 @@ import {
   PairBubble,
   promote,
   useChartHeight,
+  pctRange,
+  clampRange,
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { LiquidationsTab } from "./LiquidationsTab";
@@ -876,13 +878,22 @@ export default function SignalsAnalytics() {
   // a dot. Percentile bounds, with outliers clamped to the rail so they are
   // still visible, keep both readable. Floors stop a quiet day from magnifying
   // noise into a storm.
-  const anomXB = pctBound(agg.anomPts.map((p) => p.x), 0.98, 12);
+  // Not ±anomXB. 24h change is not symmetric on any given day — on an up day
+  // it runs about -4%..+18% — and mirroring the larger side handed half the
+  // canvas to a region no coin was in. Zero stays inside, because the chart is
+  // read against it.
+  const anomXR = pctRange(
+    agg.anomPts.map((p) => p.x),
+    0.98,
+    0,
+    8
+  );
   const anomYB = pctBound(agg.anomPts.map((p) => p.y), 0.99, 20);
   // Y is zoomed and panned in log space, so the gesture stays linear and each
   // decade keeps the same height on screen.
   const zAnom = useZoom(
-    -anomXB,
-    anomXB,
+    anomXR[0],
+    anomXR[1],
     Math.log10(ANOM_FLOOR),
     Math.log10(Math.max(anomYB, ANOM_FLOOR * 10))
   );
@@ -1705,9 +1716,12 @@ export default function SignalsAnalytics() {
                             tickLine={false}
                             domain={zAnom.domY}
                             allowDataOverflow
-                            ticks={ANOM_Y_TICKS}
+                            ticks={ANOM_Y_TICKS.filter(
+                              (v) => v >= zAnom.domY[0] && v <= zAnom.domY[1]
+                            )}
                             tickFormatter={(v) => `${fmtAxis(10 ** v)}%`}
-                            width={54}
+                            width={56}
+                            minTickGap={26}
                           />
                           <Tooltip
                             content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />}
@@ -1733,7 +1747,10 @@ export default function SignalsAnalytics() {
                             />
                           )}
                           <Scatter
-                            data={anomChartPts}
+                            data={anomChartPts.map((p) => ({
+                              ...p,
+                              x: clampRange(p.x, anomXR),
+                            }))}
                             shape={(props) => (
                               <AnomDot
                                 {...props}

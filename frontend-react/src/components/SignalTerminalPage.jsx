@@ -28,6 +28,7 @@ import {
   useChartHeight,
   CoinBubble,
   labelCells,
+  ZoomOverlay,
 } from "./terminal/vizShared";
 import { useSignalStatus, STATUS_META, timeAgo } from "../context/SignalStatusContext";
 import {
@@ -1020,7 +1021,7 @@ function MarketScatter({
   return (
     <div
       className="relative"
-      style={{ height: h, touchAction: "none", cursor: "grab" }}
+      style={{ height: h, touchAction: "pan-y", cursor: "grab" }}
       ref={z.ref}
       onPointerDown={z.onPointerDown}
       onPointerMove={z.onPointerMove}
@@ -1028,7 +1029,7 @@ function MarketScatter({
       onPointerLeave={z.onPointerUp}
       onClickCapture={z.onClickCapture}
       onDoubleClick={z.reset}
-      title="drag to pan · wheel to zoom · double-click to reset"
+      title="drag to pan · hold the zoom key and scroll · double-click to reset"
     >
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 16, right: 24, left: 14, bottom: 30 }}>
@@ -1103,6 +1104,7 @@ function MarketScatter({
           </span>
         </>
       )}
+      <ZoomOverlay zoom={z} />
     </div>
   );
 }

@@ -35,6 +35,7 @@ import {
   clampTo,
   CoinBubble,
   labelCells,
+  ZoomOverlay,
 } from "./vizShared";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
@@ -233,7 +234,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
         <div
           className="p-3"
-          style={{ height: h, touchAction: "none", cursor: "grab" }}
+          style={{ height: h, touchAction: "pan-y", cursor: "grab" }}
           ref={z.ref}
           onPointerDown={z.onPointerDown}
           onPointerMove={z.onPointerMove}
@@ -305,6 +306,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
             </ScatterChart>
           </ResponsiveContainer>
         </div>
+        <ZoomOverlay zoom={z} />
       </div>
     </>
   );
@@ -783,7 +785,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
         <div
           className="p-3"
-          style={{ height: flowH, touchAction: "none", cursor: "grab" }}
+          style={{ height: flowH, touchAction: "pan-y", cursor: "grab" }}
           ref={z.ref}
           onPointerDown={z.onPointerDown}
           onPointerMove={z.onPointerMove}
@@ -826,6 +828,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
             </ScatterChart>
           </ResponsiveContainer>
         </div>
+        <ZoomOverlay zoom={z} />
       </div>
       <div className="grid md:grid-cols-2 gap-2">
         <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] p-3">

@@ -255,6 +255,39 @@ export const pctBound = (values, p = 0.98, floor = 0, pad = 1.08) => {
   return Math.max(floor, (q || a[a.length - 1]) * pad);
 };
 
+/**
+ * A two-sided percentile domain that need not be symmetric.
+ *
+ * pctBound returns one number and the callers mirror it, which is right when a
+ * variable is genuinely two-sided and wrong the rest of the time: on an up day
+ * 24h change runs about -4%..+18%, and a symmetric ±18% axis hands half the
+ * canvas to a region no coin is in. This fits each side separately.
+ *
+ * `anchor` is always inside the result — the charts are read against zero (up
+ * versus down, funded versus paying), and an axis that excludes it would move
+ * that reference line off screen.
+ */
+export const pctRange = (values, p = 0.97, anchor = 0, minSpan = 0, pad = 1.08) => {
+  const a = [];
+  for (const v of values) {
+    const n = Number(v);
+    if (Number.isFinite(n)) a.push(n);
+  }
+  if (!a.length) return [anchor - (minSpan || 1) / 2, anchor + (minSpan || 1) / 2];
+  a.sort((x, y) => x - y);
+  const at = (q) => a[Math.min(a.length - 1, Math.max(0, Math.round(q * (a.length - 1))))];
+  let lo = Math.min(at(1 - p), anchor);
+  let hi = Math.max(at(p), anchor);
+  const mid = (lo + hi) / 2;
+  const half = Math.max(((hi - lo) / 2) * pad, minSpan / 2, 1e-9);
+  lo = Math.min(mid - half, anchor);
+  hi = Math.max(mid + half, anchor);
+  return [lo, hi];
+};
+
+/** Pin a value into an asymmetric domain, so an outlier stacks on the rail. */
+export const clampRange = (v, [lo, hi]) => Math.max(lo, Math.min(hi, Number(v) || 0));
+
 /** Pin a value to the axis so an outlier lands on the rail instead of vanishing. */
 export const clampTo = (v, bound) => Math.max(-bound, Math.min(bound, Number(v) || 0));
 
@@ -796,6 +829,40 @@ export const LegendChips = ({ entries, activeKey, onPick }) => (
 );
 
 // Expandable metric/chart panel — desk card + fullscreen via portal (above app header)
+// The key that turns a scroll into a zoom. Both are accepted; this is only
+// what we tell people, and telling a Mac user "Ctrl" sends them to the wrong key.
+const ZOOM_KEY =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "")
+    ? "\u2318"
+    : "Ctrl";
+
+/**
+ * Reset + "hold a key to zoom" for the charts that wire useZoom themselves
+ * rather than going through XCard. Render it inside that chart's own
+ * `relative` box; it positions itself.
+ */
+export const ZoomOverlay = ({ zoom }) => (
+  <>
+    {zoom?.zoomed ? (
+      <button
+        type="button"
+        onClick={zoom.reset}
+        title="reset the view"
+        className="absolute right-3 top-3 z-10 inline-flex h-8 items-center gap-1 rounded-lg border border-accent/40 bg-accent/12 px-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent transition-colors hover:bg-accent/20"
+      >
+        ⟲ Reset
+      </button>
+    ) : null}
+    {zoom?.nudge ? (
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+        <span className="rounded-lg border border-ink/10 bg-surface-raised/95 px-3.5 py-2 font-mono text-[11px] text-text-primary shadow-lg backdrop-blur-sm">
+          {ZOOM_KEY} + scroll to zoom
+        </span>
+      </div>
+    ) : null}
+  </>
+);
+
 export function XCard({ title, desc, render, zoom, hint, guide, height, size = "std" }) {
   const { t } = useTranslation();
   // A caller may still pin a height; without one the card takes the viewport's.
@@ -853,27 +920,53 @@ export function XCard({ title, desc, render, zoom, hint, guide, height, size = "
       <IconBtn onClick={zoom.zoomIn} title="zoom in">
         +
       </IconBtn>
-      <IconBtn onClick={zoom.reset} title="reset">
-        ⟲
-      </IconBtn>
+      {/* A zoomed chart shows an axis nobody chose. Say so, and make the way
+          back the loudest control on the card rather than one grey glyph. */}
+      {zoom.zoomed ? (
+        <button
+          type="button"
+          onClick={zoom.reset}
+          title="reset the view"
+          className="inline-flex h-8 items-center gap-1 rounded-lg border border-accent/40 bg-accent/12 px-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent transition-colors hover:bg-accent/20"
+        >
+          ⟲ Reset
+        </button>
+      ) : (
+        <IconBtn onClick={zoom.reset} title="reset">
+          ⟲
+        </IconBtn>
+      )}
     </>
   );
   const body = (h) => (
     <>
-      <div
-        ref={zoom?.ref}
-        onPointerDown={zoom?.onPointerDown}
-        onPointerMove={zoom?.onPointerMove}
-        onPointerUp={zoom?.onPointerUp}
-        onPointerLeave={zoom?.onPointerUp}
-        onClickCapture={zoom?.onClickCapture}
-        style={zoom ? { touchAction: "none", cursor: "grab" } : undefined}
-      >
-        {render(h)}
+      <div className="relative">
+        <div
+          ref={zoom?.ref}
+          onPointerDown={zoom?.onPointerDown}
+          onPointerMove={zoom?.onPointerMove}
+          onPointerUp={zoom?.onPointerUp}
+          onPointerLeave={zoom?.onPointerUp}
+          onClickCapture={zoom?.onClickCapture}
+          style={zoom ? { touchAction: "pan-y", cursor: "grab" } : undefined}
+        >
+          {render(h)}
+        </div>
+        {/* Google Maps' answer to the same problem: when a scroll arrives that
+            we deliberately did NOT act on, say which key would have. It shows
+            for under two seconds and dismisses itself — an attention cue, not a
+            banner, and never a loop. */}
+        {zoom?.nudge ? (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+            <span className="rounded-lg border border-ink/10 bg-surface-raised/95 px-3.5 py-2 font-mono text-[11px] text-text-primary shadow-lg backdrop-blur-sm">
+              {ZOOM_KEY} + scroll to zoom
+            </span>
+          </div>
+        ) : null}
       </div>
       {hint && (
         <div className="mt-2 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/80">
-          {zoom ? "drag · scroll zoom · ⟲ reset · " : ""}
+          {zoom ? `drag to pan · ${ZOOM_KEY}+scroll to zoom · ⟲ reset · ` : ""}
           {hint}
         </div>
       )}
@@ -989,9 +1082,13 @@ export function useZoom(x0, x1, y0, y1) {
     setDom({ x0, x1, y0, y1 });
   }, [x0, x1, y0, y1]);
 
-  // soft-clamp the view to ~6× the base domain: roomy enough to pan out to
-  // outliers, but never a 700,000% void from infinite zoom-out (best practice).
-  const ZMAX = 6;
+  // Soft-clamp the view. This was 6x the base domain, and 6x is how the
+  // anomaly chart ended up showing -113%..113% for data that lives inside
+  // 0..15%: every point collapsed into a smudge and the axis described a range
+  // no coin was in. Charting libraries clamp zoom-out at "all the data" for
+  // this reason; 1.6x leaves margin to see a point sitting on the rail without
+  // ever letting the canvas become mostly empty.
+  const ZMAX = 1.6;
   const clampDom = (d) => {
     const b = baseRef.current;
     const bw = b.x1 - b.x0,
@@ -1091,26 +1188,81 @@ export function useZoom(x0, x1, y0, y1) {
     ];
   }, []);
 
-  // native, NON-passive wheel listener — React's onWheel is passive so
-  // preventDefault() would be ignored and the page would scroll instead.
+  // Cooperative gestures.
+  //
+  // This listener used to preventDefault() unconditionally, so scrolling the
+  // page with the cursor anywhere over a chart zoomed the chart instead of
+  // scrolling — on a page of 24 stacked charts. That is how a user arrives at
+  // an axis reading -113%..113% without ever meaning to zoom, and it is why
+  // these charts felt uncontrollable. Every embedded-chart library resolves it
+  // the same way (amCharts, AG Charts, Google Maps): the wheel belongs to the
+  // page, and zoom asks for a modifier.
+  //
+  // ctrlKey also arrives from a macOS trackpad pinch, so pinch-to-zoom works
+  // without being coded for. A plain wheel is left alone entirely — no
+  // preventDefault — and raises a short, self-dismissing hint instead.
+  const [nudge, setNudge] = useState(false);
+  const nudgeAt = useRef(0);
+  const nudgeOff = useRef(0);
+  const inside = useRef(false);
   const onWheelNative = useCallback(
     (e) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        // Say "hold a key" only at the END of a gesture that finished with the
+        // cursor still on this chart. Google Maps shows its message on any
+        // scroll, which is fine for one full-page map and wrong for a column of
+        // 24 charts: reading the page top to bottom would flash a hint over
+        // every one of them. Someone passing through has moved on by the time
+        // this fires; someone trying to zoom has not.
+        clearTimeout(nudgeAt.current);
+        nudgeAt.current = setTimeout(() => {
+          if (!inside.current) return;
+          setNudge(true);
+          clearTimeout(nudgeOff.current);
+          nudgeOff.current = setTimeout(() => setNudge(false), 1700);
+        }, 220);
+        return;
+      }
+      clearTimeout(nudgeAt.current);
       e.preventDefault();
       const [fx, fy] = fracOf(e.clientX, e.clientY);
       zoomAt(fx, fy, e.deltaY < 0 ? 1.18 : 1 / 1.18);
     },
     [fracOf, zoomAt]
   );
+  const onEnter = useCallback(() => {
+    inside.current = true;
+  }, []);
+  const onLeave = useCallback(() => {
+    inside.current = false;
+    clearTimeout(nudgeAt.current);
+  }, []);
+  useEffect(
+    () => () => {
+      clearTimeout(nudgeAt.current);
+      clearTimeout(nudgeOff.current);
+    },
+    []
+  );
 
   // callback ref — attaches/detaches the wheel listener as the chart body
   // element mounts (works for both the inline card and the fullscreen modal)
   const ref = useCallback(
     (node) => {
-      if (elRef.current) elRef.current.removeEventListener("wheel", onWheelNative);
+      const prev = elRef.current;
+      if (prev) {
+        prev.removeEventListener("wheel", onWheelNative);
+        prev.removeEventListener("pointerenter", onEnter);
+        prev.removeEventListener("pointerleave", onLeave);
+      }
       elRef.current = node;
-      if (node) node.addEventListener("wheel", onWheelNative, { passive: false });
+      if (node) {
+        node.addEventListener("wheel", onWheelNative, { passive: false });
+        node.addEventListener("pointerenter", onEnter);
+        node.addEventListener("pointerleave", onLeave);
+      }
     },
-    [onWheelNative]
+    [onWheelNative, onEnter, onLeave]
   );
 
   const onPointerDown = (e) => {
@@ -1169,6 +1321,16 @@ export function useZoom(x0, x1, y0, y1) {
     }
   };
 
+  // A chart that is zoomed has to say so and offer the way back. Someone who
+  // arrives at a zoomed view — from a gesture, or from a link — otherwise has
+  // no way to tell a strange axis from a broken one.
+  const span = Math.abs(x1 - x0) || 1;
+  const zoomed =
+    Math.abs(dom.x0 - x0) > span * 0.01 ||
+    Math.abs(dom.x1 - x1) > span * 0.01 ||
+    Math.abs(dom.y0 - y0) > (Math.abs(y1 - y0) || 1) * 0.01 ||
+    Math.abs(dom.y1 - y1) > (Math.abs(y1 - y0) || 1) * 0.01;
+
   return {
     ref,
     domX: [dom.x0, dom.x1],
@@ -1176,6 +1338,8 @@ export function useZoom(x0, x1, y0, y1) {
     zoomIn: () => zoomAt(0.5, 0.5, 1.4),
     zoomOut: () => zoomAt(0.5, 0.5, 1 / 1.4),
     reset,
+    zoomed,
+    nudge,
     onPointerDown,
     onPointerMove,
     onPointerUp,
