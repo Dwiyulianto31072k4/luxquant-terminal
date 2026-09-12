@@ -1,7 +1,9 @@
-// SignalsNarrativeBubbles — narratives as floating bubbles, Crypto Bubbles style.
+// BubbleField — floating bubbles, Crypto Bubbles style.
 //
-// Size is how many coins we called in that narrative; colour and label are how
-// it moved against the market. Tap one to see the calls behind it.
+// Generic on purpose: narratives size by coins called and colour by move against
+// the market, coins size by turnover and colour by 24h. Both want the same
+// physics, the same "stop when nobody is looking" rules and the same labelling,
+// so the caller supplies items and this owns the behaviour.
 //
 // The physics is hand-written rather than pulled from d3-force: forty circles
 // need repulsion, a weak pull to centre and a wall bounce, which is about thirty
@@ -16,7 +18,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const W = 620;
-const H = 340;
 
 /** Deterministic jitter, so a re-render does not reshuffle the whole field. */
 const seeded = (i) => {
@@ -24,32 +25,38 @@ const seeded = (i) => {
   return x - Math.floor(x);
 };
 
-export default function SignalsNarrativeBubbles({
-  narratives = [],
-  marketChange7d = null,
+/**
+ * @param items  [{ id, label, size, delta, raw }] — size is any positive number,
+ *               delta drives hue and the printed figure.
+ */
+export default function BubbleField({
+  items = [],
   activeIds = [],
   onOpen,
+  suffix = "pp",
+  deltaScale = 12,
+  height = 340,
 }) {
+  const H = height;
   const hostRef = useRef(null);
   const nodesRef = useRef([]);
   const rafRef = useRef(0);
   const [, force] = useState(0);
 
   const seeds = useMemo(() => {
-    const m = marketChange7d ?? 0;
-    const rows = narratives.filter((x) => x.mcap_change_7d != null);
-    const maxCoins = Math.max(...rows.map((x) => x.coins_called || 1), 1);
+    const rows = items.filter((x) => x.size > 0 && x.delta != null);
+    const maxSize = Math.max(...rows.map((x) => x.size), 1);
     return rows.map((x, i) => {
-      const rs = (x.mcap_change_7d ?? 0) - m;
-      // sqrt so AREA tracks the count — radius would exaggerate the big ones.
-      const r = 15 + Math.sqrt((x.coins_called || 1) / maxCoins) * 34;
+      const rs = x.delta;
+      // sqrt so AREA tracks the value — radius would exaggerate the big ones.
+      const r = 15 + Math.sqrt(x.size / maxSize) * 34;
       return {
-        id: x.category_id,
-        name: x.name,
-        short: x.name.length > 15 ? `${x.name.slice(0, 14).trim()}…` : x.name,
+        id: x.id,
+        name: x.label,
+        short: x.label.length > 15 ? `${x.label.slice(0, 14).trim()}…` : x.label,
         rs,
-        coins: x.coins_called || 0,
-        raw: x,
+        sub: x.sub,
+        raw: x.raw,
         r,
         x: 40 + seeded(i) * (W - 80),
         y: 40 + seeded(i + 99) * (H - 80),
@@ -57,7 +64,7 @@ export default function SignalsNarrativeBubbles({
         vy: (seeded(i + 13) - 0.5) * 0.07,
       };
     });
-  }, [narratives, marketChange7d]);
+  }, [items, H]);
 
   useEffect(() => {
     nodesRef.current = seeds.map((s) => ({ ...s }));
@@ -129,7 +136,7 @@ export default function SignalsNarrativeBubbles({
       cancelAnimationFrame(rafRef.current);
       io.disconnect();
     };
-  }, [seeds]);
+  }, [seeds, H]);
 
   const nodes = nodesRef.current;
   if (!nodes.length) return null;
@@ -138,13 +145,13 @@ export default function SignalsNarrativeBubbles({
   return (
     <div ref={hostRef} className="w-full">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full touch-manipulation" role="img"
-        aria-label="Narratives sized by coins called, coloured by how they moved against the market">
+        aria-label="Bubbles sized by value, coloured by change">
         {nodes.map((n) => {
           const pos = n.rs >= 0;
           const on = active.has(n.id);
           // Intensity carries magnitude, hue carries direction — so a small
           // mover and a big one are not the same green.
-          const strength = Math.min(1, Math.abs(n.rs) / 12);
+          const strength = Math.min(1, Math.abs(n.rs) / deltaScale);
           const fill = pos
             ? `rgb(var(--pos) / ${(0.34 + strength * 0.46).toFixed(2)})`
             : `rgb(var(--neg) / ${(0.32 + strength * 0.44).toFixed(2)})`;
@@ -187,11 +194,12 @@ export default function SignalsNarrativeBubbles({
                     }}
                   >
                     {n.rs >= 0 ? "+" : ""}
-                    {n.rs.toFixed(1)}pp
+                    {n.rs.toFixed(1)}
+                    {suffix}
                   </text>
                 </>
               ) : null}
-              <title>{`${n.name}\n${n.rs >= 0 ? "+" : ""}${n.rs.toFixed(1)}pp vs market · ${n.coins} coins called\nTap to see the calls`}</title>
+              <title>{`${n.name}\n${n.rs >= 0 ? "+" : ""}${n.rs.toFixed(1)}${suffix}${n.sub ? ` · ${n.sub}` : ""}`}</title>
             </g>
           );
         })}

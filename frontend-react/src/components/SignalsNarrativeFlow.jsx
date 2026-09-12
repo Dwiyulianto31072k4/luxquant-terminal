@@ -22,7 +22,7 @@ import { SegGroup } from "./ui/SegGroup";
 import { InfoTip } from "./GuideInfo";
 import SignalsNarrativeRotation from "./SignalsNarrativeRotation";
 import SignalsNarrativeBoard from "./SignalsNarrativeBoard";
-import SignalsNarrativeBubbles from "./SignalsNarrativeBubbles";
+import BubbleField from "./BubbleField";
 import NarrativeCallsModal from "./NarrativeCallsModal";
 import { useChartTokens } from "./charts/EChart";
 
@@ -162,6 +162,9 @@ export default function SignalsNarrativeFlow({
   // question from "narrow the desk to it" — so it opens, and filtering stays an
   // explicit action inside.
   const [drill, setDrill] = useState(null);
+  // Ten rows is the readable default; forty is a wall you scroll past to reach
+  // whatever is under this panel.
+  const [rowLimit, setRowLimit] = useState(10);
   const [open, setOpen] = useState(false);
   const [sort, setSort] = useState("coins");
   // Phone only: the two halves are a toggle, not a stack. Stacked, the flow
@@ -194,6 +197,20 @@ export default function SignalsNarrativeFlow({
   const activeSet = useMemo(() => new Set(activeIds || []), [activeIds]);
   // Where each narrative sits in the table right now. The rotation panel prints
   // it so a row there can be found here instead of looking like another list.
+  const bubbleItems = useMemo(() => {
+    const m = data?.market_change_7d ?? 0;
+    return narratives
+      .filter((x) => x.mcap_change_7d != null)
+      .map((x) => ({
+        id: x.category_id,
+        label: x.name,
+        size: x.coins_called || 1,
+        delta: (x.mcap_change_7d ?? 0) - m,
+        sub: `${x.coins_called} coins called`,
+        raw: x,
+      }));
+  }, [narratives, data?.market_change_7d]);
+
   const rankOf = useMemo(() => {
     const m = new Map();
     sorted.forEach((x, i) => m.set(x.category_id, i + 1));
@@ -394,10 +411,10 @@ export default function SignalsNarrativeFlow({
                       size = coins called · tap to open
                     </span>
                   </div>
-                  <SignalsNarrativeBubbles
-                    narratives={narratives}
-                    marketChange7d={data?.market_change_7d ?? null}
+                  <BubbleField
+                    items={bubbleItems}
                     activeIds={activeIds}
+                    suffix="pp"
                     onOpen={(n) =>
                       setDrill({
                         ...n,
@@ -422,7 +439,7 @@ export default function SignalsNarrativeFlow({
               <div className={`mt-3 min-w-0 ${view === "flow" ? "hidden lg:block" : ""}`}>
               {/* Mobile cards */}
               <div className="space-y-1 sm:hidden">
-                {sorted.map((x, i) => {
+                {sorted.slice(0, rowLimit).map((x, i) => {
                   const active = activeSet.has(x.category_id);
                   return (
                     <button
@@ -497,7 +514,7 @@ export default function SignalsNarrativeFlow({
                     </tr>
                   </thead>
                   <tbody>
-                    {sorted.map((x, i) => {
+                    {sorted.slice(0, rowLimit).map((x, i) => {
                       const active = activeSet.has(x.category_id);
                       return (
                         <tr
@@ -544,6 +561,24 @@ export default function SignalsNarrativeFlow({
                   </tbody>
                 </table>
               </div>
+
+              {sorted.length > rowLimit ? (
+                <button
+                  type="button"
+                  onClick={() => setRowLimit((n) => n + 20)}
+                  className="mt-2 w-full rounded-lg border border-ink/[0.1] py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-accent/40 hover:text-accent"
+                >
+                  Show {Math.min(20, sorted.length - rowLimit)} more · {sorted.length} total
+                </button>
+              ) : rowLimit > 10 ? (
+                <button
+                  type="button"
+                  onClick={() => setRowLimit(10)}
+                  className="mt-2 w-full rounded-lg border border-ink/[0.1] py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-accent/40 hover:text-accent"
+                >
+                  Show fewer
+                </button>
+              ) : null}
               </div>
             </>
           )}

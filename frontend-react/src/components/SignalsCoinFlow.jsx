@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
 import { SegGroup } from "./ui/SegGroup";
+import BubbleField from "./BubbleField";
 
 const COUNT_OPTS = [
   { key: "10", label: "10" },
@@ -121,6 +122,9 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
   const [count, setCount] = useState(10);
   const [scope, setScope] = useState("all"); // all | called | uncalled
   const [sort, setSort] = useState({ key: "intensity", dir: "desc" });
+  // Rows answer "rank them"; bubbles answer "where is the weight". Same data,
+  // two questions, so it is a mode rather than a second panel.
+  const [view, setView] = useState("rows");
 
   const signalBySymbol = useMemo(() => {
     const m = new Map();
@@ -194,6 +198,24 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
   }, [enriched, scope, sort]);
 
   const rows = sorted.slice(0, count);
+
+  // Size is turnover in DOLLARS, not the intensity ratio: intensity is already
+  // size-adjusted, so bubbling it would draw every coin nearly the same and
+  // throw away the one thing a bubble is good at.
+  const bubbleItems = useMemo(
+    () =>
+      rows
+        .filter((r) => (r.c.volume_24h ?? 0) > 0)
+        .map(({ c, called }) => ({
+          id: c.coin_id || c.symbol,
+          label: c.symbol,
+          size: c.volume_24h,
+          delta: c.price_change_24h ?? 0,
+          sub: called ? "LuxQuant called this" : undefined,
+          raw: c,
+        })),
+    [rows]
+  );
   const maxInt = Math.max(...rows.map((r) => r.c.flow_intensity || 0), 0.0001);
   // The strip always shows the busiest coins overall, whatever the table is
   // filtered to: it is the headline, not a second copy of the table.
@@ -302,6 +324,16 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
               onChange={(k) => setCount(Number(k))}
               options={COUNT_OPTS}
             />
+            <SegGroup
+              size="sm"
+              aria-label="Rows or bubbles"
+              value={view}
+              onChange={setView}
+              options={[
+                { key: "rows", label: "Rows" },
+                { key: "bubbles", label: "Bubbles" },
+              ]}
+            />
             <p className="w-full text-[11px] leading-snug text-text-muted sm:w-auto sm:flex-1">
               Intensity = 24h volume ÷ market cap. Called = LuxQuant has called the coin in the
               last 7 days.
@@ -315,6 +347,22 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
                 : "Every coin in this snapshot has a call in the last 7 days."}
             </p>
           ) : (
+            view === "bubbles" ? (
+            <>
+              <BubbleField
+                items={bubbleItems}
+                activeIds={rows.filter((r) => r.called).map((r) => r.c.coin_id || r.c.symbol)}
+                suffix="%"
+                deltaScale={8}
+                height={320}
+                onOpen={(c) => openCoin(c)}
+              />
+              <p className="mt-1 text-[11px] leading-snug text-text-muted">
+                Bigger means more dollars traded in 24h; green is up on the day, red is down. A gold
+                ring is a coin LuxQuant has called. Tap one to open it.
+              </p>
+            </>
+            ) : (
             <>
               {/* Mobile cards */}
               <div className="space-y-1 sm:hidden">
@@ -445,6 +493,7 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
                 </table>
               </div>
             </>
+            )
           )}
         </div>
       ) : null}
