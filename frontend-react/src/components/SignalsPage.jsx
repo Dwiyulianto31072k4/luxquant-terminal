@@ -581,8 +581,24 @@ const SignalsPage = () => {
   const [narrativeData, setNarrativeData] = useState(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [narrativeDays, setNarrativeDays] = useState(30);
-  // { category_id, name, pairs:Set } — the desk filtered to one narrative.
-  const [narrative, setNarrative] = useState(null);
+  // [{ category_id, name, pairs:Set }] — the desk filtered to one or more
+  // narratives. Multi-select behaves like the day strip: the picks are OR'd,
+  // so adding a second narrative widens the view rather than narrowing it.
+  const [narratives, setNarratives] = useState([]);
+  // One flat set, rebuilt only when the picks change — the filter chain runs
+  // per signal and must not walk every narrative for each row.
+  const narrativeActiveIds = useMemo(
+    () => narratives.map((n) => n.category_id),
+    [narratives]
+  );
+
+  const narrativePairSet = useMemo(() => {
+    if (!narratives.length) return null;
+    const all = new Set();
+    for (const n of narratives) for (const p of n.pairs) all.add(p);
+    return all;
+  }, [narratives]);
+
   const navigate = useNavigate();
   // Every blurred number is a button, and they all lead here.
   const goPricing = () => navigate("/pricing?src=signals_locked");
@@ -874,7 +890,7 @@ const SignalsPage = () => {
     setPage(1);
   }, [
     searchPair,
-    narrative,
+    narratives,
     statusFilter,
     riskFilter,
     streakFilter,
@@ -1103,8 +1119,8 @@ const SignalsPage = () => {
     if (searchPair) {
       f = f.filter((s) => pairMatchesQuery(s.pair, searchPair));
     }
-    if (narrative?.pairs?.size) {
-      f = f.filter((s) => narrative.pairs.has(s.pair));
+    if (narrativePairSet?.size) {
+      f = f.filter((s) => narrativePairSet.has(s.pair));
     }
     if (!showWatchlistOnly && selectedDates.length > 0) {
       f = f.filter(
@@ -1171,7 +1187,7 @@ const SignalsPage = () => {
   }, [
     allSignals,
     searchPair,
-    narrative,
+    narrativePairSet,
     selectedDates,
     statusFilter,
     riskFilter,
@@ -1311,7 +1327,7 @@ const SignalsPage = () => {
 
   const hasActiveFilters =
     !!mineExtra ||
-    !!narrative ||
+    narratives.length > 0 ||
     searchPair ||
     statusFilter !== "all" ||
     riskFilter !== "all" ||
@@ -1338,11 +1354,12 @@ const SignalsPage = () => {
     const out = [];
     const pretty = (v) =>
       String(v).replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-    if (narrative)
+    for (const n of narratives)
       out.push({
-        key: "narrative",
-        label: `Narrative: ${narrative.name}`,
-        clear: () => setNarrative(null),
+        key: `narrative:${n.category_id}`,
+        label: `Narrative: ${n.name}`,
+        clear: () =>
+          setNarratives((prev) => prev.filter((x) => x.category_id !== n.category_id)),
       });
     if (searchPair)
       out.push({
@@ -1408,7 +1425,7 @@ const SignalsPage = () => {
       });
     return out;
   }, [
-    narrative,
+    narratives,
     searchPair,
     showWatchlistOnly,
     statusFilter,
@@ -1424,7 +1441,7 @@ const SignalsPage = () => {
 
   const resetFilters = useCallback(() => {
     setSearchPair("");
-    setNarrative(null);
+    setNarratives([]);
     setStatusFilter("all");
     setRiskFilter("all");
     setStreakFilter("all");
@@ -1537,8 +1554,8 @@ const SignalsPage = () => {
     if (searchPair) {
       filtered = filtered.filter((s) => pairMatchesQuery(s.pair, searchPair));
     }
-    if (narrative?.pairs?.size) {
-      filtered = filtered.filter((s) => narrative.pairs.has(s.pair));
+    if (narrativePairSet?.size) {
+      filtered = filtered.filter((s) => narrativePairSet.has(s.pair));
     }
 
     // Filter tanggal hanya berlaku di mode non-watchlist (watchlist lintas-tanggal).
@@ -1665,7 +1682,7 @@ const SignalsPage = () => {
     allSignals,
     shariah,
     searchPair,
-    narrative,
+    narrativePairSet,
     statusFilter,
     riskFilter,
     streakFilter,
@@ -1983,22 +2000,28 @@ const SignalsPage = () => {
         loading={narrativeLoading}
         days={narrativeDays}
         onDaysChange={setNarrativeDays}
-        activeId={narrative?.category_id || null}
+        activeIds={narrativeActiveIds}
         onMore={() => navigate("/money-flow")}
         onPick={(n) => {
-          // Tapping the narrative you are already in clears it, so the row is
-          // its own off switch and never strands the desk on an empty filter.
-          if (narrative?.category_id === n.category_id) {
-            setNarrative(null);
-          } else {
-            setNarrative({
-              category_id: n.category_id,
-              name: n.name,
-              pairs: new Set(n.pairs || []),
-            });
-            // The narrative window is 30-90 days but the day tabs default to
-            // today, so filtering without widening the dates would usually
-            // land on an empty table and read as a broken filter.
+          setNarratives((prev) => {
+            // Tapping one already picked removes it, so the row is its own off
+            // switch and never strands the desk on an empty filter.
+            const on = prev.some((x) => x.category_id === n.category_id);
+            if (on) return prev.filter((x) => x.category_id !== n.category_id);
+            return [
+              ...prev,
+              {
+                category_id: n.category_id,
+                name: n.name,
+                pairs: new Set(n.pairs || []),
+              },
+            ];
+          });
+          // The narrative window is 30-90 days but the day tabs default to
+          // today, so filtering without widening the dates would usually land
+          // on an empty table and read as a broken filter. Only on the way IN:
+          // clearing the last pick should not also throw the day tabs back.
+          if (!narratives.some((x) => x.category_id === n.category_id)) {
             setSelectedDates([]);
           }
           setPage(1);

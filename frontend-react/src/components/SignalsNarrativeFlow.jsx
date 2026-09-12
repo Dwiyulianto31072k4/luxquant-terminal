@@ -122,7 +122,7 @@ export default function SignalsNarrativeFlow({
   days = 30,
   onDaysChange,
   onPick,
-  activeId = null,
+  activeIds = [],
   onMore,
 }) {
   const [open, setOpen] = useState(false);
@@ -149,9 +149,13 @@ export default function SignalsNarrativeFlow({
   const maxCoins = Math.max(...sorted.map((x) => x.coins_called || 0), 1);
   const lead = stripRows[0];
   const age = snapAge(data?.snapshot_at);
-  const activeName = activeId
-    ? narratives.find((x) => x.category_id === activeId)?.name || null
-    : null;
+  // A Set, not .includes on an array: this is asked once per chip and once per
+  // table row, on every render.
+  const activeSet = useMemo(() => new Set(activeIds || []), [activeIds]);
+  const activeNames = useMemo(
+    () => narratives.filter((x) => activeSet.has(x.category_id)).map((x) => x.name),
+    [narratives, activeSet]
+  );
 
   const sortOpts = SORT_OPTS;
   const windowOpts = WINDOW_OPTS.map((o) => ({
@@ -187,13 +191,18 @@ export default function SignalsNarrativeFlow({
                 narrative is on, it says so instead: a row that silently cut the
                 table below it was the whole complaint. */}
             <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] sm:block">
-              {activeName ? (
-                <span className="text-accent">Filtering · {activeName}</span>
+              {activeNames.length ? (
+                <span className="text-accent">
+                  Filtering ·{" "}
+                  {activeNames.length === 1
+                    ? activeNames[0]
+                    : `${activeNames.length} narratives`}
+                </span>
               ) : (
                 <span className="text-text-muted">
                   {lead ? `${narratives.length} called` : "loading"}
                   {age ? ` · ${age}` : ""}
-                  {lead ? " · tap to filter" : ""}
+                  {lead ? " · tap to filter, pick several" : ""}
                 </span>
               )}
             </span>
@@ -202,33 +211,45 @@ export default function SignalsNarrativeFlow({
 
         <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
           {stripRows.map((x) => {
-            const active = activeId && x.category_id === activeId;
+            const active = activeSet.has(x.category_id);
             return (
               <button
                 key={x.category_id}
                 type="button"
-                title={`${x.name} · ${x.coins_called} coins called`}
+                aria-pressed={active}
+                title={`${x.name} · ${x.coins_called} coins called${
+                  active ? " · picked" : ""
+                }`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onPick?.(x);
                 }}
+                /* Solid gold when picked, the same "on" the day strip uses.
+                   A tinted background was too close to the resting chip to
+                   read as selected once several were on at once. */
                 className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-2 transition-colors ${
                   active
-                    ? "border-accent/50 bg-accent/[0.08]"
+                    ? "border-accent bg-accent shadow-sm"
                     : "border-ink/[0.1] hover:bg-ink/[0.04]"
                 }`}
               >
                 <CoinStack pairs={x.pairs} />
-                <span className="max-w-[104px] truncate text-[11.5px] font-medium text-text-primary">
+                <span
+                  className={`max-w-[104px] truncate text-[11.5px] font-medium ${
+                    active ? "text-accent-fg" : "text-text-primary"
+                  }`}
+                >
                   {x.name}
                 </span>
                 <span
                   className={`font-mono text-[10.5px] tabular-nums ${
-                    x.mcap_change_24h == null
-                      ? "text-text-muted"
-                      : x.mcap_change_24h >= 0
-                        ? "text-profit"
-                        : "text-loss"
+                    active
+                      ? "text-accent-fg/85"
+                      : x.mcap_change_24h == null
+                        ? "text-text-muted"
+                        : x.mcap_change_24h >= 0
+                          ? "text-profit"
+                          : "text-loss"
                   }`}
                 >
                   {x.mcap_change_24h == null
@@ -282,14 +303,20 @@ export default function SignalsNarrativeFlow({
               {/* Mobile cards */}
               <div className="space-y-1 sm:hidden">
                 {sorted.map((x, i) => {
-                  const active = activeId && x.category_id === activeId;
+                  const active = activeSet.has(x.category_id);
                   return (
                     <button
                       key={x.category_id}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => onPick?.(x)}
+                      /* A picked row carries a solid gold rail, not a wash:
+                         several washes stacked down the list read as banding
+                         rather than as a set of choices. */
                       className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left ${
-                        active ? "bg-accent/[0.08]" : "hover:bg-ink/[0.03]"
+                        active
+                          ? "border-l-2 border-accent bg-accent/[0.14]"
+                          : "border-l-2 border-transparent hover:bg-ink/[0.03]"
                       }`}
                     >
                       <span className="w-4 shrink-0 text-center font-mono text-[10px] text-text-muted">
@@ -351,17 +378,22 @@ export default function SignalsNarrativeFlow({
                   </thead>
                   <tbody>
                     {sorted.map((x, i) => {
-                      const active = activeId && x.category_id === activeId;
+                      const active = activeSet.has(x.category_id);
                       return (
                         <tr
                           key={x.category_id}
                           onClick={() => onPick?.(x)}
+                          aria-selected={active}
                           className={`cursor-pointer border-b border-ink/[0.04] last:border-0 hover:bg-ink/[0.03] ${
-                            active ? "bg-accent/[0.06]" : ""
+                            active ? "bg-accent/[0.14]" : ""
                           }`}
                         >
-                          <td className="py-2 pl-2 font-mono text-[10px] tabular-nums text-text-muted">
-                            {i + 1}
+                          <td
+                            className={`py-2 pl-2 font-mono text-[10px] tabular-nums ${
+                              active ? "text-accent" : "text-text-muted"
+                            }`}
+                          >
+                            {active ? "✓" : i + 1}
                           </td>
                           <td className="px-2 py-2">
                             <div className="flex items-center gap-2">
