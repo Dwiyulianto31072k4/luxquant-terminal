@@ -243,7 +243,7 @@ export function OITab({ view, deriv, pairFc, openPair }) {
                     />
                     <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.15)" />
                     <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                    <Scatter
+                    <Scatter isAnimationActive={false}
                       data={quad}
                       fillOpacity={0.85}
                       onClick={(p) => {
@@ -493,7 +493,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                     <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
                     <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--ink) / 0.06)" }} />
                     <ReferenceLine x="1" stroke="rgb(var(--ink) / 0.25)" strokeDasharray="3 3" />
-                    <Bar
+                    <Bar isAnimationActive={false}
                       dataKey="count"
                       name="pairs"
                       radius={[3, 3, 0, 0]}
@@ -616,7 +616,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                   />
                   <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
                   <ReferenceLine y={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
-                  <Scatter
+                  <Scatter isAnimationActive={false}
                     data={divPts}
                     fillOpacity={0.85}
                     onClick={(p) => {
@@ -931,7 +931,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
                 />
                 <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                 <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
-                <Scatter
+                <Scatter isAnimationActive={false}
                   data={fundFc}
                   fillOpacity={0.85}
                   onClick={(p) => {
@@ -1259,7 +1259,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                     <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
                     <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
                     <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
-                    <Bar dataKey="count" name="pairs" radius={[2, 2, 0, 0]}>
+                    <Bar isAnimationActive={false} dataKey="count" name="pairs" radius={[2, 2, 0, 0]}>
                       {makeBins(
                         rsiRows.map((r) => r.rsi),
                         10,
@@ -1452,7 +1452,7 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
                 />
                 <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.15)" />
                 <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                <Scatter
+                <Scatter isAnimationActive={false}
                   data={scatter}
                   fillOpacity={0.85}
                   onClick={(p) => {
@@ -1625,7 +1625,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
                 />
                 <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" />
                 <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                <Scatter
+                <Scatter isAnimationActive={false}
                   data={scatter}
                   fillOpacity={0.88}
                   onClick={(p) => {

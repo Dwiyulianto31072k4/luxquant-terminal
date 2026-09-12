@@ -916,6 +916,28 @@ export function useZoom(x0, x1, y0, y1) {
     return { x0: a, x1: c, y0: e, y1: f };
   };
 
+  // One state write per animation FRAME, not per event. A trackpad fires wheel
+  // events far faster than 60Hz and pointermove is no better, and each write
+  // re-rendered several hundred SVG nodes — which is the whole reason zooming
+  // felt like it was dragging. The gesture is accumulated in a ref and flushed
+  // on rAF, so ten events inside one frame cost one render instead of ten.
+  const pending = useRef(null);
+  const frame = useRef(0);
+  const flush = useCallback(() => {
+    frame.current = 0;
+    const job = pending.current;
+    pending.current = null;
+    if (job) setDom(job);
+  }, []);
+  const schedule = useCallback(
+    (fn) => {
+      pending.current = (d) => fn(pending.current ? pending.current(d) : d);
+      if (!frame.current) frame.current = requestAnimationFrame(flush);
+    },
+    [flush]
+  );
+  useEffect(() => () => frame.current && cancelAnimationFrame(frame.current), []);
+
   const reset = useCallback(() => setDom({ x0, x1, y0, y1 }), [x0, x1, y0, y1]);
   // follow the base domain when it changes (autoscaled charts) → refit data
   useEffect(() => {
@@ -925,7 +947,7 @@ export function useZoom(x0, x1, y0, y1) {
   // zoom keeping the point at fraction (fx,fy) of the plot fixed under cursor
   const zoomAt = useCallback(
     (fx, fy, factor) =>
-      setDom((d) => {
+      schedule((d) => {
         const w = d.x1 - d.x0,
           h = d.y1 - d.y0;
         const px = d.x0 + fx * w; // data-x under cursor
@@ -939,7 +961,7 @@ export function useZoom(x0, x1, y0, y1) {
           y0: py - (1 - fy) * nh,
         });
       }),
-    []
+    [schedule]
   );
 
   const fracOf = useCallback((cx, cy) => {
@@ -1002,9 +1024,16 @@ export function useZoom(x0, x1, y0, y1) {
       h = d0.y1 - d0.y0;
     const shiftX = -(dx / r.width) * w,
       shiftY = (dy / r.height) * h;
-    setDom(
-      clampDom({ x0: d0.x0 + shiftX, x1: d0.x1 + shiftX, y0: d0.y0 + shiftY, y1: d0.y1 + shiftY })
-    );
+    const next = clampDom({
+      x0: d0.x0 + shiftX,
+      x1: d0.x1 + shiftX,
+      y0: d0.y0 + shiftY,
+      y1: d0.y1 + shiftY,
+    });
+    // Pan replaces rather than composes: it is already absolute against the
+    // domain captured at pointer-down, so stacking deltas would double-count.
+    pending.current = () => next;
+    if (!frame.current) frame.current = requestAnimationFrame(flush);
   };
   const onPointerUp = (e) => {
     drag.current = null;

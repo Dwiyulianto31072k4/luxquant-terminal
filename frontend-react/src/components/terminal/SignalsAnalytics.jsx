@@ -1120,7 +1120,7 @@ export default function SignalsAnalytics() {
                             cursor={{ fill: "rgb(var(--accent) / 0.06)" }}
                           />
                           {STATUS_ORDER.map((k, i) => (
-                            <Bar
+                            <Bar isAnimationActive={false}
                               key={k}
                               dataKey={k}
                               name={STATUS_LABEL[k]}
@@ -1247,7 +1247,7 @@ export default function SignalsAnalytics() {
                             content={<DarkTip />}
                             cursor={{ fill: "rgb(var(--accent) / 0.06)" }}
                           />
-                          <Bar
+                          <Bar isAnimationActive={false}
                             dataKey="count"
                             name="signals"
                             fill={CYAN}
@@ -1291,28 +1291,28 @@ export default function SignalsAnalytics() {
                             cursor={{ fill: "rgb(var(--accent) / 0.06)" }}
                           />
                           <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.2)" />
-                          <Bar
+                          <Bar isAnimationActive={false}
                             dataKey="tp1"
                             name="TP1"
                             stackId="a"
                             fill="#2dd4a0"
                             fillOpacity={0.9}
                           />
-                          <Bar
+                          <Bar isAnimationActive={false}
                             dataKey="tp2"
                             name="TP2"
                             stackId="a"
                             fill="rgb(var(--pos))"
                             fillOpacity={0.9}
                           />
-                          <Bar
+                          <Bar isAnimationActive={false}
                             dataKey="tp3"
                             name="TP3"
                             stackId="a"
                             fill="#86efac"
                             fillOpacity={0.9}
                           />
-                          <Bar
+                          <Bar isAnimationActive={false}
                             dataKey="tp4"
                             name="TP4"
                             stackId="a"
@@ -1320,7 +1320,7 @@ export default function SignalsAnalytics() {
                             fillOpacity={0.95}
                             radius={[2, 2, 0, 0]}
                           />
-                          <Bar
+                          <Bar isAnimationActive={false}
                             dataKey="sl"
                             name="SL"
                             stackId="a"
@@ -1907,7 +1907,7 @@ export default function SignalsAnalytics() {
                             cursor={{ fill: "rgb(var(--accent) / 0.06)" }}
                           />
                           <ReferenceLine x="0" stroke={GOLD} strokeDasharray="3 3" />
-                          <Bar dataKey="count" name="signals" radius={[3, 3, 0, 0]}>
+                          <Bar isAnimationActive={false} dataKey="count" name="signals" radius={[3, 3, 0, 0]}>
                             {makeBins(fcClamped, 2, -20, 20).map((b, i) => (
                               <Cell key={i} fill={b.mid >= 0 ? POS : NEG} fillOpacity={0.8} />
                             ))}
@@ -1957,7 +1957,7 @@ export default function SignalsAnalytics() {
                             cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
                           />
                           <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
-                          <Scatter
+                          <Scatter isAnimationActive={false}
                             data={agg.scatterOpp}
                             fillOpacity={0.8}
                             onClick={(p) => {
@@ -2031,7 +2031,7 @@ export default function SignalsAnalytics() {
                           strokeDasharray="4 4"
                         />
                         <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
-                        <Scatter
+                        <Scatter isAnimationActive={false}
                           data={agg.peakPts}
                           fillOpacity={0.8}
                           onClick={(p) => {
@@ -2168,7 +2168,7 @@ export default function SignalsAnalytics() {
                               content={<DarkTip />}
                               cursor={{ fill: "rgb(var(--accent) / 0.06)" }}
                             />
-                            <Bar dataKey="count" name="signals" radius={[2, 2, 0, 0]}>
+                            <Bar isAnimationActive={false} dataKey="count" name="signals" radius={[2, 2, 0, 0]}>
                               {makeBins(agg.betaVals, 0.25, 0, 2.5).map((b, i) => (
                                 <Cell
                                   key={i}
@@ -2248,7 +2248,7 @@ export default function SignalsAnalytics() {
                             stroke="rgb(var(--ink) / 0.15)"
                             strokeDasharray="3 3"
                           />
-                          <Scatter
+                          <Scatter isAnimationActive={false}
                             data={agg.scatterBeta}
                             fillOpacity={0.8}
                             onClick={(p) => {
@@ -2300,7 +2300,7 @@ export default function SignalsAnalytics() {
                             content={<DarkTip />}
                             cursor={{ fill: "rgb(var(--accent) / 0.06)" }}
                           />
-                          <Bar
+                          <Bar isAnimationActive={false}
                             dataKey="count"
                             name="signals"
                             fill={PURPLE}
