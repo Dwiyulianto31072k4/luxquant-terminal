@@ -325,7 +325,15 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
   const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
-  const zDiv = useZoom(0, 4, 0, 4);
+  // 0..4 on both axes was the clamp, not the data: account ratios sit between
+  // about 0.6 and 2.5, so half the canvas was empty and the whole field drew as
+  // one blob. Fit to the 97th percentile, floored so 1.0 — the balanced line
+  // this chart is read against — is always comfortably inside the view.
+  const divHi = Math.max(
+    pctBound(rows.filter((r) => r.lsr != null).map((r) => r.lsr), 0.97, 1.8),
+    pctBound(rows.filter((r) => r.top_lsr != null).map((r) => r.top_lsr), 0.97, 1.8)
+  );
+  const zDiv = useZoom(0, divHi, 0, divHi);
   // Histogram bin drill — click a bar → list pairs in that L/S band → open call
   const [lsBin, setLsBin] = useState(null); // { lo, hi, mid }
 
@@ -352,8 +360,8 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
   const divPts = rows
     .filter((r) => r.lsr != null && r.top_lsr != null)
     .map((r) => ({
-      x: Math.min(r.lsr, 4),
-      y: Math.min(r.top_lsr, 4),
+      x: Math.min(r.lsr, divHi),
+      y: Math.min(r.top_lsr, divHi),
       pair: r.pair,
       smart: (r.lsr > 1.5 && r.top_lsr < 0.9) || (r.lsr < 0.8 && r.top_lsr > 1.3),
     }));

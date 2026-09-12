@@ -707,8 +707,12 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
     setW(el.clientWidth);
     return () => ro.disconnect();
   }, [expanded]);
-  // Expanded ≈ ~viewport height; default compact desk card
-  const H = expanded ? Math.max(560, Math.min(window.innerHeight * 0.72, 820)) : 420;
+  // Expanded ≈ ~viewport height. Collapsed was a flat 420px, which on a tall
+  // screen gives ~900px² per tile across 740 coins — under the 28x14 threshold
+  // at which a tile can carry its own ticker, so most of the map was unlabelled
+  // colour. It takes the viewport's height like every other chart here.
+  const compactH = useChartHeight("hero");
+  const H = expanded ? Math.max(560, Math.min(window.innerHeight * 0.72, 820)) : compactH;
   const sm = METRICS[sizeBy];
   const items = model
     .map((d) => {
