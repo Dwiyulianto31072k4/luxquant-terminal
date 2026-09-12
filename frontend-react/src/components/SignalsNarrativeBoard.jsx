@@ -134,9 +134,11 @@ function OutcomeDonut({ totals }) {
 
 /** Rotation (x) against how far our calls ran (y). Size = coins we called. */
 function Quadrant({ items, medianPeak, activeIds, onPick }) {
-  const W = 340;
-  const H = 240;
-  const PAD = { l: 34, r: 10, t: 12, b: 26 };
+  // Wide viewBox, no height cap: the chart now scales with the column instead of
+  // being pinned to a 340-unit box and centred in whatever space was left.
+  const W = 620;
+  const H = 300;
+  const PAD = { l: 40, r: 14, t: 16, b: 30 };
   const xs = items.map((i) => i.rs);
   const ys = items.map((i) => i.peak);
   const xMax = Math.max(Math.abs(Math.min(...xs)), Math.abs(Math.max(...xs)), 1) * 1.12;
@@ -146,14 +148,14 @@ function Quadrant({ items, medianPeak, activeIds, onPick }) {
 
   const px = (v) => PAD.l + ((v + xMax) / (2 * xMax)) * (W - PAD.l - PAD.r);
   const py = (v) => H - PAD.b - ((v - yMin) / (yMax - yMin || 1)) * (H - PAD.t - PAD.b);
-  const rOf = (c) => 3 + Math.sqrt(c / maxCoins) * 7;
+  const rOf = (c) => 4 + Math.sqrt(c / maxCoins) * 10;
 
   const x0 = px(0);
   const yMed = py(medianPeak);
   const active = new Set(activeIds || []);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 260 }} role="img"
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img"
       aria-label="Capital rotation against how far our calls ran">
       {/* quadrant fields, barely there — they label regions, they are not data */}
       <rect x={x0} y={PAD.t} width={W - PAD.r - x0} height={yMed - PAD.t} fill="rgb(var(--pos) / 0.05)" />
@@ -207,42 +209,70 @@ function Quadrant({ items, medianPeak, activeIds, onPick }) {
   );
 }
 
-export default function SignalsNarrativeBoard({
-  narratives = [],
-  marketChange7d = null,
-  activeIds = [],
-  onPick = null,
-}) {
-  const model = useMemo(() => {
-    const m = marketChange7d ?? 0;
-    const rows = narratives.filter(
-      (x) => x.mcap_change_7d != null && x.median_peak != null
-    );
-    const items = rows.map((x) => ({
-      id: x.category_id,
-      name: x.name,
-      rs: (x.mcap_change_7d ?? 0) - m,
-      peak: x.median_peak,
-      coins: x.coins_called || 1,
-      raw: x,
-    }));
-    const peaks = [...items.map((i) => i.peak)].sort((a, b) => a - b);
-    const medianPeak = peaks.length ? peaks[Math.floor(peaks.length / 2)] : 0;
+/** Shared derivation so the strip and the chart can never disagree. */
+function buildModel(narratives, marketChange7d) {
+  const m = marketChange7d ?? 0;
+  const rows = narratives.filter((x) => x.mcap_change_7d != null && x.median_peak != null);
+  const items = rows.map((x) => ({
+    id: x.category_id,
+    name: x.name,
+    rs: (x.mcap_change_7d ?? 0) - m,
+    peak: x.median_peak,
+    coins: x.coins_called || 1,
+    raw: x,
+  }));
+  const peaks = [...items.map((i) => i.peak)].sort((a, b) => a - b);
+  const medianPeak = peaks.length ? peaks[Math.floor(peaks.length / 2)] : 0;
+  const totals = {};
+  for (const x of narratives) {
+    for (const o of OUT) totals[o.key] = (totals[o.key] || 0) + Number(x.outcome_flow?.[o.key] || 0);
+  }
+  return {
+    items,
+    medianPeak,
+    totals,
+    up: items.filter((i) => i.rs > 0).length,
+    total: items.length,
+    moved: rows.reduce((t, x) => t + Math.abs(x.flow_usd_7d || 0), 0),
+  };
+}
 
-    const totals = {};
-    for (const x of narratives) {
-      for (const o of OUT) totals[o.key] = (totals[o.key] || 0) + Number(x.outcome_flow?.[o.key] || 0);
-    }
-    const up = items.filter((i) => i.rs > 0).length;
-    const moved = rows.reduce((t, x) => t + Math.abs(x.flow_usd_7d || 0), 0);
-    return { items, medianPeak, totals, up, total: items.length, moved };
-  }, [narratives, marketChange7d]);
+export function NarrativeQuadrant({ narratives = [], marketChange7d = null, activeIds = [], onPick }) {
+  const model = useMemo(() => buildModel(narratives, marketChange7d), [narratives, marketChange7d]);
+  if (!model.items.length) return null;
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="mb-1 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-[12.5px] font-medium text-text-primary">
+          Rotation vs how far our calls ran
+        </span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+          bubble = coins called
+        </span>
+      </div>
+      <Quadrant
+        items={model.items}
+        medianPeak={model.medianPeak}
+        activeIds={activeIds}
+        onPick={onPick}
+      />
+      <p className="mt-1 text-[11px] leading-snug text-text-muted">
+        Right of the line capital rotated in; above the dashes our calls ran further than the
+        median narrative. The two barely relate — a hot narrative is not a reason to expect more
+        from a call in it.
+      </p>
+    </div>
+  );
+}
+
+export default function SignalsNarrativeBoard({ narratives = [], marketChange7d = null }) {
+  const model = useMemo(() => buildModel(narratives, marketChange7d), [narratives, marketChange7d]);
 
   if (!model.items.length) return null;
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-lg bg-ink/[0.02] px-3 py-2.5">
+    <div>
+      <div className="grid grid-cols-1 items-center gap-x-5 gap-y-3 rounded-lg bg-ink/[0.02] px-3 py-2.5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.6fr)_auto]">
         <div className="min-w-0">
           <p className="text-[11.5px] font-medium text-text-primary">Market · 7 days</p>
           <p className="font-mono text-[19px] font-medium tabular-nums leading-tight">
@@ -255,7 +285,7 @@ export default function SignalsNarrativeBoard({
         </div>
         <BreadthGauge up={model.up} total={model.total} />
         <OutcomeDonut totals={model.totals} />
-        <span className="ml-auto">
+        <span className="justify-self-end">
           <InfoTip
             side="bottom"
             title="Narrative board"
@@ -269,27 +299,6 @@ export default function SignalsNarrativeBoard({
         </span>
       </div>
 
-      <div>
-        <div className="mb-1 flex items-baseline gap-2">
-          <span className="text-[11.5px] font-medium text-text-primary">
-            Rotation vs how far our calls ran
-          </span>
-          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-            bubble = coins called
-          </span>
-        </div>
-        <Quadrant
-          items={model.items}
-          medianPeak={model.medianPeak}
-          activeIds={activeIds}
-          onPick={onPick}
-        />
-        <p className="mt-1 text-[11px] leading-snug text-text-muted">
-          Right of the line, capital rotated in; above the dashes, our calls ran further than the
-          median narrative. The two barely relate — a hot narrative is not a reason to expect more
-          from a call in it.
-        </p>
-      </div>
     </div>
   );
 }

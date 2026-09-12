@@ -21,7 +21,7 @@ import CoinLogo from "./CoinLogo";
 import { SegGroup } from "./ui/SegGroup";
 import { InfoTip } from "./GuideInfo";
 import SignalsNarrativeRotation from "./SignalsNarrativeRotation";
-import SignalsNarrativeBoard from "./SignalsNarrativeBoard";
+import SignalsNarrativeBoard, { NarrativeQuadrant } from "./SignalsNarrativeBoard";
 import { useChartTokens } from "./charts/EChart";
 
 // The TP ladder, ordinal: tp1 → tp4 is "ran further". One validated hue ramp.
@@ -370,12 +370,29 @@ export default function SignalsNarrativeFlow({
               <SignalsNarrativeBoard
                 narratives={narratives}
                 marketChange7d={data?.market_change_7d ?? null}
-                activeIds={activeIds}
-                onPick={onPick}
               />
 
-              <div className="mt-3 grid gap-x-4 gap-y-3 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
-              <div className={`min-w-0 ${view === "flow" ? "hidden lg:block" : ""}`}>
+              <div
+                className={`mt-3 grid gap-x-4 gap-y-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] ${
+                  view === "table" ? "hidden lg:grid" : ""
+                }`}
+              >
+                <NarrativeQuadrant
+                  narratives={narratives}
+                  marketChange7d={data?.market_change_7d ?? null}
+                  activeIds={activeIds}
+                  onPick={onPick}
+                />
+                <SignalsNarrativeRotation
+                  narratives={narratives}
+                  marketChange7d={data?.market_change_7d ?? null}
+                  activeIds={activeIds}
+                  rankOf={rankOf}
+                  onPick={onPick}
+                />
+              </div>
+
+              <div className={`mt-3 min-w-0 ${view === "flow" ? "hidden lg:block" : ""}`}>
               {/* Mobile cards */}
               <div className="space-y-1 sm:hidden">
                 {sorted.map((x, i) => {
@@ -426,7 +443,7 @@ export default function SignalsNarrativeFlow({
                   of a screen between each number, and a capped block pinned
                   left just moves the dead space and looks half-loaded. */}
               <div className="no-scrollbar -mx-1 hidden overflow-x-auto sm:block">
-                <table className="mx-auto w-full min-w-[560px] max-w-[900px] border-collapse lg:mx-0 lg:max-w-none">
+                <table className="w-full min-w-[560px] border-collapse">
                   <thead>
                     <tr className="border-b border-ink/[0.06]">
                       <th className="w-6 py-1.5 pl-2 text-left font-mono text-[9px] text-text-muted">
@@ -499,21 +516,6 @@ export default function SignalsNarrativeFlow({
                     })}
                   </tbody>
                 </table>
-              </div>
-              </div>
-
-              <div
-                className={`min-w-0 lg:sticky lg:top-2 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto ${
-                  view === "table" ? "hidden lg:block" : ""
-                }`}
-              >
-                <SignalsNarrativeRotation
-                  narratives={narratives}
-                  marketChange7d={data?.market_change_7d ?? null}
-                  activeIds={activeIds}
-                  rankOf={rankOf}
-                  onPick={onPick}
-                />
               </div>
               </div>
             </>
