@@ -52,12 +52,41 @@ def validate_request(provider, path, params):
         raise HTTPException(400, "Unsupported market category")
 
 
+# Listings change on the scale of weeks, so a "not listed" answer is worth
+# holding on to for an hour rather than re-asking the exchange every 15 seconds.
+_NOT_LISTED_FLAG = "__not_listed__"
+_NOT_LISTED = {_NOT_LISTED_FLAG: True}
+NOT_LISTED_TTL = 3600
+
+
+def _json_or_none(response):
+    try:
+        return response.json()
+    except Exception:
+        return None
+
+
+def _is_not_listed(status: int, body) -> bool:
+    """Every venue says it differently, and Bybit says it with a 200."""
+    if not isinstance(body, dict):
+        return False
+    # Binance: HTTP 400 {"code":-1121,"msg":"Invalid symbol."}
+    if status == 400 and body.get("code") == -1121:
+        return True
+    # Bybit: HTTP 200 {"retCode":10001,"retMsg":"params error: symbol invalid"}
+    if body.get("retCode") == 10001 and "symbol" in str(body.get("retMsg", "")).lower():
+        return True
+    return False
+
+
 async def exchange_data(provider, path, params):
     validate_request(provider, path, params)
     digest = hashlib.sha256(json.dumps([provider, path, params], sort_keys=True).encode()).hexdigest()
     key = "lq:public-market:" + digest
     cached = cache_get(key)
     if cached is not None:
+        if isinstance(cached, dict) and cached.get(_NOT_LISTED_FLAG):
+            raise HTTPException(404, "Symbol not listed on this venue")
         return cached
     if key in _pending:
         return await asyncio.shield(_pending[key])
@@ -66,9 +95,28 @@ async def exchange_data(provider, path, params):
         try:
             client = get_general_client()
             response = await client.get(HOSTS[provider] + path, params=params, timeout=8)
+            body = _json_or_none(response)
+
+            # "That pair is not listed here" is an ANSWER, not a gateway
+            # failure, and it was being reported as 502. Measured 2026-09-13:
+            # 785 502s in a day, 587 of them one call — the spot 24h ticker that
+            # SignalModal fires unconditionally alongside the futures ones. Most
+            # signalled pairs are perp-only, so for them that call can never
+            # succeed. The UI was fine (Promise.allSettled, spot volume simply
+            # absent); what was not fine is that a real gateway problem looked
+            # identical to a pair that was never on spot, so the 502 count meant
+            # nothing.
+            #
+            # Cached hard, because listings do not change by the minute: we
+            # stop re-asking Binance the same doomed question on every modal
+            # open, which is where the wasted rate-limit budget went.
+            if _is_not_listed(response.status_code, body):
+                cache_set(key, _NOT_LISTED, ttl=NOT_LISTED_TTL)
+                raise HTTPException(404, "Symbol not listed on this venue")
+
             if response.status_code != 200:
                 raise HTTPException(502, "Market provider unavailable")
-            data = response.json()
+            data = body if body is not None else response.json()
             if isinstance(data, dict) and (data.get("retCode", 0) != 0 or data.get("code", 0) < 0):
                 raise HTTPException(502, "Market instrument unavailable")
             cache_set(key, data, ttl=15)
