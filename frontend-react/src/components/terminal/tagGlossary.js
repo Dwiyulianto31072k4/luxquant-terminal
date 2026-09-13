@@ -92,3 +92,21 @@ export const tagLabel = (tag) => (tag || "").replaceAll("_", " ").toLowerCase();
 export const tagHint = (tag) => TAG_GLOSSARY[tag] || null;
 
 export default TAG_GLOSSARY;
+
+// The two sets the desk actually filters on: what makes a setup clean, and what
+// makes it suspect. Module scope keeps their identity stable across renders,
+// and they live here rather than in a component because both SignalsAnalytics
+// and the Anomaly tab read them — a copy in each would drift.
+export const STRONG_TAGS = ["HTF_TREND_STRONG", "MTF_FULL_ALIGNED", "SMC_GOLDEN_SETUP"];
+
+export const WARN_TAGS = [
+  "LATE_ENTRY",
+  "OVEREXTENDED",
+  "PARABOLIC",
+  "EXHAUSTION_CANDLE",
+  "LIQ_VERY_LOW",
+  "LIQ_LOW",
+  "RISK_OFF_REGIME",
+  "HTF_TREND_EXHAUSTED",
+  "MTF_AGAINST_HTF",
+];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { anomSetupOf } from "./SignalsAnalytics";
+import { anomSetupOf } from "./anomSetups";
 
 // Volume is effort, price progress is result, and the pairs worth a second look
 // are where the two disagree. Heavy = turnover above 3x the desk median (the
