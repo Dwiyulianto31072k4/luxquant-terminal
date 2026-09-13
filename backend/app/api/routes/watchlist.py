@@ -7,6 +7,10 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from app.core.database import get_db
+# _cache_outcomes is an UNLOGGED table the cache worker drops and recreates, so
+# a restart can catch it mid-rebuild. Joining it blind would 500 the whole
+# watchlist over a field that is only nice to have.
+from app.services.cache_worker import ensure_outcomes_table, precompute_outcomes
 from app.api.deps import get_current_user
 from app.models.user import User
 
@@ -38,6 +42,20 @@ class WatchlistItem(BaseModel):
     # Volume Rank - ADDED
     volume_rank_num: Optional[int] = None
     volume_rank_den: Optional[int] = None
+    # What the journal needs and could not compute in the browser.
+    #
+    # `outcome` is NOT `status`. Measured on the live watchlist: 22 of 732 rows
+    # carry status `closed_loss` while their canonical outcome is a TP — a call
+    # that reached a target and later stopped out. Scoring those as losses
+    # under-counts wins by 3% and contradicts the desk's published win rate,
+    # which is "highest level reached" (see win-rate-definitions).
+    outcome: Optional[str] = None
+    # How far it actually ran. 739/739 watchlist rows have this.
+    peak_pct: Optional[float] = None
+    # The CALL's timestamp, not the save's — the two together are the only way
+    # to ask "did I save this early or chase it". TEXT in the DB, passed
+    # through as a string rather than parsed twice.
+    call_created_at: Optional[str] = None
     # Did you actually take this call? None = not answered yet, and that is a
     # state of its own — 741 rows predate this field and none of them means
     # "skipped". Only the two answers a person can give are stored.
@@ -64,6 +82,9 @@ def get_watchlist(
 ):
     """Get user's watchlist with full signal details"""
     
+    if not ensure_outcomes_table(db):
+        precompute_outcomes(db)
+
     result = db.execute(
         text("""
             SELECT 
@@ -83,9 +104,13 @@ def get_watchlist(
                 s.stop1,
                 s.stop2,
                 s.volume_rank_num,
-                s.volume_rank_den
+                s.volume_rank_den,
+                s.created_at AS call_created_at,
+                s.peak_pct,
+                o.outcome
             FROM watchlist w
             LEFT JOIN signals s ON w.signal_id = s.signal_id
+            LEFT JOIN _cache_outcomes o ON o.signal_id = w.signal_id
             WHERE w.user_id = :user_id
             ORDER BY w.created_at DESC
         """),
@@ -113,6 +138,9 @@ def get_watchlist(
             stop2=row.stop2,
             volume_rank_num=row.volume_rank_num,
             volume_rank_den=row.volume_rank_den,
+            outcome=row.outcome,
+            peak_pct=row.peak_pct,
+            call_created_at=str(row.call_created_at) if row.call_created_at else None,
             taken=row.taken,
             taken_at=row.taken_at,
         ))
