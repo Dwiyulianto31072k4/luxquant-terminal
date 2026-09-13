@@ -58,21 +58,38 @@ async def public_coin_intel(user: User = Depends(get_api_key_user)):
 # ════════════════════════════════════════════════════════════
 # DAILY WIN-RATE — trend WR harian/mingguan (chart time-series)
 # ════════════════════════════════════════════════════════════
+# ───────────────────────────────────────────────────────────────────────────
+# Calling another route's function is calling a PLAIN function. FastAPI resolves
+# nothing: every Query()/Depends() you leave out arrives as the FastAPI object
+# itself, and whether the callee is sync or async becomes your problem. Both
+# halves of that bit here — four public endpoints answered 500 to every single
+# request they ever received. So: pass EVERY parameter explicitly, and never
+# await a plain `def`. The callees below are all sync, so these wrappers are
+# `def` too, which also hands their blocking DB work to the threadpool instead
+# of stalling the event loop.
+# ───────────────────────────────────────────────────────────────────────────
 @router.get("/analytics/daily-winrate")
-async def public_daily_winrate(
+def public_daily_winrate(
     time_range: str = Query("all", description="Time range: all, ytd, mtd, 30d, 7d"),
     period: str = Query("daily", description="Aggregation period: daily, weekly"),
     db: Session = Depends(get_db),
 ):
-    return await get_daily_winrate(time_range=time_range, period=period, db=db)
+    return get_daily_winrate(time_range=time_range, period=period, db=db)
 
 
 # ════════════════════════════════════════════════════════════
 # PERFORMANCE DASHBOARD — daily perf + 14-day trend (bundled)
 # ════════════════════════════════════════════════════════════
 @router.get("/analytics/dashboard")
-async def public_dashboard(
+def public_dashboard(
     date: Optional[str] = Query(None, description="YYYY-MM-DD UTC. Default = today UTC"),
     db: Session = Depends(get_db),
+    # The router already requires an API key, but a router-level dependency is
+    # not injected into the handler — so the caller has to be asked for a second
+    # time to have the user in hand. Without it current_user reached
+    # get_daily_dashboard as a Depends object, `current_user is not None` was
+    # True for it, and `.has_active_access` raised. Passing None instead would
+    # have "fixed" it by redacting the paid window from a paying partner.
+    user: User = Depends(get_api_key_user),
 ):
-    return await get_daily_dashboard(date=date, db=db)
+    return get_daily_dashboard(date=date, db=db, current_user=user)

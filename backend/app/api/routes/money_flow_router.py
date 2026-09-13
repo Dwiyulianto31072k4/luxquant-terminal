@@ -366,12 +366,17 @@ async def money_flow_dex():
 # 5. OVERVIEW — gabungan ringkas (1 call buat page load)
 # ════════════════════════════════════════════
 @router.get("/overview")
-async def money_flow_overview(db: Session = Depends(get_db)):
+def money_flow_overview(db: Session = Depends(get_db)):
     """Ringkasan buat initial render: top sektor, macro, top flow coins.
     DEX di-fetch terpisah dari frontend (biar nggak nahan initial load)."""
-    sectors = await money_flow_sectors(limit=8, db=db)
-    macro = await money_flow_macro(db=db)
-    coins = await money_flow_coins(limit=10, db=db)
+    # All three are plain `def`; awaiting them raised before a single line of
+    # their bodies ran. Every parameter is passed, including the ones whose
+    # defaults are harmless today — an unpassed Query object is truthy, so
+    # leaving luxquant_only out would have quietly filtered the coin list to
+    # called pairs only.
+    sectors = money_flow_sectors(limit=8, min_cap_usd=None, db=db)
+    macro = money_flow_macro(db=db)
+    coins = money_flow_coins(limit=10, luxquant_only=False, db=db)
     return {
         "sectors": sectors.get("sectors", []),
         "macro": macro,

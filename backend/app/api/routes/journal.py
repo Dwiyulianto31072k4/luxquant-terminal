@@ -590,7 +590,9 @@ async def get_ai_insights(
         return AIInsightResponse(**cached)
 
     # Get stats
-    stats = await get_journal_stats(current_user, db)
+    # get_journal_stats is a plain `def` — awaiting it raised on every call, so
+    # this endpoint has never once returned insights.
+    stats = get_journal_stats(current_user=current_user, db=db, date_from=None, date_to=None)
 
     if stats.total_trades < 3:
         return AIInsightResponse(
@@ -691,7 +693,13 @@ async def export_journal_excel(
         from openpyxl.chart import LineChart, BarChart, PieChart, Reference
         from openpyxl.utils import get_column_letter
     except ImportError:
-        raise HTTPException(status_code=500, detail="openpyxl not installed")
+        # A missing optional dependency is not a server fault, and 500 sent it
+        # to the error dashboards as one. openpyxl was never in requirements.txt,
+        # so this export has answered 500 to every request since it was written.
+        raise HTTPException(
+            status_code=503,
+            detail="Excel export is unavailable on this server (openpyxl is not installed). Use the CSV export.",
+        )
 
     # Fetch entries
     q = db.query(TradeJournal).filter(TradeJournal.user_id == current_user.id)

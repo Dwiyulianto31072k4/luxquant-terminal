@@ -253,16 +253,35 @@ def get_btc_correlation_public(signal_id: str, db: Session = Depends(get_db)):
 # MARKET PULSE — event flow realtime + agregat regime
 # (re-use handler web yg cached; redact field sumber)
 # ════════════════════════════════════════════════════════════
+# ───────────────────────────────────────────────────────────────────────────
+# Calling another route's function is calling a PLAIN function. FastAPI resolves
+# nothing: every Query()/Depends() you leave out arrives as the FastAPI object
+# itself, and whether the callee is sync or async becomes your problem. Both
+# halves of that bit here — four public endpoints answered 500 to every single
+# request they ever received. So: pass EVERY parameter explicitly, and never
+# await a plain `def`. The callees below are all sync, so these wrappers are
+# `def` too, which also hands their blocking DB work to the threadpool instead
+# of stalling the event loop.
+# ───────────────────────────────────────────────────────────────────────────
 @router.get("/market-pulse/feed")
-async def public_pulse_feed(
+def public_pulse_feed(
     source: Optional[str] = Query(None, regex="^(pulse|price_movement)$"),
     pair: Optional[str] = Query(None),
     timeframe: Optional[str] = Query(None, regex="^(5m|1h|2h|4h|1d)$"),
     direction: Optional[str] = Query(None, regex="^(bullish|bearish)$"),
     limit: int = Query(100, ge=1, le=500),
 ):
-    res = await get_pulse_feed(
-        source=source, pair=pair, timeframe=timeframe, direction=direction, limit=limit
+    res = get_pulse_feed(
+        source=source,
+        pair=pair,
+        timeframe=timeframe,
+        direction=direction,
+        limit=limit,
+        # Omitted, this arrived as a Query object and `int(distinct)` raised.
+        # A Query object is also truthy, so the near miss was worse than the
+        # crash: had the call survived, the feed would have silently switched to
+        # one-event-per-pair.
+        distinct=False,
     )
     # Bangun ulang event tanpa field internal (source_msg_id / id / label zh).
     clean = [{
@@ -279,6 +298,6 @@ async def public_pulse_feed(
 
 
 @router.get("/market-pulse/stats")
-async def public_pulse_stats():
+def public_pulse_stats():
     # Agregat 1h/24h: total event, unique coin, rasio bull/bear, flash move, heatmap.
-    return await get_pulse_stats()
+    return get_pulse_stats()
