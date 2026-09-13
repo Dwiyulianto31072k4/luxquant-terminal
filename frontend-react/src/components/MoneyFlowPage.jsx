@@ -93,6 +93,19 @@ const fmtUSD = (v) => {
   if (Math.abs(n) >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
   return `$${n.toFixed(0)}`;
 };
+// Signed, compact dollars. The table is ranked on this, so it has to be on
+// screen — a sort by a number nobody can see reads as no sort at all.
+const fmtFlowUsd = (v) => {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  const n = Number(v);
+  const a = Math.abs(n);
+  const sign = n > 0 ? "+" : n < 0 ? "-" : "";
+  if (a >= 1e9) return `${sign}$${(a / 1e9).toFixed(2)}B`;
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(0)}K`;
+  return `${sign}$${a.toFixed(0)}`;
+};
+
 const fmtPct = (v) => {
   if (v === null || v === undefined) return "—";
   const n = Number(v);
@@ -394,7 +407,12 @@ const SectorsTab = ({ q }) => {
   const [sectors, setSectors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
-  const [sort, onSort] = useSort("mcap_change_24h", "desc");
+  // Default by the DOLLARS that moved, not the percentage. A percentage cannot
+  // be ranked across categories three orders of magnitude apart: on 2026-09-13
+  // this table opened with Tourism +42.4%, a $52M category worth $22M of real
+  // money, while Prediction Markets took in $334M at +2.96% and was nowhere in
+  // sight. The percent column stays, and stays sortable.
+  const [sort, onSort] = useSort("mcap_change_usd_24h", "desc");
 
   // Sector drill-down + signal open
   const [selectedSector, setSelectedSector] = useState(null);
@@ -450,6 +468,8 @@ const SectorsTab = ({ q }) => {
           return x.name || "￿";
         case "mcap_change_24h":
           return x.mcap_change_24h ?? -Infinity;
+        case "mcap_change_usd_24h":
+          return x.mcap_change_usd_24h ?? -Infinity;
         case "mcap_change_7d":
           return x.mcap_change_7d ?? -Infinity;
         case "market_cap":
@@ -462,9 +482,12 @@ const SectorsTab = ({ q }) => {
   }, [sectors, q, sort]);
 
   const leaderIds = useMemo(() => {
-    // Leaders = top 3 by 24h move, independent of current sort
+    // Leaders = top 3 by money taken in, independent of current sort. By
+    // percentage these were always the three smallest categories on the board.
     return [...sectors]
-      .sort((a, b) => (b.mcap_change_24h ?? -Infinity) - (a.mcap_change_24h ?? -Infinity))
+      .sort(
+        (a, b) => (b.mcap_change_usd_24h ?? -Infinity) - (a.mcap_change_usd_24h ?? -Infinity)
+      )
       .slice(0, 3)
       .map((s) => s.category_id);
   }, [sectors]);
@@ -485,6 +508,13 @@ const SectorsTab = ({ q }) => {
                   #
                 </th>
                 <Th label="Sector" sortKey="name" sort={sort} onSort={onSort} align="left" />
+                <Th
+                  label="Flow 24h"
+                  sortKey="mcap_change_usd_24h"
+                  sort={sort}
+                  onSort={onSort}
+                  className="w-28"
+                />
                 <Th
                   label="24h"
                   sortKey="mcap_change_24h"
@@ -509,7 +539,7 @@ const SectorsTab = ({ q }) => {
               </tr>
             </thead>
 
-            {loading && <TableSkeleton rows={10} cols={5} />}
+            {loading && <TableSkeleton rows={10} cols={6} />}
 
             {!loading && !err && (
               <tbody>
@@ -559,7 +589,13 @@ const SectorsTab = ({ q }) => {
                         </div>
                       </td>
                       <td
-                        className={`py-3 px-2 sm:px-3 text-right font-mono text-sm tabular-nums font-semibold ${pctColor(s.mcap_change_24h)}`}
+                        className={`py-3 px-2 sm:px-3 text-right font-mono text-sm tabular-nums font-semibold whitespace-nowrap ${pctColor(s.mcap_change_usd_24h)}`}
+                        title="Market cap added or lost in the last 24h, in dollars"
+                      >
+                        {fmtFlowUsd(s.mcap_change_usd_24h)}
+                      </td>
+                      <td
+                        className={`py-3 px-2 sm:px-3 text-right font-mono text-xs tabular-nums ${pctColor(s.mcap_change_24h)}`}
                       >
                         {fmtPct(s.mcap_change_24h)}
                       </td>
@@ -636,11 +672,14 @@ const SectorsTab = ({ q }) => {
                           <path d="M9 6l6 6-6 6" />
                         </svg>
                       </div>
+                      {/* Flow leads on the phone too — it is what the list is
+                          ordered by, and the percentage beside it is the same
+                          number divided by a base the reader cannot see. */}
                       <div className="mt-2.5 grid grid-cols-3 gap-2">
                         <StatCell
-                          label="24h"
-                          value={fmtPct(s.mcap_change_24h)}
-                          color={pctColor(s.mcap_change_24h)}
+                          label="Flow 24h"
+                          value={fmtFlowUsd(s.mcap_change_usd_24h)}
+                          color={pctColor(s.mcap_change_usd_24h)}
                         />
                         <StatCell
                           label="7d"

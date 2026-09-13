@@ -157,6 +157,7 @@ def money_flow_sectors(
         h30 = hist_30d.get(r.category_id)
         mcap = float(r.market_cap) if r.market_cap is not None else None
         vol = float(r.volume_24h) if r.volume_24h is not None else None
+        chg24 = float(r.market_cap_change_24h) if r.market_cap_change_24h is not None else None
 
         sectors.append({
             "category_id": r.category_id,
@@ -164,14 +165,35 @@ def money_flow_sectors(
             "market_cap": mcap,
             "volume_24h": vol,
             "top_3_coins": r.top_3_coins,
-            "mcap_change_24h": float(r.market_cap_change_24h) if r.market_cap_change_24h is not None else None,
+            "mcap_change_24h": chg24,
+            # The dollars behind that percentage. A percentage on its own cannot
+            # be ranked across categories of wildly different size — see the
+            # sort below.
+            "mcap_change_usd_24h": (
+                round(mcap * chg24 / 100.0, 2) if (mcap is not None and chg24 is not None) else None
+            ),
             "mcap_change_7d": _pct_change(mcap, float(h7.market_cap) if h7 and h7.market_cap is not None else None),
             "mcap_change_30d": _pct_change(mcap, float(h30.market_cap) if h30 and h30.market_cap is not None else None),
             "vol_change_7d": _pct_change(vol, float(h7.volume_24h) if h7 and h7.volume_24h is not None else None),
         })
 
-    # Ranking default: Δmcap 24h desc (rotasi modal masuk)
-    sectors.sort(key=lambda s: (s["mcap_change_24h"] is not None, s["mcap_change_24h"] or -1e9), reverse=True)
+    # Ranking default: the DOLLARS that moved in, not the percentage.
+    #
+    # Sorting on percent put the smallest categories on top every single day,
+    # because a small base is what makes a big percentage. Measured 2026-09-13:
+    # the board opened with Tourism +42.4% — a $52M category, so $22M of actual
+    # money — while Prediction Markets took in $334M at +2.96% and did not
+    # appear in the top six at all. Worse, Prediction Markets, Gambling and
+    # Options were all moving ~2.9% together with ~$330M each: a coherent
+    # rotation into betting and derivatives, completely hidden behind a
+    # 42% move worth a fifteenth as much.
+    #
+    # A trader opening this tab is asking where money went, and a percentage
+    # cannot answer that across categories three orders of magnitude apart.
+    sectors.sort(
+        key=lambda s: (s["mcap_change_usd_24h"] is not None, s["mcap_change_usd_24h"] or -1e18),
+        reverse=True,
+    )
 
     return {
         "sectors": sectors[:limit],

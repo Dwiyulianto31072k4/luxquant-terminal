@@ -162,7 +162,13 @@ def fetch_categories(client) -> list:
             "category_id": c.get("id", ""),
             "name": c.get("name", ""),
             "market_cap": mcap,
-            "volume_24h": c.get("total_volume", 0) or 0,
+            # CoinGecko names this field differently per endpoint: coins get
+            # "total_volume", categories get "volume_24h". Reading the coin
+            # name here returned None for every category, so every sector has
+            # been stored with volume 0 since this worker was written — and
+            # vol_change_7d, which is computed from it, has never meant
+            # anything. 393 of 759 categories carry a real figure.
+            "volume_24h": c.get("volume_24h", 0) or 0,
             "market_cap_change_24h": c.get("market_cap_change_24h", 0) or 0,
             "top_3_coins": c.get("top_3_coins", [])[:3],
         })
