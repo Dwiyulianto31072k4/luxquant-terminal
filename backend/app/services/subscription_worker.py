@@ -524,7 +524,15 @@ async def _send_checkout_reminders(db, now):
                    COALESCE(p.final_amount, p.amount_usdt) AS amount,
                    p.discount_amount, p.credit_redeemed,
                    COALESCE(pl.label, 'LuxQuant') AS plan_label,
-                   pl.duration_days, pl.price_usdt AS list_price,
+                   pl.duration_days,
+                   -- The invoice's OWN gross, not the plan's price today. This
+                   -- read pl.price_usdt, so raising Annual to 500 made the
+                   -- reminder PDF for an older invoice print
+                   -- "Plan price 500 / discount 40 / total 360" — a billing
+                   -- document whose arithmetic does not add up. payments.
+                   -- amount_usdt is frozen at issue, which is what "list price"
+                   -- on that invoice means.
+                   p.amount_usdt AS list_price,
                    u.telegram_id, u.email, u.username, u.telegram_username,
                    u.subscription_expires_at,
                    EXTRACT(epoch FROM (p.expires_at - :now)) / 3600.0 AS hours_left
