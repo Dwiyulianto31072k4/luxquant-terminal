@@ -19,6 +19,8 @@ PRIVASI:
 Status di-derive pakai CTE yang sama dengan web app (single source of truth).
 """
 import logging
+import re
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -126,6 +128,37 @@ def _sig_dict(r) -> dict:
 
 
 # ── GET /signals — list / poll ──
+def _parse_cursor(since: Optional[str]) -> Optional[str]:
+    """Validate a client's `since` cursor before it reaches SQL.
+
+    It used to go straight into CAST(:since AS timestamptz), so a malformed
+    value raised inside psycopg2 and the partner got a 500 — the server
+    reporting the client's typo as its own fault.
+
+    One repair is worth making rather than rejecting. In a query string a
+    literal `+` means SPACE, so a client that sends `...T03:55:05+00:00`
+    without percent-encoding it arrives here as `...T03:55:05 00:00`. That is
+    the single most common way an ISO8601 offset is mis-sent, the intent is
+    unambiguous, and refusing it helps nobody. Anything else is a 400 that says
+    what was wrong.
+    """
+    if not since:
+        return None
+    raw = since.strip()
+    fixed = re.sub(r"(\d{2}:\d{2}:\d{2}(?:\.\d+)?) (\d{2}:\d{2})$", r"\1+\2", raw)
+    try:
+        datetime.fromisoformat(fixed.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"`since` must be an ISO8601 timestamp, got {since!r}. "
+                "Percent-encode the offset (%2B00:00) or use a trailing Z."
+            ),
+        )
+    return fixed
+
+
 @router.get("")
 def list_signals(
     since: Optional[str] = Query(None, description="ISO8601 cursor — signal dibuat SETELAH ini (polling maju)"),
@@ -145,6 +178,7 @@ def list_signals(
         "s.created_at IS NOT NULL",
         "CAST(s.created_at AS timestamptz) >= CAST(:cutoff AS timestamptz)",
     ]
+    since = _parse_cursor(since)
     if since:
         conds.append("CAST(s.created_at AS timestamptz) > CAST(:since AS timestamptz)")
         params["since"] = since
@@ -192,6 +226,7 @@ def list_updates(
         "CAST(s.created_at AS timestamptz) >= CAST(:cutoff AS timestamptz)",
         "su.update_at IS NOT NULL",
     ]
+    since = _parse_cursor(since)
     if since:
         conds.append("CAST(su.update_at AS timestamptz) > CAST(:since AS timestamptz)")
         params["since"] = since
