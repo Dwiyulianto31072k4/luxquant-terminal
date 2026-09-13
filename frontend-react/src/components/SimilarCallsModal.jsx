@@ -48,6 +48,46 @@ function when(iso) {
 // Taking ui/Modal's default meant Z.modal = 100_000, which is UNDER the shell's
 // 200_000 — the panel opened correctly and rendered behind the modal that
 // launched it, which reads as a dead button.
+function SimilarRow({ call: c, onPick }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(c)}
+      className="flex w-full items-center gap-2 rounded-lg border border-ink/[0.06] bg-surface-raised px-2 py-2 text-left transition-colors hover:border-ink/15 hover:bg-ink/[0.03] sm:gap-3 sm:px-3"
+    >
+      <CoinLogo pair={c.pair} size={22} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-mono text-[12px] font-bold text-text-primary">
+          {sym(c.pair)}
+          <span className="text-text-muted">/USDT</span>
+        </span>
+        <span className="block text-[10px] text-text-muted">
+          {c.shared_count} shared · {Math.round((c.score || 0) * 100)}% match · {when(c.created_at)}
+        </span>
+      </span>
+      {c.outcome && (
+        <span
+          className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase ${
+            OUTCOME_STYLE[c.outcome] || "text-text-muted border-ink/15"
+          }`}
+        >
+          {c.outcome}
+        </span>
+      )}
+      {c.gain_pct != null && (
+        <span
+          className={`shrink-0 font-mono text-[11px] ${
+            c.gain_pct >= 0 ? "text-profit" : "text-negative"
+          }`}
+        >
+          {c.gain_pct >= 0 ? "+" : ""}
+          {c.gain_pct}%
+        </span>
+      )}
+    </button>
+  );
+}
+
 export default function SimilarCallsModal({
   isOpen,
   onClose,
@@ -86,6 +126,13 @@ export default function SimilarCallsModal({
 
   const s = data?.summary;
   const items = data?.items || [];
+  const recent = items.filter((x) => x.is_recent);
+  const earlier = items.filter((x) => !x.is_recent);
+
+  const pick = (c) => {
+    onSwitchSignal?.(c);
+    onClose?.();
+  };
 
   // "Similar setups" described the mechanism; the title now says what you get.
   // The subtitle carries the two facts that otherwise surprise people: these
@@ -182,47 +229,28 @@ export default function SimilarCallsModal({
           )}
 
           <div className="max-h-[52vh] space-y-1 overflow-y-auto">
-            {items.map((c) => (
-              <button
-                key={c.signal_id}
-                type="button"
-                onClick={() => {
-                  onSwitchSignal?.(c);
-                  onClose?.();
-                }}
-                className="flex w-full items-center gap-2 rounded-lg border border-ink/[0.06] bg-surface-raised px-2 py-2 text-left transition-colors hover:border-ink/15 hover:bg-ink/[0.03] sm:gap-3 sm:px-3"
-              >
-                <CoinLogo pair={c.pair} size={22} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-mono text-[12px] font-bold text-text-primary">
-                    {sym(c.pair)}
-                    <span className="text-text-muted">/USDT</span>
-                  </span>
-                  <span className="block text-[10px] text-text-muted">
-                    {c.shared_count} shared · {Math.round((c.score || 0) * 100)}% match ·{" "}
-                    {when(c.created_at)}
-                  </span>
-                </span>
-                {c.outcome && (
-                  <span
-                    className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase ${
-                      OUTCOME_STYLE[c.outcome] || "text-text-muted border-ink/15"
-                    }`}
-                  >
-                    {c.outcome}
-                  </span>
-                )}
-                {c.gain_pct != null && (
-                  <span
-                    className={`shrink-0 font-mono text-[11px] ${
-                      c.gain_pct >= 0 ? "text-profit" : "text-negative"
-                    }`}
-                  >
-                    {c.gain_pct >= 0 ? "+" : ""}
-                    {c.gain_pct}%
-                  </span>
-                )}
-              </button>
+            {/* Two groups, not one ranking. A setup that fired this week is
+                something you can still act on; one from June only tells you
+                how the shape tends to play out. The endpoint reserves a quota
+                for the recent bucket rather than re-sorting, because seven
+                days is ~8% of a ninety-day window and a single similarity
+                ordering would seat a couple by luck and some days none. */}
+            {recent.length > 0 && (
+              <p className="px-1 pb-1 pt-0.5 text-[10px] uppercase tracking-wide text-accent">
+                Last {s?.recent_days ?? 7} days · {recent.length}
+              </p>
+            )}
+            {recent.map((c) => (
+              <SimilarRow key={c.signal_id} call={c} onPick={pick} />
+            ))}
+
+            {earlier.length > 0 && (
+              <p className="px-1 pb-1 pt-3 text-[10px] uppercase tracking-wide text-text-muted">
+                Earlier · {earlier.length}
+              </p>
+            )}
+            {earlier.map((c) => (
+              <SimilarRow key={c.signal_id} call={c} onPick={pick} />
             ))}
           </div>
 

@@ -67,6 +67,11 @@ router = APIRouter()
 # Long enough to be a real sample, short enough that the regime is comparable
 # and the unnest stays cheap. See the module docstring for the measurements.
 DEFAULT_DAYS = 90
+# The desk's own front tab is Today, and a setup that fired this week is the
+# only kind you can still do anything about. Recent calls get a reserved quota
+# rather than a re-sort — see the row_number() in the SQL.
+RECENT_DAYS = 7
+RECENT_LIMIT = 12
 
 
 class SimilarCall(BaseModel):
@@ -95,6 +100,9 @@ class SimilarCall(BaseModel):
     shared_tags: List[str] = []
     shared_count: int = 0
     score: float = 0.0
+    # Drives the grouping in the panel: a setup that fired this week is
+    # something you can still act on; one from June is history.
+    is_recent: bool = False
 
 
 class SimilarSummary(BaseModel):
@@ -105,6 +113,8 @@ class SimilarSummary(BaseModel):
     sl: int = 0
     win_rate: Optional[float] = None
     window_days: int = DEFAULT_DAYS
+    recent_days: int = RECENT_DAYS
+    recent_count: int = 0
     # The target's own distinctive tags, rarest first — the thing being matched.
     basis_tags: List[str] = []
 
@@ -143,27 +153,45 @@ scored AS (
     JOIN w ON w.tag = i.tag
     WHERE i.signal_id <> :sid
     GROUP BY i.signal_id
+),
+ranked AS (
+    SELECT s.signal_id, s.pair, s.entry,
+           s.target1, s.target2, s.target3, s.target4,
+           s.stop1, s.stop2, s.risk_level, s.market_cap, s.status,
+           so.outcome, s.created_at, s.entry_chart_path, s.latest_chart_path,
+           sc.shared_tags, sc.shared_n, sc.shared_w,
+           (s.created_at >= :recent_since) AS is_recent,
+           -- Ranked INSIDE each bucket, which is the whole point: seven days
+           -- is about 8% of a ninety-day window, so a single similarity
+           -- ordering would seat maybe two or three recent calls by luck and
+           -- some days none at all. Each bucket gets its own quota instead.
+           row_number() OVER (
+               PARTITION BY (s.created_at >= :recent_since)
+               ORDER BY sc.shared_w DESC, s.created_at DESC
+           ) AS rn
+    FROM scored sc
+    JOIN signals s ON s.signal_id = sc.signal_id
+    LEFT JOIN _cache_outcomes so ON so.signal_id = s.signal_id
+    WHERE (:include_same_pair OR s.pair IS DISTINCT FROM :pair)
 )
-SELECT s.signal_id, s.pair, s.entry,
-       s.target1, s.target2, s.target3, s.target4,
-       s.stop1, s.stop2, s.risk_level, s.market_cap, s.status,
-       so.outcome, s.created_at, s.entry_chart_path, s.latest_chart_path,
-       sc.shared_tags, sc.shared_n,
-       sc.shared_w / NULLIF((SELECT total FROM target_w), 0) AS score
-FROM scored sc
-JOIN signals s ON s.signal_id = sc.signal_id
-LEFT JOIN _cache_outcomes so ON so.signal_id = s.signal_id
-WHERE (:include_same_pair OR s.pair IS DISTINCT FROM :pair)
-ORDER BY sc.shared_w DESC, s.created_at DESC
-LIMIT :limit
+SELECT signal_id, pair, entry, target1, target2, target3, target4,
+       stop1, stop2, risk_level, market_cap, status, outcome, created_at,
+       entry_chart_path, latest_chart_path, shared_tags, shared_n,
+       shared_w / NULLIF((SELECT total FROM target_w), 0) AS score,
+       is_recent
+FROM ranked
+WHERE (is_recent AND rn <= :recent_limit) OR ((NOT is_recent) AND rn <= :limit)
+ORDER BY is_recent DESC, shared_w DESC, created_at DESC
 """
 
 
 @router.get("/{signal_id}/similar", response_model=SimilarResponse)
 def get_similar_signals(
     signal_id: str,
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(30, ge=1, le=100, description="Older matches to return, on top of the recent quota"),
     days: int = Query(DEFAULT_DAYS, ge=7, le=400),
+    recent_days: int = Query(RECENT_DAYS, ge=1, le=90),
+    recent_limit: int = Query(RECENT_LIMIT, ge=0, le=50),
     include_same_pair: bool = Query(
         False,
         description="Same-pair history is already the History tab; off by default so this adds other coins.",
@@ -179,7 +207,10 @@ def get_similar_signals(
         raise HTTPException(status_code=404, detail="Signal not found")
     pair = row[0]
 
-    cache_key = f"lq:similar:v1:{signal_id}:l{limit}:d{days}:sp{int(include_same_pair)}"
+    cache_key = (
+        f"lq:similar:v2:{signal_id}:l{limit}:d{days}"
+        f":r{recent_days}x{recent_limit}:sp{int(include_same_pair)}"
+    )
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -189,14 +220,18 @@ def get_similar_signals(
     if not ensure_outcomes_table(db):
         precompute_outcomes(db)
 
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc)
+    since = (now - timedelta(days=days)).strftime("%Y-%m-%d")
+    recent_since = (now - timedelta(days=recent_days)).strftime("%Y-%m-%d")
     rows = db.execute(
         text(_SQL),
         {
             "sid": signal_id,
             "pair": pair,
             "since": since,
+            "recent_since": recent_since,
             "limit": limit,
+            "recent_limit": recent_limit,
             "include_same_pair": include_same_pair,
         },
     ).fetchall()
@@ -252,6 +287,7 @@ def get_similar_signals(
                 shared_tags=list(r[16] or []),
                 shared_count=int(r[17] or 0),
                 score=round(float(r[18] or 0), 4),
+                is_recent=bool(r[19]),
             )
         )
 
@@ -266,6 +302,8 @@ def get_similar_signals(
             # counting it as a loss is how a desk talks itself into a number.
             win_rate=round(tp1_plus / resolved * 100, 1) if resolved else None,
             window_days=days,
+            recent_days=recent_days,
+            recent_count=sum(1 for x in items if x.is_recent),
             basis_tags=[b[0] for b in basis],
         ),
         items=items,
