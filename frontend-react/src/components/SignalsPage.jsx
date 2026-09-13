@@ -49,6 +49,7 @@ import {
   SORT_LABELS as SORT_FIELD_LABELS,
   toggleSortLevel,
 } from "../utils/signalSort";
+import { datesFromParam, datesToParam, filtersToParams, parseFilters } from "../utils/signalFilters";
 import {
   DESK_ID,
   FINISHED_ID,
@@ -551,30 +552,51 @@ const SignalsPage = () => {
   const currentPricesRef = useRef({});
   const [priceVersion, setPriceVersion] = useState(0);
 
-  const [page, setPage] = useState(1);
+  // The desk state, read back out of the URL once.
+  //
+  // Everything below used to start at its hard-coded default, and only
+  // `signal`/`tab` were ever written to the address bar — so a reload, a
+  // bookmark, or a link sent to someone else dropped every filter, every sort
+  // level past the first, the page you were on and the mode you were in. You
+  // could drill as deep as you liked and the first refresh put you back at the
+  // top. A plain expression rather than a hook: the useState initializers
+  // beneath are the only readers and they run on the first render only.
+  const [boot] = useState(() => {
+    const params =
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search);
+    // `dates` is kept raw as well: absent means today, an explicit empty
+    // selection means every day, and parseFilters cannot tell those apart.
+    return { ...parseFilters(params), datesParam: params.get("dates") };
+  });
+
+  const [page, setPage] = useState(boot.page);
   const pageSize = 20;
 
-  const [searchPair, setSearchPair] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [riskFilter, setRiskFilter] = useState("all");
-  const [streakFilter, setStreakFilter] = useState("all"); // 'all' | 'hot'
-  const [corrDecoupled, setCorrDecoupled] = useState(false);
-  const [corrHighAlign, setCorrHighAlign] = useState(false);
+  const [searchPair, setSearchPair] = useState(boot.searchPair);
+  const [statusFilter, setStatusFilter] = useState(boot.statusFilter);
+  const [riskFilter, setRiskFilter] = useState(boot.riskFilter);
+  const [streakFilter, setStreakFilter] = useState(boot.streakFilter); // 'all' | 'hot'
+  const [corrDecoupled, setCorrDecoupled] = useState(boot.corrDecoupled);
+  const [corrHighAlign, setCorrHighAlign] = useState(boot.corrHighAlign);
   // Keep only the top N% of the visible book by Edge Score. A percentile, not
   // a score: the share clearing any fixed score swings by a factor of two
   // between months, so a fixed bar would make this list double and halve on
   // its own. Runners sets it to 20.
-  const [edgeTop, setEdgeTop] = useState(null);
+  const [edgeTop, setEdgeTop] = useState(boot.edgeTop);
   const [mineExtra, setMineExtra] = useState(null);
   const [customMatch, setCustomMatch] = useState(null);
   const [customRetry, setCustomRetry] = useState(0);
 
-  const [selectedDates, setSelectedDates] = useState(() => [utcTodayYmd()]);
+  const [selectedDates, setSelectedDates] = useState(() =>
+    datesFromParam(boot.datesParam, utcTodayYmd())
+  );
   // Watchlist is a desk mode (not a day tab). It can be older than 7 days, so it
   // has its own source (/watchlist/) instead of filtering allSignals.
   const [watchlistIds, setWatchlistIds] = useState([]);
   const [watchlistSignals, setWatchlistSignals] = useState([]);
-  const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
+  const [showWatchlistOnly, setShowWatchlistOnly] = useState(boot.showWatchlistOnly);
   // Coin Flow Intensity (top-5) — di-inject dari Money Flow, "More" ke /money-flow.
   const [flowCoins, setFlowCoins] = useState([]);
   // Narrative row — CoinGecko categories the desk has 3+ calls in, plus how
@@ -586,7 +608,7 @@ const SignalsPage = () => {
   // [{ category_id, name, pairs:Set }] — the desk filtered to one or more
   // narratives. Multi-select behaves like the day strip: the picks are OR'd,
   // so adding a second narrative widens the view rather than narrowing it.
-  const [narratives, setNarratives] = useState([]);
+  const [narratives, setNarratives] = useState(boot.narratives);
   // One flat set, rebuilt only when the picks change — the filter chain runs
   // per signal and must not walk every narrative for each row.
   const narrativeActiveIds = useMemo(
@@ -606,7 +628,7 @@ const SignalsPage = () => {
   const goPricing = () => navigate("/pricing?src=signals_locked");
   const tabScrollRef = useRef(null); // horizontal scroll tab bar (day tabs)
   // Multi-level sort chain: [{ field, order }, ...] — primary first.
-  const [sorts, setSorts] = useState(() => [...DEFAULT_SORTS]);
+  const [sorts, setSorts] = useState(() => boot.sorts);
   const sortBy = sorts[0]?.field || "created_at";
   const sortOrder = sorts[0]?.order || "desc";
   const setSortBy = useCallback((field) => {
@@ -621,9 +643,9 @@ const SignalsPage = () => {
 
   // Tag intelligence (historical WR per important tag + active signal map).
   const [tagWr, setTagWr] = useState(() => bootCache?.tagWr || []); // raw list from /analytics/tag-wr
-  const [selectedTags, setSelectedTags] = useState([]); // multi-select tags (combine freely)
+  const [selectedTags, setSelectedTags] = useState(boot.selectedTags); // multi-select tags (combine freely)
   // any = OR (has at least one tag); all = AND (must carry every selected tag)
-  const [tagMatchMode, setTagMatchMode] = useState("any");
+  const [tagMatchMode, setTagMatchMode] = useState(boot.tagMatchMode);
   const [showAllTags, setShowAllTags] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
@@ -888,7 +910,15 @@ const SignalsPage = () => {
     [setSearchParams]
   );
 
+  // Narrowing the list invalidates whatever page you were on, so this snaps
+  // back to the first — except on mount, where it used to fire before anything
+  // had changed and overwrite the page just restored from the URL.
+  const deskBooted = useRef(false);
   useEffect(() => {
+    if (!deskBooted.current) {
+      deskBooted.current = true;
+      return;
+    }
     setPage(1);
   }, [
     searchPair,
@@ -953,7 +983,65 @@ const SignalsPage = () => {
   }, [watchlistSignals]);
 
   // all | taken | skipped | none — only meaningful on the Watchlist desk.
-  const [journalFilter, setJournalFilter] = useState("all");
+  const [journalFilter, setJournalFilter] = useState(boot.journalFilter);
+
+  // ...and put it all back, so the address bar describes the desk you are
+  // actually looking at. `replace` on purpose: a filter change is not a
+  // navigation, and pushing one per keystroke would make Back a chore instead
+  // of a way off the page. `signal`/`tab` belong to the modal and are carried
+  // through untouched — those DO push, which is what makes Back close it.
+  useEffect(() => {
+    const next = filtersToParams({
+      searchPair,
+      statusFilter,
+      riskFilter,
+      streakFilter,
+      corrDecoupled,
+      corrHighAlign,
+      edgeTop,
+      selectedTags,
+      tagMatchMode,
+      showWatchlistOnly,
+      narratives,
+      journalFilter,
+      page,
+      sorts,
+      // Written below instead: "no dates param" means today, which is not the
+      // same as an empty selection, which means every day.
+      selectedDates: [],
+    });
+    const dates = datesToParam(selectedDates, utcTodayYmd());
+    if (dates) next.set("dates", dates);
+
+    setSearchParams(
+      (prev) => {
+        const merged = new URLSearchParams(next);
+        const sig = prev.get("signal");
+        const tab = prev.get("tab");
+        if (sig) merged.set("signal", sig);
+        if (tab) merged.set("tab", tab);
+        return merged;
+      },
+      { replace: true }
+    );
+  }, [
+    searchPair,
+    statusFilter,
+    riskFilter,
+    streakFilter,
+    corrDecoupled,
+    corrHighAlign,
+    edgeTop,
+    selectedTags,
+    tagMatchMode,
+    showWatchlistOnly,
+    narratives,
+    journalFilter,
+    page,
+    sorts,
+    selectedDates,
+    setSearchParams,
+  ]);
 
   // Optimistic: the answer is the user's own, so the row should flip under the
   // thumb and only reconcile if the server disagrees. A failed write refetches
@@ -1518,6 +1606,11 @@ const SignalsPage = () => {
     setPage(1);
   }, []);
 
+  // Watchlist swaps the SOURCE (starred calls, any date) and drops the filters
+  // that only make sense against the day's book. It deliberately does NOT
+  // touch the sort chain: same rule as the modes above — a source is a set,
+  // a sort is the order you read it in, and wiping six levels someone built
+  // because they clicked Watchlist is the bounce this whole pass is about.
   const enterWatchlist = useCallback(() => {
     setMineExtra(null);
     setShowWatchlistOnly(true);
@@ -1529,7 +1622,6 @@ const SignalsPage = () => {
     setCorrDecoupled(false);
     setCorrHighAlign(false);
     setEdgeTop(null);
-    setSorts([...DEFAULT_SORTS]);
     setPage(1);
   }, []);
 

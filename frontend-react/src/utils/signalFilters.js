@@ -5,6 +5,15 @@
 // predikat di dua tempat — import dari sini.
 // ════════════════════════════════════════════════════════════════
 
+import {
+  DEFAULT_SORTS,
+  decodeSorts,
+  encodeSorts,
+  isDefaultSorts,
+  normalizeSorts,
+  sortsFromLegacy,
+} from "./signalSort";
+
 export const HOT_STREAK_MIN = 5;
 
 export const DEFAULT_FILTERS = {
@@ -23,6 +32,12 @@ export const DEFAULT_FILTERS = {
   showWatchlistOnly: false,
   sortBy: "created_at",
   sortOrder: "desc",
+  // The WHOLE chain, not just its head. `sortBy`/`sortOrder` stay for callers
+  // that only ever think in one level; they mirror sorts[0].
+  sorts: [...DEFAULT_SORTS],
+  narratives: [],
+  journalFilter: "all",
+  page: 1,
 };
 
 // ── Token-aware pair matching (copy dari SignalsPage) ──────────────
@@ -62,9 +77,34 @@ export function filtersToParams(f) {
   if (f.selectedTags?.length) p.set("tags", f.selectedTags.join(","));
   if (f.tagMatchMode === "all") p.set("tagmode", "all");
   if (f.showWatchlistOnly) p.set("wl", "1");
-  if (f.sortBy && f.sortBy !== "created_at") p.set("sort", f.sortBy);
-  if (f.sortOrder && f.sortOrder !== "desc") p.set("order", f.sortOrder);
+  if (f.narratives?.length) p.set("narr", f.narratives.join(","));
+  if (f.journalFilter && f.journalFilter !== "all") p.set("journal", f.journalFilter);
+  if (Number(f.page) > 1) p.set("page", String(Math.floor(Number(f.page))));
+
+  // The full chain goes in one param as "field:order,field:order".
+  // encodeSorts/decodeSorts were written for exactly this and then never
+  // imported by anything — the desk shipped able to build six sort levels and
+  // able to put only the first one in a URL, so reloading or sharing a
+  // drilled-down view quietly threw the rest away.
+  const chain = f.sorts ? normalizeSorts(f.sorts) : sortsFromLegacy(f.sortBy, f.sortOrder);
+  if (!isDefaultSorts(chain)) p.set("sort", encodeSorts(chain));
   return p;
+}
+
+/** Dates: absent means "the page's own default", which is not the same as "all
+ *  days". SignalsPage opens on today, so [today] is the thing worth leaving out
+ *  of the URL, and an explicit empty selection has to say so out loud. */
+export function datesToParam(dates, todayYmd) {
+  const list = Array.isArray(dates) ? dates : [];
+  if (list.length === 1 && list[0] === todayYmd) return null;
+  if (list.length === 0) return "all";
+  return list.join(",");
+}
+
+export function datesFromParam(raw, todayYmd) {
+  if (raw == null) return [todayYmd];
+  if (raw === "all" || raw === "") return [];
+  return String(raw).split(",").filter(Boolean);
 }
 
 export function parseFilters(searchParams) {
@@ -82,9 +122,25 @@ export function parseFilters(searchParams) {
     selectedTags: g("tags") ? g("tags").split(",").filter(Boolean) : [],
     tagMatchMode: g("tagmode") === "all" ? "all" : "any",
     showWatchlistOnly: g("wl") === "1",
-    sortBy: g("sort") || "created_at",
-    sortOrder: g("order") || "desc",
+    narratives: g("narr") ? g("narr").split(",").filter(Boolean) : [],
+    journalFilter: g("journal") || "all",
+    page: Math.max(1, Number(g("page")) || 1),
+    ...sortsFromParams(g("sort"), g("order")),
   };
+}
+
+/** `sort` carries the chain now; a bare field plus the old `order` param is
+ *  still a valid link and must keep working. */
+function sortsFromParams(sortRaw, orderRaw) {
+  const raw = sortRaw;
+  if (!raw) {
+    const chain = sortsFromLegacy("created_at", orderRaw === "asc" ? "asc" : "desc");
+    return { sorts: chain, sortBy: chain[0].field, sortOrder: chain[0].order };
+  }
+  const chain = raw.includes(":")
+    ? decodeSorts(raw)
+    : sortsFromLegacy(raw, orderRaw === "asc" ? "asc" : "desc");
+  return { sorts: chain, sortBy: chain[0].field, sortOrder: chain[0].order };
 }
 
 /** Score at the top-`pct`% boundary of `signals`, or null if too few scored.
