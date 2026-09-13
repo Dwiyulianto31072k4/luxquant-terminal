@@ -57,6 +57,7 @@ from app.api.routes.billing_state import router as billing_state_router
 from app.api.routes.agent_disclaimer import router as agent_disclaimer_router
 
 from app.api.routes.coin_profile import router as coin_profile_router
+from app.api.routes.similar_signals import router as similar_signals_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.signal_alert_filters import router as signal_alert_filters_router
@@ -307,6 +308,7 @@ app.include_router(admin_broadcast_router, tags=["admin-broadcast"])
 app.include_router(chat_router, tags=["chat"])
 app.include_router(admin_chat_router, tags=["admin-chat"])
 app.include_router(signal_journey.router, prefix="/api/v1/signals", tags=["signals-journey"])
+app.include_router(similar_signals_router, prefix="/api/v1/signals", tags=["signals-similar"])
 app.include_router(public_signals.router, prefix="/api/public/v1", tags=["public-signals"])
 app.include_router(public_data.router, prefix="/api/public/v1", tags=["public-data"])
 app.include_router(public_analytics.router, prefix="/api/public/v1", tags=["public-analytics"])

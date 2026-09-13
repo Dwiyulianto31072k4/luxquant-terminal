@@ -11,6 +11,7 @@ import SignalLevelsChart from "./charts/SignalLevelsChart";
 import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 import ShariahCheckModal, { SHARIAH_META } from "./ShariahCheckModal";
+import SimilarCallsModal from "./SimilarCallsModal";
 import useUiPrefs from "../hooks/useUiPrefs";
 import { useAuth } from "../context/AuthContext";
 import { useCurrency } from "../context/CurrencyContext";
@@ -114,6 +115,7 @@ const SignalModal = ({
   const { prefs: shariahPrefs } = useUiPrefs({ shariah_mode: false });
   const shariahEnabled = authUser?.is_admin === true || shariahPrefs.shariah_mode === true;
   const [showShariah, setShowShariah] = useState(false);
+  const [showSimilar, setShowSimilar] = useState(false);
   const [shariahStatus, setShariahStatus] = useState(null);
 
   useEffect(() => {
@@ -2326,6 +2328,31 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   ))}
                 </div>
 
+                {/* Similar setups. Labelled, not another icon: it answers a
+                    different question from every tab beside it ("this shape of
+                    setup, wherever it appeared") and an unlabelled glyph in a
+                    row of seven would never be found. */}
+                <button
+                  type="button"
+                  onClick={() => setShowSimilar(true)}
+                  title="Calls whose setup tags overlap this one"
+                  className="ml-1 hidden shrink-0 items-center gap-1.5 rounded-md border border-ink/10 px-2.5 py-1.5 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/20 hover:bg-ink/[0.04] hover:text-text-primary sm:flex"
+                >
+                  <svg
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="9" cy="9" r="6" />
+                    <circle cx="15" cy="15" r="6" />
+                  </svg>
+                  Similar
+                </button>
+
                 {/* Utility actions — alert + share stay visible; the rest
                     collapse into More on the phone so they don't fight the tabs. */}
                 <div className="relative flex shrink-0 items-center gap-1">
@@ -3256,6 +3283,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           </div>
         </div>
       </div>
+
+      <SimilarCallsModal
+        isOpen={showSimilar}
+        onClose={() => setShowSimilar(false)}
+        signal={signal}
+        onSwitchSignal={onSwitchSignal}
+      />
 
       {/* Deep Analysis Overlay */}
       <DeepAnalysis
