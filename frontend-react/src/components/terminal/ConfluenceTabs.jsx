@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import useShariahFilter from "../../hooks/useShariahFilter";
 import ShariahFilterNotice from "../ShariahFilterNotice";
 import CoinLogo from "../CoinLogo";
+import { watchlistApi } from "../../services/watchlistApi";
 import { useUiPrefs } from "../../hooks/useUiPrefs";
 import { DisplaySettings, TERMINAL_DISPLAY_DEFAULTS } from "./DisplaySettings";
 import { CompareTray } from "./CompareTray";
@@ -234,7 +235,7 @@ function FngBadge({ value, label }) {
   );
 }
 
-function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, _t }) {
+function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, watched, onWatch, _t }) {
   const v3 = s.v3 || {};
   const tags = v3.tags || [];
   const hasIntel = !!v3.direction;
@@ -263,6 +264,7 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, _
   // How much of this pair's typical post-call move is still ahead of you.
   // This is the decision-relevant number — see the note above rankOf() for why
   // we deliberately do NOT rank or badge by tag win-rate.
+  const cardEdge = edgeOf(tags);
   const room = roomLeftOf(fc, ps);
   const pctLeft = room && room.peak > 0 ? (room.left / room.peak) * 100 : null;
   const roomTone = pctLeft == null ? MUTED : pctLeft >= 60 ? POS : pctLeft >= 25 ? GOLD : NEG;
@@ -291,6 +293,19 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, _
           <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-text-muted truncate">
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dirColor }} />
             <span className="truncate">{sub}</span>
+            {/* Deliberately NOT behind a display toggle. Every informative layer
+                on this card is switchable, and on an account with all seven off
+                the card was a name and a percentage — which is exactly what it
+                looked like. This says why the card sits where it sits in the
+                ranking, so it belongs to the base card, not to a layer. */}
+            {cardEdge > 0 && (
+              <span
+                className="ml-auto shrink-0 rounded border border-positive/30 bg-positive/10 px-1 font-mono text-[9px] text-positive"
+                title={`This shape has reached TP3+ ${cardEdge.toFixed(1)}pp more often than the rest of the book`}
+              >
+                +{cardEdge.toFixed(1)}
+              </span>
+            )}
           </div>
         </div>
         <div className="ml-auto text-right shrink-0">
@@ -309,6 +324,36 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, _
             <StatusTag status={s.status} />
           </div>
         </div>
+        {/* Save to the watchlist without leaving the screener. It was reachable
+            only from the Signals table, which meant finding the call twice. */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onWatch?.(s);
+          }}
+          title={watched ? "Remove from watchlist" : "Save to watchlist"}
+          aria-label={watched ? "Remove from watchlist" : "Save to watchlist"}
+          aria-pressed={!!watched}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center self-start rounded-md border transition-colors ${
+            watched
+              ? "border-accent/40 bg-accent/15 text-accent"
+              : "border-transparent text-text-muted/50 hover:border-ink/15 hover:text-text-primary"
+          }`}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            fill={watched ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 2.8l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17l-5.6 3 1.1-6.2L3 9.4l6.2-.9z" />
+          </svg>
+        </button>
+
         {/* Pin sits IN the header row — floating it over the corner covered
             the % value, which is the first thing you read on a card. */}
         <button
@@ -566,6 +611,45 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
   const { t } = useTranslation();
   const { prefs } = useUiPrefs(TERMINAL_DISPLAY_DEFAULTS);
   const [pins, setPins] = useState([]); // signal_ids, max 6 (see CompareTray)
+
+  // Watchlist, read once for the tab rather than per card: ninety cards asking
+  // "am I saved?" one at a time is ninety requests for one answer.
+  const [watchIds, setWatchIds] = useState(() => new Set());
+  useEffect(() => {
+    let dead = false;
+    watchlistApi
+      .getWatchlistIds()
+      .then((ids) => {
+        if (!dead) setWatchIds(new Set(Array.isArray(ids) ? ids : ids?.signal_ids || []));
+      })
+      .catch(() => {});
+    return () => {
+      dead = true;
+    };
+  }, []);
+
+  // Optimistic, and it puts the row back if the call fails — a star that lies
+  // about what is saved is worse than one that is slow.
+  const toggleWatch = (sig) => {
+    const id = sig?.signal_id;
+    if (!id) return;
+    const had = watchIds.has(id);
+    setWatchIds((cur) => {
+      const next = new Set(cur);
+      if (had) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    const call = had ? watchlistApi.removeFromWatchlist(id) : watchlistApi.addToWatchlist(id);
+    call.catch(() => {
+      setWatchIds((cur) => {
+        const back = new Set(cur);
+        if (had) back.add(id);
+        else back.delete(id);
+        return back;
+      });
+    });
+  };
   const [cmpOpen, setCmpOpen] = useState(false);
   const togglePin = (sig) =>
     setPins((cur) =>
@@ -821,6 +905,8 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
               prefs={prefs}
               pinned={pins.includes(s.signal_id)}
               onPin={togglePin}
+              watched={watchIds.has(s.signal_id)}
+              onWatch={toggleWatch}
               flow={{ liq: liqMap[s.pair], tf: flowMap[baseSym(s.pair)] }}
             />
           ))}
