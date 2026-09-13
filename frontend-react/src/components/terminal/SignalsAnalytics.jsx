@@ -639,9 +639,16 @@ export default function SignalsAnalytics() {
   return (
     <div className="flex flex-col min-w-0 w-full min-h-0 lg:h-full">
       {/* ── pinned filter chrome (does not scroll) ── */}
-      <div className="shrink-0 z-20 space-y-1.5 border-b border-ink/[0.07] bg-surface px-1 pb-2.5 pt-0.5">
-        {/* Row 1: search · status · live meta */}
-        <div className="flex items-center gap-2 min-w-0">
+      {/* ONE toolbar, not two stacked rows.
+          It was search + status on one line and window + sector + risk on the
+          next, and the two lines did not agree on anything: the window group
+          was hand-rolled next to a SegControl with the same job, down to
+          border-ink/[0.07] against [0.06] and px-2.5 against px-2 — close
+          enough to look like a mistake rather than a choice. Same primitive for
+          both now, one wrapping row, and the live meta pinned to its end
+          instead of floating at the edge of the first line. */}
+      <div className="shrink-0 z-20 border-b border-ink/[0.07] bg-surface px-1 pb-2.5 pt-0.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 min-w-0">
           <div className="relative shrink-0">
             <svg
               className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted/45"
@@ -661,7 +668,7 @@ export default function SignalsAnalytics() {
             />
           </div>
 
-          <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="min-w-0 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <SegControl
               className="min-w-max"
               value={filters.st}
@@ -673,7 +680,7 @@ export default function SignalsAnalytics() {
             />
           </div>
 
-          <div className="ml-auto hidden lg:flex shrink-0 items-center gap-3 font-mono text-[10px] text-text-muted/70 pl-2">
+          <div className="order-last ml-auto hidden lg:flex shrink-0 items-center gap-3 font-mono text-[10px] text-text-muted/70 pl-2">
             {agg.btcPrice && (
               <span className="tabular-nums whitespace-nowrap">
                 BTC{" "}
@@ -702,37 +709,19 @@ export default function SignalsAnalytics() {
               </span>
             )}
           </div>
-        </div>
 
-        {/* Row 2: window · sector · risk · beta · reset */}
-        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-          <div
-            className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-ink/[0.03] border border-ink/[0.07]"
-            role="group"
-            aria-label="Time window"
-          >
-            <span className="hidden sm:inline px-1.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-text-muted/55">
-              Window
-            </span>
-            {[
-              { n: 1, label: "1D" },
-              { n: 3, label: "3D" },
-              { n: 7, label: "7D" },
-            ].map(({ n, label }) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setWindowDays(n)}
-                className={`px-2.5 py-1 rounded-md font-mono text-[10px] tracking-wide transition-colors ${
-                  windowDays === n
-                    ? "bg-ink/[0.1] text-text-primary font-semibold shadow-sm"
-                    : "text-text-muted/60 hover:text-text-primary"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* Same SegControl as the status pills. The inline "Window" caption
+              went with it: 1D / 3D / 7D says what it is, and no other control
+              in this row wears its own name. */}
+          <SegControl
+            value={String(windowDays)}
+            onChange={(id) => setWindowDays(Number(id))}
+            options={[
+              { id: "1", label: "1D" },
+              { id: "3", label: "3D" },
+              { id: "7", label: "7D" },
+            ]}
+          />
 
           <FilterMulti
             label={t("terminal.viz.filterSector")}
