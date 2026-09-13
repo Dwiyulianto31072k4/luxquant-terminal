@@ -814,7 +814,12 @@ async def export_journal_excel(
     ws2 = wb.create_sheet("Summary Stats")
     ws2.sheet_properties.tabColor = "534AB7"
 
-    stats = await get_journal_stats(current_user, db, date_from, date_to)
+    # Same plain `def` as in ai/insights. This one was hidden behind the
+    # missing openpyxl import — the export raised on the dependency before it
+    # ever reached the line that would have raised on the await.
+    stats = get_journal_stats(
+        current_user=current_user, db=db, date_from=date_from, date_to=date_to
+    )
 
     summary_data = [
         ("LuxQuant Trade Journal Summary", ""),
