@@ -106,9 +106,23 @@ export default function SimilarCallsModal({ isOpen, onClose, signal, onSwitchSig
         </div>
       )}
 
+      {/* Two different nothings, and saying the wrong one makes the feature
+          look broken. A call is tagged by the enricher AFTER it is published,
+          so a fresh call has no fingerprint yet — that is "not analysed", not
+          "nothing matches". Found by testing against the newest call on the
+          book, which returned zero for exactly this reason. */}
       {!loading && !error && items.length === 0 && (
         <div className="py-10 text-center text-[12px] text-text-muted">
-          No call in the last 90 days shares enough of this setup to be worth showing.
+          {s?.basis_tags?.length ? (
+            "No call in the last 90 days shares enough of this setup to be worth showing."
+          ) : (
+            <>
+              This call has not been tagged yet, so there is nothing to match on.
+              <span className="mt-1 block text-[11px]">
+                Tags are written shortly after a call is published — try again in a little while.
+              </span>
+            </>
+          )}
         </div>
       )}
 
