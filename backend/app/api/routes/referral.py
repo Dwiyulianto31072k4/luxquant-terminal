@@ -44,6 +44,7 @@ from app.models.referral import (
     REFERRAL_STATUS_PENDING,
 )
 from app.models.credit import CreditLedger
+from app.models.subscription import SubscriptionPlan
 from app.schemas.referral import (
     ReferralCodeCreate,
     ReferralCodeResponse,
@@ -214,6 +215,16 @@ def get_stats(
     recent_referees = [RefereeItem(**item) for item in recent_items]
 
     pct = float(code_obj.commission_pct or 10)
+    # Read the real prices. These were hardcoded 50 / 400 / 1000, so the day a
+    # plan price moved this page quietly kept quoting the old commission — the
+    # one number a referrer decides whether to bother on.
+    _prices = {
+        name: float(price or 0)
+        for name, price in db.query(SubscriptionPlan.name, SubscriptionPlan.price_usdt).all()
+    }
+    p_month = _prices.get("monthly", 50.0)
+    p_year = _prices.get("yearly", 500.0)
+    p_life = _prices.get("lifetime", 1000.0)
     return ReferralStatsResponse(
         code=code_data,
         funnel=ReferralFunnelResponse(**funnel_data),
@@ -221,9 +232,12 @@ def get_stats(
         recent_referees=recent_referees,
         estimator=ReferralEstimator(
             commission_pct=pct,
-            monthly_usdt=round(50 * pct / 100, 2),
-            annual_usdt=round(400 * pct / 100, 2),
-            lifetime_usdt=round(1000 * pct / 100, 2),
+            monthly_usdt=round(p_month * pct / 100, 2),
+            annual_usdt=round(p_year * pct / 100, 2),
+            lifetime_usdt=round(p_life * pct / 100, 2),
+            monthly_price=p_month,
+            annual_price=p_year,
+            lifetime_price=p_life,
         ),
     )
 

@@ -26,7 +26,9 @@ export const pricingEn = {
 
   monthly_desc: "Each cycle. No auto-renewal.",
   yearly_desc: "Twelve months. Best value.",
-  yearly_save: "Save 33%",
+  // 500 against 12 x 50 = 600. Keep this in step with the plan prices in
+  // the database — an overstated saving is a claim we cannot support.
+  yearly_save: "Save 17%",
   lifetime_desc: "Pay once. Keep access.",
   best_value: "Best value",
 
@@ -150,7 +152,7 @@ export const pricingEn = {
     "Free includes Pulse, Bitcoin, Markets, News, journal, and the public track record — so you can audit calls before you pay. Paid unlocks live signal levels (entry, targets, stop), the Called overlay on Pulse, on-chain intelligence, AI research, and the full terminal.",
   faq_q2: "What’s the difference between Monthly, Annual, and Lifetime?",
   faq_a2:
-    "The terminal is the same. Monthly is billed every 30 days when you choose to pay again. Annual is one payment for twelve months (about 33% less). Lifetime is one payment for ongoing access. Support is standard on Monthly, priority on Annual, dedicated on Lifetime. Special requests — including Agent — start at Annual.",
+    "The terminal is the same. Monthly is billed every 30 days when you choose to pay again. Annual is one payment for twelve months (about 17% less). Lifetime is one payment for ongoing access. Support is standard on Monthly, priority on Annual, dedicated on Lifetime. Special requests — including Agent — start at Annual.",
   faq_q3: "How do I pay — and why USDT?",
   faq_a3:
     "Pay with USDT on BNB Smart Chain (BEP-20). We issue a unique address for your invoice, verify the transfer on-chain, and open access automatically. We never send a wallet address by Telegram, email, or chat. If someone messages you an address, it is not us. If you prefer a bank transfer or another network, use “Pay another way” and we’ll match it by hand.",
@@ -245,7 +247,7 @@ export const pricingZh = {
 
   monthly_desc: "按周期支付。无自动续费。",
   yearly_desc: "十二个月。更划算。",
-  yearly_save: "节省 33%",
+  yearly_save: "节省 17%",
   lifetime_desc: "一次支付，持续访问。",
   best_value: "最佳价值",
 
@@ -369,7 +371,7 @@ export const pricingZh = {
     "免费包含 Pulse、Bitcoin、Markets、新闻、交易日志与公开战绩 — 付费前即可核验信号。付费解锁实时信号档位（入场、目标、止损）、Pulse 上的 Called 叠加、链上情报、AI 研究与完整终端。",
   faq_q2: "月付、年付和终身有何区别？",
   faq_a2:
-    "终端相同。月付每 30 天在你选择再次支付时计费。年付一次支付覆盖十二个月（约节省 33%）。终身一次支付，持续访问。支持：月付标准，年付优先，终身专属。特殊需求（含 Agent）从年度开始。",
+    "终端相同。月付每 30 天在你选择再次支付时计费。年付一次支付覆盖十二个月（约节省 17%）。终身一次支付，持续访问。支持：月付标准，年付优先，终身专属。特殊需求（含 Agent）从年度开始。",
   faq_q3: "如何支付 — 为什么是 USDT？",
   faq_a3:
     "使用 BNB 智能链 (BEP-20) 上的 USDT。我们为你的发票签发唯一地址，在链上验证转账并自动开通。我们绝不通过 Telegram、邮件或聊天发送钱包地址。若有人私信给你地址，那不是我们。若你更想银行转账或其他网络，使用「其他支付方式」，我们会人工匹配。",

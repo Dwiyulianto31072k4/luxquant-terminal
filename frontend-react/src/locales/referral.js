@@ -45,9 +45,12 @@ export const referralEn = {
   step3_desc: "USDT when they subscribe. 3 who use + 1 who pays unlock 7 days for you.",
 
   estimator_title: "If they subscribe",
-  estimator_monthly: "Monthly $50",
-  estimator_annual: "Annual $400",
-  estimator_lifetime: "Lifetime $1,000",
+  // No prices here. They were literals in two locale files, so a price
+  // change left this page quoting the old one until someone noticed; the
+  // component appends the live figure the API returns.
+  estimator_monthly: "Monthly",
+  estimator_annual: "Annual",
+  estimator_lifetime: "Lifetime",
   you_earn: "You earn",
 
   scripts_title: "Ready to send",
@@ -123,9 +126,9 @@ export const referralZh = {
   step3_desc: "他们订阅你赚 USDT；3 位使用者 + 1 位付费解锁 7 天。",
 
   estimator_title: "如果他们订阅",
-  estimator_monthly: "月付 $50",
-  estimator_annual: "年付 $400",
-  estimator_lifetime: "终身 $1,000",
+  estimator_monthly: "月付",
+  estimator_annual: "年付",
+  estimator_lifetime: "终身",
   you_earn: "你获得",
 
   scripts_title: "现成文案",

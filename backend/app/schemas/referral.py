@@ -304,6 +304,12 @@ class ReferralEstimator(BaseModel):
     monthly_usdt: float = 5
     annual_usdt: float = 40
     lifetime_usdt: float = 100
+    # The plan prices these commissions come from. The page used to print them
+    # as literal text in two locale files, so raising a price left the referral
+    # page advertising the old one until someone noticed.
+    monthly_price: float = 50
+    annual_price: float = 500
+    lifetime_price: float = 1000
 
 
 class ReferralStatsResponse(BaseModel):

@@ -177,12 +177,24 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
   );
 };
 
+// Plan prices are whole dollars; 1000 reads better with a separator, and a
+// stray .00 from the API would read as precision nobody asked for.
+const fmtPlanPrice = (v) => Number(v || 0).toLocaleString("en-US");
+
 const ReferralPage = () => {
   const { t } = useTranslation();
   const [code, setCode] = useState(null);
   const [funnel, setFunnel] = useState(null);
   const [earnings, setEarnings] = useState(null);
-  const [estimator, setEstimator] = useState({ monthly_usdt: 5, annual_usdt: 40, lifetime_usdt: 100, commission_pct: 10 });
+  const [estimator, setEstimator] = useState({
+    monthly_usdt: 5,
+    annual_usdt: 50,
+    lifetime_usdt: 100,
+    commission_pct: 10,
+    monthly_price: 50,
+    annual_price: 500,
+    lifetime_price: 1000,
+  });
   const [refereesPage, setRefereesPage] = useState({ items: [], total: 0, page: 1, has_more: false });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("overview");
@@ -543,9 +555,18 @@ const ReferralPage = () => {
         <h2 className="mb-4 text-sm font-semibold text-text-primary">{t("referral.estimator_title")}</h2>
         <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {[
-            { label: t("referral.estimator_monthly"), value: estimator.monthly_usdt },
-            { label: t("referral.estimator_annual"), value: estimator.annual_usdt },
-            { label: t("referral.estimator_lifetime"), value: estimator.lifetime_usdt },
+            {
+              label: `${t("referral.estimator_monthly")} $${fmtPlanPrice(estimator.monthly_price)}`,
+              value: estimator.monthly_usdt,
+            },
+            {
+              label: `${t("referral.estimator_annual")} $${fmtPlanPrice(estimator.annual_price)}`,
+              value: estimator.annual_usdt,
+            },
+            {
+              label: `${t("referral.estimator_lifetime")} $${fmtPlanPrice(estimator.lifetime_price)}`,
+              value: estimator.lifetime_usdt,
+            },
           ].map((row) => (
             <div key={row.label} className="rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-1.5 py-3 text-center sm:p-3">
               <div className="mb-1 flex justify-center">
