@@ -4,86 +4,25 @@
 // size was the smaller problem: every hook here — the percentile fit, promote(),
 // useZoom — ran on EVERY render of EVERY tab, because they sat at the top of the
 // shared component. They now run when this tab is open and not otherwise.
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine,
-} from "recharts";
 import CoinLogo from "../../CoinLogo";
+import AnomalyScatter from "./AnomalyScatter";
 import {
   XCard,
   Kpi,
   SectionBand,
   STATUS_LABEL,
-  GRID,
-  NEG,
-  POS,
-  PURPLE,
-  MUTED,
-  StatusTag,
-  CoinPill,
   RankBars,
-  useZoom,
   useChartHeight,
-  pctRange,
-  pctBound,
-  clampRange,
-  promote,
-  namedLast,
-  statusColorOf,
-  CoinBubble,
-  ScatterTip,
   GOLD,
   CYAN,
   GRAYBAR,
-  TICK,
-  fmtAxis,
   fmtPct,
 } from "../vizShared";
-import { ANOM_FLOOR, ANOM_Y_TICKS, ANOM_FILL, ANOM_SETUPS } from "../anomSetups";
+import { ANOM_SETUPS, ANOM_FILL } from "../anomSetups";
 import { STRONG_TAGS, WARN_TAGS } from "../tagGlossary";
 
-// Anomaly scatter dot — hot pumps glow + grow; decoupled stay cyan; rest muted.
-// Labels default on for hot/decoupled so the desk reads as names, not only dots.
-function AnomDot({ cx, cy, payload, statusMap, onPair, showLabel }) {
-  if (cx == null || cy == null || !payload) return null;
-  const sc = statusColorOf(statusMap, payload.pair);
-  const hot = !!payload.hot;
-  const dec = !!payload.dec;
-  // Colour is the regime, full stop. It used to be hot / decoupled / other,
-  // which is a strict subset of what the setup buttons now name — so the board
-  // said "grey" for absorption, capitulation and thin pumps alike and the chips
-  // promised a distinction the chart did not draw. Thin pump and capitulation
-  // share red because both are caution; WHERE the dot sits (right of zero or
-  // left of it) already says which kind, so the colour does not have to.
-  const fill = ANOM_FILL[payload.setup] || GRAYBAR;
-  // `named` already encodes "this one has room"; the Names control only decides
-  // how tightly we are willing to pack, and Off turns them all back into dots.
-  const named = !!showLabel && payload.named === true;
-  return (
-    <g>
-      {hot && <circle cx={cx} cy={cy} r={named ? 22 : 12} fill={GOLD} fillOpacity={0.12} />}
-      <CoinBubble
-        cx={cx}
-        cy={cy}
-        r={hot ? 8 : dec ? 6.5 : 4.5}
-        pair={payload.pair}
-        fill={fill}
-        ring={sc || (hot ? "rgba(240,216,144,0.7)" : undefined)}
-        named={named}
-        onClick={() => payload.pair && onPair?.(payload.pair)}
-        title={payload.pair}
-      />
-    </g>
-  );
-}
 
 export default function AnomalyTab({
   agg,
@@ -193,51 +132,32 @@ export default function AnomalyTab({
     if (anomLayer === "dec") return pts.filter((p) => p.dec);
     return pts.filter((p) => p.setup === anomLayer);
   }, [agg.anomPts, anomLayer]);
-  // Not ±anomXB. 24h change is not symmetric on any given day — on an up day
-  // it runs about -4%..+18% — and mirroring the larger side handed half the
-  // canvas to a region no coin was in. Zero stays inside, because the chart is
-  // read against it.
-  const anomXR = pctRange(
-    agg.anomPts.map((p) => p.x),
-    0.98,
-    0,
-    8
-  );
-  const anomYB = pctBound(agg.anomPts.map((p) => p.y), 0.99, 20);
   // Y is zoomed and panned in log space, so the gesture stays linear and each
   // decade keeps the same height on screen.
-  const zAnom = useZoom(
-    anomXR[0],
-    anomXR[1],
-    Math.log10(ANOM_FLOOR),
-    Math.log10(Math.max(anomYB, ANOM_FLOOR * 10))
+  // The card's zoom buttons now drive the canvas chart. ECharts owns pan and
+  // wheel-zoom itself; this only gives the three buttons something real to do,
+  // and tells the card when there is a view worth resetting.
+  const anomApi = useRef(null);
+  const [anomZoomed, setAnomZoomed] = useState(false);
+  const anomZoom = useMemo(
+    () => ({
+      zoomIn: () => {
+        anomApi.current?.zoomIn();
+        setAnomZoomed(true);
+      },
+      zoomOut: () => {
+        anomApi.current?.zoomOut();
+        setAnomZoomed(anomApi.current?.isZoomed() ?? false);
+      },
+      reset: () => {
+        anomApi.current?.reset();
+        setAnomZoomed(false);
+      },
+      zoomed: anomZoomed,
+      nudge: false,
+    }),
+    [anomZoomed]
   );
-  // Which points carry a name. This used to be a flat "top 14 by distance from
-  // the origin", drawn with no idea where its neighbours were — which is how
-  // GRIFFAIN and ALCH ended up printed on top of each other as "GIFLOCK:N".
-  // promote() ranks the same way and then refuses a name to anything that would
-  // land on one already placed. It also runs on the FILTERED set, so picking a
-  // setup names that setup's members rather than whichever of the global
-  // fourteen happen to survive the filter.
-  const anomNamed = useMemo(() => {
-    const yRef = Math.log10(Math.max(agg.medFlow * 3, ANOM_FLOOR));
-    return promote(
-      anomChartPts.map((p) => ({ pair: p.pair, x: p.x, y: p.yl })),
-      anomXR,
-      [Math.log10(ANOM_FLOOR), Math.log10(Math.max(anomYB, ANOM_FLOOR * 10))],
-      heroH,
-      // "Ranked" spaces a handful generously. "Most names" packs them as
-      // tightly as a ticker physically fits — which is what that button is for.
-      // It used to mean "draw all 400 regardless", and 400 names in the space
-      // of 40 is not more information, it is a grey smear where a name used to
-      // be readable.
-      anomLabels === "all" ? 400 : anomLayer === "all" ? 16 : 26,
-      (p) => Math.hypot(p.x / 25, (p.y - yRef) / 1.2),
-      anomLabels === "all" ? { w: 44, h: 44 } : undefined
-    );
-    // anomXR is derived from agg on every render; agg is what changes under it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anomChartPts, agg.medFlow, anomYB, heroH, anomLayer, anomLabels]);
 
   return (
     <>
@@ -399,7 +319,7 @@ export default function AnomalyTab({
                 title={t("terminal.viz.anomTitle")}
                 guide="anom"
                 desc={t("terminal.viz.anomDesc")}
-                zoom={zAnom}
+                zoom={anomZoom}
                 size="hero"
                 hint={t("terminal.viz.anomHint")}
                 render={(h) => (
@@ -547,88 +467,18 @@ export default function AnomalyTab({
                     </div>
 
                     <div className="min-w-0" style={{ height: h }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart margin={{ top: 12, right: 48, left: 0, bottom: 8 }}>
-                          <CartesianGrid stroke={GRID} strokeDasharray="3 6" />
-                          <XAxis
-                            type="number"
-                            dataKey="x"
-                            tick={TICK}
-                            axisLine={false}
-                            tickLine={false}
-                            unit="%"
-                            domain={zAnom.domX}
-                            allowDataOverflow
-                            tickFormatter={fmtAxis}
-                          />
-                          <YAxis
-                            type="number"
-                            dataKey="yl"
-                            tick={TICK}
-                            axisLine={false}
-                            tickLine={false}
-                            domain={zAnom.domY}
-                            allowDataOverflow
-                            ticks={ANOM_Y_TICKS.filter(
-                              (v) => v >= zAnom.domY[0] && v <= zAnom.domY[1]
-                            )}
-                            tickFormatter={(v) => `${fmtAxis(10 ** v)}%`}
-                            width={56}
-                            minTickGap={26}
-                          />
-                          <Tooltip
-                            content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />}
-                            cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                          />
-                          <ReferenceLine
-                            x={0}
-                            stroke="rgb(var(--accent) / 0.35)"
-                            strokeDasharray="4 4"
-                          />
-                          {agg.medFlow > 0 && (
-                            <ReferenceLine
-                              y={Math.log10(Math.max(agg.medFlow * 3, ANOM_FLOOR))}
-                              stroke="rgba(251,146,60,0.55)"
-                              strokeDasharray="4 4"
-                              label={{
-                                value: "3× flow",
-                                position: "insideTopRight",
-                                fill: "rgba(251,146,60,0.7)",
-                                fontSize: 10.5,
-                                fontFamily: "JetBrains Mono",
-                              }}
-                            />
-                          )}
-                          <Scatter
-                            data={namedLast(
-                              anomChartPts.map((p) => ({
-                                ...p,
-                                x: clampRange(p.x, anomXR),
-                                named: anomNamed.has(p.pair),
-                              }))
-                            )}
-                            shape={(props) => (
-                              <AnomDot
-                                {...props}
-                                statusMap={statusMap}
-                                onPair={openPair}
-                                showLabel={
-                                  anomLabels === "off"
-                                    ? false
-                                    : anomLabels === "all"
-                                      ? "all"
-                                      : true
-                                }
-                              />
-                            )}
-                            isAnimationActive={false}
-                            onClick={(p) => {
-                              const d = p?.payload || p;
-                              if (d?.pair) openPair(d.pair);
-                            }}
-                          />
-                        </ScatterChart>
-                      </ResponsiveContainer>
+                      <AnomalyScatter
+                        points={anomChartPts}
+                        medFlow={agg.medFlow}
+                        statusMap={statusMap}
+                        onPair={openPair}
+                        height={h}
+                        labelMode={anomLabels}
+                        maxNames={anomLayer === "all" ? 16 : 26}
+                        onApi={(api) => {
+                          anomApi.current = api;
+                        }}
+                      />
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center justify-center gap-3 border-t border-ink/[0.04] pt-1.5 shrink-0">
                       {/* The legend under the plot is where people look for

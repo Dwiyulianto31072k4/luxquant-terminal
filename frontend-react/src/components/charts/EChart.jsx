@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import * as echarts from "echarts/core";
-import { LineChart, BarChart } from "echarts/charts";
-import { GridComponent, TooltipComponent } from "echarts/components";
+import { LineChart, BarChart, ScatterChart } from "echarts/charts";
+import {
+  GridComponent,
+  TooltipComponent,
+  DataZoomComponent,
+  MarkLineComponent,
+  MarkAreaComponent,
+} from "echarts/components";
+import { LabelLayout } from "echarts/features";
 import { CanvasRenderer } from "echarts/renderers";
 
 /**
@@ -12,7 +19,23 @@ import { CanvasRenderer } from "echarts/renderers";
  * needs a new series type — GaugeChart and PieChart are deliberately absent
  * until the Opportunity tab exists.
  */
-echarts.use([LineChart, BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
+echarts.use([
+  LineChart,
+  BarChart,
+  // Scatter, dataZoom and LabelLayout arrive together for the dense terminal
+  // charts: a 400-point field is where canvas rendering stops being a nicety,
+  // dataZoom is the gesture layer (and the only one that can be told to demand
+  // a modifier key), and LabelLayout's hideOverlap is the collision test we
+  // otherwise write by hand.
+  ScatterChart,
+  GridComponent,
+  TooltipComponent,
+  DataZoomComponent,
+  MarkLineComponent,
+  MarkAreaComponent,
+  LabelLayout,
+  CanvasRenderer,
+]);
 
 const TOKENS = [
   "--accent",
