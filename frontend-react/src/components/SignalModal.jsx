@@ -2328,18 +2328,28 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   ))}
                 </div>
 
-                {/* Similar setups. Labelled, not another icon: it answers a
-                    different question from every tab beside it ("this shape of
-                    setup, wherever it appeared") and an unlabelled glyph in a
-                    row of seven would never be found. */}
+                {/* Similar setups.
+                    Three things were wrong with the first cut. It was
+                    `hidden sm:flex`, so on a phone the feature did not exist
+                    at all. It was muted grey among muted grey tabs, so nothing
+                    said it was the one control here that goes somewhere new.
+                    And `justify-between` on the row left it stranded in the
+                    middle, belonging to neither the tabs nor the icons —
+                    `sm:mr-auto` parks it against the tab rail instead, which
+                    is where its meaning lives.
+                    Accent, not another outline: this is the only affordance in
+                    the row that opens a different set of calls. Full label on
+                    desktop, one word on a phone, where four tabs already share
+                    the width. */}
                 <button
                   type="button"
                   onClick={() => setShowSimilar(true)}
-                  title="Calls whose setup tags overlap this one"
-                  className="ml-1 hidden shrink-0 items-center gap-1.5 rounded-md border border-ink/10 px-2.5 py-1.5 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/20 hover:bg-ink/[0.04] hover:text-text-primary sm:flex"
+                  title={t("modal.similar_hint")}
+                  aria-label={t("modal.similar_hint")}
+                  className="ml-1 flex shrink-0 items-center gap-0.5 rounded-lg border border-accent/35 bg-accent/10 px-1.5 py-1 text-[9px] font-semibold leading-none text-accent transition-colors hover:border-accent/60 hover:bg-accent/[0.18] sm:ml-2 sm:mr-auto sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[11px]"
                 >
                   <svg
-                    className="h-3.5 w-3.5"
+                    className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -2350,7 +2360,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     <circle cx="9" cy="9" r="6" />
                     <circle cx="15" cy="15" r="6" />
                   </svg>
-                  Similar
+                  <span className="sm:hidden">{t("modal.similar_short")}</span>
+                  <span className="hidden sm:inline">{t("modal.similar")}</span>
                 </button>
 
                 {/* Utility actions — alert + share stay visible; the rest

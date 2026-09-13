@@ -75,21 +75,24 @@ export default function SimilarCallsModal({ isOpen, onClose, signal, onSwitchSig
   const s = data?.summary;
   const items = data?.items || [];
 
+  // "Similar setups" described the mechanism; the title now says what you get.
+  // The subtitle carries the two facts that otherwise surprise people: these
+  // are other coins, and it only looks back 90 days.
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Similar setups"
+      title="Calls like this one"
       subtitle={
         signal?.pair
-          ? `Calls whose distinctive tags overlap ${sym(signal.pair)}'s — other pairs only`
-          : undefined
+          ? `Same setup shape as ${sym(signal.pair)} — other pairs, last 90 days`
+          : "Other pairs with the same setup shape, last 90 days"
       }
       size="lg"
     >
       {loading && (
         <div className="py-10 text-center text-[12px] text-text-muted">
-          Matching setups across the last 90 days…
+          Looking for calls that set up like this one…
         </div>
       )}
 
@@ -150,7 +153,7 @@ export default function SimilarCallsModal({ isOpen, onClose, signal, onSwitchSig
           {s?.basis_tags?.length > 0 && (
             <div className="mb-3">
               <p className="mb-1 text-[10px] uppercase tracking-wide text-text-muted">
-                Matched on this call&apos;s tags
+                What they have in common
               </p>
               <div className="flex flex-wrap gap-1">
                 {s.basis_tags.slice(0, 12).map((t) => (
