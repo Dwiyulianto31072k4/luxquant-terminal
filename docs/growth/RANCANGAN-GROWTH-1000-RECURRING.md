@@ -2,7 +2,8 @@
 
 **Tanggal:** 23 Juli 2026
 **Sasaran:** minimal 1.000 recurring subscriber per bulan
-**Batasan yang ditetapkan pemilik:** **paket harga TIDAK diubah** — Monthly $50 / Annual $400 / Lifetime $1.000 tetap seperti sekarang. Semua rancangan di bawah bekerja di atas struktur harga yang ada.
+**Batasan yang ditetapkan pemilik:** **paket harga TIDAK diubah** — Monthly $50 / Annual $400 / Lifetime $1.000 tetap seperti sekarang.
+> **Catatan 2026-09-13:** batasan ini sudah tidak berlaku — Annual dinaikkan ke **$500** (hemat 17%). Rancangan di bawah tetap sah, tapi angka perbandingannya ikut bergeser. Semua rancangan di bawah bekerja di atas struktur harga yang ada.
 
 ---
 
@@ -157,7 +158,7 @@ Isi pesan **bukan** "tagihan jatuh tempo", tapi bukti nilai:
 Riset: pause mengurangi churn 15–25%, dan yang pause **reaktivasi 70%** (vs 20% yang cancel). Tambahkan opsi "jeda 1 bulan" di halaman langganan.
 
 ### 3d. Dorong Annual di titik renewal
-Riset: 25–40% mau pindah annual bila ditawarkan saat renewal, churn turun 60–70%. **Tanpa mengubah harga** — cukup menampilkan perbandingan: $400/thn ≈ $33/bln vs $50/bln.
+Riset: 25–40% mau pindah annual bila ditawarkan saat renewal, churn turun 60–70%. **Tanpa mengubah harga** — cukup menampilkan perbandingan: $500/thn ≈ $42/bln vs $50/bln.
 
 ### 3e. Win-back
 28 user expired: satu kampanye berisi rekap performa selama mereka absen + jalur kembali.

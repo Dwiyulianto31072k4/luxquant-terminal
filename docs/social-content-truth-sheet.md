@@ -204,7 +204,7 @@ Model AI: Claude Haiku 4.5 (caption sosial), DeepSeek (assistant), xAI.
 |---|---|---|
 | Free | $0 | — |
 | Monthly | **$50** | 30 hari |
-| Annual | **$400** (hemat 33%) | 365 hari |
+| Annual | **$500** (hemat 17%) | 365 hari |
 | Lifetime | **$1,000** | selamanya |
 
 Pembayaran: **USDT di BNB Smart Chain (BEP-20)**, diverifikasi on-chain, aktivasi otomatis.
