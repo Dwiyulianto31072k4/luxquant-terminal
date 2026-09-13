@@ -20,6 +20,14 @@ SET    price_usdt = 500.00,
 WHERE  name = 'yearly'
   AND  price_usdt = 400.00;   -- no-op if it has already been changed
 
+-- The saving is also claimed in the plan's own description, which the API
+-- serves straight to the checkout. Missing this left the page quoting a 33%
+-- saving beside a price where it is 17%.
+UPDATE subscription_plans
+SET    description = 'Akses penuh selama 365 hari — Hemat 17%',
+       updated_at = NOW()
+WHERE  name = 'yearly';
+
 SELECT id, name, label, price_usdt, duration_days, is_active
 FROM   subscription_plans
 ORDER  BY sort_order, id;
