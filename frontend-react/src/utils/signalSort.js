@@ -11,27 +11,52 @@
 //   Shift/⌘/Ctrl → add / cycle that level in the chain (max MAX_SORTS)
 // ════════════════════════════════════════════════════════════════
 
-export const MAX_SORTS = 4;
+export const MAX_SORTS = 6;
 export const DEFAULT_SORTS = Object.freeze([{ field: "created_at", order: "desc" }]);
 
-export const SORT_LABELS = {
-  edge_score: "Edge",
-  created_at: "Called",
-  last_update: "Updated",
-  verdict: "Pair record",
-  win_rate: "Win rate",
-  win_streak: "Win streak",
-  max_target: "Max target %",
-  volume: "Volume",
-  btc_corr: "BTC align",
-  risk_level: "Risk",
-  status: "Status",
-  pair: "Pair",
-  entry: "Entry",
-  current_price: "Price",
-  market_cap: "MCap",
-  stop_loss: "Stop",
-};
+/**
+ * Every sortable field, once.
+ *
+ * This used to be two lists that nobody kept in step, and both had drifted:
+ * `turnover` had a comparator and a dropdown row but no label, so the filter
+ * chip printed the raw field name `turnover` next to properly named ones; and
+ * `verdict` had a label, a column and a multi-sort preset but no dropdown row,
+ * so the only way to reach it was to know that clicking the header worked.
+ * Opposite halves of the same gap.
+ *
+ * `label` is the short form for chips and the sort chain; `long` is the
+ * dropdown row, which has room to disambiguate. A field is sortable if and only
+ * if it is here — sortValue() below must have a case for each, and
+ * signalSort.test.js fails if the two ever part company again.
+ */
+export const SORT_FIELDS = Object.freeze([
+  { value: "edge_score", label: "Edge", long: "Edge Score (learn)" },
+  { value: "created_at", label: "Called", long: "Called Time" },
+  { value: "last_update", label: "Updated", long: "Last Update" },
+  { value: "pair", label: "Pair", long: "Pair Name" },
+  { value: "current_price", label: "Price", long: "Current Price" },
+  { value: "entry", label: "Entry", long: "Entry Price" },
+  { value: "max_target", label: "Max target %", long: "Max Target %" },
+  { value: "stop_loss", label: "Stop", long: "Stop Loss %" },
+  { value: "status", label: "Status", long: "Signal Status" },
+  { value: "risk_level", label: "Risk", long: "Risk Level" },
+  { value: "verdict", label: "Pair record", long: "Pair Record (win rate)" },
+  { value: "win_rate", label: "Win rate", long: "Win Rate" },
+  { value: "win_streak", label: "Win streak", long: "Win Streak" },
+  { value: "btc_corr", label: "BTC align", long: "BTC Alignment" },
+  { value: "market_cap", label: "MCap", long: "Market Cap" },
+  { value: "volume", label: "Volume", long: "Volume 24H" },
+  { value: "turnover", label: "Turnover", long: "Turnover (vol \u00f7 mcap)" },
+]);
+
+export const SORT_LABELS = Object.freeze(
+  Object.fromEntries(SORT_FIELDS.map((f) => [f.value, f.label]))
+);
+
+/** Is this a field we know how to sort by? Guards URLs and saved views. */
+export function isSortableField(field) {
+  return SORT_FIELDS.some((f) => f.value === field);
+}
 
 /** Fields where missing/null always sink (not treated as 0). */
 const NULLS_LAST = new Set([

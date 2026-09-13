@@ -45,6 +45,7 @@ import {
   promoteSortField,
   sortSignals,
   sortsFromLegacy,
+  SORT_FIELDS,
   SORT_LABELS as SORT_FIELD_LABELS,
   toggleSortLevel,
 } from "../utils/signalSort";
@@ -1867,24 +1868,14 @@ const SignalsPage = () => {
     "volume",
   ];
 
-  const sortOptions = [
-    { value: "edge_score", label: "Edge Score (learn)" },
-    { value: "created_at", label: "Called Time" },
-    { value: "last_update", label: "Last Update" },
-    { value: "pair", label: "Pair Name" },
-    { value: "current_price", label: "Current Price" },
-    { value: "entry", label: "Entry Price" },
-    { value: "max_target", label: "Max Target %" },
-    { value: "stop_loss", label: "Stop Loss %" },
-    { value: "status", label: "Signal Status" },
-    { value: "risk_level", label: "Risk Level" },
-    { value: "win_rate", label: "Win Rate" },
-    { value: "win_streak", label: "Win Streak" },
-    { value: "btc_corr", label: "BTC Alignment" },
-    { value: "market_cap", label: "Market Cap" },
-    { value: "volume", label: "Volume 24H" },
-    { value: "turnover", label: "Turnover (vol ÷ mcap)" },
-  ];
+  // One list, from signalSort. Kept here as a literal, this drifted from the
+  // comparators twice at once: it offered `turnover`, which had no label, and
+  // omitted `verdict`, which had one. The dropdown now cannot show a field the
+  // sorter cannot sort, or miss one it can.
+  const sortOptions = useMemo(
+    () => SORT_FIELDS.map((f) => ({ value: f.value, label: f.long })),
+    []
+  );
 
   // Expanded on request, or automatically when the active sort is not one of
   // the six — the selected row must never be hidden behind a toggle.

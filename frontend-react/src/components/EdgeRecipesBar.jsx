@@ -59,7 +59,17 @@ export function captureRecipeState(s) {
  * one of its filters was still applied and still listed in the chip bar. Dates
  * are not even captured — they are a slice, so Today then a mode must stay on
  * Today. The recipe is defined by the filters it sets — tags, status,
- * risk, streak, correlation and the sort chain — so only those decide.
+ * risk, streak and correlation — so only those decide.
+ *
+ * THE SORT CHAIN IS NOT PART OF IT, and used to be. A mode is a set of calls;
+ * a sort is the order you read that set in. Re-sorting inside Runners changed
+ * no membership at all — the table still said "33 / 709 signals" before and
+ * after — yet the rail dropped to All and took the dead All button below with
+ * it. Note the shape of the argument: `searchPair` genuinely narrows the list
+ * and is still allowed to live inside a recipe, so a sort, which narrows
+ * nothing whatsoever, cannot be the stricter of the two. A recipe still SETS a
+ * sort when you enter it (Runners ranks by Edge, which is the point); it just
+ * stops owning it afterwards.
  *
  * The bar used to STORE which recipe was clicked, and persist it. That made the
  * highlight drift the moment anything else touched the filters: "Clear all"
@@ -71,10 +81,6 @@ export function sameRecipeState(a, b) {
   const ta = [...(a.selectedTags || [])].sort();
   const tb = [...(b.selectedTags || [])].sort();
   if (ta.length !== tb.length || ta.some((t, i) => t !== tb[i])) return false;
-  const sa = a.sorts || [];
-  const sb = b.sorts || [];
-  if (sa.length !== sb.length) return false;
-  if (sa.some((x, i) => x.field !== sb[i].field || x.order !== sb[i].order)) return false;
   return (
     a.tagMatchMode === b.tagMatchMode &&
     a.statusFilter === b.statusFilter &&
@@ -339,7 +345,21 @@ export default function EdgeRecipesBar({
       return;
     }
     if (key === "all") {
-      if (modeValue !== "all" || customActive) onApplyState?.(ALL_MODE_STATE);
+      // `modeValue` falls back to "all" whenever no recipe matches, so it is
+      // NOT evidence that the desk is actually clear. Guarding on it meant that
+      // with eight filters applied and no recipe matching, All was highlighted
+      // and pressing it did nothing — the one control whose whole job is "give
+      // me everything back" was dead exactly when it was needed, and only
+      // Clear all still worked. Ask the state instead of the label.
+      //
+      // A sort is deliberately not a reason to fire: sameRecipeState ignores
+      // the chain, so All stays a no-op when only the ordering differs. The
+      // chip bar's own "Reset sort" owns that axis.
+      const alreadyClear =
+        !customActive &&
+        !watchlistActive &&
+        sameRecipeState(liveState, captureRecipeState(ALL_MODE_STATE));
+      if (!alreadyClear) onApplyState?.(ALL_MODE_STATE);
       return;
     }
     const r = builtins.find((x) => x.id === key);

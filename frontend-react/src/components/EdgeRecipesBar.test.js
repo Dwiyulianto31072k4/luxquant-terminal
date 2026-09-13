@@ -48,6 +48,41 @@ describe("a recipe stays on while you narrow inside it", () => {
       sameRecipeState(live({ selectedTags: ["VOL_CLIMAX", "BTC_VOLATILE"] }), hunt)
     ).toBe(true);
   });
+
+  // These two asserted `false` and sat under "turns off when its own filters
+  // change", which is where the bug lived: a sort is not one of its filters.
+  // Re-sorting inside Runners left the result set identical — 33 of 709 before
+  // and after — while the rail dropped to All. Search narrows for real and is
+  // allowed to stay inside a recipe, so an ordering that narrows nothing
+  // cannot be held to a stricter rule.
+  it("survives re-sorting on another field", () => {
+    expect(
+      sameRecipeState(live({ sorts: [{ field: "volume", order: "desc" }] }), hunt)
+    ).toBe(true);
+  });
+
+  it("survives flipping a sort direction", () => {
+    expect(
+      sameRecipeState(
+        live({
+          sorts: [
+            { field: "edge_score", order: "asc" },
+            { field: "created_at", order: "desc" },
+          ],
+        }),
+        hunt
+      )
+    ).toBe(true);
+  });
+
+  it("still remembers the sort it applied, for saved views", () => {
+    // Dropping it from IDENTITY must not drop it from CAPTURE: entering
+    // Runners should still rank by Edge.
+    expect(captureRecipeState({ ...hunt }).sorts).toEqual([
+      { field: "edge_score", order: "desc" },
+      { field: "created_at", order: "desc" },
+    ]);
+  });
 });
 
 describe("a recipe turns off when its own filters change", () => {
@@ -65,26 +100,6 @@ describe("a recipe turns off when its own filters change", () => {
 
   it("dropping the Edge cut", () => {
     expect(sameRecipeState(live({ edgeTop: null }), hunt)).toBe(false);
-  });
-
-  it("re-sorting", () => {
-    expect(
-      sameRecipeState(live({ sorts: [{ field: "volume", order: "desc" }] }), hunt)
-    ).toBe(false);
-  });
-
-  it("flipping a sort direction", () => {
-    expect(
-      sameRecipeState(
-        live({
-          sorts: [
-            { field: "edge_score", order: "asc" },
-            { field: "created_at", order: "desc" },
-          ],
-        }),
-        hunt
-      )
-    ).toBe(false);
   });
 
   it("clearing everything", () => {
