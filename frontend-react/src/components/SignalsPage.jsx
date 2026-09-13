@@ -21,6 +21,7 @@ import EdgeRecipesBar, { ALL_MODE_STATE } from "./EdgeRecipesBar";
 import SignalsCoinFlow from "./SignalsCoinFlow";
 import SignalsNarrativeFlow from "./SignalsNarrativeFlow";
 import SignalsJournalRecap from "./SignalsJournalRecap";
+import WatchlistAnalytics from "./WatchlistAnalytics";
 import SignalsCustomCalls from "./SignalsCustomCalls";
 import { signalAlertApi } from "../services/signalAlertApi";
 import Modal from "./ui/Modal";
@@ -2440,6 +2441,13 @@ const SignalsPage = () => {
 
       {showWatchlistOnly && journalStats.counts.all > 0 ? (
         <div className="space-y-2">
+          {/* What the saved calls DID, above the comparison of what you chose
+              to do about them. The order is deliberate: the outcome panels draw
+              from data every row already has, while the recap below needs marks
+              that nobody has made yet — a panel that works should not sit under
+              one that cannot. */}
+          <WatchlistAnalytics rows={watchlistSignals} deskWr={deskWr} />
+
           <SignalsJournalRecap stats={journalStats} deskWr={deskWr} />
 
           {/* The filter rail stays OUTSIDE the collapsible panel: on a phone the
