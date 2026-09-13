@@ -78,10 +78,20 @@ for r in app.routes:
     targets.append((path, url))
 
 
-# One process making ~300 sequential requests can exhaust the connection pool,
-# and the tail of a sweep then reports 500s that answer 200 on their own. Three
-# admin routes did exactly that once. If something appears broken here, call it
-# alone before believing it.
+# THIS SWEEP SHARES A DATABASE WITH LIVE TRAFFIC.
+#
+# Run back to back on 2026-09-13 it exhausted the connection pool and took a
+# paying partner's API down with it: 19 requests answered 500 inside a 56-second
+# window, all of them ours to own. It also poisons its own result — the tail of
+# a starved sweep reports 500s that answer 200 when called alone, which is how
+# three healthy admin routes briefly looked broken.
+#
+# So it paces itself. PAUSE is not politeness, it is the difference between an
+# audit and an outage. Raise it, never lower it, and if something looks broken
+# here, call it on its own before believing the sweep.
+PAUSE = 0.25
+
+
 async def run():
     # The shared HTTP clients are created in the app lifespan, which an ASGI
     # transport does not run — without this every Binance-backed route answers
@@ -100,6 +110,7 @@ async def run():
             except Exception as exc:
                 code, body = "EXC", f"{type(exc).__name__}: {exc}"
             rows.append((code, path, url, body))
+            await asyncio.sleep(PAUSE)
 
 
 asyncio.run(run())
@@ -108,7 +119,7 @@ bad = [r for r in rows if r[0] == "EXC" or (isinstance(r[0], int) and r[0] >= 50
 warn = [r for r in rows if isinstance(r[0], int) and 400 <= r[0] < 500]
 ok = [r for r in rows if isinstance(r[0], int) and r[0] < 400]
 
-print(f"GET routes exercised : {len(rows)}")
+print(f"GET routes exercised : {len(rows)}   (paced at {PAUSE}s — see the note above)")
 print(f"  2xx/3xx            : {len(ok)}")
 print(f"  4xx                : {len(warn)}")
 print(f"  5xx / exception    : {len(bad)}")
