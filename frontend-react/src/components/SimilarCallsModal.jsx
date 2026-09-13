@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import CoinLogo from "./CoinLogo";
 import Modal from "./ui/Modal";
+import { Z } from "../constants/zIndex";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -42,7 +43,18 @@ function when(iso) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-export default function SimilarCallsModal({ isOpen, onClose, signal, onSwitchSignal }) {
+// Z.nestedModal, like every other modal opened from inside the signal shell
+// (CoinUtilityModal, ShariahCheckModal, BTCCorrelationModal all default to it).
+// Taking ui/Modal's default meant Z.modal = 100_000, which is UNDER the shell's
+// 200_000 — the panel opened correctly and rendered behind the modal that
+// launched it, which reads as a dead button.
+export default function SimilarCallsModal({
+  isOpen,
+  onClose,
+  signal,
+  onSwitchSignal,
+  zIndex = Z.nestedModal,
+}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -89,6 +101,7 @@ export default function SimilarCallsModal({ isOpen, onClose, signal, onSwitchSig
           : "Other pairs with the same setup shape, last 90 days"
       }
       size="lg"
+      zIndex={zIndex}
     >
       {loading && (
         <div className="py-10 text-center text-[12px] text-text-muted">
