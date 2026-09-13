@@ -469,7 +469,8 @@ def _pair_timers(services: list[dict[str, Any]]) -> list[dict[str, Any]]:
 @router.get("/services")
 def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     """Live health of every monitored LuxQuant + infra unit."""
-    # This endpoint spawns a systemctl/journalctl subprocess per unit (~15-20).
+    # This endpoint spawns a systemctl/journalctl subprocess per unit (102 of
+    # them as of 2026-09-13, not the ~15-20 this comment used to claim).
     # On the admin dashboard it can be hit repeatedly, and that subprocess storm
     # is a real CPU spike on a 2-core box (a driver of the burst WORKER TIMEOUTs).
     # A short cache means rapid reloads read Redis instead of re-forking systemd.
@@ -564,6 +565,21 @@ def _remote_health(active_state: str, sub_state: str, result: str) -> str:
     return _health(active_state, sub_state, result)
 
 
+# A remote box is read over SSH, and that handshake is the single most expensive
+# thing on this endpoint: measured 2026-09-13, the Jakarta poll alone took
+# **4.87s of a 7.77s cold response** — 63% of it — while reachable and healthy.
+# Nothing was wrong with the box; an SSH round trip to another provider simply
+# costs that much, and it was being paid inside an admin page load every time
+# the 15s cache lapsed.
+#
+# Remote health does not change second to second, so it gets its own, longer
+# cache instead of riding the local one. A failure is cached too, but briefly,
+# so a box coming back shows up quickly rather than being pinned down for the
+# full window.
+REMOTE_CACHE_TTL_OK = 120
+REMOTE_CACHE_TTL_FAIL = 30
+
+
 def _remote_host(spec: str) -> dict[str, Any]:
     """Ask one remote box for its status. Never raises, never blocks for long."""
     parts = spec.split("|")
@@ -571,20 +587,29 @@ def _remote_host(spec: str) -> dict[str, Any]:
     label = parts[1] if len(parts) > 1 else target
     note = parts[2] if len(parts) > 2 else ""
 
+    cache_key = f"workspace:remote:{target}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     rc, out, err = _run([
         "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=6",
         "-o", "StrictHostKeyChecking=accept-new", target,
     ], timeout=14)
     if rc != 0 or not out.strip():
-        return {"label": label, "note": note, "target": target, "reachable": False,
+        down = {"label": label, "note": note, "target": target, "reachable": False,
                 "reason": (err or "no response").strip()[:160], "services": []}
+        cache_set(cache_key, down, ttl=REMOTE_CACHE_TTL_FAIL)
+        return down
 
     try:
         import json as _json
         d = _json.loads(out)
     except Exception as e:
-        return {"label": label, "note": note, "target": target, "reachable": False,
-                "reason": f"unreadable reply: {e}"[:160], "services": []}
+        bad = {"label": label, "note": note, "target": target, "reachable": False,
+               "reason": f"unreadable reply: {e}"[:160], "services": []}
+        cache_set(cache_key, bad, ttl=REMOTE_CACHE_TTL_FAIL)
+        return bad
 
     services = []
     for u in d.get("units", []):
@@ -611,7 +636,7 @@ def _remote_host(spec: str) -> dict[str, Any]:
             # the ability to stop the proxy every other service depends on.
             "read_only": True,
         })
-    return {
+    ok = {
         "label": label, "note": note, "target": target, "reachable": True,
         "hostname": d.get("host", ""),
         "uptime_seconds": d.get("uptime_s"),
@@ -619,6 +644,8 @@ def _remote_host(spec: str) -> dict[str, Any]:
         "disk": d.get("disk"),
         "services": services,
     }
+    cache_set(cache_key, ok, ttl=REMOTE_CACHE_TTL_OK)
+    return ok
 
 
 @router.get("/services/topology")
