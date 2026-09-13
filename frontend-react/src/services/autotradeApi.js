@@ -238,6 +238,15 @@ export const setStrategyActive = (exchange, active) =>
     body: { active },
   });
 
+// Dry run gets its own write for the same reason `active` does: it decides
+// whether real orders reach the exchange, and a safety switch that waits for a
+// Save button is one a user can believe they have flipped when they have not.
+export const setStrategyDryRun = (exchange, dryRun) =>
+  request(`/me/strategy-configs/${encodeURIComponent(exchange || "binance")}/dry-run`, {
+    method: "PUT",
+    body: { dry_run: dryRun },
+  });
+
 export const updateBinanceStrategyConfig = (payload) => updateStrategyConfig("binance", payload);
 
 export const setBinanceStrategyActive = (active) => setStrategyActive("binance", active);

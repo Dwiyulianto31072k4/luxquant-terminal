@@ -8,7 +8,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from "react";
-import { updateStrategyConfig } from "../../services/autotradeApi";
+import { updateStrategyConfig, setStrategyDryRun } from "../../services/autotradeApi";
 import { FIELD_GUIDE, ENGINE_RULES, MIN_LIVE_ENTRY_USDT, describeExitPlan } from "./autotradeFieldGuide";
 import AppliedRulesCard from "./AppliedRulesCard";
 import LiveRiskAckModal from "./LiveRiskAckModal";
@@ -383,6 +383,38 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
     return `These are your rules. Agent only follows them. It does not make ${venueName} profitable by itself.`;
   }, [hasConnectedAccount, venueName]);
 
+  // Dry run writes straight through instead of waiting for Save. Beside it sits
+  // Active, which has always saved instantly through its own endpoint — two
+  // switches in one panel behaving differently, and the one that waited is the
+  // one that decides whether real orders reach the exchange. A user turned it
+  // off four times, refreshed, and found it on again, because only a draft ever
+  // changed. The dangerous direction is the reverse: turning it ON to stop live
+  // trading, not saving, and believing you are safe.
+  const [dryRunBusy, setDryRunBusy] = useState(false);
+  const commitDryRun = async (value) => {
+    const previous = draft.dry_run;
+    setDryRunBusy(true);
+    setError("");
+    setSuccess("");
+    setDraft((d) => ({ ...d, dry_run: value }));
+    try {
+      await setStrategyDryRun(venue, value);
+      setSuccess(
+        value
+          ? "Dry run is ON — signals are followed, no real orders are placed."
+          : "Dry run is OFF — matching signals may place real orders."
+      );
+      await onSaved?.({ background: true });
+    } catch (err) {
+      // Put the switch back where it was: a safety control must never show a
+      // state the server does not hold.
+      setDraft((d) => ({ ...d, dry_run: previous }));
+      setError(err?.message || "Could not change dry run. It is unchanged.");
+    } finally {
+      setDryRunBusy(false);
+    }
+  };
+
   const patch = (changes) => {
     setDirty(true);
     setError("");
@@ -484,7 +516,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
         onConfirm={() => {
           setPref("agent_live_ack", true);
           setAckOpen(false);
-          patch({ dry_run: false });
+          commitDryRun(false);
         }}
       />
       {/* ── Header ── */}
@@ -557,12 +589,13 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                   : "OFF — LIVE mode. Matching signals may place real orders when the engine is started."
               }
               checked={Boolean(draft.dry_run)}
+              disabled={dryRunBusy}
               onChange={(value) => {
                 if (draft.dry_run && !value) {
                   setAckOpen(true);
                   return;
                 }
-                patch({ dry_run: value });
+                commitDryRun(value);
               }}
             />
           </WithGuide>
