@@ -390,6 +390,31 @@ export default function SignalTerminalPage() {
     });
   }, [filteredSignals, flowCoins, coinIntel, prices, getVerdictForSignal]);
 
+  // One entry per COIN, not per call.
+  //
+  // This page is a market map, and its unit is the asset. Built straight from
+  // the signal list it drew a tile for every open call, so BTC appeared three
+  // times, ETH and BNB twice, and the Matrix listed BTW twice with two
+  // different max targets — the same coin arguing with itself. The header read
+  // "740 pairs" while showing 740 SIGNALS across roughly four hundred coins.
+  //
+  // The newest call wins, so clicking a tile still opens the call a reader
+  // would expect: the current one.
+  const coins = useMemo(() => {
+    const byPair = new Map();
+    for (const row of model) {
+      const prev = byPair.get(row.pair);
+      if (!prev) {
+        byPair.set(row.pair, row);
+        continue;
+      }
+      const a = Date.parse(row._sig?.created_at || 0) || 0;
+      const b = Date.parse(prev._sig?.created_at || 0) || 0;
+      if (a > b) byPair.set(row.pair, row);
+    }
+    return [...byPair.values()];
+  }, [model]);
+
   const hasFilters = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
 
   return (
@@ -423,35 +448,35 @@ export default function SignalTerminalPage() {
         {view === "treemap" && <Enc label="Size" value={sizeBy} onChange={setSizeBy} />}
         {view !== "explore" && <Enc label="Color" value={colorBy} onChange={setColorBy} />}
         <span className="font-mono text-[10px] tabular-nums text-text-muted/55">
-          {model.length} pairs
+          {coins.length} coins
         </span>
       </div>
       </div>
 
       {/* Macro strip — market context, shown on the treemap overview */}
-      {view === "treemap" && <MacroStrip macro={macro} sectors={sectors} model={model} />}
+      {view === "treemap" && <MacroStrip macro={macro} sectors={sectors} model={coins} />}
 
       {/* Main stage */}
       <div className="relative overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised p-3 sm:p-4">
-        {model.length === 0 ? (
+        {coins.length === 0 ? (
           <div className="flex h-[360px] items-center justify-center font-mono text-xs text-text-primary/40">
             {loading ? "Loading signals…" : "No signals match the current filters."}
           </div>
         ) : view === "treemap" ? (
-          <Treemap model={model} sizeBy={sizeBy} colorBy={colorBy} onPick={pick} />
+          <Treemap model={coins} sizeBy={sizeBy} colorBy={colorBy} onPick={pick} />
         ) : view === "bubble" ? (
-          <Bubble model={model} colorBy={colorBy} onPick={pick} />
+          <Bubble model={coins} colorBy={colorBy} onPick={pick} />
         ) : view === "matrix" ? (
-          <Matrix model={model} onPick={pick} />
+          <Matrix model={coins} onPick={pick} />
         ) : view === "explore" ? (
-          <ExploreView model={model} onPick={pick} />
+          <ExploreView model={coins} onPick={pick} />
         ) : (
-          <SectorView model={model} colorBy={colorBy} onPick={pick} />
+          <SectorView model={coins} colorBy={colorBy} onPick={pick} />
         )}
       </div>
 
       {/* Screener */}
-      <Screener model={model} onPick={pick} />
+      <Screener model={coins} onPick={pick} />
 
       <p className="border-t border-ink/[0.05] pt-2.5 font-mono text-[10px] leading-relaxed text-text-primary/30">
         Filters mirror the Signals page · live prices via Binance Futures proxy · click any tile for
@@ -718,7 +743,7 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
   const compactH = useChartHeight("hero");
   const H = expanded ? Math.max(560, Math.min(window.innerHeight * 0.72, 820)) : compactH;
   const sm = METRICS[sizeBy];
-  const items = model
+  const ranked = model
     .map((d) => {
       const raw = Math.max(sm.get(d) || 0, 0);
       let v;
@@ -728,6 +753,33 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
       return { v, d };
     })
     .sort((a, b) => b.v - a.v);
+
+  // Fold the tail into one tile.
+  //
+  // A tile needs about 28x14px before it can carry its own ticker, and a
+  // treemap's tail is tiny by construction — four hundred coins meant a few
+  // hundred unlabelled squares of colour that nobody can identify, click with
+  // any confidence, or learn anything from. One block saying how many were
+  // folded is more information than three hundred anonymous ones.
+  //
+  // Not in Equal mode: there the whole point is that every coin gets the same
+  // area, the tail is not small, and folding it would hand most of the map to
+  // a single grey block.
+  const MAX_TILES = expanded ? 200 : 120;
+  let items = ranked;
+  let folded = 0;
+  if (scaleMode !== "equal" && ranked.length > MAX_TILES + 1) {
+    const head = ranked.slice(0, MAX_TILES);
+    const tail = ranked.slice(MAX_TILES);
+    folded = tail.length;
+    items = [
+      ...head,
+      {
+        v: tail.reduce((acc, x) => acc + x.v, 0),
+        d: { __others: folded, signal_id: "__others", sym: `+${folded}`, pair: "" },
+      },
+    ];
+  }
   const rects = squarify(items, 0, 0, w, H);
   return (
     <>
@@ -784,6 +836,28 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
             big = r.w > 58 && r.h > 34,
             fs = Math.max(9, Math.min(15, r.w / 5.5));
           const showLabel = r.w > 28 && r.h > 14;
+          // The folded tail. It is a count, not a coin: no logo, no metric
+          // colour, and nothing to open — clicking it would have to pick one of
+          // the hundreds it stands for, and any pick would be arbitrary.
+          if (d.__others) {
+            return (
+              <div
+                key="__others"
+                title={`${d.__others} smaller coins, folded to keep the map readable`}
+                className="absolute flex items-center justify-center overflow-hidden rounded-sm border border-black/30 bg-ink/[0.10]"
+                style={{ left: r.x, top: r.y, width: r.w - 2, height: r.h - 2 }}
+              >
+                {showLabel && (
+                  <div className="px-1 text-center font-mono leading-tight text-text-muted">
+                    <div style={{ fontSize: Math.max(9, Math.min(13, r.w / 6)) }}>
+                      +{d.__others}
+                    </div>
+                    {big && <div className="mt-0.5 text-[9px] opacity-70">smaller</div>}
+                  </div>
+                )}
+              </div>
+            );
+          }
           return (
             <div
               key={d.signal_id}
@@ -1386,7 +1460,7 @@ function Screener({ model, onPick }) {
       <div className="flex items-center justify-between border-b border-ink/[0.06] bg-ink/[0.015] px-4 py-2.5">
         <span className="text-[12.5px] font-medium text-text-primary/90">Signal Screener</span>
         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-          {model.length} pairs
+          {model.length} coins
         </span>
       </div>
       <div className="max-h-[440px] overflow-auto px-2 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
