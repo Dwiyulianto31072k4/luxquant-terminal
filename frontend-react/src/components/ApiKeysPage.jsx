@@ -1686,6 +1686,22 @@ const ApiKeysPage = () => {
                 Timestamps are ISO-8601 (e.g. <Mono>2026-06-06T05:12:00+00:00</Mono>). Only advance
                 your stored cursor when a response actually returns data.
               </p>
+              {/* This page used to print the example above and stop there, which
+                  is how a partner ended up sending a raw `+` and getting a 500:
+                  in a query string `+` means SPACE, so the offset arrived as
+                  " 00:00". The server repairs that case now, but a doc that
+                  hands you the failing form without saying so is the bug. */}
+              <p className="text-text-muted text-[12px]">
+                One encoding trap worth knowing: inside a URL query string a literal{" "}
+                <Mono>+</Mono> means a <em>space</em>, so pasting the timestamp above straight into{" "}
+                <Mono>?since=</Mono> sends the offset as <Mono>{`" 00:00"`}</Mono>. Percent-encode it
+                as <Mono>%2B00:00</Mono>, or simply end with <Mono>Z</Mono> —{" "}
+                <Mono>2026-06-06T05:12:00Z</Mono> needs no escaping. Any HTTP client that builds the
+                query for you (<Mono>requests</Mono> params, <Mono>URLSearchParams</Mono>) already
+                does this correctly. We repair the un-encoded case rather than rejecting it, and a
+                cursor we genuinely cannot parse comes back as a <Mono>400</Mono> naming the value —
+                never a <Mono>500</Mono>.
+              </p>
             </DocSection>
 
             {/* Status codes */}
@@ -1714,6 +1730,17 @@ const ApiKeysPage = () => {
                 <li>
                   <span className="text-accent font-mono text-[12px]">429</span> — Rate limit
                   exceeded; see <Mono>Retry-After</Mono>.
+                </li>
+                {/* The list stopped at 429, so a partner staring at 500s had
+                    nothing here telling them whose problem it was. */}
+                <li>
+                  <span className="text-loss font-mono text-[12px]">5xx</span> — Ours, not yours.
+                  Retry with backoff and keep your cursor where it is.{" "}
+                  <Mono>502</Mono> generally means an upstream exchange failed for that moment and
+                  the next call usually succeeds; <Mono>503</Mono> means an optional feature is not
+                  available on this deployment and retrying will not change it. A malformed
+                  parameter is always a <Mono>400</Mono> — if you see a <Mono>500</Mono> repeat on
+                  the same request, tell us, because that is a bug on our side.
                 </li>
               </ul>
               <p className="text-text-muted text-[12px]">
