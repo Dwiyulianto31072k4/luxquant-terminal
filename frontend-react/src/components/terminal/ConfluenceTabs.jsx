@@ -138,10 +138,17 @@ function rankOf(tags, fc, ps) {
   const warn =
     list.filter((t) => WARNING_TAGS.includes(t)).length * 2 +
     (list.includes("MTF_AGAINST_HTF") ? 4 : 0);
+  // Measured TP3+ edge, in percentage points — the same units as room left,
+  // which is a percentage of the pair's usual move. Adding them is deliberate:
+  // "how much of the move is still ahead" and "how often this shape gets there"
+  // are the two halves of the question, and neither is enough alone. Room left
+  // predicts weakly on its own (corr 0.15 between a pair's prior median peak
+  // and its next call's peak, n=14,624 walk-forward) — real, but far too thin
+  // to be the only sort key, which is what it used to be.
+  const edge = edgeOf(list);
   const room = roomLeftOf(fc, ps);
-  if (!room) return scoreOf(list) - warn;
-  // Normalise room to a comparable scale, then apply the same warning penalty.
-  return room.left - warn + Math.min(scoreOf(list), 6) * 0.5;
+  if (!room) return scoreOf(list) + edge - warn;
+  return room.left + edge - warn + Math.min(scoreOf(list), 6) * 0.5;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -461,35 +468,99 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, _
 // TAB: CONFLUENCE SCREENER (landing)
 // ════════════════════════════════════════════════════════════════
 // What each filter actually keeps — the chip labels are trader shorthand.
-const CONF_FILTER_HINTS = {
-  htf: "HTF = Higher TimeFrame. Keeps only setups where the 4-hour trend is strong, so the bigger picture backs the trade.",
-  aligned:
-    "Keeps setups where all three charts (4H, 1H, 15m) point the same way — the cleanest agreement.",
-  fresh: "Keeps setups that just broke out, so the move is early rather than already run.",
-  pullback:
-    "Keeps setups that pulled back deep into the trend — better entry price, but it has to hold.",
-  golden:
-    "Keeps 'golden setups' — several smart-money conditions lining up at once. Our highest-quality pattern.",
-  volspike:
-    "Keeps setups with volume running 2–3× normal, i.e. real participation behind the move.",
-  nowarn:
-    "Keeps only setups with no risk warnings at all (no late entry, parabolic, thin liquidity…).",
+// ── What each filter is actually worth ─────────────────────────────
+//
+// Measured on production 2026-09-13 over the tag era (from 2026-03-10), every
+// resolved call with an entry snapshot. The number is the TP3+ rate of calls
+// carrying that tag MINUS the TP3+ rate of the rest of the book (~43%).
+//
+//   VOL_SPIKE_3X + already-moving   n=1174   59.5%   +16.5pp   SL 7.8%
+//   VOL_SPIKE_3X                    n=5068   48.8%    +5.7pp   SL 12.2%
+//   MTF_FULL_ALIGNED                n=1884   45.5%    +0.8pp
+//   FRESH_BREAKOUT                  n=14056  45.2%    +0.4pp
+//   HTF_TREND_STRONG                n=5592   44.5%    -0.2pp
+//   SMC_GOLDEN_SETUP                n=423    44.2%    -0.5pp
+//   DEEP_PULLBACK                   n=9783   42.0%    -2.7pp   SL 15.6%
+//   HTF_TREND_STRONG + MTF_FULL_ALIGNED  n=608  42.1%  -1.0pp  SL 16.1%
+//
+// Two things follow, and they are the reason this tab changed shape.
+//
+// 1. The pair this screener was BUILT around — higher-timeframe strength plus
+//    multi-timeframe alignment — lands BELOW the rest of the book and stops out
+//    more often. It is a true description of a chart and not a filter for
+//    quality, so it is still here, but it no longer sells itself as conviction.
+//
+// 2. The one filter that carries real edge was buried. `volspike` used to keep
+//    VOL_SPIKE_2X and VOL_CLIMAX alongside 3X, mixing a +5.7pp tag with a
+//    -0.9pp one; it is 3X only now.
+//
+// The combination survives the confound this file already warned about. The
+// old note says not to rank on tag win rate because LATE_ENTRY / PARABOLIC /
+// OVEREXTENDED top that table while only meaning "the coin is already flying",
+// and peak_pct measures the coin's move. That warning is right and is why this
+// table is TP3+ and SL — measured against each call's own ladder — not peak.
+// Controlled further by target width (the ladder is a multiple of one
+// distance), the edge holds: in the two widest-sampled bands the combination
+// reads 62.0% vs 41.5% (n=698) and 79.7% vs 48.2% (n=128). And "already
+// flying" ALONE is nothing — 43.8% against 43.0% baseline. It is the
+// conjunction that pays.
+//
+// Honest limit: this is in-sample over the tag era, not walk-forward like the
+// Runners gate. Treat it as "what the book has done", not as a promise.
+export const CONF_EDGE = {
+  mover: { pp: 16.5, n: 1174 },
+  volspike: { pp: 5.7, n: 5068 },
+  aligned: { pp: 0.8, n: 1884 },
+  fresh: { pp: 0.4, n: 14056 },
+  htf: { pp: -0.2, n: 5592 },
+  golden: { pp: -0.5, n: 423 },
+  pullback: { pp: -2.7, n: 9783 },
+  nowarn: null, // a composite, not one tag — no single measured figure
 };
 
-const CONF_FILTERS = [
-  ["htf", "confHtf", (tags) => tags.includes("HTF_TREND_STRONG")],
+const MOVING_TAGS = ["PARABOLIC", "OVEREXTENDED", "LATE_ENTRY"];
+
+// What each filter actually keeps. The claims are measured now, and where a
+// filter does not earn its reputation the hint says so rather than flattering it.
+const CONF_FILTER_HINTS = {
+  mover: "Volume at 3x on a coin that is already moving. The strongest thing in the book: 59.5% reach TP3+ against 43% for everything else, and it stops out at 7.8% against 14.4% (n=1,174).",
+  volspike: "Volume running 3x normal. +5.7pp on TP3+ over the rest of the book (n=5,068) — the only single tag here that clearly earns its place.",
+  htf: "HTF = Higher TimeFrame: the 4-hour trend is strong. A fact about the chart, not a quality filter — measured, it lands 0.2pp BELOW the rest of the book.",
+  aligned:
+    "All three charts (4H, 1H, 15m) point the same way. Cleanest agreement to look at, but worth only +0.8pp on TP3+ — and paired with HTF strong it reads below baseline.",
+  fresh: "Just broke out, so the move is early rather than already run. +0.4pp — close to nothing on its own, useful as context.",
+  pullback:
+    "Pulled back deep into the trend: better entry price, but it has to hold. Measured it does NOT hold often enough — 2.7pp below the rest of the book and the worst stop rate here.",
+  golden:
+    "Several smart-money conditions at once. Reads well and measures flat (-0.5pp on n=423) — a small sample, so treat it as unproven rather than disproven.",
+  nowarn:
+    "No risk warnings at all (no late entry, parabolic, thin liquidity...). Note this also removes the 'already moving' half of the strongest combination above.",
+};
+
+export const CONF_FILTERS = [
+  ["mover", "confMover", (tags) =>
+    tags.includes("VOL_SPIKE_3X") && tags.some((x) => MOVING_TAGS.includes(x))],
+  ["volspike", "confVolspike", (tags) => tags.includes("VOL_SPIKE_3X")],
   ["aligned", "confAligned", (tags) => tags.includes("MTF_FULL_ALIGNED")],
   ["fresh", "confFresh", (tags) => tags.includes("FRESH_BREAKOUT")],
-  ["pullback", "confPullback", (tags) => tags.includes("DEEP_PULLBACK")],
+  ["htf", "confHtf", (tags) => tags.includes("HTF_TREND_STRONG")],
   ["golden", "confGolden", (tags) => tags.includes("SMC_GOLDEN_SETUP")],
-  [
-    "volspike",
-    "confVolspike",
-    (tags) =>
-      tags.includes("VOL_SPIKE_2X") || tags.includes("VOL_SPIKE_3X") || tags.includes("VOL_CLIMAX"),
-  ],
+  ["pullback", "confPullback", (tags) => tags.includes("DEEP_PULLBACK")],
   ["nowarn", "confNoWarn", (tags) => !tags.some((x) => WARNING_TAGS.includes(x))],
 ];
+
+/** Measured TP3+ edge of a setup, in percentage points. Takes the best single
+ *  claim rather than summing: the tags overlap heavily, and adding them would
+ *  count the same volume spike three times. */
+export function edgeOf(tags) {
+  const list = tags || [];
+  let best = 0;
+  for (const [key, , test] of CONF_FILTERS) {
+    const e = CONF_EDGE[key];
+    if (e && test(list) && e.pp > best) best = e.pp;
+  }
+  return best;
+}
 
 export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openSignalRow }) {
   const { t } = useTranslation();
@@ -701,17 +772,34 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
       />
 
       <div className="flex items-center gap-1 flex-wrap">
-        {CONF_FILTERS.map(([k, label]) => (
-          <Chip
-            key={k}
-            active={!!on[k]}
-            onClick={() => toggle(k)}
-            size="xs"
-            title={CONF_FILTER_HINTS[k]}
-          >
-            {t(`terminal.viz.${label}`)}
-          </Chip>
-        ))}
+        {/* The measured edge rides on the chip itself. Without it every filter
+            looks like a quality control, which is how a screener ends up
+            recommending its worst one — deep pullback reads like discipline and
+            measures 2.7pp below the rest of the book. */}
+        {CONF_FILTERS.map(([k, label]) => {
+          const e = CONF_EDGE[k];
+          return (
+            <Chip
+              key={k}
+              active={!!on[k]}
+              onClick={() => toggle(k)}
+              size="xs"
+              title={CONF_FILTER_HINTS[k]}
+            >
+              {t(`terminal.viz.${label}`)}
+              {e && (
+                <span
+                  className="ml-1 font-mono text-[9px]"
+                  style={{ color: e.pp > 0.5 ? POS : e.pp < -0.5 ? NEG : MUTED }}
+                  title={`TP3+ against the rest of the book, n=${e.n.toLocaleString()}`}
+                >
+                  {e.pp > 0 ? "+" : ""}
+                  {e.pp.toFixed(1)}
+                </span>
+              )}
+            </Chip>
+          );
+        })}
       </div>
 
       {rankedCards.length === 0 ? (
