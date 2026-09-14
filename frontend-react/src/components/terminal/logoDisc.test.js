@@ -80,3 +80,27 @@ describe("coin logos are drawn as round discs", () => {
     expect(() => logoDiscSeries({ marks, size: 28, tokens: {} }).renderItem({ dataIndex: 0 }, api())).not.toThrow();
   });
 });
+
+describe("a disc pinned to the rail is still a whole circle", () => {
+  const box = { x: 50, y: 10, width: 400, height: 300 };
+  const at = (x, y) => ({ value: () => 1, coord: () => [x, y] });
+  const draw = (x, y) =>
+    logoDiscSeries({ marks, size: 28, tokens }).renderItem({ dataIndex: 0, coordSys: box }, at(x, y));
+  const centre = (g) => g.children[0].shape;
+
+  it("tucks a disc sitting exactly on the axis fully inside the grid", () => {
+    // clampRange puts an outlier here on purpose; `clip` used to halve it
+    expect(centre(draw(box.x, 150)).cx).toBeGreaterThan(box.x);
+    expect(centre(draw(box.x + box.width, 150)).cx).toBeLessThan(box.x + box.width);
+    expect(centre(draw(200, box.y)).cy).toBeGreaterThan(box.y);
+  });
+
+  it("leaves a disc that is comfortably inside exactly where it belongs", () => {
+    expect(centre(draw(200, 150))).toMatchObject({ cx: 200, cy: 150 });
+  });
+
+  it("drops a point panned off the canvas rather than parking it on the edge", () => {
+    expect(draw(box.x - 200, 150)).toBeNull();
+    expect(draw(200, box.y + box.height + 200)).toBeNull();
+  });
+});

@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import EChart, { useChartTokens, inkAlpha } from "../../charts/EChart";
 import { logoDiscSeries } from "../logoDisc";
+import { roamDataZoom, makeZoomApi } from "../chartRoam";
 import { pctRange, clampRange, pickLabels, labelCells, statusColorOf } from "../vizShared";
 import { ANOM_FLOOR, ANOM_FILL } from "../anomSetups";
 
@@ -151,20 +152,7 @@ export function buildAnomalyOption({
       axisLine: { show: false },
       axisTick: { show: false },
     },
-    dataZoom: [
-      // The wheel belongs to the page. This is the same rule the SVG version
-      // enforced by hand, except here it is one option — and "ctrl" covers a
-      // macOS trackpad pinch, which arrives as ctrl+wheel.
-      {
-        type: "inside",
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        zoomOnMouseWheel: "ctrl",
-        moveOnMouseWheel: false,
-        moveOnMouseMove: true,
-        preventDefaultMouseMove: true,
-      },
-    ],
+    dataZoom: roamDataZoom(),
     series: [
       {
         type: "scatter",
@@ -276,29 +264,7 @@ export default function AnomalyScatter({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || !onApi) return undefined;
-    const window_ = () => {
-      const z = (chart.getOption()?.dataZoom || [])[0] || {};
-      return [z.start ?? 0, z.end ?? 100];
-    };
-    const apply = (factor) => {
-      const [a, b] = window_();
-      const mid = (a + b) / 2;
-      const half = Math.min(50, Math.max(0.5, ((b - a) / 2) * factor));
-      chart.dispatchAction({
-        type: "dataZoom",
-        start: Math.max(0, mid - half),
-        end: Math.min(100, mid + half),
-      });
-    };
-    onApi({
-      zoomIn: () => apply(1 / 1.4),
-      zoomOut: () => apply(1.4),
-      reset: () => chart.dispatchAction({ type: "dataZoom", start: 0, end: 100 }),
-      isZoomed: () => {
-        const [a, b] = window_();
-        return a > 0.5 || b < 99.5;
-      },
-    });
+    onApi(makeZoomApi(chart));
     return undefined;
   }, [onApi]);
 

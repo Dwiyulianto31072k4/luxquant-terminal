@@ -23,6 +23,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import EChart, { useChartTokens, inkAlpha } from "../../charts/EChart";
 import { logoDiscSeries } from "../logoDisc";
+import { roamDataZoom, makeZoomApi } from "../chartRoam";
 import { clampRange } from "../vizShared";
 
 const sym = (pair) => String(pair || "").replace(/USDT$/i, "");
@@ -87,19 +88,7 @@ export function buildScatterOption({
     },
     xAxis: axis(domX),
     yAxis: axis(domY),
-    dataZoom: [
-      // The wheel belongs to the page; zoom asks for a modifier. "ctrl" also
-      // covers a macOS trackpad pinch, which arrives as ctrl+wheel.
-      {
-        type: "inside",
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        zoomOnMouseWheel: "ctrl",
-        moveOnMouseWheel: false,
-        moveOnMouseMove: true,
-        preventDefaultMouseMove: true,
-      },
-    ],
+    dataZoom: roamDataZoom(),
     series: [
       {
         type: "scatter",
@@ -214,29 +203,7 @@ export default function TerminalScatter({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || !onApi) return undefined;
-    const win = () => {
-      const z = (chart.getOption()?.dataZoom || [])[0] || {};
-      return [z.start ?? 0, z.end ?? 100];
-    };
-    const apply = (factor) => {
-      const [a, b] = win();
-      const mid = (a + b) / 2;
-      const half = Math.min(50, Math.max(0.5, ((b - a) / 2) * factor));
-      chart.dispatchAction({
-        type: "dataZoom",
-        start: Math.max(0, mid - half),
-        end: Math.min(100, mid + half),
-      });
-    };
-    onApi({
-      zoomIn: () => apply(1 / 1.4),
-      zoomOut: () => apply(1.4),
-      reset: () => chart.dispatchAction({ type: "dataZoom", start: 0, end: 100 }),
-      isZoomed: () => {
-        const [a, b] = win();
-        return a > 0.5 || b < 99.5;
-      },
-    });
+    onApi(makeZoomApi(chart));
     return undefined;
   }, [onApi]);
 

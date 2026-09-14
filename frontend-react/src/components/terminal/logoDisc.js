@@ -57,7 +57,21 @@ export function logoDiscSeries({ marks = [], size = 28, tokens = {}, z = 4 }) {
       if (!m) return null;
       const pt = api.coord([api.value(0), api.value(1)]);
       if (!pt || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) return null;
-      const [cx, cy] = pt;
+
+      // clampRange pins an outlier to the rail deliberately, so its disc sits
+      // exactly ON the boundary and `clip` takes half of it — LSK and LAB
+      // shipped as half-moons. Tuck a disc that lands on the edge just inside
+      // it: still reads as "pinned at the limit", and it is round. A point
+      // genuinely off-screen (panned past) is dropped rather than dragged back.
+      const box = params.coordSys;
+      let [cx, cy] = pt;
+      if (box) {
+        const edge = r + HALO;
+        if (cx < box.x - edge || cx > box.x + box.width + edge) return null;
+        if (cy < box.y - edge || cy > box.y + box.height + edge) return null;
+        cx = Math.min(Math.max(cx, box.x + edge), box.x + box.width - edge);
+        cy = Math.min(Math.max(cy, box.y + edge), box.y + box.height - edge);
+      }
       const ring = m.ring || ink;
 
       return {
