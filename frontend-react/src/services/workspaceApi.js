@@ -75,6 +75,13 @@ export const workspaceApi = {
     return response.data;
   },
 
+  // Both accounts' status, checks, output, safety and cost. Built from our own
+  // tables and systemd only — it never reads from X, so it costs no credit.
+  getXOverview: async (days = 14) => {
+    const response = await api.get("/api/v1/admin/x-tracker/overview", { params: { days } });
+    return response.data;
+  },
+
   // Which two or three calls are worth a hand-written post right now. Ranked
   // server-side; nothing here posts anything.
   getXCandidates: async (days = 7, limit = 3) => {

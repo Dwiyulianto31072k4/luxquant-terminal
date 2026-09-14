@@ -340,6 +340,302 @@ def _commentary(db: Session, px: dict) -> dict:
 
 
 # ============================================================
+# Operations overview
+# ============================================================
+#
+# Everything here is read from our own tables and our own systemd units. Not one
+# number comes from X: reads are billed against the same credit that pays for
+# posting, and the owner switched them off on 2026-09-14. So reach is reported
+# as unmeasured rather than estimated — a dashboard that invents engagement is
+# worse than one that admits it cannot see it.
+
+_TIMERS = {
+    "publisher": "luxquant-x-publisher.timer",
+    "commentary": "luxquant-x-quote.timer",
+    "metrics": "luxquant-x-metrics.timer",
+    "breaker": "luxquant-x-breaker.timer",
+}
+
+# The feed's length ceiling. Posts under 120 characters measured 2.7x the reach
+# of posts over 200; the commentary worker enforces it, the feed does not.
+LENGTH_CEILING = 120
+
+
+def _env_file(path: str) -> dict:
+    """Plain KEY=VALUE pairs. Only the non-secret keys below are ever returned."""
+    out = {}
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    out[k.strip()] = v.strip()
+    except Exception:
+        pass
+    return out
+
+
+def _int(v, default):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return default
+
+
+def _systemd_time(raw: str):
+    raw = (raw or "").strip()
+    if not raw or raw in ("n/a", "0"):
+        return None
+    if raw.startswith("@"):
+        try:
+            return datetime.fromtimestamp(int(raw[1:]), tz=timezone.utc).isoformat()
+        except ValueError:
+            return None
+    try:   # "Mon 2026-09-14 06:00:59 UTC"
+        return datetime.strptime(raw.split(" ", 1)[1].rsplit(" ", 1)[0],
+                                 "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).isoformat()
+    except (IndexError, ValueError):
+        return None
+
+
+def _timer(unit: str) -> dict:
+    import subprocess
+    try:
+        res = subprocess.run(
+            ["systemctl", "show", unit, "-p", "UnitFileState", "-p", "ActiveState",
+             "-p", "LastTriggerUSec", "-p", "NextElapseUSecRealtime"],
+            capture_output=True, text=True, timeout=4,
+        )
+        kv = dict(line.split("=", 1) for line in res.stdout.splitlines() if "=" in line)
+    except Exception as e:
+        log.warning("x-tracker: systemctl show %s failed: %s", unit, e)
+        return {"unit": unit, "known": False}
+    return {
+        "unit": unit,
+        "known": True,
+        "enabled": kv.get("UnitFileState") == "enabled",
+        "active": kv.get("ActiveState") == "active",
+        "last_run": _systemd_time(kv.get("LastTriggerUSec")),
+        "next_run": _systemd_time(kv.get("NextElapseUSecRealtime")),
+    }
+
+
+def _opener(caption: str, words: int = 3) -> str:
+    toks = [t for t in (caption or "").lower().replace("$", " ").split() if t.isalpha()]
+    return " ".join(toks[:words])
+
+
+@router.get("/overview")
+def overview(
+    days: int = Query(14, ge=7, le=60),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    now = datetime.now(timezone.utc)
+    feed_env, quote_env = _env_file(POSTER_ENV), _env_file(QUOTE_ENV)
+
+    feed_cfg = {
+        "handle": (feed_env.get("X_POSTING_HANDLE") or "luxquantalgo").lstrip("@"),
+        "enabled": feed_env.get("X_PUB_ENABLED", "").lower() == "true",
+        # the retired poster; both on at once double-posts every milestone
+        "legacy_enabled": feed_env.get("X_POST_ENABLED", "").lower() == "true",
+        "daily_cap": _int(feed_env.get("X_PUB_DAILY_CAP"), 24),
+        "min_gap_min": _int(feed_env.get("X_PUB_MIN_GAP_MIN"), 55),
+        "quiet_start_utc": _int(feed_env.get("X_PUB_QUIET_START"), 0),
+        "quiet_end_utc": _int(feed_env.get("X_PUB_QUIET_END"), 0),
+        "length_ceiling": LENGTH_CEILING,
+    }
+    quote_cfg = {
+        "handle": (quote_env.get("XQ_HANDLE") or "luxquantcrypto").lstrip("@"),
+        "enabled": quote_env.get("XQ_ENABLED", "").lower() == "true",
+        "daily_cap": _int(quote_env.get("XQ_DAILY_CAP"), 12),
+        "min_gap_min": _int(quote_env.get("XQ_MIN_GAP_MIN"), 60),
+        "min_lag_min": _int(quote_env.get("XQ_MIN_LAG_MIN"), 45),
+        "mention_every": _int(quote_env.get("XQ_MENTION_EVERY"), 4),
+        "max_chars": _int(quote_env.get("XQ_MAX_CHARS"), 120),
+        "quiet_start_wib": _int(quote_env.get("XQ_QUIET_START_WIB"), 2),
+        "quiet_end_wib": _int(quote_env.get("XQ_QUIET_END_WIB"), 6),
+    }
+    timers = {k: _timer(u) for k, u in _TIMERS.items()}
+
+    # ---- feed posts: one compact row each, binned in the browser so the
+    # heatmap lands in the viewer's own timezone rather than the server's
+    posts = db.execute(text("""
+        SELECT COALESCE(x_posted_at, created_at) AS at, event_type,
+               COALESCE(x_tweet_text, tweet_text) AS caption,
+               voice_combo, hook_category, structural_pattern
+          FROM x_posts
+         WHERE tweet_id IS NOT NULL
+           AND COALESCE(x_posted_at, created_at) > :cut
+           AND COALESCE(x_posted_at, created_at) >= now() - (CAST(:d AS numeric) * interval '1 day')
+         ORDER BY 1
+    """), {"cut": X_CUTOVER, "d": days}).mappings().all()
+
+    def _ts(v):
+        if v is None:
+            return None
+        return (v if v.tzinfo else v.replace(tzinfo=timezone.utc))
+
+    rung = {"tp2": "TP2", "tp3": "TP3", "tp4": "TP4", "closed_win": "TP4"}
+    feed_posts = [{
+        "t": int(_ts(p["at"]).timestamp()),
+        "rung": rung.get(p["event_type"], p["event_type"]),
+        "len": len(p["caption"] or ""),
+    } for p in posts if p["at"] is not None]
+
+    # the publisher's own definition of "today": both publishers, CURRENT_DATE
+    posted_today = int(db.execute(text(
+        "SELECT count(*) FROM x_posts WHERE tweet_id IS NOT NULL "
+        "AND COALESCE(x_posted_at, created_at) >= CURRENT_DATE")).scalar() or 0)
+    cards_today = 0
+    try:
+        cards_today = int(db.execute(text(
+            "SELECT count(*) FROM signal_card_drafts WHERE tweet_id IS NOT NULL "
+            "AND posted_at >= CURRENT_DATE")).scalar() or 0)
+    except Exception:
+        db.rollback()
+    last_feed = db.execute(text(
+        "SELECT max(COALESCE(x_posted_at, created_at)) FROM x_posts WHERE tweet_id IS NOT NULL"
+    )).scalar()
+
+    # ---- duplication: the rule both suspensions were issued under ----------
+    week = [p for p in posts if p["at"] is not None and _ts(p["at"]) >= now.replace(microsecond=0) - _days(7)]
+    captions = [p["caption"] or "" for p in week]
+    openers = {}
+    for c in captions:
+        o = _opener(c)
+        if o:
+            openers[o] = openers.get(o, 0) + 1
+    top_openers = sorted(openers.items(), key=lambda kv: -kv[1])[:6]
+    voices = [p["voice_combo"] for p in week if p["voice_combo"]]
+    voice_counts = {}
+    for v in voices:
+        voice_counts[v] = voice_counts.get(v, 0) + 1
+
+    def _dist(key):
+        d = {}
+        for p in week:
+            k = p[key] or "none"
+            d[k] = d.get(k, 0) + 1
+        return sorted(({"key": k, "n": n} for k, n in d.items()), key=lambda x: -x["n"])
+
+    minutes = [_ts(p["at"]).minute for p in week]
+    on_the_clock = sum(1 for m in minutes if m in (59, 0, 1, 29, 30, 31))
+    safety = {
+        "sample": len(week),
+        "unique_captions": len(set(captions)),
+        "repeated_voices": sum(n - 1 for n in voice_counts.values() if n > 1),
+        "distinct_voices": len(voice_counts),
+        "top_openers": [{"opener": o, "n": n} for o, n in top_openers],
+        "hooks": _dist("hook_category"),
+        "patterns": _dist("structural_pattern"),
+        "over_ceiling": sum(1 for c in captions if len(c) > LENGTH_CEILING),
+        "on_the_clock": on_the_clock,
+        # six of sixty minutes: what a uniformly random timer would produce
+        "on_the_clock_expected": round(len(minutes) * 6 / 60, 1),
+    }
+
+    # ---- publisher ticks: every run writes depth, posted or not -------------
+    ticks = [{"t": int(r[0].timestamp()), "depth": r[1], "posted": bool(r[2])}
+             for r in db.execute(text(
+                 "SELECT captured_at, depth, posted FROM x_queue_depth "
+                 "WHERE captured_at >= now() - (CAST(:d AS numeric) * interval '1 day') "
+                 "ORDER BY captured_at"), {"d": days}).fetchall()]
+
+    # ---- spend, from our own meter — X exposes no billing API ---------------
+    spend = [{"day": r[0].isoformat(), "kind": r[1], "source": r[2], "calls": r[3],
+              "failed": r[4], "cost": float(r[5] or 0)}
+             for r in db.execute(text("""
+                 SELECT ts::date, kind, source, count(*),
+                        count(*) FILTER (WHERE NOT ok), sum(cost_usd)
+                   FROM x_api_usage
+                  WHERE ts >= now() - (CAST(:d AS numeric) * interval '1 day')
+                  GROUP BY 1, 2, 3 ORDER BY 1""" ), {"d": days}).fetchall()]
+    failures = [{"at": r[0].isoformat(), "source": r[1], "endpoint": r[2], "note": r[3]}
+                for r in db.execute(text("""
+                    SELECT ts, source, endpoint, note FROM x_api_usage
+                     WHERE NOT ok AND ts >= now() - interval '48 hours'
+                     ORDER BY ts DESC LIMIT 12""")).fetchall()]
+    last_read = db.execute(text(
+        "SELECT max(ts) FROM x_api_usage WHERE kind = 'TweetLookup'")).scalar()
+
+    # ---- commentary account --------------------------------------------------
+    quotes, lags = [], []
+    try:
+        for r in db.execute(text("""
+            SELECT q.posted_at, q.mentioned, length(q.tweet_text) AS len,
+                   (SELECT max(COALESCE(p.x_posted_at, p.created_at)) FROM x_posts p
+                     WHERE p.signal_id = q.signal_id AND p.tweet_id IS NOT NULL
+                       AND COALESCE(p.x_posted_at, p.created_at) <= q.posted_at) AS feed_at
+              FROM x_quote_posts q
+             WHERE q.posted_at IS NOT NULL
+               AND q.posted_at >= now() - (CAST(:d AS numeric) * interval '1 day')
+             ORDER BY q.posted_at"""), {"d": days}).mappings():
+            lag = None
+            if r["feed_at"] is not None:
+                lag = round((r["posted_at"] - _ts(r["feed_at"])).total_seconds() / 60)
+                lags.append(lag)
+            quotes.append({"t": int(r["posted_at"].timestamp()), "mentioned": bool(r["mentioned"]),
+                           "len": r["len"] or 0, "lag_min": lag})
+        quote_today = int(db.execute(text(
+            "SELECT count(*) FROM x_quote_posts WHERE posted_at >= CURRENT_DATE")).scalar() or 0)
+        last_quote = db.execute(text("SELECT max(posted_at) FROM x_quote_posts")).scalar()
+    except Exception as e:
+        log.warning("x-tracker: commentary overview failed: %s", e)
+        db.rollback()
+        quote_today, last_quote = 0, None
+
+    breaker = None
+    try:
+        b = db.execute(text(
+            "SELECT checked_at, breached, tripped, note FROM x_reach_checks "
+            "ORDER BY id DESC LIMIT 1")).first()
+        if b:
+            breaker = {"at": b[0].isoformat(), "breached": b[1], "tripped": b[2], "note": b[3]}
+    except Exception:
+        db.rollback()
+
+    return {
+        "generated_at": now.isoformat(),
+        "days": days,
+        "feed": {
+            **feed_cfg,
+            "timer": timers["publisher"],
+            "posted_today": posted_today + cards_today,
+            "cards_today": cards_today,
+            "last_post_at": _ts(last_feed).isoformat() if last_feed else None,
+            "posts": feed_posts,
+        },
+        "commentary": {
+            **quote_cfg,
+            "timer": timers["commentary"],
+            "posted_today": quote_today,
+            "last_post_at": last_quote.isoformat() if last_quote else None,
+            "posts": quotes,
+            "min_lag_seen": min(lags) if lags else None,
+        },
+        "safety": safety,
+        "ticks": ticks,
+        "spend": spend,
+        "failures": failures,
+        "reach": {
+            "measured": False,
+            "reason": "Reads cost credit, so reach is not fetched.",
+            "metrics_timer": timers["metrics"],
+            "last_read_at": last_read.isoformat() if last_read else None,
+            "breaker_timer": timers["breaker"],
+            "breaker": breaker,
+        },
+    }
+
+
+def _days(n):
+    from datetime import timedelta
+    return timedelta(days=n)
+
+
+# ============================================================
 # Hand-post suggestions
 # ============================================================
 #
