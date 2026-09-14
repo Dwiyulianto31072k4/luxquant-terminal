@@ -148,6 +148,48 @@ const hydrate = () => {
 };
 
 // ════════════════════════════════════════════════════════════════
+// Active filters, named and individually removable.
+//
+// The controls above tell you what you CAN filter; nothing told you what you
+// currently ARE filtering. With a narrative, a risk band, a status and a search
+// all set, the only summary was a "reset" button that took the lot — so the way
+// to drop one condition was to remember which control you had touched and go
+// back to it. The Signals desk has carried this chip row for a while; this is
+// the terminal catching up.
+//
+// Each chip removes exactly one thing. Clear all is the old reset, kept, but it
+// now sits beside the list of what it would clear rather than standing alone.
+function ActiveFilterChips({ items, onClearAll }) {
+  if (!items.length) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 px-1 pb-2">
+      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/60">
+        Filtering by
+      </span>
+      {items.map((it) => (
+        <button
+          key={it.key}
+          type="button"
+          onClick={it.onRemove}
+          title={`Remove: ${it.label}`}
+          className="group inline-flex items-center gap-1 rounded-md border border-accent/25 bg-accent/[0.08] px-1.5 py-0.5 font-mono text-[10px] text-text-primary transition-colors hover:border-negative/40 hover:bg-negative/10"
+        >
+          <span className="text-text-muted/70">{it.field}</span>
+          <span>{it.label}</span>
+          <span className="text-text-muted/50 group-hover:text-negative">×</span>
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={onClearAll}
+        className="ml-0.5 rounded-md px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted transition-colors hover:bg-negative/5 hover:text-negative"
+      >
+        Clear all
+      </button>
+    </div>
+  );
+}
+
 export default function SignalsAnalytics() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -692,7 +734,42 @@ export default function SignalsAnalytics() {
     [agg.movers]
   );
 
-  const hasDrill = ["st", "sectors", "narr", "risks", "dec", "q"].some((k) => filters[k] !== DEFAULTS[k]);
+
+  // One chip per condition, so each can be dropped on its own.
+  const activeChips = useMemo(() => {
+    const out = [];
+    if (filters.q) out.push({ key: "q", field: "search", label: filters.q, onRemove: () => setF({ q: "" }) });
+    if (filters.st && filters.st !== "all")
+      out.push({ key: "st", field: "status", label: filters.st.toUpperCase(), onRemove: () => setF({ st: "all" }) });
+    if (windowDays !== 7)
+      out.push({ key: "win", field: "window", label: `${windowDays}D`, onRemove: () => setWindowDays(7) });
+    for (const n of selNarr)
+      out.push({
+        key: `narr:${n}`,
+        field: "narrative",
+        label: n,
+        onRemove: () => setF({ narr: selNarr.filter((x) => x !== n).join(",") }),
+      });
+    for (const r of selRisks)
+      out.push({
+        key: `risk:${r}`,
+        field: "risk",
+        label: r,
+        onRemove: () => setF({ risks: selRisks.filter((x) => x !== r).join(",") }),
+      });
+    for (const sec of selSectors)
+      out.push({
+        key: `sec:${sec}`,
+        field: "sector",
+        label: sec,
+        onRemove: () => setF({ sectors: selSectors.filter((x) => x !== sec).join(",") }),
+      });
+    if (filters.dec === "1")
+      out.push({ key: "dec", field: "beta", label: "decoupled", onRemove: () => setF({ dec: "" }) });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, windowDays, selNarr, selRisks, selSectors]);
+
   const fcClamped = useMemo(() => agg.fcVals.filter((v) => v >= -95 && v <= 300), [agg.fcVals]);
   // share of calls in window that have reached at least TP1
   const tpHitPct = useMemo(() => {
@@ -839,24 +916,19 @@ export default function SignalsAnalytics() {
               <span className="ml-1 font-mono text-[10px] opacity-70">{agg.decoupled}</span>
             </Chip>
           ) : null}
-          {(hasDrill || windowDays !== 7) && (
-            <button
-              type="button"
-              onClick={() => {
-                resetF();
-                setWindowDays(7);
-              }}
-              className="ml-0.5 px-2 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-negative/5 border border-transparent hover:border-negative/20 transition-colors"
-            >
-              {t("terminal.viz.reset")}
-            </button>
-          )}
-
           {/* mobile meta */}
           <div className="ml-auto flex lg:hidden items-center gap-2 font-mono text-[10px] text-text-muted/65">
             <span className="tabular-nums">{view.length} sig</span>
           </div>
         </div>
+
+        <ActiveFilterChips
+          items={activeChips}
+          onClearAll={() => {
+            resetF();
+            setWindowDays(7);
+          }}
+        />
       </div>
 
       {/* ── scrollable tab body only ── */}
