@@ -160,6 +160,11 @@ export function LadderPanel({ view }) {
   );
 }
 
+const hoursSince = (iso) => {
+  const t = Date.parse(iso || "");
+  return Number.isFinite(t) ? (Date.now() - t) / 3600000 : null;
+};
+
 const fmtMins = (sec) => (sec == null ? "—" : sec < 60 ? `${Math.round(sec)}s` : `${Math.round(sec / 60)}m`);
 
 const RUNG_TONE = {
@@ -175,39 +180,61 @@ const RUNG_TONE = {
 export function StillRunning({ rows, onPair }) {
   if (!rows?.length) return null;
   return (
-    <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-3">
-      {rows.map((r) => (
-        <button
-          key={r.signal_id || r.pair}
-          type="button"
-          onClick={() => onPair?.(r.pair)}
-          className="flex items-center gap-2 rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-2 py-1.5 text-left transition-colors hover:border-ink/15 hover:bg-ink/[0.04]"
-        >
-          <CoinLogo pair={r.pair} size={20} />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate font-mono text-[12px] text-text-primary">
-              {String(r.pair).replace(/USDT$/i, "")}
-            </span>
-            <span className="block font-mono text-[9.5px] text-text-muted">
-              TP1 in {fmtMins(r.tt1)} · now {r.fc >= 0 ? "+" : ""}
-              {r.fc.toFixed(1)}%
-            </span>
-          </span>
-          <span
-            className={`shrink-0 rounded border px-1 font-mono text-[9px] uppercase ${
-              RUNG_TONE[r.status] || "text-text-muted border-ink/15"
-            }`}
+    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+      {rows.map((r) => {
+        const down = r.fc < 0;
+        return (
+          <button
+            key={r.signal_id || r.pair}
+            type="button"
+            onClick={() => onPair?.(r.pair)}
+            className="flex items-center gap-2.5 rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-2.5 py-2 text-left transition-colors hover:border-ink/15 hover:bg-ink/[0.04]"
           >
-            {r.status}
-          </span>
-          <span
-            className="w-12 shrink-0 text-right font-mono text-[11px] tabular-nums text-positive"
-            title="Remaining distance to the last target"
-          >
-            +{r.left.toFixed(1)}%
-          </span>
-        </button>
-      ))}
+            <CoinLogo pair={r.pair} size={26} />
+
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline gap-1.5">
+                <span className="truncate font-mono text-[13px] font-semibold text-text-primary">
+                  {String(r.pair).replace(/USDT$/i, "")}
+                </span>
+                <span
+                  className={`shrink-0 rounded border px-1 font-mono text-[9px] uppercase ${
+                    RUNG_TONE[r.status] || "text-text-muted border-ink/15"
+                  }`}
+                >
+                  {r.status}
+                </span>
+              </span>
+              {/* Why it is on this list, and how old it is — a fast TP1 from
+                  five days ago and one from this morning are not the same. */}
+              <span className="mt-0.5 block font-mono text-[9.5px] text-text-muted">
+                TP1 in {fmtMins(r.tt1)} · called {fmtAge(hoursSince(r.created_at))} ago
+              </span>
+            </span>
+
+            <span className="shrink-0 text-right">
+              {/* The live distance leads and is coloured. It used to sit in grey
+                  beside the room figure, so a call 26% under water read exactly
+                  like one sitting on its entry. */}
+              <span
+                className={`block font-mono text-[13px] tabular-nums ${
+                  down ? "text-negative" : "text-positive"
+                }`}
+                title="Live price against the entry of this call"
+              >
+                {r.fc >= 0 ? "+" : ""}
+                {r.fc.toFixed(1)}%
+              </span>
+              <span
+                className="mt-0.5 block font-mono text-[9.5px] text-text-muted"
+                title="Distance still to run to the last target"
+              >
+                {r.left.toFixed(1)}% to go
+              </span>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

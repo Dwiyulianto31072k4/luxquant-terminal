@@ -678,6 +678,42 @@ export const SegControl = ({ options, value, onChange, className = "", counts = 
   </div>
 );
 
+// Real icons, not typed characters.
+//
+// These were a bare "−", "+", "⟲" and "↗". A minus sign on its own does not say
+// zoom, and an arrow pointing north-east is the web's symbol for "opens
+// elsewhere", not for "fill the screen" — so the two controls people reach for
+// most were the two least legible. Magnifiers carry the zoom, a circular arrow
+// carries the reset, and the four-corner glyph is the fullscreen convention
+// every video player and map has taught.
+const Ico = ({ d, className = "h-4 w-4" }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {d}
+  </svg>
+);
+
+export const IcoZoomOut = () => (
+  <Ico d={<><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.2-3.2M8 11h6" /></>} />
+);
+export const IcoZoomIn = () => (
+  <Ico d={<><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.2-3.2M8 11h6M11 8v6" /></>} />
+);
+export const IcoReset = () => (
+  <Ico d={<><path d="M3 12a9 9 0 1 0 2.6-6.4M3 4v5h5" /></>} />
+);
+export const IcoExpand = () => (
+  <Ico d={<><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5" /></>} />
+);
+
 export const IconBtn = ({ onClick, title, children }) => (
   <button
     onClick={onClick}
@@ -880,10 +916,11 @@ export const ZoomOverlay = ({ zoom }) => (
       <button
         type="button"
         onClick={zoom.reset}
-        title="reset the view"
-        className="absolute right-3 top-3 z-10 inline-flex h-8 items-center gap-1 rounded-lg border border-accent/40 bg-accent/12 px-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent transition-colors hover:bg-accent/20"
+        title="Reset the view"
+        className="absolute right-3 top-3 z-10 inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/12 px-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent transition-colors hover:bg-accent/20"
       >
-        ⟲ Reset
+        <IcoReset />
+        Reset
       </button>
     ) : null}
     {zoom?.nudge ? (
@@ -947,11 +984,11 @@ export function XCard({ title, desc, render, zoom, hint, guide, height, size = "
 
   const zoomBtns = zoom && (
     <>
-      <IconBtn onClick={zoom.zoomOut} title="zoom out">
-        −
+      <IconBtn onClick={zoom.zoomOut} title="Zoom out">
+        <IcoZoomOut />
       </IconBtn>
-      <IconBtn onClick={zoom.zoomIn} title="zoom in">
-        +
+      <IconBtn onClick={zoom.zoomIn} title="Zoom in">
+        <IcoZoomIn />
       </IconBtn>
       {/* A zoomed chart shows an axis nobody chose. Say so, and make the way
           back the loudest control on the card rather than one grey glyph. */}
@@ -962,11 +999,12 @@ export function XCard({ title, desc, render, zoom, hint, guide, height, size = "
           title="reset the view"
           className="inline-flex h-8 items-center gap-1 rounded-lg border border-accent/40 bg-accent/12 px-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent transition-colors hover:bg-accent/20"
         >
-          ⟲ Reset
+          <IcoReset />
+          Reset
         </button>
       ) : (
-        <IconBtn onClick={zoom.reset} title="reset">
-          ⟲
+        <IconBtn onClick={zoom.reset} title="Reset the view">
+          <IcoReset />
         </IconBtn>
       )}
     </>
@@ -999,7 +1037,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height, size = "
       </div>
       {hint && (
         <div className="mt-2 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/80">
-          {zoom ? `drag to pan · ${ZOOM_KEY}+scroll to zoom · ⟲ reset · ` : ""}
+          {zoom ? `drag to pan · ${ZOOM_KEY}+scroll to zoom · reset to undo · ` : ""}
           {hint}
         </div>
       )}
@@ -1078,7 +1116,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height, size = "
             {guideBtn}
             {zoomBtns}
             <IconBtn onClick={() => setBig(true)} title={t("terminal.viz.expand")}>
-              ↗
+              <IcoExpand />
             </IconBtn>
           </div>
         </div>

@@ -796,7 +796,20 @@ export default function SignalsAnalytics() {
       tt1Vals,
       maeMed: median(maeVals),
       scatterOpp,
-      stillRunning: stillRunning.sort((x, y) => y.left - x.left).slice(0, 24),
+      // Ranked by RECENCY, not by room left — that was backwards and the
+      // arithmetic says so. `left` is (max target % − current %), and measured
+      // on the live tape the target spans p10 7.9% to p90 22.7% while the live
+      // distance from entry swings −31% to +23%. The second term is ~5x wider,
+      // so sorting by room is sorting by −fc: the deeper a call had fallen, the
+      // higher it climbed the "opportunity" list. The panel led with the most
+      // broken calls on the desk.
+      //
+      // Recency is neutral, needs no claim I cannot support, and answers the
+      // question the panel is for: of the setups that moved fast, which ones
+      // are still fresh. Room stays on the card as context.
+      stillRunning: stillRunning
+        .sort((x, y) => Date.parse(y.created_at || 0) - Date.parse(x.created_at || 0))
+        .slice(0, 24),
       scatterBeta,
       anomPts,
       peakPts,
