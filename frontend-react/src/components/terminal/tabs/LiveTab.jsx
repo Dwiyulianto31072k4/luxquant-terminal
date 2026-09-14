@@ -9,8 +9,6 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   LineChart,
   Line,
   ComposedChart,
@@ -26,7 +24,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  Cell,
   ReferenceLine,
   ReferenceArea,
 } from "recharts";
@@ -45,7 +42,6 @@ import {
   StatusTag,
   CoinPill,
   Methodology,
-  DarkTip,
   ScatterTip,
   LegendChips,
   CoinBubble,
@@ -59,7 +55,6 @@ import {
   clampTo,
   clampRange,
   fitBound,
-  makeBins,
   median,
   statusColorOf,
   reliabilityFromSample,
@@ -79,7 +74,6 @@ import {
   AXIS,
   MUTED,
   TICK,
-  TICK_SM,
   SERIES,
   STATUS_COLORS,
   STATUS_LABEL,
@@ -88,6 +82,83 @@ import {
   TIER_COLORS,
   TIER_LABELS,
 } from "../vizShared";
+
+// Where the book stands — what replaced the P&L histogram.
+//
+// That chart binned 449 "active" calls by distance from entry, and the shape it
+// drew was a pile around zero. Measured, here is why: of those 449 only SEVEN
+// have never touched a target. The rest are 98 at TP1, 220 at TP2 and 124 at
+// TP3, sitting there for a median of ~63 hours. So the histogram was not
+// showing live opportunity, it was showing three-day-old winners drifting back
+// toward their entries — and drawing them as if distance-from-entry were still
+// the question.
+//
+// The rung a call has reached IS the question, and nothing on this desk showed
+// it. Age sits beside each rung because a TP2 from 63 hours ago and a TP2 from
+// this morning are not the same call.
+const RUNGS = [
+  { key: "open", label: "Open", color: "rgb(var(--ink) / 0.35)" },
+  { key: "tp1", label: "TP1", color: "rgb(var(--pos) / 0.5)" },
+  { key: "tp2", label: "TP2", color: "rgb(var(--pos) / 0.75)" },
+  { key: "tp3", label: "TP3", color: "rgb(var(--pos))" },
+];
+
+function medianHours(list) {
+  const xs = list
+    .map((s) => {
+      const t = s?.created_at ? new Date(s.created_at).getTime() : NaN;
+      return Number.isFinite(t) ? (Date.now() - t) / 3600000 : null;
+    })
+    .filter((x) => x != null && x >= 0)
+    .sort((a, b) => a - b);
+  if (!xs.length) return null;
+  return xs[Math.floor(xs.length / 2)];
+}
+
+const fmtAge = (h) =>
+  h == null ? "—" : h < 24 ? `${Math.round(h)}h` : `${(h / 24).toFixed(1)}d`;
+
+export function LadderPanel({ view }) {
+  const rows = useMemo(() => {
+    const by = Object.fromEntries(RUNGS.map((r) => [r.key, []]));
+    for (const s of view || []) {
+      const k = String(s?.status || "").toLowerCase();
+      if (by[k]) by[k].push(s);
+    }
+    const total = RUNGS.reduce((n, r) => n + by[r.key].length, 0);
+    return { total, list: RUNGS.map((r) => ({ ...r, n: by[r.key].length, age: medianHours(by[r.key]) })) };
+  }, [view]);
+
+  if (!rows.total) return null;
+
+  return (
+    <div className="space-y-2">
+      {rows.list.map((r) => (
+        <div key={r.key} className="flex items-center gap-2.5">
+          <span className="w-9 shrink-0 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            {r.label}
+          </span>
+          <span className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-ink/[0.06]">
+            <span
+              className="block h-full rounded-full"
+              style={{ width: `${(r.n / rows.total) * 100}%`, background: r.color }}
+            />
+          </span>
+          <span className="w-9 shrink-0 text-right font-mono text-[12px] tabular-nums text-text-primary">
+            {r.n}
+          </span>
+          <span className="w-14 shrink-0 text-right font-mono text-[10px] tabular-nums text-text-muted/80">
+            {fmtAge(r.age)}
+          </span>
+        </div>
+      ))}
+      <p className="pt-1 text-[10px] leading-relaxed text-text-muted">
+        Right column is the median age at that rung. Only <strong className="text-text-primary">Open</strong>{" "}
+        has never touched a target — everything below it already paid once.
+      </p>
+    </div>
+  );
+}
 
 export default function LiveTab({
   agg,
@@ -189,36 +260,13 @@ export default function LiveTab({
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
                 <XCard
-                  title={t("terminal.viz.fcDistTitle")}
-                  guide="fcDist"
-                  desc={t("terminal.viz.fcDistDesc")}
+                  title={t("terminal.viz.ladderTitle")}
+                  desc={t("terminal.viz.ladderDesc")}
                   render={(h) => (
-                    <div style={{ height: h }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={makeBins(fcClamped, 2, -20, 20)}
-                          margin={{ top: 4, right: 8, left: -18, bottom: 0 }}
-                        >
-                          <CartesianGrid stroke={GRID} vertical={false} />
-                          <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
-                          <YAxis
-                            tick={TICK}
-                            axisLine={false}
-                            tickLine={false}
-                            allowDecimals={false}
-                          />
-                          <Tooltip
-                            content={<DarkTip />}
-                            cursor={{ fill: "rgb(var(--accent) / 0.06)" }}
-                          />
-                          <ReferenceLine x="0" stroke={GOLD} strokeDasharray="3 3" />
-                          <Bar isAnimationActive={false} dataKey="count" name="signals" radius={[3, 3, 0, 0]}>
-                            {makeBins(fcClamped, 2, -20, 20).map((b, i) => (
-                              <Cell key={i} fill={b.mid >= 0 ? POS : NEG} fillOpacity={0.8} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
+                    <div style={{ height: h }} className="flex items-center px-1">
+                      <div className="w-full">
+                        <LadderPanel view={view} />
+                      </div>
                     </div>
                   )}
                 />
