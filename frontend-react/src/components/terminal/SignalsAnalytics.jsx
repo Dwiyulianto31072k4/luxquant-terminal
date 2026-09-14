@@ -96,7 +96,6 @@ import AnomalyTab from "./tabs/AnomalyTab";
 import SectorsTab from "./tabs/SectorsTab";
 import BtcTab from "./tabs/BtcTab";
 import LiveTab from "./tabs/LiveTab";
-import OverviewTab from "./tabs/OverviewTab";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { LiquidationsTab } from "./LiquidationsTab";
 import { TokenFlowTab } from "./TokenFlowTab";
@@ -153,7 +152,17 @@ export default function SignalsAnalytics() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(() => parseF(searchParams));
-  const tab = searchParams.get("tab") || "confluence";
+  // A tab id that no longer exists used to render nothing at all — a blank
+  // body with working chrome, which reads as a broken page rather than a dead
+  // link. Overview was removed and its bookmarks are still out there, so an
+  // unknown id lands on the default instead.
+  const KNOWN_TABS = new Set([
+    "confluence", "live", "anomaly", "oi", "ls", "funding", "squeeze", "flow",
+    "liquidations", "vsbtc", "btc", "momentum", "sectors", "tokenflow", "rsi",
+    "atr", "vsqueeze", "edge", "risk", "treemap", "bubble", "matrix", "explore",
+  ]);
+  const rawTab = searchParams.get("tab") || "confluence";
+  const tab = KNOWN_TABS.has(rawTab) ? rawTab : "confluence";
   const setF = (patch) => {
     const next = { ...filters, ...patch, tab };
     setFilters(next);
@@ -852,23 +861,6 @@ export default function SignalsAnalytics() {
           )}
 
           {/* ═══════════ OVERVIEW ═══════════ */}
-          {tab === "overview" && (
-            <OverviewTab
-              agg={agg}
-              view={view}
-              deriv={deriv}
-              openPair={openPair}
-              macro={macro}
-              filters={filters}
-              setF={setF}
-              selSectors={selSectors}
-              selRisks={selRisks}
-              tpHitPct={tpHitPct}
-              latestByPair={latestByPair}
-              pairFc={pairFc}
-            />
-          )}
-
           {/* ═══════════ ANOMALY (LIVE) ═══════════ */}
           {tab === "anomaly" && (
             <AnomalyTab

@@ -20,7 +20,6 @@ vi.mock("react-i18next", () => ({
 import { renderToString } from "react-dom/server";
 import BtcTab from "./BtcTab";
 import LiveTab from "./LiveTab";
-import OverviewTab from "./OverviewTab";
 import SectorsTab from "./SectorsTab";
 
 // The real shape of `agg`, every collection empty. Guessing it is how the first
@@ -81,7 +80,6 @@ describe("each extracted tab renders", () => {
   const cases = [
     ["BtcTab", BtcTab],
     ["LiveTab", LiveTab],
-    ["OverviewTab", OverviewTab],
     ["SectorsTab", SectorsTab],
   ];
 

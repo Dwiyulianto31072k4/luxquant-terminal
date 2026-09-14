@@ -30,7 +30,6 @@ const GROUPS = [
     g: "gSignals",
     items: [
       ["confluence", "scan"],
-      ["overview", "scan"],
       ["live", "scan"],
       ["anomaly", "scan"],
     ],
