@@ -1,0 +1,229 @@
+// The Live scatters, drawn on canvas.
+//
+// They were Recharts, which builds a DOM node per point. "Peak vs current"
+// reports 594 shown, so every zoom frame asked the browser to re-lay-out about
+// six hundred SVG elements — that is the lag, and it is not a thing tuning
+// removes. Canvas draws the field into a bitmap: 600 points and 40,000 cost
+// about the same, which is why the boards people compare us to (Crypto Bubbles
+// among them) are canvas and never SVG.
+//
+// This is the same move the Anomaly chart already made in AnomalyScatter.jsx,
+// generalised so both Live charts share it. Bundle cost is nil: echarts is
+// already in vendor-charts for the Anomaly board.
+//
+// Three hand-built systems become configuration again:
+//   · label collision   -> labelLayout: { hideOverlap: true }
+//   · cooperative wheel -> dataZoom zoomOnMouseWheel: "ctrl"
+//   · pan / reset       -> dataZoom inside
+//
+// What does NOT come free is ranking WHICH labels survive — hideOverlap drops
+// whatever will not fit but cannot choose, so the caller still passes a named
+// set built by promote().
+import { useEffect, useMemo, useRef } from "react";
+
+import EChart, { useChartTokens, inkAlpha } from "../../charts/EChart";
+import { getLogoSources } from "../../CoinLogo";
+import { clampRange } from "../vizShared";
+
+const sym = (pair) => String(pair || "").replace(/USDT$/i, "");
+const MONO = "JetBrains Mono, monospace";
+
+export function buildScatterOption({
+  points,
+  named,
+  domX,
+  domY,
+  tokens,
+  labelMode = "focus",
+  diagonal = false,
+  tip,
+  axisFmt = (v) => `${v.toFixed(0)}%`,
+}) {
+  // Clamped, not clipped. ECharts given a fixed min/max simply does not draw a
+  // point outside it, so an outlier would VANISH — and a hidden outlier is a
+  // lie. Pinned to the rail it still says "there is something past here", which
+  // is the same rule the percentile domains were introduced under.
+  const dot = (p) => ({
+    value: [clampRange(p.x, domX), clampRange(p.y, domY)],
+    name: p.pair,
+    itemStyle: {
+      color: p.fill,
+      borderColor: p.sc || "transparent",
+      borderWidth: p.sc ? 2 : 0,
+    },
+  });
+
+  const field = points.filter((p) => !named.has(p.pair)).map(dot);
+  const marks = labelMode === "off" ? [] : points.filter((p) => named.has(p.pair));
+
+  const axis = (dom) => ({
+    type: "value",
+    min: dom[0],
+    max: dom[1],
+    axisLabel: { color: tokens["fg-muted"], fontSize: 11, fontFamily: MONO, formatter: axisFmt },
+    splitLine: { lineStyle: { color: inkAlpha(tokens, 0.06) } },
+    axisLine: { show: false },
+    axisTick: { show: false },
+  });
+
+  const refs = [
+    { xAxis: 0, lineStyle: { color: inkAlpha(tokens, 0.28), type: "dashed", width: 1 } },
+    { yAxis: 0, lineStyle: { color: inkAlpha(tokens, 0.28), type: "dashed", width: 1 } },
+  ];
+
+  return {
+    animation: false,
+    grid: { left: 52, right: 18, top: 14, bottom: 30 },
+    tooltip: {
+      trigger: "item",
+      backgroundColor: tokens["surface-raised"],
+      borderColor: inkAlpha(tokens, 0.12),
+      borderWidth: 1,
+      textStyle: { color: tokens.fg, fontSize: 11, fontFamily: MONO },
+      formatter: (p) => (tip ? tip(p) : `${sym(p.name)}<br/>${p.value[0].toFixed(1)}% · ${p.value[1].toFixed(1)}%`),
+    },
+    xAxis: axis(domX),
+    yAxis: axis(domY),
+    dataZoom: [
+      // The wheel belongs to the page; zoom asks for a modifier. "ctrl" also
+      // covers a macOS trackpad pinch, which arrives as ctrl+wheel.
+      {
+        type: "inside",
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        zoomOnMouseWheel: "ctrl",
+        moveOnMouseWheel: false,
+        moveOnMouseMove: true,
+        preventDefaultMouseMove: true,
+      },
+    ],
+    series: [
+      {
+        type: "scatter",
+        symbolSize: 9,
+        // Past this many points ECharts batches the field into one canvas path
+        // instead of styling each mark. This is the whole performance argument.
+        large: true,
+        largeThreshold: 120,
+        progressive: 400,
+        data: field,
+      },
+      {
+        type: "scatter",
+        symbolSize: 28,
+        data: marks.map((p) => ({
+          ...dot(p),
+          symbol: `image://${getLogoSources(sym(p.pair))[0]}`,
+        })),
+        label: {
+          show: true,
+          position: "bottom",
+          distance: 5,
+          color: tokens.fg,
+          fontSize: 10,
+          fontWeight: 700,
+          fontFamily: MONO,
+          textBorderColor: tokens["surface-raised"],
+          textBorderWidth: 3,
+          formatter: (p) => sym(p.name),
+        },
+        labelLayout: { hideOverlap: true },
+        z: 5,
+      },
+      {
+        type: "line",
+        data: [],
+        markLine: {
+          silent: true,
+          symbol: "none",
+          label: { show: false },
+          data: diagonal
+            ? [
+                ...refs,
+                // y = x. Everything under it gave profit back, which is the one
+                // thing this chart exists to show and was previously a sentence
+                // in the subtitle rather than a line on the canvas.
+                [
+                  { coord: [Math.max(domX[0], domY[0]), Math.max(domX[0], domY[0])] },
+                  { coord: [Math.min(domX[1], domY[1]), Math.min(domX[1], domY[1])] },
+                ],
+              ]
+            : refs,
+          lineStyle: { color: inkAlpha(tokens, 0.3), type: "dashed", width: 1 },
+        },
+      },
+    ],
+  };
+}
+
+export default function TerminalScatter({
+  points = [],
+  named,
+  domX,
+  domY,
+  height,
+  labelMode = "focus",
+  diagonal = false,
+  tip,
+  onPair,
+  onApi,
+}) {
+  const tokens = useChartTokens();
+  const chartRef = useRef(null);
+  const namedSet = useMemo(() => named || new Set(), [named]);
+
+  const option = useMemo(
+    () => buildScatterOption({ points, named: namedSet, domX, domY, tokens, labelMode, diagonal, tip }),
+    [points, namedSet, domX, domY, tokens, labelMode, diagonal, tip]
+  );
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !onApi) return undefined;
+    const win = () => {
+      const z = (chart.getOption()?.dataZoom || [])[0] || {};
+      return [z.start ?? 0, z.end ?? 100];
+    };
+    const apply = (factor) => {
+      const [a, b] = win();
+      const mid = (a + b) / 2;
+      const half = Math.min(50, Math.max(0.5, ((b - a) / 2) * factor));
+      chart.dispatchAction({
+        type: "dataZoom",
+        start: Math.max(0, mid - half),
+        end: Math.min(100, mid + half),
+      });
+    };
+    onApi({
+      zoomIn: () => apply(1 / 1.4),
+      zoomOut: () => apply(1.4),
+      reset: () => chart.dispatchAction({ type: "dataZoom", start: 0, end: 100 }),
+      isZoomed: () => {
+        const [a, b] = win();
+        return a > 0.5 || b < 99.5;
+      },
+    });
+    return undefined;
+  }, [onApi]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return undefined;
+    const handler = (p) => {
+      if (p?.name) onPair?.(p.name);
+    };
+    chart.on("click", handler);
+    return () => chart.off("click", handler);
+  }, [onPair]);
+
+  return (
+    <EChart
+      option={option}
+      height={height}
+      notMerge
+      onInit={(c) => {
+        chartRef.current = c;
+      }}
+    />
+  );
+}

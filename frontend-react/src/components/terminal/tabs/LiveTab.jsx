@@ -3,31 +3,10 @@
 // Extracted from SignalsAnalytics, which carried eight tabs and ran every one
 // of their hooks on every render. What this tab computes now runs only while it
 // is open.
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
-  ComposedChart,
-  ScatterChart,
-  Scatter,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  XAxis,
-  YAxis,
-  ZAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ReferenceLine,
-  ReferenceArea,
-} from "recharts";
 import CoinLogo from "../../CoinLogo";
+import TerminalScatter from "./TerminalScatter";
 import {
   XCard,
   Kpi,
@@ -42,26 +21,20 @@ import {
   StatusTag,
   CoinPill,
   Methodology,
-  ScatterTip,
   LegendChips,
   CoinBubble,
-  PairBubble,
   promote,
-  namedLast,
-  useZoom,
   useChartHeight,
   pctBound,
   ChartLens,
   pctRange,
   clampTo,
-  clampRange,
   fitBound,
   median,
   statusColorOf,
   reliabilityFromSample,
   fmtPct,
   fmtMoney,
-  fmtAxis,
   heatPct,
   heatBias,
   heatLabelColor,
@@ -71,10 +44,8 @@ import {
   CYAN,
   PURPLE,
   GRAYBAR,
-  GRID,
   AXIS,
   MUTED,
-  TICK,
   SERIES,
   STATUS_COLORS,
   STATUS_LABEL,
@@ -314,8 +285,31 @@ export default function LiveTab({
 
   const labelMax = (mode) => (mode === "off" ? 0 : mode === "all" ? 400 : 18);
 
-  const zOpp = useZoom(oppDomX[0], oppDomX[1], oppDomY[0], oppDomY[1]);
-  const zPeak = useZoom(peakDomX[0], peakDomX[1], peakDomY[0], peakDomY[1]);
+  // ECharts owns the wheel and the drag now; these shims only give the card's
+  // three buttons something real to do, and tell it when there is a view worth
+  // resetting. Same arrangement AnomalyTab uses.
+  const oppApi = useRef(null);
+  const peakApi = useRef(null);
+  const [oppZoomed, setOppZoomed] = useState(false);
+  const [peakZoomed, setPeakZoomed] = useState(false);
+  const mkZoom = (ref, zoomed, setZoomed) => ({
+    zoomIn: () => {
+      ref.current?.zoomIn();
+      setZoomed(true);
+    },
+    zoomOut: () => {
+      ref.current?.zoomOut();
+      setZoomed(ref.current?.isZoomed() ?? false);
+    },
+    reset: () => {
+      ref.current?.reset();
+      setZoomed(false);
+    },
+    zoomed,
+    nudge: false,
+  });
+  const zOpp = useMemo(() => mkZoom(oppApi, oppZoomed, setOppZoomed), [oppZoomed]);
+  const zPeak = useMemo(() => mkZoom(peakApi, peakZoomed, setPeakZoomed), [peakZoomed]);
 
   const oppNamed = useMemo(
     () => promote(oppPts, oppDomX, oppDomY, stdH, labelMax(oppLabels), (p) => p.y),
@@ -449,54 +443,25 @@ export default function LiveTab({
                         onLabels={setOppLabels}
                         shown={oppPts.length}
                       />
-                    <div style={{ height: h }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                          <CartesianGrid stroke={GRID} strokeDasharray="3 6" />
-                          <XAxis
-                            type="number"
-                            dataKey="x"
-                            tick={TICK}
-                            axisLine={false}
-                            tickLine={false}
-                            unit="%"
-                            domain={zOpp.domX}
-                            allowDataOverflow
-                            tickFormatter={fmtAxis}
-                          />
-                          <YAxis
-                            type="number"
-                            dataKey="y"
-                            tick={TICK}
-                            axisLine={false}
-                            tickLine={false}
-                            unit="%"
-                            domain={zOpp.domY}
-                            allowDataOverflow
-                            tickFormatter={fmtAxis}
-                          />
-                          <Tooltip
-                            content={<ScatterTip xLabel="Δ call %" yLabel="upside left %" />}
-                            cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                          />
-                          <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
-                          <Scatter
-                            isAnimationActive={false}
-                            data={namedLast(
-                              oppPts.map((p) => ({
-                                ...p,
-                                x: clampRange(p.x, oppDomX),
-                                y: clampRange(p.y, oppDomY),
-                                fill: RISK_COLORS[p.risk] || GRAYBAR,
-                                sc: statusColorOf(statusMap, p.pair),
-                                named: oppNamed.has(p.pair),
-                              }))
-                            )}
-                            shape={<PairBubble onPair={openPair} />}
-                          />
-                        </ScatterChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <TerminalScatter
+                      points={oppPts.map((p) => ({
+                        ...p,
+                        fill: RISK_COLORS[p.risk] || GRAYBAR,
+                        sc: statusColorOf(statusMap, p.pair),
+                      }))}
+                      named={oppNamed}
+                      domX={oppDomX}
+                      domY={oppDomY}
+                      height={h}
+                      labelMode={oppLabels}
+                      onPair={openPair}
+                      onApi={(api) => {
+                        oppApi.current = api;
+                      }}
+                      tip={(pt) =>
+                        `${String(pt.name).replace(/USDT$/i, "")}<br/>from entry ${pt.value[0].toFixed(1)}%<br/>room left ${pt.value[1].toFixed(1)}%`
+                      }
+                    />
                     </>
                   )}
                 />
@@ -528,62 +493,26 @@ export default function LiveTab({
                       onLabels={setPeakLabels}
                       shown={peakPts.length}
                     />
-                  <div style={{ height: Math.max(h, 280) }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                        <CartesianGrid stroke={GRID} />
-                        <XAxis
-                          type="number"
-                          dataKey="x"
-                          tick={TICK}
-                          axisLine={false}
-                          tickLine={false}
-                          unit="%"
-                          domain={zPeak.domX}
-                          allowDataOverflow
-                          tickFormatter={fmtAxis}
-                        />
-                        <YAxis
-                          type="number"
-                          dataKey="y"
-                          tick={TICK}
-                          axisLine={false}
-                          tickLine={false}
-                          unit="%"
-                          domain={zPeak.domY}
-                          allowDataOverflow
-                          tickFormatter={fmtAxis}
-                        />
-                        <Tooltip
-                          content={<ScatterTip xLabel="peak %" yLabel="now %" />}
-                          cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                        />
-                        <ReferenceLine
-                          segment={[
-                            { x: 0, y: 0 },
-                            { x: 150, y: 150 },
-                          ]}
-                          stroke="rgb(var(--ink) / 0.2)"
-                          strokeDasharray="4 4"
-                        />
-                        <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
-                        <Scatter
-                          isAnimationActive={false}
-                          data={namedLast(
-                            peakPts.map((p) => ({
-                              ...p,
-                              x: clampRange(p.x, peakDomX),
-                              y: clampRange(p.y, peakDomY),
-                              fill: p.win ? GOLD : p.y >= 0 ? POS : NEG,
-                              sc: statusColorOf(statusMap, p.pair),
-                              named: peakNamed.has(p.pair),
-                            }))
-                          )}
-                          shape={<PairBubble onPair={openPair} />}
-                        />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <TerminalScatter
+                    points={peakPts.map((p) => ({
+                      ...p,
+                      fill: p.win ? GOLD : p.y >= 0 ? POS : NEG,
+                      sc: statusColorOf(statusMap, p.pair),
+                    }))}
+                    named={peakNamed}
+                    domX={peakDomX}
+                    domY={peakDomY}
+                    height={Math.max(h, 280)}
+                    labelMode={peakLabels}
+                    diagonal
+                    onPair={openPair}
+                    onApi={(api) => {
+                      peakApi.current = api;
+                    }}
+                    tip={(pt) =>
+                      `${String(pt.name).replace(/USDT$/i, "")}<br/>peak ${pt.value[0].toFixed(1)}%<br/>now ${pt.value[1].toFixed(1)}%`
+                    }
+                  />
                   </>
                 )}
               />
