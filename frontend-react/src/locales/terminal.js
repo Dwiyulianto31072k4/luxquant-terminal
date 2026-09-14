@@ -55,6 +55,10 @@ export const terminalEn = {
     confVolspike: "Volume 3x",
     confMover: "Volume on a mover",
     filterNarrative: "Narrative",
+    runningTitle: "Still running",
+    runningDesc:
+      "Calls that reached TP1 inside 15 minutes and still have room to the last target. Measured over the tag era, a fast TP1 goes on to TP3+ 55.9% of the time against 48.9% for a slower one — and it holds inside every band of TP1 distance, so it is not just a tight ladder.",
+    runningEmpty: "Nothing in this window reached TP1 that fast with room left.",
     ladderTitle: "Where the book stands",
     ladderDesc:
       "Every active call by the rung it has reached, and how long it has sat there. Only the open row has never touched a target.",
@@ -581,6 +585,10 @@ export const terminalZh = {
     confVolspike: "成交量 3 倍",
     confMover: "放量且已启动",
     filterNarrative: "叙事",
+    runningTitle: "仍在推进",
+    runningDesc:
+      "15 分钟内触及 TP1 且距最后目标仍有空间的信号。实测：快速触及 TP1 者后续到达 TP3+ 的比例为 55.9%，慢速为 48.9%，且在各 TP1 距离分组中均成立。",
+    runningEmpty: "该窗口内没有符合条件的信号。",
     ladderTitle: "当前持仓分布",
     ladderDesc: "按已触及的目标档位统计活跃信号，以及停留时长。只有 Open 一行从未触及任何目标。",
     ladderOpen: "未触及",

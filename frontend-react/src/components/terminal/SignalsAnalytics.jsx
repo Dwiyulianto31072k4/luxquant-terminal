@@ -471,6 +471,7 @@ export default function SignalsAnalytics() {
     const scatterOpp = [],
       scatterBeta = [],
       anomPts = [],
+      stillRunning = [],
       peakPts = [];
     const suspects = [],
       moversArr = [],
@@ -522,6 +523,36 @@ export default function SignalsAnalytics() {
             x: v,
             y: Math.max(0, s.max_target_pct - v),
             pair: s.pair,
+            risk: s.risk_norm,
+          });
+
+        // Still running — the one thing on this tab that is a shortlist rather
+        // than a recap, and the rule behind it is measured.
+        //
+        // A call that reached TP1 inside 15 minutes goes on to TP3+ far more
+        // often than one that took longer: 55.9% against 48.9% over the tag
+        // era (n=3,845 fast). That is not an artefact of a tight ladder — held
+        // inside bands of TP1 distance it survives in all six, +5.7pp in the
+        // dominant band (2,639 fast against 8,219 slower, 56.7% vs 51.0%).
+        //
+        // So: hit TP1 fast, and there is still room between here and the last
+        // target. Those two together are the closest thing this desk has to
+        // "worth a second look right now".
+        if (
+          s.max_target_pct != null &&
+          s.time_to_tp1_seconds != null &&
+          s.time_to_tp1_seconds >= 0 &&
+          s.time_to_tp1_seconds <= 900 &&
+          s.max_target_pct - v > 1
+        )
+          stillRunning.push({
+            pair: s.pair,
+            signal_id: s.signal_id,
+            status: s.status,
+            fc: v,
+            left: s.max_target_pct - v,
+            tt1: s.time_to_tp1_seconds,
+            created_at: s.created_at,
             risk: s.risk_norm,
           });
         if (s.beta_30d != null)
@@ -638,6 +669,7 @@ export default function SignalsAnalytics() {
       tt1Vals,
       maeMed: median(maeVals),
       scatterOpp,
+      stillRunning: stillRunning.sort((x, y) => y.left - x.left).slice(0, 24),
       scatterBeta,
       anomPts,
       peakPts,

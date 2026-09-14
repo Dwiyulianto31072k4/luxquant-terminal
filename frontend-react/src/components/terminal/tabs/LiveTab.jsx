@@ -160,6 +160,58 @@ export function LadderPanel({ view }) {
   );
 }
 
+const fmtMins = (sec) => (sec == null ? "—" : sec < 60 ? `${Math.round(sec)}s` : `${Math.round(sec / 60)}m`);
+
+const RUNG_TONE = {
+  open: "text-text-muted border-ink/15",
+  tp1: "text-positive border-positive/30",
+  tp2: "text-positive border-positive/30",
+  tp3: "text-accent border-accent/40",
+};
+
+/** The shortlist. See the note beside `stillRunning` in SignalsAnalytics for the
+ *  measurement this rule rests on — and the width control that rules out the
+ *  obvious confound. */
+export function StillRunning({ rows, onPair }) {
+  if (!rows?.length) return null;
+  return (
+    <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-3">
+      {rows.map((r) => (
+        <button
+          key={r.signal_id || r.pair}
+          type="button"
+          onClick={() => onPair?.(r.pair)}
+          className="flex items-center gap-2 rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-2 py-1.5 text-left transition-colors hover:border-ink/15 hover:bg-ink/[0.04]"
+        >
+          <CoinLogo pair={r.pair} size={20} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-mono text-[12px] text-text-primary">
+              {String(r.pair).replace(/USDT$/i, "")}
+            </span>
+            <span className="block font-mono text-[9.5px] text-text-muted">
+              TP1 in {fmtMins(r.tt1)} · now {r.fc >= 0 ? "+" : ""}
+              {r.fc.toFixed(1)}%
+            </span>
+          </span>
+          <span
+            className={`shrink-0 rounded border px-1 font-mono text-[9px] uppercase ${
+              RUNG_TONE[r.status] || "text-text-muted border-ink/15"
+            }`}
+          >
+            {r.status}
+          </span>
+          <span
+            className="w-12 shrink-0 text-right font-mono text-[11px] tabular-nums text-positive"
+            title="Remaining distance to the last target"
+          >
+            +{r.left.toFixed(1)}%
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function LiveTab({
   agg,
   view,
@@ -214,6 +266,26 @@ export default function LiveTab({
   return (
     <>
             <>
+              {/* The shortlist goes ABOVE the recap. The tab opened on top
+                  gainer / winners / median winner, which are all answers to
+                  "how did we do" — a fine thing to know and the wrong thing to
+                  lead with on a screen people open to decide what to look at
+                  next. */}
+              <XCard
+                title={t("terminal.viz.runningTitle")}
+                desc={t("terminal.viz.runningDesc")}
+                size="compact"
+                render={() =>
+                  agg.stillRunning?.length ? (
+                    <StillRunning rows={agg.stillRunning} onPair={openPair} />
+                  ) : (
+                    <p className="py-6 text-center text-[11px] text-text-muted">
+                      {t("terminal.viz.runningEmpty")}
+                    </p>
+                  )
+                }
+              />
+
               <SectionBand
                 title={t("terminal.viz.sectionLive")}
                 guide="live"
