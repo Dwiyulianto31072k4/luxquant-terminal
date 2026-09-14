@@ -225,10 +225,6 @@ export default function SignalsAnalytics() {
   // Window preset: last N calendar days (0=today only … 7=full week).
   // Replaces the old multi-toggle day chips that overcrowded the toolbar.
   const [windowDays, setWindowDays] = useState(7);
-  const dayBuckets = useMemo(
-    () => Array.from({ length: Math.min(7, Math.max(1, windowDays)) }, (_, i) => i),
-    [windowDays]
-  );
   // Anomaly chart-local (does not change global toolbar filters)
   // layer: all | hot | dec | rest · labels: off | focus | all
 
@@ -411,33 +407,66 @@ export default function SignalsAnalytics() {
   const selSectors = csv(filters.sectors);
   const selNarr = csv(filters.narr);
   const selRisks = csv(filters.risks);
-  const view = useMemo(() => {
+  // The pipeline is built in stages rather than one chain so a stage can be
+  // left OUT. That is what lets the status pills and the window carry counts:
+  // the number beside OPEN has to be "what OPEN would give you with everything
+  // else you have already chosen still applied", not a raw total — otherwise it
+  // promises rows the other filters will take away.
+  const inWindow = useCallback(
+    (s, days) => {
+      if (days >= 7) return true;
+      const ts = Date.parse(s.created_at || "");
+      if (!ts) return true;
+      const bucket = Math.min(6, Math.max(0, Math.floor((Date.now() - ts) / 86400000)));
+      return bucket < days;
+    },
+    []
+  );
+
+  // Everything except the status filter and the window.
+  const viewBase = useMemo(() => {
     let out = items;
     const f = filters;
     if (f.q) {
       const q = f.q.trim().toUpperCase();
       out = out.filter((s) => (s.pair || "").toUpperCase().includes(q));
     }
-    if (f.st !== "all") out = out.filter((s) => s.status === f.st);
     if (selRisks.length) out = out.filter((s) => selRisks.includes(s.risk_norm));
     if (selSectors.length) out = out.filter((s) => selSectors.includes(sectorKeyOf(s)));
     if (selNarr.length)
       out = out.filter((s) => (narrMap[s.pair] || []).some((n) => selNarr.includes(n)));
     if (f.dec === "1") out = out.filter((s) => s.is_decoupled);
-    // Window: keep signals whose age falls within the last N days
-    if (windowDays < 7) {
-      const set = new Set(dayBuckets);
-      const now = Date.now();
-      out = out.filter((s) => {
-        const ts = Date.parse(s.created_at || "");
-        if (!ts) return true;
-        const bucket = Math.min(6, Math.max(0, Math.floor((now - ts) / 86400000)));
-        return set.has(bucket);
-      });
-    }
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, filters, dayBuckets, windowDays]);
+  }, [items, filters, selRisks, selSectors, selNarr, narrMap]);
+
+  const view = useMemo(() => {
+    let out = viewBase.filter((s) => inWindow(s, windowDays));
+    if (filters.st !== "all") out = out.filter((s) => s.status === filters.st);
+    return out;
+  }, [viewBase, windowDays, filters.st, inWindow]);
+
+  // What each status pill would give, with every other filter still on.
+  const statusCounts = useMemo(() => {
+    const n = { all: 0 };
+    for (const s of viewBase) {
+      if (!inWindow(s, windowDays)) continue;
+      n.all += 1;
+      const k = s.status;
+      if (k) n[k] = (n[k] || 0) + 1;
+    }
+    return n;
+  }, [viewBase, windowDays, inWindow]);
+
+  // And what each window would give, with the status filter still on.
+  const windowCounts = useMemo(() => {
+    const n = {};
+    for (const d of [1, 3, 7]) {
+      n[d] = viewBase.filter(
+        (s) => inWindow(s, d) && (filters.st === "all" || s.status === filters.st)
+      ).length;
+    }
+    return n;
+  }, [viewBase, filters.st, inWindow]);
 
   // Narratives, the same CoinGecko taxonomy the Signals desk filters on.
   //
@@ -837,6 +866,7 @@ export default function SignalsAnalytics() {
           <div className="min-w-0 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <SegControl
               className="min-w-max"
+              counts={statusCounts}
               value={filters.st}
               onChange={(id) => setF({ st: id })}
               options={[
@@ -880,6 +910,7 @@ export default function SignalsAnalytics() {
               went with it: 1D / 3D / 7D says what it is, and no other control
               in this row wears its own name. */}
           <SegControl
+            counts={windowCounts}
             value={String(windowDays)}
             onChange={(id) => setWindowDays(Number(id))}
             options={[

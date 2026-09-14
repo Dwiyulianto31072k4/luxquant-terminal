@@ -638,7 +638,12 @@ export const Chip = ({ active, onClick, children, size = "sm", title }) => (
 );
 
 // Segmented control (TradingView / exchange-style filter group)
-export const SegControl = ({ options, value, onChange, className = "" }) => (
+// `counts` is optional: {id: n}. With it, a pill says what it will give you
+// before you press it — the Signals desk puts the number on every day tab for
+// the same reason, and a segment that hides it is a filter you have to try in
+// order to learn. A zero is still shown, and dimmed, because "OPEN 0" is a
+// useful fact and a missing pill is a confusing one.
+export const SegControl = ({ options, value, onChange, className = "", counts = null }) => (
   <div
     className={`inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-ink/[0.03] border border-ink/[0.06] ${className}`}
   >
@@ -658,6 +663,15 @@ export const SegControl = ({ options, value, onChange, className = "" }) => (
           }`}
         >
           {label}
+          {counts && counts[id] != null && (
+            <span
+              className={`ml-1 tabular-nums ${
+                counts[id] === 0 ? "opacity-35" : active ? "opacity-80" : "opacity-55"
+              }`}
+            >
+              {counts[id]}
+            </span>
+          )}
         </button>
       );
     })}
