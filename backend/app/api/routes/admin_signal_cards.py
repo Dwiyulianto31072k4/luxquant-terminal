@@ -18,7 +18,7 @@ import subprocess
 import zipfile
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -28,6 +28,7 @@ from app.core.x_links import tweet_url
 
 from app.api.deps import get_admin_user
 from app.core.database import get_db
+from app.core.security import create_access_token, decode_token
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -321,13 +322,27 @@ def draft_download(draft_id: int, db: Session = Depends(get_db), admin: User = D
     if not slides:
         raise HTTPException(404, "no images on this draft")
 
-    stem = f"luxquant-{row['card_key'] or 'card'}-{row['post_date'] or draft_id}"
+    return _zip_response(row, slides, draft_id)
+
+
+DL_SCOPE = "signal-card-download"
+# Long enough to survive a slow click, short enough that the copy nginx writes
+# into access.log is dead before anyone could read it back out.
+DL_TICKET_SECONDS = 180
+
+
+def _stem(row, draft_id: int) -> str:
+    return f"luxquant-{row['card_key'] or 'card'}-{row['post_date'] or draft_id}"
+
+
+def _zip_response(row, slides: list, draft_id: int) -> Response:
+    stem = _stem(row, draft_id)
     buf = io.BytesIO()
     # STORED, not DEFLATED: PNG is already compressed, so deflating ~25MB of
     # slides costs seconds of CPU and saves nothing.
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:
-        for i, p in enumerate(slides, start=1):
-            z.write(p, f"{stem}/{i:02d}.png")
+        for i, path in enumerate(slides, start=1):
+            z.write(path, f"{stem}/{i:02d}.png")
         caption = (row["caption"] or "").strip()
         if row["reply_text"]:
             caption += "\n\n--- reply ---\n" + row["reply_text"].strip()
@@ -337,6 +352,63 @@ def draft_download(draft_id: int, db: Session = Depends(get_db), admin: User = D
     return Response(
         content=buf.getvalue(), media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{stem}.zip"'})
+
+
+@router.get("/{draft_id}/download-ticket")
+def download_ticket(draft_id: int, admin: User = Depends(get_admin_user)):
+    """A short-lived key that lets the BROWSER fetch the file itself.
+
+    The admin page used to pull the whole zip through XHR into a Blob and hand
+    that to an <a download>. Measured 2026-09-14: every one of 17 browser
+    attempts was cut off between 230 KB and 8.9 MB of a 25,419,401-byte zip,
+    while `curl` from the same machine on the same network fetched all
+    25,419,401 bytes and unzipped clean — three times, origin-direct and through
+    Cloudflare. So neither the file, the backend, nginx, Cloudflare nor the link
+    is at fault; what dies is the in-page XHR.
+
+    A plain navigation is not subject to whatever kills it: the browser's own
+    download manager owns the transfer, so it survives re-renders, tab state and
+    JS heap pressure, and it shows progress. A navigation cannot carry an
+    Authorization header, which is the only reason this ticket exists. It is
+    scoped to one draft and expires in minutes, so the copy that lands in the
+    access log is inert.
+
+    GET, not POST, so view-only staff can still download (see get_admin_user).
+    """
+    return {
+        "ticket": create_access_token(
+            {"sub": str(admin.id), "scope": DL_SCOPE, "draft": int(draft_id)},
+            expires_delta=timedelta(seconds=DL_TICKET_SECONDS),
+        ),
+        "expires_in": DL_TICKET_SECONDS,
+    }
+
+
+@router.get("/{draft_id}/file")
+def draft_file(draft_id: int, t: str = Query(...), db: Session = Depends(get_db)):
+    """The download itself, authorised by a ticket instead of a header.
+
+    Mirrors exactly what the button did before: a bundle comes down as the zip,
+    a single card as its untouched PNG. No admin dependency here on purpose —
+    the ticket IS the authorisation, and it can only ever name one draft.
+    """
+    claims = decode_token(t) or {}
+    if claims.get("scope") != DL_SCOPE or int(claims.get("draft", -1)) != int(draft_id):
+        raise HTTPException(403, "bad or expired download ticket")
+
+    row = db.execute(text("""SELECT card_key, post_date, caption, reply_text, image_path, images_json
+                             FROM signal_card_drafts WHERE id=:i"""), {"i": draft_id}).mappings().first()
+    if not row:
+        raise HTTPException(404, "draft not found")
+    slides = _slides(row["image_path"], row["images_json"])
+    if not slides:
+        raise HTTPException(404, "no images on this draft")
+
+    if len(slides) > 1:
+        return _zip_response(row, slides, draft_id)
+    return FileResponse(
+        slides[0], media_type="image/png",
+        filename=f"{_stem(row, draft_id)}.png")
 
 
 @router.post("/render")

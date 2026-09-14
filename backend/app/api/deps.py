@@ -53,6 +53,20 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # A token carrying a `scope` is a single-purpose ticket, not a session.
+    # Those are minted to be put in a URL (the signal-card download hands one to
+    # the browser so its download manager can fetch the file), which means they
+    # are written verbatim into the nginx access log. Without this line such a
+    # token would also work as a full Bearer credential for its lifetime, so
+    # anyone who could read the log could act as that admin. The route that
+    # issues a scope checks the scope itself; nothing else may accept one.
+    if payload.get("scope"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Scoped ticket cannot be used as a session token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(
@@ -89,6 +103,9 @@ def get_current_user_optional(
 
     payload = decode_token(credentials.credentials)
     if payload is None or payload.get("type") != "access":
+        return None
+    # Single-purpose tickets are never a session — see get_current_user.
+    if payload.get("scope"):
         return None
 
     user_id = payload.get("sub")

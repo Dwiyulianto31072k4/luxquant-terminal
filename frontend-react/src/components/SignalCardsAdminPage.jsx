@@ -17,6 +17,9 @@ function fmtLeft(ms) {
 }
 
 const BASE = "/api/v1/admin/signal-cards";
+// axios adds baseURL for us; a plain navigation does not, and in dev the page
+// and the API sit on different ports. VITE_API_URL is the ORIGIN, not an API root.
+const API_ORIGIN = import.meta.env.VITE_API_URL || "";
 
 const STATUS_CLASS = {
   draft: "text-text-muted",
@@ -99,6 +102,7 @@ export default function SignalCardsAdminPage() {
   const [filter, setFilter] = useState("all");
   const [renderKey, setRenderKey] = useState("daily_recap");
   const [busy, setBusy] = useState("");
+  const [dlError, setDlError] = useState(null);
   const [copied, setCopied] = useState(null);
   const [now, setNow] = useState(Date.now());
   const firedRef = useRef(null);
@@ -198,24 +202,36 @@ export default function SignalCardsAdminPage() {
 
   // One slide comes down as a PNG; a bundle comes down as a zip of every slide in
   // post order plus the caption, so a carousel can go straight to Instagram.
+  //
+  // The browser fetches the file itself. This used to pull the whole thing
+  // through XHR into a Blob and hand that to an <a download>, and on
+  // 2026-09-14 every one of 17 attempts was cut off between 230 KB and 8.9 MB
+  // of a 25 MB zip — while curl, from the same machine on the same network,
+  // fetched all 25,419,401 bytes and unzipped clean, origin-direct AND through
+  // Cloudflare. Nothing on the server side is wrong; the in-page XHR is what
+  // dies. A navigation hands the transfer to the download manager instead, so
+  // it survives re-renders and heap pressure and shows real progress. The
+  // ticket exists only because a navigation cannot send an auth header.
   const downloadCard = async (d) => {
     setBusy(`dl-${d.id}`);
-    const many = (d.slide_count || 1) > 1;
-    const stem = `luxquant-${d.card_key || "card"}-${d.post_date || d.id}`;
+    setDlError(null);
     try {
-      const r = await api.get(`${BASE}/${d.id}/${many ? "download" : "image"}`, {
-        responseType: "blob",
-      });
-      const url = URL.createObjectURL(r.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${stem}.${many ? "zip" : "png"}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      /* ignore — image may not exist yet */
+      const r = await api.get(`${BASE}/${d.id}/download-ticket`);
+      const ticket = r.data?.ticket;
+      if (!ticket) throw new Error("no ticket returned");
+      // Same-tab navigation to an attachment does not replace the page; the
+      // browser keeps the admin view and drops the file into Downloads.
+      window.location.assign(`${API_ORIGIN}${BASE}/${d.id}/file?t=${encodeURIComponent(ticket)}`);
+    } catch (e) {
+      // Never silent again. The old handler swallowed every failure with
+      // "image may not exist yet", so a download that died mid-flight looked
+      // identical to a button that does nothing — which is exactly how this
+      // was reported.
+      setDlError(
+        `${d.card_key || "card"}: ${e?.response?.status || ""} ${
+          e?.response?.data?.detail || e?.message || "download failed"
+        }`.trim()
+      );
     } finally {
       setBusy(null);
     }
@@ -382,6 +398,21 @@ export default function SignalCardsAdminPage() {
             </table>
           </div>
         </details>
+      )}
+
+      {/* A failed download used to be indistinguishable from a dead button. */}
+      {dlError && (
+        <div className="mb-3 flex items-start gap-2 rounded-xl border border-loss/30 bg-loss/10 px-3.5 py-2.5 text-[13px] text-text-primary">
+          <span className="font-bold text-loss">Download failed</span>
+          <span className="text-text-secondary">{dlError}</span>
+          <button
+            type="button"
+            onClick={() => setDlError(null)}
+            className="ml-auto shrink-0 cursor-pointer text-text-muted"
+          >
+            ✕
+          </button>
+        </div>
       )}
 
       {/* filters */}
