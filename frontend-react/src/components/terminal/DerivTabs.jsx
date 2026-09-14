@@ -18,10 +18,7 @@ import {
   CartesianGrid,
   Tooltip,
   Cell,
-  ScatterChart,
-  Scatter,
   ReferenceLine,
-  ReferenceArea,
   LineChart,
   Line,
   Legend,
@@ -52,18 +49,14 @@ import {
   pctRange,
   clampRange,
   CoinBubble,
-  PairBubble,
   promote,
-  namedLast,
   useChartHeight,
   SectionBand,
   Kpi,
   XCard,
-  useZoom,
   RankBars,
   CoinPill,
   DarkTip,
-  ScatterTip,
   LegendChips,
   Warming,
   Chip,
@@ -71,7 +64,9 @@ import {
   ScrollArea,
   statusColorOf,
   fmtAxis,
+  useCanvasZoom,
 } from "./vizShared";
+import TerminalScatter from "./tabs/TerminalScatter";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 import { getLogoSources } from "../CoinLogo";
 
@@ -130,7 +125,7 @@ export function OITab({ view, deriv, pairFc, openPair }) {
   // whole point of this chart.
   const qxR = pctRange(rows.map((r) => r.price_chg_24h), 0.98, 0, 8);
   const qyR = pctRange(rows.map((r) => r.oi_chg_1h), 0.98, 0, 4);
-  const zQuad = useZoom(qxR[0], qxR[1], qyR[0], qyR[1]);
+  const [zQuad, onQuadApi] = useCanvasZoom();
 
   // Pin to the visible window so a freshly-listed pair with a huge OI jump
   // can't blow the axis up to 500,000% (outliers sit on the edge, still shown).
@@ -151,19 +146,24 @@ export function OITab({ view, deriv, pairFc, openPair }) {
   const quadH = useChartHeight("hero");
   // The corners are what this chart is about — price and OI both moving hard —
   // so distance from the origin decides who gets a name.
-  const quadB = useMemo(() => {
+  const quadNamed = useMemo(() => {
     const xs = Math.max(Math.abs(qxR[0]), Math.abs(qxR[1])) || 1;
     const ys = Math.max(Math.abs(qyR[0]), Math.abs(qyR[1])) || 1;
-    const named = promote(quad, qxR, qyR, quadH, 24, (p) => Math.hypot(p.x / xs, p.y / ys));
-    return namedLast(quad.map((p) => ({
-      ...p,
-      fill: p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE,
-      sc: statusColorOf(statusMap, p.pair),
-      named: named.has(p.pair),
-    })));
+    return promote(quad, qxR, qyR, quadH, 24, (p) => Math.hypot(p.x / xs, p.y / ys));
     // qxR/qyR are rebuilt each render; rows is what changes underneath them.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, quadH, statusMap]);
+  }, [rows, quadH]);
+
+  const quadB = useMemo(
+    () =>
+      quad.map((p) => ({
+        ...p,
+        fill: p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE,
+        sc: statusColorOf(statusMap, p.pair),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, statusMap]
+  );
   const oiTotal = rows.reduce((a, r) => a + (r.oi || 0), 0);
   const gain = [...rows]
     .filter((r) => r.oi_chg_1h != null)
@@ -226,62 +226,22 @@ export function OITab({ view, deriv, pairFc, openPair }) {
             size="hero"
             hint={t("terminal.viz.oiQuadHint")}
             render={(h) => (
-              <div style={{ height: Math.max(h, 300) }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                    <ReferenceArea
-                      x1={0}
-                      x2={zQuad.domX[1]}
-                      y1={0}
-                      y2={zQuad.domY[1]}
-                      fill={POS}
-                      fillOpacity={0.04}
-                    />
-                    <ReferenceArea
-                      x1={zQuad.domX[0]}
-                      x2={0}
-                      y1={0}
-                      y2={zQuad.domY[1]}
-                      fill={NEG}
-                      fillOpacity={0.04}
-                    />
-                    <CartesianGrid stroke={GRID} />
-                    <XAxis
-                      type="number"
-                      dataKey="x"
-                      tick={TICK}
-                      axisLine={false}
-                      tickLine={false}
-                      unit="%"
-                      domain={zQuad.domX}
-                      allowDataOverflow
-                      tickFormatter={(v) => Math.round(v)}
-                    />
-                    <YAxis
-                      type="number"
-                      dataKey="y"
-                      tick={TICK}
-                      axisLine={false}
-                      tickLine={false}
-                      unit="%"
-                      domain={zQuad.domY}
-                      allowDataOverflow
-                      tickFormatter={(v) => Math.round(v)}
-                    />
-                    <Tooltip
-                      content={<ScatterTip xLabel="price 24h %" yLabel="OI Δ1h %" />}
-                      cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                    />
-                    <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.15)" />
-                    <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                    <Scatter
-                      isAnimationActive={false}
-                      data={quadB}
-                      shape={<PairBubble onPair={openPair} />}
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
+              <TerminalScatter
+                points={quadB}
+                named={quadNamed}
+                domX={qxR}
+                domY={qyR}
+                height={Math.max(h, 300)}
+                onPair={openPair}
+                onApi={onQuadApi}
+                quadrants={[
+                  { x0: 0, y0: 0, x1: qxR[1], y1: qyR[1], color: POS },
+                  { x0: qxR[0], y0: 0, x1: 0, y1: qyR[1], color: NEG },
+                ]}
+                tip={(pt) =>
+                  `${String(pt.name).replace(/USDT$/i, "")}<br/>price 24h ${pt.value[0].toFixed(1)}%<br/>OI \u03941h ${pt.value[1].toFixed(1)}%`
+                }
+              />
             )}
           />
 
@@ -338,7 +298,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
     pctBound(rows.filter((r) => r.lsr != null).map((r) => r.lsr), 0.97, 1.8),
     pctBound(rows.filter((r) => r.top_lsr != null).map((r) => r.top_lsr), 0.97, 1.8)
   );
-  const zDiv = useZoom(0, divHi, 0, divHi);
+  const [zDiv, onDivApi] = useCanvasZoom();
   // Histogram bin drill — click a bar → list pairs in that L/S band → open call
   const [lsBin, setLsBin] = useState(null); // { lo, hi, mid }
 
@@ -373,22 +333,25 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
   const divH = useChartHeight("std");
   // Smart money fading retail is the read here, so those points get first claim
   // on the space; after them, distance from the balanced (1, 1) corner.
-  const divB = useMemo(() => {
-    const named = promote(divPts, [0, divHi], [0, divHi], divH, 20, (p) =>
-      (p.smart ? 1e6 : 0) + Math.hypot(p.x - 1, p.y - 1)
-    );
-    return namedLast(
+  const divBNamed = useMemo(
+    () => promote(divPts, [0, divHi], [0, divHi], divH, 20, (p) =>
+      (p.smart ? 1e6 : 0) + Math.hypot(p.x - 1, p.y - 1)),
+    // divPts is rebuilt every render, so it cannot be a dependency without
+    // defeating the memo; rows is what actually changes underneath it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, divHi, divH, statusMap]
+  );
+
+  const divB = useMemo(
+    () =>
       divPts.map((p) => ({
         ...p,
         fill: p.smart ? GOLD : GRAYBAR,
         sc: statusColorOf(statusMap, p.pair),
-        named: named.has(p.pair),
-      }))
-    );
-    // divPts is rebuilt every render, so it cannot be a dependency without
-    // defeating the memo; rows is what actually changes underneath it.
+      })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, divHi, divH, statusMap]);
+    [rows, divHi, divH, statusMap]
+  );
   const takers = [...rows]
     .filter((r) => r.taker != null)
     .map((r) => ({ pair: r.pair, v: (r.taker - 1) * 100 }))
@@ -619,44 +582,18 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
           zoom={zDiv}
           hint={t("terminal.viz.lsDivHint")}
           render={(h) => (
-            <div style={{ height: h }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                  <CartesianGrid stroke={GRID} />
-                  <XAxis
-                    type="number"
-                    dataKey="x"
-                    tick={TICK}
-                    axisLine={false}
-                    tickLine={false}
-                    domain={zDiv.domX}
-                    allowDataOverflow
-                    tickFormatter={fmtAxis}
-                  />
-                  <YAxis
-                    type="number"
-                    dataKey="y"
-                    tick={TICK}
-                    axisLine={false}
-                    tickLine={false}
-                    domain={zDiv.domY}
-                    allowDataOverflow
-                    tickFormatter={fmtAxis}
-                  />
-                  <Tooltip
-                    content={<ScatterTip xLabel="retail LSR" yLabel="top-trader LSR" />}
-                    cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                  />
-                  <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
-                  <ReferenceLine y={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
-                  <Scatter
-                    isAnimationActive={false}
-                    data={divB}
-                    shape={<PairBubble onPair={openPair} />}
-                  />
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
+            <TerminalScatter
+              points={divB}
+              named={divBNamed}
+              domX={[0, divHi]}
+              domY={[0, divHi]}
+              height={h}
+              onPair={openPair}
+              onApi={onDivApi}
+              tip={(pt) =>
+                `${String(pt.name).replace(/USDT$/i, "")}<br/>retail LSR ${pt.value[0].toFixed(2)}<br/>top-trader LSR ${pt.value[1].toFixed(2)}`
+              }
+            />
           )}
         />
       </div>
@@ -744,7 +681,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
     0.97,
     0.04
   );
-  const zFund = useZoom(-fundXBound, fundXBound, -30, 30);
+  const [zFund, onFundApi] = useCanvasZoom();
 
   const withF = rows.filter((r) => r.funding != null).map((r) => ({ ...r, fPct: r.funding * 100 }));
   const sorted = [...withF].sort((a, b) => a.fPct - b.fPct);
@@ -779,20 +716,23 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
   const fundH = useChartHeight("hero");
   // A call riding free funding, or fighting expensive funding, is the thing
   // worth naming: rank by how far the call has travelled either way.
-  const fundB = useMemo(() => {
-    const named = promote(fundFc, [-fundXBound, fundXBound], [-30, 30], fundH, 22, (p) =>
-      Math.abs(p.y)
-    );
-    return namedLast(
+  const fundBNamed = useMemo(
+    () => promote(fundFc, [-fundXBound, fundXBound], [-30, 30], fundH, 22, (p) =>
+      Math.abs(p.y)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, fundXBound, fundH, statusMap]
+  );
+
+  const fundB = useMemo(
+    () =>
       fundFc.map((p) => ({
         ...p,
         fill: p.neg ? POS : GRAYBAR,
         sc: statusColorOf(statusMap, p.pair),
-        named: named.has(p.pair),
-      }))
-    );
+      })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, fundXBound, fundH, statusMap]);
+    [rows, fundXBound, fundH, statusMap]
+  );
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -939,46 +879,18 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
         zoom={zFund}
         size="hero"
         render={(h) => (
-          <div style={{ height: Math.max(h, 280) }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                <CartesianGrid stroke={GRID} />
-                <XAxis
-                  type="number"
-                  dataKey="x"
-                  tick={TICK}
-                  axisLine={false}
-                  tickLine={false}
-                  unit="%"
-                  domain={zFund.domX}
-                  allowDataOverflow
-                  tickFormatter={fmtAxis}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="y"
-                  tick={TICK}
-                  axisLine={false}
-                  tickLine={false}
-                  unit="%"
-                  domain={zFund.domY}
-                  allowDataOverflow
-                  tickFormatter={fmtAxis}
-                />
-                <Tooltip
-                  content={<ScatterTip xLabel="funding %" yLabel="Δ call %" />}
-                  cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                />
-                <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
-                <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
-                <Scatter
-                  isAnimationActive={false}
-                  data={fundB}
-                  shape={<PairBubble onPair={openPair} />}
-                />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
+          <TerminalScatter
+            points={fundB}
+            named={fundBNamed}
+            domX={[-fundXBound, fundXBound]}
+            domY={[-30, 30]}
+            height={Math.max(h, 280)}
+            onPair={openPair}
+            onApi={onFundApi}
+            tip={(pt) =>
+              `${String(pt.name).replace(/USDT$/i, "")}<br/>funding % ${pt.value[0].toFixed(2)}<br/>\u0394 call % ${pt.value[1].toFixed(2)}`
+            }
+          />
         )}
       />
 
@@ -1384,7 +1296,7 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
     0,
     10
   );
-  const zM = useZoom(momXR[0], momXR[1], momYR[0], momYR[1]);
+  const [zM, onMomApi] = useCanvasZoom();
 
   const scored = rows.filter((r) => r.momentum != null);
   const accelerating = scored.filter((r) => r.momentum >= 65).length;
@@ -1413,18 +1325,22 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
 
   const momH = useChartHeight("hero");
   // The momentum score is this tab's whole subject, so it decides who is named.
-  const momB = useMemo(() => {
-    const named = promote(scatter, momXR, momYR, momH, 22, (p) => p.mom);
-    return namedLast(
+  const momBNamed = useMemo(
+    () => promote(scatter, momXR, momYR, momH, 22, (p) => p.mom),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, momH, statusMap]
+  );
+
+  const momB = useMemo(
+    () =>
       scatter.map((p) => ({
         ...p,
         fill: p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR,
         sc: statusColorOf(statusMap, p.pair),
-        named: named.has(p.pair),
-      }))
-    );
+      })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, momH, statusMap]);
+    [rows, momH, statusMap]
+  );
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -1470,54 +1386,19 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
         size="hero"
         hint={t("terminal.viz.momScatterHint")}
         render={(h) => (
-          <div style={{ height: Math.max(h, 320) }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                <ReferenceArea
-                  x1={0}
-                  x2={zM.domX[1]}
-                  y1={0}
-                  y2={zM.domY[1]}
-                  fill={POS}
-                  fillOpacity={0.04}
-                />
-                <CartesianGrid stroke={GRID} />
-                <XAxis
-                  type="number"
-                  dataKey="x"
-                  tick={TICK}
-                  axisLine={false}
-                  tickLine={false}
-                  unit="%"
-                  domain={zM.domX}
-                  allowDataOverflow
-                  tickFormatter={fmtAxis}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="y"
-                  tick={TICK}
-                  axisLine={false}
-                  tickLine={false}
-                  unit="%"
-                  domain={zM.domY}
-                  allowDataOverflow
-                  tickFormatter={fmtAxis}
-                />
-                <Tooltip
-                  content={<ScatterTip xLabel="RS vs BTC %" yLabel="vol accel 1h %" />}
-                  cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                />
-                <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.15)" />
-                <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                <Scatter
-                  isAnimationActive={false}
-                  data={momB}
-                  shape={<PairBubble onPair={openPair} />}
-                />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
+          <TerminalScatter
+            points={momB}
+            named={momBNamed}
+            domX={momXR}
+            domY={momYR}
+            height={Math.max(h, 320)}
+            onPair={openPair}
+            onApi={onMomApi}
+            quadrants={[{ x0: 0, y0: 0, x1: momXR[1], y1: momYR[1], color: POS }]}
+            tip={(pt) =>
+              `${String(pt.name).replace(/USDT$/i, "")}<br/>RS vs BTC % ${pt.value[0].toFixed(2)}<br/>vol accel 1h % ${pt.value[1].toFixed(2)}`
+            }
+          />
         )}
       />
 
@@ -1559,7 +1440,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
     0.96,
     0.012
   );
-  const zSq = useZoom(0, 4, -sqY, sqY);
+  const [zSq, onSqApi] = useCanvasZoom();
 
   const scored = rows.filter((r) => r.squeeze != null);
   const crowdedLong = scored.filter((r) => r.squeeze_side === "long" && r.squeeze >= 45);
@@ -1587,18 +1468,22 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
   const sqH = useChartHeight("hero");
   // Size already encodes open interest here, so the biggest books — the ones a
   // squeeze would actually move — are the ones that get named.
-  const sqB = useMemo(() => {
-    const named = promote(scatter, [0, 4], [-sqY, sqY], sqH, 20, (p) => p.z);
-    return namedLast(
+  const sqBNamed = useMemo(
+    () => promote(scatter, [0, 4], [-sqY, sqY], sqH, 20, (p) => p.z),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, sqY, sqH, statusMap]
+  );
+
+  const sqB = useMemo(
+    () =>
       scatter.map((p) => ({
         ...p,
         fill: p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR,
         sc: statusColorOf(statusMap, p.pair),
-        named: named.has(p.pair),
-      }))
-    );
+      })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, sqY, sqH, statusMap]);
+    [rows, sqY, sqH, statusMap]
+  );
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -1643,62 +1528,18 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
         zoom={zSq}
         size="hero"
         render={(h) => (
-          <div style={{ height: Math.max(h, 320) }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
-                <CartesianGrid stroke={GRID} />
-                <XAxis
-                  type="number"
-                  dataKey="x"
-                  tick={TICK}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={zSq.domX}
-                  allowDataOverflow
-                  tickFormatter={fmtAxis}
-                  label={{
-                    value: "L/S ratio",
-                    position: "insideBottom",
-                    offset: -4,
-                    fill: AXIS,
-                    fontSize: 10.5,
-                    fontFamily: "monospace",
-                  }}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="y"
-                  tick={TICK}
-                  axisLine={false}
-                  tickLine={false}
-                  unit="%"
-                  domain={zSq.domY}
-                  allowDataOverflow
-                  tickFormatter={fmtAxis}
-                  label={{
-                    value: "funding",
-                    angle: -90,
-                    position: "insideLeft",
-                    fill: AXIS,
-                    fontSize: 10.5,
-                    fontFamily: "monospace",
-                  }}
-                />
-                <ZAxis type="number" dataKey="z" range={[24, 400]} />
-                <Tooltip
-                  content={<ScatterTip xLabel="L/S ratio" yLabel="funding %" />}
-                  cursor={{ strokeDasharray: "3 3", stroke: GOLD }}
-                />
-                <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" />
-                <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                <Scatter
-                  isAnimationActive={false}
-                  data={sqB}
-                  shape={<PairBubble onPair={openPair} />}
-                />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
+          <TerminalScatter
+            points={sqB}
+            named={sqBNamed}
+            domX={[0, 4]}
+            domY={[-sqY, sqY]}
+            height={Math.max(h, 320)}
+            onPair={openPair}
+            onApi={onSqApi}
+            tip={(pt) =>
+              `${String(pt.name).replace(/USDT$/i, "")}<br/>LSR z ${pt.value[0].toFixed(2)}<br/>funding % ${pt.value[1].toFixed(2)}`
+            }
+          />
         )}
       />
 

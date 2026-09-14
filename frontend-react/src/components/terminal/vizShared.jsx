@@ -2,7 +2,7 @@
 // Terminal viz — shared atoms, palette & helpers.
 // Used by SignalsAnalytics + DerivTabs. Timeless desk structure.
 // ════════════════════════════════════════════════════════════════
-import { useState, useContext, useRef, useEffect, useCallback } from "react";
+import { useState, useContext, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
@@ -1189,6 +1189,44 @@ export function XCard({ title, desc, render, zoom, hint, guide, height, size = "
 // direction, unlimited zoom in/out, wheel zooms toward the cursor, drag pans.
 // Backward-compatible API (domX/domY/zoomIn/zoomOut/reset/onWheel) plus the
 // pointer handlers + ref that XCard wires onto the chart body.
+/**
+ * The card's +/-/reset buttons, for a chart that ECharts already zooms itself.
+ *
+ * Canvas charts own the wheel and the drag; this only gives the three buttons
+ * something real to do and tells the card when there is a view worth resetting.
+ * It lives here because five charts need the identical shim, and five copies of
+ * a thing is how the copies start disagreeing.
+ *
+ * Returns [zoom, onApi] — spread `zoom` into XCard, hand `onApi` to the chart.
+ */
+export function useCanvasZoom() {
+  const api = useRef(null);
+  const [zoomed, setZoomed] = useState(false);
+  const zoom = useMemo(
+    () => ({
+      zoomIn: () => {
+        api.current?.zoomIn();
+        setZoomed(true);
+      },
+      zoomOut: () => {
+        api.current?.zoomOut();
+        setZoomed(api.current?.isZoomed() ?? false);
+      },
+      reset: () => {
+        api.current?.reset();
+        setZoomed(false);
+      },
+      zoomed,
+      nudge: false,
+    }),
+    [zoomed]
+  );
+  const onApi = useCallback((a) => {
+    api.current = a;
+  }, []);
+  return [zoom, onApi];
+}
+
 export function useZoom(x0, x1, y0, y1) {
   const [dom, setDom] = useState({ x0, x1, y0, y1 });
   const elRef = useRef(null);

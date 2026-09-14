@@ -36,6 +36,7 @@ export function buildScatterOption({
   tokens,
   labelMode = "focus",
   diagonal = false,
+  quadrants = null,
   tip,
   axisFmt = (v) => `${v.toFixed(0)}%`,
 }) {
@@ -133,6 +134,20 @@ export function buildScatterOption({
       {
         type: "line",
         data: [],
+        // Quadrant wash. The OI board is read by which corner a coin sits in —
+        // price up with open interest up is a different story from price up
+        // with open interest falling — so the corners are tinted rather than
+        // left to be inferred from two axis labels.
+        markArea: quadrants
+          ? {
+              silent: true,
+              itemStyle: { opacity: 0.045 },
+              data: quadrants.map((q) => [
+                { coord: [q.x0, q.y0], itemStyle: { color: q.color } },
+                { coord: [q.x1, q.y1] },
+              ]),
+            }
+          : undefined,
         markLine: {
           silent: true,
           symbol: "none",
@@ -164,6 +179,7 @@ export default function TerminalScatter({
   height,
   labelMode = "focus",
   diagonal = false,
+  quadrants = null,
   tip,
   onPair,
   onApi,
@@ -173,8 +189,9 @@ export default function TerminalScatter({
   const namedSet = useMemo(() => named || new Set(), [named]);
 
   const option = useMemo(
-    () => buildScatterOption({ points, named: namedSet, domX, domY, tokens, labelMode, diagonal, tip }),
-    [points, namedSet, domX, domY, tokens, labelMode, diagonal, tip]
+    () =>
+      buildScatterOption({ points, named: namedSet, domX, domY, tokens, labelMode, diagonal, quadrants, tip }),
+    [points, namedSet, domX, domY, tokens, labelMode, diagonal, quadrants, tip]
   );
 
   useEffect(() => {
