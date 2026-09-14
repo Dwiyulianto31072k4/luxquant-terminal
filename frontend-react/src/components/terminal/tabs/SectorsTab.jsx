@@ -58,6 +58,7 @@ import {
   SERIES,
   STATUS_COLORS,
   STATUS_LABEL,
+  sectorKeyOf,
 } from "../vizShared";
 
 export default function SectorsTab({
@@ -84,7 +85,7 @@ export default function SectorsTab({
                     <div style={{ height: Math.max(h, 260) }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <RadarChart
-                          data={agg.sectors.filter((s) => s.sector !== "unclassified").slice(0, 7)}
+                          data={agg.sectors.filter((s) => s.sector !== "other").slice(0, 7)}
                           outerRadius="72%"
                         >
                           <PolarGrid stroke="rgb(var(--ink) / 0.12)" />
@@ -164,7 +165,7 @@ export default function SectorsTab({
                 const activeSec = selSectors[0] || null;
                 const sectorSignals = activeSec
                   ? view
-                      .filter((s) => (s.sector || "unclassified") === activeSec)
+                      .filter((s) => sectorKeyOf(s) === activeSec)
                       .slice()
                       .sort((a, b) => {
                         const fa = pairFc[a.pair];

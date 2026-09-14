@@ -154,7 +154,7 @@ export const SECTOR_EMOJI = {
   lending: "🏦",
   metaverse: "🌐",
   other: "◈",
-  unclassified: "◦",
+  other: "◦",
 };
 export const SectorGlyph = ({ sector, size = 13 }) => (
   <span className="shrink-0 leading-none" style={{ fontSize: size }} aria-hidden="true">
@@ -679,6 +679,15 @@ export const IconBtn = ({ onClick, title, children }) => (
 // it. Without it a sector list is a wall of equal-looking words, and the one
 // holding three coins reads exactly like the one holding two hundred — so the
 // first thing a filter teaches you is that it emptied the desk.
+/** The sector a signal belongs to, for filtering and for the Sectors tab.
+ *
+ *  `coins.sector` holds a literal "other" bucket (87 coins) AND leaves 23 rows
+ *  NULL, and the code used to fold NULL into a separate word, "unclassified".
+ *  Two names for the one thing either surface can tell you — that the coin has
+ *  no sector — so the filter menu offered both as if they were choices. One
+ *  name, one place, used by every caller. */
+export const sectorKeyOf = (i) => (i?.sector || "other").toLowerCase();
+
 export function FilterMulti({ label, options, selected, onChange, counts = null }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);

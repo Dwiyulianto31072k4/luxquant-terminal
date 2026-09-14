@@ -88,6 +88,7 @@ import {
   useChartHeight,
   pctRange,
   clampRange,
+  sectorKeyOf,
 } from "./vizShared";
 import { STRONG_TAGS, WARN_TAGS } from "./tagGlossary";
 import { ANOM_FLOOR, anomSetupOf } from "./anomSetups";
@@ -112,10 +113,6 @@ import { useSignalStatus } from "../../context/SignalStatusContext";
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
 const DEFAULTS = { tab: "confluence", st: "all", sectors: "", risks: "", dec: "", q: "" };
-
-/** The sector a signal filters under. NULL and the literal "other" bucket are
- *  the same answer to the only question this filter asks, so they share a row. */
-const sectorKeyOf = (i) => (i?.sector || "other").toLowerCase();
 const parseF = (sp) => {
   const f = { ...DEFAULTS };
   Object.keys(DEFAULTS).forEach((k) => {
@@ -454,7 +451,7 @@ export default function SignalsAnalytics() {
       }
       if (statusMix[s.status] != null) statusMix[s.status] += 1;
       if (s.risk_norm && riskMix[s.risk_norm] != null) riskMix[s.risk_norm] += 1;
-      const sec = s.sector || "unclassified";
+      const sec = sectorKeyOf(s);
       bySector[sec] = bySector[sec] || { sector: sec, count: 0, fcs: [], tgts: [] };
       bySector[sec].count += 1;
 
