@@ -412,6 +412,14 @@ export default function SignalsAnalytics() {
   // the number beside OPEN has to be "what OPEN would give you with everything
   // else you have already chosen still applied", not a raw total — otherwise it
   // promises rows the other filters will take away.
+  // Declared ABOVE viewBase on purpose. A useMemo's dependency ARRAY is
+  // evaluated the moment useMemo is called, not when the callback runs — so
+  // listing narrMap in viewBase's deps while narrMap was declared 66 lines
+  // below it read a const inside its temporal dead zone and took the whole
+  // terminal down with "Cannot access 're' before initialization". Lint,
+  // tests and the build all passed; only loading the page finds this.
+  const narrMap = useMemo(() => data?.narratives || {}, [data]);
+
   const inWindow = useCallback(
     (s, days) => {
       if (days >= 7) return true;
@@ -490,7 +498,6 @@ export default function SignalsAnalytics() {
   // usa"), sitting beside real sectors like defi and AI. That is what the
   // Signals desk shows too, so this is aligned with it rather than corrected
   // behind its back.
-  const narrMap = useMemo(() => data?.narratives || {}, [data]);
 
   const narrCounts = useMemo(() => {
     const n = {};
