@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import * as echarts from "echarts/core";
-import { LineChart, BarChart, ScatterChart } from "echarts/charts";
+import { LineChart, BarChart, ScatterChart, CustomChart } from "echarts/charts";
 import {
   GridComponent,
   TooltipComponent,
@@ -28,6 +28,10 @@ echarts.use([
   // a modifier key), and LabelLayout's hideOverlap is the collision test we
   // otherwise write by hand.
   ScatterChart,
+  // Coin logos. A scatter's `image://` symbol is drawn as the raw bitmap, so a
+  // square PNG stays square; a custom series can hand zrender a clipPath and
+  // get a real circle out of any source. See terminal/logoDisc.js.
+  CustomChart,
   GridComponent,
   TooltipComponent,
   DataZoomComponent,
@@ -53,6 +57,9 @@ const TOKENS = [
   "--fg-muted",
   "--line",
   "--surface-raised",
+  // The well a coin logo sits in, so a transparent PNG has a disc under it
+  // rather than floating over the gridlines.
+  "--surface-hover",
   "--ink",
 ];
 

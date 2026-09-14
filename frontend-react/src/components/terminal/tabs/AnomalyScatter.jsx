@@ -21,9 +21,12 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import EChart, { useChartTokens, inkAlpha } from "../../charts/EChart";
-import { getLogoSources } from "../../CoinLogo";
+import { logoDiscSeries } from "../logoDisc";
 import { pctRange, clampRange, pickLabels, labelCells, statusColorOf } from "../vizShared";
 import { ANOM_FLOOR, ANOM_FILL } from "../anomSetups";
+
+/** Disc diameter — shared by the logo layer and the invisible hit/label layer. */
+const LOGO = 30;
 
 /** Decade ticks for the turnover axis: 0.1%, 1%, 10%, 100%. */
 const yTick = (v) => {
@@ -174,14 +177,29 @@ export function buildAnomalyOption({
         data: field,
         silent: false,
       },
+      // A logo is the symbol itself, so the regime colour moves to the ring
+      // around it — the same arrangement the SVG bubbles use. That was the
+      // intent here from the start and it never rendered: ECharts does not
+      // stroke a border on an image symbol, so the `borderWidth: 2` below was
+      // inert and every regime looked alike. The disc draws it.
+      logoDiscSeries({
+        marks: marks.map((p) => ({
+          pair: p.pair,
+          value: dot(p).value,
+          ring: statusColorOf(statusMap, p.pair) || ANOM_FILL[p.setup] || ANOM_FILL.ordinary,
+        })),
+        size: LOGO,
+        tokens,
+      }),
       {
         type: "scatter",
-        symbolSize: 30,
+        // Invisible, and deliberately still here: it carries the label ranking,
+        // hideOverlap, the tooltip and the click-through. The disc underneath is
+        // silent, so every interaction still lands on this one.
+        symbolSize: LOGO,
         data: marks.map((p) => ({
           ...dot(p),
-          // A logo is the symbol itself, so the regime colour moves to the
-          // ring around it — the same arrangement the SVG bubbles use.
-          symbol: `image://${getLogoSources(sym(p.pair))[0]}`,
+          itemStyle: { color: "transparent", borderWidth: 0 },
         })),
         label: {
           show: labelMode !== "off",
@@ -199,7 +217,6 @@ export function buildAnomalyOption({
         // why the ranking above still runs — this only guarantees that what
         // does survive is readable.
         labelLayout: { hideOverlap: true },
-        itemStyle: { borderWidth: 2 },
         z: 5,
       },
       {

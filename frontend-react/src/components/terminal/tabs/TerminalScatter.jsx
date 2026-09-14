@@ -22,11 +22,13 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import EChart, { useChartTokens, inkAlpha } from "../../charts/EChart";
-import { getLogoSources } from "../../CoinLogo";
+import { logoDiscSeries } from "../logoDisc";
 import { clampRange } from "../vizShared";
 
 const sym = (pair) => String(pair || "").replace(/USDT$/i, "");
 const MONO = "JetBrains Mono, monospace";
+/** Disc diameter — shared by the logo layer and the invisible hit/label layer. */
+const LOGO = 28;
 
 export function buildScatterOption({
   points,
@@ -109,12 +111,27 @@ export function buildScatterOption({
         progressive: 400,
         data: field,
       },
+      logoDiscSeries({
+        marks: marks.map((p) => ({
+          pair: p.pair,
+          value: dot(p).value,
+          // The status ring the image symbol could never show: ECharts does not
+          // stroke a border on an image symbol, so `borderColor` here was only
+          // ever inert. On the disc it draws.
+          ring: p.sc || p.fill,
+        })),
+        size: LOGO,
+        tokens,
+      }),
       {
         type: "scatter",
-        symbolSize: 28,
+        // Invisible, and deliberately still here: it carries the label ranking,
+        // hideOverlap, the tooltip and the click-through. The disc underneath is
+        // silent, so every interaction still lands on this one.
+        symbolSize: LOGO,
         data: marks.map((p) => ({
           ...dot(p),
-          symbol: `image://${getLogoSources(sym(p.pair))[0]}`,
+          itemStyle: { color: "transparent", borderWidth: 0 },
         })),
         label: {
           show: true,
