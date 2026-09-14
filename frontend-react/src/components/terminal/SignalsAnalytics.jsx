@@ -112,7 +112,12 @@ import { useSignalStatus } from "../../context/SignalStatusContext";
 
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
-const DEFAULTS = { tab: "confluence", st: "all", sectors: "", risks: "", dec: "", q: "" };
+// `sectors` and `narr` are BOTH real and do different jobs. The toolbar filters
+// on narratives, the same CoinGecko taxonomy the Signals desk uses. `sectors`
+// is the 10-bucket key the Sectors and Overview charts drill on when you click
+// a bar — those charts ARE bucket charts, so clicking one has to filter by
+// bucket. Removing it silently broke both.
+const DEFAULTS = { tab: "confluence", st: "all", sectors: "", narr: "", risks: "", dec: "", q: "" };
 const parseF = (sp) => {
   const f = { ...DEFAULTS };
   Object.keys(DEFAULTS).forEach((k) => {
@@ -353,6 +358,7 @@ export default function SignalsAnalytics() {
 
   // ── global-filtered view ───────────────────────────────────────
   const selSectors = csv(filters.sectors);
+  const selNarr = csv(filters.narr);
   const selRisks = csv(filters.risks);
   const view = useMemo(() => {
     let out = items;
@@ -364,6 +370,8 @@ export default function SignalsAnalytics() {
     if (f.st !== "all") out = out.filter((s) => s.status === f.st);
     if (selRisks.length) out = out.filter((s) => selRisks.includes(s.risk_norm));
     if (selSectors.length) out = out.filter((s) => selSectors.includes(sectorKeyOf(s)));
+    if (selNarr.length)
+      out = out.filter((s) => (narrMap[s.pair] || []).some((n) => selNarr.includes(n)));
     if (f.dec === "1") out = out.filter((s) => s.is_decoupled);
     // Window: keep signals whose age falls within the last N days
     if (windowDays < 7) {
@@ -380,29 +388,49 @@ export default function SignalsAnalytics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, filters, dayBuckets, windowDays]);
 
-  // One normaliser, used by the list AND the predicate below.
+  // Narratives, the same CoinGecko taxonomy the Signals desk filters on.
   //
-  // Two fixes live here. `coins.sector` holds a literal "other" bucket (87
-  // coins, 11.5% of the book) and 23 more rows are NULL, and the old code
-  // mapped NULL to "unclassified" — so the dropdown offered "Other" and
-  // "Unclassified" as separate choices for the same thing: a coin you cannot
-  // filter by sector. They are one row now.
+  // Two things had to be handled, both measured rather than guessed.
   //
-  // And it sorts by SIZE, not alphabetically. These buckets are wildly uneven —
-  // infrastructure 244 coins against privacy's 3 — and an alphabetical list
-  // presented them as peers, so picking Privacy silently emptied the desk. The
-  // count beside each row says what you are about to get before you click.
-  const sectorOptions = useMemo(() => {
-    const n = {};
-    for (const i of items) n[sectorKeyOf(i)] = (n[sectorKeyOf(i)] || 0) + 1;
-    return Object.keys(n).sort((x, y) => n[y] - n[x] || x.localeCompare(y));
-  }, [items]);
+  // A coin sits in SEVEN categories on average (max 27), so this is a
+  // many-to-many filter: the counts below add up to far more than the number of
+  // signals, and that is correct — they are "pairs carrying this narrative",
+  // not a partition.
+  //
+  // And the raw list is 332 narratives in a 7-day window with 108 of them
+  // holding a single pair. A dropdown of 332 rows, a third of which empty the
+  // desk, is not a filter. Floored at three pairs, the same shape of floor the
+  // Signals narrative row uses (min_coins=3) and for the same reason: below
+  // that a "narrative" is one coin wearing a label.
+  //
+  // Worth knowing before reading the list: CoinGecko mixes at least four kinds
+  // of label in one field. The biggest entries here are chain membership
+  // ("ethereum ecosystem" 178 pairs, "bnb chain ecosystem" 171), exchange
+  // programmes ("binance alpha spotlight" 125) and even jurisdiction ("made in
+  // usa"), sitting beside real sectors like defi and AI. That is what the
+  // Signals desk shows too, so this is aligned with it rather than corrected
+  // behind its back.
+  const narrMap = useMemo(() => data?.narratives || {}, [data]);
 
-  const sectorCounts = useMemo(() => {
+  const narrCounts = useMemo(() => {
     const n = {};
-    for (const i of items) n[sectorKeyOf(i)] = (n[sectorKeyOf(i)] || 0) + 1;
+    const seen = new Set();
+    for (const i of items) {
+      if (seen.has(i.pair)) continue;
+      seen.add(i.pair);
+      for (const name of narrMap[i.pair] || []) n[name] = (n[name] || 0) + 1;
+    }
     return n;
-  }, [items]);
+  }, [items, narrMap]);
+
+  const NARR_MIN_PAIRS = 3;
+  const narrOptions = useMemo(
+    () =>
+      Object.keys(narrCounts)
+        .filter((k) => narrCounts[k] >= NARR_MIN_PAIRS || selNarr.includes(k))
+        .sort((x, y) => narrCounts[y] - narrCounts[x] || x.localeCompare(y)),
+    [narrCounts, selNarr]
+  );
 
   // fc per pair (latest call, plausible only) — feeds derivatives tabs
   const pairFc = useMemo(() => {
@@ -623,7 +651,7 @@ export default function SignalsAnalytics() {
     [agg.movers]
   );
 
-  const hasDrill = ["st", "sectors", "risks", "dec", "q"].some((k) => filters[k] !== DEFAULTS[k]);
+  const hasDrill = ["st", "sectors", "narr", "risks", "dec", "q"].some((k) => filters[k] !== DEFAULTS[k]);
   const fcClamped = useMemo(() => agg.fcVals.filter((v) => v >= -95 && v <= 300), [agg.fcVals]);
   // share of calls in window that have reached at least TP1
   const tpHitPct = useMemo(() => {
@@ -744,11 +772,11 @@ export default function SignalsAnalytics() {
           />
 
           <FilterMulti
-            label={t("terminal.viz.filterSector")}
-            options={sectorOptions}
-            counts={sectorCounts}
-            selected={selSectors}
-            onChange={(arr) => setF({ sectors: arr.join(",") })}
+            label={t("terminal.viz.filterNarrative")}
+            options={narrOptions}
+            counts={narrCounts}
+            selected={selNarr}
+            onChange={(arr) => setF({ narr: arr.join(",") })}
           />
           <FilterMulti
             label={t("terminal.viz.filterRisk")}

@@ -412,11 +412,38 @@ def get_deep_screener(
             it["avwap"] = avwap
             it["vs_avwap_pct"] = vs
 
+        # CoinGecko narratives per pair, so the screener can filter on the same
+        # taxonomy the Signals desk uses instead of the 10 hand-rolled buckets.
+        #
+        # Keyed by pair rather than repeated on every item: a pair can carry
+        # several calls in one window and the average coin sits in 7 categories
+        # (max 27), so inlining them would send the same seven strings a dozen
+        # times over.
+        pairs_in_view = {it.get("pair") for it in items if it.get("pair")}
+        narratives = {}
+        if pairs_in_view:
+            nrows = db.execute(
+                text(
+                    """
+                    SELECT pair, categories_raw
+                    FROM coins
+                    WHERE pair = ANY(:pairs) AND categories_raw IS NOT NULL
+                    """
+                ),
+                {"pairs": list(pairs_in_view)},
+            ).mappings().all()
+            for nr in nrows:
+                raw = nr["categories_raw"] or []
+                names = [str(x).strip().lower() for x in raw if str(x).strip()]
+                if names:
+                    narratives[nr["pair"]] = names
+
         result = {
             "items": items,
             "total": len(items),
             "days": days,
             "scope": scope,
+            "narratives": narratives,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
         cache_set(cache_key, result, ttl=CACHE_TTL)
