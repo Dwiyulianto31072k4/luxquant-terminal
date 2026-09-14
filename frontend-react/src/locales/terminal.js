@@ -372,8 +372,6 @@ export const terminalEn = {
     regimeDesc: "Regime tagged at call time by the enrichment engine.",
     sectorCountTitle: "Signals by Sector",
     sectorCountDesc: "Where the calls are concentrated. Click a sector to focus every tab on it.",
-    fcDistTitle: "P&L from entry",
-    fcDistDesc: "Distribution of live distance from entry. Right of center = in profit.",
     oppTitle: "Opportunity map",
     oppDesc:
       "X = distance from entry · Y = remaining upside to max target. Top-left = near entry with large remaining target.",
@@ -893,8 +891,6 @@ export const terminalZh = {
     regimeDesc: "呼叫时由智能引擎标记的市场状态。",
     sectorCountTitle: "按板块的信号数",
     sectorCountDesc: "呼叫集中在哪些板块。点击板块可让所有标签页聚焦于它。",
-    fcDistTitle: "距呼叫涨跌分布",
-    fcDistDesc: "所有活跃信号相对入场价的实时距离 — 金线右侧表示盈利中。",
     oppTitle: "机会地图",
     oppDesc: "X = 实时距呼叫 · Y = 距最高目标的剩余空间。左上 = 仍在入场价附近且剩余目标大。",
     oppHint: "每个点 = 一个信号 · 颜色 = 风险等级",
