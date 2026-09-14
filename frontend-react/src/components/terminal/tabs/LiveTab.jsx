@@ -51,6 +51,7 @@ import {
   useZoom,
   useChartHeight,
   pctBound,
+  ChartLens,
   pctRange,
   clampTo,
   clampRange,
@@ -257,6 +258,13 @@ export default function LiveTab({
   // a dot. Percentile bounds, with outliers clamped to the rail so they are
   // still visible, keep both readable. Floors stop a quiet day from magnifying
   // noise into a storm.
+  // Per-chart lens. Zoom magnifies a crowd; it does not thin one — the labels
+  // that collide at 1x collide at 3x. These say WHICH points to draw.
+  const [oppLayer, setOppLayer] = useState("all");
+  const [oppLabels, setOppLabels] = useState("focus");
+  const [peakLayer, setPeakLayer] = useState("all");
+  const [peakLabels, setPeakLabels] = useState("focus");
+
   // Fitted to the data, not typed in. Both of these carried hard-coded domains
   // while the anomaly chart already had percentile fitting for exactly this
   // fault. Measured on 446 active calls: peak is median 4.8%, p95 20.1%, p98
@@ -283,17 +291,40 @@ export default function LiveTab({
     [agg.peakPts]
   );
 
+  // Layers named for what the chart already claims to show. The opportunity
+  // map's own subtitle says "top-left = near entry with large remaining
+  // target", so "near entry" is a layer rather than something to squint for.
+  const oppPts = useMemo(() => {
+    const p = agg.scatterOpp;
+    if (oppLayer === "near") return p.filter((x) => Math.abs(x.x) <= 5);
+    if (oppLayer === "up") return p.filter((x) => x.x > 0);
+    if (oppLayer === "down") return p.filter((x) => x.x < 0);
+    return p;
+  }, [agg.scatterOpp, oppLayer]);
+
+  // Peak vs current is read against the diagonal: y below x means the move came
+  // and went. "Gave back" is that region, made selectable instead of inferred.
+  const peakPts = useMemo(() => {
+    const p = agg.peakPts;
+    if (peakLayer === "gave") return p.filter((x) => x.x - x.y >= 5);
+    if (peakLayer === "held") return p.filter((x) => x.x - x.y < 5);
+    if (peakLayer === "down") return p.filter((x) => x.y < 0);
+    return p;
+  }, [agg.peakPts, peakLayer]);
+
+  const labelMax = (mode) => (mode === "off" ? 0 : mode === "all" ? 400 : 18);
+
   const zOpp = useZoom(oppDomX[0], oppDomX[1], oppDomY[0], oppDomY[1]);
   const zPeak = useZoom(peakDomX[0], peakDomX[1], peakDomY[0], peakDomY[1]);
 
   const oppNamed = useMemo(
-    () => promote(agg.scatterOpp, oppDomX, oppDomY, stdH, 18, (p) => p.y),
-    [agg.scatterOpp, oppDomX, oppDomY, stdH]
+    () => promote(oppPts, oppDomX, oppDomY, stdH, labelMax(oppLabels), (p) => p.y),
+    [oppPts, oppDomX, oppDomY, stdH, oppLabels]
   );
 
   const peakNamed = useMemo(
-    () => promote(agg.peakPts, peakDomX, peakDomY, heroH, 20, (p) => p.x),
-    [agg.peakPts, peakDomX, peakDomY, heroH]
+    () => promote(peakPts, peakDomX, peakDomY, heroH, labelMax(peakLabels), (p) => p.x),
+    [peakPts, peakDomX, peakDomY, heroH, peakLabels]
   );
 
   const gainers = useMemo(
@@ -404,6 +435,20 @@ export default function LiveTab({
                   zoom={zOpp}
                   hint={t("terminal.viz.oppHint")}
                   render={(h) => (
+                    <>
+                      <ChartLens
+                        layers={[
+                          { id: "all", label: "All" },
+                          { id: "near", label: "Near entry", hint: "Within 5% of the called price" },
+                          { id: "up", label: "In profit" },
+                          { id: "down", label: "Under entry" },
+                        ]}
+                        layer={oppLayer}
+                        onLayer={setOppLayer}
+                        labels={oppLabels}
+                        onLabels={setOppLabels}
+                        shown={oppPts.length}
+                      />
                     <div style={{ height: h }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
@@ -438,7 +483,7 @@ export default function LiveTab({
                           <Scatter
                             isAnimationActive={false}
                             data={namedLast(
-                              agg.scatterOpp.map((p) => ({
+                              oppPts.map((p) => ({
                                 ...p,
                                 x: clampRange(p.x, oppDomX),
                                 y: clampRange(p.y, oppDomY),
@@ -452,6 +497,7 @@ export default function LiveTab({
                         </ScatterChart>
                       </ResponsiveContainer>
                     </div>
+                    </>
                   )}
                 />
               </div>
@@ -464,6 +510,24 @@ export default function LiveTab({
                 size="hero"
                 hint={t("terminal.viz.peakHint")}
                 render={(h) => (
+                  <>
+                    <ChartLens
+                      layers={[
+                        { id: "all", label: "All" },
+                        {
+                          id: "gave",
+                          label: "Gave back",
+                          hint: "Peak is at least 5pp above where it sits now",
+                        },
+                        { id: "held", label: "Holding" },
+                        { id: "down", label: "Under entry" },
+                      ]}
+                      layer={peakLayer}
+                      onLayer={setPeakLayer}
+                      labels={peakLabels}
+                      onLabels={setPeakLabels}
+                      shown={peakPts.length}
+                    />
                   <div style={{ height: Math.max(h, 280) }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
@@ -506,7 +570,7 @@ export default function LiveTab({
                         <Scatter
                           isAnimationActive={false}
                           data={namedLast(
-                            agg.peakPts.map((p) => ({
+                            peakPts.map((p) => ({
                               ...p,
                               x: clampRange(p.x, peakDomX),
                               y: clampRange(p.y, peakDomY),
@@ -520,6 +584,7 @@ export default function LiveTab({
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>
+                  </>
                 )}
               />
 

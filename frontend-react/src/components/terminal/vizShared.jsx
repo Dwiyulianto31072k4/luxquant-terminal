@@ -714,6 +714,58 @@ export const IcoExpand = () => (
   <Ico d={<><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5" /></>} />
 );
 
+/**
+ * Per-chart lens: which subset to draw, and how many names to write on it.
+ *
+ * The Anomaly board has carried this for a while and the Live scatters did not,
+ * which is why they read as one unreadable clump — 450 points and no way to ask
+ * for fewer. Zooming does not help on its own: it magnifies the crowd without
+ * thinning it, and the labels that collide at 1x collide at 3x too.
+ *
+ * The count on the right is the point of the control. "184 shown" after picking
+ * a layer is the answer to "how much of the board is this", and without it a
+ * filter that removes most of the chart looks like a chart that broke.
+ */
+export function ChartLens({ layers, layer, onLayer, labels, onLabels, shown }) {
+  const Chip = ({ active, onClick, children, title }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`rounded-md border px-2 py-1 font-mono text-[10px] uppercase tracking-wide transition-colors ${
+        active
+          ? "border-ink/18 bg-ink/[0.09] font-semibold text-text-primary"
+          : "border-ink/[0.07] text-text-muted hover:border-ink/14 hover:text-text-primary"
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-1">
+      {layers.map((o) => (
+        <Chip key={o.id} active={layer === o.id} onClick={() => onLayer(o.id)} title={o.hint}>
+          {o.label}
+        </Chip>
+      ))}
+      <span className="mx-1 h-4 w-px bg-ink/10" aria-hidden="true" />
+      {[
+        { id: "focus", label: "Ranked" },
+        { id: "all", label: "Most names" },
+        { id: "off", label: "No names" },
+      ].map((o) => (
+        <Chip key={o.id} active={labels === o.id} onClick={() => onLabels(o.id)}>
+          {o.label}
+        </Chip>
+      ))}
+      <span className="ml-auto font-mono text-[10px] tabular-nums text-text-muted">
+        {shown} shown
+      </span>
+    </div>
+  );
+}
+
 export const IconBtn = ({ onClick, title, children }) => (
   <button
     onClick={onClick}
