@@ -116,7 +116,12 @@ import { useSignalStatus } from "../../context/SignalStatusContext";
 // is the 10-bucket key the Sectors and Overview charts drill on when you click
 // a bar — those charts ARE bucket charts, so clicking one has to filter by
 // bucket. Removing it silently broke both.
-const DEFAULTS = { tab: "confluence", st: "all", sectors: "", narr: "", risks: "", dec: "", q: "" };
+// `days` is a comma-separated list of YYYY-MM-DD, empty meaning the whole tape.
+// It replaced a rolling 1D/3D/7D window, which could only ever say "the last N
+// days" — there was no way to look at Thursday on its own. It also lives in the
+// filter state now, so it survives a reload and a shared link like everything
+// else; the old window was plain component state and did not.
+const DEFAULTS = { tab: "confluence", st: "all", sectors: "", narr: "", risks: "", dec: "", q: "", days: "" };
 const parseF = (sp) => {
   const f = { ...DEFAULTS };
   Object.keys(DEFAULTS).forEach((k) => {
@@ -223,8 +228,6 @@ export default function SignalsAnalytics() {
   const [error, setError] = useState(null);
   const [selectedSignal, setSelectedSignal] = useState(null);
   // Window preset: last N calendar days (0=today only … 7=full week).
-  // Replaces the old multi-toggle day chips that overcrowded the toolbar.
-  const [windowDays, setWindowDays] = useState(7);
   // Anomaly chart-local (does not change global toolbar filters)
   // layer: all | hot | dec | rest · labels: off | focus | all
 
@@ -407,6 +410,7 @@ export default function SignalsAnalytics() {
   const selSectors = csv(filters.sectors);
   const selNarr = csv(filters.narr);
   const selRisks = csv(filters.risks);
+  const selDays = csv(filters.days);
   // The pipeline is built in stages rather than one chain so a stage can be
   // left OUT. That is what lets the status pills and the window carry counts:
   // the number beside OPEN has to be "what OPEN would give you with everything
@@ -420,15 +424,18 @@ export default function SignalsAnalytics() {
   // tests and the build all passed; only loading the page finds this.
   const narrMap = useMemo(() => data?.narratives || {}, [data]);
 
-  const inWindow = useCallback(
+  const dayKeyOf = useCallback((s) => {
+    const t = Date.parse(s?.created_at || "");
+    return Number.isFinite(t) ? new Date(t).toISOString().slice(0, 10) : null;
+  }, []);
+
+  const inDays = useCallback(
     (s, days) => {
-      if (days >= 7) return true;
-      const ts = Date.parse(s.created_at || "");
-      if (!ts) return true;
-      const bucket = Math.min(6, Math.max(0, Math.floor((Date.now() - ts) / 86400000)));
-      return bucket < days;
+      if (!days.length) return true;
+      const k = dayKeyOf(s);
+      return k ? days.includes(k) : true;
     },
-    []
+    [dayKeyOf]
   );
 
   // Everything except the status filter and the window.
@@ -448,33 +455,75 @@ export default function SignalsAnalytics() {
   }, [items, filters, selRisks, selSectors, selNarr, narrMap]);
 
   const view = useMemo(() => {
-    let out = viewBase.filter((s) => inWindow(s, windowDays));
+    let out = viewBase.filter((s) => inDays(s, selDays));
     if (filters.st !== "all") out = out.filter((s) => s.status === filters.st);
     return out;
-  }, [viewBase, windowDays, filters.st, inWindow]);
+  }, [viewBase, selDays, filters.st, inDays]);
 
   // What each status pill would give, with every other filter still on.
   const statusCounts = useMemo(() => {
     const n = { all: 0 };
     for (const s of viewBase) {
-      if (!inWindow(s, windowDays)) continue;
+      if (!inDays(s, selDays)) continue;
       n.all += 1;
       const k = s.status;
       if (k) n[k] = (n[k] || 0) + 1;
     }
     return n;
-  }, [viewBase, windowDays, inWindow]);
+  }, [viewBase, selDays, inDays]);
 
-  // And what each window would give, with the status filter still on.
-  const windowCounts = useMemo(() => {
-    const n = {};
-    for (const d of [1, 3, 7]) {
-      n[d] = viewBase.filter(
-        (s) => inWindow(s, d) && (filters.st === "all" || s.status === filters.st)
-      ).length;
+  // The day tabs, built the same way the Signals desk builds them: today first,
+  // yesterday, then the dated days that actually hold calls, and the whole tape
+  // last. Today and Yesterday are kept even at zero — otherwise the tab you are
+  // most likely to want vanishes before the first call of the UTC day lands.
+  //
+  // Counts are taken over viewBase with the status filter still applied, so a
+  // day shows what it would give you, not a raw total the other filters will
+  // take back.
+  const dayOptions = useMemo(() => {
+    const pool = viewBase.filter((s) => filters.st === "all" || s.status === filters.st);
+    const byDay = new Map();
+    for (const s of pool) {
+      const k = dayKeyOf(s);
+      if (k) byDay.set(k, (byDay.get(k) || 0) + 1);
     }
-    return n;
-  }, [viewBase, filters.st, inWindow]);
+    const now = new Date();
+    const out = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setUTCDate(d.getUTCDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const count = byDay.get(key) || 0;
+      if (i > 1 && !count) continue;
+      out.push({
+        value: key,
+        label:
+          i === 0
+            ? "Today"
+            : i === 1
+              ? "Yesterday"
+              : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "UTC" }),
+        count,
+      });
+    }
+    out.push({ value: "all", label: "All days", count: pool.length });
+    return out;
+  }, [viewBase, filters.st, dayKeyOf]);
+
+  const toggleDay = useCallback(
+    (value) => {
+      if (value === "all") {
+        setF({ days: "" });
+        return;
+      }
+      const next = selDays.includes(value)
+        ? selDays.filter((x) => x !== value)
+        : [...selDays, value];
+      setF({ days: next.join(",") });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selDays]
+  );
 
   // Narratives, the same CoinGecko taxonomy the Signals desk filters on.
   //
@@ -777,8 +826,13 @@ export default function SignalsAnalytics() {
     if (filters.q) out.push({ key: "q", field: "search", label: filters.q, onRemove: () => setF({ q: "" }) });
     if (filters.st && filters.st !== "all")
       out.push({ key: "st", field: "status", label: filters.st.toUpperCase(), onRemove: () => setF({ st: "all" }) });
-    if (windowDays !== 7)
-      out.push({ key: "win", field: "window", label: `${windowDays}D`, onRemove: () => setWindowDays(7) });
+    for (const d of selDays)
+      out.push({
+        key: `day:${d}`,
+        field: "day",
+        label: d,
+        onRemove: () => setF({ days: selDays.filter((x) => x !== d).join(",") }),
+      });
     for (const n of selNarr)
       out.push({
         key: `narr:${n}`,
@@ -804,7 +858,7 @@ export default function SignalsAnalytics() {
       out.push({ key: "dec", field: "beta", label: "decoupled", onRemove: () => setF({ dec: "" }) });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, windowDays, selNarr, selRisks, selSectors]);
+  }, [filters, selDays, selNarr, selRisks, selSectors]);
 
   const fcClamped = useMemo(() => agg.fcVals.filter((v) => v >= -95 && v <= 300), [agg.fcVals]);
   // share of calls in window that have reached at least TP1
@@ -913,19 +967,41 @@ export default function SignalsAnalytics() {
             )}
           </div>
 
-          {/* Same SegControl as the status pills. The inline "Window" caption
-              went with it: 1D / 3D / 7D says what it is, and no other control
-              in this row wears its own name. */}
-          <SegControl
-            counts={windowCounts}
-            value={String(windowDays)}
-            onChange={(id) => setWindowDays(Number(id))}
-            options={[
-              { id: "1", label: "1D" },
-              { id: "3", label: "3D" },
-              { id: "7", label: "7D" },
-            ]}
-          />
+          {/* Day tabs, not a rolling window. 1D / 3D / 7D could only say "the
+              last N days" — there was no way to look at one day on its own, and
+              picking two non-adjacent days was impossible. Several can be on at
+              once; none on means the whole tape. */}
+          <div className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {dayOptions.map((o) => {
+              const active = o.value === "all" ? selDays.length === 0 : selDays.includes(o.value);
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => toggleDay(o.value)}
+                  title={
+                    o.value === "all"
+                      ? "The whole 7-day tape"
+                      : "Click to add or remove this day — several can be on at once"
+                  }
+                  className={`shrink-0 rounded-lg border px-2 py-1 font-mono text-[9px] uppercase tracking-wide transition-colors ${
+                    active
+                      ? "border-ink/15 bg-ink/[0.1] font-semibold text-text-primary"
+                      : "border-ink/[0.06] bg-ink/[0.02] text-text-muted hover:text-text-primary"
+                  }`}
+                >
+                  {o.label}
+                  <span
+                    className={`ml-1 tabular-nums ${
+                      o.count === 0 ? "opacity-35" : active ? "opacity-80" : "opacity-55"
+                    }`}
+                  >
+                    {o.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
           <FilterMulti
             label={t("terminal.viz.filterNarrative")}
@@ -962,10 +1038,7 @@ export default function SignalsAnalytics() {
 
         <ActiveFilterChips
           items={activeChips}
-          onClearAll={() => {
-            resetF();
-            setWindowDays(7);
-          }}
+          onClearAll={resetF}
         />
       </div>
 
