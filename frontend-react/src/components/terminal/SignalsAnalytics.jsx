@@ -112,6 +112,10 @@ import { useSignalStatus } from "../../context/SignalStatusContext";
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
 const DEFAULTS = { tab: "confluence", st: "all", sectors: "", risks: "", dec: "", q: "" };
+
+/** The sector a signal filters under. NULL and the literal "other" bucket are
+ *  the same answer to the only question this filter asks, so they share a row. */
+const sectorKeyOf = (i) => (i?.sector || "other").toLowerCase();
 const parseF = (sp) => {
   const f = { ...DEFAULTS };
   Object.keys(DEFAULTS).forEach((k) => {
@@ -362,7 +366,7 @@ export default function SignalsAnalytics() {
     }
     if (f.st !== "all") out = out.filter((s) => s.status === f.st);
     if (selRisks.length) out = out.filter((s) => selRisks.includes(s.risk_norm));
-    if (selSectors.length) out = out.filter((s) => selSectors.includes(s.sector || "unclassified"));
+    if (selSectors.length) out = out.filter((s) => selSectors.includes(sectorKeyOf(s)));
     if (f.dec === "1") out = out.filter((s) => s.is_decoupled);
     // Window: keep signals whose age falls within the last N days
     if (windowDays < 7) {
@@ -379,9 +383,28 @@ export default function SignalsAnalytics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, filters, dayBuckets, windowDays]);
 
+  // One normaliser, used by the list AND the predicate below.
+  //
+  // Two fixes live here. `coins.sector` holds a literal "other" bucket (87
+  // coins, 11.5% of the book) and 23 more rows are NULL, and the old code
+  // mapped NULL to "unclassified" — so the dropdown offered "Other" and
+  // "Unclassified" as separate choices for the same thing: a coin you cannot
+  // filter by sector. They are one row now.
+  //
+  // And it sorts by SIZE, not alphabetically. These buckets are wildly uneven —
+  // infrastructure 244 coins against privacy's 3 — and an alphabetical list
+  // presented them as peers, so picking Privacy silently emptied the desk. The
+  // count beside each row says what you are about to get before you click.
   const sectorOptions = useMemo(() => {
-    const s = new Set(items.map((i) => i.sector || "unclassified"));
-    return [...s].sort();
+    const n = {};
+    for (const i of items) n[sectorKeyOf(i)] = (n[sectorKeyOf(i)] || 0) + 1;
+    return Object.keys(n).sort((x, y) => n[y] - n[x] || x.localeCompare(y));
+  }, [items]);
+
+  const sectorCounts = useMemo(() => {
+    const n = {};
+    for (const i of items) n[sectorKeyOf(i)] = (n[sectorKeyOf(i)] || 0) + 1;
+    return n;
   }, [items]);
 
   // fc per pair (latest call, plausible only) — feeds derivatives tabs
@@ -726,6 +749,7 @@ export default function SignalsAnalytics() {
           <FilterMulti
             label={t("terminal.viz.filterSector")}
             options={sectorOptions}
+            counts={sectorCounts}
             selected={selSectors}
             onChange={(arr) => setF({ sectors: arr.join(",") })}
           />

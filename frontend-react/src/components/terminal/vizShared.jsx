@@ -675,7 +675,11 @@ export const IconBtn = ({ onClick, title, children }) => (
 );
 
 // Dropdown multi-select — exchange filter style (Sector / Risk)
-export function FilterMulti({ label, options, selected, onChange }) {
+// `counts` is optional: when given, each row shows how many signals are behind
+// it. Without it a sector list is a wall of equal-looking words, and the one
+// holding three coins reads exactly like the one holding two hundred — so the
+// first thing a filter teaches you is that it emptied the desk.
+export function FilterMulti({ label, options, selected, onChange, counts = null }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const toggle = (v) =>
@@ -749,6 +753,11 @@ export function FilterMulti({ label, options, selected, onChange }) {
               <span className="font-mono text-[12px] text-text-primary/90 capitalize">
                 {String(o).replace(/_/g, " ")}
               </span>
+              {counts && (
+                <span className="ml-auto pl-3 font-mono text-[10px] tabular-nums text-text-muted/70">
+                  {counts[o] ?? 0}
+                </span>
+              )}
             </label>
           ))}
         </div>
