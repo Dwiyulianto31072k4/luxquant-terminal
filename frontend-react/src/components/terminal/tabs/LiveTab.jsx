@@ -257,18 +257,43 @@ export default function LiveTab({
   // a dot. Percentile bounds, with outliers clamped to the rail so they are
   // still visible, keep both readable. Floors stop a quiet day from magnifying
   // noise into a storm.
-  const zOpp = useZoom(-60, 60, 0, 120);
+  // Fitted to the data, not typed in. Both of these carried hard-coded domains
+  // while the anomaly chart already had percentile fitting for exactly this
+  // fault. Measured on 446 active calls: peak is median 4.8%, p95 20.1%, p98
+  // 34.3% — and max 198.9%, with FOUR calls past 50% and two past 100%. The
+  // axis ran to 150%, so it was sized for two points and squeezed the other 444
+  // into the leftmost eighth of the canvas.
+  //
+  // Percentile bounds with outliers CLAMPED to the rail, never dropped: a
+  // hidden outlier is a lie, a stacked one still says "there is more past here".
+  const oppDomX = useMemo(
+    () => pctRange(agg.scatterOpp.map((p) => p.x), 0.97, 0, 24),
+    [agg.scatterOpp]
+  );
+  const oppDomY = useMemo(
+    () => pctRange(agg.scatterOpp.map((p) => p.y), 0.97, 0, 24),
+    [agg.scatterOpp]
+  );
+  const peakDomX = useMemo(
+    () => pctRange(agg.peakPts.map((p) => p.x), 0.97, 0, 24),
+    [agg.peakPts]
+  );
+  const peakDomY = useMemo(
+    () => pctRange(agg.peakPts.map((p) => p.y), 0.97, 0, 24),
+    [agg.peakPts]
+  );
 
-  const zPeak = useZoom(-20, 150, -60, 100);
+  const zOpp = useZoom(oppDomX[0], oppDomX[1], oppDomY[0], oppDomY[1]);
+  const zPeak = useZoom(peakDomX[0], peakDomX[1], peakDomY[0], peakDomY[1]);
 
   const oppNamed = useMemo(
-    () => promote(agg.scatterOpp, [-60, 60], [0, 120], stdH, 18, (p) => p.y),
-    [agg.scatterOpp, stdH]
+    () => promote(agg.scatterOpp, oppDomX, oppDomY, stdH, 18, (p) => p.y),
+    [agg.scatterOpp, oppDomX, oppDomY, stdH]
   );
 
   const peakNamed = useMemo(
-    () => promote(agg.peakPts, [-20, 150], [-60, 100], heroH, 20, (p) => p.x),
-    [agg.peakPts, heroH]
+    () => promote(agg.peakPts, peakDomX, peakDomY, heroH, 20, (p) => p.x),
+    [agg.peakPts, peakDomX, peakDomY, heroH]
   );
 
   const gainers = useMemo(
@@ -358,14 +383,16 @@ export default function LiveTab({
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
+                {/* height={0}: four bars are not a chart, and the chart-sized
+                    box left ~70% of this card empty with the rows pinned to its
+                    bottom edge. */}
                 <XCard
                   title={t("terminal.viz.ladderTitle")}
                   desc={t("terminal.viz.ladderDesc")}
-                  render={(h) => (
-                    <div style={{ height: h }} className="flex items-center px-1">
-                      <div className="w-full">
-                        <LadderPanel view={view} />
-                      </div>
+                  height={0}
+                  render={() => (
+                    <div className="px-1 pt-1">
+                      <LadderPanel view={view} />
                     </div>
                   )}
                 />
@@ -413,6 +440,8 @@ export default function LiveTab({
                             data={namedLast(
                               agg.scatterOpp.map((p) => ({
                                 ...p,
+                                x: clampRange(p.x, oppDomX),
+                                y: clampRange(p.y, oppDomY),
                                 fill: RISK_COLORS[p.risk] || GRAYBAR,
                                 sc: statusColorOf(statusMap, p.pair),
                                 named: oppNamed.has(p.pair),
@@ -479,6 +508,8 @@ export default function LiveTab({
                           data={namedLast(
                             agg.peakPts.map((p) => ({
                               ...p,
+                              x: clampRange(p.x, peakDomX),
+                              y: clampRange(p.y, peakDomY),
                               fill: p.win ? GOLD : p.y >= 0 ? POS : NEG,
                               sc: statusColorOf(statusMap, p.pair),
                               named: peakNamed.has(p.pair),
