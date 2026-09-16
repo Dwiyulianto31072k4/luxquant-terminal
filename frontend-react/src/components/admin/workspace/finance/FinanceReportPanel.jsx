@@ -288,10 +288,14 @@ export default function FinanceReportPanel({ onToast }) {
             </div>
           </div>
           {/* The waterfall, not just the answer — a partner share nobody can
-              retrace is a number people argue about. */}
+              retrace is a number people argue about. It starts at the money
+              received, not the list price: the discount is already out by then,
+              and on an admin-recorded payment that field is really
+              `plan price - amount actually paid`, so it carries a shortfall
+              under a label that reads "discount". */}
           <div className="mt-2.5 space-y-1 border-t border-ink/10 pt-2.5 text-[12px]">
             {[
-              ["Net received", s.split.net_received],
+              ["Received", s.split.net_received],
               ["Less referral commission", -s.split.referral_commission],
               ["Distributable", s.split.distributable],
             ].map(([label, v], i) => (

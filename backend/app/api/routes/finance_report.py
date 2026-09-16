@@ -178,7 +178,7 @@ def _split(net: float, commission: float, partner_pct: float) -> dict:
         # the distributable figure even when the percentage does not divide it
         # cleanly.
         "house_share": round(distributable - partner, 2),
-        "basis_note": "Net received less referral commission. Excludes infrastructure, API and network costs, which are not recorded per payment.",
+        "basis_note": "Money actually received, less the commission owed to referrers. Excludes infrastructure, API and network costs, which are not recorded per payment.",
     }
 
 
@@ -543,10 +543,14 @@ def _pdf(stem, rows, summary, start, end, basis, statuses):
 
     # ── How those two numbers were reached, line by line ──────────────
     story += [_section("How this was calculated"), Spacer(1, 2 * mm)]
+    # Starts at the money, not at the list price. Gross and "discount" used to
+    # head this table and they were noise at best: the discount is already out
+    # by the time anything lands, and on an admin-recorded payment that column
+    # is `plan_price - amount actually paid`, so it carries any shortfall or
+    # overpayment under a label that says "discount". Both still live in the
+    # period stats and the spreadsheet, where they are described accurately.
     story += [_kv([
-        ("Gross billed", f"{_money(summary['gross_usdt'])} USDT"),
-        ("Less discounts", f"-{_money(summary['discount_usdt'])} USDT"),
-        ("Net received", f"{_money(sp['net_received'])} USDT"),
+        ("Received", f"{_money(sp['net_received'])} USDT"),
         ("Less referral commission", f"-{_money(sp['referral_commission'])} USDT"),
         ("Distributable", f"{_money(sp['distributable'])} USDT"),
     ], strong_last_row=True)]
