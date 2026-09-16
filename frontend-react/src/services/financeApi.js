@@ -11,6 +11,24 @@ export const financeApi = {
   // ════════════════════════════════════
   // STATS
   // ════════════════════════════════════
+  // ── Reports ────────────────────────────────────────────────────
+  // `basis` is not a detail: "verified" counts money on the day it landed,
+  // "created" on the day the invoice was raised. Four confirmed payments differ
+  // between the two and one lifetime is verified eight days BEFORE it was
+  // created (an admin recording a payment received earlier), so the choice
+  // moves revenue between months.
+  getReport: async ({ start, end, status = "confirmed", basis = "verified" }) => {
+    const response = await api.get("/api/v1/workspace/finance/report", {
+      params: { start, end, status, basis },
+    });
+    return response.data;
+  },
+
+  reportExportUrl: ({ start, end, status = "confirmed", basis = "verified", fmt = "xlsx" }) => {
+    const q = new URLSearchParams({ start, end, status, basis, fmt });
+    return `/api/v1/workspace/finance/report/export?${q.toString()}`;
+  },
+
   getStats: async () => {
     const response = await api.get("/api/v1/workspace/finance/stats");
     return response.data;

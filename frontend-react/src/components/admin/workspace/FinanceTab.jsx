@@ -16,6 +16,7 @@ import { ConfirmModal } from "../users/ConfirmModal";
 
 import { FinanceStatsGrid } from "./finance/FinanceStatsGrid";
 import { FinanceFilterBar } from "./finance/FinanceFilterBar";
+import FinanceReportPanel from "./finance/FinanceReportPanel";
 import { PaymentsTable } from "./finance/PaymentsTable";
 import { FinancePagination } from "./finance/FinancePagination";
 import { formatUSDT } from "./finance/helpers";
@@ -404,6 +405,11 @@ export const FinanceTab = ({ onRefreshStats, initialSearch = "" }) => {
       {/* ERP: payment-gap queue belongs to Finance (money ops), not Users directory.
  Collapsed by default — expand only when working the backlog. */}
       <PaymentAuditPanel defaultOpen={false} id="payment-audit" />
+
+      {/* Period report. Sits above the ledger because it answers a different
+          question: the table below is "what is happening now", this is "what
+          happened between these two dates". */}
+      <FinanceReportPanel onToast={(m) => showToast(m)} />
 
       <FinanceFilterBar
         search={search}
