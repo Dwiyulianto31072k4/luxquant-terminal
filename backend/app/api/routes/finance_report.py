@@ -144,7 +144,45 @@ def _collect(db: Session, start: date, end: date, statuses: list, basis: str):
     return [dict(r) for r in db.execute(text(sql), params).mappings().all()]
 
 
-def _summarise(rows: list) -> dict:
+# The partner share. A parameter rather than a constant because the number is a
+# commercial term, not a fact about the code.
+DEFAULT_PARTNER_PCT = 20.0
+PARTNER_NAME = "BigStar"
+
+
+def _split(net: float, commission: float, partner_pct: float) -> dict:
+    """Revenue received, less what is already owed out, then divided.
+
+    The base is net-of-commission on purpose. Referral commission is money
+    promised to a third party at the moment the payment lands — paying a partner
+    a share of it would be paying out the same USDT twice. It is shown as its
+    own line rather than folded in, so the deduction is visible.
+
+    HONEST LIMIT, and it belongs on the document: the only costs this can see
+    are the ones recorded against a payment. Infrastructure, model/API spend,
+    exchange and network fees are nowhere in this database, so this is profit
+    net of RECORDED deductions, not true net profit. Anyone settling with a
+    partner on it should know which of the two they are holding.
+    """
+    distributable = round(net - commission, 2)
+    partner = round(distributable * partner_pct / 100.0, 2)
+    return {
+        "partner_name": PARTNER_NAME,
+        "partner_pct": partner_pct,
+        "house_pct": round(100.0 - partner_pct, 2),
+        "net_received": round(net, 2),
+        "referral_commission": round(commission, 2),
+        "distributable": distributable,
+        "partner_share": partner,
+        # Subtract rather than multiply, so the two halves always add back to
+        # the distributable figure even when the percentage does not divide it
+        # cleanly.
+        "house_share": round(distributable - partner, 2),
+        "basis_note": "Net received less referral commission. Excludes infrastructure, API and network costs, which are not recorded per payment.",
+    }
+
+
+def _summarise(rows: list, partner_pct: float = DEFAULT_PARTNER_PCT) -> dict:
     """Totals, and every breakdown, from the rows themselves — see the note at
     the top of this file on why this is not done in SQL."""
     def bucket(key_fn, label_fn=None):
@@ -164,8 +202,10 @@ def _summarise(rows: list) -> dict:
     credit = sum(_f(r["credit_redeemed"]) for r in rows)
     referred = [r for r in rows if r["referral_code"]]
 
+    commission = sum(_f(r["commission_amount"]) for r in referred)
     return {
         "count": len(rows),
+        "split": _split(net, commission, partner_pct),
         "gross_usdt": round(gross, 2),
         "net_usdt": round(net, 2),
         "discount_usdt": round(discount, 2),
@@ -174,7 +214,7 @@ def _summarise(rows: list) -> dict:
         "referral": {
             "count": len(referred),
             "net_usdt": round(sum(_f(r["final_amount"]) or _f(r["amount_usdt"]) for r in referred), 2),
-            "commission_usdt": round(sum(_f(r["commission_amount"]) for r in referred), 2),
+            "commission_usdt": round(commission, 2),
         },
         "by_plan": bucket(lambda r: r["plan_label"] or r["plan_name"]),
         "by_route": bucket(lambda r: r["route"], lambda k: ROUTE_LABELS.get(k, k)),
@@ -210,6 +250,7 @@ def finance_report(
     end: date = Query(..., description="Last day, inclusive (YYYY-MM-DD)"),
     status: str = Query("confirmed", description="Comma list, or 'all'"),
     basis: str = Query("verified", pattern="^(verified|created)$"),
+    partner_pct: float = Query(DEFAULT_PARTNER_PCT, ge=0, le=100),
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -225,7 +266,7 @@ def finance_report(
             "basis_label": "Date paid" if basis == "verified" else "Date invoiced",
             "status": statuses or list(KNOWN_STATUSES),
         },
-        "summary": _summarise(rows),
+        "summary": _summarise(rows, partner_pct),
         "rows": [_public_row(r) for r in rows],
     }
 
@@ -316,7 +357,8 @@ def finance_report_export(
     end: date = Query(...),
     status: str = Query("confirmed"),
     basis: str = Query("verified", pattern="^(verified|created)$"),
-    fmt: str = Query("xlsx", pattern="^(xlsx|csv)$"),
+    fmt: str = Query("xlsx", pattern="^(xlsx|csv|pdf)$"),
+    partner_pct: float = Query(DEFAULT_PARTNER_PCT, ge=0, le=100),
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -327,7 +369,7 @@ def finance_report_export(
     statuses = _parse_statuses(status)
     raw = _collect(db, start, end, statuses, basis)
     rows = [_public_row(r) for r in raw]
-    summary = _summarise(raw)
+    summary = _summarise(raw, partner_pct)
     stem = f"luxquant-finance-{start.isoformat()}_{end.isoformat()}"
 
     if fmt == "csv":
@@ -340,6 +382,9 @@ def finance_report_export(
         return StreamingResponse(
             io.BytesIO(data), media_type="text/csv",
             headers={"Content-Disposition": f'attachment; filename="{stem}.csv"'})
+
+    if fmt == "pdf":
+        return _pdf(stem, rows, summary, start, end, basis, statuses)
 
     return _xlsx(stem, rows, summary, start, end, basis, statuses)
 
@@ -421,3 +466,178 @@ def _xlsx(stem, rows, summary, start, end, basis, statuses):
         out,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{stem}.xlsx"'})
+
+
+def _pdf(stem, rows, summary, start, end, basis, statuses):
+    """A4 statement: the split first, then the breakdowns, then the ledger.
+
+    Reuses billing_pdf's document identity rather than inventing a second
+    LuxQuant look — same gold rule, same mono for every figure, same footer,
+    and the same reason it is a LIGHT page: an invoice gets printed and
+    forwarded to an accountant, and so will this.
+
+    The split leads because it is what the document is FOR. Everything below it
+    exists so the two numbers at the top can be checked rather than trusted.
+    """
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import (
+        KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table,
+        TableStyle,
+    )
+    from app.services.billing_pdf import (
+        BAND, GOLD, HAIR, INK, MONO, MONO_B, MUTED, SANS, SANS_B,
+        SocialRow, _amount_band, _header, _kv, _money, _muted, _section,
+    )
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    def footer(canvas, doc):
+        """Local, because billing_pdf's `_page_furniture` paints its separator
+        9 mm INSIDE the text frame. An invoice never reaches that far down so it
+        never showed; a report whose ledger fills the page put a payment row
+        through the rule on the first try. Same furniture, drawn entirely below
+        the frame instead."""
+        canvas.saveState()
+        left = doc.leftMargin
+        right = doc.pagesize[0] - doc.rightMargin
+        base = doc.bottomMargin - 15 * mm
+        canvas.setStrokeColor(HAIR)
+        canvas.setLineWidth(0.4)
+        canvas.line(left, base + 12 * mm, right, base + 12 * mm)
+        SocialRow().paint(canvas, left, base + 6 * mm)
+        canvas.setFont(SANS, 7.5)
+        canvas.setFillColor(MUTED)
+        canvas.drawString(left, base + 1.5 * mm, "LuxQuant — market intelligence for crypto.")
+        tail = f"Page {canvas.getPageNumber()}"
+        canvas.drawString(right - stringWidth(tail, SANS, 7.5), base + 1.5 * mm, tail)
+        canvas.restoreState()
+
+    period_label = f"{start.isoformat()} to {end.isoformat()}"
+    sp = summary["split"]
+
+    story = [
+        _header("FINANCE REPORT", period_label),
+        Spacer(1, 7 * mm),
+    ]
+
+    # ── The two figures the document exists to state ──────────────────
+    partner_band = _amount_band(
+        f"{sp['partner_name']} share ({_money(sp['partner_pct'])}%)",
+        f"{_money(sp['partner_share'])} USDT",
+        f"of {_money(sp['distributable'])} distributable")
+    house_band = _amount_band(
+        f"LuxQuant share ({_money(sp['house_pct'])}%)",
+        f"{_money(sp['house_share'])} USDT",
+        f"{summary['count']} payments · {summary['unique_users']} users")
+    pair = Table([[partner_band, house_band]], colWidths=[None, None])
+    pair.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (0, 0), 0),
+        ("RIGHTPADDING", (0, 0), (0, 0), 4 * mm),
+        ("LEFTPADDING", (1, 0), (1, 0), 4 * mm),
+        ("RIGHTPADDING", (1, 0), (-1, -1), 0),
+    ]))
+    story += [pair, Spacer(1, 6 * mm)]
+
+    # ── How those two numbers were reached, line by line ──────────────
+    story += [_section("How this was calculated"), Spacer(1, 2 * mm)]
+    story += [_kv([
+        ("Gross billed", f"{_money(summary['gross_usdt'])} USDT"),
+        ("Less discounts", f"-{_money(summary['discount_usdt'])} USDT"),
+        ("Net received", f"{_money(sp['net_received'])} USDT"),
+        ("Less referral commission", f"-{_money(sp['referral_commission'])} USDT"),
+        ("Distributable", f"{_money(sp['distributable'])} USDT"),
+    ], strong_last_row=True)]
+    story += [
+        Spacer(1, 2 * mm),
+        Paragraph(sp["basis_note"], _muted),
+        Spacer(1, 5 * mm),
+    ]
+
+    story += [_section("Period"), Spacer(1, 2 * mm)]
+    story += [_kv([
+        ("Dates", f"{period_label} (inclusive)"),
+        ("Counted on", "Date paid" if basis == "verified" else "Date invoiced"),
+        ("Statuses", ", ".join(statuses) if statuses else "all"),
+        ("Generated", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")),
+    ])]
+    story += [Spacer(1, 6 * mm)]
+
+    # ── Breakdowns ────────────────────────────────────────────────────
+    def block(title, key):
+        data = summary.get(key) or []
+        if not data:
+            return []
+        head = ["", "Payments", "Net USDT"]
+        body = [[b["label"], str(b["count"]), _money(b["net"])] for b in data]
+        t = Table([head] + body, colWidths=[None, 24 * mm, 30 * mm])
+        t.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (-1, 0), SANS_B),
+            ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+            ("TEXTCOLOR", (0, 0), (-1, 0), MUTED),
+            ("FONTNAME", (1, 1), (-1, -1), MONO),
+            ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.6, HAIR),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, BAND]),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (0, 0), (0, -1), 0),
+        ]))
+        return [KeepTogether([_section(title), Spacer(1, 2 * mm), t]), Spacer(1, 5 * mm)]
+
+    for title, key in (("By plan", "by_plan"), ("By route", "by_route"),
+                       ("By exchange", "by_exchange"), ("By method", "by_method"),
+                       ("By status", "by_status")):
+        story += block(title, key)
+
+    # ── The ledger, landscape, because a TX hash is 66 characters ─────
+    if rows:
+        story += [PageBreak(), _section("Payments"), Spacer(1, 2 * mm)]
+        head = ["Date", "ID", "User", "Plan", "Net", "Route", "Exchange", "TX hash"]
+        body = []
+        for r in rows:
+            h = r.get("tx_hash") or ""
+            body.append([
+                r.get("date") or "",
+                str(r["id"]),
+                (r.get("username") or r.get("email") or "")[:22],
+                r.get("plan") or "",
+                _money(r.get("net_usdt")),
+                r.get("route_label") or "",
+                r.get("exchange") or "",
+                # Enough to identify it against the explorer without wrapping
+                # the row into three lines; the full hash is in the CSV/Excel.
+                (h[:10] + "…" + h[-6:]) if len(h) > 20 else h,
+            ])
+        t = Table([head] + body, repeatRows=1,
+                  colWidths=[20*mm, 12*mm, 38*mm, 20*mm, 20*mm, 34*mm, 24*mm, 42*mm])
+        t.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (-1, 0), SANS_B),
+            ("FONTSIZE", (0, 0), (-1, -1), 7.2),
+            ("TEXTCOLOR", (0, 0), (-1, 0), MUTED),
+            ("FONTNAME", (4, 1), (4, -1), MONO),
+            ("FONTNAME", (7, 1), (7, -1), MONO),
+            ("ALIGN", (4, 0), (4, -1), "RIGHT"),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.6, HAIR),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, BAND]),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (0, -1), 0),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story += [t]
+
+    out = io.BytesIO()
+    doc = SimpleDocTemplate(
+        out, pagesize=A4,
+        leftMargin=18 * mm, rightMargin=18 * mm,
+        topMargin=16 * mm, bottomMargin=18 * mm,
+        title=f"LuxQuant finance report {period_label}", author="LuxQuant")
+    doc.bottomMargin += 20 * mm   # the footer is painted in this band
+    doc.build(story, onFirstPage=footer, onLaterPages=footer)
+    out.seek(0)
+    return StreamingResponse(
+        out, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{stem}.pdf"'})

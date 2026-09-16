@@ -241,6 +241,14 @@ export default function FinanceReportPanel({ onToast }) {
         </button>
         <button
           type="button"
+          onClick={() => download("pdf")}
+          disabled={!!downloading || invalid}
+          className="rounded-lg border border-ink/15 bg-ink/[0.08] px-3.5 py-2 text-[12px] font-semibold text-text-primary transition hover:bg-ink/[0.13] disabled:opacity-40"
+        >
+          {downloading === "pdf" ? "Preparing…" : "Download PDF"}
+        </button>
+        <button
+          type="button"
           onClick={() => download("csv")}
           disabled={!!downloading || invalid}
           className="rounded-lg border border-ink/15 bg-ink/[0.08] px-3.5 py-2 text-[12px] font-semibold text-text-primary transition hover:bg-ink/[0.13] disabled:opacity-40"
@@ -253,6 +261,47 @@ export default function FinanceReportPanel({ onToast }) {
       {error && (
         <div className="mb-3 rounded-xl border border-loss/30 bg-loss/10 px-3.5 py-2.5 text-[12.5px] text-text-primary">
           <span className="font-bold text-loss">Report failed</span> <span className="text-text-secondary">{error}</span>
+        </div>
+      )}
+
+      {s?.split && (
+        <div className="mb-3 rounded-xl border border-accent/25 bg-accent/[0.06] p-3.5">
+          <p className="mb-2.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+            Profit split
+          </p>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="rounded-lg border border-ink/10 bg-surface-raised px-3.5 py-3">
+              <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+                {s.split.partner_name} · {s.split.partner_pct}%
+              </p>
+              <p className="mt-1 text-[21px] font-bold tabular-nums text-text-primary">
+                {money(s.split.partner_share)} <span className="text-[12px] font-medium text-text-muted">USDT</span>
+              </p>
+            </div>
+            <div className="rounded-lg border border-ink/10 bg-surface-raised px-3.5 py-3">
+              <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+                LuxQuant · {s.split.house_pct}%
+              </p>
+              <p className="mt-1 text-[21px] font-bold tabular-nums text-text-primary">
+                {money(s.split.house_share)} <span className="text-[12px] font-medium text-text-muted">USDT</span>
+              </p>
+            </div>
+          </div>
+          {/* The waterfall, not just the answer — a partner share nobody can
+              retrace is a number people argue about. */}
+          <div className="mt-2.5 space-y-1 border-t border-ink/10 pt-2.5 text-[12px]">
+            {[
+              ["Net received", s.split.net_received],
+              ["Less referral commission", -s.split.referral_commission],
+              ["Distributable", s.split.distributable],
+            ].map(([label, v], i) => (
+              <div key={label} className={`flex justify-between ${i === 2 ? "font-bold text-text-primary" : "text-text-secondary"}`}>
+                <span>{label}</span>
+                <span className="tabular-nums">{v < 0 ? "−" : ""}{money(Math.abs(v))} USDT</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-text-muted">{s.split.basis_note}</p>
         </div>
       )}
 
