@@ -224,7 +224,7 @@ def get_stats(
     }
     p_month = _prices.get("monthly", 50.0)
     p_year = _prices.get("yearly", 500.0)
-    p_life = _prices.get("lifetime", 1000.0)
+    p_life = _prices.get("lifetime", 1250.0)
     return ReferralStatsResponse(
         code=code_data,
         funnel=ReferralFunnelResponse(**funnel_data),
