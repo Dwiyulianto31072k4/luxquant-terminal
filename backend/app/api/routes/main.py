@@ -23,7 +23,7 @@ from app.services.coinalyze_service import start_coinalyze_workers
 from app.services.notification_worker import start_notification_worker
 from app.api.routes import coins, daily_dashboard, edge_lab
 from app.api.routes import terminal
-from app.api.routes import workspace, finance, finance_report, growth, crm
+from app.api.routes import workspace, finance, growth, crm
 from app.api.routes import funnel
 from app.api.routes import growth_measurement
 from app.api.routes import services_monitor
@@ -362,7 +362,6 @@ app.include_router(crm.router, tags=["workspace-crm"])
 app.include_router(public_status.router, tags=["public-status"])
 app.include_router(public_status.admin_router, tags=["public-status-admin"])
 app.include_router(finance.router, tags=["finance"])
-app.include_router(finance_report.router, tags=["finance"])
 app.include_router(growth.router, tags=["growth"])
 app.include_router(funnel.router, tags=["funnel"])
 app.include_router(funnel.growth_router, tags=["growth"])
