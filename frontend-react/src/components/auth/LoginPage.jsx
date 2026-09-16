@@ -1,5 +1,6 @@
 // src/components/auth/LoginPage.jsx
 import { useState, useEffect, useCallback, useRef } from "react";
+import { TELEGRAM_ADMIN_URL } from "../../utils/supportContact";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -26,9 +27,9 @@ const FALLBACK_ORDER = ["telegram", "google", "discord"];
 const PROVIDER_LABEL = { telegram: "Telegram", google: "Google", discord: "Discord" };
 
 // The human door. Same handle the channel's "Ask the team" button uses, so a
-// reader who has seen one recognises the other.
-const ADMIN_URL =
-  import.meta.env?.VITE_TG_URL_ADMIN || "https://t.me/luxquantadmin";
+// reader who has seen one recognises the other — which is now enforced rather
+// than hoped for: the rule lives in utils/supportContact.
+const ADMIN_URL = TELEGRAM_ADMIN_URL;
 
 // The backend's redirect codes carry their provider as a prefix
 // (google_token_failed, discord_*). Codes that apply to any door — account

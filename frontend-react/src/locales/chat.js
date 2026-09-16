@@ -16,6 +16,8 @@ export const chatEn = {
   delivered: "Delivered",
   empty: "Ask us anything — how a signal works, billing, or which plan fits you.",
   closed: "This conversation has been closed.",
+  tgCta: "Chat admin on Telegram",
+  tgNote: "Faster replies \u00b7 @luxquantadmin",
 };
 
 export const chatZh = {
@@ -34,4 +36,6 @@ export const chatZh = {
   delivered: "已送达",
   empty: "有任何问题都可以问我们 — 信号怎么看、账单、或者哪个方案更适合你。",
   closed: "此对话已关闭。",
+  tgCta: "在 Telegram 联系客服",
+  tgNote: "回复更快 \u00b7 @luxquantadmin",
 };

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useDialog } from "../../hooks/useDialog";
 import { useChatThread } from "./useChatThread";
 import Modal from "../ui/Modal";
+import { TELEGRAM_ADMIN_URL, TelegramGlyph } from "../../utils/supportContact";
 import {
   ChatImageLightbox,
   ChatImageSendModal,
@@ -210,6 +211,41 @@ export default function ChatPanel({ onClose }) {
             </svg>
           </button>
         </div>
+
+        {/* Straight to Telegram.
+            The admin was typing "@luxquantadmin" into this very thread by hand
+            to move people across, which means the handover was happening
+            anyway — just manually, once per conversation, and only for people
+            who thought to ask. It sits above the away notice on purpose: when
+            nobody is at the desk, this is the thing worth seeing first. */}
+        <a
+          href={TELEGRAM_ADMIN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-3 border-b border-ink/10 bg-accent px-4 py-3 text-accent-fg transition-all duration-200 hover:brightness-[1.04] active:scale-[0.995]"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-fg/15">
+            <TelegramGlyph className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block text-sm font-bold leading-tight">
+              {t("chat.tgCta") || "Chat admin on Telegram"}
+            </span>
+            <span className="block truncate font-mono text-[10px] uppercase tracking-wider opacity-75">
+              {t("chat.tgNote") || "Faster replies \u00b7 @luxquantadmin"}
+            </span>
+          </span>
+          <svg
+            className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
 
         {/* Away notice — set expectations before someone waits on a reply. */}
         {awayMessage && !closed && (

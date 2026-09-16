@@ -16,6 +16,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { loginUrl } from "../utils/postLoginRedirect";
+import { TELEGRAM_ADMIN_URL } from "../utils/supportContact";
 
 const METHOD_LABELS = {
   binance_uid: "Binance",
@@ -136,7 +137,7 @@ export default function ClaimPage() {
           <h1 className="text-[17px] font-semibold text-text-primary">{blocked.title}</h1>
           <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">{blocked.body}</p>
           <a
-            href="https://t.me/luxquantadmin"
+            href={TELEGRAM_ADMIN_URL}
             target="_blank"
             rel="noreferrer"
             className="mt-5 inline-block rounded-xl border border-ink/15 px-4 py-2 text-[12.5px] font-medium text-text-primary transition hover:bg-ink/[0.06]"
