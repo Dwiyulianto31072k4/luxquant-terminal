@@ -222,16 +222,22 @@ export default function ChatPanel({ onClose }) {
           href={TELEGRAM_ADMIN_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-3 border-b border-ink/10 bg-accent px-4 py-3 text-accent-fg transition-all duration-200 hover:brightness-[1.04] active:scale-[0.995]"
+          className="group flex items-center gap-3 border-b border-ink/10 bg-[#229ED9] px-4 py-3.5 text-white transition-colors duration-200 hover:bg-[#1E8CC0] active:scale-[0.995]"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-fg/15">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20">
             <TelegramGlyph className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1 text-left">
-            <span className="block text-sm font-bold leading-tight">
+            {/* Telegram's own blue (#229ED9 — the value AutoTradePage and the
+                landing page already use), which costs contrast: white on it
+                measures 3.02:1 against the gold's 10.74:1. That clears WCAG AA
+                for large/bold text only, so the type carries more of the work
+                here — the label is bigger and the line under it is near-solid
+                white rather than the 75% it would otherwise be. */}
+            <span className="block text-[15px] font-bold leading-tight">
               {t("chat.tgCta") || "Chat admin on Telegram"}
             </span>
-            <span className="block truncate font-mono text-[10px] uppercase tracking-wider opacity-75">
+            <span className="block truncate font-mono text-[10px] uppercase tracking-wider text-white/90">
               {t("chat.tgNote") || "Faster replies \u00b7 @luxquantadmin"}
             </span>
           </span>
