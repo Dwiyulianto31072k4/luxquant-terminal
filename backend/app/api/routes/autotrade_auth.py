@@ -63,6 +63,35 @@ def _has_live_ack(db: Session, user_id: int) -> bool:
     )
 
 
+# Agent is an Annual/Lifetime feature. `monthly` is deliberately absent.
+#
+# `custom` IS allowed: it is an admin-granted bespoke plan, and the one account
+# holding it runs to 2027-05-02 — twenty months. Refusing that because its label
+# reads "custom" rather than "yearly" would be a bug, not compliance.
+#
+# NULL tier is absent too, and costs nothing: every agent config on a NULL tier
+# today belongs to a `free` account that `has_active_access` already stops.
+BOT_TIERS = frozenset({"yearly", "lifetime", "custom"})
+BOT_TIER_LABEL = "Annual or Lifetime"
+
+
+def _plan_allows_bot(user: User) -> bool:
+    """Whether this account's PLAN includes the Agent.
+
+    A third gate, kept separate from has_active_access and bot_access_blocked
+    for the same reason those two are separate from each other: this one says
+    "your plan does not include this", which is a different sentence from "your
+    subscription lapsed" and from "an operator switched you off", and the user
+    is shown the difference.
+
+    Staff always pass — an admin has to be able to reach the feature to support
+    it.
+    """
+    if getattr(user, "is_admin_staff", False):
+        return True
+    return (getattr(user, "subscription_tier", None) or "") in BOT_TIERS
+
+
 def _entitlement_payload(user: User, db: Session) -> dict:
     """Bentuk response entitlement yang konsisten dipakai kedua endpoint."""
     google_linked = user.google_id is not None
@@ -81,6 +110,11 @@ def _entitlement_payload(user: User, db: Session) -> dict:
         # that field also gates the signal feed and the journey view, so folding
         # a bot block into it would cut the user off from everything they pay
         # for. AutoTrade must treat this as its own gate.
+        # Third gate. Absent in an older LuxQuant, which the bot reads as
+        # permitted, so a rollout never locks anyone out by omission.
+        "plan_allows_bot": _plan_allows_bot(user),
+        "plan_required": BOT_TIER_LABEL,
+        "subscription_tier": getattr(user, "subscription_tier", None),
         "bot_access_blocked": user.autotrade_blocked,
         "bot_access_blocked_reason": user.autotrade_blocked_reason,
         "bot_access_blocked_at": (

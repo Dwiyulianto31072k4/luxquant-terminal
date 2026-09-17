@@ -44,6 +44,13 @@ export const RISK_EVENTS = {
     why: "An operator switched this account's bot off and recorded a reason, which is shown with the alert. This is separate from your subscription: nothing has expired and nothing is wrong with your balance or your API key.",
     fix: "Contact LuxQuant support. Only the team that switched it off can switch it back on, and doing so takes effect within about two minutes.",
   },
+  plan_upgrade_required: {
+    title: "Agent needs Annual or Lifetime",
+    blocking: true,
+    what: "Live entries are paused. Your subscription, your signals and any open position are untouched — open positions keep their take-profit and stop-loss.",
+    why: "The Agent is part of the Annual and Lifetime plans. Monthly covers the terminal and the signal feed, but not automated execution. This is checked before every live entry, so it applies the moment the plan changes in either direction.",
+    fix: "Upgrade to Annual or Lifetime and the Agent resumes on the next check, within about two minutes. Nothing needs reconnecting.",
+  },
   subscription_inactive: {
     title: "LuxQuant subscription is not active",
     blocking: true,

@@ -37,6 +37,8 @@ import { LIVE_FORM } from "./autotrade/agentDisclaimerCopy";
 
 import AppliedRulesCard from "./autotrade/AppliedRulesCard";
 import { skipSummary } from "./autotrade/autotradeEventGuide";
+import { AGENT_PLAN_LABEL, planAllowsAgent } from "../utils/agentPlan";
+import { useAuth } from "../context/AuthContext";
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import ExchangePicker from "./autotrade/ExchangePicker";
 import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
@@ -623,7 +625,45 @@ function SetupCard({
   );
 }
 
+/* The Agent is an Annual/Lifetime feature. This sits ahead of the disclaimers
+   on purpose: there is no sense asking somebody to sign a live trading
+   agreement for something their plan cannot run. */
+function UpgradeForAgent() {
+  return (
+    <div className="rounded-2xl border border-ink/10 bg-surface-raised p-6 text-center">
+      <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent">
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <rect x="3" y="11" width="18" height="10" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      </span>
+      <h2 className="font-display text-[17px] font-semibold text-text-primary">
+        Agent is available on {AGENT_PLAN_LABEL}
+      </h2>
+      <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-text-secondary">
+        Monthly covers the terminal, the signal feed and everything you read here.
+        Automated execution on your own exchange is part of Annual and Lifetime.
+      </p>
+      <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-text-muted">
+        Nothing is lost by waiting — your keys, settings and any open position stay
+        exactly as they are. Upgrade and the Agent is available again within about
+        two minutes, with nothing to reconnect.
+      </p>
+      <a
+        href="/pricing"
+        className="mt-5 inline-block rounded-xl bg-accent px-5 py-2.5 text-[13px] font-bold text-accent-fg transition hover:brightness-[1.04]"
+      >
+        See Annual &amp; Lifetime
+      </a>
+    </div>
+  );
+}
+
 export default function AutoTradePage() {
+  const { user } = useAuth();
+  // The backend re-checks this before every live entry, so this is the page
+  // being honest rather than the page enforcing anything.
+  const planOk = planAllowsAgent(user);
   const [tab, setTab] = useState("overview");
   const [settingsSection, setSettingsSection] = useState("strategy");
   const [loading, setLoading] = useState(true);
@@ -941,7 +981,9 @@ export default function AutoTradePage() {
 
       {error ? <Notice tone="error">{error}</Notice> : null}
 
-      {!prefsReady || !acksReady ? (
+      {!planOk ? (
+        <UpgradeForAgent />
+      ) : !prefsReady || !acksReady ? (
         <LoadingState />
       ) : !prefs.agent_assistant_ack || !hasSignedAssistantForm || rereadDisclaimer ? (
         <AgentDisclaimer
