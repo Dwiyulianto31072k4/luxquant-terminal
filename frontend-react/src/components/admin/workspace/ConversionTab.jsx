@@ -997,8 +997,8 @@ const SourceRows = ({ rows = [], limit = null, emptyNote }) => {
   return (
     <div className="space-y-2">
       {shown.map((r) => (
-        <div key={r.source} className="flex items-center gap-2.5">
-          <SourceMark source={r.source} />
+        <div key={r.key || r.source} className="flex items-center gap-2.5">
+          <SourceMark source={r.mark || r.source} />
           <div className="w-28 min-w-0 sm:w-36">
             <p
               className="truncate text-[11.5px] font-medium text-text-primary"
@@ -1090,24 +1090,35 @@ export const ConversionTab = () => {
   // once, on first touch, and the VIP button exists to convert people who
   // already have an account — so a VIP click can never show up in signup
   // attribution however well it works.
+  //
+  // Grouped per channel as well as per style. The Discord relay reuses the
+  // Telegram poster's keys on purpose, so "try_free" from #lq-profit-flexing and
+  // "try_free" from the free channel are the same wording — but they are not the
+  // same audience, and folding them together would hide which channel earned
+  // the click. The channel's mark carries the distinction; the label stays the
+  // button's own text.
   const landByStyle = (() => {
     const m = new Map();
     acqLandByButton.forEach((r) => {
       const { style, coin, known } = splitContent(r.content);
-      const e = m.get(style) || { style, known, n: 0, coins: new Set() };
+      const src = String(r.source || "").toLowerCase();
+      const id = `${src}|${style}`;
+      const e = m.get(id) || { id, src, style, known, n: 0, coins: new Set() };
       e.n += r.n || 0;
       if (coin) e.coins.add(coin);
-      m.set(style, e);
+      m.set(id, e);
     });
     return [...m.values()].sort((a, b) => b.n - a.n);
   })();
 
   const landRows = landByStyle.map((e) => {
     const label = CTA_STYLE_LABELS[e.style] || e.style;
-    const parts = [];
+    const parts = [sourceLabel(e.src)];
     if (label !== e.style) parts.push(e.style);
     if (e.coins.size) parts.push(`${e.coins.size} coins`);
     return {
+      key: e.id,
+      mark: e.src,
       source: label,
       note: parts.join(" · ") || null,
       title: e.coins.size ? `${e.style} — ${[...e.coins].join(", ")}` : e.style,
@@ -1116,8 +1127,12 @@ export const ConversionTab = () => {
   });
 
   const landRawRows = acqLandByButton.map((r) => ({
+    key: `${r.source}|${r.campaign}|${r.content}`,
+    mark: r.source,
     source: r.content,
-    note: r.campaign && r.campaign !== "(none)" ? r.campaign : null,
+    note: [sourceLabel(r.source), r.campaign && r.campaign !== "(none)" ? r.campaign : null]
+      .filter(Boolean)
+      .join(" · "),
     n: r.n,
   }));
 
@@ -1133,14 +1148,17 @@ export const ConversionTab = () => {
   // Every per-coin variant of the same button folded onto its style. Fifteen
   // rows that each said "1" could not answer which wording earns the click;
   // five rows that say "5, 4, 2, 1, 1" can.
+  // Per channel too, for the same reason as the click list above.
   const contentByStyle = (() => {
     const m = new Map();
     acqByContent.forEach((r) => {
       const { style, coin, known } = splitContent(r.content);
-      const e = m.get(style) || { style, known, n: 0, coins: [] };
+      const src = String(r.source || "").toLowerCase();
+      const id = `${src}|${style}`;
+      const e = m.get(id) || { id, src, style, known, n: 0, coins: [] };
       e.n += r.n || 0;
       if (coin) e.coins.push(coin);
-      m.set(style, e);
+      m.set(id, e);
     });
     return [...m.values()].sort((a, b) => b.n - a.n);
   })();
@@ -1151,10 +1169,12 @@ export const ConversionTab = () => {
     // and what anyone grepping caption_builder will search for. When there is
     // no friendly label the key is already the name, so repeating it as a
     // subtitle just prints the same word twice.
-    const parts = [];
+    const parts = [sourceLabel(e.src)];
     if (label !== e.style) parts.push(e.style);
     if (e.coins.length) parts.push(`${e.coins.length} coins`);
     return {
+      key: e.id,
+      mark: e.src,
       source: label,
       note: parts.join(" · ") || null,
       title: e.coins.length ? `${e.style} — ${e.coins.join(", ")}` : e.style,
@@ -1164,8 +1184,12 @@ export const ConversionTab = () => {
 
   // The ungrouped truth, for the dialog. Same rows, lid off.
   const contentRawRows = acqByContent.map((r) => ({
+    key: `${r.source}|${r.campaign}|${r.content}`,
+    mark: r.source,
     source: r.content,
-    note: r.campaign && r.campaign !== "(none)" ? sourceLabel(r.campaign) : null,
+    note: [sourceLabel(r.source), r.campaign && r.campaign !== "(none)" ? r.campaign : null]
+      .filter(Boolean)
+      .join(" · "),
     n: r.n,
   }));
 
@@ -1863,7 +1887,7 @@ export const ConversionTab = () => {
       {/* Acquisition — TG channel buttons, X profile, landing UTM */}
       <Panel
         title="Acquisition sources"
-        sub="First-touch on signup (utm_source / social referrer). TG free buttons tag utm_source=telegram."
+        sub="First-touch on signup (utm_source / social referrer). Free-channel buttons tag utm_source=telegram; the DRC Discord's tag utm_source=discord."
       >
         <div className="mb-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary/40 px-3 py-2.5">

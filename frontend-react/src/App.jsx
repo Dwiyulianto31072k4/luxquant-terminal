@@ -154,8 +154,18 @@ function RequireAuth({ children }) {
   // problem, not a logout. Bouncing to /login here threw an admin out of a
   // half-finished workspace during a backend reload; offer a retry instead.
   if (!isAuthenticated && authUnreachable) return <AuthUnreachableNotice />;
-  if (!isAuthenticated)
-    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+  if (!isAuthenticated) {
+    // Keep the query, minus utm_*. A channel button's promise can live in it:
+    // "Alert me on $REZ" goes to /watchlist?add=REZ, and redirecting on the
+    // pathname alone signed the reader in to an empty box. The utm_* tags were
+    // already captured at boot (main.jsx), so carrying them through would only
+    // put them back in the address bar.
+    const kept = new URLSearchParams(location.search);
+    [...kept.keys()].filter((k) => k.startsWith("utm_")).forEach((k) => kept.delete(k));
+    const qs = kept.toString();
+    const target = location.pathname + (qs ? `?${qs}` : "");
+    return <Navigate to={`/login?redirect=${encodeURIComponent(target)}`} replace />;
+  }
   // Login-gated content = a thin login/app shell to crawlers → keep it out of
   // Google. Pages can still override with their own <Seo> if ever made public.
   return (
