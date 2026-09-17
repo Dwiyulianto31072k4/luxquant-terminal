@@ -63,16 +63,34 @@ def _has_live_ack(db: Session, user_id: int) -> bool:
     )
 
 
-# Agent is an Annual/Lifetime feature. `monthly` is deliberately absent.
+# Agent is an Annual/Lifetime feature: anything that buys less than a year of
+# access does not include it.
 #
-# `custom` IS allowed: it is an admin-granted bespoke plan, and the one account
-# holding it runs to 2027-05-02 — twenty months. Refusing that because its label
-# reads "custom" rather than "yearly" would be a bug, not compliance.
-#
-# NULL tier is absent too, and costs nothing: every agent config on a NULL tier
-# today belongs to a `free` account that `has_active_access` already stops.
-BOT_TIERS = frozenset({"yearly", "lifetime", "custom"})
+# The test is the SPAN, not the label. `custom` is an admin-granted plan whose
+# length is whatever was typed at the time — the one account holding it was
+# granted 2026-07-18 to 2027-05-02, which is 288 days. That is below a year, so
+# it is refused, and reading the label alone would have let it through.
+YEAR_DAYS = 365
+BOT_TIERS_ALWAYS = frozenset({"yearly", "lifetime"})
 BOT_TIER_LABEL = "Annual or Lifetime"
+
+TIER_DISPLAY = {
+    "monthly": "Monthly",
+    "yearly": "Annual",
+    "lifetime": "Lifetime",
+    "custom": "Custom",
+}
+
+
+def _plan_span_days(user: User):
+    """How long this plan runs, or None when it does not end (lifetime)."""
+    expires = getattr(user, "subscription_expires_at", None)
+    if expires is None:
+        return None
+    start = getattr(user, "subscription_granted_at", None) or getattr(user, "created_at", None)
+    if start is None:
+        return None
+    return (expires - start).days
 
 
 def _plan_allows_bot(user: User) -> bool:
@@ -89,7 +107,27 @@ def _plan_allows_bot(user: User) -> bool:
     """
     if getattr(user, "is_admin_staff", False):
         return True
-    return (getattr(user, "subscription_tier", None) or "") in BOT_TIERS
+    tier = (getattr(user, "subscription_tier", None) or "").lower()
+    if tier in BOT_TIERS_ALWAYS:
+        return True
+    if tier == "custom":
+        span = _plan_span_days(user)
+        # No end date on a custom grant means it never expires — that is at
+        # least a year by definition.
+        return span is None or span >= YEAR_DAYS
+    return False
+
+
+def _plan_display(user: User) -> str:
+    """What to call this person's plan when explaining the refusal."""
+    tier = (getattr(user, "subscription_tier", None) or "").lower()
+    label = TIER_DISPLAY.get(tier)
+    if not label:
+        return "Free" if not getattr(user, "has_active_access", False) else "Member"
+    if tier == "custom":
+        span = _plan_span_days(user)
+        return f"Custom ({span} days)" if span is not None else "Custom"
+    return label
 
 
 def _entitlement_payload(user: User, db: Session) -> dict:
@@ -114,6 +152,7 @@ def _entitlement_payload(user: User, db: Session) -> dict:
         # permitted, so a rollout never locks anyone out by omission.
         "plan_allows_bot": _plan_allows_bot(user),
         "plan_required": BOT_TIER_LABEL,
+        "plan_name": _plan_display(user),
         "subscription_tier": getattr(user, "subscription_tier", None),
         "bot_access_blocked": user.autotrade_blocked,
         "bot_access_blocked_reason": user.autotrade_blocked_reason,

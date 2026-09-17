@@ -37,7 +37,7 @@ import { LIVE_FORM } from "./autotrade/agentDisclaimerCopy";
 
 import AppliedRulesCard from "./autotrade/AppliedRulesCard";
 import { skipSummary } from "./autotrade/autotradeEventGuide";
-import { AGENT_PLAN_LABEL, planAllowsAgent } from "../utils/agentPlan";
+import { AGENT_PLAN_LABEL, planAllowsAgent, planName, planRefusalReason } from "../utils/agentPlan";
 import { useAuth } from "../context/AuthContext";
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import ExchangePicker from "./autotrade/ExchangePicker";
@@ -627,10 +627,22 @@ function SetupCard({
 
 /* The Agent is an Annual/Lifetime feature. This sits ahead of the disclaimers
    on purpose: there is no sense asking somebody to sign a live trading
-   agreement for something their plan cannot run. */
-function UpgradeForAgent() {
+   agreement for something their plan cannot run.
+
+   It names the plan they are ON and why that plan cannot run it. "Upgrade to
+   continue" with no subject leaves the reader working out which of their
+   plans, which limit, and whether it is a bug — and that is the message people
+   send screenshots about. */
+function UpgradeForAgent({ user }) {
+  const current = planName(user);
+  const reason = planRefusalReason(user);
+  const expires = user?.subscription_expires_at
+    ? new Date(user.subscription_expires_at).toLocaleDateString("en-GB", {
+        day: "numeric", month: "short", year: "numeric",
+      })
+    : null;
   return (
-    <div className="rounded-2xl border border-ink/10 bg-surface-raised p-6 text-center">
+    <div className="mx-auto max-w-lg rounded-2xl border border-ink/10 bg-surface-raised p-6 text-center">
       <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent">
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
           <rect x="3" y="11" width="18" height="10" rx="2" />
@@ -640,11 +652,28 @@ function UpgradeForAgent() {
       <h2 className="font-display text-[17px] font-semibold text-text-primary">
         Agent is available on {AGENT_PLAN_LABEL}
       </h2>
-      <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-text-secondary">
-        Monthly covers the terminal, the signal feed and everything you read here.
-        Automated execution on your own exchange is part of Annual and Lifetime.
-      </p>
-      <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-text-muted">
+
+      <div className="mt-4 rounded-xl border border-ink/10 bg-ink/[0.03] px-4 py-3 text-left">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+            Your plan
+          </span>
+          <span className="text-[13px] font-bold text-text-primary">{current}</span>
+        </div>
+        {expires && (
+          <div className="mt-1.5 flex items-baseline justify-between gap-3">
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted">
+              Renews / ends
+            </span>
+            <span className="text-[12.5px] text-text-secondary">{expires}</span>
+          </div>
+        )}
+        <p className="mt-2.5 border-t border-ink/10 pt-2.5 text-[12.5px] leading-relaxed text-text-secondary">
+          {reason}
+        </p>
+      </div>
+
+      <p className="mx-auto mt-3 text-[12px] leading-relaxed text-text-muted">
         Nothing is lost by waiting — your keys, settings and any open position stay
         exactly as they are. Upgrade and the Agent is available again within about
         two minutes, with nothing to reconnect.
@@ -982,7 +1011,7 @@ export default function AutoTradePage() {
       {error ? <Notice tone="error">{error}</Notice> : null}
 
       {!planOk ? (
-        <UpgradeForAgent />
+        <UpgradeForAgent user={user} />
       ) : !prefsReady || !acksReady ? (
         <LoadingState />
       ) : !prefs.agent_assistant_ack || !hasSignedAssistantForm || rereadDisclaimer ? (

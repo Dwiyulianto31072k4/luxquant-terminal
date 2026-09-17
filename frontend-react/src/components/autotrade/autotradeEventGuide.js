@@ -48,7 +48,7 @@ export const RISK_EVENTS = {
     title: "Agent needs Annual or Lifetime",
     blocking: true,
     what: "Live entries are paused. Your subscription, your signals and any open position are untouched — open positions keep their take-profit and stop-loss.",
-    why: "The Agent is part of the Annual and Lifetime plans. Monthly covers the terminal and the signal feed, but not automated execution. This is checked before every live entry, so it applies the moment the plan changes in either direction.",
+    why: "The Agent is part of the Annual and Lifetime plans. Monthly covers the terminal and the signal feed, but not automated execution. The test is the length of the plan, not its name — a custom plan granted for less than twelve months is treated the same as Monthly. It is checked before every live entry, so it applies the moment the plan changes in either direction.",
     fix: "Upgrade to Annual or Lifetime and the Agent resumes on the next check, within about two minutes. Nothing needs reconnecting.",
   },
   subscription_inactive: {
