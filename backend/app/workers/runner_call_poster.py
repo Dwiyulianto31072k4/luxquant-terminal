@@ -55,8 +55,9 @@ PROXY = os.getenv("TELEGRAM_PROXY") or None
 MAX_AGE_MIN = int(os.getenv("RUNNER_MAX_AGE_MIN", "60"))
 # match_screen caches the Edge book for 30s and its own answer for 20s. A call
 # enriched seconds ago may be missing from both, and deciding then would record
-# a false "not a runner" forever. Waiting this long after enrichment rules it out.
-SETTLE_SEC = int(os.getenv("RUNNER_SETTLE_SEC", "90"))
+# a false "not a runner" forever. 30 + 20 is the longest either can be stale,
+# so waiting that long after enrichment rules it out and not a second more.
+SETTLE_SEC = int(os.getenv("RUNNER_SETTLE_SEC", "50"))
 MAX_ATTEMPTS = 5
 
 SIGNAL_URL = "https://luxquant.tw/signals?signal={sid}"

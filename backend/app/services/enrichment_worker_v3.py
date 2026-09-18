@@ -549,6 +549,15 @@ async def run_live_refresh_all(dry_run: bool = False):
 
     stats = {"success": 0, "failed": 0}
     for sig in signals:
+        # New calls jump the queue. A refresh batch is up to 50 signals at
+        # 6-50s each, so a call scraped just after a batch began used to wait
+        # for all of it: ZAMA on 2026-09-18 was called 07:10:08 and enriched
+        # 07:22:31, behind a sweep that ran 07:09 -> 07:22. Everything that
+        # reads tags waits on this — the desk's Runners, saved-filter alerts,
+        # the Runners topic post. A pending check costs one indexed query.
+        if not dry_run and get_pending_signals(limit=1):
+            await run_pending_batch(dry_run=dry_run)
+
         sid = sig["signal_id"]
         result = await process_signal_live(sig, dry_run=dry_run)
 
