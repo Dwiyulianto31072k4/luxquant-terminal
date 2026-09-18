@@ -146,7 +146,7 @@ const Header = ({ activeTab, setActiveTab }) => {
  MOBILE BOTTOM TAB BAR — Fixed bottom, 5 items
  (Home, Pulse, Trade, Arena, Market)
  ═══════════════════════════════════════════════════════ */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-bg-primary/90 backdrop-blur-xl">
+      <nav className="lq-bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-50 bg-bg-primary/90 backdrop-blur-xl">
         {/* Top hairline accent */}
 
         <div className="grid grid-cols-5 gap-1 px-2 pt-2 pb-2 safe-bottom">

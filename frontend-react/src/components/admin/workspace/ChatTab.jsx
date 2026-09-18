@@ -1069,9 +1069,24 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
         .lq-chat-backdrop, .lq-chat-sheet { animation: none; }
       }
 
-      /* ── Inbox page on phones: fill the screen, no bottom nav ─────────── */
-      @media (max-width: 767px) {
-        body.lq-admin-chat-active .bottom-nav { display: none !important; }
+      /* ── Inbox below lg: one screen tall, the list scrolls inside ─────────
+         Without a fixed height the whole page scrolled, taking the search and
+         filters away with it, and the product bottom nav sat over the last
+         rows. The old rule hid ".bottom-nav", a class nothing carries, so the
+         nav was never actually hidden; Header's nav now has .lq-bottom-nav. */
+      @media (max-width: 1023px) {
+        body.lq-admin-chat-active .lq-bottom-nav { display: none !important; }
+        body.lq-admin-chat-active main:has(.admin-chat-workspace) { padding-bottom: 0 !important; }
+        .admin-chat-workspace {
+          height: calc(100dvh - var(--lq-header-h) - 0.75rem) !important;
+          min-height: 0 !important;
+          overflow: hidden !important;
+          padding-bottom: 0.75rem !important;
+        }
+        .admin-chat-workspace .admin-workspace-content,
+        .admin-chat-workspace .admin-workspace-view { min-height: 0 !important; height: 100% !important; }
+        /* The content pane reserves room for the bottom nav, which is hidden here. */
+        .admin-chat-workspace .admin-workspace-content { padding-bottom: 0 !important; }
       }
     `}</style>
     <ChatImageLightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
