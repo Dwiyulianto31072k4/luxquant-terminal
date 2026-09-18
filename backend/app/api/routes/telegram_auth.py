@@ -136,7 +136,6 @@ async def _send_terminal_bot_message(chat_id: int, command: str,
         logger.exception("Terminal Bot sendMessage request failed")
 
 
-@router.post("/telegram/bot/webhook", include_in_schema=False)
 def _opt_out_referral_reminders(db, telegram_id: int) -> bool:
     """Honour a STOP, and never let failing to honour it break the reply.
 
@@ -165,6 +164,11 @@ def _opt_out_referral_reminders(db, telegram_id: int) -> bool:
         return False
 
 
+# The decorator must sit directly on the handler. On 2026-09-11 the helper
+# above was inserted between them, so the route registered the helper instead:
+# its `db`/`telegram_id` became required query parameters, every Telegram
+# update got a 422, and the bot answered nothing for seven days.
+@router.post("/telegram/bot/webhook", include_in_schema=False)
 async def telegram_bot_webhook(
     request: Request,
     db: Session = Depends(get_db),

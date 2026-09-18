@@ -748,22 +748,47 @@ export default function AutoTradePage() {
     setAlertStatusError("");
   };
 
+  // The login token is stored for an exchange that normally happens at once,
+  // but it lives one hour and embeds the entitlement of that moment. When the
+  // exchange at login failed — a free account that was upgraded later is the
+  // common case — the dead token stayed in storage and was reused here, so
+  // opening Agent answered "LuxQuant token has expired" until the user logged
+  // out and in again (2026-09-18, six 401s in a row for one new Lifetime user).
+  const storedTokenUsable = (token) => {
+    try {
+      const claims = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+      return claims.has_active_access === true && claims.exp * 1000 - Date.now() > 60_000;
+    } catch {
+      return false;
+    }
+  };
+
   const getLuxquantCryptobotToken = async ({ fresh = false } = {}) => {
     const storedToken = localStorage.getItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
-    if (storedToken && !fresh) return storedToken;
+    if (storedToken && !fresh && storedTokenUsable(storedToken)) return storedToken;
+    localStorage.removeItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
     const response = await authApi.getCryptobotToken();
     return resolveLuxquantCryptobotToken(response);
   };
 
   const ensureAutotradeAccess = async ({ refreshIdentity = false } = {}) => {
     if (getStoredAutotradeToken() && !refreshIdentity) return true;
-    const luxquantToken = await getLuxquantCryptobotToken({
+    let luxquantToken = await getLuxquantCryptobotToken({
       fresh: refreshIdentity,
     });
     if (!luxquantToken) {
       throw new Error("LuxQuant did not return a Cryptobot exchange token");
     }
-    await exchangeLuxquantToken(luxquantToken);
+    try {
+      await exchangeLuxquantToken(luxquantToken);
+    } catch (err) {
+      // One retry with a freshly minted token covers anything the local check
+      // cannot see (clock skew, a token the server has already refused).
+      if (!(err instanceof AutoTradeApiError) || ![401, 403].includes(err.status)) throw err;
+      luxquantToken = await getLuxquantCryptobotToken({ fresh: true });
+      if (!luxquantToken) throw err;
+      await exchangeLuxquantToken(luxquantToken);
+    }
     localStorage.removeItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
     return true;
   };
