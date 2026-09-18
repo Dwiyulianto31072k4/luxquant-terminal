@@ -239,7 +239,7 @@ export default function LandingPageV2() {
           <GlobalReach gainers={topGainers} stats={stats} />
         </Suspense>
       </main>
-      <FooterV2 onNav={scrollTo} />
+      <FooterV2 onNav={scrollTo} blend />
       <StickyLandingCta />
     </div>
   );

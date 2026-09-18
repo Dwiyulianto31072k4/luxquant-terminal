@@ -2785,18 +2785,21 @@ export default function GlobalReach({ gainers = [] }) {
           }}
         />
 
-        <div className="absolute inset-0">
+        {/* The globe dissolves into the page instead of being painted over.
+            A fade TO rgb(--surface) left a solid block under the globe, and the
+            page's own warm background showed again below it as a hard red band
+            right above the footer. Masking the globe to transparent lets the
+            one continuous page background carry straight through. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            WebkitMaskImage: "linear-gradient(to bottom, #000 58%, transparent 97%)",
+            maskImage: "linear-gradient(to bottom, #000 58%, transparent 97%)",
+          }}
+        >
           {inView && <CanvasGlobe gainersRef={gainersRef} onOpenSignal={onOpenSignal} />}
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-8 pt-28 sm:pb-10 sm:pt-36">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(to top, rgb(var(--surface)) 0%, rgb(var(--surface) / 0.75) 36%, transparent 100%)",
-            }}
-          />
           {!isAuthenticated && (
             <div className="pointer-events-auto relative">
               <PrimaryButton size="md" onClick={goClose} className="group">

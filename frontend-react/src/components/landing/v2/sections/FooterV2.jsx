@@ -9,7 +9,7 @@ import { isPremiumUser } from "../../../../utils/roles";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { CTA } from "../landingCopy";
 
-export default function FooterV2({ onNav }) {
+export default function FooterV2({ onNav, blend = false }) {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const isPremium = isPremiumUser(user);
@@ -170,7 +170,19 @@ export default function FooterV2({ onNav }) {
   };
 
   return (
-    <footer className="lq-app-footer relative z-10 border-t border-ink/[0.08] bg-surface-raised">
+    <footer
+      className={`lq-app-footer relative z-10 bg-surface-raised ${blend ? "" : "border-t border-ink/[0.08]"}`}
+    >
+      {/* On the landing the page background is a warm gradient, so a ruled
+          edge against a solid footer read as a seam. There the footer fades
+          in over its own height instead. In-app pages keep the rule. */}
+      {blend ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-full h-32 sm:h-40"
+          style={{ background: "linear-gradient(to bottom, transparent, rgb(var(--surface-raised)))" }}
+        />
+      ) : null}
       <div className="mx-auto max-w-6xl px-5 pb-10 pt-14 sm:px-6 lg:px-8 lg:pt-16">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
           {/* Brand + ecosystem logos */}
