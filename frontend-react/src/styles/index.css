@@ -781,6 +781,16 @@ body .lq-modal-safe > *:not(.lq-scrim) {
   box-sizing: border-box;
 }
 
+/* Pin the rem base. Tailwind sizes type, padding and gaps in rem, while icons,
+   borders and images are in px — so a browser whose default font size is not
+   16px (Chrome's "Small" is 12px) did not just shrink the text, it changed the
+   proportions of every layout. Measured 2026-09-18: one Chrome profile at 12px,
+   another at 16px, same build, visibly different spacing. Browser zoom still
+   scales everything uniformly, which is the control that keeps the design. */
+html {
+  font-size: 16px;
+}
+
 body {
   font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   background: var(--bg-primary);
