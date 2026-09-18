@@ -2229,9 +2229,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 </div>
               </div>
 
-              {/* Row 2 — toolbar: navigation tabs (left) + utility actions (right) */}
-              <div className="mt-2.5 flex items-center justify-between gap-2">
-                <div className="flex min-w-0 flex-1 items-center gap-0.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5 sm:flex-none">
+              {/* Row 2 — toolbar: navigation tabs (left) + utility actions (right).
+                  On a phone one line held four tabs, two pills and three icons
+                  in ~410px: labels shrank to 9px and "Similar" sat on top of
+                  "History". Below sm the tabs take their own full-width line
+                  and the actions wrap to a second one with real touch sizes. */}
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-2 sm:flex-nowrap sm:justify-between sm:gap-2">
+                <div className="flex w-full min-w-0 items-center gap-0.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5 sm:w-auto sm:flex-none">
                   {[
                     {
                       id: "chart",
@@ -2318,7 +2322,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         setMoreActionsOpen(false);
                         onTabChange && onTabChange(id);
                       }}
-                      className={`flex flex-1 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-md px-1 py-1 text-[9px] font-medium leading-none transition-colors sm:flex-none sm:flex-row sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[11px] ${
+                      className={`flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-[11px] font-medium leading-none transition-colors sm:h-auto sm:flex-none sm:px-3 sm:py-1.5 ${
                         activeTab === id
                           ? "bg-surface-raised text-text-primary shadow-sm"
                           : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
@@ -2348,10 +2352,12 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   onClick={() => setShowSimilar(true)}
                   title={t("modal.similar_hint")}
                   aria-label={t("modal.similar_hint")}
-                  className="ml-1 flex shrink-0 items-center gap-0.5 rounded-lg border border-accent/35 bg-accent/10 px-1.5 py-1 text-[9px] font-semibold leading-none text-accent transition-colors hover:border-accent/60 hover:bg-accent/[0.18] sm:ml-2 sm:mr-auto sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[11px]"
+                  className={`flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-accent/35 bg-accent/10 px-2 text-[12px] font-semibold leading-none text-accent transition-colors hover:border-accent/60 hover:bg-accent/[0.18] sm:ml-2 sm:h-auto sm:flex-none sm:px-3 sm:py-1.5 sm:text-[11px] ${
+                    !isRedacted && signal?.entry && signal?.stop1 ? "" : "sm:mr-auto"
+                  }`}
                 >
                   <svg
-                    className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5"
+                    className="h-3.5 w-3.5 shrink-0"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -2374,9 +2380,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     onClick={() => setShowPlanner(true)}
                     title={t("modal.planner_hint")}
                     aria-label={t("modal.planner_hint")}
-                    className="ml-1 flex shrink-0 items-center gap-0.5 rounded-lg border border-accent/35 bg-accent/10 px-1.5 py-1 text-[9px] font-semibold leading-none text-accent transition-colors hover:border-accent/60 hover:bg-accent/[0.18] sm:ml-1.5 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[11px]"
+                    className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-accent/35 bg-accent/10 px-2 text-[12px] font-semibold leading-none text-accent transition-colors hover:border-accent/60 hover:bg-accent/[0.18] sm:mr-auto sm:h-auto sm:flex-none sm:px-3 sm:py-1.5 sm:text-[11px]"
                   >
-                    <svg className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M4 6h16M4 12h10M4 18h6" />
                     </svg>
                     <span className="sm:hidden">{t("modal.planner_short")}</span>
@@ -2406,7 +2412,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     }
                     aria-label="Alert me when price comes back to entry"
                     aria-pressed={!!entryAlert?.armed}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-colors disabled:opacity-50 ${
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-50 sm:h-8 sm:w-8 ${
                       entryAlert?.armed
                         ? "border-accent/40 bg-accent/10 text-accent"
                         : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
@@ -2423,7 +2429,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:h-8 sm:w-8"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
@@ -2439,7 +2445,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     title="More actions"
                     aria-label="More actions"
                     aria-expanded={moreActionsOpen}
-                    className="relative z-30 flex h-11 w-11 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:hidden"
+                    className="relative z-30 flex h-9 w-9 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:hidden"
                   >
                     <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <circle cx="5" cy="12" r="1.6" />
