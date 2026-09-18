@@ -213,7 +213,7 @@ export default function LandingPageV2() {
       <HeaderV2 onNav={scrollTo} activeId={activeId} />
       <div className="pointer-events-none fixed inset-x-0 top-[4.75rem] z-40 flex justify-center px-4 lg:top-[5.25rem]">
         <div className="pointer-events-auto w-full max-w-xl">
-          <ReferralBanner />
+          <ReferralBanner floating />
         </div>
       </div>
       <main id="main">

@@ -136,8 +136,10 @@ export async function getStoredRefValidated() {
 
   const result = await validateRef(code);
   if (!result || !result.valid) {
-    // Invalid (expired, deleted, etc) → cleanup
-    clearStoredRef();
+    // Invalid (expired, deleted, etc) → cleanup. Only if the stored code is
+    // still the one we checked: a fresh ?ref= saved while this request was in
+    // flight must not be wiped out by the verdict on the old one.
+    if (getStoredRef() === code) clearStoredRef();
     return null;
   }
   return result;
