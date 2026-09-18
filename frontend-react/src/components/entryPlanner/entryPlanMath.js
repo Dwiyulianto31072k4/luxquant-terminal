@@ -69,7 +69,9 @@ function shares(list) {
  *   entryPrices   number[]  prices for Entry 1..n (Entry 1 filled at market)
  *   sl            number    final stop for the whole position
  *   targets       number[]  TP1..TP4 from the call (nulls allowed)
+ *   sizeBy        "risk" (default) | "margin"
  *   riskUsd       number    loss budget if everything fills and the stop hits
+ *   marginUsd     number    sizeBy "margin": total initial margin across all entries
  *   leverage      number
  *   weights       number[]  % per entry
  *   tpSplit       number[]  % of the position closed at each TP
@@ -108,8 +110,15 @@ export function buildPlan(p) {
   // Loss per coin for each entry, fees included when asked: the entry's own fee
   // (market for Entry 1, limit for the rest) plus the stop's market exit.
   const perCoin = entries.map((e, i) => (e - sl) * dir + e * (i === 0 ? fee.taker : fee.maker) + sl * fee.taker);
-  const budget = Math.max(0, Number(p.riskUsd) || 0);
-  const idealTotal = budget / w.reduce((a, wi, i) => a + wi * perCoin[i], 0);
+  // Two ways a trader sizes: "I can lose $X" (risk) or "I put $X of capital in"
+  // (margin — what the exchange order form asks for). Margin mode spends the
+  // capital at the chosen leverage and reports the loss that follows from it.
+  const lev = Math.max(1, Number(p.leverage) || 1);
+  const byMargin = p.sizeBy === "margin";
+  const marginIn = Math.max(0, Number(p.marginUsd) || 0);
+  const idealTotal = byMargin
+    ? (marginIn * lev) / w.reduce((a, wi, i) => a + wi * entries[i], 0)
+    : Math.max(0, Number(p.riskUsd) || 0) / w.reduce((a, wi, i) => a + wi * perCoin[i], 0);
 
   const legs = entries.map((price, i) => {
     let qty = idealTotal * w[i];
@@ -126,6 +135,7 @@ export function buildPlan(p) {
       qty,
       qtyUnit: qty / cs,
       notional,
+      margin: notional / lev,
       lossAtSl: qty * perCoin[i],
       warnings: legWarn,
     };
@@ -137,7 +147,7 @@ export function buildPlan(p) {
     const avg = qty > 0 ? used.reduce((a, l) => a + l.qty * l.price, 0) / qty : 0;
     const loss = used.reduce((a, l) => a + l.lossAtSl, 0);
     const tps = tpPlan(qty, avg);
-    return { fills: m, qty, avg, lossAtSl: loss, profitAllTps: tps.reduce((a, t) => a + t.profit, 0), tps };
+    return { fills: m, qty, avg, margin: used.reduce((a, l) => a + l.margin, 0), lossAtSl: loss, profitAllTps: tps.reduce((a, t) => a + t.profit, 0), tps };
   };
 
   function tpPlan(totalQty, avg) {
@@ -158,14 +168,14 @@ export function buildPlan(p) {
   }
 
   const full = scenario(legs.length);
-  const lev = Math.max(1, Number(p.leverage) || 1);
+  const budget = byMargin ? full.lossAtSl : Math.max(0, Number(p.riskUsd) || 0);
   const margin = full.qty * full.avg / lev;
   const liq = full.avg * (long ? 1 - 1 / lev + MMR : 1 + 1 / lev - MMR);
   const liqBeforeStop = long ? liq >= sl : liq <= sl;
 
   if (liqBeforeStop) warnings.push("liquidation_before_stop");
   if (legs.some((l) => l.warnings.length)) warnings.push("leg_below_minimum");
-  if (full.lossAtSl > budget + 1e-9) warnings.push("over_budget");
+  if (!byMargin && full.lossAtSl > budget + 1e-9) warnings.push("over_budget");
 
   return {
     ok: true,
@@ -181,6 +191,10 @@ export function buildPlan(p) {
     liqBeforeStop,
     lossAtSl: full.lossAtSl,
     budget,
+    sizeBy: byMargin ? "margin" : "risk",
+    // Rough fees if every entry fills and the stop hits — the wallet needs this
+    // on top of the margin.
+    feesAtSl: legs.reduce((a, l, i) => a + l.notional * (i === 0 ? FEES.taker : FEES.maker), 0) + full.qty * sl * FEES.taker,
     tps: full.tps,
     scenarios: legs.map((_, i) => scenario(i + 1)),
     unit: rule?.unit || "coin",

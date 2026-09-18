@@ -206,7 +206,10 @@ async def exchange_rules(
 
 # ── template ─────────────────────────────────────────────────────────────
 TEMPLATE_DEFAULT = {
+    "size_by": "risk",         # "risk" (max loss) or "margin" (capital in)
     "risk_usd": 10.0,
+    "margin_usd": 100.0,
+    "balance_usd": 0.0,        # optional futures-wallet balance; 0 = not given
     "leverage": 5,
     "entries": 3,
     "weights": [40, 30, 30],
@@ -242,6 +245,14 @@ def _clean_template(data: dict) -> dict:
     t = dict(TEMPLATE_DEFAULT)
     if "risk_usd" in data:
         t["risk_usd"] = _num(data["risk_usd"], 0.01, 1_000_000, "risk_usd")
+    if "size_by" in data:
+        if data["size_by"] not in ("risk", "margin"):
+            raise HTTPException(422, "size_by must be risk or margin")
+        t["size_by"] = data["size_by"]
+    if "margin_usd" in data:
+        t["margin_usd"] = _num(data["margin_usd"], 0.01, 10_000_000, "margin_usd")
+    if data.get("balance_usd") not in (None, ""):
+        t["balance_usd"] = _num(data["balance_usd"], 0, 100_000_000, "balance_usd")
     if "leverage" in data:
         t["leverage"] = int(_num(data["leverage"], 1, 125, "leverage"))
     if "weights" in data:

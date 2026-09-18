@@ -61,7 +61,10 @@ const WEIGHT_PRESETS = {
 const TP_PRESETS = [[40, 30, 20, 10], [25, 25, 25, 25], [50, 30, 20, 0], [100, 0, 0, 0]];
 
 const DEFAULTS = {
+  size_by: "risk",
   risk_usd: 10,
+  margin_usd: 100,
+  balance_usd: 0,
   leverage: 5,
   entries: 3,
   weights: [40, 30, 30],
@@ -71,6 +74,42 @@ const DEFAULTS = {
   exchange: "binance",
   include_fees: true,
   entry1_price: "live",
+};
+
+// How each venue's order form wants the plan typed. Only what is stable in
+// their UIs: the market, the size unit the numbers below are in, and a stop
+// that covers the whole position (so entries filling later are protected too).
+const VENUE_GUIDE = {
+  binance: {
+    market: "Futures → USDⓈ-M",
+    unit: (c) => `Size unit ${c}. Would rather type capital? Switch the unit to USDT → Initial margin and type the Margin column.`,
+    stop: "Stop Market with Close Position ticked, trigger by Mark price",
+  },
+  bybit: {
+    market: "Derivatives → USDT Perpetual",
+    unit: (c) => `Qty in ${c}. Would rather type capital? Switch the unit to USDT → By cost and type the Margin column.`,
+    stop: "Position TP/SL → Entire position, trigger by Mark price",
+  },
+  bitget: {
+    market: "Futures → USDT-M",
+    unit: (c) => `Size unit ${c} — type the Quantity column.`,
+    stop: "Position TP/SL → Entire position, trigger by Mark price",
+  },
+  okx: {
+    market: "Trade → Perpetual (USDT)",
+    unit: () => "Size unit Contracts (Cont) — the quantities here are contracts, not coins.",
+    stop: "TP/SL on the position → Entire position, trigger by Mark price",
+  },
+  gate: {
+    market: "Futures → USDT perpetual",
+    unit: () => "Size unit Contracts (Cont) — the quantities here are contracts, not coins.",
+    stop: "Position TP/SL → Entire position, trigger by Mark price",
+  },
+  bitunix: {
+    market: "Futures → USDT-M",
+    unit: (c) => `Qty in ${c} — type the Quantity column.`,
+    stop: "Position TP/SL → Entire position, trigger by Mark price",
+  },
 };
 
 const sym = (pair) => String(pair || "").replace(/USDT$/i, "");
@@ -270,7 +309,9 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
       entryPrices: ladder,
       sl: slFinal,
       targets,
+      sizeBy: cfg.size_by,
       riskUsd: cfg.risk_usd,
+      marginUsd: cfg.margin_usd,
       leverage: cfg.leverage,
       weights: cfg.weights,
       tpSplit: cfg.tp_split,
@@ -294,6 +335,16 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
     });
   }
 
+  const balance = n(cfg.balance_usd);
+  const walletNeed = plan?.ok ? plan.margin + plan.feesAtSl : null;
+  if (plan?.ok && balance && walletNeed > balance)
+    liveWarnings.push(`This plan needs about ${money(walletNeed)} in your futures wallet (margin + fees) — your balance is ${money(balance)}.`);
+  else if (plan?.ok && balance && plan.lossAtSl / balance > 0.05)
+    liveWarnings.push(`A stop-out costs ${((plan.lossAtSl / balance) * 100).toFixed(1)}% of your balance. Most traders keep it at 1–2% per trade.`);
+  const pctOf = (v) => (balance && Number.isFinite(v) ? ` · ${((v / balance) * 100).toFixed(1)}% of balance` : "");
+  const venue = VENUES.find((v) => v.id === cfg.exchange) || VENUES[0];
+  const guide = VENUE_GUIDE[venue.id];
+
   const unitLabel = (qtyCoin, qtyUnit) =>
     plan?.unit === "contract"
       ? { value: qtyFmt(qtyUnit, rule?.step), label: "ct", note: `= ${qtyFmt(qtyCoin, stepCoin)} ${sym(pair)}` }
@@ -303,8 +354,8 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
     if (!plan?.ok) return;
     const u = plan.unit === "contract" ? "contracts" : sym(pair);
     const lines = [
-      `${pair} ${side.toUpperCase()} · ${VENUES.find((v) => v.id === cfg.exchange)?.label} · ${cfg.leverage}x · max loss ${money(plan.lossAtSl)}`,
-      ...plan.legs.map((l) => `Entry ${l.index} (${l.type}): ${priceFmt(l.price, tick)} × ${plan.unit === "contract" ? qtyFmt(l.qtyUnit, rule?.step) : qtyFmt(l.qty, stepCoin)} ${u}`),
+      `${pair} ${side.toUpperCase()} · ${venue.label} · Isolated ${cfg.leverage}x · margin ${money(plan.margin)} · max loss ${money(plan.lossAtSl)}`,
+      ...plan.legs.map((l) => `Entry ${l.index} (${l.type}): ${priceFmt(l.price, tick)} × ${plan.unit === "contract" ? qtyFmt(l.qtyUnit, rule?.step) : qtyFmt(l.qty, stepCoin)} ${u} · margin ${money(l.margin)}`),
       `Stop (all): ${priceFmt(plan.sl, tick)}`,
       ...plan.tps.filter((t) => t.qty > 0).map((t) => `TP${t.index}: ${priceFmt(t.price, tick)} × ${plan.unit === "contract" ? qtyFmt(t.qtyUnit, rule?.step) : qtyFmt(t.qty, stepCoin)} ${u}`),
     ];
@@ -354,7 +405,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
           "Plan your entries"
         )
       }
-      subtitle={`${long ? "Long" : "Short"} · sized so a stop-out costs what you choose`}
+      subtitle={`${long ? "Long" : "Short"} · size by your max loss or your capital — every number fits your exchange`}
       size="2xl"
       zIndex={zIndex}
     >
@@ -383,14 +434,36 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
               />
             </Field>
 
+            <Field label="Size the position by" hint={cfg.size_by === "margin" ? "capital you put in" : "what a stop-out may cost"}>
+              <Seg
+                small
+                value={cfg.size_by}
+                onChange={(v) => set("size_by", v)}
+                options={[
+                  { value: "risk", label: "Max loss" },
+                  { value: "margin", label: "Capital (margin)" },
+                ]}
+              />
+            </Field>
+
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Max loss if stopped" hint="USDT">
-                <input
-                  type="text" inputMode="decimal" min="0" step="0.5" className={inputCls}
-                  value={cfg.risk_usd}
-                  onChange={(e) => set("risk_usd", dec(e.target.value))}
-                />
-              </Field>
+              {cfg.size_by === "margin" ? (
+                <Field label="Capital to use" hint="USDT">
+                  <input
+                    type="text" inputMode="decimal" className={inputCls}
+                    value={cfg.margin_usd}
+                    onChange={(e) => set("margin_usd", dec(e.target.value))}
+                  />
+                </Field>
+              ) : (
+                <Field label="Max loss if stopped" hint="USDT">
+                  <input
+                    type="text" inputMode="decimal" className={inputCls}
+                    value={cfg.risk_usd}
+                    onChange={(e) => set("risk_usd", dec(e.target.value))}
+                  />
+                </Field>
+              )}
               <Field label="Leverage" hint="x">
                 <input
                   type="text" inputMode="decimal" min="1" max="125" step="1" className={inputCls}
@@ -399,6 +472,14 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                 />
               </Field>
             </div>
+
+            <Field label="Futures balance" hint="optional · for % of account">
+              <input
+                type="text" inputMode="decimal" placeholder="e.g. 500" className={inputCls}
+                value={cfg.balance_usd || ""}
+                onChange={(e) => set("balance_usd", dec(e.target.value))}
+              />
+            </Field>
 
             <Field label="Entries" hint={Math.abs(weightSum - 100) > 0.5 ? `split adds to ${weightSum}%` : "split of the position"}>
               <Seg value={cfg.entries} onChange={setEntries} options={[1, 2, 3, 4].map((x) => ({ value: x, label: String(x) }))} />
@@ -546,10 +627,10 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
               <>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {[
-                    ["Loss if stopped", money(plan.lossAtSl), `budget ${money(Number(cfg.risk_usd))}`],
-                    ["Average entry", priceFmt(plan.avg, tick), "if every entry fills"],
-                    ["Position", `${unitLabel(plan.totalQty, plan.totalUnit).value} ${unitLabel(plan.totalQty, plan.totalUnit).label}`, `≈ ${money(plan.notional)} notional`],
-                    ["Margin", money(plan.margin), `${cfg.leverage}x · est. liq ${priceFmt(plan.liq, tick)}`],
+                    ["Capital (margin)", money(plan.margin), `Isolated ${cfg.leverage}x${pctOf(plan.margin)}`],
+                    ["Loss if stopped", money(plan.lossAtSl), plan.sizeBy === "margin" ? `from ${money(Number(cfg.margin_usd))} capital${pctOf(plan.lossAtSl)}` : `budget ${money(Number(cfg.risk_usd))}${pctOf(plan.lossAtSl)}`],
+                    ["Average entry", priceFmt(plan.avg, tick), `if every entry fills · liq ≈ ${priceFmt(plan.liq, tick)}`],
+                    ["Position", `${unitLabel(plan.totalQty, plan.totalUnit).value} ${unitLabel(plan.totalQty, plan.totalUnit).label}`, `≈ ${money(plan.notional)} order value`],
                   ].map(([k, v, s]) => (
                     <div key={k} className="rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2.5">
                       <p className="text-[11px] text-text-muted">{k}</p>
@@ -576,8 +657,8 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                   <div className="flex items-center justify-between gap-2 border-b border-ink/[0.08] bg-surface-secondary/40 px-3 py-2">
                     <p className="text-[12px] font-semibold text-text-primary">
                       <span className="inline-flex items-center gap-1.5 align-middle">
-                        <VenueMark venue={VENUES.find((v) => v.id === cfg.exchange) || VENUES[0]} size={16} />
-                        Orders on {VENUES.find((v) => v.id === cfg.exchange)?.label}
+                        <VenueMark venue={venue} size={16} />
+                        Orders on {venue.label}
                       </span>
                       {plan.unit === "contract" && (
                         <span className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-semibold text-accent-text">
@@ -600,7 +681,8 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                           <th className="px-2 py-2 font-medium sm:px-3">Order</th>
                           <th className="px-2 py-2 font-medium">Price</th>
                           <th className="px-2 py-2 font-medium">Quantity</th>
-                          <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">≈ USDT</th>
+                          <th className="hidden px-2 py-2 text-right font-medium md:table-cell">Order value</th>
+                          <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">Margin</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-ink/[0.06]">
@@ -620,8 +702,12 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                               <td className="px-2 py-2">
                                 <CopyValue value={q.value.replace(/,/g, "")} display={`${q.value} ${q.label}`} strong />
                                 {q.note && <span className="block px-1.5 text-[10px] text-text-muted">{q.note}</span>}
+                                <span className="block px-1.5 text-[10px] text-text-muted sm:hidden">margin {money(l.margin)} · value {money(l.notional)}</span>
                               </td>
-                              <td className="hidden px-3 py-2 text-right font-mono text-text-muted sm:table-cell">{money(l.notional)}</td>
+                              <td className="hidden px-2 py-2 text-right font-mono text-text-muted md:table-cell">{money(l.notional)}</td>
+                              <td className="hidden px-3 py-2 text-right sm:table-cell">
+                                <CopyValue value={l.margin.toFixed(2)} display={money(l.margin)} />
+                              </td>
                             </tr>
                           );
                         })}
@@ -635,6 +721,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                             <span className="font-mono text-negative sm:hidden">−{money(plan.lossAtSl)}</span>
                             <span className="hidden text-text-muted sm:inline">all filled size</span>
                           </td>
+                          <td className="hidden md:table-cell" />
                           <td className="hidden px-3 py-2 text-right font-mono text-negative sm:table-cell">−{money(plan.lossAtSl)}</td>
                         </tr>
                         {plan.tps.filter((t) => t.qty > 0).map((t) => {
@@ -648,14 +735,50 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                               </td>
                               <td className="px-2 py-2"><CopyValue value={priceFmt(t.price, tick)} /></td>
                               <td className="px-2 py-2"><CopyValue value={q.value.replace(/,/g, "")} display={`${q.value} ${q.label}`} /></td>
+                              <td className="hidden md:table-cell" />
                               <td className="hidden px-3 py-2 text-right font-mono text-profit sm:table-cell">+{money(t.profit)}</td>
                             </tr>
                           );
                         })}
                       </tbody>
+                      <tfoot>
+                        <tr className="border-t border-ink/[0.1] bg-surface-secondary/40 text-[12px]">
+                          <td className="px-2 py-2 font-medium text-text-primary sm:px-3" colSpan={3}>
+                            Wallet needed
+                            <span className="ml-1.5 hidden font-normal text-text-muted sm:inline">margin + est. fees, USDT in your futures wallet</span>
+                            <span className="float-right font-mono font-semibold sm:hidden">{money(walletNeed)}</span>
+                          </td>
+                          <td className="hidden md:table-cell" />
+                          <td className="hidden px-3 py-2 text-right font-mono font-semibold text-text-primary sm:table-cell">{money(walletNeed)}</td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                 </div>
+
+                {guide && (
+                  <div className="rounded-xl border border-ink/[0.08] px-3 py-2.5">
+                    <p className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-text-primary">
+                      <VenueMark venue={venue} size={15} />
+                      How to place it on {venue.label}
+                    </p>
+                    <ol className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-text-secondary">
+                      {[
+                        <>Open <b className="text-text-primary">{guide.market}</b> → {pair} perpetual. Set margin mode <b className="text-text-primary">Isolated</b> and leverage <b className="text-text-primary">{cfg.leverage}x</b> before ordering.</>,
+                        <>{guide.unit(sym(pair))}</>,
+                        <><b className="text-text-primary">{long ? "Buy / Long" : "Sell / Short"}</b> Entry 1 as a <b className="text-text-primary">Market</b> order{plan.legs.length > 1 ? <>, then Entries 2–{plan.legs.length} as <b className="text-text-primary">Limit</b> orders at their prices</> : null}.</>,
+                        <>Stop at <b className="font-mono text-text-primary">{priceFmt(plan.sl, tick)}</b>: {guide.stop} — it covers entries that fill later.</>,
+                        <>Take profits: once Entry 1 has filled, place <b className="text-text-primary">Limit</b> orders with <b className="text-text-primary">Reduce-only</b> ticked at each TP. The TP sizes assume every entry filled — if only some did, scale them down (see below).</>,
+                        <>Keep at least <b className="font-mono text-text-primary">{money(walletNeed)}</b> USDT in the futures wallet{balance ? pctOf(walletNeed) : ""}.</>,
+                      ].map((c, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] font-mono text-[10px] text-text-muted">{i + 1}</span>
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
 
                 {plan.scenarios.length > 1 && (
                   <div className="rounded-xl border border-ink/[0.08] px-3 py-2.5">
@@ -669,6 +792,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                           <tr className="text-left text-[11px] text-text-muted">
                             <th className="py-1 pr-2 font-medium">Filled</th>
                             <th className="px-2 py-1 font-medium">Average</th>
+                            <th className="px-2 py-1 text-right font-medium">Margin</th>
                             <th className="px-2 py-1 text-right font-medium">Loss at stop</th>
                             <th className="px-2 py-1 text-right font-medium">If the TP plan completes</th>
                           </tr>
@@ -678,6 +802,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                             <tr key={sc.fills} className="border-t border-ink/[0.06]">
                               <td className="py-1.5 pr-2 text-text-primary">Entry 1{sc.fills > 1 ? `–${sc.fills}` : " only"}</td>
                               <td className="px-2 py-1.5 font-mono text-text-muted">{priceFmt(sc.avg, tick)}</td>
+                              <td className="px-2 py-1.5 text-right font-mono text-text-muted">{money(sc.margin)}</td>
                               <td className="px-2 py-1.5 text-right font-mono text-negative">−{money(sc.lossAtSl)}</td>
                               <td className="px-2 py-1.5 text-right font-mono text-profit">+{money(sc.profitAllTps)}</td>
                             </tr>
@@ -689,7 +814,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                 )}
 
                 <p className="text-[11px] leading-relaxed text-text-muted">
-                  Prices and sizes are rounded to {VENUES.find((v) => v.id === cfg.exchange)?.label}'s own rules for {sym(pair)}; quantities round down so the
+                  Prices and sizes are rounded to {venue.label}'s own rules for {sym(pair)}; quantities round down so the
                   loss stays inside your budget. Liquidation is an estimate for isolated margin — your exchange's figure is the one that counts. Slippage on a fast
                   market can add to the loss. This is a sizing tool, not advice.
                 </p>

@@ -134,3 +134,18 @@ describe("shorts and safety", () => {
     expect(plan.warnings).toContain("liquidation_before_stop");
   });
 });
+
+describe("sizing by margin", () => {
+  it("spends the margin at the leverage and reports the loss that follows", () => {
+    const plan = buildPlan({
+      side: "long", sizeBy: "margin", marginUsd: 100, riskUsd: 1, entryPrices: [0.0891, 0.0875, 0.0862], sl: 0.0855,
+      targets: [], leverage: 5, weights: [40, 30, 30], tpSplit: [], includeFees: false, rule: BEAT_BINANCE,
+    });
+    expect(plan.sizeBy).toBe("margin");
+    expect(plan.margin).toBeLessThanOrEqual(100);
+    expect(plan.margin).toBeGreaterThan(99.5);
+    expect(plan.legs.reduce((a, l) => a + l.margin, 0)).toBeCloseTo(plan.margin, 6);
+    expect(plan.budget).toBeCloseTo(plan.lossAtSl, 9);
+    expect(plan.warnings).not.toContain("over_budget");
+  });
+});
