@@ -126,6 +126,12 @@ const money = (v) =>
     ? "—"
     : `$${Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(3)}`;
 
+// A TP can sit below the average entry when price has already run past the
+// call and Entry 1 is bought at the live price — then it closes at a loss, and
+// "+$-2177" hid that. Sign and colour follow the number.
+const signed = (v) => (Number.isFinite(v) && v < 0 ? `−${money(-v)}` : `+${money(v)}`);
+const pnlCls = (v) => (Number.isFinite(v) && v < 0 ? "text-negative" : "text-profit");
+
 function priceFmt(v, tick) {
   if (v == null || !Number.isFinite(v)) return "—";
   const d = tick ? decimalsOf(tick) : Math.min(8, Math.max(2, 4 - Math.floor(Math.log10(Math.abs(v)))));
@@ -335,6 +341,11 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
     });
   }
 
+  if (plan?.ok) {
+    const under = plan.tps.filter((t) => t.qty > 0 && t.profit < 0).map((t) => `TP${t.index}`);
+    if (under.length)
+      liveWarnings.push(`${under.join(", ")} ${under.length > 1 ? "are" : "is"} ${long ? "below" : "above"} your average entry, so ${under.length > 1 ? "they close" : "it closes"} at a loss. Use the call price for Entry 1, or put the split on the targets still ahead.`);
+  }
   const balance = n(cfg.balance_usd);
   const walletNeed = plan?.ok ? plan.margin + plan.feesAtSl : null;
   if (plan?.ok && balance && walletNeed > balance)
@@ -731,12 +742,12 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                               <td className="px-2 py-2 sm:px-3">
                                 <span className="font-medium text-text-primary">TP{t.index}</span>
                                 <span className="ml-1.5 text-[11px] text-text-muted">{Math.round(t.pct)}%</span>
-                                <span className="ml-1.5 text-[11px] text-profit sm:hidden">+{money(t.profit)}</span>
+                                <span className={`ml-1.5 text-[11px] sm:hidden ${pnlCls(t.profit)}`}>{signed(t.profit)}</span>
                               </td>
                               <td className="px-2 py-2"><CopyValue value={priceFmt(t.price, tick)} /></td>
                               <td className="px-2 py-2"><CopyValue value={q.value.replace(/,/g, "")} display={`${q.value} ${q.label}`} /></td>
                               <td className="hidden md:table-cell" />
-                              <td className="hidden px-3 py-2 text-right font-mono text-profit sm:table-cell">+{money(t.profit)}</td>
+                              <td className={`hidden px-3 py-2 text-right font-mono sm:table-cell ${pnlCls(t.profit)}`}>{signed(t.profit)}</td>
                             </tr>
                           );
                         })}
@@ -804,7 +815,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                               <td className="px-2 py-1.5 font-mono text-text-muted">{priceFmt(sc.avg, tick)}</td>
                               <td className="px-2 py-1.5 text-right font-mono text-text-muted">{money(sc.margin)}</td>
                               <td className="px-2 py-1.5 text-right font-mono text-negative">−{money(sc.lossAtSl)}</td>
-                              <td className="px-2 py-1.5 text-right font-mono text-profit">+{money(sc.profitAllTps)}</td>
+                              <td className={`px-2 py-1.5 text-right font-mono ${pnlCls(sc.profitAllTps)}`}>{signed(sc.profitAllTps)}</td>
                             </tr>
                           ))}
                         </tbody>
