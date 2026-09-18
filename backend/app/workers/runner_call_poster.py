@@ -85,6 +85,17 @@ def ensure_tables(db) -> None:
         )
     """))
     db.execute(text("""
+        CREATE TABLE IF NOT EXISTS runner_call_updates (
+            signal_id      TEXT NOT NULL,
+            event_type     TEXT NOT NULL,
+            tg_message_id  BIGINT,
+            attempts       INT NOT NULL DEFAULT 0,
+            last_error     TEXT,
+            posted_at      TIMESTAMPTZ,
+            PRIMARY KEY (signal_id, event_type)
+        )
+    """))
+    db.execute(text("""
         CREATE TABLE IF NOT EXISTS runner_call_config (
             key TEXT PRIMARY KEY, value TEXT NOT NULL
         )
@@ -116,7 +127,10 @@ def candidates(db, since_ts, max_age_min):
                             e.entry_snapshot->'tags_annotated', '[]'::jsonb)) t
                    WHERE (t->>'important')::boolean IS TRUE) AS tags,
                (SELECT p.tg_message_id FROM tg_call_posts p
-                 WHERE p.signal_id = s.signal_id AND p.event_type = 'call') AS call_msg_id
+                 WHERE p.signal_id = s.signal_id AND p.event_type = 'call') AS call_msg_id,
+               ARRAY(SELECT DISTINCT su.update_type FROM signal_updates su
+                      WHERE su.signal_id = s.signal_id
+                        AND su.update_type IN ('tp1','tp2','tp3','tp4')) AS hits_so_far
         FROM signals s
         JOIN signal_enrichment e ON e.signal_id = s.signal_id
         WHERE s.created_at::timestamptz >= GREATEST(CAST(:since AS timestamptz),
@@ -182,6 +196,12 @@ def build_message(sig, hit_tags, tag_stats) -> str:
     lines.append("Runner tag: " + e(" · ".join(why)) if why else "Runner tag")
     lines.append("Edge score: top 20% of the last 7 days")
     lines.append(f"Called {created.strftime('%H:%M')} UTC · {age_min} min ago")
+    # A call can reach TP1/TP2 inside the minutes enrichment takes — GUSDT did,
+    # TP2 four minutes before its Runners post. Saying so keeps the post from
+    # reading as a fresh entry at a price that has already moved.
+    hits = sorted(h.upper() for h in (sig.get("hits_so_far") or []))
+    if hits:
+        lines.append("Already hit: " + ", ".join(hits))
     lines.append("")
 
     # One precision for the whole column: 0.049 under 0.0474 reads as a typo,
@@ -218,9 +238,14 @@ def build_message(sig, hit_tags, tag_stats) -> str:
 
 # ─────────────────────────────── sending ────────────────────────────────
 
-def send(caption: str, photo: str | None) -> int:
+def send(caption: str, photo: str | None, reply_to: int | None = None) -> int:
     api = f"https://api.telegram.org/bot{BOT_TOKEN}"
     base = {"chat_id": str(CHAT_ID), "message_thread_id": str(TOPIC_ID), "parse_mode": "HTML"}
+    if reply_to:
+        # If the Runners post was deleted, the update still lands in the topic.
+        import json as _json
+        base["reply_parameters"] = _json.dumps(
+            {"message_id": int(reply_to), "allow_sending_without_reply": True})
     with httpx.Client(timeout=90.0, proxy=PROXY) as client:
         if photo and os.path.isfile(photo):
             with open(photo, "rb") as f:
@@ -234,6 +259,93 @@ def send(caption: str, photo: str | None) -> int:
         # Never log the URL: the token is in it.
         raise RuntimeError(f"telegram {r.status_code}: {str(body.get('description'))[:200]}")
     return int(body["result"]["message_id"])
+
+
+# ─────────────────────────────── updates ────────────────────────────────
+# Every TP and the stop that land AFTER a Runners post go under it as a reply,
+# so the topic reads as one thread per call. Levels hit before the post are
+# already named on it ("Already hit"), so they are not replayed.
+
+UPDATE_TYPES = ("tp1", "tp2", "tp3", "tp4", "sl")
+UPDATE_WINDOW_DAYS = 14
+
+
+def pending_updates(db):
+    return [dict(r._mapping) for r in db.execute(text("""
+        SELECT DISTINCT ON (r.signal_id, su.update_type)
+               r.signal_id, r.tg_message_id AS parent_id, s.pair, s.entry, s.created_at,
+               su.update_type, su.price, su.update_at
+        FROM runner_call_posts r
+        JOIN signals s ON s.signal_id = r.signal_id
+        JOIN signal_updates su ON su.signal_id = r.signal_id
+        LEFT JOIN runner_call_updates u
+               ON u.signal_id = r.signal_id AND u.event_type = su.update_type
+        WHERE r.matched AND r.tg_message_id IS NOT NULL
+          AND r.posted_at > now() - make_interval(days => :days)
+          AND su.update_type = ANY(:types)
+          AND su.update_at::timestamptz > r.posted_at
+          AND (u.signal_id IS NULL OR (u.tg_message_id IS NULL AND u.attempts < :max))
+        ORDER BY r.signal_id, su.update_type, su.update_at::timestamptz ASC
+    """), {"days": UPDATE_WINDOW_DAYS, "types": list(UPDATE_TYPES), "max": MAX_ATTEMPTS}).fetchall()]
+
+
+def _elapsed(start, end) -> str:
+    try:
+        a = datetime.fromisoformat(str(start).replace("Z", "+00:00"))
+        b = datetime.fromisoformat(str(end).replace("Z", "+00:00"))
+    except ValueError:
+        return ""
+    mins = max(0, int((b - a).total_seconds() // 60))
+    if mins < 60:
+        return f"{mins}m"
+    h, m = divmod(mins, 60)
+    return f"{h}h {m}m" if h < 24 else f"{h // 24}d {h % 24}h"
+
+
+def build_update(u) -> str:
+    e = html.escape
+    et = u["update_type"]
+    pct = _pct(u["entry"], u["price"])
+    pct_s = f" ({pct:+.2f}%)" if pct is not None else ""
+    when = _elapsed(u["created_at"], u["update_at"])
+    after = f" · {when} after the call" if when else ""
+    price = e(_num(u["price"]) or "")
+    if et == "sl":
+        head = "🛑 <b>STOP LOSS HIT</b>"
+    elif et == "tp4":
+        head = "🏁 <b>TP4 HIT · plan complete</b>"
+    else:
+        head = f"✅ <b>{et.upper()} HIT</b>"
+    link = SIGNAL_URL.format(sid=e(str(u["signal_id"])))
+    return (f"{head} · {e(u['pair'])} {price}{pct_s}{after}\n"
+            f"👉 <a href=\"{link}\">Open on LuxQuant</a>")
+
+
+def post_updates(db, dry_run: bool = False) -> None:
+    for u in pending_updates(db):
+        key = {"sid": str(u["signal_id"]), "et": u["update_type"]}
+        if dry_run:
+            _log(f"update {u['pair']} {u['update_type']} -> reply to {u['parent_id']}")
+            continue
+        try:
+            mid = send(build_update(u), None, reply_to=u["parent_id"])
+            db.execute(text("""
+                INSERT INTO runner_call_updates (signal_id, event_type, tg_message_id, attempts, posted_at)
+                VALUES (:sid, :et, :mid, 1, now())
+                ON CONFLICT (signal_id, event_type) DO UPDATE
+                   SET tg_message_id = :mid, attempts = runner_call_updates.attempts + 1,
+                       posted_at = now(), last_error = NULL
+            """), {**key, "mid": mid})
+            _log(f"update {u['pair']} {u['update_type']} -> msg {mid} (reply to {u['parent_id']})")
+        except Exception as exc:
+            db.execute(text("""
+                INSERT INTO runner_call_updates (signal_id, event_type, attempts, last_error)
+                VALUES (:sid, :et, 1, :err)
+                ON CONFLICT (signal_id, event_type) DO UPDATE
+                   SET attempts = runner_call_updates.attempts + 1, last_error = :err
+            """), {**key, "err": str(exc)[:500]})
+            _log(f"update failed {u['pair']} {u['update_type']}: {exc}")
+        db.commit()
 
 
 # ──────────────────────────────── run ───────────────────────────────────
@@ -253,6 +365,8 @@ def run(dry_run: bool = False) -> None:
                 SELECT signal_id, matched, tg_message_id, attempts FROM runner_call_posts
                 WHERE signal_id = ANY(:ids)
             """), {"ids": [str(c["signal_id"]) for c in cands]}).fetchall()}
+        if not dry_run:
+            post_updates(db)
         if not cands:
             return
 
