@@ -81,6 +81,7 @@ from app.api.routes import ai_cost
 from app.api.routes import api_health
 from app.api.routes import marketing_x_usage
 from app.api.routes import performance_metrics
+from app.api.routes import entry_planner
 
 
 
@@ -376,6 +377,7 @@ app.include_router(ai_cost.router, tags=["ai-cost"])
 app.include_router(api_health.router, tags=["api-health"])
 app.include_router(marketing_x_usage.router, tags=["x-usage"])
 app.include_router(performance_metrics.router, prefix="/api/v1", tags=["performance"])
+app.include_router(entry_planner.router, tags=["entry-planner"])
 
 
 # ═══════════════════════════════════════════

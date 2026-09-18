@@ -12,6 +12,7 @@ import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 import ShariahCheckModal, { SHARIAH_META } from "./ShariahCheckModal";
 import SimilarCallsModal from "./SimilarCallsModal";
+import EntryPlannerModal from "./entryPlanner/EntryPlannerModal";
 import useUiPrefs from "../hooks/useUiPrefs";
 import { useAuth } from "../context/AuthContext";
 import { useCurrency } from "../context/CurrencyContext";
@@ -116,6 +117,7 @@ const SignalModal = ({
   const shariahEnabled = authUser?.is_admin === true || shariahPrefs.shariah_mode === true;
   const [showShariah, setShowShariah] = useState(false);
   const [showSimilar, setShowSimilar] = useState(false);
+  const [showPlanner, setShowPlanner] = useState(false);
   const [shariahStatus, setShariahStatus] = useState(null);
 
   useEffect(() => {
@@ -2363,6 +2365,24 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <span className="sm:hidden">{t("modal.similar_short")}</span>
                   <span className="hidden sm:inline">{t("modal.similar")}</span>
                 </button>
+                {/* Entry planner — sized orders for the trader's own exchange.
+                    Only where the levels are visible: a redacted call has no
+                    entry or stop to plan from. */}
+                {!isRedacted && signal?.entry && signal?.stop1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowPlanner(true)}
+                    title={t("modal.planner_hint")}
+                    aria-label={t("modal.planner_hint")}
+                    className="ml-1 flex shrink-0 items-center gap-0.5 rounded-lg border border-accent/35 bg-accent/10 px-1.5 py-1 text-[9px] font-semibold leading-none text-accent transition-colors hover:border-accent/60 hover:bg-accent/[0.18] sm:ml-1.5 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[11px]"
+                  >
+                    <svg className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 6h16M4 12h10M4 18h6" />
+                    </svg>
+                    <span className="sm:hidden">{t("modal.planner_short")}</span>
+                    <span className="hidden sm:inline">{t("modal.planner")}</span>
+                  </button>
+                ) : null}
 
                 {/* Utility actions — alert + share stay visible; the rest
                     collapse into More on the phone so they don't fight the tabs. */}
@@ -3294,6 +3314,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           </div>
         </div>
       </div>
+
+      <EntryPlannerModal
+        isOpen={showPlanner}
+        onClose={() => setShowPlanner(false)}
+        signal={signalDetail ? { ...signal, ...signalDetail } : signal}
+        livePrice={livePrice}
+      />
 
       <SimilarCallsModal
         isOpen={showSimilar}
