@@ -269,20 +269,6 @@ export default function ChatPanel({ onClose }) {
                     {closed ? t("chat.closed") : away ? t("chat.statusAway") : t("chat.statusHere")}
                   </p>
                 </div>
-                {/* Telegram lives in the side column from lg; below that it is
-                    a compact button here rather than a full-width blue bar
-                    eating a fifth of a phone screen. */}
-                <a
-                  href={TELEGRAM_ADMIN_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#229ED9] px-2.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#1E8CC0] lg:hidden"
-                  aria-label={t("chat.tgCta")}
-                  title={t("chat.tgNote")}
-                >
-                  <TelegramGlyph className="h-4 w-4" />
-                  <span className="hidden min-[360px]:inline">{t("chat.tgShort")}</span>
-                </a>
                 <button
                   type="button"
                   onClick={onClose}
@@ -295,6 +281,30 @@ export default function ChatPanel({ onClose }) {
                   </svg>
                 </button>
               </header>
+
+              {/* Telegram, below lg. The side column carries it on desktop; on a
+                  phone it is this strip — slimmer than the old full blue bar but
+                  still saying WHY: replies come faster there. */}
+              <a
+                href={TELEGRAM_ADMIN_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex shrink-0 items-center gap-3 border-b border-[#229ED9]/20 bg-[#229ED9]/[0.08] px-4 py-2.5 transition-colors hover:bg-[#229ED9]/[0.14] lg:hidden"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#229ED9] text-white">
+                  <TelegramGlyph className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-semibold leading-tight text-text-primary">{t("chat.tgCardTitle")}</span>
+                  <span className="block truncate text-[11.5px] text-text-muted">{t("chat.tgStripNote")}</span>
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#229ED9] px-3 py-1.5 text-[12px] font-semibold text-white transition-colors group-hover:bg-[#1E8CC0]">
+                  {t("chat.tgStripCta")}
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.6} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </span>
+              </a>
 
               <div className="flex min-h-0 flex-1">
                 {/* ── Conversation ───────────────────────────────────────── */}
