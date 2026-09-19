@@ -9,6 +9,7 @@ import {
   filtersToParams,
   isRunnersSelection,
   parseFilters,
+  RUNNERS_EDGE_TOP,
   runnersRecipeState,
 } from "./signalFilters";
 
@@ -331,7 +332,7 @@ describe("Runners membership comes from the server", () => {
   // The Runners topic decides each call once, at publish, against the seven-
   // day book. The tab must hold that same set — not re-derive it from tags
   // and a cut that move after the post.
-  const runners = { tags: ["A", "B"], edge_top: 20, ids: ["posted", "old"] };
+  const runners = { tags: ["A", "B"], edge_top: 30, ids: ["posted", "old"] };
   const rows = [
     sig({ signal_id: "posted", created_at: "2026-09-19T08:30:00+00:00", important_tags: ["A"] }),
     // Posted yesterday under a tag that has since rotated out of the set.
@@ -340,12 +341,20 @@ describe("Runners membership comes from the server", () => {
     sig({ signal_id: "notchosen", created_at: "2026-09-19T09:00:00+00:00", important_tags: ["B"] }),
   ];
   const scores = { posted: { score: 60 }, old: { score: 50 }, notchosen: { score: 99 } };
-  const runnersState = { ...DEFAULT_FILTERS, selectedTags: ["B", "A"], tagMatchMode: "any", edgeTop: 20 };
+  const runnersState = { ...DEFAULT_FILTERS, selectedTags: ["B", "A"], tagMatchMode: "any", edgeTop: 30 };
 
   it("recognises the state every entry point applies", () => {
     // The rail button and the playbook's "Screen runners" both apply this.
     expect(isRunnersSelection(runnersRecipeState(["A", "B"]), runners)).toBe(true);
     expect(isRunnersSelection(runnersRecipeState(["A", "B", "OLD"]), runners)).toBe(false);
+  });
+
+  it("takes the server's Edge cut, 30 when it has not answered", () => {
+    expect(runnersRecipeState(["A"]).edgeTop).toBe(RUNNERS_EDGE_TOP);
+    expect(RUNNERS_EDGE_TOP).toBe(30);
+    expect(runnersRecipeState(["A"], 25).edgeTop).toBe(25);
+    // A state built for another cut is not the mode the server describes.
+    expect(isRunnersSelection(runnersRecipeState(["A", "B"], 20), runners)).toBe(false);
   });
 
   it("recognises the mode in any tag order, and nothing looser", () => {

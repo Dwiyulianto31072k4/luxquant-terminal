@@ -685,8 +685,10 @@ export function buildRunnerTagSet(tagWr = []) {
 }
 
 /** The Runners mode's tags when the server has not answered: the gate above,
- *  top four by full-TP rate then win rate — hunt_recipe.select_runner_tags. */
-export function topRunnerTags(tagWr = [], k = 4) {
+ *  top two by full-TP rate then win rate — hunt_recipe.select_runner_tags
+ *  (RUNNER_TOP_K, 2 since 2026-09-19: tags #3/#4 let in calls worse than the
+ *  desk). */
+export function topRunnerTags(tagWr = [], k = 2) {
   const set = buildRunnerTagSet(tagWr);
   return (tagWr || [])
     .filter((t) => set.has(t.tag))

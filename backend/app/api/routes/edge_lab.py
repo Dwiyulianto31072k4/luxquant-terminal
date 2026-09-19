@@ -1923,6 +1923,22 @@ def _runner_walkforward_record(db, start_str, end_str):
                    COUNT(*) FILTER (WHERE w.runner AND r.signal_id IS NULL)
             FROM runner_walkforward_calls w LEFT JOIN resolved r ON r.signal_id = w.signal_id
         """)).one()
+        # Top Runner = a Runner carrying that day's #1 runner tag (the day's
+        # tags are stored in rank order), the same test the topic applies.
+        top_rows = db.execute(text(f"""
+            WITH {OUTCOMES_CTE}
+            SELECT (dd.runner_tags[1] = ANY(w.hit_tags)) AS top, COUNT(*),
+              COUNT(*) FILTER (WHERE r.outcome = 'sl'),
+              COUNT(*) FILTER (WHERE r.outcome = 'tp1'),
+              COUNT(*) FILTER (WHERE r.outcome = 'tp2'),
+              COUNT(*) FILTER (WHERE r.outcome = 'tp3'),
+              COUNT(*) FILTER (WHERE r.outcome = 'tp4')
+            FROM runner_walkforward_calls w
+            JOIN runner_walkforward_days dd ON dd.day = w.day
+            JOIN resolved r ON r.signal_id = w.signal_id
+            WHERE w.runner AND r.hit_date >= :start AND r.hit_date <= :end
+            GROUP BY 1
+        """), {"start": start_str, "end": end_str}).fetchall()
     except Exception:
         db.rollback()
         return None
@@ -1931,7 +1947,10 @@ def _runner_walkforward_record(db, start_str, end_str):
     counts = {bool(r[0]): [int(x or 0) for x in r[1:]] for r in rows}
     runners = outcome_mix(*counts.get(True, [0] * 6))
     everyone = outcome_mix(*[a + b for a, b in zip(counts.get(True, [0] * 6), counts.get(False, [0] * 6))])
+    tops = {bool(r[0]): [int(x or 0) for x in r[1:]] for r in top_rows}
     return {
+        "top": {"hunt": outcome_mix(*tops.get(True, [0] * 6)),
+                "rest": outcome_mix(*tops.get(False, [0] * 6))},
         "first_day": meta[0].isoformat(),
         "last_day": meta[1].isoformat(),
         "decided": int(meta[2]),
@@ -1973,7 +1992,7 @@ def get_hunt_full_tp(
     start_str, end_str = start_date.isoformat(), end_date.isoformat()
     era_start, era_end, era_days = _resolve_tag_lookback(0)
     cache_key = (
-        f"lq:edge-lab:hunt-ftp:v4:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
+        f"lq:edge-lab:hunt-ftp:v5:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
     )
     cached = cache_get(cache_key)
     if cached:

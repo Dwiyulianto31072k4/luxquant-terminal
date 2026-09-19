@@ -159,6 +159,26 @@ def runner_set(db):
     return ids, {t["tag"]: t for t in tags if t.get("tag")}
 
 
+def decide(sig, ids, tag_stats):
+    """(matched, reason, top, hit) for a call the topic has not decided yet.
+
+    `tag_stats` is in runner-tag rank order, so its first key is the #1 tag. A
+    Top Runner is a Runner carrying it; the label is decided here, with the
+    call, so the post and the site never disagree about it later."""
+    from app.services.signal_screen import TOP_RUNNER_REASON
+
+    carried = set(sig.get("tags") or [])
+    hit = [t for t in tag_stats if t in carried]
+    matched, reason = str(sig["signal_id"]) in ids, None
+    if matched and (sig.get("status") or "").lower() in ("closed_loss", "closed_win"):
+        matched, reason = False, f"already {sig['status']} when decided"
+    top_tag = next(iter(tag_stats), None)
+    top = matched and top_tag is not None and top_tag in hit
+    if top:
+        reason = f"{TOP_RUNNER_REASON}: carries {top_tag}, the #1 runner tag"
+    return matched, reason, top, hit
+
+
 # ────────────────────────────── the message ─────────────────────────────
 
 def _num(v):
@@ -180,7 +200,7 @@ def _tag_label(tag):
     return tag.replace("_", " ").lower()
 
 
-def build_message(sig, hit_tags, tag_stats) -> str:
+def build_message(sig, hit_tags, tag_stats, top: bool = False) -> str:
     """HTML caption, kept under Telegram's 1024-character photo caption limit.
 
     The levels use the same monospace board as the free channel's plan, so the
@@ -191,7 +211,9 @@ def build_message(sig, hit_tags, tag_stats) -> str:
     created = datetime.fromisoformat(str(sig["created_at"]).replace("Z", "+00:00"))
     age_min = max(0, int((datetime.now(timezone.utc) - created).total_seconds() // 60))
 
-    lines = [f"🏃 <b>RUNNERS CALL</b> · "
+    from app.services.signal_screen import RUNNERS_EDGE_TOP
+
+    lines = [f"🏃 <b>RUNNERS CALL</b>{' · ⭐ <b>TOP RUNNER</b>' if top else ''} · "
              f"<a href=\"https://www.tradingview.com/symbols/{e(pair)}.P/\">{e(pair)}</a>"]
 
     why = []
@@ -200,7 +222,9 @@ def build_message(sig, hit_tags, tag_stats) -> str:
         rate = st.get("full_tp_rate")
         why.append(f"{_tag_label(t)} (TP3+ {float(rate):.0f}%)" if rate is not None else _tag_label(t))
     lines.append("Runner tag: " + e(" · ".join(why)) if why else "Runner tag")
-    lines.append("Edge score: top 20% of the last 7 days")
+    if top:
+        lines.append("Top Runner: carries the #1 runner tag")
+    lines.append(f"Edge score: top {RUNNERS_EDGE_TOP}% of the last 7 days")
     lines.append(f"Called {created.strftime('%H:%M')} UTC · {age_min} min ago")
     # A call can reach TP1/TP2 inside the minutes enrichment takes — GUSDT did,
     # TP2 four minutes before its Runners post. Saying so keeps the post from
@@ -368,7 +392,7 @@ def run(dry_run: bool = False) -> None:
             ensure_tables(db)
             cands = candidates(db, start_ts(db), MAX_AGE_MIN)
             decided = {r[0]: r for r in db.execute(text("""
-                SELECT signal_id, matched, tg_message_id, attempts FROM runner_call_posts
+                SELECT signal_id, matched, tg_message_id, attempts, reason FROM runner_call_posts
                 WHERE signal_id = ANY(:ids)
             """), {"ids": [str(c["signal_id"]) for c in cands]}).fetchall()}
         if not dry_run:
@@ -387,21 +411,21 @@ def run(dry_run: bool = False) -> None:
         if not tag_stats:
             _, tag_stats = runner_set(db)
 
+        from app.services.signal_screen import TOP_RUNNER_REASON
+
         for sig in cands:
             sid = str(sig["signal_id"])
-            hit = [t for t in (sig.get("tags") or []) if t in tag_stats]
             prior = decided.get(sid)
             if prior is not None:
-                _sid, matched, mid, attempts = prior
+                _sid, matched, mid, attempts, reason = prior
                 if not matched or mid is not None or attempts >= MAX_ATTEMPTS:
                     continue
+                top = (reason or "").startswith(TOP_RUNNER_REASON)
+                hit = [t for t in tag_stats if t in set(sig.get("tags") or [])]
             else:
-                matched = sid in ids
-                reason = None
-                if matched and (sig.get("status") or "").lower() in ("closed_loss", "closed_win"):
-                    matched, reason = False, f"already {sig['status']} when decided"
+                matched, reason, top, hit = decide(sig, ids, tag_stats)
                 if dry_run:
-                    _log(f"{'RUNNER' if matched else '      '} {sig['pair']:<14} "
+                    _log(f"{'RUNNER' if matched else '      '}{' TOP' if top else '    '} {sig['pair']:<14} "
                          f"{sig['created_at']} tags={hit} {reason or ''}")
                     continue
                 db.execute(text("""
@@ -412,12 +436,12 @@ def run(dry_run: bool = False) -> None:
                 if not matched:
                     continue
             try:
-                mid = send(build_message(sig, hit, tag_stats), sig.get("entry_chart_path"))
+                mid = send(build_message(sig, hit, tag_stats, top=top), sig.get("entry_chart_path"))
                 db.execute(text("""
                     UPDATE runner_call_posts SET tg_message_id = :mid, posted_at = now(),
                            attempts = attempts + 1, last_error = NULL WHERE signal_id = :sid
                 """), {"mid": mid, "sid": sid})
-                _log(f"posted {sig['pair']} {sid} -> msg {mid} tags={hit}")
+                _log(f"posted {sig['pair']} {sid} -> msg {mid} tags={hit}{' TOP' if top else ''}")
             except Exception as exc:
                 db.execute(text("""
                     UPDATE runner_call_posts SET attempts = attempts + 1, last_error = :err

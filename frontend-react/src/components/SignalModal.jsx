@@ -31,6 +31,7 @@ import { InfoTip } from "./GuideInfo";
 import { shareSignal } from "../services/shareSignal";
 import IndicatorGuideModal from "./IndicatorGuideModal";
 import MaxTpBadge from "./MaxTpBadge";
+import TopRunnerBadge, { TOP_RUNNER_TIP } from "./TopRunnerBadge";
 import { MAX_TP_24H_TIP, prevCallHitMaxTp } from "../utils/maxTpWarning";
 import Modal from "./ui/Modal";
 import { Z } from "../constants/zIndex";
@@ -50,6 +51,7 @@ import { isShortSignal } from "../utils/signalDirection";
 
 const SignalModal = ({
   signal,
+  isTopRunner = false,
   isOpen,
   onClose,
   onSwitchSignal,
@@ -124,6 +126,7 @@ const SignalModal = ({
   const [showPlanner, setShowPlanner] = useState(false);
   const [showLevelsSheet, setShowLevelsSheet] = useState(false);
   const [showMaxTpNote, setShowMaxTpNote] = useState(false);
+  const [showTopRunnerNote, setShowTopRunnerNote] = useState(false);
   const [shariahStatus, setShariahStatus] = useState(null);
 
   useEffect(() => {
@@ -321,6 +324,7 @@ const SignalModal = ({
     setShowPlanner(false);
     setShowLevelsSheet(false);
     setShowMaxTpNote(false);
+    setShowTopRunnerNote(false);
     setActiveTab(initialTab);
 
     const controller = new AbortController();
@@ -2226,6 +2230,12 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {isTopRunner ? (
+                      <TopRunnerBadge
+                        onClick={() => setShowTopRunnerNote((v) => !v)}
+                        expanded={showTopRunnerNote}
+                      />
+                    ) : null}
                     {maxTpHit ? (
                       <MaxTpBadge
                         onClick={() => setShowMaxTpNote((v) => !v)}
@@ -2270,6 +2280,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </div>
                   {/* Tapped open, not hovered: a phone has no hover, and this
                       is the one line of the header that asks for caution. */}
+                  {isTopRunner && showTopRunnerNote ? (
+                    <p className="mt-1.5 rounded-md border border-accent/25 bg-accent/[0.08] px-2 py-1.5 text-[11px] leading-snug text-text-primary">
+                      {TOP_RUNNER_TIP}
+                    </p>
+                  ) : null}
                   {maxTpHit && showMaxTpNote ? (
                     <p className="mt-1.5 rounded-md border border-warning/25 bg-warning/[0.08] px-2 py-1.5 text-[11px] leading-snug text-text-primary">
                       {MAX_TP_24H_TIP}

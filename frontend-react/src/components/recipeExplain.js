@@ -93,20 +93,20 @@ export const RECIPE_EXPLAIN = {
     id: "full_tp",
     label: "Runners",
     oneLiner:
-      "The calls posted to the Runners topic: a runner tag plus the top 20% of the last seven days\u2019 Edge — decided once, when the call went out, not after it won.",
+      "The calls posted to the Runners topic: one of the two runner tags plus the top 30% of the last seven days\u2019 Edge — decided once, when the call went out, not after it won.",
     simple: [
       "This is a filter for setups that more often filled the later targets, not a collector of trades that already hit TP.",
-      "Below, first the real record: the calls the Runners topic chose, closed ones only (hit TP or SL), against every call made since the topic started. Then the longer view: the whole rule replayed day by day since June with only what was known each day — that day’s runner tags, Edge and top-20% cut. Open calls are not counted in either.",
+      "Below, first the real record: the calls the Runners topic chose, closed ones only (hit TP or SL), against every call made since the topic started. Then the longer view: the whole rule replayed day by day since June with only what was known each day — that day’s runner tags, Edge and top-30% cut. Open calls are not counted in either.",
     ],
     drills: [
       {
         id: "does",
         title: "What the button does",
-        hint: "Runner tags · top 20% Edge · Edge → Called",
+        hint: "Runner tags · top 30% Edge · Edge → Called",
         simple:
-          "Keeps calls that carry at least one “runner” tag AND sat in the top 20% of the last seven days’ Edge scores when they were called — the same calls posted to the Runners topic. The day you pick only chooses which of them to show. Sorts by Edge Score. Most rows will already have moved — only ~7 of the last 866 calls are still untriggered.",
+          "Keeps calls that carry at least one “runner” tag AND sat in the top 30% of the last seven days’ Edge scores when they were called — the same calls posted to the Runners topic. The day you pick only chooses which of them to show. Sorts by Edge Score. Most rows will already have moved — only ~7 of the last 866 calls are still untriggered.",
         expert:
-          "selectedTags = top 4 runner tags (OR). statusFilter = all — `open` was measured first and returns 0 rows, because tp1/tp2/tp3 are terminal on this desk and only 7 of 866 recent calls sit at `open`. edgeTop = 20, applied BEFORE the tag filter so it means the top fifth of the seven-day book, not the top fifth of the tagged rows. Membership comes from the server (/signals/desk-edge): the Runners topic’s decision at publish where one exists, the live evaluation otherwise — never re-judged when later calls out-rank it. sort = edge_score desc, then called time. Walk-forward over 8,674 closed calls whose entry snapshot was written within an hour of the call: tag alone 87.5% win at 52.7% of the book; top-20% Edge with no runner tag 85.6% win / 14.4% SL — both on the baseline of 85.9 / 14.1; tag AND top-20% Edge 89.5% win / 51.5% TP3+ / 10.5% SL. The Edge cut selects, the tag protects the downside. Measured across the whole tag era the same combination reads 90.6 / 50.9 / 9.4, but 47.5% of those snapshots came from a June backfill computed up to 90 days late, so the clean subset is the one quoted. The historical bars are the tag union only.",
+          "selectedTags = the top 2 runner tags (OR), edgeTop = 30, statusFilter = all, sort = edge_score desc then called time. Chosen 2026-09-19 from a point-in-time walk-forward of the whole rule (9,819 calls, 10 Jun – 18 Sep, each day decided with only what was known that day): top-2 tags + top-30% Edge beat the earlier top-4 + top-20% in every month at the same ~14 calls a day — TP3+ 53.7% vs 51.1%, SL 8.5% vs 9.7%, against a desk at 45.6% / 13.4% — and picking on earlier months alone chose it in July, August and September. Calls let in only by tags #3 and #4 did worse than the desk. The Edge score on its own carries no TP3+ signal (AUC 0.50); the tags do, and the cut mostly trims stops. Membership comes from the server (/signals/desk-edge): the Runners topic’s decision at publish where one exists, the live evaluation otherwise — never re-judged when later calls out-rank it. A Runner carrying the #1 runner tag is a Top Runner: TP3+ 61% in the same walk-forward.",
       },
       {
         id: "asof",
@@ -122,9 +122,9 @@ export const RECIPE_EXPLAIN = {
         title: "How runner tags are chosen",
         hint: "Clean tags that ran further",
         simple:
-          "We look at closed history since tags exist (from 10 Mar 2026). A tag qualifies if it has enough samples, a solid win rate, and it reached later targets (or ran a high peak) more often. Late / parabolic / overextended tags are excluded — they look strong because the coin was already flying. When the four change, calls already chosen stay Runners; only new calls meet the new four.",
+          "We look at closed history since tags exist (from 10 Mar 2026). A tag qualifies if it has enough samples, a solid win rate, and it reached later targets (or ran a high peak) more often. Late / parabolic / overextended tags are excluded — they look strong because the coin was already flying. When the two change, calls already chosen stay Runners; only new calls meet the new two.",
         expert:
-          "Eligibility: not in {LATE_ENTRY, PARABOLIC, OVEREXTENDED, EXHAUSTION_CANDLE}, n≥150, WR≥78%, and (full_tp_rate≥12% or tp4_rate≥5% or median peak on wins ≥18%). Ranked by full_tp_rate, keep top 4. full_tp = outcome ∈ {tp3, tp4}. Many tags pass the loose gate; the top-4 cap is what makes Runners a shortlist.",
+          "Eligibility: not in {LATE_ENTRY, PARABOLIC, OVEREXTENDED, EXHAUSTION_CANDLE}, n≥150, WR≥78%, and (full_tp_rate≥12% or tp4_rate≥5% or median peak on wins ≥18%). Ranked by full_tp_rate, keep top 2. full_tp = outcome ∈ {tp3, tp4}. Many tags pass the loose gate; the top-2 cap is what makes Runners a shortlist — tags #3 and #4 let in calls that did worse than the desk.",
       },
       {
         id: "read",

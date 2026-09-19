@@ -24,13 +24,22 @@ from app.services.signal_filter_alerts import _build_conditions, _with_live_runn
 # hold the same calls.
 BOOK_START_SQL = "date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' - interval '7 days'"
 MIN_SCORED_FOR_CUT = 10
-RUNNERS_EDGE_TOP = 20
+# 30, not 20, since the runner tags went from four to two (hunt_recipe.
+# RUNNER_TOP_K): same ~14 calls a day, better calls. TP3+ was flat across 20-40%
+# — the Edge score itself has no TP3+ signal (AUC 0.50 over 9,819 calls); the
+# tags carry it and the cut mostly trims stops.
+RUNNERS_EDGE_TOP = 30
+# A Runner that carries the day's #1 runner tag. Decided with the call and
+# stored in runner_call_posts.reason, so it is as frozen as the call itself.
+# Walk-forward: TP3+ 61.4% (n=303) against ~52% for the other Runners.
+TOP_RUNNER_REASON = "top runner"
 
 
 def match_screen(criteria, db):
     # v2: `runners` now means the topic's decision (runner_members), not the
     # rule re-evaluated — a new key so no v1 answer is read back as one.
-    key = "lq:custom-screen:v2:" + hashlib.sha256(json.dumps(criteria, sort_keys=True).encode()).hexdigest()
+    # v3: the rule itself changed (2 tags, Edge top 30%).
+    key = "lq:custom-screen:v3:" + hashlib.sha256(json.dumps(criteria, sort_keys=True).encode()).hexdigest()
     cached = cache_get(key)
     if cached is not None:
         return cached
@@ -83,7 +92,9 @@ def live_runner_ids(db):
     """The Runners rule evaluated now: a current runner tag AND the top 20% of
     the book's Edge. The Runners topic worker decides new calls with this;
     nothing a member sees reads it directly (see runner_members)."""
-    key = "lq:runners-live:v1"
+    # Bump whenever the rule changes: old code keeps writing its own answer
+    # under the old key while a deploy rolls, and must never be read as ours.
+    key = "lq:runners-live:v2"
     cached = cache_get(key)
     if cached is not None:
         return cached
@@ -195,7 +206,7 @@ def desk_edge(db):
     would drop a posted call the moment later calls out-rank it or the runner
     tags rotate.
     """
-    key = "lq:desk-edge:v1"
+    key = "lq:desk-edge:v2"
     cached = cache_get(key)
     if cached is not None:
         return cached
@@ -209,6 +220,7 @@ def desk_edge(db):
     tags = [t["tag"] for t in select_runner_tags(get_tag_wr(days=0, min_n=40, db=db).get("tags") or [])
             if t.get("tag")]
     members = set(runner_members(db))
+    top = _top_runner_ids(db)
     book = [str(r["signal_id"]) for r in scored]
     result = {
         "ok": True,
@@ -221,10 +233,25 @@ def desk_edge(db):
             "edge_top": RUNNERS_EDGE_TOP,
             "cut": _percentile_cut(scores, RUNNERS_EDGE_TOP),
             "ids": sorted(sid for sid in book if sid in members),
+            # The topic's Top Runners (see TOP_RUNNER_REASON). Only calls the
+            # topic decided carry one; the label starts with the rule change.
+            "top_ids": sorted(sid for sid in book if sid in members and sid in top),
         },
     }
     cache_set(key, result, ttl=30)
     return result
+
+
+def _top_runner_ids(db):
+    """Ids the Runners topic marked Top Runner when it decided them."""
+    try:
+        return {str(r[0]) for r in db.execute(text("""
+            SELECT signal_id FROM runner_call_posts
+            WHERE matched AND reason LIKE :top
+        """), {"top": TOP_RUNNER_REASON + "%"}).fetchall()}
+    except Exception:
+        db.rollback()
+        return set()
 
 
 def _runner_decisions(db):

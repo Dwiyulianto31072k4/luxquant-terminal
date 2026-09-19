@@ -841,7 +841,9 @@ def get_desk_edge(
     return {
         **data,
         "edge": {sid: v for sid, v in data["edge"].items() if sid in visible},
-        "runners": {**data["runners"], "ids": [sid for sid in data["runners"]["ids"] if sid in visible]},
+        "runners": {**data["runners"],
+                    "ids": [sid for sid in data["runners"]["ids"] if sid in visible],
+                    "top_ids": [sid for sid in data["runners"].get("top_ids", []) if sid in visible]},
     }
 
 

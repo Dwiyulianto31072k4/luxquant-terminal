@@ -53,12 +53,13 @@ def test_success_cache_includes_empty_match(monkeypatch):
 
 
 
-def desk(monkeypatch, scored, members, tags=('A', 'B')):
+def desk(monkeypatch, scored, members, tags=('A', 'B'), top=frozenset()):
     cache = {}
     monkeypatch.setattr(screen, 'cache_get', cache.get)
     monkeypatch.setattr(screen, 'cache_set', lambda k, v, ttl: cache.update({k: v}))
     monkeypatch.setattr(screen, '_scored_book', lambda db: scored)
     monkeypatch.setattr(screen, 'runner_members', lambda db: members)
+    monkeypatch.setattr(screen, '_top_runner_ids', lambda db: top)
     module = ModuleType('app.api.routes.edge_lab')
     module.get_tag_wr = lambda **kw: {'tags': [{'tag': t} for t in tags]}
     monkeypatch.setitem(sys.modules, 'app.api.routes.edge_lab', module)
@@ -81,7 +82,8 @@ def test_desk_cut_is_the_screens_percentile(monkeypatch):
     scored = [{'signal_id': str(i), 'score': float(i)} for i in range(1, 21)]
     out = desk(monkeypatch, scored, members=[])
     assert out['book_scores'][0] == 20.0 and len(out['book_scores']) == 20
-    assert out['runners']['cut'] == screen._percentile_cut(out['book_scores'], 20) == 17.0
+    # top 30% of 20 scores = the 6 highest (20..15) -> cut 15
+    assert out['runners']['cut'] == screen._percentile_cut(out['book_scores'], screen.RUNNERS_EDGE_TOP) == 15.0
 
 
 def test_desk_without_a_book_says_so(monkeypatch):
@@ -120,3 +122,12 @@ def test_screen_runners_reads_members_and_adds_no_second_cut(monkeypatch):
     db = DB([[('1',), ('2',), ('3',)]])
     assert screen._evaluate_screen({'runners': True, 'risk_level': ['normal']}, db) == ['1', '3']
     assert ':risks' in db.queries[0][0] and ':runner_tags' not in db.queries[0][0]
+
+
+def test_desk_top_runners_are_members_the_topic_marked(monkeypatch):
+    scored = [{'signal_id': s, 'score': 50 + i} for i, s in enumerate(
+        ['top', 'plain', 'gone', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7'])]
+    # 'gone' was marked but is no longer a member of this book's Runners.
+    out = desk(monkeypatch, scored, members=['top', 'plain'], top={'top', 'gone'})
+    assert out['runners']['top_ids'] == ['top']
+    assert out['runners']['edge_top'] == screen.RUNNERS_EDGE_TOP == 30

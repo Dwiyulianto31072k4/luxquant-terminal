@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { topRunnerTags } from "./EdgePlaybook";
-import { runnersRecipeState } from "../utils/signalFilters";
+import { RUNNERS_EDGE_TOP, runnersRecipeState } from "../utils/signalFilters";
 import RecipeExplainModal, { HuntResults } from "./RecipeExplainModal";
 import ModeGuideModal, { isModeGuideMuted } from "./ModeGuideModal";
 import Modal from "./ui/Modal";
@@ -118,6 +118,7 @@ export default function EdgeRecipesBar({
   onDeskGuide,
   onTutorials,
   deskRunnerTags = null,
+  deskRunnerEdgeTop = null,
 }) {
   const [explainId, setExplainId] = useState(null);
   // Controlled by SignalsPage when it wants the ? on the search row to open
@@ -175,6 +176,8 @@ export default function EdgeRecipesBar({
     return topRunnerTags(tagWr);
   }, [tagWr, huntByDays, deskRunnerTags]);
 
+  const runnerEdgeTop = Number(deskRunnerEdgeTop) || RUNNERS_EDGE_TOP;
+
   const cautionTags = useMemo(() => {
     const CONFOUND = new Set([
       "LATE_ENTRY",
@@ -194,30 +197,21 @@ export default function EdgeRecipesBar({
         id: "full_tp",
         icon: "▲",
         label: "Runners",
-        hint: "Runner tags · top 20% Edge",
+        hint: `Runner tags · top ${runnerEdgeTop}% Edge`,
         tone: "positive",
-        // Two conditions, and both are measured. Walk-forward over 8,674
-        // scored calls with tag stats and the runner gate rebuilt from past
-        // outcomes only at every step:
+        // Two conditions, both measured, and re-chosen on 2026-09-19 from a
+        // point-in-time walk-forward of the whole rule (workers/
+        // runner_walkforward: 9,819 calls, 10 Jun - 18 Sep, each day decided
+        // with only what was known that day):
         //
-        //   baseline                        win 85.88%  TP3+ 44.57%  SL 14.12%
-        //   runner tag alone, 52.7% of book win 87.49%  TP3+ 48.68%  SL 12.51%
-        //   top-20% Edge, NO runner tag     win 85.58%  TP3+ 47.49%  SL 14.42%
-        //   runner tag AND top-20% Edge     win 89.53%  TP3+ 51.47%  SL 10.47%
+        //   desk                         TP3+ 45.6%  SL 13.4%   ~97/day
+        //   top-4 tags + Edge top 20%    TP3+ 51.1%  SL  9.7%   ~14/day (old)
+        //   top-2 tags + Edge top 30%    TP3+ 53.7%  SL  8.5%   ~14/day (now)
         //
-        // The tag alone kept HALF the desk for +1.6pp, which is not a
-        // shortlist. And it is not redundant either: the Edge cut on its own
-        // buys upside and no downside -- win rate and SL rate both land on the
-        // baseline -- while adding the tag lifts win 85.58 -> 89.53 and cuts
-        // SL 14.42 -> 10.47. Edge selects; the tag guards.
-        //
-        // Those numbers are the CLEAN subset on purpose. 47.5% of tag-era
-        // entry snapshots were written in a bulk backfill on 6-9 June 2026,
-        // up to 90 days after the call, and the enricher reads the latest
-        // candles -- so those rows carry June's facts, not the call's. Measured
-        // across both populations the same combination reads 90.58 / 50.89 /
-        // 9.42; every conclusion holds, the edge is just smaller than the
-        // mixed data claims.
+        // Top-2 won every month at the same volume, and choosing on earlier
+        // months alone picked it in Jul, Aug and Sep. Calls let in only by
+        // tags #3/#4 did worse than the desk. The Edge score carries no TP3+
+        // signal on its own (AUC 0.50) — the tags do; the cut trims stops.
         //
         // statusFilter stays `all`: classification is at publish. Open (has
         // not hit yet) is a chip, not this mode — tp1/tp2 stay on the shortlist.
@@ -226,7 +220,7 @@ export default function EdgeRecipesBar({
         // state IS Runners (isRunnersSelection) and shows the calls the
         // Runners topic chose. The same state is what "Screen runners" in the
         // playbook applies.
-        build: () => runnersRecipeState(runnerTags),
+        build: () => runnersRecipeState(runnerTags, runnerEdgeTop),
       },
       {
         id: "caution",
@@ -252,7 +246,7 @@ export default function EdgeRecipesBar({
         }),
       },
     ],
-    [runnerTags, cautionTags]
+    [runnerTags, cautionTags, runnerEdgeTop]
   );
 
   const liveState = useMemo(

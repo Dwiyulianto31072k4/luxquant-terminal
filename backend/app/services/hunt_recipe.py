@@ -46,7 +46,14 @@ RUNNER_MIN_WR = 78.0
 RUNNER_MIN_FULL = 12.0
 RUNNER_MIN_TP4 = 5.0
 RUNNER_MIN_PEAK = 18.0
-RUNNER_TOP_K = 4
+# Two, not four (changed 2026-09-19). A point-in-time walk-forward of the whole
+# rule over 9,819 calls (10 Jun - 18 Sep) found fewer, higher-ranked tags better
+# in every month: calls let in only by tags #3/#4 did WORSE than the desk (TP3+
+# -9pp, SL +10pp vs the ones kept). With the Edge cut widened to 30% to hold the
+# volume (signal_screen.RUNNERS_EDGE_TOP), top-2 beat top-4 on TP3+ by +2.6pp
+# [+1.1, +4.0] and trimmed stops; month-by-month model selection on earlier
+# months alone picked exactly this in Jul, Aug and Sep.
+RUNNER_TOP_K = 2
 
 
 def _num(v, default=0.0):

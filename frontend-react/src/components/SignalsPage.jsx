@@ -528,6 +528,11 @@ const SignalsPage = () => {
   // same evaluator the Runners topic and saved alerts use. Null = not loaded,
   // and the desk falls back to scoring in the browser.
   const [deskEdge, setDeskEdge] = useState(() => bootCache?.deskEdge || null);
+  // The topic's Top Runners (a Runner carrying the #1 runner tag when posted).
+  const topRunnerIds = useMemo(
+    () => new Set((deskEdge?.runners?.top_ids || []).map(String)),
+    [deskEdge]
+  );
   const [apiIsSubscriber, setIsSubscriber] = useState(
     () => bootCache?.isSubscriber ?? false
   );
@@ -2277,6 +2282,7 @@ const SignalsPage = () => {
             </div>
 
             <SignalsTable
+              topRunnerIds={topRunnerIds}
               signals={vipSamples}
               loading={false}
               isSubscriber
@@ -2332,6 +2338,7 @@ const SignalsPage = () => {
           <EdgeRecipesBar
           tagWr={tagWr}
           deskRunnerTags={deskEdge?.runners?.tags}
+          deskRunnerEdgeTop={deskEdge?.runners?.edge_top}
           selectedTags={selectedTags}
           tagMatchMode={tagMatchMode}
             statusFilter={statusFilter}
@@ -3195,7 +3202,9 @@ const SignalsPage = () => {
           // used to merge its own tag list into the current filter with no
           // Edge cut — a third, different "runners".
           const serverTags = deskEdge?.runners?.tags;
-          applyRecipeState(runnersRecipeState(serverTags?.length ? serverTags : tags));
+          applyRecipeState(
+            runnersRecipeState(serverTags?.length ? serverTags : tags, deskEdge?.runners?.edge_top)
+          );
         }}
         onFilterTag={(tag) => {
           if (!tag) return;
@@ -3334,6 +3343,7 @@ const SignalsPage = () => {
       {!error && (
         <div id={FINISHED_ID} className="scroll-mt-32">
         <SignalsTable
+          topRunnerIds={topRunnerIds}
           signals={signals}
           loading={loading}
           isSubscriber={isSubscriber}
@@ -3386,6 +3396,7 @@ const SignalsPage = () => {
         <SignalModal
           key={selectedSignal.signal_id}
           signal={selectedSignal}
+          isTopRunner={topRunnerIds.has(String(selectedSignal.signal_id))}
           isOpen={!!selectedSignal}
           initialTab={selectedTab}
           onTabChange={changeSignalTab}

@@ -184,17 +184,21 @@ export function edgeTopCutFromScores(scores, pct) {
   return sorted[Math.max(0, sorted.length - keep)];
 }
 
-/** The Runners mode as desk state: runner tags (OR) + top 20% Edge, ranked by
- *  Edge then newest. Every way into the mode applies exactly this, so the
- *  desk recognises it (isRunnersSelection) and reads the server's members. */
-export function runnersRecipeState(tags = []) {
+/** Runners' Edge cut when the server has not said (it sends runners.edge_top
+ *  from signal_screen.RUNNERS_EDGE_TOP). 30 since 2026-09-19, with two tags. */
+export const RUNNERS_EDGE_TOP = 30;
+
+/** The Runners mode as desk state: runner tags (OR) + the top `edgeTop`% Edge,
+ *  ranked by Edge then newest. Every way into the mode applies exactly this, so
+ *  the desk recognises it (isRunnersSelection) and reads the server's members. */
+export function runnersRecipeState(tags = [], edgeTop = RUNNERS_EDGE_TOP) {
   return {
     selectedTags: tags?.length ? [...tags] : [],
     tagMatchMode: "any",
     statusFilter: "all",
     riskFilter: "all",
     streakFilter: "all",
-    edgeTop: 20,
+    edgeTop: Number(edgeTop) || RUNNERS_EDGE_TOP,
     sortBy: "edge_score",
     sortOrder: "desc",
     sorts: [

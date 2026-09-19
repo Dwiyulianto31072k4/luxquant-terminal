@@ -21,6 +21,7 @@ import {
 } from "./coinIntelShared";
 import { InfoTip } from "./GuideInfo";
 import MaxTpBadge from "./MaxTpBadge";
+import TopRunnerBadge from "./TopRunnerBadge";
 import { prevCallHitMaxTp } from "../utils/maxTpWarning";
 import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
@@ -444,6 +445,7 @@ function TakenControl({ value, onPick }) {
 
 const SignalsTable = ({
   signals,
+  topRunnerIds = null,
   loading,
   page,
   totalPages,
@@ -1327,6 +1329,7 @@ const SignalsTable = ({
     const reachedPrice = reachedTp > 0 ? tpLevels[reachedTp - 1] : stoppedOut ? sl : null;
     const reachedAt = at(reachedPrice);
     const maxTpHit = prevCallHitMaxTp(signal);
+    const topRunner = !!topRunnerIds?.has(String(signal.signal_id));
 
     return (
       <div className="group/card overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
@@ -1353,6 +1356,7 @@ const SignalsTable = ({
                       {getCoinName(signal.pair)}
                       <span className="text-text-muted">/USDT</span>
                     </span>
+                    {topRunner ? <TopRunnerBadge className="hidden sm:inline-flex" /> : null}
                     {maxTpHit ? <MaxTpBadge className="hidden sm:inline-flex" /> : null}
                   </span>
                   {signal.created_at ? (
@@ -1367,8 +1371,9 @@ const SignalsTable = ({
                 {getStatusBadge(signal.status)}
               </div>
               {/* line 2 — the qualifiers, quiet and in one shape */}
-              {(edgeChip || showRisk || showCalled || maxTpHit) && (
+              {(edgeChip || showRisk || showCalled || maxTpHit || topRunner) && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 pr-9 text-[11px] text-text-muted">
+                  {topRunner ? <TopRunnerBadge className="sm:hidden" /> : null}
                   {maxTpHit ? <MaxTpBadge className="sm:hidden" /> : null}
                   {edgeChip}
                   {showRisk ? (
@@ -2241,6 +2246,7 @@ const SignalsTable = ({
                                 {getCoinName(signal.pair)}
                                 <span className="text-text-muted">/USDT</span>
                               </p>
+                              {topRunnerIds?.has(String(signal.signal_id)) ? <TopRunnerBadge /> : null}
                               {prevCallHitMaxTp(signal) ? <MaxTpBadge /> : null}
                             </div>
                           </div>

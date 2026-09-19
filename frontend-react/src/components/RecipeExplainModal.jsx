@@ -386,10 +386,18 @@ export function HuntResults({
             </p>
             <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
               Each day replayed with only what was known that day: that day&rsquo;s runner
-              tags, Edge scores and top-20% cut, the same code the topic runs. It starts{" "}
+              tags, Edge scores and top-30% cut, the same code the topic runs. It starts{" "}
               {fmtDate(wf.first_day)} because before then tags were not stamped when calls
               went out.
             </p>
+            {wf.top?.hunt?.n ? (
+              <p className="mt-1 text-[11px] leading-snug text-text-muted tabular-nums">
+                <span className="font-semibold text-text-primary">Top Runners</span> (the
+                #1 runner tag): TP3+ {fmtPct(wf.top.hunt.full_tp_rate)} over{" "}
+                {fmtN(wf.top.hunt.n)} calls, against {fmtPct(wf.top.rest?.full_tp_rate)} for the
+                other Runners.
+              </p>
+            ) : null}
           </div>
         ) : (
           <div>
@@ -509,7 +517,7 @@ export function HuntResults({
             {src.open != null ? ` ${src.open} calls are still open and are in neither bar.` : ""}{" "}
             {wf
               ? "Both bars hold only calls whose tags were stamped within an hour of the call — the ones the topic can decide."
-              : "The live Runners also need the top 20% of the last seven days\u2019 Edge when called — not in these bars. The posted record above is the real set."}
+              : "The live Runners also need the top 30% of the last seven days\u2019 Edge when called — not in these bars. The posted record above is the real set."}
           </p>
         </div>
 
