@@ -30,6 +30,8 @@ import { readMyEntry, writeMyEntry } from "../utils/myEntries";
 import { InfoTip } from "./GuideInfo";
 import { shareSignal } from "../services/shareSignal";
 import IndicatorGuideModal from "./IndicatorGuideModal";
+import Modal from "./ui/Modal";
+import { Z } from "../constants/zIndex";
 import {
   getActiveTheme,
   getTradingViewTheme,
@@ -118,6 +120,7 @@ const SignalModal = ({
   const [showShariah, setShowShariah] = useState(false);
   const [showSimilar, setShowSimilar] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
+  const [showLevelsSheet, setShowLevelsSheet] = useState(false);
   const [shariahStatus, setShariahStatus] = useState(null);
 
   useEffect(() => {
@@ -312,6 +315,8 @@ const SignalModal = ({
     );
     setPromptCopied(false);
     setShowDeepAnalysis(false);
+    setShowPlanner(false);
+    setShowLevelsSheet(false);
     setActiveTab(initialTab);
 
     const controller = new AbortController();
@@ -969,19 +974,30 @@ const SignalModal = ({
     const container = chartContainerRef.current;
     const tv = getTradingViewTheme(appTheme);
     container.style.background = tv.backgroundColor;
-    // Full mode = richer TV chrome (one Full button covers "TV desk")
+    let compact = false;
+    try {
+      compact = !chartFull && window.matchMedia("(max-width: 1023.98px)").matches;
+    } catch {
+      compact = !chartFull;
+    }
+    // Full mode = richer TV chrome. Compact phone embed hides the drawing
+    // rail, date range, legend and studies — they steal the pane the candles
+    // need, and the iframe then throws contentWindow errors as it fights the
+    // sheet. One Full tap restores the desk.
     return mountTradingViewEmbed(container, {
       theme: appTheme,
       symbol: `BINANCE:${signal.pair || ""}.P`,
       interval: "240",
       timezone: getUserTimezone(),
-      hide_side_toolbar: false,
-      hide_top_toolbar: false,
-      save_image: true,
-      withdateranges: true,
+      hide_side_toolbar: compact,
+      hide_top_toolbar: compact,
+      hide_legend: compact,
+      save_image: !compact,
+      withdateranges: !compact,
       details: !!chartFull,
       allow_symbol_change: !!chartFull,
-      studies: showIndicators ? ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"] : [],
+      studies:
+        showIndicators && !compact ? ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"] : [],
     });
   }, [isOpen, pairKey, activeTab, chartMode, showIndicators, appTheme, signal?.pair, chartFull]);
 
@@ -1011,12 +1027,20 @@ const SignalModal = ({
       if (!container) return;
       const tv = getTradingViewTheme(appTheme);
       container.style.background = tv.backgroundColor;
+      let phone = false;
+      try {
+        phone = window.matchMedia("(max-width: 1023.98px)").matches;
+      } catch {
+        phone = false;
+      }
       unmount = mountTradingViewEmbed(container, {
         theme: appTheme,
         symbol: `BINANCE:${signal?.pair || ""}.P`,
         interval: "240",
         timezone: getUserTimezone(),
-        hide_side_toolbar: false,
+        hide_side_toolbar: phone,
+        hide_top_toolbar: phone,
+        hide_legend: phone,
         save_image: false,
         studies: [],
       });
@@ -1642,7 +1666,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               </div>
               {pnlPct !== null && (
                 <span
-                  className={`flex-shrink-0 rounded-md border px-2 py-1 font-mono text-[11px] font-semibold tabular-nums ${
+                  className={`flex-shrink-0 rounded-md border px-2 py-1 text-right ${
                     up
                       ? "border-positive/20 bg-positive/10 text-positive"
                       : down
@@ -1650,8 +1674,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         : "border-ink/10 bg-ink/[0.03] text-text-muted"
                   }`}
                 >
-                  {up ? "+" : down ? "−" : ""}
-                  {Math.abs(pnlPct).toFixed(2)}%
+                  <span className="block font-mono text-[11px] font-semibold tabular-nums leading-none">
+                    {up ? "+" : down ? "−" : ""}
+                    {Math.abs(pnlPct).toFixed(2)}%
+                  </span>
+                  <span className="mt-0.5 block font-mono text-[8px] font-medium uppercase tracking-[0.12em] opacity-70">
+                    vs entry
+                  </span>
                 </span>
               )}
             </div>
@@ -2229,30 +2258,19 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 </div>
               </div>
 
-              {/* Row 2 — toolbar: navigation tabs (left) + utility actions (right).
-                  On a phone one line held four tabs, two pills and three icons
-                  in ~410px: labels shrank to 9px and "Similar" sat on top of
-                  "History". Below sm the tabs take their own full-width line
-                  and the actions wrap to a second one with real touch sizes. */}
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-2 sm:flex-nowrap sm:justify-between sm:gap-2">
+              {/* Phone: two rows — tabs own the first line so labels don't
+                  collapse to "R". Desktop: one row, tabs then Similar/Plan. */}
+              <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                 <div className="flex w-full min-w-0 items-center gap-0.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5 sm:w-auto sm:flex-none">
                   {[
                     {
                       id: "chart",
                       label: t("modal.chart"),
                       icon: (
-                        <svg
-                          className="w-3.5 h-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M3 3v18h18" />
-                          <rect x="7" y="10" width="3" height="7" rx="0.5" />
-                          <rect x="13.5" y="6" width="3" height="11" rx="0.5" />
+                        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M5 20V10" />
+                          <path d="M12 20V4" />
+                          <path d="M19 20v-8" />
                         </svg>
                       ),
                     },
@@ -2260,19 +2278,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       id: "trade",
                       label: t("modal.trade"),
                       icon: (
-                        <svg
-                          className="w-3.5 h-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M7 10 3 14l4 4" />
-                          <path d="M3 14h13" />
-                          <path d="m17 14 4-4-4-4" />
-                          <path d="M21 10H8" />
+                        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M4 7h11" />
+                          <path d="M12 3l4 4-4 4" />
+                          <path d="M20 17H9" />
+                          <path d="M12 13l-4 4 4 4" />
                         </svg>
                       ),
                     },
@@ -2280,17 +2290,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       id: "research",
                       label: t("modal.research"),
                       icon: (
-                        <svg
-                          className="w-3.5 h-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <circle cx="11" cy="11" r="7" />
-                          <path d="m21 21-4.3-4.3" />
+                        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 0-2 2V4z" />
+                          <path d="M9 8h6M9 12h6M9 16h3" />
                         </svg>
                       ),
                     },
@@ -2298,18 +2300,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       id: "history",
                       label: "History",
                       icon: (
-                        <svg
-                          className="w-3.5 h-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-                          <path d="M3 3v5h5" />
-                          <path d="M12 7v5l3 2" />
+                        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="8" />
+                          <path d="M12 8v4l3 2" />
                         </svg>
                       ),
                     },
@@ -2322,7 +2315,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         setMoreActionsOpen(false);
                         onTabChange && onTabChange(id);
                       }}
-                      className={`flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-[11px] font-medium leading-none transition-colors sm:h-auto sm:flex-none sm:px-3 sm:py-1.5 ${
+                      className={`flex flex-1 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-md px-1 py-1 text-[9px] font-medium leading-none transition-colors sm:flex-none sm:flex-row sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[11px] ${
                         activeTab === id
                           ? "bg-surface-raised text-text-primary shadow-sm"
                           : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
@@ -2334,6 +2327,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   ))}
                 </div>
 
+                <div className="flex min-w-0 items-center gap-1.5 sm:contents">
                 {/* Similar setups.
                     Three things were wrong with the first cut. It was
                     `hidden sm:flex`, so on a phone the feature did not exist
@@ -2343,47 +2337,37 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     middle, belonging to neither the tabs nor the icons —
                     `sm:mr-auto` parks it against the tab rail instead, which
                     is where its meaning lives.
-                    Accent, not another outline: this is the only affordance in
-                    the row that opens a different set of calls. Full label on
-                    desktop, one word on a phone, where four tabs already share
-                    the width. */}
+                    Same muted desk chrome as Shariah / share — not gold. */}
                 <button
                   type="button"
                   onClick={() => setShowSimilar(true)}
                   title={t("modal.similar_hint")}
                   aria-label={t("modal.similar_hint")}
-                  className={`flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-accent/35 bg-accent/10 px-2 text-[12px] font-semibold leading-none text-accent transition-colors hover:border-accent/60 hover:bg-accent/[0.18] sm:ml-2 sm:h-auto sm:flex-none sm:px-3 sm:py-1.5 sm:text-[11px] ${
+                  className={`flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:ml-2 sm:flex-none sm:px-2.5 ${
                     !isRedacted && signal?.entry && signal?.stop1 ? "" : "sm:mr-auto"
                   }`}
                 >
-                  <svg
-                    className="h-3.5 w-3.5 shrink-0"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="9" cy="9" r="6" />
-                    <circle cx="15" cy="15" r="6" />
+                  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
                   </svg>
                   <span className="sm:hidden">{t("modal.similar_short")}</span>
                   <span className="hidden sm:inline">{t("modal.similar")}</span>
                 </button>
-                {/* Entry planner — sized orders for the trader's own exchange.
-                    Only where the levels are visible: a redacted call has no
-                    entry or stop to plan from. */}
                 {!isRedacted && signal?.entry && signal?.stop1 ? (
                   <button
                     type="button"
                     onClick={() => setShowPlanner(true)}
                     title={t("modal.planner_hint")}
                     aria-label={t("modal.planner_hint")}
-                    className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-accent/35 bg-accent/10 px-2 text-[12px] font-semibold leading-none text-accent transition-colors hover:border-accent/60 hover:bg-accent/[0.18] sm:mr-auto sm:h-auto sm:flex-none sm:px-3 sm:py-1.5 sm:text-[11px]"
+                    className="flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2 text-[11px] font-medium text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:mr-auto sm:flex-none sm:px-2.5"
                   >
-                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 6h16M4 12h10M4 18h6" />
+                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M5 6h14" />
+                      <path d="M5 12h9" />
+                      <path d="M5 18h5" />
+                      <path d="M19 10v8" />
+                      <path d="M16 15h6" />
                     </svg>
                     <span className="sm:hidden">{t("modal.planner_short")}</span>
                     <span className="hidden sm:inline">{t("modal.planner")}</span>
@@ -2412,7 +2396,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     }
                     aria-label="Alert me when price comes back to entry"
                     aria-pressed={!!entryAlert?.armed}
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-50 sm:h-8 sm:w-8 ${
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-colors disabled:opacity-50 ${
                       entryAlert?.armed
                         ? "border-accent/40 bg-accent/10 text-accent"
                         : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
@@ -2429,7 +2413,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:h-8 sm:w-8"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
@@ -2445,7 +2429,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     title="More actions"
                     aria-label="More actions"
                     aria-expanded={moreActionsOpen}
-                    className="relative z-30 flex h-9 w-9 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:hidden"
+                    className="relative z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary sm:hidden"
                   >
                     <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <circle cx="5" cy="12" r="1.6" />
@@ -2555,6 +2539,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     )}
                   </div>
                 </div>
+                </div>
               </div>
             </div>
 
@@ -2621,11 +2606,95 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   >
                     {renderTargetsPanel("sidebar")}
                   </div>
-                  <div
-                    className={`${chartFull ? "hidden" : "lg:hidden"} bg-surface-raised border-t border-ink/10 overflow-y-auto custom-scrollbar mobile-targets-panel`}
+                  <button
+                    type="button"
+                    onClick={() => setShowLevelsSheet(true)}
+                    aria-label="Open full plan"
+                    className={`${chartFull ? "hidden" : "lg:hidden"} mobile-targets-peek w-full shrink-0 border-t border-ink/10 bg-surface-raised px-3 pb-2.5 pt-1.5 text-left`}
                   >
-                    {renderTargetsPanel("bottom")}
-                  </div>
+                    <span className="mx-auto mb-1.5 block h-1 w-10 rounded-full bg-ink/20" aria-hidden />
+                    <span className="mb-1.5 flex items-center justify-between gap-2">
+                      <span className="min-w-0">
+                        <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          Plan preview
+                        </span>
+                        <span className="mt-0.5 flex items-baseline gap-2">
+                          <span className="font-mono text-[15px] font-semibold tabular-nums text-text-primary">
+                            {livePrice ? formatPrice(livePrice) : "—"}
+                          </span>
+                          <span className="font-mono text-[10px] text-text-muted">mark</span>
+                        </span>
+                      </span>
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-ink/[0.12] bg-surface-secondary px-2.5 py-1.5 text-[11px] font-medium text-text-primary">
+                        Open full plan
+                        <svg className="h-3.5 w-3.5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                          <path d="M6 14l6-6 6 6" />
+                        </svg>
+                      </span>
+                    </span>
+                    <span className="block overflow-hidden rounded-lg border border-ink/[0.08]">
+                      {[
+                        targets.length
+                          ? {
+                              key: "tp-max",
+                              label: targets[targets.length - 1].label,
+                              value: targets[targets.length - 1].value,
+                              pct: targets[targets.length - 1].pct,
+                              tone: "pos",
+                            }
+                          : null,
+                        signal?.entry && { key: "entry", label: "Entry", value: signal.entry, pct: null, tone: "entry" },
+                        stops.length
+                          ? {
+                              key: "sl",
+                              label: stops.length > 1 ? "SL1" : "SL",
+                              value: stops[0].value,
+                              pct: stops[0].pct,
+                              tone: "neg",
+                            }
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .map((row) => (
+                          <span
+                            key={row.key}
+                            className={`flex items-center gap-2 border-t border-ink/[0.06] px-2.5 py-1.5 first:border-t-0 ${
+                              row.tone === "entry" ? "bg-accent/[0.06]" : ""
+                            }`}
+                          >
+                            <span className={`w-10 shrink-0 font-mono text-[10px] font-semibold uppercase ${
+                              row.tone === "pos" ? "text-positive" : row.tone === "neg" ? "text-negative" : "text-text-primary"
+                            }`}
+                            >
+                              {row.label}
+                            </span>
+                            <span className="min-w-0 flex-1 font-mono text-[12px] tabular-nums text-text-primary">
+                              {formatPrice(row.value)}
+                            </span>
+                            <span className={`shrink-0 font-mono text-[10px] tabular-nums ${
+                              row.tone === "pos" ? "text-positive" : row.tone === "neg" ? "text-negative" : "text-text-muted"
+                            }`}
+                            >
+                              {row.pct == null ? "—" : `${Number(row.pct) > 0 ? "+" : ""}${row.pct}%`}
+                            </span>
+                          </span>
+                        ))}
+                      {(targets.length > 1 || stops.length > 1) ? (
+                        <span className="flex items-center justify-between border-t border-ink/[0.06] px-2.5 py-1 font-mono text-[10px] text-text-muted">
+                          <span>
+                            {targets.length > 1 ? `TP1–${targets[targets.length - 2]?.label || "TP"}` : ""}
+                            {targets.length > 1 && stops.length > 1 ? " · " : ""}
+                            {stops.length > 1 ? "SL1" : ""}
+                          </span>
+                          <span>Tap to open</span>
+                        </span>
+                      ) : (
+                        <span className="block border-t border-ink/[0.06] px-2.5 py-1 font-mono text-[10px] text-text-muted">
+                          Tap to open full plan
+                        </span>
+                      )}
+                    </span>
+                  </button>
                 </div>
               )}
 
@@ -3328,6 +3397,20 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         livePrice={livePrice}
       />
 
+      <Modal
+        isOpen={showLevelsSheet}
+        onClose={() => setShowLevelsSheet(false)}
+        title={signal?.pair ? `Levels · ${String(signal.pair).replace(/USDT$/i, "")}` : "Levels"}
+        subtitle="Full plan — tap outside or close to go back to the chart"
+        size="lg"
+        zIndex={Z.nestedModal}
+        padded={false}
+      >
+        <div className="max-h-[min(78dvh,720px)] overflow-y-auto custom-scrollbar">
+          {renderTargetsPanel("sidebar")}
+        </div>
+      </Modal>
+
       <SimilarCallsModal
         isOpen={showSimilar}
         onClose={() => setShowSimilar(false)}
@@ -3500,36 +3583,15 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  .signal-modal-overlay { height: 100dvh; }
  }
 
- /* Below lg the chart and the level ladder share one column, and the ladder
-    used to win every argument: flex-shrink-0 with a 42vh cap, while the chart
-    was flex-1 min-h-0 and free to collapse. Measured in a harness that mirrors
-    this layout, the chart came out at 74px on a 375x667 phone and 2px at
-    320x568 — a strip of candles with no readable price.
-
-    Two units were wrong. 42vh is the LARGE viewport height on mobile, measured
-    with the browser toolbars retracted, so the ladder claimed more than 42% of
-    what the reader could actually see. And a dvh floor on the chart is no
-    better: it sizes against the screen rather than the space left after the
-    header, tabs, toolbar, timeframe row, deep-analysis link and funding
-    footer — floors written that way overflowed the sheet by up to 90px, and
-    the content box clips.
-
-    Percentages resolve against the flex container, which IS the space that is
-    actually left. 60 + 40 cannot exceed 100, so the split adapts to any screen
-    and can never overflow. The px cap keeps the ladder from sprawling on tall
-    phones; past it the chart takes everything else. */
+ /* Chart on top, ticket under it. Percentages are of the leftover pane so
+    the sheet cannot overflow. */
  @media (max-width: 1023.98px) {
+ .signal-chart-body { flex-direction: column; }
  .signal-chart-pane {
  flex: 1 1 auto;
- min-height: 60%;
- }
- .mobile-targets-panel {
- flex: 0 1 auto;
  min-height: 0;
- max-height: min(40%, 220px);
- overflow-y: auto;
- -webkit-overflow-scrolling: touch;
  }
+ .mobile-targets-peek { flex: 0 0 auto; }
  }
 
  /* Landscape phones have almost no height left once the chrome is paid for,
@@ -3538,9 +3600,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  @media (max-width: 1023.98px) and (orientation: landscape) and (max-height: 560px) {
  .signal-chart-body { flex-direction: row; }
  .signal-chart-pane { min-height: 0; }
- .mobile-targets-panel {
- width: min(46%, 260px);
- max-height: none;
+ .mobile-targets-peek {
+ width: min(46%, 280px);
  border-top: 0;
  border-left: 1px solid rgb(var(--ink) / 0.10);
  }

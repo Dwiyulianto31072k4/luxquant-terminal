@@ -36,7 +36,20 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/entry-planner", tags=["entry-planner"])
 
-EXCHANGES = ("binance", "bitget", "bybit", "okx", "gate", "bitunix")
+# Ranked by USDT-M / perp liquidity (CoinGlass OI + volume, 2026-09).
+# Hyperliquid is the on-chain book in that top set — collateral is USDC.
+EXCHANGES = (
+    "binance",
+    "bybit",
+    "okx",
+    "bitget",
+    "gate",
+    "mexc",
+    "hyperliquid",
+    "bingx",
+    "kucoin",
+    "htx",
+)
 RULES_TTL = 6 * 3600
 _cache: dict[str, tuple[float, dict[str, dict[str, Any]]]] = {}
 _locks: dict[str, asyncio.Lock] = {ex: asyncio.Lock() for ex in EXCHANGES}
@@ -55,8 +68,8 @@ def _dec(v: Any) -> str | None:
     return s if s not in ("-0",) else "0"
 
 
-def _rule(tick, step, min_qty=None, min_notional=None, unit="coin", contract_size="1") -> dict:
-    return {
+def _rule(tick, step, min_qty=None, min_notional=None, unit="coin", contract_size="1", max_leverage=None) -> dict:
+    out = {
         "tick": _dec(tick),
         "step": _dec(step),
         "min_qty": _dec(min_qty),
@@ -65,6 +78,12 @@ def _rule(tick, step, min_qty=None, min_notional=None, unit="coin", contract_siz
         "unit": unit,
         "contract_size": _dec(contract_size) or "1",
     }
+    try:
+        if max_leverage not in (None, ""):
+            out["max_leverage"] = int(float(max_leverage))
+    except (TypeError, ValueError):
+        pass
+    return out
 
 
 async def _get(client: httpx.AsyncClient, url: str, params: dict | None = None) -> Any:
@@ -149,21 +168,138 @@ async def _gate(c) -> dict:
     return out
 
 
-async def _bitunix(c) -> dict:
-    data = await _get(c, "https://fapi.bitunix.com/api/v1/futures/market/trading_pairs")
+async def _mexc(c) -> dict:
+    data = await _get(c, "https://contract.mexc.com/api/v1/contract/detail")
+    rows = data.get("data") if isinstance(data, dict) else data
     out = {}
-    for r in data.get("data", []) if isinstance(data, dict) else []:
-        try:
-            tick = Decimal(10) ** -int(r.get("quotePrecision"))
-            step = Decimal(10) ** -int(r.get("basePrecision"))
-        except Exception:
+    for r in rows or []:
+        if str(r.get("quoteCoin") or "").upper() != "USDT":
             continue
-        out[str(r.get("symbol", "")).upper()] = _rule(tick, step, r.get("minTradeVolume"))
+        if int(r.get("futureType") or 1) not in (1, 2):
+            continue
+        sym = str(r.get("symbol") or "").replace("_", "").upper()
+        out[sym] = _rule(
+            r.get("priceUnit"),
+            "1",
+            r.get("minVol"),
+            unit="contract",
+            contract_size=r.get("contractSize"),
+            max_leverage=r.get("maxLeverage"),
+        )
     return out
 
 
-FETCHERS = {"binance": _binance, "bitget": _bitget, "bybit": _bybit,
-            "okx": _okx, "gate": _gate, "bitunix": _bitunix}
+async def _bingx(c) -> dict:
+    data = await _get(c, "https://open-api.bingx.com/openApi/swap/v2/quote/contracts")
+    out = {}
+    for r in data.get("data", []) if isinstance(data, dict) else []:
+        if str(r.get("currency") or "").upper() != "USDT":
+            continue
+        if str(r.get("status")) not in ("1", "1.0") and r.get("status") != 1:
+            continue
+        raw = str(r.get("symbol") or "").replace("-", "").upper()
+        try:
+            tick = Decimal(10) ** -int(r.get("pricePrecision") or 0)
+        except Exception:
+            continue
+        out[raw] = _rule(
+            tick,
+            r.get("size") or r.get("tradeMinQuantity"),
+            r.get("tradeMinQuantity"),
+            r.get("tradeMinUSDT"),
+        )
+    return out
+
+
+async def _kucoin(c) -> dict:
+    data = await _get(c, "https://api-futures.kucoin.com/api/v1/contracts/active")
+    out = {}
+    for r in data.get("data", []) if isinstance(data, dict) else []:
+        if str(r.get("settleCurrency") or r.get("quoteCurrency") or "").upper() != "USDT":
+            continue
+        raw = str(r.get("symbol") or "")
+        if raw.endswith("M"):
+            raw = raw[:-1]
+        raw = raw.replace("XBT", "BTC").replace("-", "").upper()
+        out[raw] = _rule(
+            r.get("tickSize"),
+            r.get("lotSize") or "1",
+            r.get("lotSize") or "1",
+            unit="contract",
+            contract_size=r.get("multiplier"),
+            max_leverage=r.get("maxLeverage"),
+        )
+    return out
+
+
+async def _htx(c) -> dict:
+    data = await _get(c, "https://api.hbdm.com/linear-swap-api/v1/swap_contract_info")
+    out = {}
+    for r in data.get("data", []) if isinstance(data, dict) else []:
+        if str(r.get("trade_partition") or r.get("settlement_currency") or "").upper() != "USDT":
+            continue
+        if str(r.get("contract_status")) not in ("1", "1.0", "") and r.get("contract_status") not in (1, None):
+            # 1 = listed. Skip delisted when the field is present and not 1.
+            if r.get("contract_status") not in (1, "1"):
+                continue
+        raw = str(r.get("contract_code") or "").replace("-", "").upper()
+        out[raw] = _rule(
+            r.get("price_tick"),
+            "1",
+            "1",
+            unit="contract",
+            contract_size=r.get("contract_size"),
+        )
+    return out
+
+
+async def _hyperliquid(c) -> dict:
+    r = await c.post(
+        "https://api.hyperliquid.xyz/info",
+        json={"type": "metaAndAssetCtxs"},
+        headers={**UA, "Content-Type": "application/json"},
+    )
+    r.raise_for_status()
+    payload = r.json()
+    meta, ctxs = payload[0], payload[1] if isinstance(payload, list) and len(payload) > 1 else ({}, [])
+    out = {}
+    for i, u in enumerate(meta.get("universe") or []):
+        name = str(u.get("name") or "").upper()
+        if not name or u.get("isDelisted"):
+            continue
+        try:
+            sz = int(u.get("szDecimals") or 0)
+            step = Decimal(10) ** -sz
+        except Exception:
+            continue
+        ctx = ctxs[i] if i < len(ctxs or []) else {}
+        px = str((ctx or {}).get("markPx") or "")
+        if "." in px:
+            tick = Decimal(10) ** -len(px.split(".", 1)[1])
+        else:
+            tick = Decimal(10) ** -max(0, 6 - sz)
+        out[name + "USDT"] = _rule(
+            tick,
+            step,
+            step,
+            unit="coin",
+            max_leverage=u.get("maxLeverage"),
+        )
+    return out
+
+
+FETCHERS = {
+    "binance": _binance,
+    "bitget": _bitget,
+    "bybit": _bybit,
+    "okx": _okx,
+    "gate": _gate,
+    "mexc": _mexc,
+    "hyperliquid": _hyperliquid,
+    "bingx": _bingx,
+    "kucoin": _kucoin,
+    "htx": _htx,
+}
 
 
 async def _rules_for(exchange: str, client: httpx.AsyncClient) -> dict[str, dict]:

@@ -40,7 +40,9 @@ import { skipSummary } from "./autotrade/autotradeEventGuide";
 import { AGENT_PLAN_LABEL, planAllowsAgent, planName, planRefusalReason } from "../utils/agentPlan";
 import { useAuth } from "../context/AuthContext";
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
+import ExchangeUnlinkModal from "./autotrade/ExchangeUnlinkModal";
 import ExchangePicker from "./autotrade/ExchangePicker";
+import { pickLinkedAccount, pickStrategyConfig } from "./autotrade/exchangeLinking";
 import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
 import LiveRiskAckModal from "./autotrade/LiveRiskAckModal";
 import AutoTradeSettings from "./autotrade/AutoTradeSettings";
@@ -90,30 +92,12 @@ const TABS = [
   {
     id: "settings",
     label: "Settings",
-    hint: "Trading rules, exchange keys, and Telegram. Changes apply to the next signal.",
+    hint: "Trading rules, exchange keys (link / unlink / switch), and Telegram. Changes apply to the next signal.",
   },
 ];
 
 function venueMeta(exchange) {
   return EXCHANGE_VENUES[exchange] || { name: exchange ? String(exchange) : "Exchange" };
-}
-
-function pickStrategyConfig(items = [], accounts = []) {
-  if (!items.length) return null;
-  const active = items.find((item) => item.is_active);
-  if (active) return active;
-  const valid = new Set(
-    accounts.filter((account) => account.key_status === "valid").map((account) => account.exchange)
-  );
-  const matched = items.filter((item) => valid.has(item.exchange));
-  return (
-    matched.find((item) => item.exchange === "bingx") ||
-    matched.find((item) => item.exchange === "bitget") ||
-    matched[0] ||
-    items.find((item) => item.exchange === "bingx") ||
-    items.find((item) => item.exchange === "bitget") ||
-    items[0]
-  );
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -281,7 +265,8 @@ function AutoTradeControlCenter({
   const active = Boolean(config?.is_active);
   const globalLive = Boolean(health.live_orders_enabled);
   const isDryRun = config?.dry_run !== false;
-  const venue = config?.exchange || "binance";
+  const linkedAccount = pickLinkedAccount(exchangeAccounts, config);
+  const venue = linkedAccount?.exchange || config?.exchange || "binance";
   const venueName = venueMeta(venue).name;
   const accountValid = exchangeAccounts.some(
     (account) => account.exchange === venue && account.key_status === "valid"
@@ -387,6 +372,9 @@ function AutoTradeControlCenter({
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2">
+          <GhostButton onClick={onManageAccount}>
+            {venueName} keys
+          </GhostButton>
           <GhostButton onClick={onConfigure}>
             <span className="inline-flex items-center gap-2">
               <SettingsIcon className="h-4 w-4" />
@@ -440,9 +428,10 @@ function AutoTradeOverview({
   config,
   activityLogs,
   onOpenSettings,
+  onUnlink,
 }) {
   const primary =
-    exchangeAccounts.find((account) => account.exchange === config?.exchange) ||
+    pickLinkedAccount(exchangeAccounts, config) ||
     exchangeAccounts.find((account) => account.key_status === "valid") ||
     exchangeAccounts[0];
   const primaryMeta = venueMeta(primary?.exchange || config?.exchange || "binance");
@@ -502,15 +491,35 @@ function AutoTradeOverview({
             {primary?.label || `${primaryMeta.name} account`}
           </h3>
           <p className="mt-1 text-xs leading-5 text-text-muted">
-            API credentials, permissions and account validation.
+            One venue at a time. Unlink {primaryMeta.name} before connecting another desk.
           </p>
-          <button
-            type="button"
-            onClick={() => onOpenSettings("connections")}
-            className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-accent hover:text-accent-light"
-          >
-            Manage connection →
-          </button>
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+            <button
+              type="button"
+              onClick={() => onOpenSettings("connections")}
+              className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent hover:text-accent-light"
+            >
+              Manage keys →
+            </button>
+            {primary?.exchange ? (
+              <button
+                type="button"
+                onClick={() => onOpenSettings("connections")}
+                className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-secondary hover:text-text-primary"
+              >
+                Switch venue
+              </button>
+            ) : null}
+            {primary?.exchange ? (
+              <button
+                type="button"
+                onClick={() => onUnlink?.(primary.exchange)}
+                className="font-mono text-[10px] uppercase tracking-[0.18em] text-negative hover:text-negative"
+              >
+                Unlink {primaryMeta.name}
+              </button>
+            ) : null}
+          </div>
         </Card>
 
         <Card hover className="border-[#229ED9]/20">
@@ -700,6 +709,7 @@ export default function AutoTradePage() {
   const [authActionLoading, setAuthActionLoading] = useState(false);
   const [showConnect, setShowConnect] = useState(false);
   const [connectExchange, setConnectExchange] = useState("binance");
+  const [unlinkState, setUnlinkState] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [health, setHealth] = useState(null);
   const [meData, setMeData] = useState(null);
@@ -985,8 +995,33 @@ export default function AutoTradePage() {
       setError("Sign the live trading agreement before connecting an exchange.");
       return;
     }
+    const other = exchangeAccounts.find((account) => account.exchange !== exchange);
+    const alreadyThis = exchangeAccounts.some((account) => account.exchange === exchange);
+    if (other && !alreadyThis) {
+      setUnlinkState({ exchange: other.exchange, target: exchange });
+      return;
+    }
     setConnectExchange(exchange);
     setShowConnect(true);
+  };
+
+  const openUnlink = (exchange) => {
+    if (!exchange) return;
+    setUnlinkState({ exchange, target: null });
+  };
+
+  const openSwitch = (from, to) => {
+    if (!from || !to) return;
+    setUnlinkState({ exchange: from, target: to });
+  };
+
+  const handleUnlinked = async ({ targetExchange }) => {
+    setUnlinkState(null);
+    await load({ background: true });
+    if (targetExchange) {
+      setConnectExchange(targetExchange);
+      setShowConnect(true);
+    }
   };
 
   return (
@@ -1106,6 +1141,7 @@ export default function AutoTradePage() {
                     config={strategyConfig}
                     activityLogs={activityLogs}
                     onOpenSettings={openSettings}
+                    onUnlink={openUnlink}
                   />
                 ) : null}
 
@@ -1121,6 +1157,8 @@ export default function AutoTradePage() {
                     exchangeAccounts={exchangeAccounts}
                     portfolio={portfolio}
                     onConnect={openConnect}
+                    onSwitch={openSwitch}
+                    onUnlink={openUnlink}
                     alertStatus={alertStatus}
                     alertStatusError={alertStatusError}
                     onAlertUpdated={(updated) => {
@@ -1153,8 +1191,24 @@ export default function AutoTradePage() {
       <ExchangeConnectModal
         isOpen={showConnect && hasAutotradeToken && hasSignedLiveForm}
         exchange={connectExchange}
+        linkedExchanges={exchangeAccounts.map((account) => account.exchange)}
         onClose={() => setShowConnect(false)}
         onSuccess={load}
+        onNeedUnlink={(from, to) => {
+          setShowConnect(false);
+          openSwitch(from, to);
+        }}
+      />
+      <ExchangeUnlinkModal
+        isOpen={Boolean(unlinkState?.exchange)}
+        exchange={unlinkState?.exchange}
+        targetExchange={unlinkState?.target || null}
+        onClose={() => setUnlinkState(null)}
+        onUnlinked={handleUnlinked}
+        onOpenPositions={() => {
+          setUnlinkState(null);
+          setTab("positions");
+        }}
       />
       <AutoTradeHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
 

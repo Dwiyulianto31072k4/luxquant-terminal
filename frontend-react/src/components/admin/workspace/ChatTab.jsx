@@ -17,6 +17,7 @@ import { NEUTRAL } from "../designSystem";
 import { Surface, Avatar, Badge, EmptyState, LoadingState, SearchInput, Spinner } from "../primitives";
 import { SearchIcon } from "../Icons";
 import Modal from "../../ui/Modal";
+import { Z } from "../../../constants/zIndex";
 import {
   ChatImageLightbox,
   ChatImageSendModal,
@@ -1099,6 +1100,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
     <Modal
       isOpen={!!deleteTarget}
       onClose={() => !deleting && setDeleteTarget(null)}
+      zIndex={Z.lightbox}
       title="Delete this message?"
       subtitle="The sequence and read receipts stay intact"
       size="sm"

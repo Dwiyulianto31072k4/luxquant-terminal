@@ -197,6 +197,14 @@ export const saveBinanceKeys = (payload) => saveExchangeKeys("binance", payload)
 
 export const checkBinanceKeys = () => checkExchangeKeys("binance");
 
+export const getExchangeUnlinkPreview = (exchange) =>
+  request(`/me/exchange-accounts/${encodeURIComponent(exchange)}/unlink-preview`);
+
+export const unlinkExchange = (exchange) =>
+  request(`/me/exchange-accounts/${encodeURIComponent(exchange)}`, {
+    method: "DELETE",
+  });
+
 // Portfolio
 export const getPortfolio = () => request("/me/portfolio");
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { checkExchangeKeys, saveExchangeKeys } from "../../services/autotradeApi";
+import { venueAlreadyLinkedError } from "./exchangeLinking";
 import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
 import {
   AUTOTRADE_SERVER_IP,
@@ -106,7 +107,14 @@ function SecretField({ label, value, onChange, placeholder }) {
   );
 }
 
-export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, exchange = "binance" }) {
+export default function ExchangeConnectModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  exchange = "binance",
+  linkedExchanges = [],
+  onNeedUnlink,
+}) {
   const [venueId, setVenueId] = useState(EXCHANGE_VENUES[exchange] ? exchange : "binance");
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
@@ -150,6 +158,11 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
     (!venue.needsPassphrase || form.passphrase.trim());
 
   const switchVenue = (id) => {
+    const other = (linkedExchanges || []).find((item) => item && item !== id);
+    if (other && !(linkedExchanges || []).includes(id) && onNeedUnlink) {
+      onNeedUnlink(other, id);
+      return;
+    }
     setVenueId(id);
     setError("");
     setResult(null);
@@ -184,6 +197,14 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess, excha
       onSuccess?.();
       setTimeout(() => onClose(), 800);
     } catch (err) {
+      const linked = venueAlreadyLinkedError(err);
+      if (linked && onNeedUnlink) {
+        const from = linked.detail?.linked?.[0] || (linkedExchanges || []).find((item) => item !== venue.id);
+        if (from) {
+          onNeedUnlink(from, venue.id);
+          return;
+        }
+      }
       setError(err.message || `Could not save ${venue.name} keys`);
     } finally {
       setSaving(false);

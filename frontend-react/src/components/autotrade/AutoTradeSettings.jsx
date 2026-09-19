@@ -14,7 +14,7 @@ const SECTIONS = [
   {
     id: "connections",
     label: "Connections",
-    description: "Exchange API credentials and account health",
+    description: "Link, unlink, or switch the exchange key",
     icon: SettingsIcon,
   },
   {
@@ -36,6 +36,8 @@ export default function AutoTradeSettings({
   exchangeAccounts,
   portfolio,
   onConnect,
+  onSwitch,
+  onUnlink,
   alertStatus,
   alertStatusError,
   onAlertUpdated,
@@ -101,7 +103,11 @@ export default function AutoTradeSettings({
             health={health}
             exchangeAccounts={exchangeAccounts}
             portfolio={portfolio}
+            config={config}
             onConnect={onConnect}
+            onSwitch={onSwitch}
+            onUnlink={onUnlink}
+            onRefresh={onSaved}
           />
         ) : null}
         {activeSection === "notifications" ? (

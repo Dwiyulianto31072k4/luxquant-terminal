@@ -138,6 +138,12 @@ export const SKIP_EVENTS = {
     why: "Each symbol has its own minimum notional, and it is set by the exchange rather than by us.",
     fix: "Raise Amount, or accept that the smallest coins will be skipped.",
   },
+  "execution.skip_risk_sizing": {
+    title: "Risk-per-trade could not size this signal",
+    what: "Agent skipped because it could not turn your risk-% into a safe order size for this stop.",
+    why: "Risk per trade needs a real stop on the right side of entry. SL=TP, SL=entry, a missing stop, or a size below the venue floor (which we will not bump — that would oversize the stop) all refuse.",
+    fix: "Check the Activity reason. Use a tighter risk %, a closer SL level, or switch back to Fixed USDT / Percent of balance.",
+  },
   "execution.skip_risk_level_filtered": {
     title: "Signal filtered by risk level",
     what: "This signal's risk level is outside the range you accept.",

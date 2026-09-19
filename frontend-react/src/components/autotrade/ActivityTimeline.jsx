@@ -154,6 +154,13 @@ function skipInfo(action, metadata = {}) {
         detail: `${usd(configured)} was configured but the protective stop leg needs ${usd(required)}. Raise Amount to about ${usd(Math.ceil((required || 0) * 2))} for spot.`,
       };
     }
+    case "execution.skip_risk_sizing":
+      return {
+        label: "Risk-per-trade could not size this signal",
+        detail:
+          metadata.message ||
+          "Stop distance was missing, on the wrong side of entry, equal to TP, or so wide the size fell under the venue floor. Agent will not bump that size up — it would oversize the stop.",
+      };
     case "execution.skip_missing_exchange_account":
       return {
         label: "No usable exchange key",

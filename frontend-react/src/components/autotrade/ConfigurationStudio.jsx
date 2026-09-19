@@ -189,21 +189,49 @@ function WithGuide({ guide, children }) {
 // Settings are abstract until you see what they do to one trade. This
 // walks the user's own current values through the same order the engine
 // applies them in, so a misconfiguration is visible before it costs money.
+function isRiskSizing(method) {
+  return method === "risk_percent" || method === "risk";
+}
+
 function WorkedExample({ draft, availableUsdt }) {
   const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(n).toFixed(2)}`;
   const isPercent = draft.sizing_method === "percent";
-  // The engine sizes percent trades off FREE USDT; dry run substitutes a
+  const isRisk = isRiskSizing(draft.sizing_method);
+  // The engine sizes percent / risk-per-trade off FREE USDT; dry run substitutes a
   // fixed 1,000 rather than reading the account.
   const balance = draft.dry_run ? 1000 : Number(availableUsdt) || 0;
   const knownBalance = draft.dry_run || Number(availableUsdt) > 0;
-  const raw = isPercent ? balance * (Number(draft.sizing_value) || 0) / 100 : Number(draft.sizing_value) || 0;
-  const margin = Math.max(MIN_LIVE_ENTRY_USDT, raw);
+  const raw = isPercent || isRisk ? balance * (Number(draft.sizing_value) || 0) / 100 : Number(draft.sizing_value) || 0;
   const leverage = draft.futures_enabled ? Math.max(1, Number(draft.leverage) || 1) : 1;
   const cap = Number(draft.max_trade_notional_usdt) || 0;
   const reserve = Number(draft.min_available_usdt) || 0;
+  const riskBudget = isRisk ? raw : null;
+  // Illustrative 5% stop — labeled as such. Real size follows the signal's SL.
+  const exampleStopFrac = 0.05;
+  const riskPosition = isRisk && riskBudget > 0 ? riskBudget / exampleStopFrac : null;
+  const riskMargin =
+    isRisk && riskPosition != null ? riskPosition / (draft.futures_enabled ? leverage : 1) : null;
+  const margin = isRisk
+    ? riskMargin
+    : Math.max(MIN_LIVE_ENTRY_USDT, raw);
 
   const steps = [];
-  if (isPercent && !knownBalance) {
+  if (isRisk) {
+    steps.push([
+      "If SL hits",
+      knownBalance
+        ? `About ${draft.sizing_value}% of ${usd(balance)}${draft.dry_run ? " (dry-run stand-in)" : " free"} = ${usd(riskBudget)} lost. Margin changes with how far the stop sits.`
+        : `${draft.sizing_value}% of free USDT is the stop-out budget — connect an account to preview the dollar amount.`,
+    ]);
+    if (riskMargin != null) {
+      steps.push([
+        "Example 5% stop",
+        draft.futures_enabled
+          ? `${usd(riskBudget)} / 5% = ${usd(riskPosition)} on the book, ${usd(riskMargin)} margin at ${leverage}×. A 15% stop would use a third of that margin; a 1% stop would use 5× — still capped.`
+          : `${usd(riskBudget)} / 5% = ${usd(riskMargin)} of coin. Farther SL → smaller buy. Tighter SL → larger buy.`,
+      ]);
+    }
+  } else if (isPercent && !knownBalance) {
     steps.push(["Entry size", `${draft.sizing_value}% of your free USDT — connect an account to preview the amount`]);
   } else {
     steps.push([
@@ -213,13 +241,13 @@ function WorkedExample({ draft, availableUsdt }) {
         : `${usd(margin)} of margin`,
     ]);
   }
-  if (draft.futures_enabled) {
+  if (draft.futures_enabled && margin != null && !isRisk) {
     steps.push([
       "Position on futures",
       `${usd(margin)} × ${leverage}× = ${usd(margin * leverage)} of exposure. A 10% coin move is ${usd(margin * leverage * 0.1)} — ${((leverage * 10)).toFixed(0)}% of your margin.`,
     ]);
   }
-  if (draft.spot_enabled) {
+  if (draft.spot_enabled && margin != null && !isRisk) {
     steps.push([
       "On spot",
       margin < 10
@@ -227,13 +255,17 @@ function WorkedExample({ draft, availableUsdt }) {
         : `${usd(margin)} buys ${usd(margin)} of coin, with room for the protective stop order.`,
     ]);
   }
-  steps.push([
-    "Per trade cap",
-    cap < margin
-      ? `${usd(cap)} is BELOW the ${usd(margin)} entry — every signal will skip as max_trade_notional.`
-      : `${usd(cap)} — the ${usd(margin)} entry passes.`,
-  ]);
-  if (knownBalance && !isPercent) {
+  if (margin != null) {
+    steps.push([
+      "Per trade cap",
+      cap < margin
+        ? `${usd(cap)} is BELOW the ${usd(margin)} entry — every signal will skip as max_trade_notional.`
+        : isRisk
+          ? `${usd(cap)} of margin. Tight stops that need more than this are skipped, not shrunk.`
+          : `${usd(cap)} — the ${usd(margin)} entry passes.`,
+    ]);
+  }
+  if (knownBalance && !isPercent && margin != null && !isRisk) {
     steps.push([
       "Minimum reserve",
       balance - margin < reserve
@@ -263,8 +295,8 @@ function WorkedExample({ draft, availableUsdt }) {
       </ol>
       {draft.dry_run ? (
         <p className="mt-4 text-[11px] leading-4 text-text-muted">
-          Dry run is on — nothing reaches the exchange, and percent sizing is simulated against a
-          fixed $1,000 rather than your real balance.
+          Dry run is on — nothing reaches the exchange, and percent / risk-per-trade sizing is
+          simulated against a fixed $1,000 rather than your real balance.
         </p>
       ) : null}
     </Card>
@@ -489,8 +521,12 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       setDirty(false);
       await onSaved?.({ background: true });
       setSuccess(
-        `Strategy saved. Amount: ${Number(draft.sizing_value)} ${
-          draft.sizing_method === "fixed" ? "USDT" : "%"
+        `Strategy saved. ${
+          isRiskSizing(draft.sizing_method)
+            ? `Risk per trade: ${Number(draft.sizing_value)}% of free USDT if SL hits`
+            : `Amount: ${Number(draft.sizing_value)} ${
+                draft.sizing_method === "fixed" ? "USDT" : "%"
+              }`
         }; per trade cap: ${Number(draft.max_trade_notional_usdt)} USDT.`
       );
     } catch (err) {
@@ -609,26 +645,35 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
           <Row guide={FIELD_GUIDE.sizing_method} label="Method">
             <Select
               value={draft.sizing_method}
-              onChange={(value) => patch({ sizing_method: value })}
+              onChange={(value) => {
+                const next = { sizing_method: value };
+                if (value === "risk_percent" && (Number(draft.sizing_value) > 10 || Number(draft.sizing_value) < 0.1)) {
+                  next.sizing_value = 1;
+                }
+                patch(next);
+              }}
               options={[
                 { value: "fixed", label: "Fixed USDT" },
                 { value: "percent", label: "Percent of balance" },
+                { value: "risk_percent", label: "Risk per trade" },
               ]}
             />
           </Row>
           <Row guide={FIELD_GUIDE.sizing_value}
-            label="Amount"
+            label={isRiskSizing(draft.sizing_method) ? "Risk if SL hits" : "Amount"}
             hint={
               draft.sizing_method === "fixed"
                 ? `Margin per trade — leverage multiplies it into position size. Live minimum: ${MIN_LIVE_ENTRY_USDT} USDT.`
-                : "0–100% of available balance."
+                : isRiskSizing(draft.sizing_method)
+                  ? "0.1–10% of free USDT lost if the stop hits. Far SL → smaller size. Same on every venue."
+                  : "0–100% of available balance as margin."
             }
           >
             <NumberInput
               value={draft.sizing_value}
               onChange={(value) => patch({ sizing_value: value })}
-              min={draft.sizing_method === "fixed" ? MIN_LIVE_ENTRY_USDT : 0}
-              max={draft.sizing_method === "fixed" ? 1000000 : 100}
+              min={draft.sizing_method === "fixed" ? MIN_LIVE_ENTRY_USDT : isRiskSizing(draft.sizing_method) ? 0.1 : 0}
+              max={draft.sizing_method === "fixed" ? 1000000 : isRiskSizing(draft.sizing_method) ? 10 : 100}
               step={0.1}
               suffix={draft.sizing_method === "fixed" ? "USDT" : "%"}
             />
@@ -804,7 +849,9 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                   ? `Must cover the effective ${effectiveFixedNotional.toFixed(
                       2
                     )} USDT entry (≥${MIN_LIVE_ENTRY_USDT} USDT live min). Caps below the entry size → all entries skipped as max_trade_notional.`
-                  : `Maximum margin per entry (USDT). Live floor ${MIN_LIVE_ENTRY_USDT} USDT — keep cap ≥ floor or every signal skips.`
+                  : isRiskSizing(draft.sizing_method)
+                    ? `Maximum margin per entry. Tight stops that need more than this skip — the cap does not shrink the trade. Live floor ${MIN_LIVE_ENTRY_USDT} USDT.`
+                    : `Maximum margin per entry (USDT). Live floor ${MIN_LIVE_ENTRY_USDT} USDT — keep cap ≥ floor or every signal skips.`
               }
             >
               <NumberInput

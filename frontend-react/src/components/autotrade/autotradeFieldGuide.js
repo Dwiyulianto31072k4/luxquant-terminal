@@ -39,24 +39,24 @@ export const FIELD_GUIDE = {
     example:
       "A signal arrives, you see a simulated entry in Activity, and your exchange balance does not move.",
     watch:
-      "Dry run sizes percent-based trades off a fixed 1,000 USDT, not your real balance. A 2% setting always simulates 20 USDT no matter what you actually hold, so treat simulated position sizes as illustrative.",
+      "Dry run sizes percent-based and risk-per-trade off a fixed 1,000 USDT, not your real balance. A 2% setting always simulates 20 USDT of margin (or a $20 stop-out budget on risk-per-trade), so treat simulated sizes as illustrative.",
   },
 
   // ── Position sizing ──────────────────────────────────────────
   sizing_method: {
     title: "Sizing method",
-    what: "Fixed USDT uses the same amount every trade. Percent of balance scales with your free USDT, so trades shrink after losses and grow after wins.",
+    what: "Fixed USDT uses the same margin every trade. Percent of balance scales with free USDT. Risk per trade sizes so a stop-out loses about that percent of the wallet — far stops use less margin, tight stops use more.",
     example:
-      "With 400 USDT free: Fixed 20 always trades 20. Percent 5% trades 20 now, then 19 after a 20 USDT loss.",
+      "Wallet 1,000 USDT, risk 1% → about $10 if SL hits. A 5% stop opens ~$200 of coin ($20 margin at 10×). A 20% stop opens ~$50 ($5 margin at 10×). Same $10 at risk either way.",
     watch:
-      "Percent is measured against free USDT only. Money already tied up in open positions does not count toward it.",
+      "Percent and risk-per-trade both read free USDT only — money already in open positions does not count. Risk-per-trade needs a real stop; missing, equal-entry, or SL=TP signals are skipped. It will not bump a too-small size up to the $5 floor (that would oversize the stop).",
   },
   sizing_value: {
     title: "Amount",
-    what: "How much capital each entry uses. This is margin, not position size — on futures, leverage multiplies it.",
+    what: "Fixed: margin in USDT. Percent of balance: % of free USDT as margin. Risk per trade: % of free USDT you are willing to lose if SL hits.",
     example:
-      "Fixed 12 USDT at 10× leverage opens a 120 USDT position. On spot the same 12 USDT buys 12 USDT of coin.",
-    watch: `Anything below ${MIN_LIVE_ENTRY_USDT} USDT is raised to ${MIN_LIVE_ENTRY_USDT} — venues reject smaller live orders. On spot, budget 10–15 USDT: the protective stop leg has its own minimum (see Per trade cap).`,
+      "Fixed 12 USDT at 10× leverage opens a 120 USDT position. Risk 1% on 1,000 USDT budgets $10 at the stop, and the engine backs out the margin from how far SL sits from entry.",
+    watch: `Fixed and percent raise anything below ${MIN_LIVE_ENTRY_USDT} USDT to ${MIN_LIVE_ENTRY_USDT}. Risk per trade does not — a wide stop on a small risk budget is skipped rather than oversized. On spot, budget 10–15 USDT of margin for fixed/percent so the protective stop leg clears the venue minimum.`,
   },
   leverage: {
     title: "Leverage",
@@ -416,10 +416,10 @@ export function describeAppliedRules(config = {}) {
     s.spot_enabled ? "spot" : null,
   ].filter(Boolean);
   const marketPhrase = markets.length ? markets.join(" and ") : "no market";
+  const isRisk = s.sizing_method === "risk_percent" || s.sizing_method === "risk";
+  const isPercent = s.sizing_method === "percent";
   const margin =
-    s.sizing_method === "percent"
-      ? null
-      : Math.max(MIN_LIVE_ENTRY_USDT, s.sizing_value);
+    isPercent || isRisk ? null : Math.max(MIN_LIVE_ENTRY_USDT, s.sizing_value);
   const notional = margin && s.futures_enabled ? margin * s.leverage : margin;
   const tenPct = notional ? notional * 0.1 : null;
   const cap = s.max_trade_notional_usdt;
@@ -446,7 +446,11 @@ export function describeAppliedRules(config = {}) {
       if: `A ${listLevels(s.allowed_risk_levels)} ${marketPhrase} signal arrives on ${venue}`,
       then: capBlocks
         ? `Every entry is skipped — the per-trade cap (${usd(cap)}) is below the ${usd(margin)} amount.`
-        : s.sizing_method === "percent"
+        : isRisk
+          ? `Agent sizes so a stop at SL${s.sl_level} loses about ${s.sizing_value}% of free USDT${
+              s.futures_enabled ? ` (${s.leverage}× ${s.margin_mode})` : ""
+            }. Far stops use less margin; tight stops use more, still capped at ${usd(cap)}. SL=TP or a missing stop is skipped.`
+          : isPercent
           ? `Agent uses ${s.sizing_value}% of free USDT as margin${
               s.futures_enabled ? ` at ${s.leverage}× ${s.margin_mode}` : ""
             }, then places a market order if every risk gate passes.`

@@ -19,6 +19,8 @@ const SIZES = {
   lg: "max-w-2xl",
   xl: "max-w-[820px]",
   "2xl": "max-w-[1100px]",
+  // Same width as SignalModal — planners and other wide desks.
+  desk: "max-w-[min(1280px,96vw)] xl:max-w-[1360px]",
   // Data desk — wide tables that are unreadable at any fixed width.
   full: "max-w-[98vw]",
   // Reading / news desk — narrow phone sheet · wide desktop reader

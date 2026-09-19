@@ -25,21 +25,33 @@ const authHeaders = () => {
   return t ? { Authorization: `Bearer ${t}` } : {};
 };
 
-// Logos are the self-hosted ones the exchange links already use. Bitunix has
-// none in /public/exchanges yet, so it gets a monogram in its brand colour
-// rather than a fetched image nobody vetted.
-const VENUES = [
-  { id: "binance", label: "Binance", logo: "/exchanges/binance.png" },
-  { id: "bybit", label: "Bybit", logo: "/exchanges/bybit.png" },
-  { id: "bitget", label: "Bitget", logo: "/exchanges/bitget.png" },
-  { id: "okx", label: "OKX", logo: "/exchanges/okx.png" },
-  { id: "gate", label: "Gate", logo: "/exchanges/gate.png" },
-  { id: "bitunix", label: "Bitunix", mono: "BU", color: "#B9F641" },
+// Top 10 USDT-M / perp desks by book (CoinGlass OI + volume, Sep 2026).
+// Hyperliquid is the on-chain book in that set — size in coin, collateral USDC.
+export const VENUES = [
+  { id: "binance", label: "Binance", logo: "/exchanges/binance.png", collateral: "USDT" },
+  { id: "bybit", label: "Bybit", logo: "/exchanges/bybit.png", collateral: "USDT" },
+  { id: "okx", label: "OKX", logo: "/exchanges/okx.png", collateral: "USDT" },
+  { id: "bitget", label: "Bitget", logo: "/exchanges/bitget.png", collateral: "USDT" },
+  { id: "gate", label: "Gate", logo: "/exchanges/gate.png", collateral: "USDT" },
+  { id: "mexc", label: "MEXC", logo: "/exchanges/mexc.png", collateral: "USDT" },
+  { id: "hyperliquid", label: "Hyperliquid", logo: "/exchanges/hyperliquid.png", collateral: "USDC", kind: "dex" },
+  { id: "bingx", label: "BingX", logo: "/exchanges/bingx.png", collateral: "USDT" },
+  { id: "kucoin", label: "KuCoin", logo: "/exchanges/kucoin.png", collateral: "USDT" },
+  { id: "htx", label: "HTX", logo: "/exchanges/htx.png", collateral: "USDT" },
 ];
 
 function VenueMark({ venue, size = 16 }) {
   if (venue.logo) {
-    return <img src={venue.logo} alt="" width={size} height={size} className="shrink-0 rounded-full object-cover" loading="lazy" />;
+    return (
+      <img
+        src={venue.logo}
+        alt=""
+        width={size}
+        height={size}
+        className={`shrink-0 ${venue.kind === "dex" ? "rounded-md object-contain" : "rounded-full object-cover"}`}
+        loading="lazy"
+      />
+    );
   }
   return (
     <span
@@ -82,33 +94,66 @@ const DEFAULTS = {
 const VENUE_GUIDE = {
   binance: {
     market: "Futures → USDⓈ-M",
-    unit: (c) => `Size unit ${c}. Would rather type capital? Switch the unit to USDT → Initial margin and type the Margin column.`,
+    unit: (c) => `Size unit ${c}. Prefer capital? Switch unit to USDT → Initial margin and type the Margin column.`,
     stop: "Stop Market with Close Position ticked, trigger by Mark price",
+    tp: "Limit orders with Reduce-only at each TP. Scale down if not every entry filled.",
   },
   bybit: {
     market: "Derivatives → USDT Perpetual",
-    unit: (c) => `Qty in ${c}. Would rather type capital? Switch the unit to USDT → By cost and type the Margin column.`,
+    unit: (c) => `Qty in ${c}. Prefer capital? Switch unit to USDT → By cost and type the Margin column.`,
     stop: "Position TP/SL → Entire position, trigger by Mark price",
-  },
-  bitget: {
-    market: "Futures → USDT-M",
-    unit: (c) => `Size unit ${c} — type the Quantity column.`,
-    stop: "Position TP/SL → Entire position, trigger by Mark price",
+    tp: "Position TP/SL partials, or Reduce-only limits at each TP.",
   },
   okx: {
     market: "Trade → Perpetual (USDT)",
     unit: () => "Size unit Contracts (Cont) — the quantities here are contracts, not coins.",
     stop: "TP/SL on the position → Entire position, trigger by Mark price",
+    tp: "TP/SL partials, or Reduce-only limits. Contracts, not coins.",
+  },
+  bitget: {
+    market: "Futures → USDT-M",
+    unit: (c) => `Size unit ${c} — type the Quantity column.`,
+    stop: "Position TP/SL → Entire position, trigger by Mark price",
+    tp: "Reduce-only limits at each TP, or Position TP/SL partials.",
   },
   gate: {
     market: "Futures → USDT perpetual",
     unit: () => "Size unit Contracts (Cont) — the quantities here are contracts, not coins.",
     stop: "Position TP/SL → Entire position, trigger by Mark price",
+    tp: "Reduce-only limits. Sizes are contracts.",
   },
-  bitunix: {
+  mexc: {
     market: "Futures → USDT-M",
+    unit: () => "Size is in contracts. One contract is a fraction of the coin — use the Quantity column as printed.",
+    stop: "Position TP/SL → Entire position, trigger by Mark price",
+    tp: "Reduce-only limits at each TP. Contract sizes, not coins.",
+  },
+  hyperliquid: {
+    market: "app.hyperliquid.xyz → Perps",
+    collateral: "USDC",
+    wallet: "Hyperliquid perps account (USDC)",
+    unit: (c) => `Size is in ${c}, not dollars. Collateral is USDC in the perps account — not a USDT futures wallet.`,
+    stop: "Positions → TP/SL → Stop Market, trigger by Mark, size = entire position",
+    tp: "From the position, set TP Limit (reduce-only) at each target. TP Market if you want the fill more than the exact price.",
+    extra: "Isolated and leverage are the chip above the order ticket. Max leverage is per coin (often 3–40×), not 125×.",
+  },
+  bingx: {
+    market: "Futures → USDT-M Perpetual",
     unit: (c) => `Qty in ${c} — type the Quantity column.`,
     stop: "Position TP/SL → Entire position, trigger by Mark price",
+    tp: "Reduce-only limits at each TP.",
+  },
+  kucoin: {
+    market: "Futures → USDT Perpetual",
+    unit: () => "Size unit Lots (contracts). BTC is listed as XBT — the quantities here are already in lots.",
+    stop: "Position TP/SL → Entire position, trigger by Mark price",
+    tp: "Reduce-only limits. Lots, not coins.",
+  },
+  htx: {
+    market: "USDT-M Linear Swap",
+    unit: () => "Size unit Contracts. Type the contract count, not the coin amount.",
+    stop: "TP/SL on the position → Entire position, trigger by Mark price",
+    tp: "Reduce-only limits at each TP. Contract count.",
   },
 };
 
@@ -210,6 +255,35 @@ function Seg({ options, value, onChange, small }) {
           </span>
         </button>
       ))}
+    </div>
+  );
+}
+
+function VenuePicker({ venues, value, onChange, listed, pair }) {
+  const known = listed.length > 0;
+  return (
+    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+      {venues.map((v) => {
+        const on = !known || listed.includes(v.id);
+        const sel = value === v.id;
+        return (
+          <button
+            key={v.id}
+            type="button"
+            onClick={() => on && onChange(v.id)}
+            disabled={!on}
+            title={!on ? `${pair} is not listed on ${v.label}` : v.kind === "dex" ? `${v.label} · on-chain perps, USDC collateral` : v.label}
+            className={`flex w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-lg border px-2 py-2 text-left text-[11px] font-medium sm:text-[12px] ${
+              sel
+                ? "border-ink/25 bg-surface-raised text-text-primary shadow-sm"
+                : "border-ink/[0.08] bg-ink/[0.02] text-text-secondary hover:border-ink/16 hover:text-text-primary"
+            } disabled:cursor-not-allowed disabled:opacity-35`}
+          >
+            <VenueMark venue={v} size={16} />
+            <span className="min-w-0 truncate leading-tight">{v.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -354,7 +428,8 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
     liveWarnings.push(`A stop-out costs ${((plan.lossAtSl / balance) * 100).toFixed(1)}% of your balance. Most traders keep it at 1–2% per trade.`);
   const pctOf = (v) => (balance && Number.isFinite(v) ? ` · ${((v / balance) * 100).toFixed(1)}% of balance` : "");
   const venue = VENUES.find((v) => v.id === cfg.exchange) || VENUES[0];
-  const guide = VENUE_GUIDE[venue.id];
+  const guide = VENUE_GUIDE[venue.id] || VENUE_GUIDE.binance;
+  const collateral = venue.collateral || guide.collateral || "USDT";
 
   const unitLabel = (qtyCoin, qtyUnit) =>
     plan?.unit === "contract"
@@ -365,7 +440,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
     if (!plan?.ok) return;
     const u = plan.unit === "contract" ? "contracts" : sym(pair);
     const lines = [
-      `${pair} ${side.toUpperCase()} · ${venue.label} · Isolated ${cfg.leverage}x · margin ${money(plan.margin)} · max loss ${money(plan.lossAtSl)}`,
+      `${pair} ${side.toUpperCase()} · ${venue.label} · Isolated ${cfg.leverage}x · margin ${money(plan.margin)} ${collateral} · max loss ${money(plan.lossAtSl)}`,
       ...plan.legs.map((l) => `Entry ${l.index} (${l.type}): ${priceFmt(l.price, tick)} × ${plan.unit === "contract" ? qtyFmt(l.qtyUnit, rule?.step) : qtyFmt(l.qty, stepCoin)} ${u} · margin ${money(l.margin)}`),
       `Stop (all): ${priceFmt(plan.sl, tick)}`,
       ...plan.tps.filter((t) => t.qty > 0).map((t) => `TP${t.index}: ${priceFmt(t.price, tick)} × ${plan.unit === "contract" ? qtyFmt(t.qtyUnit, rule?.step) : qtyFmt(t.qty, stepCoin)} ${u}`),
@@ -417,7 +492,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
         )
       }
       subtitle={`${long ? "Long" : "Short"} · size by your max loss or your capital — every number fits your exchange`}
-      size="2xl"
+      size="desk"
       zIndex={zIndex}
     >
       {missing ? (
@@ -425,24 +500,25 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
           This call has no entry or SL1 to plan from.
         </p>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(420px,0.4fr)_minmax(0,1fr)] xl:grid-cols-[minmax(460px,0.38fr)_minmax(0,1fr)]">
           {/* ── Settings ─────────────────────────────────────────── */}
           {/* On a phone the plan comes first: the settings usually arrive from
               the saved template, and the orders are what the trader came for. */}
           <section className="order-2 space-y-4 lg:order-1">
-            <Field label="Exchange" hint={rulesErr ? "rules unavailable — generic rounding" : rules ? "its own tick, step and minimum" : "loading rules…"}>
-              <Seg
-                small
+            <Field
+              label="Exchange"
+              hint={rulesErr ? "rules unavailable — generic rounding" : rules ? "own tick, step and minimum" : "loading rules…"}
+            >
+              <VenuePicker
+                venues={VENUES}
                 value={cfg.exchange}
                 onChange={(v) => set("exchange", v)}
-                options={VENUES.map((v) => ({
-                  value: v.id,
-                  label: v.label,
-                  icon: <VenueMark venue={v} size={15} />,
-                  disabled: rules ? !listed.includes(v.id) : false,
-                  title: rules && !listed.includes(v.id) ? `${sym(pair)} is not listed on ${v.label}` : undefined,
-                }))}
+                listed={listed}
+                pair={sym(pair)}
               />
+              <p className="mt-1.5 text-[11px] leading-snug text-text-muted">
+                Top 10 perp desks by liquidity. Hyperliquid is on-chain — size in coin, collateral USDC.
+              </p>
             </Field>
 
             <Field label="Size the position by" hint={cfg.size_by === "margin" ? "capital you put in" : "what a stop-out may cost"}>
@@ -475,7 +551,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                   />
                 </Field>
               )}
-              <Field label="Leverage" hint="x">
+              <Field label="Leverage" hint={rule?.max_leverage ? `max ${rule.max_leverage}× here` : "×"}>
                 <input
                   type="text" inputMode="decimal" min="1" max="125" step="1" className={inputCls}
                   value={cfg.leverage}
@@ -503,7 +579,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                         type="button"
                         onClick={() => set("weights", p)}
                         className={`rounded-md border px-2 py-1 font-mono text-[11px] ${
-                          p.join() === cfg.weights.join() ? "border-accent/50 bg-accent/10 text-text-primary" : "border-ink/10 text-text-muted hover:text-text-primary"
+                          p.join() === cfg.weights.join() ? "border-ink/20 bg-surface-raised text-text-primary shadow-sm" : "border-ink/10 text-text-muted hover:text-text-primary"
                         }`}
                       >
                         {p.join("/")}
@@ -593,7 +669,7 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                     type="button"
                     onClick={() => set("tp_split", p)}
                     className={`rounded-md border px-2 py-1 font-mono text-[11px] ${
-                      p.join() === cfg.tp_split.join() ? "border-accent/50 bg-accent/10 text-text-primary" : "border-ink/10 text-text-muted hover:text-text-primary"
+                      p.join() === cfg.tp_split.join() ? "border-ink/20 bg-surface-raised text-text-primary shadow-sm" : "border-ink/10 text-text-muted hover:text-text-primary"
                     }`}
                   >
                     {p.join("/")}
@@ -756,7 +832,9 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                         <tr className="border-t border-ink/[0.1] bg-surface-secondary/40 text-[12px]">
                           <td className="px-2 py-2 font-medium text-text-primary sm:px-3" colSpan={3}>
                             Wallet needed
-                            <span className="ml-1.5 hidden font-normal text-text-muted sm:inline">margin + est. fees, USDT in your futures wallet</span>
+                            <span className="ml-1.5 hidden font-normal text-text-muted sm:inline">
+                              margin + est. fees, {collateral} in {guide.wallet || "your futures wallet"}
+                            </span>
                             <span className="float-right font-mono font-semibold sm:hidden">{money(walletNeed)}</span>
                           </td>
                           <td className="hidden md:table-cell" />
@@ -775,13 +853,14 @@ export default function EntryPlannerModal({ isOpen, onClose, signal, livePrice, 
                     </p>
                     <ol className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-text-secondary">
                       {[
-                        <>Open <b className="text-text-primary">{guide.market}</b> → {pair} perpetual. Set margin mode <b className="text-text-primary">Isolated</b> and leverage <b className="text-text-primary">{cfg.leverage}x</b> before ordering.</>,
+                        <>Open <b className="text-text-primary">{guide.market}</b> → {sym(pair)} perpetual. Set <b className="text-text-primary">Isolated</b> and leverage <b className="text-text-primary">{cfg.leverage}×</b>{rule?.max_leverage ? ` (this coin max ${rule.max_leverage}×)` : ""} before the first order.</>,
                         <>{guide.unit(sym(pair))}</>,
                         <><b className="text-text-primary">{long ? "Buy / Long" : "Sell / Short"}</b> Entry 1 as a <b className="text-text-primary">Market</b> order{plan.legs.length > 1 ? <>, then Entries 2–{plan.legs.length} as <b className="text-text-primary">Limit</b> orders at their prices</> : null}.</>,
                         <>Stop at <b className="font-mono text-text-primary">{priceFmt(plan.sl, tick)}</b>: {guide.stop} — it covers entries that fill later.</>,
-                        <>Take profits: once Entry 1 has filled, place <b className="text-text-primary">Limit</b> orders with <b className="text-text-primary">Reduce-only</b> ticked at each TP. The TP sizes assume every entry filled — if only some did, scale them down (see below).</>,
-                        <>Keep at least <b className="font-mono text-text-primary">{money(walletNeed)}</b> USDT in the futures wallet{balance ? pctOf(walletNeed) : ""}.</>,
-                      ].map((c, i) => (
+                        <>Take profits: {guide.tp}</>,
+                        <>Keep at least <b className="font-mono text-text-primary">{money(walletNeed)}</b> {collateral} in {guide.wallet || "the futures wallet"}{balance ? pctOf(walletNeed) : ""}.</>,
+                        guide.extra ? <>{guide.extra}</> : null,
+                      ].filter(Boolean).map((c, i) => (
                         <li key={i} className="flex gap-2">
                           <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] font-mono text-[10px] text-text-muted">{i + 1}</span>
                           <span>{c}</span>

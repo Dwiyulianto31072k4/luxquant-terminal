@@ -190,9 +190,18 @@ function SectionSizing() {
         as your balance grows or shrinks. Good for compounding once you trust the system.
       </Field>
 
+      <Field label="Method: Risk per trade">
+        The amount is the percent of free USDT you are willing to lose if the stop hits — not the
+        margin. A $1,000 wallet at 1% budgets about $10 at SL. A far stop uses less margin; a tight
+        stop uses more. Same rule on Binance, Bitget, BingX, Bybit, OKX, and Gate. Missing SL, SL
+        equal to entry, or SL=TP is skipped. Unlike Fixed/Percent, a size below the $5 floor is
+        skipped rather than bumped up (bumping would oversize the stop).
+      </Field>
+
       <Field label="Amount">
-        The numeric value for the chosen method — USDT for <Code>Fixed</Code>, percent for{" "}
-        <Code>Percent</Code>. This is the margin you commit, not the position size: live entries
+        The numeric value for the chosen method — USDT for <Code>Fixed</Code>, percent of free
+        USDT as margin for <Code>Percent</Code>, percent of free USDT lost at SL for{" "}
+        <Code>Risk per trade</Code>. For Fixed/Percent this is the margin you commit: live entries
         floor at <b>5 USDT</b>, which leverage multiplies up (5 USDT at 10× opens a 50 USDT
         position). 5 USDT is Agent’s live floor so venues do not reject the order.
       </Field>
@@ -593,6 +602,10 @@ function SectionFAQ() {
     {
       q: "Why can’t I connect my exchange yet?",
       a: "The live trading agreement must be signed first. Connect is hidden until that form is saved. Unsigned keys are disconnected. Signing is not going live — you still choose dry-run vs live after the key is in.",
+    },
+    {
+      q: "I linked Bitget but I only want Binance. Do I unlink first?",
+      a: "Yes. Agent runs one venue at a time. Open Agent → Overview → Unlink, or Settings → Connections. Unlink refuses if Agent still has open bot positions — close or wait those out on Positions first. Trade history stays. The new desk starts paused in dry-run. Coins you placed by hand on the exchange are not Agent trades and are left alone.",
     },
     {
       q: "Why are so many signals skipped today?",
