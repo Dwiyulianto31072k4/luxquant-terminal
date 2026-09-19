@@ -530,6 +530,13 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
 # BULK 7D QUERY (all signals, no pagination — for frontend client-side pagination)
 # ============================================
 
+# BigStar's own risk reason, stored on the call and printed on the Telegram post
+# ("The same symbol has already reached TP4 within the last 24 hours"). The desk
+# reads the same line so the badge and the post can never disagree; over 30 days
+# it matched our own TP4 updates on 214 of 214 calls.
+TP4_IN_24H_REASON = "%reached TP4 within the last 24 hours%"
+
+
 def query_signals_bulk_7d(db):
     """
     Fetch ALL signals from last 7 days in one query (no pagination).
@@ -564,7 +571,8 @@ def query_signals_bulk_7d(db):
             bc.is_decoupled, bc.is_extended,                   -- r[24], r[25]
             (bc.interpretation->>'alignment_score')::int,      -- r[26]
             bc.interpretation->>'risk_level',                  -- r[27]
-            tg.important_tags                                  -- r[28]
+            tg.important_tags,                                 -- r[28]
+            COALESCE(s.risk_reasons, '') ILIKE :tp4_24h        -- r[29]
         FROM signals s
         LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
@@ -578,7 +586,7 @@ def query_signals_bulk_7d(db):
         ) tg ON true
         WHERE s.created_at >= :date_from
         ORDER BY s.call_message_id DESC
-    """), {"date_from": date_7d}).fetchall()
+    """), {"date_from": date_7d, "tp4_24h": TP4_IN_24H_REASON}).fetchall()
  
     items = []
     for r in rows:
@@ -602,6 +610,7 @@ def query_signals_bulk_7d(db):
             "btc_align_score": r[26],
             "btc_risk": r[27],
             "important_tags": list(r[28]) if r[28] else [],
+            "tp4_in_24h": bool(r[29]),
         })
  
     return {"items": items, "total": len(items), "date_from": date_7d}

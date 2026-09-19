@@ -409,6 +409,25 @@ const pageWindow = (current, total) => {
  *  stays reachable. Rendered as two buttons rather than a checkbox because a
  *  checkbox has no way to say "not answered".
  */
+// BigStar's own risk line on the call ("The same symbol has already reached
+// TP4 within the last 24 hours"), carried by bulk-7d as `tp4_in_24h` — the same
+// line the Telegram post prints, so the badge and the post never disagree.
+const MAX_TP_24H_TIP =
+  "This coin reached its max TP (TP4) in the 24h before this call. It may be more volatile — keep your risk management tight.";
+
+function MaxTp24hChip() {
+  return (
+    <span
+      title={MAX_TP_24H_TIP}
+      aria-label={MAX_TP_24H_TIP}
+      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-warning/12 px-1.5 py-0.5 text-[10px] font-medium leading-none text-text-primary ring-1 ring-inset ring-warning/30"
+    >
+      <span className="text-warning">{Ic.warn("h-3 w-3")}</span>
+      Max TP in 24h
+    </span>
+  );
+}
+
 function TakenControl({ value, onPick }) {
   const opts = [
     { key: "taken", label: "Yes", on: "border-profit bg-profit text-white" },
@@ -1342,9 +1361,12 @@ const SignalsTable = ({
               <div className="flex min-h-9 items-center gap-2 pr-9">
                 <CoinLogo pair={signal.pair} size={28} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-text-primary">
-                    {getCoinName(signal.pair)}
-                    <span className="text-text-muted">/USDT</span>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-sm font-semibold text-text-primary">
+                      {getCoinName(signal.pair)}
+                      <span className="text-text-muted">/USDT</span>
+                    </span>
+                    {signal.tp4_in_24h ? <MaxTp24hChip /> : null}
                   </span>
                   {signal.created_at ? (
                     <span
@@ -2226,11 +2248,12 @@ const SignalsTable = ({
                         <td>
                           <div className="flex items-center gap-2.5">
                             <CoinLogo pair={signal.pair} size={26} />
-                            <div className="leading-tight">
+                            <div className="flex items-center gap-2 leading-tight">
                               <p className="text-[13px] font-medium text-text-primary transition-colors group-hover:text-accent">
                                 {getCoinName(signal.pair)}
                                 <span className="text-text-muted">/USDT</span>
                               </p>
+                              {signal.tp4_in_24h ? <MaxTp24hChip /> : null}
                             </div>
                           </div>
                         </td>

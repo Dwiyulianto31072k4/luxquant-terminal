@@ -43,7 +43,7 @@ from app.core.redis import (
 )
 from app.utils.chart_urls import chart_path_to_url
 from app.services.coin_intel_worker import compute_daily_regimes, compute_coin_intel
-from app.services.cache_worker import precompute_outcomes, ensure_outcomes_table
+from app.services.cache_worker import precompute_outcomes, ensure_outcomes_table, TP4_IN_24H_REASON
 from app.core.database import SessionLocal
 import logging
 
@@ -640,7 +640,8 @@ def get_signals_bulk_7d(
                 bc.interpretation->>'risk_level',                  -- r[27]
                 tg.important_tags,                                 -- r[28]
                 -- Appended, never inserted: the rows below are read by index.
-                s.peak_price                                       -- r[29]
+                s.peak_price,                                      -- r[29]
+                COALESCE(s.risk_reasons, '') ILIKE :tp4_24h        -- r[30]
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
@@ -654,7 +655,7 @@ def get_signals_bulk_7d(
             ) tg ON true
             WHERE s.created_at >= :date_from
             ORDER BY s.call_message_id DESC
-        """), {"date_from": date_7d}).fetchall()
+        """), {"date_from": date_7d, "tp4_24h": TP4_IN_24H_REASON}).fetchall()
  
         items = []
         hidden = 0
@@ -683,6 +684,7 @@ def get_signals_bulk_7d(
                     "btc_align_score": r[26],
                     "btc_risk": r[27],
                     "important_tags": list(r[28]) if r[28] else [],
+                    "tp4_in_24h": bool(r[30]),
                     "close_price": float(r[29]) if r[29] is not None else None,
                     "is_redacted": False,
                 })
@@ -716,6 +718,7 @@ def get_signals_bulk_7d(
                     "btc_align_score": r[26],
                     "btc_risk": r[27],
                     "important_tags": list(r[28]) if r[28] else [],
+                    "tp4_in_24h": bool(r[30]),
                     # Where this call actually finished. Only reaches the client
                     # for fully-won rows, which are the only ones a free account
                     # receives at all — a finished high is proof, not a level.
