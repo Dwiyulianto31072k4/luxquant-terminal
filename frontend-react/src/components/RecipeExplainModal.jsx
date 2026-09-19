@@ -622,7 +622,7 @@ export function HuntResults({
             <p className={LBL}>{wf ? "Today\u2019s runner tags, each on its own" : "Runner tags in this mix"}</p>
             <p className="mb-2 mt-1 text-[11px] leading-snug text-text-muted">
               {wf
-                ? "All closed calls since 10 Mar that wore the tag, in-sample: the four were picked on this history. Tap one to see it."
+                ? "All closed calls since 10 Mar that wore the tag, in-sample: these tags were picked on this history. Tap one to see it."
                 : "Tap one to see that tag on its own. Tags overlap, so a call with two of them is one row above and appears under both here."}
             </p>
             <div className="flex flex-wrap gap-1.5">

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import * as echarts from "echarts/core";
-import { LineChart, BarChart, ScatterChart, CustomChart } from "echarts/charts";
+import { LineChart, BarChart, ScatterChart, CustomChart, PieChart } from "echarts/charts";
 import {
   GridComponent,
   TooltipComponent,
@@ -16,8 +16,8 @@ import { CanvasRenderer } from "echarts/renderers";
  * piecewise. Pulling `echarts` whole would dwarf this route (the Overview
  * chunk is ~29 KB); registering only the chart types and components we
  * actually draw keeps the cost proportional. Add to this list when a new card
- * needs a new series type — GaugeChart and PieChart are deliberately absent
- * until the Opportunity tab exists.
+ * needs a new series type — GaugeChart is deliberately absent until the
+ * Opportunity tab exists.
  */
 echarts.use([
   LineChart,
@@ -32,6 +32,9 @@ echarts.use([
   // square PNG stays square; a custom series can hand zrender a clipPath and
   // get a real circle out of any source. See terminal/logoDisc.js.
   CustomChart,
+  // Donuts on the Runners results page: how a group's calls finished, part to
+  // whole, five ordered outcomes — the one job a donut does better than a bar.
+  PieChart,
   GridComponent,
   TooltipComponent,
   DataZoomComponent,
@@ -50,6 +53,10 @@ const TOKENS = [
   "--viz-tp2",
   "--viz-tp3",
   "--viz-tp4",
+  // The validated categorical set (index.css): series identity, in fixed order.
+  "--viz-1",
+  "--viz-2",
+  "--viz-muted",
   "--pos",
   "--neg",
   "--fg",

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { topRunnerTags } from "./EdgePlaybook";
 import { RUNNERS_EDGE_TOP, runnersRecipeState } from "../utils/signalFilters";
 import RecipeExplainModal, { HuntResults } from "./RecipeExplainModal";
+import RunnersResults from "./runners/RunnersResults";
 import ModeGuideModal, { isModeGuideMuted } from "./ModeGuideModal";
 import Modal from "./ui/Modal";
 import { SegGroup, deskChipClass } from "./ui/SegGroup";
@@ -382,12 +383,12 @@ export default function EdgeRecipesBar({
       <Modal
         isOpen={resultsOpen}
         onClose={() => setResultsOpen(false)}
-        size="lg"
+        size="desk"
         eyebrow="Runners"
-        title="Vs no filter"
-        subtitle="Closed calls only. How the runner-tag mix finished, next to the unfiltered desk."
+        title="Results"
+        subtitle="How Runners finished next to every call — each day replayed with only what was known that day."
       >
-        <HuntResults
+        <RunnersResults
           stats={huntByDays[huntDays] || huntStats}
           loading={huntLoading}
           error={huntError}
@@ -396,8 +397,22 @@ export default function EdgeRecipesBar({
           windowOptions={[
             { key: "7", label: "7d" },
             { key: "30", label: "30d" },
-            { key: "0", label: "All time" },
+            { key: "0", label: "All since Jun" },
           ]}
+          fallback={
+            <HuntResults
+              stats={huntByDays[huntDays] || huntStats}
+              loading={huntLoading}
+              error={huntError}
+              windowValue={huntDays}
+              onWindow={setHuntDays}
+              windowOptions={[
+                { key: "7", label: "7d" },
+                { key: "30", label: "30d" },
+                { key: "0", label: "All time" },
+              ]}
+            />
+          }
         />
       </Modal>
 

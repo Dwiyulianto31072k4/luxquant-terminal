@@ -1891,6 +1891,184 @@ def _runner_topic_record(db, start_str, end_str):
     }
 
 
+# ── Runners results dashboard ────────────────────────────────────────────────
+# Everything the Results page draws, from the walk-forward replay, windowed by
+# the day each call was DECIDED (so "last 30 days" means calls made then, and
+# how they have finished so far — open ones are counted apart, never as losses).
+
+_LEVEL_CASE = """
+    CASE
+        WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 4
+        WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 3
+        WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 2
+        WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 1
+        WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 0
+    END
+"""  # same order as OUTCOMES_CTE: the highest level named wins
+
+
+def _runner_wf_dataset(db):
+    """One row per walk-forward decision: day, runner, top, hit tags, final
+    outcome and hours from the call to each level. Shared by the three windows
+    (the warmer asks for all of them within a minute), so cached briefly."""
+
+    def _load():
+        rows = db.execute(text(f"""
+            WITH {OUTCOMES_CTE},
+            lv AS (
+                SELECT su.signal_id,
+                       min(su.update_at::timestamptz) FILTER (WHERE {_LEVEL_CASE} >= 1) AS t1,
+                       min(su.update_at::timestamptz) FILTER (WHERE {_LEVEL_CASE} >= 2) AS t2,
+                       min(su.update_at::timestamptz) FILTER (WHERE {_LEVEL_CASE} >= 3) AS t3,
+                       min(su.update_at::timestamptz) FILTER (WHERE {_LEVEL_CASE} = 4) AS t4,
+                       min(su.update_at::timestamptz) FILTER (WHERE {_LEVEL_CASE} = 0) AS tsl
+                FROM signal_updates su
+                JOIN runner_walkforward_calls w ON w.signal_id = su.signal_id
+                WHERE su.update_type IS NOT NULL
+                GROUP BY su.signal_id
+            )
+            SELECT w.day::text, w.runner,
+                   w.runner AND COALESCE(dd.runner_tags[1] = ANY(w.hit_tags), false),
+                   w.hit_tags, r.outcome,
+                   EXTRACT(EPOCH FROM lv.t1 - s.created_at::timestamptz) / 3600,
+                   EXTRACT(EPOCH FROM lv.t2 - s.created_at::timestamptz) / 3600,
+                   EXTRACT(EPOCH FROM lv.t3 - s.created_at::timestamptz) / 3600,
+                   EXTRACT(EPOCH FROM lv.t4 - s.created_at::timestamptz) / 3600,
+                   EXTRACT(EPOCH FROM lv.tsl - s.created_at::timestamptz) / 3600
+            FROM runner_walkforward_calls w
+            JOIN runner_walkforward_days dd ON dd.day = w.day
+            JOIN signals s ON s.signal_id = w.signal_id
+            LEFT JOIN resolved r ON r.signal_id = w.signal_id
+            LEFT JOIN lv ON lv.signal_id = w.signal_id
+        """)).fetchall()
+        return [[r[0], bool(r[1]), bool(r[2]), list(r[3] or []) if r[1] else [], r[4],
+                 *[round(float(x), 2) if x is not None else None for x in r[5:10]]] for r in rows]
+
+    try:
+        return cache_single_flight("lq:runner-wf-dataset:v1", 540, _load, keep=bool)
+    except Exception:
+        db.rollback()
+        return None
+
+
+def _median(xs):
+    xs = sorted(x for x in xs if x is not None and x >= 0)
+    if not xs:
+        return None
+    m = len(xs) // 2
+    return round(xs[m] if len(xs) % 2 else (xs[m - 1] + xs[m]) / 2, 1)
+
+
+def runner_dashboard(rows, days: int, tags):
+    """Aggregate the per-call dataset for one window. Pure, so it is tested
+    without a database. `rows`: [day, runner, top, hit_tags, outcome, h1, h2,
+    h3, h4, hsl]. Returns None when there is nothing to show."""
+    from datetime import date, timedelta
+
+    if not rows:
+        return None
+    last = max(r[0] for r in rows)
+    first = min(r[0] for r in rows)
+    if days:
+        first = max(first, (date.fromisoformat(last) - timedelta(days=days - 1)).isoformat())
+    inwin = [r for r in rows if first <= r[0] <= last]
+
+    def blank():
+        return {"n": 0, "open": 0, "sl": 0, "tp1": 0, "tp2": 0, "tp3": 0, "tp4": 0}
+
+    def add(c, r):
+        if r[4] in ("sl", "tp1", "tp2", "tp3", "tp4"):
+            c["n"] += 1
+            c[r[4]] += 1
+        else:
+            c["open"] += 1
+
+    groups = {k: blank() for k in ("every", "runner", "top", "rest")}
+    for r in inwin:
+        add(groups["every"], r)
+        if r[1]:
+            add(groups["runner"], r)
+            add(groups["top" if r[2] else "rest"], r)
+
+    def point(sel):
+        done = [r for r in sel if r[4]]
+        return [len(done), sum(r[4] in ("tp3", "tp4") for r in done),
+                sum(r[4] == "sl" for r in done), sum(r[4] in ("tp1", "tp2", "tp3", "tp4") for r in done)]
+
+    by_day = {}
+    for r in inwin:
+        by_day.setdefault(r[0], []).append(r)
+    series = [{"day": d, "every": point(rs), "runner": point([r for r in rs if r[1]]),
+               "top": point([r for r in rs if r[2]]), "decided": len(rs),
+               "runners": sum(r[1] for r in rs), "tops": sum(r[2] for r in rs)}
+              for d, rs in sorted(by_day.items())]
+
+    # The trend is always drawn over the whole replay, the window shaded on it:
+    # a single week has no trend to show.
+    by_week = {}
+    for r in rows:
+        d = date.fromisoformat(r[0])
+        by_week.setdefault((d - timedelta(days=d.weekday())).isoformat(), []).append(r)
+    weekly = [{"week": w, "every": point(rs), "runner": point([r for r in rs if r[1]]),
+               "top": point([r for r in rs if r[2]])} for w, rs in sorted(by_week.items())]
+
+    def speed(sel):
+        return {"tp1": _median(r[5] for r in sel), "tp2": _median(r[6] for r in sel),
+                "tp3": _median(r[7] for r in sel), "tp4": _median(r[8] for r in sel),
+                "sl": _median(r[9] for r in sel if r[4] == "sl")}
+
+    runners = [r for r in inwin if r[1]]
+    per_tag = []
+    for t in tags or []:
+        c = blank()
+        for r in runners:
+            if t in r[3]:
+                add(c, r)
+        per_tag.append({"tag": t, "counts": c})
+
+    return {
+        "first_day": first, "last_day": last, "days": days,
+        "groups": groups, "series": series, "weekly": weekly,
+        "speed": {"every": speed(inwin), "runner": speed(runners),
+                  "top": speed([r for r in runners if r[2]])},
+        "tags": per_tag,
+    }
+
+
+def _runner_live_by_call_date(db, first_day):
+    """The Runners topic's real record for calls made from `first_day` (and
+    since the topic started): chosen, Top Runners, and every call beside them."""
+    try:
+        since = db.execute(text(
+            "SELECT value FROM runner_call_config WHERE key = 'start_ts'")).scalar()
+        if since is None:
+            return None
+        rows = db.execute(text(f"""
+            WITH {OUTCOMES_CTE}
+            SELECT COALESCE(p.matched, false), COALESCE(p.reason LIKE 'top runner%', false), r.outcome
+            FROM signals s
+            LEFT JOIN runner_call_posts p ON p.signal_id = s.signal_id
+            LEFT JOIN resolved r ON r.signal_id = s.signal_id
+            WHERE s.created_at::timestamptz >= GREATEST(CAST(:since AS timestamptz),
+                                                        CAST(:first AS timestamptz))
+        """), {"since": since, "first": first_day}).fetchall()
+    except Exception:
+        db.rollback()
+        return None
+    out = {k: {"n": 0, "open": 0, "sl": 0, "tp1": 0, "tp2": 0, "tp3": 0, "tp4": 0}
+           for k in ("every", "runner", "top")}
+    for matched, top, outcome in rows:
+        for k, on in (("every", True), ("runner", matched), ("top", matched and top)):
+            if not on:
+                continue
+            if outcome in ("sl", "tp1", "tp2", "tp3", "tp4"):
+                out[k]["n"] += 1
+                out[k][outcome] += 1
+            else:
+                out[k]["open"] += 1
+    return {"since": str(since), "groups": out}
+
+
 def _runner_walkforward_record(db, start_str, end_str):
     """The Runners rule replayed point-in-time (workers/runner_walkforward):
     the calls it would have chosen against every call it decided, finished in
@@ -1993,7 +2171,7 @@ HUNT_FTP_TTL = 1800  # the warmer rewrites it every 10 min; this is the safety n
 
 def hunt_full_tp_key(days: int, min_n: int, top_k: int) -> str:
     start_date, end_date, _ = _resolve_tag_lookback(days)
-    return f"lq:edge-lab:hunt-ftp:v5:{days}:{min_n}:{top_k}:{start_date.isoformat()}:{end_date.isoformat()}"
+    return f"lq:edge-lab:hunt-ftp:v6:{days}:{min_n}:{top_k}:{start_date.isoformat()}:{end_date.isoformat()}"
 
 
 def hunt_full_tp_payload(days: int, min_n: int, top_k: int, db) -> dict:
@@ -2077,12 +2255,16 @@ def hunt_full_tp_payload(days: int, min_n: int, top_k: int, db) -> dict:
 
     posted = _runner_topic_record(db, start_str, end_str)
     walk_forward = _runner_walkforward_record(db, start_str, end_str)
+    dashboard = runner_dashboard(_runner_wf_dataset(db) or [], days, runner_names)
+    if dashboard:
+        dashboard["live"] = _runner_live_by_call_date(db, dashboard["first_day"])
 
     response = {
         "ok": True,
         "method": "union_entry_snapshot_runner_tags",
         "posted": posted,
         "walk_forward": walk_forward,
+        "dashboard": dashboard,
         "score_version": "v2",
         "window": {"start": start_str, "end": end_str},
         "effective_days": effective_days,
