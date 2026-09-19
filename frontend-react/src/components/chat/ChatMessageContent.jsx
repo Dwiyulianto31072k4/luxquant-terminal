@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDialog } from "../../hooks/useDialog";
-import Modal from "../ui/Modal";
 import { Z } from "../../constants/zIndex";
+import Modal from "../ui/Modal";
 
 const URL_RE = /((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
 
@@ -103,16 +104,14 @@ export const ChatImageLightbox = ({ src, onClose }) => {
   useDialog({ isOpen: !!src, onClose, ref: dialogRef });
   if (!src) return null;
 
-  return (
+  return createPortal(
     <div
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="Image preview"
       tabIndex={-1}
-      // Above every chat shell (both chat modals sit at 200000) and the header:
-      // at 10020 the preview opened BEHIND the conversation it came from.
-      style={{ zIndex: Z.lightbox + 1 }}
+      style={{ zIndex: Z.lightbox }}
       className="fixed inset-0 flex items-center justify-center bg-black/85 p-3 backdrop-blur-sm sm:p-8"
       onClick={onClose}
     >
@@ -137,7 +136,8 @@ export const ChatImageLightbox = ({ src, onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -159,7 +159,7 @@ export const ChatImageSendModal = ({ file, sending, onCancel, onSend }) => {
       onClose={() => {
         if (!sending) onCancel?.();
       }}
-      zIndex={Z.nestedModal}
+      zIndex={Z.lightbox}
       title="Send image"
       subtitle={file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB` : "Preview attachment"}
       size="lg"
