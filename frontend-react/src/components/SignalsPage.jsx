@@ -486,7 +486,7 @@ function ModeGuideLink({ onClick }) {
       onClick={onClick}
       aria-label="What these mean"
       title="What these mean"
-      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-7 sm:w-auto sm:gap-1.5 sm:px-2.5 sm:font-mono sm:text-[10px] sm:font-semibold sm:uppercase sm:tracking-[0.06em]"
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5 sm:font-mono sm:text-[10px] sm:font-semibold sm:uppercase sm:tracking-[0.06em]"
     >
       <svg
         className="h-3.5 w-3.5 shrink-0"
@@ -2436,7 +2436,7 @@ const SignalsPage = () => {
                     setShowWatchlistOnly(false);
                     toggleDateFilter(opt.value);
                   }}
-                  className={`${deskChipClass(active)} !h-11 sm:!h-7`}
+                  className={deskChipClass(active)}
                 >
                   {opt.label}
                   {opt.count != null ? (
@@ -2450,7 +2450,7 @@ const SignalsPage = () => {
             type="button"
             onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
             aria-label="View previous day"
-            className="absolute right-0 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-secondary hover:text-text-primary sm:flex"
+            className="absolute right-0 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-secondary hover:text-text-primary sm:flex"
           >
             <svg
               className="h-4 w-4"
@@ -2467,7 +2467,11 @@ const SignalsPage = () => {
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center gap-2 sm:mt-3">
+        {/* Third question, same left edge as the first two: without this rail
+            the search field started at the card's padding while Mode and Day
+            started 62px in, so the console had two left margins. */}
+        <div className="mt-2 flex items-center gap-2 sm:mt-3 sm:gap-3">
+          <span className={CONSOLE_LABEL}>Find</span>
           <div className="relative min-w-0 flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/45 pointer-events-none">
               {Icon.search("w-3.5 h-3.5")}
@@ -2486,7 +2490,7 @@ const SignalsPage = () => {
                 type="button"
                 onClick={() => setSearchPair("")}
                 aria-label="Clear search"
-                className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text-primary/45 transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
+                className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-text-primary/45 transition-colors hover:bg-ink/[0.06] hover:text-text-primary sm:h-7 sm:w-7"
               >
                 {Icon.close ? Icon.close("w-3 h-3") : <span className="text-[13px] leading-none">×</span>}
               </button>
@@ -3014,7 +3018,7 @@ const SignalsPage = () => {
                         key={t.tag}
                         onClick={() => toggleTag(t.tag)}
                         title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
-                        className={`${deskChipClass(active)} !h-11 sm:!h-7`}
+                        className={deskChipClass(active)}
                       >
                         <span className="normal-case">
                           {t.tag.replace(/_/g, " ").toLowerCase()}

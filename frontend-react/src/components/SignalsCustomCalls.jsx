@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
 import Modal from "./ui/Modal";
+import { deskChipClass } from "./ui/SegGroup";
 import { signalAlertApi, criteriaToDeskState } from "../services/signalAlertApi";
 import {
   CONDITION_LABELS,
@@ -631,12 +632,21 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
   if (!show) return null;
   return (
     <>
+      {/* The trigger lives in the filter console, so it wears the console's
+          clothes — not BUTTON, which is this file's DIALOG token (40px,
+          13px sentence case, 8px radius). Dropped into that toolbar it was
+          taller than its neighbours, in a different typeface and a different
+          radius: the one control that looked like it came from another app.
+          Gold when a screen is on, because that is a state, not an action. */}
       <button
         type="button"
         onClick={start}
-        className={`${BUTTON} ${active ? "border-accent bg-accent/10" : "bg-surface-secondary"}`}
+        title={activeName ? `Custom screen: ${activeName}` : "Build a screen from your own conditions"}
+        className={`${deskChipClass(active)} min-w-0 justify-center !px-2 sm:!px-2.5`}
       >
-        Custom{activeName ? ` · ${activeName}` : active ? " · active" : ""}
+        <span className="truncate">
+          Custom{activeName ? ` · ${activeName}` : active ? " · active" : ""}
+        </span>
       </button>
       <Modal
         isOpen={open}

@@ -43,6 +43,21 @@ export const DESK_SHELL =
 // Making all three literally identical is what made the desk unreadable — every
 // control looked equally important and none looked scrollable.
 
+/** ONE height for every desk control, so a row of them lines up without any
+ *  call site guessing: 44px on a phone — Apple's tap-target minimum and WCAG
+ *  2.5.5 — and 32px from sm up, the dense toolbar height an exchange desk uses
+ *  where there is a pointer (and still four times WCAG 2.5.8's 24px floor).
+ *  A control that needs a different height overrides it here, not inline. */
+export const DESK_H = "h-11 sm:h-8";
+
+/** Keyboard focus has to be visible on every one of these (WCAG 2.4.7), and it
+ *  has to be the SAME ring everywhere or the desk looks like three widgets.
+ *  The offset is NEGATIVE on purpose: both the mode shell and the day rail are
+ *  overflow-x-auto scroll containers, which clip anything drawn outside a
+ *  child, so an outset ring would lose its left edge on the first control. */
+const DESK_FOCUS =
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent";
+
 /** Segment sizes. `touch` is phone-first: a 40px control inside a 44px rail,
  *  which is Apple's minimum tap target, collapsing to the dense desk size from
  *  sm up where there is a pointer and no 44pt floor. */
@@ -68,7 +83,7 @@ export function deskSegClass(active, { fill = false, size = "sm" } = {}) {
       : fill
         ? "min-w-0 flex-1 basis-0 justify-center"
         : "shrink-0";
-  return `inline-flex ${grow} items-center gap-1.5 whitespace-nowrap rounded-sm font-mono font-semibold uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${pad} ${
+  return `inline-flex ${grow} ${DESK_FOCUS} items-center gap-1.5 whitespace-nowrap rounded-sm font-mono font-semibold uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${pad} ${
     active ? "bg-accent text-accent-fg shadow-sm" : "text-text-muted hover:text-text-primary"
   }`;
 }
@@ -78,7 +93,7 @@ export function deskSegClass(active, { fill = false, size = "sm" } = {}) {
  *  because nothing else separates it from its neighbour, and snaps so a
  *  half-cut label is never where the strip comes to rest. */
 export function deskChipClass(active) {
-  return `snap-start inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors sm:h-7 sm:px-2.5 ${
+  return `snap-start inline-flex ${DESK_H} ${DESK_FOCUS} shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors sm:px-2.5 ${
     active
       ? "border-accent bg-accent text-accent-fg shadow-sm"
       : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:text-text-primary"
@@ -99,9 +114,9 @@ export function deskBadgeClass(active) {
  *  both it and the transparent default are border-color utilities, so which
  *  one wins is decided by stylesheet order, not by the class list.) */
 export function deskGhostClass({ square = false, bordered = false } = {}) {
-  const box = square ? "h-10 w-10 justify-center sm:h-7 sm:w-7" : "h-10 px-2 sm:h-7 sm:px-2.5";
+  const box = square ? `${DESK_H} w-11 justify-center sm:w-8` : `${DESK_H} px-2 sm:px-2.5`;
   const edge = bordered ? "border-ink/[0.08]" : "border-transparent";
-  return `inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border ${edge} font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-text-muted transition-colors hover:border-ink/[0.1] hover:bg-surface-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 ${box}`;
+  return `inline-flex ${DESK_FOCUS} shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border ${edge} font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-text-muted transition-colors hover:border-ink/[0.1] hover:bg-surface-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 ${box}`;
 }
 
 export function SegGroup({

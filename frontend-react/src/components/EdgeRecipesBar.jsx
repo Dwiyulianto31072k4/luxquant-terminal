@@ -368,7 +368,12 @@ export default function EdgeRecipesBar({
           <SegGroup
             size="touch"
             fill="mobile"
-            className="w-full"
+            // !p-px, not the shell's default 2px: a 40/28px segment inside a
+            // 1px track and a 1px border is exactly the 44/32 every other
+            // control in this console is, so the mode rail sits on the same
+            // top and bottom line as the buttons beside it. Local, because the
+            // shell is shared with eleven other pages.
+            className="w-full !p-px"
             aria-label="Desk mode"
             value={modeValue}
             onChange={onMode}
@@ -378,7 +383,7 @@ export default function EdgeRecipesBar({
         {showRecipes ? (
           <button
             type="button"
-            className={`${deskChipClass(resultsOpen)} !h-11 justify-center !px-2 sm:!h-7 sm:!px-2.5`}
+            className={`${deskChipClass(resultsOpen)} justify-center !px-2 sm:!px-2.5`}
             title="Closed-call record of Runners vs the unfiltered desk"
             onClick={() => setResultsOpen(true)}
           >
