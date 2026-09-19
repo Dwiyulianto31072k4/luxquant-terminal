@@ -30,6 +30,8 @@ import { readMyEntry, writeMyEntry } from "../utils/myEntries";
 import { InfoTip } from "./GuideInfo";
 import { shareSignal } from "../services/shareSignal";
 import IndicatorGuideModal from "./IndicatorGuideModal";
+import MaxTpBadge from "./MaxTpBadge";
+import { MAX_TP_24H_TIP, prevCallHitMaxTp } from "../utils/maxTpWarning";
 import Modal from "./ui/Modal";
 import { Z } from "../constants/zIndex";
 import {
@@ -121,6 +123,7 @@ const SignalModal = ({
   const [showSimilar, setShowSimilar] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
   const [showLevelsSheet, setShowLevelsSheet] = useState(false);
+  const [showMaxTpNote, setShowMaxTpNote] = useState(false);
   const [shariahStatus, setShariahStatus] = useState(null);
 
   useEffect(() => {
@@ -317,6 +320,7 @@ const SignalModal = ({
     setShowDeepAnalysis(false);
     setShowPlanner(false);
     setShowLevelsSheet(false);
+    setShowMaxTpNote(false);
     setActiveTab(initialTab);
 
     const controller = new AbortController();
@@ -1122,6 +1126,9 @@ const SignalModal = ({
   // Backend marks signalDetail.is_redacted=true when user is non-subscriber
   // viewing an OPEN signal. In that case entry/TP/SL/charts are null in the response.
   const isRedacted = signalDetail?.is_redacted === true;
+  // The row from the desk carries tp4_in_24h; a modal opened from anywhere
+  // else still has the detail's risk_reasons, which is the same stored line.
+  const maxTpHit = prevCallHitMaxTp(signal, signalDetail);
 
   const calcPct = (target, entry) => {
     const tNum = Number(target);
@@ -2219,6 +2226,12 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {maxTpHit ? (
+                      <MaxTpBadge
+                        onClick={() => setShowMaxTpNote((v) => !v)}
+                        expanded={showMaxTpNote}
+                      />
+                    ) : null}
                     <span className="sm:hidden">
                       <CoinCategoryBadge
                         pair={signal?.pair}
@@ -2255,6 +2268,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       {formatShortDateTime(signal?.created_at)}
                     </span>
                   </div>
+                  {/* Tapped open, not hovered: a phone has no hover, and this
+                      is the one line of the header that asks for caution. */}
+                  {maxTpHit && showMaxTpNote ? (
+                    <p className="mt-1.5 rounded-md border border-warning/25 bg-warning/[0.08] px-2 py-1.5 text-[11px] leading-snug text-text-primary">
+                      {MAX_TP_24H_TIP}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 

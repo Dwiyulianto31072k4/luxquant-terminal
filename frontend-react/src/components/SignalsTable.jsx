@@ -20,6 +20,8 @@ import {
   CoinDetailModal,
 } from "./coinIntelShared";
 import { InfoTip } from "./GuideInfo";
+import MaxTpBadge from "./MaxTpBadge";
+import { prevCallHitMaxTp } from "../utils/maxTpWarning";
 import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
 import { ShimmerStyles } from "./ui/Loaders";
@@ -409,25 +411,6 @@ const pageWindow = (current, total) => {
  *  stays reachable. Rendered as two buttons rather than a checkbox because a
  *  checkbox has no way to say "not answered".
  */
-// BigStar's own risk line on the call ("The same symbol has already reached
-// TP4 within the last 24 hours"), carried by bulk-7d as `tp4_in_24h` — the same
-// line the Telegram post prints, so the badge and the post never disagree.
-const MAX_TP_24H_TIP =
-  "This coin reached its max TP (TP4) in the 24h before this call. It may be more volatile — keep your risk management tight.";
-
-function MaxTp24hChip() {
-  return (
-    <span
-      title={MAX_TP_24H_TIP}
-      aria-label={MAX_TP_24H_TIP}
-      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-warning/12 px-1.5 py-0.5 text-[10px] font-medium leading-none text-text-primary ring-1 ring-inset ring-warning/30"
-    >
-      <span className="text-warning">{Ic.warn("h-3 w-3")}</span>
-      Max TP in 24h
-    </span>
-  );
-}
-
 function TakenControl({ value, onPick }) {
   const opts = [
     { key: "taken", label: "Yes", on: "border-profit bg-profit text-white" },
@@ -1343,6 +1326,7 @@ const SignalsTable = ({
     const tpLevels = [signal.target1, signal.target2, signal.target3, signal.target4];
     const reachedPrice = reachedTp > 0 ? tpLevels[reachedTp - 1] : stoppedOut ? sl : null;
     const reachedAt = at(reachedPrice);
+    const maxTpHit = prevCallHitMaxTp(signal);
 
     return (
       <div className="group/card overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
@@ -1361,12 +1345,15 @@ const SignalsTable = ({
               <div className="flex min-h-9 items-center gap-2 pr-9">
                 <CoinLogo pair={signal.pair} size={28} />
                 <span className="min-w-0 flex-1">
+                  {/* The badge sits beside the name where the card is wide; on a
+                      phone it would cut the coin name (or overrun the card at
+                      320px), so it leads the qualifier row below instead. */}
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className="truncate text-sm font-semibold text-text-primary">
                       {getCoinName(signal.pair)}
                       <span className="text-text-muted">/USDT</span>
                     </span>
-                    {signal.tp4_in_24h ? <MaxTp24hChip /> : null}
+                    {maxTpHit ? <MaxTpBadge className="hidden sm:inline-flex" /> : null}
                   </span>
                   {signal.created_at ? (
                     <span
@@ -1380,8 +1367,9 @@ const SignalsTable = ({
                 {getStatusBadge(signal.status)}
               </div>
               {/* line 2 — the qualifiers, quiet and in one shape */}
-              {(edgeChip || showRisk || showCalled) && (
+              {(edgeChip || showRisk || showCalled || maxTpHit) && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 pr-9 text-[11px] text-text-muted">
+                  {maxTpHit ? <MaxTpBadge className="sm:hidden" /> : null}
                   {edgeChip}
                   {showRisk ? (
                     <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${getRiskClasses(signal.risk_level)}`}>
@@ -2253,7 +2241,7 @@ const SignalsTable = ({
                                 {getCoinName(signal.pair)}
                                 <span className="text-text-muted">/USDT</span>
                               </p>
-                              {signal.tp4_in_24h ? <MaxTp24hChip /> : null}
+                              {prevCallHitMaxTp(signal) ? <MaxTpBadge /> : null}
                             </div>
                           </div>
                         </td>
