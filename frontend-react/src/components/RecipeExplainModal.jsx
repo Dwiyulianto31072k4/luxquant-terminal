@@ -106,7 +106,7 @@ function Legend() {
 }
 
 /** Coinglass-style long/short track: two dots on one scale so a 2pp gap is visible. */
-function CompareTrack({ label, runners, baseline, betterWhen = "higher" }) {
+function CompareTrack({ label, runners, baseline, betterWhen = "higher", aLabel = "Runners", bLabel = "No filter" }) {
   const a = Number(runners);
   const b = Number(baseline);
   if (Number.isNaN(a) || Number.isNaN(b)) return null;
@@ -148,17 +148,17 @@ function CompareTrack({ label, runners, baseline, betterWhen = "higher" }) {
         <span
           className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink/25 bg-surface-raised"
           style={{ left: pos(b) }}
-          title={`No filter ${fmtPct(b)}`}
+          title={`${bLabel} ${fmtPct(b)}`}
         />
         <span
           className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent bg-accent shadow-sm"
           style={{ left: pos(a) }}
-          title={`Runner tags ${fmtPct(a)}`}
+          title={`${aLabel} ${fmtPct(a)}`}
         />
       </div>
       <div className="mt-0.5 flex justify-between font-mono text-[10px] tabular-nums text-text-muted">
-        <span>{leftIsA ? `Runner tags ${fmtPct(a)}` : `No filter ${fmtPct(b)}`}</span>
-        <span>{leftIsA ? `No filter ${fmtPct(b)}` : `Runner tags ${fmtPct(a)}`}</span>
+        <span>{leftIsA ? `${aLabel} ${fmtPct(a)}` : `${bLabel} ${fmtPct(b)}`}</span>
+        <span>{leftIsA ? `${bLabel} ${fmtPct(b)}` : `${aLabel} ${fmtPct(a)}`}</span>
       </div>
     </div>
   );
@@ -185,7 +185,7 @@ function StackedMix({ mix, dim = false }) {
   );
 }
 
-function plainTakeaway(hunt, base) {
+function plainTakeaway(hunt, base, subject = "calls with runner tags") {
   const sl = (Number(hunt.sl_rate) || 0) - (Number(base?.sl_rate) || 0);
   const tp3 = (Number(hunt.full_tp_rate) || 0) - (Number(base?.full_tp_rate) || 0);
   const bits = [];
@@ -204,7 +204,7 @@ function plainTakeaway(hunt, base) {
     );
   }
   if (!bits.length) return "In this window the two mixes finished almost the same.";
-  return `In this window, calls with runner tags ${bits.join(" and ")}.`;
+  return `In this window, ${subject} ${bits.join(" and ")}.`;
 }
 
 /** The "what does TP2 mean here" popover that rides each row of the table. */
@@ -312,9 +312,17 @@ export function HuntResults({
   const [view, setView] = useState("final");
   const [tagOpen, setTagOpen] = useState(null);
 
-  const hunt = stats?.hunt;
-  const base = stats?.baseline;
-  const vs = stats?.vs_all;
+  // The long view is the rule replayed point-in-time when the worker has run;
+  // until then, the older in-sample backtest of the tags alone, labelled so.
+  const wf = stats?.walk_forward;
+  const src = wf
+    ? { hunt: wf.hunt, base: wf.baseline, vs: wf.vs_all, open: wf.open_count,
+        a: "Rule, replayed", b: "Every call", subject: "the calls the rule chose" }
+    : { hunt: stats?.hunt, base: stats?.baseline, vs: stats?.vs_all, open: stats?.open_count,
+        a: "Runner tags", b: "No filter", subject: "calls with runner tags" };
+  const hunt = src.hunt;
+  const base = src.base;
+  const vs = src.vs;
   const pctKey = view === "reached" ? "reached_pct" : "final_pct";
   const deltaKey = view === "reached" ? "reached_pp" : "final_pp";
 
@@ -367,21 +375,37 @@ export function HuntResults({
       <div className="space-y-5 px-3 py-3 sm:px-3.5">
         <PostedRecord posted={stats.posted} />
 
-        {/* The longer view. It is the tags alone, today's tags, on the same
-            history they were picked from — useful for size, not the record. */}
-        <div>
-          <p className={LBL}>Backtest · runner tags only</p>
-          <p className="mt-1 text-[12.5px] leading-snug text-text-primary tabular-nums">
-            {fmtN(hunt.n)} with today&rsquo;s runner tags vs {fmtN(base?.n)} unfiltered
-          </p>
-          <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
-            No Edge cut, and the four tags were picked on this same history, so it reads
-            higher than the posted record is likely to.
-          </p>
-        </div>
+        {/* The longer view: the whole rule replayed day by day with only what
+            was known that day. Falls back to the tag-only backtest, labelled. */}
+        {wf ? (
+          <div>
+            <p className={LBL}>Walk-forward · the full rule, point-in-time</p>
+            <p className="mt-1 text-[12.5px] leading-snug text-text-primary tabular-nums">
+              {fmtN(hunt.n)} the rule would have chosen vs {fmtN(base?.n)} it decided ·{" "}
+              {fmtDate(wf.first_day)} – {fmtDate(wf.last_day)}
+            </p>
+            <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
+              Each day replayed with only what was known that day: that day&rsquo;s runner
+              tags, Edge scores and top-20% cut, the same code the topic runs. It starts{" "}
+              {fmtDate(wf.first_day)} because before then tags were not stamped when calls
+              went out.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className={LBL}>Backtest · runner tags only</p>
+            <p className="mt-1 text-[12.5px] leading-snug text-text-primary tabular-nums">
+              {fmtN(hunt.n)} with today&rsquo;s runner tags vs {fmtN(base?.n)} unfiltered
+            </p>
+            <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
+              No Edge cut, and the four tags were picked on this same history, so it reads
+              higher than the posted record is likely to.
+            </p>
+          </div>
+        )}
 
         <p className="text-[13px] leading-snug text-text-primary">
-          {plainTakeaway(hunt, base)}
+          {plainTakeaway(hunt, base, src.subject)}
         </p>
 
         <div className="grid gap-2 sm:grid-cols-3">
@@ -425,25 +449,31 @@ export function HuntResults({
 
         <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-2">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <p className={LBL}>Runner tags vs no filter</p>
+            <p className={LBL}>{src.a} vs {src.b.toLowerCase()}</p>
             <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
               <span className="mr-2 inline-block h-2 w-2 rounded-full bg-accent align-middle" />
-              Runner tags
+              {src.a}
               <span className="ml-3 mr-2 inline-block h-2 w-2 rounded-full border border-ink/30 bg-surface-raised align-middle" />
-              No filter
+              {src.b}
             </p>
           </div>
           <CompareTrack
+            aLabel={src.a}
+            bLabel={src.b}
             label="Hit TP1+"
             runners={hunt.win_rate}
             baseline={base?.win_rate}
           />
           <CompareTrack
+            aLabel={src.a}
+            bLabel={src.b}
             label="Hit TP3+"
             runners={hunt.full_tp_rate}
             baseline={base?.full_tp_rate}
           />
           <CompareTrack
+            aLabel={src.a}
+            bLabel={src.b}
             label="Stopped out"
             runners={hunt.sl_rate}
             baseline={base?.sl_rate}
@@ -458,8 +488,8 @@ export function HuntResults({
           </div>
           <div className="mt-2 space-y-2">
             {[
-              { name: "Runner tags", mix: hunt, dim: false },
-              { name: "No filter", mix: base, dim: true },
+              { name: src.a, mix: hunt, dim: false },
+              { name: src.b, mix: base, dim: true },
             ]
               .filter((r) => r.mix)
               .map((r) => (
@@ -476,11 +506,10 @@ export function HuntResults({
           </div>
           <p className="mt-2 text-[11px] leading-snug text-text-muted">
             Each bar is 100% of that mix. Red is stopped out; darker green ran further.
-            {stats.open_count != null
-              ? ` ${stats.open_count} calls are still open and are in neither bar.`
-              : ""}{" "}
-            The live Runners also need the top 20% of the last seven days&rsquo; Edge when
-            called — not in these bars. The posted record above is the real set.
+            {src.open != null ? ` ${src.open} calls are still open and are in neither bar.` : ""}{" "}
+            {wf
+              ? "Both bars hold only calls whose tags were stamped within an hour of the call — the ones the topic can decide."
+              : "The live Runners also need the top 20% of the last seven days\u2019 Edge when called — not in these bars. The posted record above is the real set."}
           </p>
         </div>
 
@@ -514,8 +543,8 @@ export function HuntResults({
                 <thead>
                   <tr className="border-b border-ink/[0.08]">
                     <th className={`py-1.5 pr-2 ${LBL} font-normal`}>Outcome</th>
-                    <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>Runner tags</th>
-                    <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>No filter</th>
+                    <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>{src.a}</th>
+                    <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>{src.b}</th>
                     <th className={`py-1.5 pl-2 text-right ${LBL} font-normal`}>Difference</th>
                   </tr>
                 </thead>
@@ -571,17 +600,22 @@ export function HuntResults({
               at TP1 or TP2 usually means they carried on to TP3 or TP4. Those two rows are
               left grey for that reason.
             </p>
-            <p className="mt-1 text-[11px] leading-snug text-text-muted">{stats.stats_cover}</p>
+            <p className="mt-1 text-[11px] leading-snug text-text-muted">
+              {wf
+                ? `Walk-forward: every call decided point-in-time since ${fmtDate(wf.first_day)} that finished in this window, counted once at the highest level it reached (or SL).`
+                : stats.stats_cover}
+            </p>
           </div>
         </details>
 
         {/* 4 — the tags the mix is built from */}
         {Array.isArray(stats.per_tag) && stats.per_tag.length > 0 ? (
           <div>
-            <p className={LBL}>Runner tags in this mix</p>
+            <p className={LBL}>{wf ? "Today\u2019s runner tags, each on its own" : "Runner tags in this mix"}</p>
             <p className="mb-2 mt-1 text-[11px] leading-snug text-text-muted">
-              Tap one to see that tag on its own. Tags overlap, so a call with two of them is
-              one row above and appears under both here.
+              {wf
+                ? "All closed calls since 10 Mar that wore the tag, in-sample: the four were picked on this history. Tap one to see it."
+                : "Tap one to see that tag on its own. Tags overlap, so a call with two of them is one row above and appears under both here."}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {stats.per_tag.map((t) => {

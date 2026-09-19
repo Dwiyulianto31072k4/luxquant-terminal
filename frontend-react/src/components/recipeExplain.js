@@ -96,7 +96,7 @@ export const RECIPE_EXPLAIN = {
       "The calls posted to the Runners topic: a runner tag plus the top 20% of the last seven days\u2019 Edge — decided once, when the call went out, not after it won.",
     simple: [
       "This is a filter for setups that more often filled the later targets, not a collector of trades that already hit TP.",
-      "Below, first the real record: the calls the Runners topic chose, closed ones only (hit TP or SL), against every call made since the topic started. Then the longer backtest: every closed call since 10 Mar that wore one of today’s runner tags, with no Edge cut. Open calls are not counted in either.",
+      "Below, first the real record: the calls the Runners topic chose, closed ones only (hit TP or SL), against every call made since the topic started. Then the longer view: the whole rule replayed day by day since June with only what was known each day — that day’s runner tags, Edge and top-20% cut. Open calls are not counted in either.",
     ],
     drills: [
       {
@@ -115,7 +115,7 @@ export const RECIPE_EXPLAIN = {
         simple:
           "Every tag used here was on the call when it was published. We do not add “winner” tags after TP3 hits. Closed rows in the table are here so you can audit the filter, not because we mined finished trades.",
         expert:
-          "Tags = important names on signal_enrichment.entry_snapshot. Open calls are scored with resolved-only tag-WR (this call is not in the rates). Closed rows use leave-one-out so the badge cannot see its own outcome. The backtest below is still in-sample vs the current top-4 list — honest as a description, not a walk-forward paper trade of the button; the posted record above it is the out-of-sample one.",
+          "Tags = important names on signal_enrichment.entry_snapshot. Open calls are scored with resolved-only tag-WR (this call is not in the rates). Closed rows use leave-one-out so the badge cannot see its own outcome. The walk-forward below is out-of-sample: each day is decided with the tags, outcomes and snapshots that existed that day, by the same code the topic runs. It starts in June because earlier snapshots were written in a bulk backfill up to 90 days late.",
       },
       {
         id: "pick",

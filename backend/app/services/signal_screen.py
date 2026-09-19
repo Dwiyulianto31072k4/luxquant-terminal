@@ -125,6 +125,18 @@ def _percentile_cut(scores_desc, pct):
     return scores_desc[max(0, math.ceil(len(scores_desc) * pct / 100) - 1)]
 
 
+# The columns score_candidates unpacks, in its order. The walk-forward selects
+# the same list (plus its own extras after it), so the two score one way.
+BOOK_SCORE_COLUMNS = """
+    s.signal_id,s.pair,s.risk_level,s.entry,s.created_at,s.status,
+    s.volume_rank_num,s.volume_rank_den,s.stop1,s.target1,s.target2,s.target3,s.target4,
+    bc.corr_4h_30d,bc.is_decoupled,bc.beta_30d,
+    ARRAY(SELECT DISTINCT t->>'name' FROM jsonb_array_elements(
+      COALESCE(e.entry_snapshot->'facts'->'tags_annotated',e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
+      WHERE (t->>'important')::boolean IS TRUE AND NULLIF(TRIM(t->>'name'),'') IS NOT NULL)
+"""
+
+
 def _scored_book(db):
     # Shared across screens: don't rebuild historical priors for every user.
     # v2 also keeps the factor breakdown, which the desk shows beside the score.
@@ -132,36 +144,41 @@ def _scored_book(db):
     cached = cache_get(key)
     if cached is not None:
         return cached
-    from app.api.routes.edge_lab import get_edge_correlation, OUTCOMES_CTE, _eb_rate, _wr
-    from app.services.signal_screen_score import score_candidates
+    from app.api.routes.edge_lab import get_edge_correlation
     context = get_edge_correlation(days=0, min_n=40, db=db)
     if not context.get('tags'):
         return None
-    prior_rows = db.execute(text(f"""
-        WITH {OUTCOMES_CTE}
-        SELECT s.pair, count(*), count(*) FILTER (WHERE r.outcome IN ('tp1','tp2','tp3','tp4'))
-        FROM resolved r JOIN signals s ON s.signal_id=r.signal_id
-        WHERE r.hit_date >= :start AND r.hit_date <= :end
-        GROUP BY s.pair HAVING count(*) >= 8
-    """), context['window']).fetchall()
-    base = context['baseline'].get('win_rate') or 0
-    prior = {r[0]: {'n': int(r[1]), 'wr': _wr(int(r[2]), int(r[1])),
-                     'wr_shrunk': round((_eb_rate(int(r[2]), int(r[1]), base / 100, 30.0) or 0) * 100, 2)} for r in prior_rows}
     rows = db.execute(text("""
-        SELECT s.signal_id,s.pair,s.risk_level,s.entry,s.created_at,s.status,
-               s.volume_rank_num,s.volume_rank_den,s.stop1,s.target1,s.target2,s.target3,s.target4,
-               bc.corr_4h_30d,bc.is_decoupled,bc.beta_30d,
-               ARRAY(SELECT DISTINCT t->>'name' FROM jsonb_array_elements(
-                 COALESCE(e.entry_snapshot->'facts'->'tags_annotated',e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
-                 WHERE (t->>'important')::boolean IS TRUE AND NULLIF(TRIM(t->>'name'),'') IS NOT NULL)
+        SELECT """ + BOOK_SCORE_COLUMNS + """
         FROM signals s JOIN signal_enrichment e ON e.signal_id=s.signal_id
         LEFT JOIN signal_btc_correlation bc ON bc.signal_id=s.signal_id
         WHERE s.created_at::timestamptz >= """ + BOOK_START_SQL + """
     """)).fetchall()
-    scored = score_candidates(rows, context['tags'], context['prefer_tags'], base, prior)
+    scored = score_book(db, rows, context['tags'], context['prefer_tags'],
+                        context['baseline'].get('win_rate') or 0, context['window'])
     result = [{"signal_id": r["signal_id"], "score": r["score"], "factors": r.get("factors")} for r in scored]
     cache_set(key, result, ttl=30)
     return result
+
+
+def score_book(db, rows, tags, prefer_tags, base, window, as_of=None):
+    """Score `rows` (BOOK_SCORE_COLUMNS order) against a learned context, with
+    the pair prior drawn from the same window — as of `as_of` when given."""
+    from app.api.routes.edge_lab import outcomes_cte, _eb_rate, _wr
+    from app.services.signal_screen_score import score_candidates
+    params = {"start": window["start"], "end": window["end"]}
+    if as_of is not None:
+        params["as_of"] = as_of
+    prior_rows = db.execute(text(f"""
+        WITH {outcomes_cte(as_of is not None)}
+        SELECT s.pair, count(*), count(*) FILTER (WHERE r.outcome IN ('tp1','tp2','tp3','tp4'))
+        FROM resolved r JOIN signals s ON s.signal_id=r.signal_id
+        WHERE r.hit_date >= :start AND r.hit_date <= :end
+        GROUP BY s.pair HAVING count(*) >= 8
+    """), params).fetchall()
+    prior = {r[0]: {'n': int(r[1]), 'wr': _wr(int(r[2]), int(r[1])),
+                     'wr_shrunk': round((_eb_rate(int(r[2]), int(r[1]), base / 100, 30.0) or 0) * 100, 2)} for r in prior_rows}
+    return score_candidates(rows, tags, prefer_tags, base, prior)
 
 
 def desk_edge(db):

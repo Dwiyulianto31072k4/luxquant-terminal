@@ -23,6 +23,7 @@ def context(monkeypatch):
     module=ModuleType('app.api.routes.edge_lab')
     module.get_edge_correlation=lambda **kw:{'tags':[{'tag':'TEST'}],'prefer_tags':[], 'baseline':{'win_rate':80},'window':{'start':'2026-03-10','end':'2026-09-11'}}
     module.OUTCOMES_CTE='resolved AS (SELECT 1)'
+    module.outcomes_cte=lambda as_of=False: module.OUTCOMES_CTE
     module._eb_rate=lambda *a:0.8
     module._wr=lambda *a:80
     monkeypatch.setitem(sys.modules,'app.api.routes.edge_lab',module)

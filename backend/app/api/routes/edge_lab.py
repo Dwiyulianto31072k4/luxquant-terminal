@@ -111,6 +111,24 @@ resolved AS (
 """
 
 
+def outcomes_cte(as_of: bool = False) -> str:
+    """OUTCOMES_CTE, or its point-in-time twin (bind :as_of): each call's
+    highest level reached BEFORE that instant — what the desk saw then. A call
+    that hit TP1 on Monday and TP4 on Friday is a TP1 as of Wednesday."""
+    if not as_of:
+        return OUTCOMES_CTE
+    anchor = "WHERE update_type IS NOT NULL"
+    if OUTCOMES_CTE.count(anchor) != 1:
+        raise RuntimeError("OUTCOMES_CTE changed shape; outcomes_cte cannot pin it in time")
+    return OUTCOMES_CTE.replace(
+        anchor, anchor + "\n      AND update_at::timestamptz < CAST(:as_of AS timestamptz)")
+
+
+# Point-in-time: only entry snapshots (tags) that had been written by :as_of.
+# Before ~9 June most were written in a bulk backfill, so they did not exist yet.
+SNAPSHOT_AS_OF_SQL = "AND (e.entry_snapshot->>'computed_at')::timestamptz < CAST(:as_of AS timestamptz)"
+
+
 def _wr(wins: int, total: int):
     return round(wins / total * 100, 2) if total else None
 
@@ -910,47 +928,22 @@ def get_edge_lab_drill(
 # Descriptive only (tags overlap; not a standalone predictive signal).
 # Powers Signals page: tag filter (A) + per-signal tag badges (C).
 # ════════════════════════════════════════════════════════════════
-@router.get("/analytics/tag-wr")
-def get_tag_wr(
-    days: int = Query(
-        0,
-        ge=0,
-        le=400,
-        description="lookback days; 0 = all since tag-metrics era (2026-03-10)",
-    ),
-    min_n: int = Query(40, ge=1, le=5000, description="min resolved samples per tag"),
-    db: Session = Depends(get_db),
-):
-    """Per-tag WR/median-peak (resolved) + active (open) signal_ids per tag."""
-    if not (0 <= days <= 400):
-        raise HTTPException(
-            status_code=400,
-            detail="days must be 0 (all since tags) or 1–400",
-        )
-
-    start_date, end_date, effective_days = _resolve_tag_lookback(days)
-    end_str = end_date.isoformat()
-    start_str = start_date.isoformat()
-
-    # v4: EB-shrink + Wilson for Edge Score v2 client
-    cache_key = f"lq:edge-lab:tag-wr:v4:{days}:{min_n}:{start_str}:{end_str}"
-    cached = cache_get(cache_key)
-    if cached:
-        return cached
-    _stale, _ = cache_get_with_stale(cache_key)
-    if _stale:
-        return _stale
-
+def tag_wr_stats(db, start_str: str, end_str: str, min_n: int, as_of=None):
+    """(baseline WR, per-tag stats) over calls resolved in [start, end] — the
+    numbers the runner gate reads. With `as_of` (an ISO instant), only what was
+    known then: outcomes reached and snapshots written before it."""
     params = {"start": start_str, "end": end_str, "min_n": min_n}
+    if as_of is not None:
+        params["as_of"] = as_of
 
     base = db.execute(text(f"""
-        WITH {OUTCOMES_CTE}
+        WITH {outcomes_cte(as_of is not None)}
         SELECT COUNT(*) AS n,
                COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')) AS wins,
                COUNT(*) FILTER (WHERE outcome IN ('tp3','tp4')) AS full_n
         FROM resolved r
         WHERE r.hit_date >= :start AND r.hit_date <= :end
-    """), {"start": start_str, "end": end_str}).one()
+    """), {k: v for k, v in params.items() if k != "min_n"}).one()
     base_n = int(base[0] or 0)
     base_wins = int(base[1] or 0)
     base_full = int(base[2] or 0)
@@ -959,7 +952,7 @@ def get_tag_wr(
     base_full_p = (base_full / base_n) if base_n else 0.35
 
     wr_rows = db.execute(text(f"""
-        WITH {OUTCOMES_CTE},
+        WITH {outcomes_cte(as_of is not None)},
         scoped AS (
             SELECT r.signal_id, r.outcome, s.peak_pct
             FROM resolved r
@@ -976,6 +969,7 @@ def get_tag_wr(
                      COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
                               e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
             WHERE (t->>'important')::boolean = true
+              {SNAPSHOT_AS_OF_SQL if as_of is not None else ""}
         )
         SELECT tag_name,
                COUNT(*) AS n,
@@ -996,21 +990,6 @@ def get_tag_wr(
         ORDER BY (COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')))::float
                  / NULLIF(COUNT(*),0) DESC
     """), params).fetchall()
-
-    active_rows = db.execute(text("""
-        SELECT t->>'name' AS tag_name, s.signal_id
-        FROM signals s
-        JOIN signal_enrichment e ON e.signal_id = s.signal_id,
-             jsonb_array_elements(
-                 COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
-                          e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
-        WHERE s.status = 'open'
-          AND (t->>'important')::boolean = true
-    """)).fetchall()
-
-    active_map = {}
-    for tag_name, sid in active_rows:
-        active_map.setdefault(tag_name, []).append(sid)
 
     tags = []
     for r in wr_rows:
@@ -1046,9 +1025,61 @@ def get_tag_wr(
             "lift_pp": round(wr - base_wr, 2) if wr is not None else None,
             "lift_shrunk_pp": round(wr_shrunk - base_wr, 2) if wr_shrunk is not None else None,
             "reliability": _reliability_tier(n, wr_half),
-            "active_signal_ids": active_map.get(tag_name, []),
-            "active_count": len(active_map.get(tag_name, [])),
         })
+
+    return base_wr, tags
+
+
+@router.get("/analytics/tag-wr")
+def get_tag_wr(
+    days: int = Query(
+        0,
+        ge=0,
+        le=400,
+        description="lookback days; 0 = all since tag-metrics era (2026-03-10)",
+    ),
+    min_n: int = Query(40, ge=1, le=5000, description="min resolved samples per tag"),
+    db: Session = Depends(get_db),
+):
+    """Per-tag WR/median-peak (resolved) + active (open) signal_ids per tag."""
+    if not (0 <= days <= 400):
+        raise HTTPException(
+            status_code=400,
+            detail="days must be 0 (all since tags) or 1–400",
+        )
+
+    start_date, end_date, effective_days = _resolve_tag_lookback(days)
+    end_str = end_date.isoformat()
+    start_str = start_date.isoformat()
+
+    # v4: EB-shrink + Wilson for Edge Score v2 client
+    cache_key = f"lq:edge-lab:tag-wr:v4:{days}:{min_n}:{start_str}:{end_str}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+    _stale, _ = cache_get_with_stale(cache_key)
+    if _stale:
+        return _stale
+
+    base_wr, tags = tag_wr_stats(db, start_str, end_str, min_n)
+
+    active_rows = db.execute(text("""
+        SELECT t->>'name' AS tag_name, s.signal_id
+        FROM signals s
+        JOIN signal_enrichment e ON e.signal_id = s.signal_id,
+             jsonb_array_elements(
+                 COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                          e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
+        WHERE s.status = 'open'
+          AND (t->>'important')::boolean = true
+    """)).fetchall()
+
+    active_map = {}
+    for tag_name, sid in active_rows:
+        active_map.setdefault(tag_name, []).append(sid)
+    for t in tags:
+        t["active_signal_ids"] = active_map.get(t["tag"], [])
+        t["active_count"] = len(t["active_signal_ids"])
 
     response = {
         "days": days,
@@ -1069,48 +1100,22 @@ def get_tag_wr(
 # then rank CURRENT open signals for selection.
 # Powers Signals "Correlation insights" (not desk-only 7d).
 # ════════════════════════════════════════════════════════════════
-@router.get("/analytics/edge-correlation")
-def get_edge_correlation(
-    days: int = Query(
-        0,
-        ge=0,
-        le=400,
-        description="historical lookback; 0 = all since tag-metrics era (2026-03-10)",
-    ),
-    min_n: int = Query(40, ge=10, le=2000, description="min samples per tag cohort"),
-    db: Session = Depends(get_db),
-):
+def edge_context(db, start_str: str, end_str: str, min_n: int, as_of=None) -> dict:
+    """What the Edge score learns from: the resolved baseline, per-tag rates
+    (EB-shrunk, Wilson), risk buckets and the prefer / caution sets, over calls
+    resolved in [start, end]. With `as_of` (an ISO instant) only what was known
+    then — the Runners walk-forward replays each day with this, so the replay
+    and the live score cannot drift apart.
     """
-    Historical tag/risk outcome rates + scored open signals.
-    Learn from the past → help pick current open calls.
-
-    Tag metrics (important tags_annotated) exist reliably only since
-    TAG_METRICS_ERA_START (~2026-03-10). days=0 uses that full era.
-    """
-    if not (0 <= days <= 400):
-        raise HTTPException(
-            status_code=400,
-            detail="days must be 0 (all since tags) or 1–400",
-        )
-
-    start_date, end_date, effective_days = _resolve_tag_lookback(days)
-    end_str = end_date.isoformat()
-    start_str = start_date.isoformat()
-
-    # v5 = Edge Score v2 (EB-shrink + Wilson + multi-factor open score)
-    cache_key = f"lq:edge-lab:corr:v5:{days}:{min_n}:{start_str}:{end_str}"
-    cached = cache_get(cache_key)
-    if cached:
-        return cached
-    _stale, _ = cache_get_with_stale(cache_key)
-    if _stale:
-        return _stale
-
     params = {"start": start_str, "end": end_str, "min_n": min_n}
+    window = {"start": start_str, "end": end_str}
+    if as_of is not None:
+        params["as_of"] = window["as_of"] = as_of
+    cte = outcomes_cte(as_of is not None)
 
     # ── Baseline resolved outcomes (past) ──
     base = db.execute(text(f"""
-        WITH {OUTCOMES_CTE}
+        WITH {cte}
         SELECT
             COUNT(*) AS n,
             COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')) AS wins,
@@ -1119,7 +1124,7 @@ def get_edge_correlation(
             COUNT(*) FILTER (WHERE outcome IN ('tp3','tp4')) AS full_n
         FROM resolved r
         WHERE r.hit_date >= :start AND r.hit_date <= :end
-    """), {"start": start_str, "end": end_str}).one()
+    """), window).one()
 
     base_n = int(base[0] or 0)
     base_wins = int(base[1] or 0)
@@ -1143,7 +1148,7 @@ def get_edge_correlation(
 
     # ── Per-tag historical rates (+ median time-to-TP1 when journey exists) ──
     tag_rows = db.execute(text(f"""
-        WITH {OUTCOMES_CTE},
+        WITH {cte},
         scoped AS (
             SELECT r.signal_id, r.outcome, s.peak_pct
             FROM resolved r
@@ -1161,6 +1166,7 @@ def get_edge_correlation(
                               e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
             WHERE (t->>'important')::boolean = true
               AND NULLIF(TRIM(t->>'name'), '') IS NOT NULL
+              {SNAPSHOT_AS_OF_SQL if as_of is not None else ""}
         )
         SELECT tag_name,
                COUNT(*) AS n,
@@ -1222,7 +1228,7 @@ def get_edge_correlation(
 
     # ── Risk level historical ──
     risk_rows = db.execute(text(f"""
-        WITH {OUTCOMES_CTE}
+        WITH {cte}
         SELECT
             CASE
               WHEN LOWER(COALESCE(s.risk_level,'')) LIKE 'low%%' THEN 'low'
@@ -1240,7 +1246,7 @@ def get_edge_correlation(
         GROUP BY 1
         HAVING COUNT(*) >= 10
         ORDER BY 1
-    """), {"start": start_str, "end": end_str}).fetchall()
+    """), window).fetchall()
 
     risk = []
     for r in risk_rows:
@@ -1279,6 +1285,59 @@ def get_edge_correlation(
     ][:6]
     prefer_tags.sort(key=lambda t: (-(t.get("lift_shrunk_pp") or t.get("lift_pp") or 0), -t["n"]))
     caution_tags.sort(key=lambda t: (-(t["loss_rate"] or 0), -t["n"]))
+
+    return {
+        "baseline": baseline,
+        "base_wr": base_wr,
+        "base_wr_p": base_wr_p,
+        "tags": tags,
+        "risk": risk,
+        "prefer_tags": prefer_tags,
+        "caution_tags": caution_tags,
+    }
+
+
+@router.get("/analytics/edge-correlation")
+def get_edge_correlation(
+    days: int = Query(
+        0,
+        ge=0,
+        le=400,
+        description="historical lookback; 0 = all since tag-metrics era (2026-03-10)",
+    ),
+    min_n: int = Query(40, ge=10, le=2000, description="min samples per tag cohort"),
+    db: Session = Depends(get_db),
+):
+    """
+    Historical tag/risk outcome rates + scored open signals.
+    Learn from the past → help pick current open calls.
+
+    Tag metrics (important tags_annotated) exist reliably only since
+    TAG_METRICS_ERA_START (~2026-03-10). days=0 uses that full era.
+    """
+    if not (0 <= days <= 400):
+        raise HTTPException(
+            status_code=400,
+            detail="days must be 0 (all since tags) or 1–400",
+        )
+
+    start_date, end_date, effective_days = _resolve_tag_lookback(days)
+    end_str = end_date.isoformat()
+    start_str = start_date.isoformat()
+
+    # v5 = Edge Score v2 (EB-shrink + Wilson + multi-factor open score)
+    cache_key = f"lq:edge-lab:corr:v5:{days}:{min_n}:{start_str}:{end_str}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+    _stale, _ = cache_get_with_stale(cache_key)
+    if _stale:
+        return _stale
+
+    ctx = edge_context(db, start_str, end_str, min_n)
+    baseline, base_wr, base_wr_p = ctx["baseline"], ctx["base_wr"], ctx["base_wr_p"]
+    tags, risk = ctx["tags"], ctx["risk"]
+    prefer_tags, caution_tags = ctx["prefer_tags"], ctx["caution_tags"]
 
     # ── CURRENT open candidates (desk ≈ bulk-7d) ─────────────────────────────
     # SCORE v2 = long-history multi-factor (not 7d learning).
@@ -1840,6 +1899,50 @@ def _runner_topic_record(db, start_str, end_str):
     }
 
 
+def _runner_walkforward_record(db, start_str, end_str):
+    """The Runners rule replayed point-in-time (workers/runner_walkforward):
+    the calls it would have chosen against every call it decided, finished in
+    [start, end]. None until the worker has run."""
+    try:
+        rows = db.execute(text(f"""
+            WITH {OUTCOMES_CTE}
+            SELECT w.runner, COUNT(*),
+              COUNT(*) FILTER (WHERE r.outcome = 'sl'),
+              COUNT(*) FILTER (WHERE r.outcome = 'tp1'),
+              COUNT(*) FILTER (WHERE r.outcome = 'tp2'),
+              COUNT(*) FILTER (WHERE r.outcome = 'tp3'),
+              COUNT(*) FILTER (WHERE r.outcome = 'tp4')
+            FROM runner_walkforward_calls w
+            JOIN resolved r ON r.signal_id = w.signal_id
+            WHERE r.hit_date >= :start AND r.hit_date <= :end
+            GROUP BY w.runner
+        """), {"start": start_str, "end": end_str}).fetchall()
+        meta = db.execute(text(f"""
+            WITH {OUTCOMES_CTE}
+            SELECT MIN(w.day), MAX(w.day), COUNT(*), COUNT(*) FILTER (WHERE w.runner),
+                   COUNT(*) FILTER (WHERE w.runner AND r.signal_id IS NULL)
+            FROM runner_walkforward_calls w LEFT JOIN resolved r ON r.signal_id = w.signal_id
+        """)).one()
+    except Exception:
+        db.rollback()
+        return None
+    if not meta[2]:
+        return None
+    counts = {bool(r[0]): [int(x or 0) for x in r[1:]] for r in rows}
+    runners = outcome_mix(*counts.get(True, [0] * 6))
+    everyone = outcome_mix(*[a + b for a, b in zip(counts.get(True, [0] * 6), counts.get(False, [0] * 6))])
+    return {
+        "first_day": meta[0].isoformat(),
+        "last_day": meta[1].isoformat(),
+        "decided": int(meta[2]),
+        "chosen": int(meta[3]),
+        "open_count": int(meta[4]),
+        "hunt": runners,
+        "baseline": everyone,
+        "vs_all": mix_delta(runners, everyone),
+    }
+
+
 @router.get("/analytics/hunt-full-tp")
 def get_hunt_full_tp(
     days: int = Query(0, ge=0, le=400, description="0 = all since tag era"),
@@ -1859,7 +1962,9 @@ def get_hunt_full_tp(
     20% of the seven-day Edge at the time of the call, and today's tags were
     picked on this same history. `posted` is the real record — the calls the
     Runners topic chose (runner_call_posts), which is also what the desk,
-    saved alerts and Custom previews show as Runners.
+    saved alerts and Custom previews show as Runners. `walk_forward` is the
+    whole rule replayed day by day with only what was known each day
+    (runner_walkforward_calls) — the long, honest view of the same rule.
     """
     if not (0 <= days <= 400):
         raise HTTPException(status_code=400, detail="days must be 0–400")
@@ -1868,7 +1973,7 @@ def get_hunt_full_tp(
     start_str, end_str = start_date.isoformat(), end_date.isoformat()
     era_start, era_end, era_days = _resolve_tag_lookback(0)
     cache_key = (
-        f"lq:edge-lab:hunt-ftp:v3:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
+        f"lq:edge-lab:hunt-ftp:v4:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
     )
     cached = cache_get(cache_key)
     if cached:
@@ -1952,11 +2057,13 @@ def get_hunt_full_tp(
         })
 
     posted = _runner_topic_record(db, start_str, end_str)
+    walk_forward = _runner_walkforward_record(db, start_str, end_str)
 
     response = {
         "ok": True,
         "method": "union_entry_snapshot_runner_tags",
         "posted": posted,
+        "walk_forward": walk_forward,
         "score_version": "v2",
         "window": {"start": start_str, "end": end_str},
         "effective_days": effective_days,

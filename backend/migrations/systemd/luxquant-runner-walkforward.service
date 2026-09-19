@@ -1,0 +1,15 @@
+[Unit]
+Description=LuxQuant Runners walk-forward (replay the rule point-in-time, one new day)
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=/etc/luxquant/secrets.env
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.workers.runner_walkforward
+# ~10 s per day of history on this 2-core box; stay out of the API's way.
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=1800
+SyslogIdentifier=luxquant-runner-walkforward

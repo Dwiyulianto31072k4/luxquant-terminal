@@ -84,7 +84,7 @@ export const MODE_GUIDES = {
     oneLiner: "The calls posted to the Runners topic: each cleared two bars when it was called \u2014 a runner tag, and the top fifth of the last seven days\u2019 Edge.",
     does: "Keeps calls that wore a runner tag at publish AND sat in the top 20% of the last seven days\u2019 Edge when they were called \u2014 decided once, the same decision that posts them to the Runners topic. A call chosen stays chosen. Runner tags are recalculated from closed calls since 10 Mar 2026, so which new calls qualify can change as the record grows. Sorts by Edge, then newest.",
     see: "A shorter list. How many depends on the week: the bar is the top fifth of the trailing seven days, so a strong day can send more through and a quiet one none. The day tab only picks which calls to show. They stay here after TP1; Open (hasn’t hit yet) is a chip, not this mode.",
-    not: "Not a list of calls that already ran, and not a high chance of TP3. The tag is stamped when the call goes out. Walk-forward on 17,093 closed calls: this combination came in at 90.7% win / 52.2% TP3+ / 9.3% SL against a desk at 86.2% / 44.9% / 13.8% — better, not certain.",
+    not: "Not a list of calls that already ran, and not a high chance of TP3. The tag is stamped when the call goes out. The walk-forward below replays the rule day by day since June with only what was known each day — better than the desk, not certain.",
     changes: "Runner tags (any) · top 20% Edge · sort Edge → Called. Status, search and the day tab stay.",
     steps: [
       { n: "1", t: "Two bars, not one", d: "A runner tag alone keeps half the board and adds almost nothing. The Edge cut is what makes it a shortlist." },

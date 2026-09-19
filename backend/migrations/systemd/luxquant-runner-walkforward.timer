@@ -1,0 +1,12 @@
+[Unit]
+Description=Replay yesterday's Runners decisions point-in-time, nightly
+
+[Timer]
+# After the UTC day closes, so "yesterday" is complete.
+OnCalendar=*-*-* 00:20:00 UTC
+Persistent=true
+AccuracySec=5min
+Unit=luxquant-runner-walkforward.service
+
+[Install]
+WantedBy=timers.target
