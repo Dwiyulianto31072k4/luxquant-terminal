@@ -658,7 +658,7 @@ export default function RunnersResults({ stats, loading, error, windowValue, onW
     if (fallback) return fallback;
     return (
       <div className="rounded-xl border border-ink/[0.08] px-3 py-3 text-[12px] text-text-muted">
-        {error ? "Results could not load. The Runners tab still works — try again in a moment." : "No results yet."}
+        {error ? "The record could not load. The Runners tab still works — try again in a moment." : "Nothing measured yet."}
       </div>
     );
   }
@@ -675,7 +675,7 @@ export default function RunnersResults({ stats, loading, error, windowValue, onW
       {/* One filter row, above everything it scopes. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         {onWindow && windowOptions ? (
-          <SegGroup size="touch" aria-label="Results period" value={windowValue} onChange={onWindow} options={windowOptions} />
+          <SegGroup size="touch" aria-label="Record period" value={windowValue} onChange={onWindow} options={windowOptions} />
         ) : (
           <span />
         )}

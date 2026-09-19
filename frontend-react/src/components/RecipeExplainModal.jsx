@@ -336,7 +336,7 @@ export function HuntResults({
   if (error && !stats) {
     return (
       <div className="rounded-xl border border-ink/[0.08] px-3 py-3 text-[12px] text-text-muted">
-        Results could not load. The filter still works — try again in a moment.
+        The record could not load. The filter still works — try again in a moment.
       </div>
     );
   }
@@ -689,7 +689,7 @@ function TagDrill({ tag, view }) {
       ) : null}
       <p className="mt-1.5 text-[10.5px] leading-snug text-text-muted">
         Overlapping — this tag’s n can exceed its share of the Runner union. A call with two
-        runner tags is one row in Results so far, and counted in both tag chips.
+        runner tags is one row in the record so far, and counted in both tag chips.
       </p>
     </div>
   );

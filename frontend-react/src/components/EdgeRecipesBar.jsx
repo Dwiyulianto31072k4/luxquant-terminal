@@ -355,7 +355,14 @@ export default function EdgeRecipesBar({
 
   return (
     <div className="contents sm:block sm:min-w-0 sm:flex-1">
-      {/* Three modes on one line; Results is a sibling, not a wrapped leftover. */}
+      {/* Three modes on one line; the record button is a sibling, not a wrapped
+          leftover. It says Runners record, not "Results": this bar sits over a
+          table behind a filter, where "results" is read as the rows that
+          matched, and the modal is only ever about Runners even while another
+          mode is selected. "Performance" is taken — it is a whole nav hub — and
+          in trading it promises a P&L the page does not show. Same words on a
+          phone: "Record" on its own reads like a button that starts recording,
+          and the label measures ~110px against a ~118px column at 320px. */}
       <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:items-center sm:gap-1.5">
         <div className="col-span-3 min-w-0 sm:flex-1">
           <SegGroup
@@ -375,7 +382,7 @@ export default function EdgeRecipesBar({
             title="Closed-call record of Runners vs the unfiltered desk"
             onClick={() => setResultsOpen(true)}
           >
-            Results
+            Runners record
           </button>
         ) : null}
       </div>
@@ -384,8 +391,8 @@ export default function EdgeRecipesBar({
         isOpen={resultsOpen}
         onClose={() => setResultsOpen(false)}
         size="desk"
-        eyebrow="Runners"
-        title="Results"
+        eyebrow="Signals desk"
+        title="Runners record"
         subtitle="How Runners finished next to every call — each day replayed with only what was known that day."
       >
         <RunnersResults
