@@ -1795,8 +1795,16 @@ const SignalsPage = () => {
     // has to mean the top 20% of the book; the top 20% OF the tagged rows is a
     // different, larger and weaker set, and the measurement was taken the
     // first way round.
+    //
+    // And the book is the whole seven-day set, not whatever this view has
+    // narrowed to. Measured against `filtered`, the cut moved with the day
+    // chip: on 2026-09-19 UNI scored 66.7, the top-20% line over the full
+    // book was 65.2 but over "Today" (30 calls) it was 67.7 — so the Runners
+    // topic, which the backend decides against the full book
+    // (signal_screen.match_screen), posted a call this tab then hid. Under
+    // ten scored rows the old cut also switched itself off entirely.
     if (edgeTop) {
-      const cut = edgeTopThreshold(filtered, edgeScoreMap, edgeTop);
+      const cut = edgeTopThreshold(allSignals, edgeScoreMap, edgeTop);
       if (cut != null) {
         filtered = filtered.filter((s) => {
           const sc = edgeScoreMap?.[s.signal_id]?.score;

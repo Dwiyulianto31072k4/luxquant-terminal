@@ -259,8 +259,13 @@ export function applySignalFilters(signals, f, ctx = {}) {
   // book alone rather than emptying it. A shared ?edgetop= link opened there
   // shows every row; the chip still says the cut is on, so the state is
   // visible instead of silently wrong.
+  //
+  // The cut is taken over `signals` — the whole book handed in — not `out`,
+  // which the search and day filters above have already narrowed. A day slice
+  // must not decide what "top 20%" means; the backend's screens and the
+  // Runners topic both measure it against the full seven-day book.
   if (f.edgeTop && ctx.edgeScoreMap) {
-    const cut = edgeTopThreshold(out, ctx.edgeScoreMap, f.edgeTop);
+    const cut = edgeTopThreshold(signals, ctx.edgeScoreMap, f.edgeTop);
     if (cut != null) {
       out = out.filter((s) => {
         const sc = ctx.edgeScoreMap?.[s.signal_id]?.score;

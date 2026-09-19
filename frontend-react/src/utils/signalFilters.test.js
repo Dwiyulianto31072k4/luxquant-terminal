@@ -293,3 +293,33 @@ describe("the boot contract SignalsPage relies on", () => {
     expect(junk.sorts).toEqual([{ field: "created_at", order: "desc" }]);
   });
 });
+
+describe("Edge top N% is measured against the whole book", () => {
+  // 20 calls yesterday scoring 1..20, 5 today scoring 17..21. Top 20% of the
+  // 25-call book is the 5 highest: 21, 20, 20, 19, 19 → cut 19. Viewing only
+  // today used to take the cut over today's 5 rows (top 1 → 21) and hid the
+  // 19 and 20 that the Runners topic, measured on the book, had posted.
+  const book = [];
+  const scores = {};
+  for (let i = 1; i <= 20; i++) {
+    const s = sig({ created_at: "2026-09-18T10:00:00+00:00" });
+    scores[s.signal_id] = { score: i };
+    book.push(s);
+  }
+  const today = [17, 18, 19, 20, 21].map((sc) => {
+    const s = sig({ created_at: "2026-09-19T10:00:00+00:00" });
+    scores[s.signal_id] = { score: sc };
+    book.push(s);
+    return s;
+  });
+
+  it("keeps a day's call that clears the book's cut, even when the day alone would not", () => {
+    const out = applySignalFilters(
+      book,
+      { ...DEFAULT_FILTERS, edgeTop: 20, selectedDates: ["2026-09-19"] },
+      { edgeScoreMap: scores }
+    );
+    expect(out.map((s) => scores[s.signal_id].score).sort((a, b) => a - b)).toEqual([19, 20, 21]);
+    expect(out.every((s) => today.includes(s))).toBe(true);
+  });
+});
