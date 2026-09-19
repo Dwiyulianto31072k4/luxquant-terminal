@@ -32,7 +32,12 @@ import {
   deskGhostClass,
 } from "./ui/SegGroup";
 import { buildEdgeScoreMap, plainEdgeWhy } from "../utils/edgeScore";
-import { edgeTopThreshold } from "../utils/signalFilters";
+import {
+  edgeTopCutFromScores,
+  edgeTopThreshold,
+  isRunnersSelection,
+  runnersRecipeState,
+} from "../utils/signalFilters";
 import {
   DEFAULT_SORTS,
   MAX_SORTS,
@@ -519,6 +524,10 @@ const SignalsPage = () => {
     bootCache ? new Date(bootCache.at) : null
   );
   const [stats, setStats] = useState(() => bootCache?.stats || null);
+  // Server Edge + Runners membership for this book (/signals/desk-edge): the
+  // same evaluator the Runners topic and saved alerts use. Null = not loaded,
+  // and the desk falls back to scoring in the browser.
+  const [deskEdge, setDeskEdge] = useState(() => bootCache?.deskEdge || null);
   const [apiIsSubscriber, setIsSubscriber] = useState(
     () => bootCache?.isSubscriber ?? false
   );
@@ -671,12 +680,13 @@ const SignalsPage = () => {
       const token = localStorage.getItem("access_token");
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [signalsRes, statsRes, intelRes, tagWrRes] = await Promise.allSettled([
+      const [signalsRes, statsRes, intelRes, tagWrRes, deskEdgeRes] = await Promise.allSettled([
         fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/stats`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
         // days=0 = all since tag-metrics era (2026-03-10); min_n=40 matches correlation.
         fetch(`${API_BASE}/api/v1/analytics/tag-wr?days=0&min_n=40`, { headers: authHeaders }),
+        fetch(`${API_BASE}/api/v1/signals/desk-edge`, { headers: authHeaders }),
       ]);
       // Collected as we go so the cache written at the end holds one coherent
       // snapshot — never a mix of this fetch and the previous one.
@@ -726,6 +736,15 @@ const SignalsPage = () => {
         snapshot.tagWr = Array.isArray(tw.tags) ? tw.tags : [];
         setTagWr(snapshot.tagWr);
       }
+      // Best-effort too, but a failed read keeps the last good one rather than
+      // dropping the desk back to browser scores between two refreshes.
+      if (deskEdgeRes.status === "fulfilled" && deskEdgeRes.value.ok) {
+        const de = await deskEdgeRes.value.json();
+        if (de?.ok) {
+          snapshot.deskEdge = de;
+          setDeskEdge(de);
+        }
+      }
       const at = Date.now();
       setLastUpdated(new Date(at));
       // Only the mandatory part is required to be present; the best-effort
@@ -743,6 +762,7 @@ const SignalsPage = () => {
         currentFlow: snapshot.currentFlow ?? bootCache?.currentFlow ?? null,
         deskWr: snapshot.deskWr ?? bootCache?.deskWr ?? null,
         tagWr: snapshot.tagWr ?? bootCache?.tagWr ?? [],
+        deskEdge: snapshot.deskEdge ?? bootCache?.deskEdge ?? null,
       });
     } catch (err) {
       console.error("Error fetching signals:", err);
@@ -1229,8 +1249,24 @@ const SignalsPage = () => {
       merged.plainWhy = plainEdgeWhy(merged);
       map[id] = merged;
     }
+    // Then the server's score for every call in the book, last so it wins.
+    // The open overlay above covers ~10 rows and follows the correlation
+    // panel's window; ranking those against browser scores for the other
+    // ~700 mixed two scales into one percentile.
+    for (const [id, row] of Object.entries(deskEdge?.edge || {})) {
+      if (row?.score == null) continue;
+      const merged = {
+        ...(map[id] || {}),
+        score: row.score,
+        factors: row.factors ?? map[id]?.factors,
+        expectancyR: row.factors?.expectancy_r ?? map[id]?.expectancyR,
+        fromApi: true,
+      };
+      merged.plainWhy = plainEdgeWhy(merged);
+      map[id] = merged;
+    }
     return { map, ctx };
-  }, [allSignals, signalTags, tagWr, edgeBaselineWr, apiOpenScoreById, coinIntel]);
+  }, [allSignals, signalTags, tagWr, edgeBaselineWr, apiOpenScoreById, coinIntel, deskEdge]);
 
   // Tags sorted by WR desc (chips); top 10 unless "show all".
   const sortedTagsForChips = useMemo(() => {
@@ -1803,8 +1839,23 @@ const SignalsPage = () => {
     // topic, which the backend decides against the full book
     // (signal_screen.match_screen), posted a call this tab then hid. Under
     // ten scored rows the old cut also switched itself off entirely.
-    if (edgeTop) {
-      const cut = edgeTopThreshold(allSignals, edgeScoreMap, edgeTop);
+    //
+    // Runners itself is not re-derived here at all. Its members are the calls
+    // the Runners topic decided at publish (live evaluation only for calls it
+    // has not decided), so this tab and the topic hold one set whatever day
+    // is on screen, and a posted call never drops out because later calls
+    // out-ranked it or the runner tags rotated.
+    const runnersView = isRunnersSelection(
+      { selectedTags, tagMatchMode, edgeTop },
+      deskEdge?.runners
+    );
+    if (runnersView) {
+      const ids = new Set(deskEdge.runners.ids.map(String));
+      filtered = filtered.filter((s) => ids.has(String(s.signal_id)));
+    } else if (edgeTop) {
+      const cut = deskEdge?.book_scores
+        ? edgeTopCutFromScores(deskEdge.book_scores, edgeTop)
+        : edgeTopThreshold(allSignals, edgeScoreMap, edgeTop);
       if (cut != null) {
         filtered = filtered.filter((s) => {
           const sc = edgeScoreMap?.[s.signal_id]?.score;
@@ -1814,7 +1865,7 @@ const SignalsPage = () => {
     }
 
     // Tag filter — multi-select; match mode any (OR) or all (AND).
-    if (selectedTags.length > 0) {
+    if (selectedTags.length > 0 && !runnersView) {
       filtered = filtered.filter((s) => {
         const tags = signalTags[s.signal_id];
         if (!tags?.length) return false;
@@ -1867,6 +1918,7 @@ const SignalsPage = () => {
     tagMatchMode,
     signalTags,
     edgeScoreMap,
+    deskEdge,
     showWatchlistOnly,
     watchlistIds,
     watchlistSignals,
@@ -2279,6 +2331,7 @@ const SignalsPage = () => {
           <span className={CONSOLE_LABEL}>Mode</span>
           <EdgeRecipesBar
           tagWr={tagWr}
+          deskRunnerTags={deskEdge?.runners?.tags}
           selectedTags={selectedTags}
           tagMatchMode={tagMatchMode}
             statusFilter={statusFilter}
@@ -3078,6 +3131,7 @@ const SignalsPage = () => {
       <EdgePlaybook
         defaultOpen={false}
         tagWr={tagWr}
+        runnerTags={deskEdge?.runners?.tags}
         signalTags={signalTags}
         selectedTags={selectedTags}
         tagMatchMode={tagMatchMode}
@@ -3137,17 +3191,11 @@ const SignalsPage = () => {
           setPage(1);
         }}
         onScreenRunners={(tags) => {
-          if (tags?.length) {
-            setSelectedTags((prev) => [...new Set([...prev, ...tags])]);
-          }
-          setTagMatchMode("any");
-          setSorts(
-            normalizeSorts([
-              { field: "edge_score", order: "desc" },
-              { field: "created_at", order: "desc" },
-            ])
-          );
-          setPage(1);
+          // The Runners mode itself, not tags added to whatever was on. It
+          // used to merge its own tag list into the current filter with no
+          // Edge cut — a third, different "runners".
+          const serverTags = deskEdge?.runners?.tags;
+          applyRecipeState(runnersRecipeState(serverTags?.length ? serverTags : tags));
         }}
         onFilterTag={(tag) => {
           if (!tag) return;

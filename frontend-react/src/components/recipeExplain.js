@@ -19,7 +19,7 @@ export const RECIPE_EXPLAIN = {
         simple:
           "Quick path sits above the table. Each recipe is a saved combination of filters and sort. Nothing is hidden from you until you opt in.",
         expert:
-          "Recipes write the same filter state as the chips (tags, status, sort chain). They are client-side views over the loaded desk + tag history. Saved views live in this browser only.",
+          "Recipes write the same filter state as the chips (tags, status, sort chain). They are client-side views over the loaded desk + tag history — except which calls count as Runners, which comes from the server: the Runners topic’s own decision. Saved views live in this browser only.",
       },
       {
         id: "win",
@@ -93,10 +93,10 @@ export const RECIPE_EXPLAIN = {
     id: "full_tp",
     label: "Runners",
     oneLiner:
-      "Calls whose entry tags historically reached TP3/TP4 more often — classified at call time, not after they already won.",
+      "The calls posted to the Runners topic: a runner tag plus the top 20% of the last seven days\u2019 Edge — decided once, when the call went out, not after it won.",
     simple: [
       "This is a filter for setups that more often filled the later targets, not a collector of trades that already hit TP.",
-      "The bars below are closed calls only (hit TP or SL) that wore today’s runner tags when they were published, versus every closed call in the same window. Open calls are not counted.",
+      "Below, first the real record: the calls the Runners topic chose, closed ones only (hit TP or SL), against every call made since the topic started. Then the longer backtest: every closed call since 10 Mar that wore one of today’s runner tags, with no Edge cut. Open calls are not counted in either.",
     ],
     drills: [
       {
@@ -104,9 +104,9 @@ export const RECIPE_EXPLAIN = {
         title: "What the button does",
         hint: "Runner tags · top 20% Edge · Edge → Called",
         simple:
-          "Keeps calls that carry at least one “runner” tag AND sit in the top 20% of Edge scores on the board. Sorts by Edge Score. Most rows will already have moved — only ~7 of the last 866 calls are still untriggered.",
+          "Keeps calls that carry at least one “runner” tag AND sat in the top 20% of the last seven days’ Edge scores when they were called — the same calls posted to the Runners topic. The day you pick only chooses which of them to show. Sorts by Edge Score. Most rows will already have moved — only ~7 of the last 866 calls are still untriggered.",
         expert:
-          "selectedTags = top 4 runner tags (OR). statusFilter = all — `open` was measured first and returns 0 rows, because tp1/tp2/tp3 are terminal on this desk and only 7 of 866 recent calls sit at `open`. edgeTop = 20, applied BEFORE the tag filter so it means the top fifth of the board, not the top fifth of the tagged rows. sort = edge_score desc, then called time. Walk-forward over 8,674 closed calls whose entry snapshot was written within an hour of the call: tag alone 87.5% win at 52.7% of the book; top-20% Edge with no runner tag 85.6% win / 14.4% SL — both on the baseline of 85.9 / 14.1; tag AND top-20% Edge 89.5% win / 51.5% TP3+ / 10.5% SL. The Edge cut selects, the tag protects the downside. Measured across the whole tag era the same combination reads 90.6 / 50.9 / 9.4, but 47.5% of those snapshots came from a June backfill computed up to 90 days late, so the clean subset is the one quoted. The historical bars are the tag union only.",
+          "selectedTags = top 4 runner tags (OR). statusFilter = all — `open` was measured first and returns 0 rows, because tp1/tp2/tp3 are terminal on this desk and only 7 of 866 recent calls sit at `open`. edgeTop = 20, applied BEFORE the tag filter so it means the top fifth of the seven-day book, not the top fifth of the tagged rows. Membership comes from the server (/signals/desk-edge): the Runners topic’s decision at publish where one exists, the live evaluation otherwise — never re-judged when later calls out-rank it. sort = edge_score desc, then called time. Walk-forward over 8,674 closed calls whose entry snapshot was written within an hour of the call: tag alone 87.5% win at 52.7% of the book; top-20% Edge with no runner tag 85.6% win / 14.4% SL — both on the baseline of 85.9 / 14.1; tag AND top-20% Edge 89.5% win / 51.5% TP3+ / 10.5% SL. The Edge cut selects, the tag protects the downside. Measured across the whole tag era the same combination reads 90.6 / 50.9 / 9.4, but 47.5% of those snapshots came from a June backfill computed up to 90 days late, so the clean subset is the one quoted. The historical bars are the tag union only.",
       },
       {
         id: "asof",
@@ -115,14 +115,14 @@ export const RECIPE_EXPLAIN = {
         simple:
           "Every tag used here was on the call when it was published. We do not add “winner” tags after TP3 hits. Closed rows in the table are here so you can audit the filter, not because we mined finished trades.",
         expert:
-          "Tags = important names on signal_enrichment.entry_snapshot. Open calls are scored with resolved-only tag-WR (this call is not in the rates). Closed rows use leave-one-out so the badge cannot see its own outcome. Runner stats below are still in-sample vs the current top-4 list — honest as a description, not a walk-forward paper trade of the button.",
+          "Tags = important names on signal_enrichment.entry_snapshot. Open calls are scored with resolved-only tag-WR (this call is not in the rates). Closed rows use leave-one-out so the badge cannot see its own outcome. The backtest below is still in-sample vs the current top-4 list — honest as a description, not a walk-forward paper trade of the button; the posted record above it is the out-of-sample one.",
       },
       {
         id: "pick",
         title: "How runner tags are chosen",
         hint: "Clean tags that ran further",
         simple:
-          "We look at closed history since tags exist (from 10 Mar 2026). A tag qualifies if it has enough samples, a solid win rate, and it reached later targets (or ran a high peak) more often. Late / parabolic / overextended tags are excluded — they look strong because the coin was already flying.",
+          "We look at closed history since tags exist (from 10 Mar 2026). A tag qualifies if it has enough samples, a solid win rate, and it reached later targets (or ran a high peak) more often. Late / parabolic / overextended tags are excluded — they look strong because the coin was already flying. When the four change, calls already chosen stay Runners; only new calls meet the new four.",
         expert:
           "Eligibility: not in {LATE_ENTRY, PARABOLIC, OVEREXTENDED, EXHAUSTION_CANDLE}, n≥150, WR≥78%, and (full_tp_rate≥12% or tp4_rate≥5% or median peak on wins ≥18%). Ranked by full_tp_rate, keep top 4. full_tp = outcome ∈ {tp3, tp4}. Many tags pass the loose gate; the top-4 cap is what makes Runners a shortlist.",
       },

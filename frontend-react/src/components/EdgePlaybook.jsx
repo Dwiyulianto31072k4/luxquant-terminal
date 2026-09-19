@@ -33,15 +33,6 @@ const isApproximateContextTag = (tag) =>
 
 const nice = (tag) => String(tag || "").replace(/_/g, " ").toLowerCase();
 
-function runnerScore(t) {
-  const wr = Number(t.win_rate) || 0;
-  const tp4 = Number(t.tp4_rate) || 0;
-  const full = Number(t.full_tp_rate) || 0;
-  const peak = Number(t.median_peak_wins ?? t.median_peak) || 0;
-  const peakNorm = Math.min(100, Math.max(0, peak * 2.5));
-  return 0.35 * tp4 + 0.3 * full + 0.2 * peakNorm + 0.15 * wr;
-}
-
 function SectionLabel({ tone = "muted", children, hint }) {
   const toneCls =
     tone === "accent"
@@ -102,6 +93,7 @@ export default function EdgePlaybook({
   onScreenRunners,
   onFilterTag,
   onClear,
+  runnerTags = null,
 }) {
   const sortChain = normalizeSorts(
     Array.isArray(sorts) && sorts.length
@@ -121,18 +113,13 @@ export default function EdgePlaybook({
       .sort((a, b) => b.win_rate - a.win_rate || b.n - a.n)
       .slice(0, 6);
 
-    const runners = clean
-      .filter((t) => {
-        const wr = Number(t.win_rate) || 0;
-        const full = Number(t.full_tp_rate) || 0;
-        const tp4 = Number(t.tp4_rate) || 0;
-        const peak = Number(t.median_peak_wins ?? t.median_peak) || 0;
-        if (wr < 78) return false;
-        return full >= 12 || tp4 >= 5 || peak >= 18;
-      })
-      .map((t) => ({ ...t, _score: runnerScore(t) }))
-      .sort((a, b) => b._score - a._score || b.n - a.n)
-      .slice(0, 6);
+    // The Runners mode's own four tags — the server's when it has answered —
+    // not a second ranking. This rail used to keep its own top six by a
+    // blended score, without the BTC_/FNG_/FUNDING_ exclusion, so "High
+    // runners" here and Runners on the rail named different tags.
+    const byTag = Object.fromEntries((tagWr || []).map((t) => [t.tag, t]));
+    const names = runnerTags?.length ? runnerTags : topRunnerTags(tagWr);
+    const runners = names.map((tag) => byTag[tag] || { tag });
 
     const caution = base
       .filter((t) => t.win_rate < 78 || CONFOUND_TAGS.has(t.tag))
@@ -140,10 +127,10 @@ export default function EdgePlaybook({
       .slice(0, 4);
 
     return { prefer, runners, caution };
-  }, [tagWr]);
+  }, [tagWr, runnerTags]);
 
   const topEdgeTags = prefer.slice(0, 3).map((t) => t.tag);
-  const topRunnerTags = (runners.length ? runners : prefer).slice(0, 4).map((t) => t.tag);
+  const screenTags = runners.map((t) => t.tag);
   const hasData = prefer.length > 0 || runners.length > 0;
 
   const activeChipCount =
@@ -399,7 +386,7 @@ export default function EdgePlaybook({
               <button
                 type="button"
                 onClick={() => {
-                  onScreenRunners?.(topRunnerTags);
+                  onScreenRunners?.(screenTags);
                   onSort?.("edge_score", "desc");
                 }}
                 className="rounded-lg border border-accent/35 bg-accent/15 px-3 py-1.5 text-[12px] font-semibold text-text-primary hover:bg-accent/25"
@@ -695,4 +682,20 @@ export function buildRunnerTagSet(tagWr = []) {
     if (full >= 12 || tp4 >= 5 || peak >= 18) set.add(t.tag);
   }
   return set;
+}
+
+/** The Runners mode's tags when the server has not answered: the gate above,
+ *  top four by full-TP rate then win rate — hunt_recipe.select_runner_tags. */
+export function topRunnerTags(tagWr = [], k = 4) {
+  const set = buildRunnerTagSet(tagWr);
+  return (tagWr || [])
+    .filter((t) => set.has(t.tag))
+    .sort(
+      (a, b) =>
+        (Number(b.full_tp_rate) || 0) - (Number(a.full_tp_rate) || 0) ||
+        (Number(b.win_rate) || 0) - (Number(a.win_rate) || 0) ||
+        (Number(b.n) || 0) - (Number(a.n) || 0)
+    )
+    .slice(0, k)
+    .map((t) => t.tag);
 }

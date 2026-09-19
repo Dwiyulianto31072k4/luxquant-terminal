@@ -235,6 +235,22 @@ export function leaveOneOutCoinWr(coin, outcome) {
  * @param {object} [signal] desk row (risk, volume, btc, pair)
  * @param {object} [coin] coin intel for pair
  */
+/** R-multiples of the TP ladder against |entry - stop1|; null when there is
+ *  no usable risk unit or no target. Mirrors edge_lab._r_ladder. */
+function rLadder(signal) {
+  const entry = Number(signal?.entry);
+  const stop = signal?.stop1 == null ? NaN : Number(signal.stop1);
+  const risk = Math.abs(entry - stop);
+  if (!Number.isFinite(risk) || risk <= 0 || !(entry > 0)) return null;
+  const out = {};
+  for (const [name, raw] of [["r1", signal.target1], ["r2", signal.target2], ["r3", signal.target3], ["r4", signal.target4]]) {
+    if (raw == null) continue;
+    const r = Math.abs(Number(raw) - entry) / risk;
+    if (Number.isFinite(r)) out[name] = r;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 export function scoreSignalTags(tagNames, ctx, signal = null, coin = null) {
   if (!ctx?.tagMap || !Array.isArray(tagNames) || !tagNames.length) {
     return null;
@@ -333,24 +349,25 @@ export function scoreSignalTags(tagNames, ctx, signal = null, coin = null) {
     coinAdj = clamp(0.08 * (Number(coinWr) - (baseWr || 80)), -2, 2.5);
   }
 
-  // Expectancy proxy from levels
-  let expR = null;
-  let expAdj = 0;
-  const entry = Number(signal?.entry);
-  const stop = Number(signal?.stop1);
-  if (entry > 0 && stop > 0 && Math.abs(entry - stop) > 0) {
-    const risk = Math.abs(entry - stop);
-    const r1 = signal?.target1 != null ? Math.abs(Number(signal.target1) - entry) / risk : 1;
-    const r3 = signal?.target3 != null ? Math.abs(Number(signal.target3) - entry) / risk : null;
-    const r4 = signal?.target4 != null ? Math.abs(Number(signal.target4) - entry) / risk : null;
-    const rFull = r4 ?? r3 ?? r1 * 2.5;
-    const pWin = avgWr / 100;
-    const pFull = avgFull / 100;
-    const pSl = Math.max(0, 1 - pWin);
-    const pPartial = Math.max(0, pWin - pFull);
-    expR = pFull * rFull + pPartial * r1 - pSl * 1;
-    expAdj = clamp((expR - 0.6) * 2.5, -3, 3.5);
+  // Expectancy proxy from levels — a line-for-line copy of edge_lab
+  // _r_ladder + _expectancy_proxy. This used to price the full-TP leg at R4
+  // alone while the server takes the mean of R3, R4 and R2; that read ~0.9R
+  // (≈1.9 points of score) high on 2026-09-19, and the desk ranked on it.
+  let expR;
+  let expAdj;
+  const ladder = rLadder(signal);
+  const r1 = ladder?.r1 || 1;
+  let rFull = 2.5;
+  if (ladder) {
+    const rs = [ladder.r3, ladder.r4, ladder.r2].filter((r) => r != null);
+    rFull = rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : ladder.r2 || r1;
   }
+  const pWin = avgWr / 100;
+  const pFull = avgFull / 100;
+  const pSl = Math.max(0, 1 - pWin);
+  const pPartial = Math.max(0, pWin - pFull);
+  expR = Math.round((pFull * rFull + pPartial * r1 - pSl * 1) * 1000) / 1000;
+  expAdj = clamp((expR - 0.6) * 2.5, -3, 3.5);
 
   let score = core + volAdj + riskAdj + btcAdj + ttAdj + coinAdj + expAdj;
   score = Math.round(clamp(score, 35, 85) * 10) / 10;

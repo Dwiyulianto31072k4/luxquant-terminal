@@ -1791,6 +1791,55 @@ def _outcome_mix_sql(where_tags: bool) -> str:
 # ════════════════════════════════════════════════════════════════
 # HUNT FULL TP — union outcome mix for the live runner-tag shortlist
 # ════════════════════════════════════════════════════════════════
+def _runner_topic_record(db, start_str, end_str):
+    """Outcome mix of the calls the Runners topic chose, against every call
+    made since the topic started, over the same resolved window. None where
+    the topic has never run."""
+    try:
+        since = db.execute(text(
+            "SELECT value FROM runner_call_config WHERE key = 'start_ts'")).scalar()
+        if since is None:
+            return None
+        rows = db.execute(text(f"""
+            WITH {OUTCOMES_CTE},
+            cohort AS (
+                SELECT r.outcome, (p.signal_id IS NOT NULL) AS runner
+                FROM resolved r
+                JOIN signals s ON s.signal_id = r.signal_id
+                LEFT JOIN runner_call_posts p ON p.signal_id = r.signal_id AND p.matched
+                WHERE r.hit_date >= :start AND r.hit_date <= :end
+                  AND s.created_at::timestamptz >= CAST(:since AS timestamptz)
+            )
+            SELECT runner, COUNT(*),
+              COUNT(*) FILTER (WHERE outcome = 'sl'),
+              COUNT(*) FILTER (WHERE outcome = 'tp1'),
+              COUNT(*) FILTER (WHERE outcome = 'tp2'),
+              COUNT(*) FILTER (WHERE outcome = 'tp3'),
+              COUNT(*) FILTER (WHERE outcome = 'tp4')
+            FROM cohort GROUP BY runner
+        """), {"start": start_str, "end": end_str, "since": since}).fetchall()
+        chosen, still_open = db.execute(text(f"""
+            WITH {OUTCOMES_CTE}
+            SELECT COUNT(*), COUNT(*) FILTER (WHERE r.signal_id IS NULL)
+            FROM runner_call_posts p LEFT JOIN resolved r ON r.signal_id = p.signal_id
+            WHERE p.matched
+        """)).one()
+    except Exception:
+        db.rollback()
+        return None
+    counts = {bool(r[0]): [int(x or 0) for x in r[1:]] for r in rows}
+    runners = outcome_mix(*counts.get(True, [0] * 6))
+    everyone = outcome_mix(*[a + b for a, b in zip(counts.get(True, [0] * 6), counts.get(False, [0] * 6))])
+    return {
+        "since": str(since),
+        "chosen": int(chosen or 0),
+        "open_count": int(still_open or 0),
+        "hunt": runners,
+        "baseline": everyone,
+        "vs_all": mix_delta(runners, everyone),
+    }
+
+
 @router.get("/analytics/hunt-full-tp")
 def get_hunt_full_tp(
     days: int = Query(0, ge=0, le=400, description="0 = all since tag era"),
@@ -1806,8 +1855,11 @@ def get_hunt_full_tp(
     UNION of resolved calls in `days` that carried ANY of those tags on the
     entry snapshot — one row per call, highest target reached (or SL).
 
-    Live Hunt also requires Worth on the desk; that pair filter is NOT applied
-    to these bars. Descriptive of the tag shortlist, not a member P&L.
+    That is a backtest of the tags alone: the live Runners also need the top
+    20% of the seven-day Edge at the time of the call, and today's tags were
+    picked on this same history. `posted` is the real record — the calls the
+    Runners topic chose (runner_call_posts), which is also what the desk,
+    saved alerts and Custom previews show as Runners.
     """
     if not (0 <= days <= 400):
         raise HTTPException(status_code=400, detail="days must be 0–400")
@@ -1816,7 +1868,7 @@ def get_hunt_full_tp(
     start_str, end_str = start_date.isoformat(), end_date.isoformat()
     era_start, era_end, era_days = _resolve_tag_lookback(0)
     cache_key = (
-        f"lq:edge-lab:hunt-ftp:v2:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
+        f"lq:edge-lab:hunt-ftp:v3:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
     )
     cached = cache_get(cache_key)
     if cached:
@@ -1899,9 +1951,12 @@ def get_hunt_full_tp(
             "mix": mix,
         })
 
+    posted = _runner_topic_record(db, start_str, end_str)
+
     response = {
         "ok": True,
         "method": "union_entry_snapshot_runner_tags",
+        "posted": posted,
         "score_version": "v2",
         "window": {"start": start_str, "end": end_str},
         "effective_days": effective_days,
@@ -1929,11 +1984,12 @@ def get_hunt_full_tp(
         "vs_all": mix_delta(hunt, baseline),
         "per_tag": per_tags,
         "open_count": len(open_ids),
-        "live_filter_also": ["worth_it", "sort edge_score desc"],
+        "live_filter_also": ["edge_top_20_at_call", "sort edge_score desc"],
         "stats_cover": (
-            "Resolved calls that carried any current Hunt runner tag on the "
-            "entry snapshot (union, one row per call). Worth is applied on the "
-            "live desk only — not on these bars."
+            "Backtest: resolved calls that carried any of today's runner tags on "
+            "the entry snapshot (union, one row per call). The live Runners also "
+            "need the top 20% of the seven-day Edge when called — not in these "
+            "bars; the posted record is the real set."
         ),
         "how_to_read": {
             "final": (

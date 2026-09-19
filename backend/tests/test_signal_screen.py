@@ -49,3 +49,73 @@ def test_success_cache_includes_empty_match(monkeypatch):
     assert screen.match_screen({'pairs':['BTC']},None)==[]
     assert screen.match_screen({'pairs':['BTC']},None)==[]
     assert len(calls)==1
+
+
+
+def desk(monkeypatch, scored, members, tags=('A', 'B')):
+    cache = {}
+    monkeypatch.setattr(screen, 'cache_get', cache.get)
+    monkeypatch.setattr(screen, 'cache_set', lambda k, v, ttl: cache.update({k: v}))
+    monkeypatch.setattr(screen, '_scored_book', lambda db: scored)
+    monkeypatch.setattr(screen, 'runner_members', lambda db: members)
+    module = ModuleType('app.api.routes.edge_lab')
+    module.get_tag_wr = lambda **kw: {'tags': [{'tag': t} for t in tags]}
+    monkeypatch.setitem(sys.modules, 'app.api.routes.edge_lab', module)
+    recipe = ModuleType('app.services.hunt_recipe')
+    recipe.select_runner_tags = lambda ts: ts
+    monkeypatch.setitem(sys.modules, 'app.services.hunt_recipe', recipe)
+    return screen.desk_edge(None)
+
+
+def test_desk_lists_the_members_that_are_in_the_book(monkeypatch):
+    scored = [{'signal_id': s, 'score': 50 + i} for i, s in enumerate(
+        ['posted', 'rejected', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'x8'])]
+    out = desk(monkeypatch, scored, members=['posted', 'rolled-out-of-book'])
+    assert out['runners']['ids'] == ['posted']
+    assert out['runners']['tags'] == ['A', 'B']
+    assert out['edge']['posted']['score'] == 50
+
+
+def test_desk_cut_is_the_screens_percentile(monkeypatch):
+    scored = [{'signal_id': str(i), 'score': float(i)} for i in range(1, 21)]
+    out = desk(monkeypatch, scored, members=[])
+    assert out['book_scores'][0] == 20.0 and len(out['book_scores']) == 20
+    assert out['runners']['cut'] == screen._percentile_cut(out['book_scores'], 20) == 17.0
+
+
+def test_desk_without_a_book_says_so(monkeypatch):
+    assert desk(monkeypatch, None, members=[]) == {'ok': False}
+
+
+def members(monkeypatch, start, decided, live, before):
+    monkeypatch.setattr(screen, '_runner_decisions', lambda db: (start, decided))
+    monkeypatch.setattr(screen, 'live_runner_ids', lambda db: live)
+    return screen.runner_members(DB([[(sid,) for sid in before]]))
+
+
+def test_members_are_the_topic_decision_once_it_exists(monkeypatch):
+    # 'posted' was chosen and has since slipped under the cut (not live now);
+    # 'rejected' was turned down and now ranks in; 'fresh' is undecided. Only
+    # the topic's yes counts — the rule re-run today decides nothing.
+    out = members(monkeypatch, '2026-09-18 03:37:22+00',
+                  decided={'posted': True, 'rejected': False},
+                  live=['rejected', 'fresh'], before=[])
+    assert out == ['posted']
+
+
+def test_calls_from_before_the_topic_use_the_rule(monkeypatch):
+    out = members(monkeypatch, '2026-09-18 03:37:22+00', decided={'posted': True},
+                  live=['old', 'fresh'], before=['old'])
+    assert out == ['old', 'posted']
+
+
+def test_without_a_topic_the_rule_stands(monkeypatch):
+    assert members(monkeypatch, None, decided={}, live=['b', 'a'], before=[]) == ['a', 'b']
+
+
+def test_screen_runners_reads_members_and_adds_no_second_cut(monkeypatch):
+    monkeypatch.setattr(screen, 'runner_members', lambda db: ['1', '3'])
+    monkeypatch.setattr(screen, '_scored_book', lambda db: (_ for _ in ()).throw(AssertionError('no cut')))
+    db = DB([[('1',), ('2',), ('3',)]])
+    assert screen._evaluate_screen({'runners': True, 'risk_level': ['normal']}, db) == ['1', '3']
+    assert ':risks' in db.queries[0][0] and ':runner_tags' not in db.queries[0][0]

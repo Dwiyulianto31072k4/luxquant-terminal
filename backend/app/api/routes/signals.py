@@ -45,7 +45,9 @@ from app.utils.chart_urls import chart_path_to_url
 from app.services.coin_intel_worker import compute_daily_regimes, compute_coin_intel
 from app.services.cache_worker import precompute_outcomes, ensure_outcomes_table
 from app.core.database import SessionLocal
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -797,7 +799,48 @@ def get_signals_bulk_7d(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bulk 7d query error: {str(e)}")
- 
+
+
+# ============================================
+# GET /signals/desk-edge
+# ============================================
+
+@router.get("/desk-edge")
+def get_desk_edge(
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """Server Edge scores + Runners membership for the bulk-7d book.
+
+    The desk ranks and filters with these instead of scoring in the browser,
+    so the Runners tab, the Runners topic and saved alerts agree by
+    construction (see signal_screen.desk_edge). Best-effort: {"ok": false}
+    leaves the desk on its own scores.
+    """
+    from app.services.signal_screen import desk_edge
+
+    try:
+        data = desk_edge(db)
+    except Exception:
+        logger.exception("desk-edge failed")
+        return {"ok": False}
+    if not data.get("ok") or _user_is_active_subscriber(current_user):
+        return data
+    # A free account sees finished wins only; per-call data follows the same
+    # line so this cannot list what bulk-7d withholds. The book's score list
+    # carries no ids, and the Runners cut is measured over the whole book.
+    bulk = cache_get("lq:signals:bulk-7d:sub") or {}
+    visible = {
+        str(it.get("signal_id"))
+        for it in bulk.get("items") or []
+        if _status_is_publicly_viewable(it.get("status"))
+    }
+    return {
+        **data,
+        "edge": {sid: v for sid, v in data["edge"].items() if sid in visible},
+        "runners": {**data["runners"], "ids": [sid for sid in data["runners"]["ids"] if sid in visible]},
+    }
+
 
 
 # ============================================

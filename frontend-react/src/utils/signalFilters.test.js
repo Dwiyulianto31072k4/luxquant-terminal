@@ -5,8 +5,11 @@ import {
   applySignalFilters,
   datesFromParam,
   datesToParam,
+  edgeTopCutFromScores,
   filtersToParams,
+  isRunnersSelection,
   parseFilters,
+  runnersRecipeState,
 } from "./signalFilters";
 
 const sig = (over = {}) => ({
@@ -321,5 +324,74 @@ describe("Edge top N% is measured against the whole book", () => {
     );
     expect(out.map((s) => scores[s.signal_id].score).sort((a, b) => a - b)).toEqual([19, 20, 21]);
     expect(out.every((s) => today.includes(s))).toBe(true);
+  });
+});
+
+describe("Runners membership comes from the server", () => {
+  // The Runners topic decides each call once, at publish, against the seven-
+  // day book. The tab must hold that same set — not re-derive it from tags
+  // and a cut that move after the post.
+  const runners = { tags: ["A", "B"], edge_top: 20, ids: ["posted", "old"] };
+  const rows = [
+    sig({ signal_id: "posted", created_at: "2026-09-19T08:30:00+00:00", important_tags: ["A"] }),
+    // Posted yesterday under a tag that has since rotated out of the set.
+    sig({ signal_id: "old", created_at: "2026-09-18T08:30:00+00:00", important_tags: ["VOL_SPIKE_3X"] }),
+    // Carries a runner tag and scores high today, but was not chosen.
+    sig({ signal_id: "notchosen", created_at: "2026-09-19T09:00:00+00:00", important_tags: ["B"] }),
+  ];
+  const scores = { posted: { score: 60 }, old: { score: 50 }, notchosen: { score: 99 } };
+  const runnersState = { ...DEFAULT_FILTERS, selectedTags: ["B", "A"], tagMatchMode: "any", edgeTop: 20 };
+
+  it("recognises the state every entry point applies", () => {
+    // The rail button and the playbook's "Screen runners" both apply this.
+    expect(isRunnersSelection(runnersRecipeState(["A", "B"]), runners)).toBe(true);
+    expect(isRunnersSelection(runnersRecipeState(["A", "B", "OLD"]), runners)).toBe(false);
+  });
+
+  it("recognises the mode in any tag order, and nothing looser", () => {
+    expect(isRunnersSelection(runnersState, runners)).toBe(true);
+    expect(isRunnersSelection({ ...runnersState, selectedTags: ["A"] }, runners)).toBe(false);
+    expect(isRunnersSelection({ ...runnersState, selectedTags: ["A", "B", "C"] }, runners)).toBe(false);
+    expect(isRunnersSelection({ ...runnersState, tagMatchMode: "all" }, runners)).toBe(false);
+    expect(isRunnersSelection({ ...runnersState, edgeTop: 10 }, runners)).toBe(false);
+    expect(isRunnersSelection(runnersState, null)).toBe(false);
+    expect(isRunnersSelection(runnersState, { ...runners, ids: undefined })).toBe(false);
+  });
+
+  it("shows exactly the decided calls, and the day chip only picks which", () => {
+    const all = applySignalFilters(rows, { ...runnersState, selectedDates: [] }, { edgeScoreMap: scores, runners });
+    expect(all.map((s) => s.signal_id).sort()).toEqual(["old", "posted"]);
+    const today = applySignalFilters(rows, { ...runnersState, selectedDates: ["2026-09-19"] }, { edgeScoreMap: scores, runners });
+    expect(today.map((s) => s.signal_id)).toEqual(["posted"]);
+  });
+
+  it("still ANDs the other filters", () => {
+    const out = applySignalFilters(rows, { ...runnersState, selectedDates: [], searchPair: "ZZZ" }, { edgeScoreMap: scores, runners });
+    expect(out).toHaveLength(0);
+  });
+
+  it("falls back to tags + cut when the server set is missing", () => {
+    const out = applySignalFilters(rows, { ...runnersState, selectedDates: [] }, { edgeScoreMap: scores });
+    expect(out.every((s) => s.signal_id !== "old")).toBe(true);
+  });
+});
+
+describe("a manual Edge cut uses the server's book scores", () => {
+  // The browser's own scores read ~1.9 above the server's; a cut taken over
+  // them sat at 67.0 while the topic's was 65.2. With the book's list given,
+  // the cut is the server's to the decimal.
+  const book = Array.from({ length: 20 }, (_, i) => 50 + i); // 50..69
+  it("matches signal_screen._percentile_cut", () => {
+    // top 20% of 20 = 4 rows: 69, 68, 67, 66 → cut 66.
+    expect(edgeTopCutFromScores(book, 20)).toBe(66);
+    expect(edgeTopCutFromScores(book.slice(0, 9), 20)).toBe(null);
+  });
+
+  it("keeps a row at the server cut that local scores would have dropped", () => {
+    const rows = Array.from({ length: 20 }, (_, i) => sig({ signal_id: `r${i}`, created_at: "2026-09-19T00:00:00+00:00" }));
+    const local = Object.fromEntries(rows.map((r, i) => [r.signal_id, { score: 52 + i }])); // inflated scale
+    local.r5 = { score: 66 }; // the server's number for one row
+    const out = applySignalFilters(rows, { ...DEFAULT_FILTERS, selectedDates: [], edgeTop: 20 }, { edgeScoreMap: local, bookScores: book });
+    expect(out.map((s) => s.signal_id)).toContain("r5");
   });
 });

@@ -60,7 +60,7 @@ const OUTCOME_FILL = {
  *  baseline is easy to oversell with one number, so the tile always carries the
  *  point difference AND the relative one — the pair is what stops "+9.6" being
  *  read as "9.6% better" or "nearly double". */
-function Headline({ label, value, baseline, deltaPp, ratio, betterWhen }) {
+function Headline({ label, value, baseline, deltaPp, ratio, betterWhen, baselineLabel = "with no filter" }) {
   const good = deltaPp == null ? null : betterWhen === "lower" ? deltaPp < 0 : deltaPp > 0;
   return (
     <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-2.5">
@@ -69,7 +69,7 @@ function Headline({ label, value, baseline, deltaPp, ratio, betterWhen }) {
         {fmtPct(value)}
       </p>
       <p className="mt-1.5 text-[11.5px] leading-snug text-text-muted tabular-nums">
-        vs {fmtPct(baseline)} with no filter
+        vs {fmtPct(baseline)} {baselineLabel}
       </p>
       {deltaPp != null ? (
         <p
@@ -153,12 +153,12 @@ function CompareTrack({ label, runners, baseline, betterWhen = "higher" }) {
         <span
           className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent bg-accent shadow-sm"
           style={{ left: pos(a) }}
-          title={`Runners ${fmtPct(a)}`}
+          title={`Runner tags ${fmtPct(a)}`}
         />
       </div>
       <div className="mt-0.5 flex justify-between font-mono text-[10px] tabular-nums text-text-muted">
-        <span>{leftIsA ? `Runners ${fmtPct(a)}` : `No filter ${fmtPct(b)}`}</span>
-        <span>{leftIsA ? `No filter ${fmtPct(b)}` : `Runners ${fmtPct(a)}`}</span>
+        <span>{leftIsA ? `Runner tags ${fmtPct(a)}` : `No filter ${fmtPct(b)}`}</span>
+        <span>{leftIsA ? `No filter ${fmtPct(b)}` : `Runner tags ${fmtPct(a)}`}</span>
       </div>
     </div>
   );
@@ -204,7 +204,7 @@ function plainTakeaway(hunt, base) {
     );
   }
   if (!bits.length) return "In this window the two mixes finished almost the same.";
-  return `In this window, Runners ${bits.join(" and ")}.`;
+  return `In this window, calls with runner tags ${bits.join(" and ")}.`;
 }
 
 /** The "what does TP2 mean here" popover that rides each row of the table. */
@@ -234,6 +234,72 @@ function OutcomeInfo({ item, view }) {
 
 const LBL =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted";
+
+// Below this many finished calls a rate is still mostly noise: at 44 calls a
+// TP3+ rate near 45% carries a 95% margin of about ±15pp.
+const POSTED_MIN_N = 100;
+
+/** 95% margin, in percentage points, of a rate measured on n calls. */
+function marginPp(ratePct, n) {
+  const p = (Number(ratePct) || 0) / 100;
+  if (!n) return null;
+  return Math.round(1.96 * Math.sqrt((p * (1 - p)) / n) * 100);
+}
+
+/** The real record: the calls the Runners topic chose — the same calls the
+ *  Runners tab lists — against every call made since the topic started. */
+function PostedRecord({ posted }) {
+  if (!posted) return null;
+  const hunt = posted.hunt;
+  const base = posted.baseline;
+  const n = Number(hunt?.n) || 0;
+  const since = fmtDate(posted.since);
+  const diff = (a, b) => (a == null || b == null ? null : Number(a) - Number(b));
+  const early = n < POSTED_MIN_N;
+  return (
+    <div className="rounded-lg border border-accent/25 bg-accent/[0.04] px-3 py-2.5">
+      <p className={LBL}>Posted to the Runners topic</p>
+      <p className="mt-1 text-[12.5px] leading-snug text-text-primary tabular-nums">
+        {fmtN(posted.chosen)} chosen since {since} · {fmtN(n)} reached TP1 or SL in this
+        window · {fmtN(posted.open_count)} not yet
+      </p>
+      {n > 0 ? (
+        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+          <Headline
+            label="Hit TP1+"
+            value={hunt.win_rate}
+            baseline={base?.win_rate}
+            baselineLabel={`of every call since ${since}`}
+            deltaPp={diff(hunt.win_rate, base?.win_rate)}
+            betterWhen="higher"
+          />
+          <Headline
+            label="Hit TP3+"
+            value={hunt.full_tp_rate}
+            baseline={base?.full_tp_rate}
+            baselineLabel={`of every call since ${since}`}
+            deltaPp={diff(hunt.full_tp_rate, base?.full_tp_rate)}
+            betterWhen="higher"
+          />
+          <Headline
+            label="Stopped out"
+            value={hunt.sl_rate}
+            baseline={base?.sl_rate}
+            baselineLabel={`of every call since ${since}`}
+            deltaPp={diff(hunt.sl_rate, base?.sl_rate)}
+            betterWhen="lower"
+          />
+        </div>
+      ) : null}
+      <p className="mt-2 text-[11px] leading-snug text-text-muted">
+        {early
+          ? `Too early to read: ${fmtN(n)} finished calls, so each rate can still move by about ±${marginPp(hunt?.full_tp_rate, n) ?? "—"}pp. The backtest below is the longer view.`
+          : `Each rate can still move by about ±${marginPp(hunt?.full_tp_rate, n)}pp at this size.`}{" "}
+        These are the calls the Runners tab lists, each chosen once when it was called.
+      </p>
+    </div>
+  );
+}
 
 export function HuntResults({
   stats,
@@ -284,11 +350,8 @@ export function HuntResults({
       {/* HEADER — what is being counted and over what window. Nothing else. */}
       <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-ink/[0.08] bg-ink/[0.02] px-3 py-2.5 sm:px-3.5">
         <div className="min-w-0">
-          <p className={LBL}>Runners vs no filter · closed calls only</p>
-          <p className="mt-1 text-[12.5px] leading-snug text-text-primary tabular-nums">
-            {fmtN(hunt.n)} with runner tags vs {fmtN(base?.n)} unfiltered
-          </p>
-          <p className="text-[11px] leading-snug text-text-muted tabular-nums">{windowLabel}</p>
+          <p className={LBL}>Runners · closed calls only</p>
+          <p className="mt-1 text-[11px] leading-snug text-text-muted tabular-nums">{windowLabel}</p>
         </div>
         {onWindow && windowOptions ? (
           <SegGroup
@@ -302,6 +365,21 @@ export function HuntResults({
       </header>
 
       <div className="space-y-5 px-3 py-3 sm:px-3.5">
+        <PostedRecord posted={stats.posted} />
+
+        {/* The longer view. It is the tags alone, today's tags, on the same
+            history they were picked from — useful for size, not the record. */}
+        <div>
+          <p className={LBL}>Backtest · runner tags only</p>
+          <p className="mt-1 text-[12.5px] leading-snug text-text-primary tabular-nums">
+            {fmtN(hunt.n)} with today&rsquo;s runner tags vs {fmtN(base?.n)} unfiltered
+          </p>
+          <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
+            No Edge cut, and the four tags were picked on this same history, so it reads
+            higher than the posted record is likely to.
+          </p>
+        </div>
+
         <p className="text-[13px] leading-snug text-text-primary">
           {plainTakeaway(hunt, base)}
         </p>
@@ -347,10 +425,10 @@ export function HuntResults({
 
         <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-2">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <p className={LBL}>Runners vs no filter</p>
+            <p className={LBL}>Runner tags vs no filter</p>
             <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
               <span className="mr-2 inline-block h-2 w-2 rounded-full bg-accent align-middle" />
-              Runners
+              Runner tags
               <span className="ml-3 mr-2 inline-block h-2 w-2 rounded-full border border-ink/30 bg-surface-raised align-middle" />
               No filter
             </p>
@@ -380,7 +458,7 @@ export function HuntResults({
           </div>
           <div className="mt-2 space-y-2">
             {[
-              { name: "Runners", mix: hunt, dim: false },
+              { name: "Runner tags", mix: hunt, dim: false },
               { name: "No filter", mix: base, dim: true },
             ]
               .filter((r) => r.mix)
@@ -401,7 +479,8 @@ export function HuntResults({
             {stats.open_count != null
               ? ` ${stats.open_count} calls are still open and are in neither bar.`
               : ""}{" "}
-            Live Runners also keeps the top 20% of Edge on the day you are looking at — not in these bars.
+            The live Runners also need the top 20% of the last seven days&rsquo; Edge when
+            called — not in these bars. The posted record above is the real set.
           </p>
         </div>
 
@@ -435,7 +514,7 @@ export function HuntResults({
                 <thead>
                   <tr className="border-b border-ink/[0.08]">
                     <th className={`py-1.5 pr-2 ${LBL} font-normal`}>Outcome</th>
-                    <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>Runners</th>
+                    <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>Runner tags</th>
                     <th className={`py-1.5 px-2 text-right ${LBL} font-normal`}>No filter</th>
                     <th className={`py-1.5 pl-2 text-right ${LBL} font-normal`}>Difference</th>
                   </tr>

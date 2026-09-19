@@ -4,7 +4,8 @@
 // The Runners key stays `full_tp` — analytics and older links still use it.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildRunnerTagSet } from "./EdgePlaybook";
+import { topRunnerTags } from "./EdgePlaybook";
+import { runnersRecipeState } from "../utils/signalFilters";
 import RecipeExplainModal, { HuntResults } from "./RecipeExplainModal";
 import ModeGuideModal, { isModeGuideMuted } from "./ModeGuideModal";
 import Modal from "./ui/Modal";
@@ -116,6 +117,7 @@ export default function EdgeRecipesBar({
   onGuideMode,
   onDeskGuide,
   onTutorials,
+  deskRunnerTags = null,
 }) {
   const [explainId, setExplainId] = useState(null);
   // Controlled by SignalsPage when it wants the ? on the search row to open
@@ -162,20 +164,16 @@ export default function EdgeRecipesBar({
     };
   }, [guideMode, explainId, resultsOpen, huntDays, showRecipes]);
 
+  // The server's tags first (/signals/desk-edge): they are the ones the
+  // Runners topic and the desk's membership were decided with, so selecting
+  // the mode lands exactly on that set. Never the briefing's 7d/30d picker —
+  // a window chosen for reading stats must not change what the mode selects.
   const runnerTags = useMemo(() => {
-    const fromApi = huntStats?.runner_tags;
+    if (Array.isArray(deskRunnerTags) && deskRunnerTags.length) return deskRunnerTags;
+    const fromApi = huntByDays["0"]?.runner_tags;
     if (Array.isArray(fromApi) && fromApi.length) return fromApi;
-    const set = buildRunnerTagSet(tagWr);
-    return (tagWr || [])
-      .filter((t) => set.has(t.tag))
-      .sort(
-        (a, b) =>
-          (Number(b.full_tp_rate) || 0) - (Number(a.full_tp_rate) || 0) ||
-          (Number(b.win_rate) || 0) - (Number(a.win_rate) || 0)
-      )
-      .slice(0, 4)
-      .map((t) => t.tag);
-  }, [tagWr, huntStats]);
+    return topRunnerTags(tagWr);
+  }, [tagWr, huntByDays, deskRunnerTags]);
 
   const cautionTags = useMemo(() => {
     const CONFOUND = new Set([
@@ -223,23 +221,12 @@ export default function EdgeRecipesBar({
         //
         // statusFilter stays `all`: classification is at publish. Open (has
         // not hit yet) is a chip, not this mode — tp1/tp2 stay on the shortlist.
-        build: () => ({
-          selectedTags: runnerTags.length ? runnerTags : [],
-          tagMatchMode: "any",
-          statusFilter: "all",
-          riskFilter: "all",
-          streakFilter: "all",
-          edgeTop: 20,
-          sortBy: "edge_score",
-          sortOrder: "desc",
-          sorts: [
-            { field: "edge_score", order: "desc" },
-            { field: "created_at", order: "desc" },
-          ],
-          searchPair: "",
-          corrDecoupled: false,
-          corrHighAlign: false,
-        }),
+        //
+        // Membership is not re-derived from this state: SignalsPage sees the
+        // state IS Runners (isRunnersSelection) and shows the calls the
+        // Runners topic chose. The same state is what "Screen runners" in the
+        // playbook applies.
+        build: () => runnersRecipeState(runnerTags),
       },
       {
         id: "caution",

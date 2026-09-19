@@ -9,12 +9,17 @@ mode, and membership is computed live from two things:
   * its Edge score sits in the top 20% of the last seven days' book — a relative
     rank that is never stored and changes as new calls arrive.
 
-So this does not invent a second definition. It asks the desk's own evaluator,
-`signal_screen.match_screen({"runners": True})`, the same one saved-filter
-alerts use, and decides each call ONCE: the first time its enrichment has been
-written long enough for the cached Edge book to include it. That is the rule
-the desk itself states ("classification is at publish") — a post in the topic
-is never taken back because a later call out-ranked it.
+So this does not invent a second definition. It asks the one evaluator of the
+rule, `signal_screen.live_runner_ids`, and decides each call ONCE: the first
+time its enrichment has been written long enough for the cached Edge book to
+include it. That is the rule the desk itself states ("classification is at
+publish") — a post in the topic is never taken back because a later call
+out-ranked it.
+
+This decision is also the source of truth for every other surface: the
+Signals desk's Runners tab, saved alerts and Custom previews read it back
+through `signal_screen.runner_members` (runner_call_posts.matched), so what a
+member sees as Runners is exactly what this topic posted.
 
 Runs as a oneshot on a one-minute timer: nothing stays in memory between runs,
 so a restart cannot replay anything and a crash cannot leave a half-state.
@@ -53,7 +58,7 @@ PROXY = os.getenv("TELEGRAM_PROXY") or None
 # lands a median ~4 min after the call (p90 ~11), so an hour is generous; past
 # it the call is recorded as decided and never posted.
 MAX_AGE_MIN = int(os.getenv("RUNNER_MAX_AGE_MIN", "60"))
-# match_screen caches the Edge book for 30s and its own answer for 20s. A call
+# live_runner_ids caches the Edge book for 30s and its own answer for 20s. A call
 # enriched seconds ago may be missing from both, and deciding then would record
 # a false "not a runner" forever. 30 + 20 is the longest either can be stale,
 # so waiting that long after enrichment rules it out and not a second more.
@@ -144,12 +149,12 @@ def candidates(db, since_ts, max_age_min):
 
 
 def runner_set(db):
-    """(signal ids the desk calls Runners now, {tag: stats} for the runner tags)."""
+    """(signal ids the Runners rule selects now, {tag: stats} for the runner tags)."""
     from app.api.routes.edge_lab import get_tag_wr
     from app.services.hunt_recipe import select_runner_tags
-    from app.services.signal_screen import match_screen
+    from app.services.signal_screen import live_runner_ids
 
-    ids = set(match_screen({"runners": True}, db))
+    ids = set(live_runner_ids(db))
     tags = select_runner_tags(get_tag_wr(days=0, min_n=40, db=db).get("tags") or [])
     return ids, {t["tag"]: t for t in tags if t.get("tag")}
 

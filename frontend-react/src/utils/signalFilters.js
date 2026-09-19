@@ -165,13 +165,59 @@ export function edgeTopThreshold(signals, edgeScoreMap, pct) {
     const sc = edgeScoreMap[s?.signal_id]?.score;
     if (typeof sc === "number" && Number.isFinite(sc)) scores.push(sc);
   }
-  if (scores.length < MIN_SCORED_FOR_CUT) return null;
-  scores.sort((a, b) => a - b);
+  return edgeTopCutFromScores(scores, pct);
+}
+
+/** The same cut over a bare list of scores — the server's `book_scores` from
+ *  /signals/desk-edge, which is every score in the seven-day book. Lockstep
+ *  with signal_screen._percentile_cut, so a percentile read here lands on the
+ *  score the Runners topic and saved alerts used. */
+export function edgeTopCutFromScores(scores, pct) {
+  if (!pct || !Array.isArray(scores)) return null;
+  const sorted = scores.filter((sc) => typeof sc === "number" && Number.isFinite(sc));
+  if (sorted.length < MIN_SCORED_FOR_CUT) return null;
+  sorted.sort((a, b) => a - b);
   // Count from the top, not from the bottom: `keep` rows survive, so the
   // inclusive boundary is the lowest of them. Rounding up means a tiny
   // percentile still keeps one row rather than emptying the list.
-  const keep = Math.max(1, Math.ceil((scores.length * pct) / 100));
-  return scores[Math.max(0, scores.length - keep)];
+  const keep = Math.max(1, Math.ceil((sorted.length * pct) / 100));
+  return sorted[Math.max(0, sorted.length - keep)];
+}
+
+/** The Runners mode as desk state: runner tags (OR) + top 20% Edge, ranked by
+ *  Edge then newest. Every way into the mode applies exactly this, so the
+ *  desk recognises it (isRunnersSelection) and reads the server's members. */
+export function runnersRecipeState(tags = []) {
+  return {
+    selectedTags: tags?.length ? [...tags] : [],
+    tagMatchMode: "any",
+    statusFilter: "all",
+    riskFilter: "all",
+    streakFilter: "all",
+    edgeTop: 20,
+    sortBy: "edge_score",
+    sortOrder: "desc",
+    sorts: [
+      { field: "edge_score", order: "desc" },
+      { field: "created_at", order: "desc" },
+    ],
+    searchPair: "",
+    corrDecoupled: false,
+    corrHighAlign: false,
+  };
+}
+
+/** True when the filter state IS the Runners mode: the server's runner tags
+ *  (any order, OR) with its Edge cut. Only then may the desk hand membership to
+ *  the server; a user who adds or drops a tag, or moves the cut, has built
+ *  their own screen and gets it evaluated as written. */
+export function isRunnersSelection(f, runners) {
+  const tags = runners?.tags;
+  if (!Array.isArray(tags) || !tags.length || !Array.isArray(runners?.ids)) return false;
+  if (Number(f?.edgeTop) !== Number(runners.edge_top)) return false;
+  if ((f?.tagMatchMode || "any") !== "any") return false;
+  const sel = f?.selectedTags || [];
+  return sel.length === tags.length && tags.every((t) => sel.includes(t));
 }
 
 // ── Predikat filter (faithful port dari SignalsPage.filtered) ───────
@@ -264,8 +310,19 @@ export function applySignalFilters(signals, f, ctx = {}) {
   // which the search and day filters above have already narrowed. A day slice
   // must not decide what "top 20%" means; the backend's screens and the
   // Runners topic both measure it against the full seven-day book.
+  //
+  // Runners is the one mode decided on the server (ctx.runners, from
+  // /signals/desk-edge): its members are the calls the Runners topic chose
+  // at publish, so the tab and the topic hold the same set whatever the day
+  // chip shows. Every other Edge cut uses the server's book scores when given.
+  if (isRunnersSelection(f, ctx.runners)) {
+    const ids = new Set(ctx.runners.ids.map(String));
+    return out.filter((s) => ids.has(String(s.signal_id)));
+  }
   if (f.edgeTop && ctx.edgeScoreMap) {
-    const cut = edgeTopThreshold(signals, ctx.edgeScoreMap, f.edgeTop);
+    const cut = ctx.bookScores
+      ? edgeTopCutFromScores(ctx.bookScores, f.edgeTop)
+      : edgeTopThreshold(signals, ctx.edgeScoreMap, f.edgeTop);
     if (cut != null) {
       out = out.filter((s) => {
         const sc = ctx.edgeScoreMap?.[s.signal_id]?.score;
