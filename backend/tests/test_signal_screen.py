@@ -59,6 +59,7 @@ def desk(monkeypatch, scored, members, tags=('A', 'B'), top=frozenset()):
     monkeypatch.setattr(screen, 'cache_set', lambda k, v, ttl: cache.update({k: v}))
     monkeypatch.setattr(screen, '_scored_book', lambda db: scored)
     monkeypatch.setattr(screen, 'runner_members', lambda db: members)
+    monkeypatch.setattr(screen, 'cache_single_flight', lambda key, ttl, compute, keep=None: compute())
     monkeypatch.setattr(screen, '_top_runner_ids', lambda db: top)
     module = ModuleType('app.api.routes.edge_lab')
     module.get_tag_wr = lambda **kw: {'tags': [{'tag': t} for t in tags]}

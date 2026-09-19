@@ -89,6 +89,52 @@ def cache_get_with_stale(key: str) -> tuple[Optional[Any], bool]:
         return None, False
 
 
+def cache_single_flight(key: str, ttl: int, compute, keep=None, wait_s: float = 20.0) -> Any:
+    """Serve `key` from cache; on a miss, let ONE caller compute it.
+
+    Without this every request that misses runs the same heavy query at once,
+    and when those queries outlast the gateway (504) nothing is ever cached, so
+    each retry adds another — on 2026-09-19 nineteen identical outcome scans
+    ran together and the box sat at load 27. Now:
+      * fresh copy            -> return it;
+      * someone is computing  -> return the stale copy if there is one, else
+                                 wait (up to `wait_s`) for their result;
+      * otherwise             -> take the lock, compute, cache, release.
+    `keep(value)` can refuse to cache a result (e.g. {"ok": False}).
+    """
+    import time
+
+    fresh = cache_get(key)
+    if fresh is not None:
+        return fresh
+    stale, _ = cache_get_with_stale(key)
+    lock = f"{key}:lock"
+    try:
+        got = bool(get_redis().set(lock, "1", nx=True, ex=max(60, int(wait_s * 6))))
+    except Exception:
+        got = True  # no Redis: nothing to coordinate with, just compute
+    if not got:
+        if stale is not None:
+            return stale
+        deadline = time.monotonic() + wait_s
+        while time.monotonic() < deadline:
+            time.sleep(0.5)
+            fresh = cache_get(key)
+            if fresh is not None:
+                return fresh
+    try:
+        value = compute()
+        if keep is None or keep(value):
+            cache_set(key, value, ttl)
+        return value
+    finally:
+        if got:
+            try:
+                get_redis().delete(lock)
+            except Exception:
+                pass
+
+
 def cache_delete_pattern(pattern: str) -> int:
     """Delete all keys matching pattern"""
     try:

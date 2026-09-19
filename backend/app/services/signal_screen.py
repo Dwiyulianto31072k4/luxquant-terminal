@@ -15,7 +15,7 @@ Runners has two faces and they must not be confused:
 import math
 import hashlib
 import json
-from app.core.redis import cache_get, cache_set
+from app.core.redis import cache_get, cache_set, cache_single_flight
 from sqlalchemy import text
 from app.services.signal_filter_alerts import _build_conditions, _with_live_runners
 
@@ -206,10 +206,15 @@ def desk_edge(db):
     would drop a posted call the moment later calls out-rank it or the runner
     tags rotate.
     """
-    key = "lq:desk-edge:v2"
-    cached = cache_get(key)
-    if cached is not None:
-        return cached
+    # Every Signals page load and its 30s refresh asks for this, so a miss must
+    # never become one heavy computation per open tab: one caller computes,
+    # the rest get the previous answer (see cache_single_flight). The topic
+    # worker does not come through here — it reads live_runner_ids fresh.
+    return cache_single_flight("lq:desk-edge:v2", 30, lambda: _compute_desk_edge(db),
+                               keep=lambda v: bool(v.get("ok")))
+
+
+def _compute_desk_edge(db):
     scored = _scored_book(db)
     if not scored:
         return {"ok": False}
@@ -238,7 +243,6 @@ def desk_edge(db):
             "top_ids": sorted(sid for sid in book if sid in members and sid in top),
         },
     }
-    cache_set(key, result, ttl=30)
     return result
 
 

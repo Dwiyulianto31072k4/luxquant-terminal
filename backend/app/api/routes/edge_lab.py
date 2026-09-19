@@ -36,7 +36,7 @@ import math
 
 from app.core.database import get_db
 from app.api.deps import require_subscription
-from app.core.redis import cache_get, cache_set, cache_get_with_stale
+from app.core.redis import cache_get, cache_set, cache_get_with_stale, cache_single_flight
 from app.services.hunt_recipe import (
     RUNNER_MIN_FULL,
     RUNNER_MIN_N,
@@ -1054,45 +1054,41 @@ def get_tag_wr(
 
     # v4: EB-shrink + Wilson for Edge Score v2 client
     cache_key = f"lq:edge-lab:tag-wr:v4:{days}:{min_n}:{start_str}:{end_str}"
-    cached = cache_get(cache_key)
-    if cached:
-        return cached
-    _stale, _ = cache_get_with_stale(cache_key)
-    if _stale:
-        return _stale
 
-    base_wr, tags = tag_wr_stats(db, start_str, end_str, min_n)
+    def _build():
+        base_wr, tags = tag_wr_stats(db, start_str, end_str, min_n)
 
-    active_rows = db.execute(text("""
-        SELECT t->>'name' AS tag_name, s.signal_id
-        FROM signals s
-        JOIN signal_enrichment e ON e.signal_id = s.signal_id,
-             jsonb_array_elements(
-                 COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
-                          e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
-        WHERE s.status = 'open'
-          AND (t->>'important')::boolean = true
-    """)).fetchall()
+        active_rows = db.execute(text("""
+            SELECT t->>'name' AS tag_name, s.signal_id
+            FROM signals s
+            JOIN signal_enrichment e ON e.signal_id = s.signal_id,
+                 jsonb_array_elements(
+                     COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                              e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
+            WHERE s.status = 'open'
+              AND (t->>'important')::boolean = true
+        """)).fetchall()
 
-    active_map = {}
-    for tag_name, sid in active_rows:
-        active_map.setdefault(tag_name, []).append(sid)
-    for t in tags:
-        t["active_signal_ids"] = active_map.get(t["tag"], [])
-        t["active_count"] = len(t["active_signal_ids"])
+        active_map = {}
+        for tag_name, sid in active_rows:
+            active_map.setdefault(tag_name, []).append(sid)
+        for t in tags:
+            t["active_signal_ids"] = active_map.get(t["tag"], [])
+            t["active_count"] = len(t["active_signal_ids"])
 
-    response = {
-        "days": days,
-        "effective_days": effective_days,
-        "min_n": min_n,
-        "window": {"start": start_str, "end": end_str},
-        "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
-        "baseline_wr": base_wr,
-        "score_version": "v2",
-        "tags": tags,
-    }
-    cache_set(cache_key, response, ttl=600)
-    return response
+        response = {
+            "days": days,
+            "effective_days": effective_days,
+            "min_n": min_n,
+            "window": {"start": start_str, "end": end_str},
+            "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
+            "baseline_wr": base_wr,
+            "score_version": "v2",
+            "tags": tags,
+        }
+        return response
+
+    return cache_single_flight(cache_key, 600, _build)
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1327,158 +1323,154 @@ def get_edge_correlation(
 
     # v5 = Edge Score v2 (EB-shrink + Wilson + multi-factor open score)
     cache_key = f"lq:edge-lab:corr:v5:{days}:{min_n}:{start_str}:{end_str}"
-    cached = cache_get(cache_key)
-    if cached:
-        return cached
-    _stale, _ = cache_get_with_stale(cache_key)
-    if _stale:
-        return _stale
 
-    ctx = edge_context(db, start_str, end_str, min_n)
-    baseline, base_wr, base_wr_p = ctx["baseline"], ctx["base_wr"], ctx["base_wr_p"]
-    tags, risk = ctx["tags"], ctx["risk"]
-    prefer_tags, caution_tags = ctx["prefer_tags"], ctx["caution_tags"]
+    def _build():
+        ctx = edge_context(db, start_str, end_str, min_n)
+        baseline, base_wr, base_wr_p = ctx["baseline"], ctx["base_wr"], ctx["base_wr_p"]
+        tags, risk = ctx["tags"], ctx["risk"]
+        prefer_tags, caution_tags = ctx["prefer_tags"], ctx["caution_tags"]
 
-    # ── CURRENT open candidates (desk ≈ bulk-7d) ─────────────────────────────
-    # SCORE v2 = long-history multi-factor (not 7d learning).
-    open_rows = db.execute(text("""
-        SELECT s.signal_id, s.pair, s.risk_level, s.entry, s.created_at,
-               s.status, s.volume_rank_num, s.volume_rank_den,
-               s.stop1, s.target1, s.target2, s.target3, s.target4,
-               bc.corr_4h_30d, bc.is_decoupled, bc.beta_30d,
-               COALESCE(
-                 (SELECT array_agg(DISTINCT t->>'name')
-                  FROM jsonb_array_elements(
-                    COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
-                             e.entry_snapshot->'tags_annotated','[]'::jsonb)
-                  ) t
-                  WHERE (t->>'important')::boolean = true
-                    AND NULLIF(TRIM(t->>'name'), '') IS NOT NULL
-                 ),
-                 ARRAY[]::text[]
-               ) AS tags
-        FROM signals s
-        LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
-        LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
-        WHERE LOWER(s.status) = 'open'
-          AND (s.created_at)::timestamptz >= NOW() - INTERVAL '7 days'
-        ORDER BY (s.created_at)::timestamptz DESC
-        LIMIT 300
-    """)).fetchall()
+        # ── CURRENT open candidates (desk ≈ bulk-7d) ─────────────────────────────
+        # SCORE v2 = long-history multi-factor (not 7d learning).
+        open_rows = db.execute(text("""
+            SELECT s.signal_id, s.pair, s.risk_level, s.entry, s.created_at,
+                   s.status, s.volume_rank_num, s.volume_rank_den,
+                   s.stop1, s.target1, s.target2, s.target3, s.target4,
+                   bc.corr_4h_30d, bc.is_decoupled, bc.beta_30d,
+                   COALESCE(
+                     (SELECT array_agg(DISTINCT t->>'name')
+                      FROM jsonb_array_elements(
+                        COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                                 e.entry_snapshot->'tags_annotated','[]'::jsonb)
+                      ) t
+                      WHERE (t->>'important')::boolean = true
+                        AND NULLIF(TRIM(t->>'name'), '') IS NOT NULL
+                     ),
+                     ARRAY[]::text[]
+                   ) AS tags
+            FROM signals s
+            LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
+            LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
+            WHERE LOWER(s.status) = 'open'
+              AND (s.created_at)::timestamptz >= NOW() - INTERVAL '7 days'
+            ORDER BY (s.created_at)::timestamptz DESC
+            LIMIT 300
+        """)).fetchall()
 
-    # Pair-level prior from resolved tag-era (simple coin WR) for hierarchical boost
-    pair_prior_rows = db.execute(text(f"""
-        WITH {OUTCOMES_CTE}
-        SELECT s.pair,
-               COUNT(*) AS n,
-               COUNT(*) FILTER (WHERE r.outcome IN ('tp1','tp2','tp3','tp4')) AS wins
-        FROM resolved r
-        JOIN signals s ON s.signal_id = r.signal_id
-        WHERE r.hit_date >= :start AND r.hit_date <= :end
-        GROUP BY s.pair
-        HAVING COUNT(*) >= 8
-    """), {"start": start_str, "end": end_str}).fetchall()
-    pair_prior = {}
-    for pr in pair_prior_rows:
-        pn, pw = int(pr[1]), int(pr[2] or 0)
-        pair_prior[pr[0]] = {
-            "n": pn,
-            "wr": _wr(pw, pn),
-            "wr_shrunk": round((_eb_rate(pw, pn, base_wr_p, 30.0) or 0) * 100, 2),
-        }
+        # Pair-level prior from resolved tag-era (simple coin WR) for hierarchical boost
+        pair_prior_rows = db.execute(text(f"""
+            WITH {OUTCOMES_CTE}
+            SELECT s.pair,
+                   COUNT(*) AS n,
+                   COUNT(*) FILTER (WHERE r.outcome IN ('tp1','tp2','tp3','tp4')) AS wins
+            FROM resolved r
+            JOIN signals s ON s.signal_id = r.signal_id
+            WHERE r.hit_date >= :start AND r.hit_date <= :end
+            GROUP BY s.pair
+            HAVING COUNT(*) >= 8
+        """), {"start": start_str, "end": end_str}).fetchall()
+        pair_prior = {}
+        for pr in pair_prior_rows:
+            pn, pw = int(pr[1]), int(pr[2] or 0)
+            pair_prior[pr[0]] = {
+                "n": pn,
+                "wr": _wr(pw, pn),
+                "wr_shrunk": round((_eb_rate(pw, pn, base_wr_p, 30.0) or 0) * 100, 2),
+            }
 
-    from app.services.signal_screen_score import score_candidates
-    scored_open = score_candidates(open_rows, tags, prefer_tags, base_wr, pair_prior)
+        from app.services.signal_screen_score import score_candidates
+        scored_open = score_candidates(open_rows, tags, prefer_tags, base_wr, pair_prior)
 
-    # ── Insights from past ──
-    insights = []
-    win_label = f"{effective_days}d" if days == 0 else f"{days}d"
-    if prefer_tags:
-        t0 = prefer_tags[0]
-        full_bit = f", full TP {t0.get('full_tp_rate_shrunk') or t0['full_tp_rate']}%" 
-        lift = t0.get("lift_shrunk_pp") if t0.get("lift_shrunk_pp") is not None else t0.get("lift_pp")
-        lift_bit = f", shrunk lift {lift:+.1f}pp vs {base_wr}% baseline" if lift is not None else ""
-        wr_show = t0.get("win_rate_shrunk") or t0.get("win_rate")
-        insights.append({
-            "tone": "good",
-            "title": "Historically strongest setup (EB-shrunk)",
-            "body": (
-                f"Over {win_label}, \"{t0['tag']}\" shrunk WR ~{wr_show}% "
-                f"(n={t0['n']}{lift_bit}{full_bit}). "
-                f"Prefer open signals that still carry this tag."
-            ),
-        })
-    if caution_tags:
-        t0 = caution_tags[0]
-        insights.append({
-            "tone": "warn",
-            "title": "Historically weaker / confounded",
-            "body": (
-                f"“{t0['tag']}” shows loss rate {t0['loss_rate']}% over {t0['n']} past calls "
-                f"(or is a late/extended condition). Use as caution when screening open signals — "
-                f"not an automatic ban."
-            ),
-        })
-    if baseline["n"]:
-        insights.append({
-            "tone": "neutral",
-            "title": f"Past {win_label} baseline · Edge Score v2",
-            "body": (
-                f"{baseline['win_rate']}% win · {baseline['loss_rate']}% SL · "
-                f"{baseline['full_tp_rate']}% full TP3+ · {baseline['tp4_rate']}% TP4 "
-                f"across {baseline['n']:,} resolved signals. "
-                f"Open scores use EB-shrunk tag rates + Wilson uncertainty + "
-                f"volume/risk/BTC/time-to-TP/coin/expectancy factors."
-            ),
-        })
-    if scored_open:
-        top = next((s for s in scored_open if s["score"] is not None), None)
-        if top:
+        # ── Insights from past ──
+        insights = []
+        win_label = f"{effective_days}d" if days == 0 else f"{days}d"
+        if prefer_tags:
+            t0 = prefer_tags[0]
+            full_bit = f", full TP {t0.get('full_tp_rate_shrunk') or t0['full_tp_rate']}%" 
+            lift = t0.get("lift_shrunk_pp") if t0.get("lift_shrunk_pp") is not None else t0.get("lift_pp")
+            lift_bit = f", shrunk lift {lift:+.1f}pp vs {base_wr}% baseline" if lift is not None else ""
+            wr_show = t0.get("win_rate_shrunk") or t0.get("win_rate")
             insights.append({
                 "tone": "good",
-                "title": "Best-scoring open now (v2)",
+                "title": "Historically strongest setup (EB-shrunk)",
                 "body": (
-                    f"{top['pair']} scores {top['score']:.0f} ({top.get('confidence','?')} conf) "
-                    f"from long history ({top['reason']}). Rank open calls by this score."
+                    f"Over {win_label}, \"{t0['tag']}\" shrunk WR ~{wr_show}% "
+                    f"(n={t0['n']}{lift_bit}{full_bit}). "
+                    f"Prefer open signals that still carry this tag."
                 ),
             })
+        if caution_tags:
+            t0 = caution_tags[0]
+            insights.append({
+                "tone": "warn",
+                "title": "Historically weaker / confounded",
+                "body": (
+                    f"“{t0['tag']}” shows loss rate {t0['loss_rate']}% over {t0['n']} past calls "
+                    f"(or is a late/extended condition). Use as caution when screening open signals — "
+                    f"not an automatic ban."
+                ),
+            })
+        if baseline["n"]:
+            insights.append({
+                "tone": "neutral",
+                "title": f"Past {win_label} baseline · Edge Score v2",
+                "body": (
+                    f"{baseline['win_rate']}% win · {baseline['loss_rate']}% SL · "
+                    f"{baseline['full_tp_rate']}% full TP3+ · {baseline['tp4_rate']}% TP4 "
+                    f"across {baseline['n']:,} resolved signals. "
+                    f"Open scores use EB-shrunk tag rates + Wilson uncertainty + "
+                    f"volume/risk/BTC/time-to-TP/coin/expectancy factors."
+                ),
+            })
+        if scored_open:
+            top = next((s for s in scored_open if s["score"] is not None), None)
+            if top:
+                insights.append({
+                    "tone": "good",
+                    "title": "Best-scoring open now (v2)",
+                    "body": (
+                        f"{top['pair']} scores {top['score']:.0f} ({top.get('confidence','?')} conf) "
+                        f"from long history ({top['reason']}). Rank open calls by this score."
+                    ),
+                })
 
-    response = {
-        "days": days,
-        "effective_days": effective_days,
-        "min_n": min_n,
-        "window": {"start": start_str, "end": end_str},
-        "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
-        "baseline": baseline,
-        "tags": tags,
-        "prefer_tags": prefer_tags,
-        "caution_tags": caution_tags,
-        "risk": risk,
-        "open_scored": scored_open[:80],
-        "insights": insights,
-        "source": "historical_resolved",
-        "score_version": "v2",
-        "note": (
-            "Edge Score v2: EB-shrunk tag rates + Wilson uncertainty + multi-factor "
-            "(volume, risk, BTC, time-to-TP priors, coin WR, expectancy R). "
-            f"LEARNING since {TAG_METRICS_ERA_START.isoformat()}; candidates = open on 7d desk."
-        ),
-        "learning": {
-            "source": "resolved_tag_era",
-            "method": "empirical_bayes_tag_rates_plus_multifactor",
-            "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
-            "window_start": start_str,
-            "window_end": end_str,
+        response = {
+            "days": days,
             "effective_days": effective_days,
+            "min_n": min_n,
+            "window": {"start": start_str, "end": end_str},
+            "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
+            "baseline": baseline,
+            "tags": tags,
+            "prefer_tags": prefer_tags,
+            "caution_tags": caution_tags,
+            "risk": risk,
+            "open_scored": scored_open[:80],
+            "insights": insights,
+            "source": "historical_resolved",
             "score_version": "v2",
-        },
-        "candidates": {
-            "scope": "open_created_last_7d",
-            "why": "Matches Signals bulk-7d so ranked rows appear in the main table",
-        },
-    }
-    cache_set(cache_key, response, ttl=600)
-    return response
+            "note": (
+                "Edge Score v2: EB-shrunk tag rates + Wilson uncertainty + multi-factor "
+                "(volume, risk, BTC, time-to-TP priors, coin WR, expectancy R). "
+                f"LEARNING since {TAG_METRICS_ERA_START.isoformat()}; candidates = open on 7d desk."
+            ),
+            "learning": {
+                "source": "resolved_tag_era",
+                "method": "empirical_bayes_tag_rates_plus_multifactor",
+                "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
+                "window_start": start_str,
+                "window_end": end_str,
+                "effective_days": effective_days,
+                "score_version": "v2",
+            },
+            "candidates": {
+                "scope": "open_created_last_7d",
+                "why": "Matches Signals bulk-7d so ranked rows appear in the main table",
+            },
+        }
+        return response
+
+    return cache_single_flight(cache_key, 600, _build)
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1987,19 +1979,28 @@ def get_hunt_full_tp(
     """
     if not (0 <= days <= 400):
         raise HTTPException(status_code=400, detail="days must be 0–400")
+    # Eight scans of the outcomes CTE per window: far too heavy to run on a
+    # click. workers/hunt_stats_warmer refreshes all three windows every ten
+    # minutes, so a request normally just reads; on a miss only one caller
+    # computes (cache_single_flight) and the rest get the previous copy.
+    return cache_single_flight(hunt_full_tp_key(days, min_n, top_k), HUNT_FTP_TTL,
+                               lambda: hunt_full_tp_payload(days, min_n, top_k, db),
+                               keep=lambda v: bool(v.get("ok")))
 
+
+HUNT_FTP_TTL = 1800  # the warmer rewrites it every 10 min; this is the safety net
+
+
+def hunt_full_tp_key(days: int, min_n: int, top_k: int) -> str:
+    start_date, end_date, _ = _resolve_tag_lookback(days)
+    return f"lq:edge-lab:hunt-ftp:v5:{days}:{min_n}:{top_k}:{start_date.isoformat()}:{end_date.isoformat()}"
+
+
+def hunt_full_tp_payload(days: int, min_n: int, top_k: int, db) -> dict:
+    """The Runners results payload for one window, computed (never cached here)."""
     start_date, end_date, effective_days = _resolve_tag_lookback(days)
     start_str, end_str = start_date.isoformat(), end_date.isoformat()
     era_start, era_end, era_days = _resolve_tag_lookback(0)
-    cache_key = (
-        f"lq:edge-lab:hunt-ftp:v5:{days}:{min_n}:{top_k}:{start_str}:{end_str}"
-    )
-    cached = cache_get(cache_key)
-    if cached:
-        return cached
-    stale, _ = cache_get_with_stale(cache_key)
-    if stale:
-        return stale
 
     # Same tags as the live Hunt chip — do not re-pick runners inside 7d/30d.
     tw = get_tag_wr(days=0, min_n=min_n, db=db)
@@ -2014,7 +2015,6 @@ def get_hunt_full_tp(
             "tag_era_start": TAG_METRICS_ERA_START.isoformat(),
             "runner_tags": [],
         }
-        cache_set(cache_key, response, ttl=120)
         return response
 
     params = {"start": start_str, "end": end_str}
@@ -2137,7 +2137,6 @@ def get_hunt_full_tp(
             ),
         },
     }
-    cache_set(cache_key, response, ttl=600)
     return response
 
 

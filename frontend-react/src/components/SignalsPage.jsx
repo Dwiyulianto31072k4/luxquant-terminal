@@ -685,13 +685,27 @@ const SignalsPage = () => {
       const token = localStorage.getItem("access_token");
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [signalsRes, statsRes, intelRes, tagWrRes, deskEdgeRes] = await Promise.allSettled([
+      // Server Edge + Runners, fetched beside the rest but never awaited with
+      // it: under load it can take a while, and the table must not wait for
+      // it. Until it lands the desk keeps its previous copy (or browser scores).
+      const timeout =
+        typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined;
+      fetch(`${API_BASE}/api/v1/signals/desk-edge`, { headers: authHeaders, signal: timeout })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((de) => {
+          if (!de?.ok) return;
+          setDeskEdge(de);
+          const cur = readSignalsCache();
+          if (cur) writeSignalsCache({ ...cur, deskEdge: de });
+        })
+        .catch(() => {});
+
+      const [signalsRes, statsRes, intelRes, tagWrRes] = await Promise.allSettled([
         fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/stats`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
         // days=0 = all since tag-metrics era (2026-03-10); min_n=40 matches correlation.
         fetch(`${API_BASE}/api/v1/analytics/tag-wr?days=0&min_n=40`, { headers: authHeaders }),
-        fetch(`${API_BASE}/api/v1/signals/desk-edge`, { headers: authHeaders }),
       ]);
       // Collected as we go so the cache written at the end holds one coherent
       // snapshot — never a mix of this fetch and the previous one.
@@ -741,15 +755,6 @@ const SignalsPage = () => {
         snapshot.tagWr = Array.isArray(tw.tags) ? tw.tags : [];
         setTagWr(snapshot.tagWr);
       }
-      // Best-effort too, but a failed read keeps the last good one rather than
-      // dropping the desk back to browser scores between two refreshes.
-      if (deskEdgeRes.status === "fulfilled" && deskEdgeRes.value.ok) {
-        const de = await deskEdgeRes.value.json();
-        if (de?.ok) {
-          snapshot.deskEdge = de;
-          setDeskEdge(de);
-        }
-      }
       const at = Date.now();
       setLastUpdated(new Date(at));
       // Only the mandatory part is required to be present; the best-effort
@@ -767,7 +772,8 @@ const SignalsPage = () => {
         currentFlow: snapshot.currentFlow ?? bootCache?.currentFlow ?? null,
         deskWr: snapshot.deskWr ?? bootCache?.deskWr ?? null,
         tagWr: snapshot.tagWr ?? bootCache?.tagWr ?? [],
-        deskEdge: snapshot.deskEdge ?? bootCache?.deskEdge ?? null,
+        // Whatever desk-edge copy is newest — it may have landed first.
+        deskEdge: readSignalsCache()?.deskEdge ?? bootCache?.deskEdge ?? null,
       });
     } catch (err) {
       console.error("Error fetching signals:", err);

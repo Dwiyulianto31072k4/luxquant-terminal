@@ -1,0 +1,14 @@
+[Unit]
+Description=LuxQuant Runners results warmer (hunt-full-tp, 7d/30d/all)
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=/etc/luxquant/secrets.env
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.workers.hunt_stats_warmer
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=900
+SyslogIdentifier=luxquant-hunt-stats-warmer
