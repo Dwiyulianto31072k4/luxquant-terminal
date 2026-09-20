@@ -1442,6 +1442,30 @@ const SignalsPage = () => {
     return { total, open, wins, losses, closedCount, wr };
   }, [allSignals]);
 
+  // Which way the day rail can still travel. An arrow that is always there,
+  // always pointing the same way, teaches nothing about whether there is
+  // anything that way.
+  const [dayScroll, setDayScroll] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = tabScrollRef.current;
+    if (!el) return undefined;
+    const read = () => {
+      const more = el.scrollWidth - el.clientWidth;
+      setDayScroll({
+        left: el.scrollLeft > 4,
+        right: more > 4 && el.scrollLeft < more - 4,
+      });
+    };
+    read();
+    el.addEventListener("scroll", read, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(read) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener("scroll", read);
+      ro?.disconnect();
+    };
+  }, [allSignals.length]);
+
   const dateOptions = useMemo(() => {
     // Today first — the desk default. All days sits at the end as the 7-day tape.
     const now = new Date();
@@ -1468,7 +1492,11 @@ const SignalsPage = () => {
       }
     }
     options.push({ value: "all", label: "All days", count: allSignals.length });
-    return options;
+    // The busiest single day, for the bars under the chips. "All days" is
+    // excluded: it is a SPAN, not a day, and at seven times the size of any
+    // one of them it would flatten every real bar to a sliver.
+    const busiest = Math.max(...options.filter((o) => o.value !== "all").map((o) => o.count), 1);
+    return options.map((o) => ({ ...o, share: o.value === "all" ? null : o.count / busiest }));
   }, [allSignals]);
 
   const handlePricesUpdate = useCallback((priceMap) => {
@@ -2384,40 +2412,62 @@ const SignalsPage = () => {
                   title={
                     opt.value === "all"
                       ? "Whole 7-day tape"
-                      : "Click to add or remove this day. Several days can be on at once."
+                      : `${opt.count} call${opt.count === 1 ? "" : "s"} published this day, before any other filter. Click to add or remove it — several days can be on at once.`
                   }
                   onClick={() => {
                     setShowWatchlistOnly(false);
                     toggleDateFilter(opt.value);
                   }}
-                  className={deskChipClass(active)}
+                  className={`${deskChipClass(active)} relative overflow-hidden`}
                 >
                   {opt.label}
                   {opt.count != null ? (
                     <span className={deskBadgeClass(active)}>{opt.count}</span>
                   ) : null}
+                  {/* The day rail is a time axis, and eight bare counts cannot
+                      be compared at a glance. A bar against the busiest day
+                      turns the row into the shape of the week — which day the
+                      desk was working and which it was quiet — without costing
+                      a pixel of height. */}
+                  {opt.share != null ? (
+                    <span
+                      aria-hidden="true"
+                      className={`absolute bottom-0 left-0 h-[3px] ${
+                        active ? "bg-accent-fg/55" : "bg-accent/75"
+                      }`}
+                      style={{ width: `${Math.max(6, opt.share * 100)}%` }}
+                    />
+                  ) : null}
                 </button>
               );
             })}
           </div>
-          <button
-            type="button"
-            onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
-            aria-label="View previous day"
-            className="absolute right-0 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-secondary hover:text-text-primary sm:flex"
-          >
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {/* One arrow only ever pointed right, whether or not there was
+              anything that way and with no way back once you had scrolled. */}
+          {dayScroll.left ? (
+            <button
+              type="button"
+              onClick={() => tabScrollRef.current?.scrollBy({ left: -240, behavior: "smooth" })}
+              aria-label="Scroll to more recent days"
+              className="absolute left-0 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md bg-surface-raised/90 text-text-muted transition-colors hover:bg-surface-secondary hover:text-text-primary sm:flex"
             >
-              <path d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+            </button>
+          ) : null}
+          {dayScroll.right ? (
+            <button
+              type="button"
+              onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
+              aria-label="Scroll to older days"
+              className="absolute right-0 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md bg-surface-raised/90 text-text-muted transition-colors hover:bg-surface-secondary hover:text-text-primary sm:flex"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ) : null}
           </div>
         </div>
 
