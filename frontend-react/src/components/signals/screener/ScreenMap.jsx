@@ -18,17 +18,25 @@ import ScatterTip from "../ScatterTip";
 import { cull, pickTicks, placeLabels, projector, sq } from "../scatterKit";
 import useZoomPan from "../useZoomPan";
 import ZoomControls, { ZoomHint } from "../ZoomControls";
-import { CHASE_LINE, METRICS, fmt, formatMetric } from "./screenMetrics";
+import {
+  CHASE_LINE,
+  METRICS,
+  domainFor,
+  fmt,
+  formatMetric,
+  goodCorner,
+  missingReason,
+  scaleFor,
+} from "./screenMetrics";
 
-const G = {
-  W: 1180,
-  H: 560,
-  pad: { t: 18, r: 28, b: 42, l: 68 },
-  fs: 11,
-  r0: 7,
-  r1: 15,
-  maxLabels: 70,
-};
+// Two geometries, chosen by how much there is to draw. A day with eight calls
+// in a 1180x560 canvas is nine tenths white space with five marks adrift in it —
+// which is exactly what "still abstract" looks like. Fewer points get a shorter
+// frame, bigger marks, and their values printed under the name, so the chart
+// reads as a labelled comparison rather than a sparse cloud.
+const BIG = { W: 1180, H: 560, pad: { t: 18, r: 28, b: 44, l: 72 }, fs: 11, r0: 7, r1: 15, maxLabels: 70 };
+const FEW = { W: 1180, H: 400, pad: { t: 18, r: 28, b: 44, l: 72 }, fs: 12.5, r0: 13, r1: 16, maxLabels: 40 };
+const FEW_MAX = 12;
 
 const TICKS = [
   -1e6, -1e5, -1e4, -1000, -500, -200, -100, -50, -30, -20, -15, -10, -8, -6, -5, -4, -3, -2, -1,
@@ -55,31 +63,54 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
     if (st) setLabels(st.place());
   }, []);
 
+  const plottable = useMemo(
+    () => rows.filter((r) => r[xKey] != null && r[yKey] != null),
+    [rows, xKey, yKey]
+  );
+  // Never silently dropped. The header says "8 of 8 calls" and the plot drew
+  // five; the three that cannot be placed are named under the chart with the
+  // reason, because "no stop published" is something a reader can act on and a
+  // missing dot is not.
+  const unplottable = useMemo(
+    () =>
+      rows
+        .filter((r) => r[xKey] == null || r[yKey] == null)
+        .map((r) => ({
+          ...r,
+          why: missingReason(r, r[xKey] == null ? xKey : yKey),
+        })),
+    [rows, xKey, yKey]
+  );
+
+  const G = plottable.length <= FEW_MAX ? FEW : BIG;
+  const few = G === FEW;
+
   const zp = useZoomPan({ W: G.W, H: G.H, wheel: "direct", onSettle: resettle });
   const { t, project, mark } = zp;
   const fz = G.fs * zp.label;
 
   const model = useMemo(() => {
-    const pts = rows
-      .filter((r) => r[xKey] != null && r[yKey] != null)
-      // `name` is what placeLabels labels with — the kit is shared, and a row
-      // that calls its label something else gets no label and a crash.
-      .map((r) => ({ ...r, name: r.pair, x: r[xKey], y: r[yKey] }));
+    const pts = plottable.map((r) => ({ ...r, name: r.pair, x: r[xKey], y: r[yKey] }));
     if (!pts.length) return null;
 
     const xs = pts.map((p) => p.x);
     const ys = pts.map((p) => p.y);
-    // Both transforms are signed square roots for the same reason the flow
-    // scatters use one: a handful of calls sit a very long way from the pack,
-    // and on a linear axis everything else collapses into a line. Ticks carry
-    // their real values.
+    // Scale and window per axis, from the data. A square root is right for a
+    // heavy tail and wrong for anything else — on reward-for-risk, which runs
+    // about -0.5 to 2, it bunched every tick into the bottom eighth of the
+    // axis. And zero is only forced into the window when zero means something
+    // on that metric.
+    const xScale = scaleFor(xs);
+    const yScale = scaleFor(ys);
+    const xd = domainFor(xs, mx);
+    const yd = domainFor(ys, my);
     const px = projector({
-      lo: Math.min(...xs, 0), hi: Math.max(...xs, 0),
-      from: G.pad.l, to: G.W - G.pad.r, inset: 16, transform: sq,
+      lo: xd.lo, hi: xd.hi, from: G.pad.l, to: G.W - G.pad.r, inset: 18,
+      transform: xScale === "sqrt" ? sq : (v) => v,
     });
     const pyRaw = projector({
-      lo: Math.min(...ys, 0), hi: Math.max(...ys, 0),
-      from: G.pad.t, to: G.H - G.pad.b, inset: 14, transform: sq,
+      lo: yd.lo, hi: yd.hi, from: G.pad.t, to: G.H - G.pad.b, inset: 16,
+      transform: yScale === "sqrt" ? sq : (v) => v,
     });
     const py = (v) => G.H - G.pad.b - (pyRaw(v) - G.pad.t);
 
@@ -91,8 +122,8 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
       cy: py(p.y),
       r: G.r0 + Math.sqrt(Math.abs(p[sizeKey] ?? 0) / maxSize) * G.r1,
     }));
-    return { points: placed, px, py, xs, ys };
-  }, [rows, xKey, yKey, sizeKey]);
+    return { points: placed, px, py, xs, ys, xScale, yScale, xd, yd };
+  }, [plottable, xKey, yKey, sizeKey, mx, my, G]);
 
   const points = useMemo(() => {
     if (!model) return [];
@@ -102,7 +133,7 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
     });
   }, [model, project, mark]);
 
-  const visible = useMemo(() => cull(points, G.W, G.H), [points]);
+  const visible = useMemo(() => cull(points, G.W, G.H), [points, G]);
 
   stateRef.current = {
     place: () =>
@@ -120,6 +151,8 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
     if (stateRef.current) setLabels(stateRef.current.place());
   }, [model, xKey, yKey, sizeKey]);
 
+  const corner = useMemo(() => goodCorner(mx, my), [mx, my]);
+
   const xTicks = useMemo(() => {
     if (!model) return [];
     const inFrame = TICKS.filter((v) => {
@@ -127,7 +160,7 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
       return x >= G.pad.l - 1 && x <= G.W - G.pad.r + 1;
     });
     return pickTicks(inFrame, -Infinity, Infinity, (v) => project(model.px(v), 0).x, fz * 3.6, 0);
-  }, [model, project, fz]);
+  }, [model, project, fz, G]);
 
   const yTicks = useMemo(() => {
     if (!model) return [];
@@ -139,7 +172,7 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
       return y >= 6 && y <= G.H - G.pad.b - 2 && Math.abs(y - nameY) > fz * 1.2;
     });
     return pickTicks(inFrame, -Infinity, Infinity, (v) => project(0, model.py(v)).y, fz * 2, 0);
-  }, [model, project, fz]);
+  }, [model, project, fz, G]);
 
   if (!model) {
     return (
@@ -152,6 +185,10 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
 
   const zeroX = project(model.px(0), 0).x;
   const zeroY = project(0, model.py(0)).y;
+  // The band starts at each metric's own "good enough" mark where it has one,
+  // and at the midpoint of the window otherwise.
+  const cornerX = project(model.px(mx.good ?? (model.xd.lo + model.xd.hi) / 2), 0).x;
+  const cornerY = project(0, model.py(my.good ?? (model.yd.lo + model.yd.hi) / 2)).y;
   const chaseX = xKey === "distEntry" ? project(model.px(CHASE_LINE), 0).x : null;
   const clip = "screen-map-clip";
 
@@ -174,6 +211,25 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
         </defs>
 
         <g clipPath={`url(#${clip})`}>
+          {/* The corner worth looking at, shaded and named. Without it the plot
+              shows where things ARE and never says where to look — which is
+              the difference between a chart and a decoration. */}
+          <rect
+            x={corner.x === "max" ? cornerX : G.pad.l}
+            y={corner.y === "max" ? 0 : cornerY}
+            width={corner.x === "max" ? Math.max(0, G.W - G.pad.r - cornerX) : Math.max(0, cornerX - G.pad.l)}
+            height={corner.y === "max" ? Math.max(0, cornerY) : Math.max(0, G.H - G.pad.b - cornerY)}
+            fill="rgb(var(--pos) / 0.05)"
+          />
+          <text
+            x={corner.x === "max" ? G.W - G.pad.r - 6 : G.pad.l + 6}
+            y={corner.y === "max" ? 15 : G.H - G.pad.b - 6}
+            textAnchor={corner.x === "max" ? "end" : "start"}
+            className="fill-profit"
+            style={{ fontSize: fz - 1, fontFamily: "monospace", letterSpacing: "0.08em", opacity: 0.75 }}
+          >
+            {corner.label.toUpperCase()}
+          </text>
           <line x1={zeroX} x2={zeroX} y1={0} y2={G.H - G.pad.b} stroke="rgb(var(--ink) / 0.2)" strokeDasharray="3 3" />
           <line x1={G.pad.l} x2={G.W - G.pad.r} y1={zeroY} y2={zeroY} stroke="rgb(var(--ink) / 0.2)" strokeDasharray="3 3" />
           {/* The measured line: past here the published trade is usually gone. */}
@@ -214,7 +270,8 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
         ))}
         <text x={G.W - G.pad.r} y={G.H - 4} textAnchor="end" className="fill-text-muted"
           style={{ fontSize: fz - 1, fontFamily: "monospace", letterSpacing: "0.1em" }}>
-          {mx.axis} · √ SCALE
+          {mx.axis}
+          {model.xScale === "sqrt" ? " · √ SCALE" : ""}
         </text>
         <text x={G.pad.l - 7} y={G.pad.t + 2} textAnchor="end" className="fill-text-muted"
           style={{ fontSize: fz - 1, fontFamily: "monospace" }}>
@@ -283,6 +340,27 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
                     {label.text}
                   </text>
                 ) : null}
+                {/* With a dozen marks or fewer the plot has room to say what
+                    each one IS, so a reader never has to trace a dot back to
+                    two axes to read it. */}
+                {few && label ? (
+                  <text
+                    x={Math.min(G.W - G.pad.r, Math.max(G.pad.l, p.cx + label.dx))}
+                    y={p.cy + label.dy + fz + 1}
+                    textAnchor={label.anchor}
+                    className="pointer-events-none fill-text-muted"
+                    style={{
+                      fontSize: fz - 2,
+                      fontFamily: "monospace",
+                      paintOrder: "stroke",
+                      stroke: "rgb(var(--surface-raised))",
+                      strokeWidth: 3,
+                      strokeLinejoin: "round",
+                    }}
+                  >
+                    {formatMetric(xKey, p.x)} · {formatMetric(yKey, p.y)}
+                  </text>
+                ) : null}
               </g>
             );
           })}
@@ -318,9 +396,29 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
         note={hover?.atPlan ? "still at the plan · tap to open" : "tap to open"}
       />
 
+      {unplottable.length ? (
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ink/[0.03] px-2.5 py-1.5">
+          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+            not on this chart
+          </span>
+          {unplottable.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onOpen?.(r.signal)}
+              className="inline-flex items-center gap-1 rounded-full border border-ink/[0.1] py-0.5 pl-2 pr-2 text-[11px] text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
+            >
+              <span className="font-medium">{r.pair}</span>
+              <span className="text-text-muted">{r.why}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <p className="mt-1.5 text-[11px] leading-snug text-text-muted">
         Dot size is {METRICS[sizeKey].label.toLowerCase()}; a gold ring is a Top Runner; a grey dot
-        has already passed its target. <ZoomHint wheel="direct" />
+        has already passed its target. The shaded corner is{" "}
+        {corner.label}. <ZoomHint wheel="direct" />
       </p>
     </div>
   );

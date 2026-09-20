@@ -113,6 +113,8 @@ export const METRICS = {
     better: "low",
     hint: "Price against the published entry. Above +5% the desk's own TP3 is usually behind you.",
     diverging: true,
+    // Zero is the published entry: a real line, not a convenience.
+    zero: true,
   },
   roomTp3: {
     key: "roomTp3",
@@ -122,6 +124,9 @@ export const METRICS = {
     better: "high",
     hint: "From the current price to the desk's target. Negative means the target is already passed.",
     diverging: true,
+    // Zero is "the target is exactly here" — the line between a trade and a
+    // post-mortem.
+    zero: true,
   },
   rr: {
     key: "rr",
@@ -130,6 +135,9 @@ export const METRICS = {
     unit: "×",
     better: "high",
     hint: "Room to target divided by the distance down to the stop, both from the price you can actually pay.",
+    zero: true,
+    // Where this stops being a coin toss and starts paying for its risk.
+    good: 2,
   },
   stopDist: {
     key: "stopDist",
@@ -138,6 +146,7 @@ export const METRICS = {
     unit: "%",
     better: "low",
     hint: "How far the price would have to fall to take the stop.",
+    zero: true,
   },
   ageH: {
     key: "ageH",
@@ -146,6 +155,9 @@ export const METRICS = {
     unit: "h",
     better: "low",
     hint: "Hours since the call was published.",
+    // Nothing is zero hours old and nothing useful sits near it; anchoring
+    // here would empty half the plot to make room for a number.
+    zero: false,
   },
   vol24: {
     key: "vol24",
@@ -154,6 +166,7 @@ export const METRICS = {
     unit: "$",
     better: "high",
     log: true,
+    zero: false,
     hint: "Dollars traded in the last day — whether a position can be built and left.",
   },
   edge: {
@@ -162,6 +175,7 @@ export const METRICS = {
     axis: "EDGE SCORE",
     unit: "",
     better: "high",
+    zero: false,
     hint: "The desk's own score for the setup at publish.",
   },
   peak: {
@@ -170,6 +184,7 @@ export const METRICS = {
     axis: "BEST SO FAR (%)",
     unit: "%",
     better: "high",
+    zero: true,
     hint: "The highest this call has reached above its entry since it was published.",
   },
 };
@@ -265,4 +280,74 @@ export function formatMetric(key, v) {
   if (m.unit === "h") return fmt.hours(v);
   if (m.unit === "%") return fmt.pct(v);
   return fmt.plain(v);
+}
+
+/** Why a call cannot be placed on a given axis, in words a reader can act on.
+ *  A screener that silently drops rows is lying about its own count: the plot
+ *  said "8 of 8 calls" and drew five. */
+export function missingReason(row, key) {
+  if (row[key] != null) return null;
+  if (row.price == null) return "no live price yet";
+  if (key === "rr" || key === "stopDist") {
+    if (row.stop == null) return "no stop published";
+    // The stop is there; the price is already through it. Reward for the risk
+    // is undefined because there is no risk left to measure — the trade is
+    // over. Saying "no stop published" here would be a plain lie about a call
+    // whose stop did exactly what it was for.
+    return "price is below the stop";
+  }
+  if (key === "roomTp3") return "no target published";
+  if (key === "edge") return "not scored";
+  if (key === "peak") return "nothing recorded yet";
+  if (key === "vol24") return "no volume";
+  return "not available";
+}
+
+/** Which scale an axis should use, decided from the DATA rather than by blanket
+ *  rule.
+ *
+ *  A square root is the right answer for a heavy tail — turnover, volume,
+ *  rotation — and the wrong answer for anything else. Applied to reward-for-
+ *  risk, which runs about -0.5 to 2, it bunched every tick into the bottom
+ *  eighth of an axis and left the plot looking like a bug. So: measure the
+ *  tail, and only bend the axis when there is a tail to bend. */
+export function scaleFor(values) {
+  const v = values.filter((x) => x != null && Number.isFinite(x)).map(Math.abs).sort((a, b) => a - b);
+  if (v.length < 4) return "linear";
+  const med = v[Math.floor(v.length / 2)] || 0;
+  const max = v[v.length - 1] || 0;
+  if (!med) return max > 0 ? "sqrt" : "linear";
+  return max / med > 8 ? "sqrt" : "linear";
+}
+
+/** The window an axis should show: the data, with a little air — and zero only
+ *  when zero means something on that metric. Always including it is how a plot
+ *  of hours-old calls ends up with half its canvas reserved for "0 hours". */
+export function domainFor(values, metric, padFrac = 0.08) {
+  const v = values.filter((x) => x != null && Number.isFinite(x));
+  if (!v.length) return { lo: 0, hi: 1 };
+  let lo = Math.min(...v);
+  let hi = Math.max(...v);
+  if (metric?.zero) {
+    lo = Math.min(lo, 0);
+    hi = Math.max(hi, 0);
+  }
+  const span = hi - lo || Math.abs(hi) || 1;
+  return { lo: lo - span * padFrac, hi: hi + span * padFrac };
+}
+
+/** The corner of the plot worth looking at, from the two metrics' own sense of
+ *  which end is better. Shading it is the difference between a chart that shows
+ *  you where things are and one that tells you where to look. */
+export function goodCorner(mx, my) {
+  return {
+    x: mx.better === "high" ? "max" : "min",
+    y: my.better === "high" ? "max" : "min",
+    label:
+      mx.key === "distEntry" && my.key === "roomTp3"
+        ? "still at the plan"
+        : `${mx.better === "high" ? "more" : "less"} ${mx.label.toLowerCase()}, ${
+            my.better === "high" ? "more" : "less"
+          } ${my.label.toLowerCase()}`,
+  };
 }
