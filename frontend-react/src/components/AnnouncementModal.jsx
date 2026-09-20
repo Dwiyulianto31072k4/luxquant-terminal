@@ -27,7 +27,11 @@ import { useDialog } from "../hooks/useDialog";
 
 const INITIAL_DELAY_MS = 5000;
 
-export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef }) => {
+// `asDialog` is false when the card is embedded rather than overlaid — the
+// admin form renders it as a preview. `aria-modal="true"` is a claim that
+// everything else on the page is inert, so leaving it on an inline copy
+// would tell a screen-reader user the whole admin form had gone away.
+export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true }) => {
   // A broken image URL must remove the whole tile, not just the <img>:
   // hiding the image alone leaves its 16:10 box as an empty grey slab.
   const [artOk, setArtOk] = useState(true);
@@ -46,10 +50,10 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef }) => {
   return (
     <div
       ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      tabIndex={-1}
+      role={asDialog ? "dialog" : undefined}
+      aria-modal={asDialog ? "true" : undefined}
+      aria-labelledby={asDialog ? titleId : undefined}
+      tabIndex={asDialog ? -1 : undefined}
       className="relative w-full max-w-[420px] max-h-[min(var(--lq-modal-maxh),100%)] flex flex-col overflow-hidden rounded-t-[28px] sm:rounded-3xl animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
       style={{
         border: "1px solid rgb(var(--ink) / 0.1)",
@@ -102,7 +106,9 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef }) => {
               // does not bite on a normal portrait phone.
               style={{
                 aspectRatio: "16 / 10",
-                maxHeight: "min(38vh, 260px)",
+                // Overridable so the admin form can show the worst case
+                // (a landscape phone) without emulating a viewport.
+                maxHeight: "var(--lq-campaign-art-maxh, min(38vh, 260px))",
                 border: "1px solid rgb(var(--ink) / 0.08)",
               }}
             >

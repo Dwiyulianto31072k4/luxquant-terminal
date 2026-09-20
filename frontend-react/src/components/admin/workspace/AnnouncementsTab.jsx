@@ -6,6 +6,7 @@
 // ════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { announcementApi } from "../../../services/announcementApi";
+import { CampaignCard } from "../../AnnouncementModal";
 import { palette } from "../designSystem";
 import { Surface, SectionHeader, StatusBadge } from "../primitives";
 import { PlusIcon, EditIcon, TrashIcon, CloseIcon } from "../Icons";
@@ -58,6 +59,7 @@ export const AnnouncementsTab = () => {
   const [err, setErr] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [previewShape, setPreviewShape] = useState("tall");
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -174,7 +176,6 @@ export const AnnouncementsTab = () => {
 
   // ── FORM VIEW ──
   if (editing) {
-    const showImg = !!form.image_url;
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -254,16 +255,14 @@ export const AnnouncementsTab = () => {
                 <input type="file" accept="image/*" className="hidden" onChange={onUpload} />
               </label>
             </div>
-            {showImg && (
-              <img
-                src={form.image_url}
-                alt=""
-                className="mt-2 rounded-md max-h-28 object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            )}
+            <p className="mt-1.5 text-[10px] leading-relaxed text-text-muted">
+              One image serves every device: the card is 375-420px wide
+              everywhere, so the artwork is always 16:10. Upload{" "}
+              <span className="font-mono text-text-secondary">1600x1000</span>{" "}
+              (or 1200x750) and keep anything that must be read away from the
+              edges - it is cropped from the centre, and on a landscape phone
+              the tile loses height. See it in Preview below.
+            </p>
           </div>
 
           {/* CTA */}
@@ -391,6 +390,62 @@ export const AnnouncementsTab = () => {
                 value={form.ends_at}
                 onChange={(e) => set("ends_at", e.target.value)}
               />
+            </div>
+          </div>
+
+          {/* Live preview - the same <CampaignCard> the app renders, fed by
+              this form. Before this the only feedback was a 112px thumbnail,
+              which showed neither the 16:10 crop, the badge on the artwork,
+              nor whether the headline still fit beside it. */}
+          <div>
+            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+              <label className={labelCls + " !mb-0"}>Preview</label>
+              {/* Phone and desktop render the same card — it is capped at 420px
+                  wide either way, so there is nothing to compare. The one shape
+                  that differs is a landscape phone, where the tile loses height
+                  and the artwork is cropped from the centre. That is the case
+                  worth showing, so it is the only toggle. */}
+              {[
+                { k: "tall", label: "Phone / desktop" },
+                { k: "short", label: "Landscape phone" },
+              ].map((o) => (
+                <button
+                  key={o.k}
+                  type="button"
+                  onClick={() => setPreviewShape(o.k)}
+                  className={
+                    "rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors " +
+                    (previewShape === o.k
+                      ? "bg-ink/[0.10] text-text-primary"
+                      : "text-text-muted hover:text-text-primary")
+                  }
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <div
+              className="flex justify-center rounded-xl p-5 sm:justify-start sm:px-8"
+              style={{
+                background: "rgb(var(--scrim) / 0.55)",
+                ...(previewShape === "short" ? { "--lq-campaign-art-maxh": "144px" } : {}),
+              }}
+            >
+              <div className="w-full max-w-[400px]">
+                <CampaignCard
+                  asDialog={false}
+                  ann={{
+                    title: form.title || "Announcement title",
+                    body: form.body,
+                    badge: form.badge,
+                    image_url: form.image_url,
+                    cta_label: form.cta_label,
+                    cta_url: form.cta_url,
+                  }}
+                  onDismiss={() => {}}
+                  onAct={(e) => e.preventDefault()}
+                />
+              </div>
             </div>
           </div>
 
