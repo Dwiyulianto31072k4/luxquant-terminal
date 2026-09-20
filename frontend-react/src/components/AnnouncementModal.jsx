@@ -54,9 +54,13 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
       aria-modal={asDialog ? "true" : undefined}
       aria-labelledby={asDialog ? titleId : undefined}
       tabIndex={asDialog ? -1 : undefined}
-      className="relative w-full max-w-[420px] max-h-[min(var(--lq-modal-maxh),100%)] flex flex-col overflow-hidden rounded-t-[28px] sm:rounded-3xl animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
+      // Border on the top edge only while this is a full-width bottom sheet.
+      // A 1px line down the left and right separated the sheet from nothing —
+      // it is already at the edge of the screen — and with full-bleed artwork
+      // behind it, it read as a pale seam beside the picture. From `sm` up the
+      // card floats in the middle of a scrim and needs its outline back.
+      className="relative w-full max-w-[420px] max-h-[min(var(--lq-modal-maxh),100%)] flex flex-col overflow-hidden rounded-t-[28px] border-t border-ink/10 sm:rounded-3xl sm:border-x sm:border-b animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
       style={{
-        border: "1px solid rgb(var(--ink) / 0.1)",
         boxShadow: "0 -20px 60px rgb(var(--scrim) / 0.35)",
       }}
       onClick={(e) => e.stopPropagation()}
