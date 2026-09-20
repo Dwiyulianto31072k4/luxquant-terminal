@@ -97,7 +97,12 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
         {hasArt && (
           <div className="px-3 pt-3 sm:px-4 sm:pt-4">
             <div
-              className="relative overflow-hidden rounded-2xl"
+              // A neutral fill behind the artwork. Campaign art is often a
+              // slide on a white background, and on the Bright desk that met a
+              // white card: the tile vanished and its inset padding read as
+              // dead space either side of the subject. The fill and a hairline
+              // that survives a light theme keep the tile a visible object.
+              className="relative overflow-hidden rounded-2xl bg-ink/[0.04]"
               // 16:9, which is PowerPoint/Keynote's default slide and every
               // screenshot of a 16:9 display — so artwork authored the way this
               // team actually authors it lands with nothing cropped. The tile
@@ -117,7 +122,7 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
                 // briefly a CSS variable so the admin form could fake a short
                 // viewport; the form now previews in a real one.
                 maxHeight: "min(38vh, 260px)",
-                border: "1px solid rgb(var(--ink) / 0.08)",
+                border: "1px solid rgb(var(--ink) / 0.12)",
               }}
             >
               <img

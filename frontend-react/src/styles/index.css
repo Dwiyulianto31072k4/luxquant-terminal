@@ -1441,7 +1441,25 @@ body[data-lq-selecting] [data-lq-bottomnav] {
 *:focus-visible {
   outline: 2px solid rgb(var(--accent)) !important;
   outline-offset: 2px !important;
-  border-radius: 3px;
+}
+
+/* `border-radius: 3px` used to live in the rule above, to round the ring on
+   square elements. It does not round the ring — it rounds the ELEMENT, and it
+   beats Tailwind's radius utilities on source order. Anything rounded snapped
+   to 3px the moment it took focus. Caught on the campaign modal, whose sheet
+   lost its 28px top corners; every rounded button and card had the same bug.
+   An outline follows its element's own radius in every browser we support, so
+   nothing is needed here. */
+
+/* A dialog container is focused programmatically, because the WAI-ARIA dialog
+   pattern says focus must enter the dialog — see hooks/useDialog. It carries
+   tabindex="-1", so it is not a keyboard stop and a keyboard ring on it is
+   never the result of keyboard navigation. Safari's :focus-visible heuristics
+   are looser than Chrome's for programmatic focus, so on iOS every one of this
+   app's ~41 dialogs drew a 2px gold rectangle around itself on open. The ring
+   still belongs on everything inside the dialog. */
+[role="dialog"][tabindex="-1"]:focus-visible {
+  outline: none !important;
 }
 
 /* Inputs already carry their own border treatment; keep the ring tight so it
