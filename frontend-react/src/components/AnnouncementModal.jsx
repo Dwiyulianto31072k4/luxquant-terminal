@@ -95,55 +95,41 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* artwork tile — inset, not full-bleed */}
         {hasArt && (
-          <div className="px-3 pt-3 sm:px-4 sm:pt-4">
-            <div
-              // A neutral fill behind the artwork. Campaign art is often a
-              // slide on a white background, and on the Bright desk that met a
-              // white card: the tile vanished and its inset padding read as
-              // dead space either side of the subject. The fill and a hairline
-              // that survives a light theme keep the tile a visible object.
-              className="relative overflow-hidden rounded-2xl bg-ink/[0.04]"
-              // 16:9, which is PowerPoint/Keynote's default slide and every
-              // screenshot of a 16:9 display — so artwork authored the way this
-              // team actually authors it lands with nothing cropped. The tile
-              // was 16:10 first and the mismatch was immediately visible: a
-              // 1200x630 image (1.905) lost 16% off its sides, taking the
-              // wordmark with it.
-              //
-              // The shape still is not guaranteed: object-cover crops whatever
-              // does not match, and the cap below can take height on a short
-              // viewport. Keep anything that must be read away from the edges.
-              style={{
-                aspectRatio: "16 / 9",
-                // On a landscape phone (measured 740x380) an uncapped tile
-                // filled the whole scroll area and pushed the headline below
-                // the fold — the card opened as a picture with no message.
-                // Does not bite on a portrait phone or on desktop. This was
-                // briefly a CSS variable so the admin form could fake a short
-                // viewport; the form now previews in a real one.
-                maxHeight: "min(38vh, 260px)",
-                border: "1px solid rgb(var(--ink) / 0.12)",
-              }}
-            >
-              <img
-                src={ann.image_url}
-                alt=""
-                className="h-full w-full object-cover"
-                onError={() => setArtOk(false)}
-              />
-              {badge && (
-                <span
-                  className="absolute bottom-3 left-3 rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider"
-                  style={{
-                    background: "rgb(var(--accent))",
-                    color: "rgb(var(--accent-fg))",
-                    boxShadow: "0 2px 10px rgb(var(--scrim) / 0.45)",
-                  }}
-                >
-                  {badge}
-                </span>
-              )}
-            </div>
+          // Full-bleed to the card's own edges, the way the signal modal
+          // handles its media. An inset tile needed a border and a fill to stop
+          // white-background artwork dissolving into the white card; running it
+          // edge to edge removes the problem instead of decorating around it,
+          // and the card's overflow-hidden clips it to the sheet's radius.
+          <div
+            className="relative overflow-hidden bg-ink/[0.04]"
+            style={{
+              aspectRatio: "16 / 9",
+              // On a landscape phone (measured 740x380) an uncapped tile filled
+              // the whole scroll area and pushed the headline below the fold.
+              // Does not bite on a portrait phone or on desktop.
+              maxHeight: "min(38vh, 260px)",
+            }}
+          >
+            <img
+              src={ann.image_url}
+              alt=""
+              className="h-full w-full object-cover"
+              onError={() => setArtOk(false)}
+            />
+            {badge && (
+              <span
+                // Left edge lines up with the headline below it, not with the
+                // image edge, so the badge reads as part of the text column.
+                className="absolute bottom-4 left-5 rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider sm:left-6"
+                style={{
+                  background: "rgb(var(--accent))",
+                  color: "rgb(var(--accent-fg))",
+                  boxShadow: "0 2px 10px rgb(var(--scrim) / 0.45)",
+                }}
+              >
+                {badge}
+              </span>
+            )}
           </div>
         )}
 
