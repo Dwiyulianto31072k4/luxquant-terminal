@@ -192,11 +192,14 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
             rel={isInternal ? undefined : "noopener noreferrer"}
             className="w-full rounded-full py-3.5 text-center font-display text-[14px] font-bold shadow-cta transition-transform active:scale-[0.985]"
             style={{
-              // Was a literal #b8893c. This card now renders on Bright too, where a
-              // browner bronze reads as a different gold from the rest of the app;
-              // --accent-dark is the token the gold CTAs already share.
-              background:
-                "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent-dark)))",
+              // Flat, not a gradient. This was the only CTA in the app that
+              // actually darkened across its own face: 135deg from --accent to
+              // --accent-dark put a browner #C89408 in the bottom-right corner,
+              // which on the white Bright card read as a dirty button. Every
+              // other gold CTA here is flat `rgb(var(--accent))`, and even the
+              // landing page's "gradients" run accent to accent to accent, so
+              // flat is the house style and this was the outlier.
+              background: "rgb(var(--accent))",
               color: "rgb(var(--accent-fg))",
             }}
           >
