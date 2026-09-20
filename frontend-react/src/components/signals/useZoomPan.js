@@ -19,10 +19,15 @@
 //    on an embedded map. So inline plots ask for a modifier and say so; the
 //    expanded modal, where the page behind is already locked, takes the plain
 //    wheel because there is nothing to steal it from.
-//  • A drag must not turn into a click. Every mark here opens something, so a
-//    pan that ends over a dot would open a coin the user was only sliding past.
-//    Movement past a few pixels marks the gesture as a drag and the click is
-//    swallowed.
+//  • A drag must not turn into a click — but a CLICK MUST NEVER TURN INTO
+//    ANYTHING ELSE. Every mark here opens something, so a pan that ends over a
+//    dot would open a coin the user was only sliding past; a gesture is a drag
+//    once it passes DRAG_PX. That threshold started at 4 and swallowed real
+//    clicks, because a hand on a mouse moves a few pixels between press and
+//    release. And double-click-to-zoom is gone: on a plot where every dot opens
+//    something, the second click of a natural "it did not respond, click again"
+//    landed as a zoom instead. Zoom is now only ever something you ask for —
+//    a modifier, two fingers, or the buttons.
 //  • ONE FINGER ON A TOUCH SCREEN SCROLLS THE PAGE. The plot is most of a phone
 //    viewport, and a chart that eats a one-finger drag is a chart the reader
 //    cannot scroll past — the same trap as the stolen wheel, and worse, because
@@ -57,6 +62,11 @@ export const markScale = (k) => Math.min(2.6, Math.sqrt(k));
 export const labelScale = (k) => Math.min(1.5, Math.pow(k, 0.3));
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+/** Past this much travel between press and release it was a drag, not a click.
+ *  Four pixels was too tight: a hand resting on a mouse drifts that far, and
+ *  the click that should have opened a coin was swallowed instead. */
+export const DRAG_PX = 9;
 
 /** Keep the plot from being dragged off its own frame: at k the content is k
  *  times the frame, so the offset may range over the overhang and no further.
@@ -201,7 +211,7 @@ export default function useZoomPan({ W, H, min = 1, max = 16, wheel = "modifier"
       if (!r?.width) return;
       const dx = ((e.clientX - drag.current.x) / r.width) * W;
       const dy = ((e.clientY - drag.current.y) / r.height) * H;
-      if (Math.abs(e.clientX - drag.current.x) > 4 || Math.abs(e.clientY - drag.current.y) > 4) {
+      if (Math.hypot(e.clientX - drag.current.x, e.clientY - drag.current.y) > DRAG_PX) {
         moved.current = true;
       }
       const { t0 } = drag.current;
@@ -218,14 +228,6 @@ export default function useZoomPan({ W, H, min = 1, max = 16, wheel = "modifier"
       setPanning(false);
     }
   }, []);
-
-  const onDoubleClick = useCallback(
-    (e) => {
-      e.preventDefault();
-      zoomBy(e.shiftKey ? 1 / 1.9 : 1.9, toLocal(e.clientX, e.clientY));
-    },
-    [zoomBy, toLocal]
-  );
 
   // Keyboard, so the chart is not mouse-only (WCAG 2.1.1). Arrows pan by a
   // tenth of the frame, +/- zoom about the centre, 0 resets.
@@ -266,10 +268,9 @@ export default function useZoomPan({ W, H, min = 1, max = 16, wheel = "modifier"
       onPointerUp: endPointer,
       onPointerCancel: endPointer,
       onPointerLeave: endPointer,
-      onDoubleClick,
       onKeyDown,
     }),
-    [onPointerDown, onPointerMove, endPointer, onDoubleClick, onKeyDown]
+    [onPointerDown, onPointerMove, endPointer, onKeyDown]
   );
 
   return {

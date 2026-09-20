@@ -344,7 +344,6 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
               }}
               onMouseEnter={() => setHover(p)}
               onMouseLeave={() => setHover((h) => (h?.id === p.id ? null : h))}
-              tabIndex={-1}
             >
               {/* A transparent disc under every dot, so a small mark is still a
                   target a mouse can find without hunting for it. */}

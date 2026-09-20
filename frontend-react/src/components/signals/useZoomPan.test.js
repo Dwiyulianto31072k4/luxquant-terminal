@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { IDENTITY, labelScale, markScale, zoomAbout } from "./useZoomPan";
+import { DRAG_PX, IDENTITY, labelScale, markScale, zoomAbout } from "./useZoomPan";
 
 const W = 640;
 const H = 320;
@@ -123,5 +123,30 @@ describe("type keeps its proportion to the marks", () => {
   it("is capped, so a deep zoom does not turn the plot into a word list", () => {
     expect(labelScale(16)).toBeLessThanOrEqual(1.5);
     expect(labelScale(400)).toBeLessThanOrEqual(1.5);
+  });
+});
+
+describe("a click must stay a click", () => {
+  // The rule that decides it, mirrored from onPointerMove. Four pixels — where
+  // this started — swallowed real clicks, because a hand on a mouse drifts
+  // that far between press and release, and the user clicked a dot and got a
+  // zoom instead of the thing the dot opens.
+  const isDrag = (dx, dy) => Math.hypot(dx, dy) > DRAG_PX;
+
+  it("treats ordinary hand jitter as a click, not a drag", () => {
+    expect(isDrag(0, 0)).toBe(false);
+    expect(isDrag(4, 3)).toBe(false);
+    expect(isDrag(-5, 5)).toBe(false);
+  });
+
+  it("still knows a real drag when it sees one", () => {
+    expect(isDrag(40, 0)).toBe(true);
+    expect(isDrag(0, -30)).toBe(true);
+  });
+
+  it("measures the travel, not each axis on its own", () => {
+    // 8 across and 8 down is 11px of travel and must count, even though
+    // neither axis alone passes the line.
+    expect(isDrag(8, 8)).toBe(true);
   });
 });

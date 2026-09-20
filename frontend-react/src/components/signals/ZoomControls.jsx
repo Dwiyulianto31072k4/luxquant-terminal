@@ -44,8 +44,8 @@ export default function ZoomControls({ zoomed, zoomBy, reset, k, className = "" 
 export function ZoomHint({ wheel }) {
   return (
     <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted">
-      drag to pan ·{" "}
-      {wheel === "direct" ? "scroll to zoom" : `${navigatorMod()}+scroll to zoom`} · double-click in
+      click a mark to open it · drag to pan ·{" "}
+      {wheel === "direct" ? "scroll to zoom" : `${navigatorMod()}+scroll to zoom`} · pinch on touch
     </span>
   );
 }
