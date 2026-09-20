@@ -537,6 +537,10 @@ const SignalsPage = () => {
   // fourth mode: a Top Runner IS a Runner, so it lives beside the mode rail
   // rather than inside it, and it means nothing at all outside Runners.
   const [topRunnersOnly, setTopRunnersOnly] = useState(false);
+  // The screener lives in SignalsTable, which owns the live price map; the
+  // button that opens it belongs beside the filters, where the set it works on
+  // was just decided. So the open state is held here, between the two.
+  const [screenerOpen, setScreenerOpen] = useState(false);
   const [apiIsSubscriber, setIsSubscriber] = useState(
     () => bootCache?.isSubscriber ?? false
   );
@@ -1744,7 +1748,7 @@ const SignalsPage = () => {
   }, [mineExtra, allSignals, customRetry]);
   const customReady = customMatch?.criteria === mineExtra?.criteria && customMatch?.book === allSignals;
 
-  const { signals, totalPages, totalSignals, shariahHidden } = useMemo(() => {
+  const { signals, allFiltered, totalPages, totalSignals, shariahHidden } = useMemo(() => {
     // Watchlist mode: sumbernya data watchlist penuh (lintas-tanggal), BUKAN allSignals
     // (yang cuma 7 hari). Objek watchlist lebih ramping → merge dgn allSignals (by
     // signal_id) supaya kolom MCAP / BTC Corr / dll tetap terisi untuk sinyal yang
@@ -1928,7 +1932,10 @@ const SignalsPage = () => {
     const safePage = Math.min(page, pages);
     const start = (safePage - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
-    return { signals: paged, totalPages: pages, totalSignals: total, shariahHidden };
+    // `allFiltered` is the whole set behind the pagination. The screener works
+    // on it, not on the page: comparing twenty-five of seventy-five calls and
+    // calling it a screen is how you miss the one you were looking for.
+    return { signals: paged, allFiltered: filtered, totalPages: pages, totalSignals: total, shariahHidden };
   }, [
     allSignals,
     shariah,
@@ -2646,6 +2653,24 @@ const SignalsPage = () => {
               className="ml-1 rounded-md px-2 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-text-muted hover:text-text-primary"
             >
               Clear all
+            </button>
+          ) : null}
+          {/* Right here, because this bar is where the set was just decided and
+              "which of these do I take" is the question that follows it. */}
+          {totalSignals > 1 ? (
+            <button
+              type="button"
+              onClick={() => setScreenerOpen(true)}
+              title="Compare these calls on how far past the entry they are and what is left to target"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-ink/[0.12] px-2.5 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-accent/50 hover:text-accent"
+            >
+              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <circle cx="4.5" cy="11" r="1.8" />
+                <circle cx="11" cy="5" r="1.8" />
+                <path d="M2 14 14 2" strokeDasharray="2 2" opacity="0.5" />
+              </svg>
+              Visualize
+              <span className="rounded-sm bg-ink/[0.06] px-1 tabular-nums">{totalSignals}</span>
             </button>
           ) : null}
         </div>
@@ -3396,6 +3421,16 @@ const SignalsPage = () => {
         <SignalsTable
           topRunnerIds={topRunnerIds}
           signals={signals}
+          screenerSignals={allFiltered}
+          screenerOpen={screenerOpen}
+          onScreenerClose={() => setScreenerOpen(false)}
+          screenerLabel={
+            selectedDates.length === 1 && selectedDates[0] === utcTodayYmd()
+              ? "today"
+              : selectedDates.length
+                ? `${selectedDates.length} day${selectedDates.length > 1 ? "s" : ""}`
+                : "last 7 days"
+          }
           loading={loading}
           isSubscriber={isSubscriber}
           onSubscribe={goPricing}

@@ -27,6 +27,7 @@ import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
 import { ShimmerStyles } from "./ui/Loaders";
 import SignalCompare from "./SignalCompare";
+import SignalScreener from "./signals/screener/SignalScreener";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -446,6 +447,13 @@ function TakenControl({ value, onPick }) {
 const SignalsTable = ({
   signals,
   topRunnerIds = null,
+  /** The WHOLE filtered set, not this page of it — the screener compares the
+   *  result of the filters, and a screen over a page is not a screen.
+   *  The modal lives here because this component owns the live price map. */
+  screenerSignals = null,
+  screenerOpen = false,
+  onScreenerClose,
+  screenerLabel = null,
   loading,
   page,
   totalPages,
@@ -2967,6 +2975,22 @@ const SignalsTable = ({
           onClose={() => setSelectedCoinIntel(null)}
         />
       )}
+
+      {/* The screener is opened from the filter bar, which is where the set it
+          works on was decided, but it lives here because this component owns
+          the live price map — and every number it shows is measured from the
+          live price. */}
+      <SignalScreener
+        isOpen={screenerOpen}
+        onClose={onScreenerClose}
+        signals={screenerSignals || signals}
+        priceOf={getPrice}
+        volumeOf={getVolume}
+        edgeScoreMap={edgeScoreMap}
+        topRunnerIds={topRunnerIds}
+        onOpenSignal={(sig) => onRowClick && onRowClick(sig)}
+        countLabel={screenerLabel}
+      />
     </>
   );
 };
