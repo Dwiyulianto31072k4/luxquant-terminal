@@ -23,6 +23,7 @@ const STATUSES = ["draft", "active", "archived"];
 
 const EMPTY = {
   title: "",
+  badge: "",
   body: "",
   image_url: "",
   cta_label: "",
@@ -63,7 +64,7 @@ export const AnnouncementsTab = () => {
     return items.filter((item) => {
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
       if (!query) return true;
-      return [item.title, item.body, item.audience]
+      return [item.title, item.badge, item.body, item.audience]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
     });
@@ -95,6 +96,12 @@ export const AnnouncementsTab = () => {
     setForm({
       ...EMPTY,
       ...a,
+      title: a.title ?? "",
+      badge: a.badge ?? "",
+      body: a.body ?? "",
+      image_url: a.image_url ?? "",
+      cta_label: a.cta_label ?? "",
+      cta_url: a.cta_url ?? "",
       target_user_id: a.target_user_id ?? "",
       starts_at: a.starts_at ? a.starts_at.slice(0, 16) : "",
       ends_at: a.ends_at ? a.ends_at.slice(0, 16) : "",
@@ -134,6 +141,7 @@ export const AnnouncementsTab = () => {
     setErr("");
     const payload = {
       ...form,
+      badge: form.badge?.trim() || null,
       target_user_id:
         form.audience === "user" && form.target_user_id ? Number(form.target_user_id) : null,
       target_role: form.audience === "role" ? form.target_role : null,
@@ -195,14 +203,29 @@ export const AnnouncementsTab = () => {
             </div>
           )}
 
-          <div>
-            <label className={labelCls}>Title *</label>
-            <input
-              className={inputCls}
-              value={form.title}
-              onChange={(e) => set("title", e.target.value)}
-              placeholder="Announcement title"
-            />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
+            <div>
+              <label className={labelCls}>Title *</label>
+              <input
+                className={inputCls}
+                value={form.title}
+                onChange={(e) => set("title", e.target.value)}
+                placeholder="Announcement title"
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Badge</label>
+              <input
+                className={inputCls}
+                value={form.badge}
+                onChange={(e) => set("badge", e.target.value)}
+                placeholder="NEW"
+                maxLength={14}
+              />
+              <p className="mt-1 text-[10px] text-text-muted">
+                Pill on the image. Blank = none.
+              </p>
+            </div>
           </div>
 
           <div>
@@ -455,6 +478,14 @@ export const AnnouncementsTab = () => {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-text-primary text-sm font-medium truncate">{a.title}</span>
+                  {a.badge && (
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider"
+                      style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+                    >
+                      {a.badge}
+                    </span>
+                  )}
                   <StatusBadge status={a.status} label={a.status} />
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-text-primary/40">

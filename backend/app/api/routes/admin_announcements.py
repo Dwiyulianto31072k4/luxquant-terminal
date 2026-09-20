@@ -34,6 +34,7 @@ class AnnouncementIn(BaseModel):
     title: str
     body: Optional[str] = None
     image_url: Optional[str] = None
+    badge: Optional[str] = None      # pill over the image, e.g. NEW / UPDATE
     cta_label: Optional[str] = None
     cta_url: Optional[str] = None
     audience: str = "all"            # all|role|user|no_telegram|paid_outside
@@ -56,7 +57,8 @@ class AnnouncementRow(AnnouncementIn):
 def _row_to_dict(r) -> dict:
     return {
         "id": r["id"], "title": r["title"], "body": r["body"],
-        "image_url": r["image_url"], "cta_label": r["cta_label"], "cta_url": r["cta_url"],
+        "image_url": r["image_url"], "badge": r["badge"],
+        "cta_label": r["cta_label"], "cta_url": r["cta_url"],
         "audience": r["audience"], "target_role": r["target_role"],
         "target_user_id": r["target_user_id"], "max_shows": r["max_shows"],
         "cooldown_hours": r["cooldown_hours"], "status": r["status"],
@@ -91,10 +93,10 @@ def create_announcement(
 ):
     r = db.execute(text("""
         INSERT INTO announcements
-            (title, body, image_url, cta_label, cta_url, audience, target_role,
+            (title, body, image_url, badge, cta_label, cta_url, audience, target_role,
              target_user_id, max_shows, cooldown_hours, status, starts_at, ends_at, created_by)
         VALUES
-            (:title, :body, :image_url, :cta_label, :cta_url, :audience, :target_role,
+            (:title, :body, :image_url, :badge, :cta_label, :cta_url, :audience, :target_role,
              :target_user_id, :max_shows, :cooldown_hours, :status, :starts_at, :ends_at, :created_by)
         RETURNING id
     """), {**payload.model_dump(), "created_by": admin.id}).first()
@@ -113,7 +115,7 @@ def update_announcement(
         raise HTTPException(404, "Announcement not found")
     db.execute(text("""
         UPDATE announcements SET
-            title=:title, body=:body, image_url=:image_url, cta_label=:cta_label,
+            title=:title, body=:body, image_url=:image_url, badge=:badge, cta_label=:cta_label,
             cta_url=:cta_url, audience=:audience, target_role=:target_role,
             target_user_id=:target_user_id, max_shows=:max_shows, cooldown_hours=:cooldown_hours,
             status=:status, starts_at=:starts_at, ends_at=:ends_at, updated_at=now()

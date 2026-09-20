@@ -25,6 +25,7 @@ class AnnouncementOut(BaseModel):
     title: str
     body: Optional[str] = None
     image_url: Optional[str] = None
+    badge: Optional[str] = None      # small pill over the image ("NEW"); NULL = none
     cta_label: Optional[str] = None
     cta_url: Optional[str] = None
 
@@ -57,7 +58,7 @@ def get_active_announcement(
 
     # candidate set: active + in schedule window
     rows = db.execute(text("""
-        SELECT a.id, a.title, a.body, a.image_url, a.cta_label, a.cta_url,
+        SELECT a.id, a.title, a.body, a.image_url, a.badge, a.cta_label, a.cta_url,
                a.audience, a.target_role, a.target_user_id,
                a.max_shows, a.cooldown_hours, a.created_at,
                v.shows, v.last_shown_at, v.acted_at
@@ -89,8 +90,8 @@ def get_active_announcement(
         # first eligible wins (newest first)
         return AnnouncementOut(
             id=row["id"], title=row["title"], body=row["body"],
-            image_url=row["image_url"], cta_label=row["cta_label"],
-            cta_url=row["cta_url"],
+            image_url=row["image_url"], badge=row["badge"],
+            cta_label=row["cta_label"], cta_url=row["cta_url"],
         )
     return None
 
