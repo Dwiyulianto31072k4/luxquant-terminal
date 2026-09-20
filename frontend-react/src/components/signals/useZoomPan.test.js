@@ -150,3 +150,54 @@ describe("a click must stay a click", () => {
     expect(isDrag(8, 8)).toBe(true);
   });
 });
+
+describe("zooming OUT past the fit", () => {
+  // The default range, not the pinned one the tests above use.
+  const out = (t, f, x, y) => zoomAbout(t, f, x, y, { W, H, min: 0.1, max: 24 });
+
+  it("goes below 1x, which is most of what a chart like this is for", () => {
+    const t = out(IDENTITY, 0.5, W / 2, H / 2);
+    expect(t.k).toBeCloseTo(0.5, 6);
+  });
+
+  it("stops at the floor rather than vanishing", () => {
+    expect(out(IDENTITY, 0.001, 0, 0).k).toBeCloseTo(0.1, 6);
+    expect(out({ k: 20, x: 0, y: 0 }, 100, 0, 0).k).toBeCloseTo(24, 6);
+  });
+
+  it("still holds the pointer's datum still on the way out", () => {
+    const px = 300;
+    const t = out(IDENTITY, 0.4, px, 120);
+    expect(t.k * px + t.x).toBeCloseTo(px, 6);
+    expect(t.k * 120 + t.y).toBeCloseTo(120, 6);
+  });
+
+  it("lets a shrunken plot be moved around inside its frame", () => {
+    // Zoomed out the content is SMALLER than the frame, so the useful offset
+    // range runs the other way. The first version only wrote the zoomed-in
+    // half, which is why zooming out did nothing at all.
+    const half = out(IDENTITY, 0.5, W / 2, H / 2);
+    const nudged = zoomAbout({ ...half, x: half.x + 200 }, 1, 0, 0, { W, H, min: 0.1, max: 24 });
+    expect(nudged.x).toBeGreaterThan(half.x);
+  });
+
+  it("comes back to exactly the fit", () => {
+    const there = out(IDENTITY, 0.35, 400, 200);
+    const back = out(there, 1 / 0.35, 400, 200);
+    expect(back.k).toBeCloseTo(1, 6);
+    expect(back.x).toBeCloseTo(0, 5);
+    expect(back.y).toBeCloseTo(0, 5);
+  });
+
+  it("keeps type readable when the plot shrinks under it", () => {
+    // Shrinking the labels with the layout would make a far-out view
+    // unreadable; held near size, they simply collide sooner and fewer show.
+    expect(labelScale(0.1)).toBeGreaterThanOrEqual(0.8);
+    expect(labelScale(0.5)).toBeGreaterThanOrEqual(0.8);
+  });
+
+  it("does shrink the marks, because that is what zooming out means", () => {
+    expect(markScale(0.25)).toBeLessThan(1);
+    expect(markScale(0.25)).toBeCloseTo(0.5, 6);
+  });
+});

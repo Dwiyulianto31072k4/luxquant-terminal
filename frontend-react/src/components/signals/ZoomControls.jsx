@@ -9,7 +9,7 @@
 const BTN =
   "flex h-7 w-7 items-center justify-center rounded-md border border-ink/[0.12] bg-surface-raised text-text-muted transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-ink/[0.12] disabled:hover:text-text-muted";
 
-export default function ZoomControls({ zoomed, zoomBy, reset, k, className = "" }) {
+export default function ZoomControls({ zoomed, zoomBy, reset, k, min = 0.2, max = 24, className = "" }) {
   return (
     /* Its own surface: the controls float over the plot, and at a deep zoom a
        mark can end up directly beneath them. */
@@ -18,15 +18,29 @@ export default function ZoomControls({ zoomed, zoomBy, reset, k, className = "" 
     >
       {zoomed ? (
         <span className="px-1 font-mono text-[9.5px] tabular-nums text-text-muted">
-          {k.toFixed(1)}×
+          {k < 1 ? k.toFixed(2) : k.toFixed(1)}×
         </span>
       ) : null}
-      <button type="button" className={BTN} onClick={() => zoomBy(1 / 1.45)} disabled={!zoomed} aria-label="Zoom out">
+      {/* Out is disabled at the FLOOR, not at the fit: zooming out past the
+          fit is most of what a chart like this is for. */}
+      <button
+        type="button"
+        className={BTN}
+        onClick={() => zoomBy(1 / 1.45)}
+        disabled={k <= min * 1.001}
+        aria-label="Zoom out"
+      >
         <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           <path d="M4 8h8" />
         </svg>
       </button>
-      <button type="button" className={BTN} onClick={() => zoomBy(1.45)} aria-label="Zoom in">
+      <button
+        type="button"
+        className={BTN}
+        onClick={() => zoomBy(1.45)}
+        disabled={k >= max * 0.999}
+        aria-label="Zoom in"
+      >
         <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           <path d="M8 4v8M4 8h8" />
         </svg>

@@ -368,7 +368,14 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
       </svg>
 
       <span className="absolute right-1.5 top-1.5">
-        <ZoomControls zoomed={zp.zoomed} zoomBy={zp.zoomBy} reset={zp.reset} k={t.k} />
+        <ZoomControls
+          zoomed={zp.zoomed}
+          zoomBy={zp.zoomBy}
+          reset={zp.reset}
+          k={t.k}
+          min={zp.min}
+          max={zp.max}
+        />
       </span>
 
       <ScatterTip

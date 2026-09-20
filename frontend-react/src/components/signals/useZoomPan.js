@@ -59,7 +59,7 @@ export const markScale = (k) => Math.min(2.6, Math.sqrt(k));
  *  the logo next to it. Not linearly either — that would undo the decluttering
  *  the zoom is for. A gentle exponent keeps the proportion without eating the
  *  space the zoom just bought. */
-export const labelScale = (k) => Math.min(1.5, Math.pow(k, 0.3));
+export const labelScale = (k) => Math.min(1.5, Math.max(0.82, Math.pow(k, 0.3)));
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -68,14 +68,30 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
  *  the click that should have opened a coin was swallowed instead. */
 export const DRAG_PX = 9;
 
-/** Keep the plot from being dragged off its own frame: at k the content is k
- *  times the frame, so the offset may range over the overhang and no further.
- *  Without this a flick sends the cloud into the margin and the only way back
- *  is Reset. */
+/** How far the view may be moved, at any zoom.
+ *
+ *  Zoomed IN the content is larger than the frame, so the offset ranges over
+ *  the overhang. Zoomed OUT it is smaller, and the useful range is the other
+ *  way round: the content may sit anywhere inside the frame. One expression
+ *  covers both, because the overhang simply changes sign — the first version
+ *  only wrote the zoomed-in half, which is why zooming out past the fit did
+ *  nothing at all.
+ *
+ *  SLACK lets the view be pushed a little past either end, the way a chart you
+ *  can actually work with does; Reset is always one button away, so there is no
+ *  risk of losing the plot off an edge. */
+const SLACK = 0.25;
+
 function clampOffset(t, W, H) {
   const overX = W * (t.k - 1);
   const overY = H * (t.k - 1);
-  return { k: t.k, x: clamp(t.x, -overX, 0), y: clamp(t.y, -overY, 0) };
+  const sx = W * SLACK;
+  const sy = H * SLACK;
+  return {
+    k: t.k,
+    x: clamp(t.x, Math.min(0, -overX) - sx, Math.max(0, -overX) + sx),
+    y: clamp(t.y, Math.min(0, -overY) - sy, Math.max(0, -overY) + sy),
+  };
 }
 
 /** Zoom about a fixed point — the pointer stays on the same datum. Zooming to
@@ -87,7 +103,11 @@ export function zoomAbout(t, factor, px, py, { min = 1, max = 16, W, H } = {}) {
   return clampOffset({ k, x: px - (px - t.x) * f, y: py - (py - t.y) * f }, W, H);
 }
 
-export default function useZoomPan({ W, H, min = 1, max = 16, wheel = "modifier", onSettle }) {
+/** The range, end to end, is 240x. Deliberately wide in BOTH directions: the
+ *  floor is far enough out that a crowded day fits in a corner with room around
+ *  it, and the ceiling far enough in that two marks sitting on top of each
+ *  other can be separated. */
+export default function useZoomPan({ W, H, min = 0.1, max = 24, wheel = "modifier", onSettle }) {
   const [t, setT] = useState(IDENTITY);
   const [panning, setPanning] = useState(false);
   const hostRef = useRef(null);
@@ -294,7 +314,12 @@ export default function useZoomPan({ W, H, min = 1, max = 16, wheel = "modifier"
      *  take the two-finger gestures. */
     touchAction: "pan-y",
     panning,
-    zoomed: t.k > 1.001,
+    // Away from the fit in EITHER direction, so Reset lights up after a zoom
+    // out as well as a zoom in.
+    zoomed: Math.abs(t.k - 1) > 0.001 || t.x !== 0 || t.y !== 0,
+    k: t.k,
+    min,
+    max,
     zoomBy,
     reset,
     swallowClick,

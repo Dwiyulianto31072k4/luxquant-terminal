@@ -341,7 +341,14 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
     {/* Over the plot rather than in the header, because this is where the hand
         already is, and because the modal header has no room for it. */}
     <span className="absolute right-1.5 top-1.5">
-      <ZoomControls zoomed={zp.zoomed} zoomBy={zp.zoomBy} reset={zp.reset} k={t.k} />
+      <ZoomControls
+          zoomed={zp.zoomed}
+          zoomBy={zp.zoomBy}
+          reset={zp.reset}
+          k={t.k}
+          min={zp.min}
+          max={zp.max}
+        />
     </span>
     <ScatterTip
       point={hover}
