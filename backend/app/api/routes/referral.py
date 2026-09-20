@@ -114,8 +114,8 @@ def _enrich_code(code_obj: ReferralCode) -> dict:
     return {
         "id": code_obj.id,
         "code": code_obj.code,
-        "discount_pct": float(code_obj.discount_pct or 10),
-        "commission_pct": float(code_obj.commission_pct or 10),
+        "discount_pct": float(code_obj.discount_pct or 5),
+        "commission_pct": float(code_obj.commission_pct or 5),
         "max_uses": code_obj.max_uses,
         "times_used": code_obj.times_used or 0,
         "is_active": code_obj.is_active,
@@ -181,8 +181,8 @@ def generate_referral_code(
     new_code = ReferralCode(
         user_id=current_user.id,
         code=code_str,
-        discount_pct=10.00,
-        commission_pct=10.00,
+        discount_pct=5.00,
+        commission_pct=5.00,
         is_active=True,
     )
     db.add(new_code)
@@ -214,7 +214,7 @@ def get_stats(
     recent_items, _total = get_referee_list(db, current_user.id, page=1, page_size=5)
     recent_referees = [RefereeItem(**item) for item in recent_items]
 
-    pct = float(code_obj.commission_pct or 10)
+    pct = float(code_obj.commission_pct or 5)
     # Read the real prices. These were hardcoded 50 / 400 / 1000, so the day a
     # plan price moved this page quietly kept quoting the old commission — the
     # one number a referrer decides whether to bother on.
@@ -400,7 +400,7 @@ def validate_code(
     return ReferralValidateResponse(
         valid=True,
         code=referral.code,
-        discount_pct=float(referral.discount_pct or 10),
+        discount_pct=float(referral.discount_pct or 5),
         referrer_username=referrer_username,
         message="Valid referral code",
     )
@@ -464,7 +464,7 @@ def apply_code_legacy(
     return ReferralValidateResponse(
         valid=True,
         code=referral.code,
-        discount_pct=float(referral.discount_pct or 10),
+        discount_pct=float(referral.discount_pct or 5),
         referrer_username=referrer.username if referrer else None,
         message=msg,
     )

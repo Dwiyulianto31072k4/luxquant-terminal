@@ -78,8 +78,8 @@ def ensure_referral_code(db: Session, user: User) -> ReferralCode:
     new_code = ReferralCode(
         user_id=user.id,
         code=generate_unique_code(db),
-        discount_pct=10.00,
-        commission_pct=10.00,
+        discount_pct=5.00,
+        commission_pct=5.00,
         is_active=True,
     )
     db.add(new_code)

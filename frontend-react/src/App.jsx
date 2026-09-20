@@ -949,7 +949,7 @@ function AppShell({ children }) {
                   {t("referral.chip_full", "Invite · Earn USDT")}
                 </span>
                 <span className="mt-0.5 block text-[11.5px] leading-snug text-text-secondary">
-                  {t("referral.sheet_earn", "Earn 10% in USDT when a friend subscribes")}
+                  {t("referral.sheet_earn", "Earn 5% in USDT when a friend subscribes")}
                 </span>
                 {/* Secondary, not muted: --fg-muted lands near 2.9:1 on the
                     dark desk's raised surface, and this line carries a real

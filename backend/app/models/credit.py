@@ -14,7 +14,7 @@ Setiap baris = satu transaksi credit (immutable audit log):
   NEW TYPES (Layer 8 — Cashout):
   - cashout_pending    : balance reserved saat user submit cashout request (-)
   - cashout_completed  : status marker setelah admin kirim funds (0 amount, informational)
-  - referral_discount  : track discount 10% ke-apply ke invoice (0 amount, audit)
+  - referral_discount  : track discount 5% ke-apply ke invoice (0 amount, audit)
 """
 from sqlalchemy import Column, Integer, String, DateTime, Numeric, Text, ForeignKey
 from sqlalchemy.sql import func

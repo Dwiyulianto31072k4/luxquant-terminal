@@ -96,7 +96,7 @@ class RedeemPreviewResponse(BaseModel):
     plan_label: str
 
     gross_amount: float                       # Plan price
-    referral_discount: float                  # 10% if eligible, else 0
+    referral_discount: float                  # 5% if eligible, else 0
     credit_redeem: float                      # User's redeemable balance (capped at remaining)
     final_amount: float                       # What user pays
 

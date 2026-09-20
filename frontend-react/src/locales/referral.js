@@ -6,12 +6,12 @@ export const referralEn = {
 
   // Two separate mechanics — the commission and the unlock. They were run
   // together on one line with a middot and were unreadable at 11px.
-  sheet_earn: "Earn 10% in USDT when a friend subscribes",
+  sheet_earn: "Earn 5% in USDT when a friend subscribes",
   sheet_unlock: "3 who use + 1 who pays unlocks 7 days for you",
 
   title: "Invite friends. Earn USDT.",
   subtitle:
-    "They join free and verify the public record. You earn 10% in USDT when they subscribe. 3 friends who use LuxQuant plus 1 who subscribes unlock 7 days of full access.",
+    "They join free and verify the public record. You earn 5% in USDT when they subscribe. 3 friends who use LuxQuant plus 1 who subscribes unlock 7 days of full access.",
 
   copy_link: "Copy link",
   copied: "Copied!",
@@ -25,7 +25,7 @@ export const referralEn = {
   telegram_app: "Telegram Mini App",
 
   earn_usdt: "Earn USDT",
-  earn_usdt_body: "10% of every confirmed payment from people you invite, including renewals.",
+  earn_usdt_body: "5% of every confirmed payment from people you invite, including renewals.",
   available: "Available",
   request_cashout: "Request cashout",
 
@@ -60,7 +60,7 @@ export const referralEn = {
   script_proof_text:
     "LuxQuant publishes every call since December 2023 — verify the record yourself. Join free with my link:",
   script_money_text:
-    "I earn USDT when you subscribe. You get 10% off your first payment. We both win:",
+    "I earn USDT when you subscribe. You get 5% off your first payment. We both win:",
 
   people_title: "People you invited",
   no_people: "No invites yet. Share your link — that's the whole job.",
@@ -80,19 +80,19 @@ export const referralEn = {
     "When someone uses your link, their username, avatar, signup date, and login activity are visible to you.",
 
   banner_title: "Invited by @{{name}}",
-  banner_body: "Join free and verify the public record. You also get 10% off if you later subscribe.",
+  banner_body: "Join free and verify the public record. You also get 5% off if you later subscribe.",
 };
 
 export const referralZh = {
   chip: "赚取 USDT",
   chip_full: "邀请 · 赚取 USDT",
 
-  sheet_earn: "好友订阅，你赚取 10% USDT",
+  sheet_earn: "好友订阅，你赚取 5% USDT",
   sheet_unlock: "3 位使用者 + 1 位付费，为你解锁 7 天",
 
   title: "邀请好友，赚取 USDT。",
   subtitle:
-    "他们免费加入并核验公开记录。他们订阅后你获得 10% USDT。3 位真正使用产品的好友外加 1 位订阅者，可为你解锁 7 天完整权限。",
+    "他们免费加入并核验公开记录。他们订阅后你获得 5% USDT。3 位真正使用产品的好友外加 1 位订阅者，可为你解锁 7 天完整权限。",
 
   copy_link: "复制链接",
   copied: "已复制",
@@ -106,7 +106,7 @@ export const referralZh = {
   telegram_app: "Telegram 小程序",
 
   earn_usdt: "赚取 USDT",
-  earn_usdt_body: "被邀请人每笔确认付款（含续费）的 10%。",
+  earn_usdt_body: "被邀请人每笔确认付款（含续费）的 5%。",
   available: "可提现",
   request_cashout: "申请提现",
 

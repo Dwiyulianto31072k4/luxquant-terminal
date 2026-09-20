@@ -37,8 +37,8 @@ class ReferralCode(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     code = Column(String(20), unique=True, nullable=False, index=True)
-    discount_pct = Column(Numeric(5, 2), default=10.00)
-    commission_pct = Column(Numeric(5, 2), default=10.00)
+    discount_pct = Column(Numeric(5, 2), default=5.00)
+    commission_pct = Column(Numeric(5, 2), default=5.00)
     max_uses = Column(Integer, nullable=True)          # NULL = unlimited
     times_used = Column(Integer, default=0)
     signup_count = Column(Integer, default=0, nullable=False, server_default="0")

@@ -6,7 +6,7 @@ A referee is qualified when they hit 2 of 3 signals within 7 days of signup:
   2. Opened a resolved proof (growth_events.proof_verified)
   3. Returned (login_count >= 2) or armed a watch/alert
 
-Referrer rewards (stack on top of the existing 10% USDT commission):
+Referrer rewards (stack on top of the existing 5% USDT commission):
   3 qualified AND 1 confirmed subscriber → 7 days
   10 qualified (after unlock) → +7 days
   each further → +2 days

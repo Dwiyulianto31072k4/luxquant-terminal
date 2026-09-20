@@ -103,7 +103,7 @@ const formatRelativeTime = (iso) => {
 const SCRIPT_PROOF = (link) =>
   `LuxQuant publishes every call since December 2023 — verify the record yourself. Join free with my link:\n${link}`;
 const SCRIPT_MONEY = (link) =>
-  `I earn USDT when you subscribe. You get 10% off your first payment. We both win:\n${link}`;
+  `I earn USDT when you subscribe. You get 5% off your first payment. We both win:\n${link}`;
 
 const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
   const dialogRef = useRef(null);
@@ -190,7 +190,7 @@ const ReferralPage = () => {
     monthly_usdt: 5,
     annual_usdt: 50,
     lifetime_usdt: 100,
-    commission_pct: 10,
+    commission_pct: 5,
     monthly_price: 50,
     annual_price: 500,
     lifetime_price: 1000,

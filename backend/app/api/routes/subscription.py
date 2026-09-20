@@ -4,7 +4,7 @@ Subscription Routes — Payment & subscription management
 
 Flow at /subscribe:
   gross = plan.price_usdt
-  final = gross - referral_discount (10% if first payment via referral)
+  final = gross - referral_discount (5% if first payment via referral)
 
 Credit redemption is NOT applied here — user must explicitly redeem via
 POST /referral/redeem after invoice creation (PaymentPage UI).

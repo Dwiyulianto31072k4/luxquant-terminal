@@ -2,7 +2,7 @@
 Commission Service — Layer 4 (Referral commission)
 
 Responsible for:
-    1. apply_referral_discount        — 10% off for first payment via ReferralUse
+    1. apply_referral_discount        — 5% off for first payment via ReferralUse
     2. process_commission_for_payment — credit referrer when referee payment confirmed
 
 NOTE: Credit redemption (Layer 8) lives in referral_service.py
@@ -31,8 +31,8 @@ from app.models.credit import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DISCOUNT_PCT = Decimal("10.00")
-DEFAULT_COMMISSION_PCT = Decimal("10.00")
+DEFAULT_DISCOUNT_PCT = Decimal("5.00")
+DEFAULT_COMMISSION_PCT = Decimal("5.00")
 
 
 def _quantize(amount: Decimal) -> Decimal:
