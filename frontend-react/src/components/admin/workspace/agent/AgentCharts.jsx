@@ -1,66 +1,58 @@
-// Charts for the Agent Monitor.
+// The two charts on the Agent Monitor that earn a canvas.
 //
-// Every chart here draws MONEY, which is a diverging quantity: two poles and a
-// meaningful zero. So the palette is --pos / --neg against a neutral zero line,
-// never the categorical set — those say "different thing", not "other side of
-// break-even". Nothing is coloured by rank, and text stays in text tokens.
+// Everything else on the page is drawn in HTML (see AgentUI.jsx), because the
+// rest of this data is a handful of shares and pairs: HTML keeps the label
+// welded to its bar, stays crisp at any zoom, and cannot produce the failure
+// the first version shipped — ten bars of near-identical length with their
+// values floating in a column an inch away.
 //
-// Canvas via the shared EChart wrapper (the same engine the terminal runs on),
-// tokens re-read on a theme flip so Bright and Dark are both first-class.
+// What is left is the one thing a canvas is for: 26 days of money over time.
 //
-// TWO ECharts 6 rules this file is built around, both learned by white-screen:
-//
-//  • `markLine` is NOT how you draw a zero baseline any more. A markLine with
-//    `data: [{ yAxis: 0 }]` throws "Cannot read properties of undefined
-//    (reading 'coord')" asynchronously, AFTER the chart has mounted — so lint,
-//    tests and the build all stay green and the page dies in the browser. The
-//    baseline we want is the axis itself: a value axis that crosses zero puts
-//    the other axis' line on zero (`axisLine.onZero`, on by default), so making
-//    that line visible gives a true zero line with no extra component.
-//  • `grid.containLabel` is legacy in 6 and ignored unless
-//    LegacyGridContainLabel is registered — labels are simply clipped. Grids
-//    here reserve their gutter explicitly, measured from the longest label.
+// Money is DIVERGING — two poles, a real zero — so the palette is --pos/--neg
+// against a zero line, never the categorical set. The zero line is the axis
+// itself (`axisLine.onZero`): in ECharts 6 a `markLine` at zero throws
+// "reading 'coord'" AFTER mount, which keeps the build green and kills the page.
 
 import { useMemo } from "react";
 
 import EChart, { inkAlpha, useChartTokens, useTooltipStyle } from "../../../charts/EChart";
 import { fmtDay, signed, usdShort } from "./agentMetrics";
 
-// Tooltips are HTML; anything that came from data is escaped first.
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
   );
 
-const row = (k, v, color) =>
-  `<div style="display:flex;gap:10px;justify-content:space-between"><span style="opacity:.65">${esc(
+const line = (k, v, color) =>
+  `<div style="display:flex;gap:12px;justify-content:space-between"><span style="opacity:.6">${esc(
     k
   )}</span><span${color ? ` style="color:${color}"` : ""}>${esc(v)}</span></div>`;
 
-/** The zero line, drawn by the axis that crosses it. */
-const zeroLine = (t) => ({
-  show: true,
-  onZero: true,
-  lineStyle: { color: inkAlpha(t, 0.28), width: 1 },
-});
+const MONO = "JetBrains Mono, monospace";
 
-/** Cumulative net over the window. The curve answers "is this desk getting
- *  better or worse", which no tile can.
+/** Running total over the window: the one question no tile answers — is this
+ *  desk getting better or worse, and when did it turn?
  *
- *  Coloured by where it ENDS, with the zero line and the daily bars underneath
- *  carrying the rest — a per-segment gradient needs a visualMap, and that is one
- *  more moving part on a canvas that has already taken this page down once. */
-export function EquityCurve({ series, height = 200 }) {
+ *  The two worst days are direct-labelled (the skill's rule: label the extreme,
+ *  never every point) because in production they are 81% of the whole loss;
+ *  the reader should not have to hunt for them. */
+export function EquityCurve({ series, worst = [], height = 260 }) {
   const t = useChartTokens();
   const base = useTooltipStyle();
   const option = useMemo(() => {
     if (!series) return null;
     const { days, cumulative, pnl, btc, end } = series;
     const tone = end >= 0 ? t.pos : t.neg;
+    const marks = (worst || [])
+      .map((w) => {
+        const i = days.indexOf(w.day);
+        return i < 0 ? null : { value: [i, cumulative[i]], day: w.day, pnl: w.pnl };
+      })
+      .filter(Boolean);
     return {
-      animationDuration: 400,
-      grid: { left: 58, right: 14, top: 12, bottom: 24 },
+      animationDuration: 420,
+      grid: { left: 58, right: 58, top: 26, bottom: 24 },
       tooltip: {
         ...base,
         confine: true,
@@ -68,10 +60,10 @@ export function EquityCurve({ series, height = 200 }) {
           const i = ps?.[0]?.dataIndex ?? 0;
           const b = btc[i];
           return [
-            `<div style="margin-bottom:3px">${esc(fmtDay(days[i]))}</div>`,
-            row("That day", signed(pnl[i]), pnl[i] >= 0 ? t.pos : t.neg),
-            row("Running total", signed(cumulative[i]), cumulative[i] >= 0 ? t.pos : t.neg),
-            b == null ? "" : row("BTC that day", `${b > 0 ? "+" : ""}${b}%`),
+            `<div style="margin-bottom:4px;opacity:.75">${esc(fmtDay(days[i]))}</div>`,
+            line("That day", signed(pnl[i]), pnl[i] >= 0 ? t.pos : t.neg),
+            line("Running total", signed(cumulative[i]), cumulative[i] >= 0 ? t.pos : t.neg),
+            b == null ? "" : line("BTC that day", `${b > 0 ? "+" : ""}${b}%`),
           ].join("");
         },
       },
@@ -79,11 +71,12 @@ export function EquityCurve({ series, height = 200 }) {
         type: "category",
         data: days,
         boundaryGap: false,
-        axisLine: zeroLine(t),
+        axisLine: { show: true, onZero: true, lineStyle: { color: inkAlpha(t, 0.28) } },
         axisTick: { show: false },
         axisLabel: {
           color: t["fg-muted"],
           fontSize: 10,
+          fontFamily: MONO,
           hideOverlap: true,
           formatter: (d) => fmtDay(d),
         },
@@ -91,35 +84,83 @@ export function EquityCurve({ series, height = 200 }) {
       yAxis: {
         type: "value",
         axisLine: { show: false },
-        axisLabel: { color: t["fg-muted"], fontSize: 10, formatter: usdShort },
-        splitLine: { lineStyle: { color: inkAlpha(t, 0.07) } },
+        axisLabel: { color: t["fg-muted"], fontSize: 10, fontFamily: MONO, formatter: usdShort },
+        splitLine: { lineStyle: { color: inkAlpha(t, 0.06) } },
       },
       series: [
         {
           type: "line",
           data: cumulative,
           showSymbol: false,
+          smooth: 0.12,
           lineStyle: { width: 2, color: tone },
           itemStyle: { color: tone },
-          areaStyle: { color: tone, opacity: 0.12 },
+          areaStyle: {
+            opacity: 1,
+            color: {
+              type: "linear",
+              x: 0,
+              y: end >= 0 ? 0 : 1,
+              x2: 0,
+              y2: end >= 0 ? 1 : 0,
+              colorStops: [
+                { offset: 0, color: fade(tone, 0.22) },
+                { offset: 1, color: fade(tone, 0) },
+              ],
+            },
+          },
+          endLabel: {
+            show: true,
+            color: tone,
+            fontFamily: MONO,
+            fontSize: 11,
+            formatter: () => signed(end),
+          },
+          emphasis: { disabled: true },
+          z: 2,
+        },
+        {
+          // The extremes, direct-labelled. A scatter rather than a markPoint:
+          // same picture, none of v6's mark-* coordinate handling.
+          type: "scatter",
+          data: marks.map((m) => m.value),
+          symbolSize: 7,
+          itemStyle: { color: t.neg, borderColor: t["surface-raised"], borderWidth: 2 },
+          label: {
+            show: true,
+            position: "bottom",
+            distance: 8,
+            color: t["fg-secondary"],
+            fontFamily: MONO,
+            fontSize: 10,
+            formatter: (p) => {
+              const m = marks[p.dataIndex];
+              return `${fmtDay(m.day)}  ${signed(m.pnl)}`;
+            },
+          },
+          labelLayout: { hideOverlap: true },
+          tooltip: { show: false },
+          silent: true,
+          z: 3,
         },
       ],
     };
-  }, [series, t, base]);
+  }, [series, worst, t, base]);
   return option ? <EChart option={option} height={height} notMerge /> : null;
 }
 
-/** The same window, day by day. A curve hides whether a fall was one bad day or
- *  a slow bleed; these bars say which. */
-export function DailyBars({ series, height = 110 }) {
+/** The same window, one bar a day. A curve hides whether a fall was one bad day
+ *  or a slow bleed; this says which, and it is the only place every day is
+ *  individually visible. */
+export function DailyStrip({ series, height = 96 }) {
   const t = useChartTokens();
   const base = useTooltipStyle();
   const option = useMemo(() => {
     if (!series) return null;
     const { days, pnl, btc } = series;
     return {
-      animationDuration: 400,
-      grid: { left: 58, right: 14, top: 8, bottom: 22 },
+      animationDuration: 420,
+      grid: { left: 58, right: 58, top: 6, bottom: 20 },
       tooltip: {
         ...base,
         confine: true,
@@ -127,35 +168,31 @@ export function DailyBars({ series, height = 110 }) {
           const i = ps?.[0]?.dataIndex ?? 0;
           const b = btc[i];
           return [
-            `<div style="margin-bottom:3px">${esc(fmtDay(days[i]))}</div>`,
-            row("That day", signed(pnl[i]), pnl[i] >= 0 ? t.pos : t.neg),
-            b == null ? "" : row("BTC that day", `${b > 0 ? "+" : ""}${b}%`),
+            `<div style="margin-bottom:4px;opacity:.75">${esc(fmtDay(days[i]))}</div>`,
+            line("That day", signed(pnl[i]), pnl[i] >= 0 ? t.pos : t.neg),
+            b == null ? "" : line("BTC that day", `${b > 0 ? "+" : ""}${b}%`),
           ].join("");
         },
       },
       xAxis: {
         type: "category",
         data: days,
-        axisLine: zeroLine(t),
+        axisLine: { show: true, onZero: true, lineStyle: { color: inkAlpha(t, 0.28) } },
         axisTick: { show: false },
-        axisLabel: {
-          color: t["fg-muted"],
-          fontSize: 10,
-          hideOverlap: true,
-          formatter: (d) => fmtDay(d),
-        },
+        axisLabel: { show: false },
       },
       yAxis: {
         type: "value",
         axisLine: { show: false },
-        axisLabel: { color: t["fg-muted"], fontSize: 10, formatter: usdShort },
-        splitLine: { lineStyle: { color: inkAlpha(t, 0.07) } },
+        axisLabel: { show: false },
+        splitLine: { show: false },
       },
       series: [
         {
           type: "bar",
           data: pnl.map((v) => ({ value: v, itemStyle: { color: v >= 0 ? t.pos : t.neg } })),
-          barMaxWidth: 14,
+          barMaxWidth: 12,
+          barMinHeight: 1,
         },
       ],
     };
@@ -163,124 +200,15 @@ export function DailyBars({ series, height = 110 }) {
   return option ? <EChart option={option} height={height} notMerge /> : null;
 }
 
-/** Horizontal diverging bars: one row per venue, per symbol, per anything with
- *  a name and a net. Horizontal because the names are words, and a word on a
- *  vertical axis is read without tilting the head. */
-export function SplitBars({ rows, labelOf = (r) => r.key, rowHeight = 30, meta }) {
-  const t = useChartTokens();
-  const base = useTooltipStyle();
-  const option = useMemo(() => {
-    if (!rows?.length) return null;
-    // ECharts stacks a category axis bottom-up, so the array is reversed to put
-    // the best row at the top, where a reader starts.
-    const ordered = [...rows].reverse();
-    const labels = ordered.map((r) => String(labelOf(r)));
-    const values = ordered.map((r) => Number(r.net) || 0);
-    // containLabel is ignored in v6, so the gutter is measured: 11px text runs
-    // about 6.2px a character, and the axis needs a little air after it.
-    const gutter = Math.min(180, Math.max(64, Math.max(...labels.map((l) => l.length)) * 6.2 + 14));
-    return {
-      animationDuration: 400,
-      grid: { left: gutter, right: 78, top: 6, bottom: 26 },
-      tooltip: {
-        ...base,
-        trigger: "item",
-        confine: true,
-        formatter: (p) => {
-          const r = ordered[p.dataIndex];
-          const extra = meta?.(r) || [];
-          return [
-            `<div style="margin-bottom:3px">${esc(labels[p.dataIndex])}</div>`,
-            row("Net", signed(r.net), r.net >= 0 ? t.pos : t.neg),
-            ...extra.map(([k, v]) => row(k, v)),
-          ].join("");
-        },
-      },
-      xAxis: {
-        type: "value",
-        axisLine: { show: false },
-        axisLabel: { color: t["fg-muted"], fontSize: 10, formatter: usdShort },
-        splitLine: { lineStyle: { color: inkAlpha(t, 0.07) } },
-      },
-      yAxis: {
-        type: "category",
-        data: labels,
-        axisLine: zeroLine(t),
-        axisTick: { show: false },
-        axisLabel: { color: t["fg-secondary"], fontSize: 11, hideOverlap: true },
-      },
-      series: [
-        {
-          type: "bar",
-          data: values.map((v) => ({ value: v, itemStyle: { color: v >= 0 ? t.pos : t.neg } })),
-          barMaxWidth: 16,
-          label: {
-            show: true,
-            position: "right",
-            distance: 6,
-            color: t["fg-secondary"],
-            fontSize: 10.5,
-            fontFamily: "JetBrains Mono, monospace",
-            formatter: (p) => signed(p.value),
-          },
-          labelLayout: { hideOverlap: true },
-        },
-      ],
-    };
-  }, [rows, labelOf, meta, t, base]);
-  const height = Math.max(120, (rows?.length || 0) * rowHeight + 36);
-  return option ? <EChart option={option} height={height} notMerge /> : null;
-}
-
-/** Leverage is ordinal — 2×, then 3×, then 5× — so it keeps a value axis across
- *  the bottom and reads left to right like the ladder it is. */
-export function LeverageBars({ rows, height = 190 }) {
-  const t = useChartTokens();
-  const base = useTooltipStyle();
-  const option = useMemo(() => {
-    if (!rows?.length) return null;
-    const ordered = [...rows].sort((a, b) => Number(a.key) - Number(b.key));
-    return {
-      animationDuration: 400,
-      grid: { left: 58, right: 14, top: 12, bottom: 26 },
-      tooltip: {
-        ...base,
-        trigger: "item",
-        confine: true,
-        formatter: (p) => {
-          const r = ordered[p.dataIndex];
-          return [
-            `<div style="margin-bottom:3px">${esc(r.key)}× leverage</div>`,
-            row("Net", signed(r.net), r.net >= 0 ? t.pos : t.neg),
-            row("Trades", r.trades),
-            row("Win rate", `${r.win_rate}%`),
-          ].join("");
-        },
-      },
-      xAxis: {
-        type: "category",
-        data: ordered.map((r) => `${r.key}×`),
-        axisLine: zeroLine(t),
-        axisTick: { show: false },
-        axisLabel: { color: t["fg-secondary"], fontSize: 11 },
-      },
-      yAxis: {
-        type: "value",
-        axisLine: { show: false },
-        axisLabel: { color: t["fg-muted"], fontSize: 10, formatter: usdShort },
-        splitLine: { lineStyle: { color: inkAlpha(t, 0.07) } },
-      },
-      series: [
-        {
-          type: "bar",
-          data: ordered.map((r) => ({
-            value: Number(r.net) || 0,
-            itemStyle: { color: Number(r.net) >= 0 ? t.pos : t.neg },
-          })),
-          barMaxWidth: 46,
-        },
-      ],
-    };
-  }, [rows, t, base]);
-  return option ? <EChart option={option} height={height} notMerge /> : null;
+/** A token colour with an alpha applied. The wrapper hands these over as
+ *  `rgb(246 70 93)` — CSS Color 4 spacing, NOT commas, because the underlying
+ *  custom property is a bare triplet. Splitting on "," alone yields one part
+ *  and produces `rgba(246 70 93, undefined, undefined, .22)`, which canvas
+ *  rejects at addColorStop and takes the chart down with it. */
+function fade(color, alpha) {
+  const m = /rgba?\(([^)]+)\)/.exec(color || "");
+  if (!m) return color;
+  const [r, g, b] = m[1].split(/[\s,/]+/).filter(Boolean);
+  if (r == null || g == null || b == null) return color;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

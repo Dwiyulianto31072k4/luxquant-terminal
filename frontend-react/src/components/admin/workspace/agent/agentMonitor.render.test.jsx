@@ -219,7 +219,7 @@ const POSITIONS = {
 const html = (props) => renderToString(<AgentMonitorView {...props} />);
 
 describe("AgentMonitorView", () => {
-  it("renders a full payload: incidents first, then money, then the rows", () => {
+  it("renders a full payload: incidents, then the money, then why, then the rows", () => {
     const out = html({
       overview: OVERVIEW,
       analytics: ANALYTICS,
@@ -229,15 +229,16 @@ describe("AgentMonitorView", () => {
     });
     expect(out).toContain("Needs attention now");
     expect(out).toContain("Agent Monitor");
-    // the incident strip counts what is actually wrong
     expect(out).toContain("invalid keys");
     expect(out).toContain("without a stop");
-    // money section
-    expect(out).toContain("Where the money went");
-    expect(out).toContain("Profit factor");
+    // the money, and the finding that explains it
+    expect(out).toContain("Net realised");
+    expect(out).toContain("Running total");
+    expect(out).toContain("What explains the loss");
+    expect(out).toContain("of the loss");
+    expect(out).toContain("How trades end");
     expect(out).toContain("The shape of a trade");
-    expect(out).toContain("How positions ended");
-    expect(out).toContain("Biggest movers by symbol");
+    expect(out).toContain("Not attributed");
     expect(out).toContain("Traded by hand, not by the bot");
     // the rows
     expect(out).toContain("rfkiboss_5bef");
@@ -245,6 +246,9 @@ describe("AgentMonitorView", () => {
     expect(out).toContain("no stop-loss");
     expect(out).toContain("needs reconciliation");
     expect(out).toContain("Live trading agreements");
+    // the charts that were replaced are gone for good
+    expect(out).not.toContain("Net result by leverage");
+    expect(out).not.toContain("Biggest movers by symbol");
   });
 
   it("says so plainly when nothing is wrong", () => {
@@ -270,7 +274,18 @@ describe("AgentMonitorView", () => {
     });
     expect(out).toContain("No settled trades in this window");
     expect(out).toContain("Show all time");
-    expect(out).not.toContain("Where the money went");
+    expect(out).not.toContain("How trades end");
+  });
+
+  it("explains nothing when the desk is up — the findings card is for a loss", () => {
+    const up = {
+      ...ANALYTICS,
+      totals: { ...ANALYTICS.totals, net: 250.4, won: 900, lost: -649.6 },
+      curve: ANALYTICS.curve.map((r) => ({ ...r, pnl: Math.abs(r.pnl), cumulative: Math.abs(r.cumulative) })),
+    };
+    const out = html({ overview: OVERVIEW, analytics: up, positions: POSITIONS });
+    expect(out).not.toContain("What explains the loss");
+    expect(out).toContain("The shape of a trade");
   });
 
   it("degrades to one sentence when the Agent database is unreachable", () => {
