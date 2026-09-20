@@ -102,8 +102,8 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
     // on that metric.
     const xScale = scaleFor(xs);
     const yScale = scaleFor(ys);
-    const xd = domainFor(xs, mx);
-    const yd = domainFor(ys, my);
+    const xd = domainFor(xs, { zero: mx.zero });
+    const yd = domainFor(ys, { zero: my.zero });
     const px = projector({
       lo: xd.lo, hi: xd.hi, from: G.pad.l, to: G.W - G.pad.r, inset: 18,
       transform: xScale === "sqrt" ? sq : (v) => v,

@@ -30,7 +30,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InfoTip } from "../GuideInfo";
 import { median as medianOf, num } from "./flowMetrics";
-import { cull, pickTicks, placeLabels, spearman, sq } from "./scatterKit";
+import {
+  cull,
+  domainFor,
+  pickTicks,
+  placeLabels,
+  quadrantCaptions,
+  scaleFor,
+  spearman,
+  sq,
+} from "./scatterKit";
 import useZoomPan from "./useZoomPan";
 import ZoomControls, { ZoomHint } from "./ZoomControls";
 import ScatterTip from "./ScatterTip";
@@ -67,6 +76,19 @@ const EXPLAIN =
   "ahead of the market while the typical one sits four; on a linear axis every other dot piles " +
   "into the left edge. The ticks carry their real values.";
 
+/** Why a narrative cannot be placed. The panel counts forty and the plot draws
+ *  thirty-six; the four deserve a reason rather than a disappearance. */
+export function narrativeMissing(narratives = []) {
+  return narratives
+    .filter((x) => x.mcap_change_7d == null || x.median_peak == null)
+    .map((x) => ({
+      id: x.category_id,
+      name: x.name,
+      raw: x,
+      why: x.mcap_change_7d == null ? "no 7-day snapshot" : "nothing resolved yet",
+    }));
+}
+
 function buildModel(narratives, marketChange7d, G) {
   {
     const { W, H, pad: PAD } = G;
@@ -91,18 +113,28 @@ function buildModel(narratives, marketChange7d, G) {
     const yHi = Math.max(...ys);
     const maxCoins = Math.max(...pts.map((p) => p.coins));
 
-    const sxLo = sq(xLo);
-    const sxHi = sq(xHi);
+    // Scale from the data: rotation has a real tail (one narrative regularly
+    // sits ninety points clear) and typical peak does not, so they should not
+    // be bent by the same rule.
+    const xScale = scaleFor(xs);
+    const yScale = scaleFor(ys);
+    const xw = domainFor(xs, { zero: true });
+    const tx = xScale === "sqrt" ? sq : (v) => v;
+    const sxLo = tx(xw.lo);
+    const sxHi = tx(xw.hi);
     const span = sxHi - sxLo || 1;
     // An inset on each side so the extreme dots are not welded to the frame —
     // the widest one is a circle, not a tick.
     const inset = 14;
     const px = (v) =>
-      PAD.l + inset + ((sq(v) - sxLo) / span) * (W - PAD.l - PAD.r - inset * 2);
-    const ySpan = yHi - yLo || 1;
-    // A tenth of headroom top and bottom so no dot is welded to an edge.
-    const py = (v) =>
-      H - PAD.b - ((v - yLo + ySpan * 0.08) / (ySpan * 1.16)) * (H - PAD.t - PAD.b);
+      PAD.l + inset + ((tx(v) - sxLo) / span) * (W - PAD.l - PAD.r - inset * 2);
+    // Peak runs about 9% to 27%; anchoring this axis at zero would reserve a
+    // third of the canvas for a number nobody plotted.
+    const yw = domainFor(ys, { zero: false });
+    const ty = yScale === "sqrt" ? sq : (v) => v;
+    const yLo2 = ty(yw.lo);
+    const ySpan = ty(yw.hi) - yLo2 || 1;
+    const py = (v) => H - PAD.b - ((ty(v) - yLo2) / ySpan) * (H - PAD.t - PAD.b);
 
     const placed = pts.map((p) => ({
       ...p,
@@ -167,6 +199,9 @@ function buildModel(narratives, marketChange7d, G) {
       px,
       xLo,
       xHi,
+      xScale,
+      yScale,
+      yw,
       rho: spearman(pts),
       market: m,
     };
@@ -180,6 +215,34 @@ const X_TICKS = [
   -50, -30, -20, -15, -10, -8, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 8,
   10, 15, 20, 30, 40, 50, 75, 100, 150, 200,
 ];
+
+// The vertical axis had no ticks at all, which meant the one number this chart
+// ranks narratives on could not be read off it — you could see that Privacy sat
+// above AI Applications and not that it sat at 27% against 21%.
+const Y_TICKS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 50, 60, 75, 100];
+
+/** The narratives a plot cannot place, named with the reason. */
+function NarrativeMissingTray({ items, onOpen }) {
+  if (!items?.length) return null;
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ink/[0.03] px-2.5 py-1.5">
+      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+        not on this chart
+      </span>
+      {items.slice(0, 10).map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          onClick={() => onOpen?.(m.raw)}
+          className="inline-flex items-center gap-1 rounded-full border border-ink/[0.1] py-0.5 px-2 text-[11px] text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
+        >
+          <span className="max-w-[150px] truncate font-medium">{m.name}</span>
+          <span className="text-text-muted">{m.why}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /** The plot itself, at one geometry. */
 function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
@@ -234,12 +297,48 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
       const x = project(model.px(v), 0).x;
       return x >= PAD.l - 1 && x <= W - PAD.r + 1;
     });
-    return pickTicks(inFrame, -Infinity, Infinity, (v) => project(model.px(v), 0).x, fs * 3.4, 0);
-  }, [project, model, PAD.l, PAD.r, W, fs]);
+    return pickTicks(inFrame, -Infinity, Infinity, (v) => project(model.px(v), 0).x, fz * 3.4, 0);
+  }, [project, model, PAD.l, PAD.r, W, fz]);
+
+  // The axis this chart RANKS on finally gets a scale you can read a value off.
+  const yTicks = useMemo(() => {
+    const nameY = PAD.t + 8;
+    const inFrame = Y_TICKS.filter((v) => {
+      const y = project(0, model.py(v)).y;
+      return y >= 6 && y <= H - PAD.b - 2 && Math.abs(y - nameY) > fz * 1.2;
+    });
+    return pickTicks(inFrame, -Infinity, Infinity, (v) => project(0, model.py(v)).y, fz * 2);
+  }, [project, model, H, PAD.b, PAD.t, fz]);
 
   const clipId = `narr-${W}-${H}`;
   const zeroX = project(model.px(0), 0).x;
   const midY = project(0, model.py(model.medianPeak)).y;
+
+  // Named, not shaded. This panel's own finding is that rotation does not
+  // predict reward, so shading a corner would smuggle in a recommendation the
+  // data refuses to support — but a reader still deserves to know what each
+  // corner MEANS.
+  const captions = useMemo(
+    () =>
+      quadrantCaptions({
+        W,
+        H,
+        pad: PAD,
+        zeroX,
+        midY,
+        fs: fz,
+        // room for the floating zoom controls
+        reserveTopRight: W * 0.11,
+        labels: {
+          tr: "HOT · RAN FURTHER",
+          tl: "QUIET · RAN FURTHER",
+          br: "HOT · ORDINARY",
+          bl: "QUIET · ORDINARY",
+        },
+      }),
+    [W, H, PAD, zeroX, midY, fz]
+  );
+
   return (
     <div className="relative">
       <svg
@@ -280,6 +379,19 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
 
         </g>
 
+        {captions.map((c) => (
+          <text
+            key={c.key}
+            x={c.x}
+            y={c.y}
+            textAnchor={c.anchor}
+            className="fill-text-muted"
+            style={{ fontSize: fz - 1.5, fontFamily: "monospace", letterSpacing: "0.1em", opacity: 0.55 }}
+          >
+            {c.text}
+          </text>
+        ))}
+
         {/* Ticks sit OUTSIDE the clip and are thinned for the window actually
             on screen, so a zoom yields finer gradations rather than the same
             handful drifting apart. */}
@@ -300,14 +412,26 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
             </g>
           );
         })}
+        {yTicks.map((v) => (
+          <text
+            key={`y${v}`}
+            x={PAD.l - 6}
+            y={project(0, model.py(v)).y + 3}
+            textAnchor="end"
+            className="fill-text-muted"
+            style={{ fontSize: fz - 1, fontFamily: "monospace" }}
+          >
+            {v}%
+          </text>
+        ))}
         <text
           x={W - PAD.r}
           y={H - 3}
           textAnchor="end"
           className="fill-text-muted"
-          style={{ fontSize: fs - 0.5, fontFamily: "monospace", letterSpacing: "0.1em" }}
+          style={{ fontSize: fz - 0.5, fontFamily: "monospace", letterSpacing: "0.1em" }}
         >
-          {G.axis}
+          {model.xScale === "sqrt" ? G.axis : G.axis.replace(" · √ SCALE", "").replace(" · √", "")}
         </text>
         <text
           x={PAD.l - 6}
@@ -440,12 +564,14 @@ export function NarrativeScatterLarge({ narratives = [], marketChange7d = null, 
     () => buildModel(narratives, marketChange7d, LARGE),
     [narratives, marketChange7d]
   );
+  const missing = useMemo(() => narrativeMissing(narratives), [narratives]);
   if (!model) return null;
   return (
     <div className="min-w-0">
       {/* The modal locks the page behind it, so there is no scroll to steal:
           the plain wheel zooms here and only asks for a modifier inline. */}
       <Plot model={model} G={LARGE} activeIds={activeIds} onOpen={onOpen} wheel="direct" />
+      <NarrativeMissingTray items={missing} onOpen={onOpen} />
       <p className="mt-1">
         <ZoomHint wheel="direct" />
       </p>
@@ -472,6 +598,7 @@ export default function NarrativeScatter({
   onOpen,
   onExpand,
 }) {
+  const missing = useMemo(() => narrativeMissing(narratives), [narratives]);
   const desk = useMemo(
     () => buildModel(narratives, marketChange7d, DESK),
     [narratives, marketChange7d]
@@ -517,6 +644,7 @@ export default function NarrativeScatter({
         <Plot model={desk} G={DESK} activeIds={activeIds} onOpen={onOpen} />
       </div>
 
+      <NarrativeMissingTray items={missing} onOpen={onOpen} />
       <p className="mt-1 text-[11px] leading-snug text-text-muted">
         Right is ahead of the market this week, up is calls that ran further, dot size is how many
         coins we called there. The cloud does not tilt:{" "}

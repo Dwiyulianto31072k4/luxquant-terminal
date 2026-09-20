@@ -162,3 +162,66 @@ export function cull(points, W, H, pad = 40) {
     (p) => p.cx > -pad && p.cx < W + pad && p.cy > -pad && p.cy < H + pad
   );
 }
+
+/** Which scale an axis should use, decided from the DATA rather than by blanket
+ *  rule. A square root is the right answer for a heavy tail — turnover,
+ *  rotation, volume — and the wrong answer for anything else: applied to a
+ *  variable running -0.5 to 2 it bunched every tick into the bottom eighth of
+ *  the axis. So measure the tail, and only bend the axis when there is one. */
+export function scaleFor(values) {
+  const v = values.filter((x) => x != null && Number.isFinite(x)).map(Math.abs).sort((a, b) => a - b);
+  if (v.length < 4) return "linear";
+  const med = v[Math.floor(v.length / 2)] || 0;
+  const max = v[v.length - 1] || 0;
+  if (!med) return max > 0 ? "sqrt" : "linear";
+  return max / med > 8 ? "sqrt" : "linear";
+}
+
+/** The window an axis should show: the data with a little air, and zero only
+ *  when zero means something on that axis. Always including it is how a plot of
+ *  narratives whose peaks run 9% to 27% ends up reserving a third of its canvas
+ *  for a number nobody plotted. */
+export function domainFor(values, { zero = false, padFrac = 0.08 } = {}) {
+  const v = values.filter((x) => x != null && Number.isFinite(x));
+  if (!v.length) return { lo: 0, hi: 1 };
+  let lo = Math.min(...v);
+  let hi = Math.max(...v);
+  if (zero) {
+    lo = Math.min(lo, 0);
+    hi = Math.max(hi, 0);
+  }
+  const span = hi - lo || Math.abs(hi) || 1;
+  return { lo: lo - span * padFrac, hi: hi + span * padFrac };
+}
+
+/** Corner captions for a plot split by two reference lines.
+ *
+ *  Named, never shaded — on these two panels that distinction is the whole
+ *  point. The screener SHADES a corner because it is telling you where to look;
+ *  these two are descriptive and their own findings say the axes do not predict
+ *  each other, so naming the quadrants informs without smuggling in a
+ *  recommendation the data refuses to support. */
+export function quadrantCaptions({ W, H, pad, zeroX, midY, labels, fs, reserveTopRight = 0 }) {
+  const inset = 10;
+  const topY = fs + 6;
+  const botY = H - pad.b - 8;
+  // A quadrant that has been panned or zoomed off the frame gets no caption:
+  // a label for a region nobody can see is worse than none.
+  const hasLeft = zeroX > pad.l + 40;
+  const hasRight = zeroX < W - pad.r - 40;
+  const hasTop = midY > topY + 14;
+  const hasBottom = midY < botY - 14;
+  const out = [];
+  // The captions sit in the FRAME's corners, not beside the dividing lines.
+  // Anchored beside the lines they landed in the middle of the cloud and, when
+  // the zero line drifted left, an end-anchored label ran off the edge —
+  // "BUSY · SOLD" printed as "SOLD".
+  // The zoom controls float over the top-right of the plot, so that caption
+  // starts where they end — otherwise the two print on top of each other.
+  if (hasRight && hasTop)
+    out.push({ key: "tr", x: W - pad.r - inset - reserveTopRight, y: topY, anchor: "end", text: labels.tr });
+  if (hasLeft && hasTop) out.push({ key: "tl", x: pad.l + inset, y: topY, anchor: "start", text: labels.tl });
+  if (hasRight && hasBottom) out.push({ key: "br", x: W - pad.r - inset, y: botY, anchor: "end", text: labels.br });
+  if (hasLeft && hasBottom) out.push({ key: "bl", x: pad.l + inset, y: botY, anchor: "start", text: labels.bl });
+  return out.filter((c) => c.text);
+}

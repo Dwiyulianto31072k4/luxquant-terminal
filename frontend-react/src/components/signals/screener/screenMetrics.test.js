@@ -88,21 +88,21 @@ describe("an axis bends only when the data bends", () => {
 describe("the window shows the data, not a number nobody plotted", () => {
   it("anchors at zero only where zero means something", () => {
     // Hours-old calls: anchoring at zero reserves half the canvas for "0h".
-    const age = domainFor([18, 22, 30], METRICS.ageH);
+    const age = domainFor([18, 22, 30], { zero: METRICS.ageH.zero });
     expect(age.lo).toBeGreaterThan(0);
     // Room to target: zero is the line between a trade and a post-mortem.
-    const room = domainFor([4, 8, 12], METRICS.roomTp3);
+    const room = domainFor([4, 8, 12], { zero: METRICS.roomTp3.zero });
     expect(room.lo).toBeLessThanOrEqual(0);
   });
 
   it("leaves air on both sides so no mark is welded to the frame", () => {
-    const d = domainFor([10, 20], METRICS.edge);
+    const d = domainFor([10, 20], { zero: METRICS.edge.zero });
     expect(d.lo).toBeLessThan(10);
     expect(d.hi).toBeGreaterThan(20);
   });
 
   it("survives a single value without collapsing", () => {
-    const d = domainFor([7], METRICS.edge);
+    const d = domainFor([7], { zero: METRICS.edge.zero });
     expect(d.hi).toBeGreaterThan(d.lo);
   });
 });

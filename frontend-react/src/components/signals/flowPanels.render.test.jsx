@@ -433,3 +433,51 @@ describe("the two scatters", () => {
     expect(Math.max(...xs)).toBeLessThanOrEqual(640);
   });
 });
+
+describe("the flow charts now say what they cannot draw", () => {
+  it("names a coin with no turnover instead of dropping it", async () => {
+    const { coinMissing } = await import("../SignalsCoinFlow").then(() =>
+      import("./CoinScatter")
+    );
+    const { enrichCoins } = await import("./flowMetrics");
+    const rows = enrichCoins(
+      [
+        { coin_id: "a", symbol: "A", flow_intensity: 0.2, price_change_24h: 1 },
+        { coin_id: "b", symbol: "B", flow_intensity: null, price_change_24h: 1 },
+        { coin_id: "c", symbol: "C", flow_intensity: 0.1, price_change_24h: null },
+      ],
+      new Map()
+    );
+    const missing = coinMissing(rows);
+    expect(missing.map((m) => m.pair)).toEqual(["B", "C"]);
+    expect(missing[0].why).toBe("no turnover in this snapshot");
+    expect(missing[1].why).toBe("no 24h move");
+  });
+
+  it("names a narrative with nothing resolved instead of dropping it", async () => {
+    const { narrativeMissing } = await import("./NarrativeScatter");
+    const missing = narrativeMissing([
+      { category_id: "a", name: "A", mcap_change_7d: 3, median_peak: 12 },
+      { category_id: "b", name: "B", mcap_change_7d: null, median_peak: 12 },
+      { category_id: "c", name: "C", mcap_change_7d: 3, median_peak: null },
+    ]);
+    expect(missing.map((m) => m.name)).toEqual(["B", "C"]);
+    expect(missing[0].why).toBe("no 7-day snapshot");
+    expect(missing[1].why).toBe("nothing resolved yet");
+  });
+
+  it("gives the narrative chart the y scale it never had", () => {
+    const out = html(
+      <SignalsNarrativeFlow data={NARR_DATA} days={30} activeIds={[]} defaultOpen />
+    );
+    // Typical peak is the column this chart ranks on; without ticks you could
+    // see that one narrative sat above another and not by how much.
+    expect(out).toMatch(/>\d+%<\/text>/);
+  });
+
+  it("names the quadrants without shading one, because the finding forbids it", () => {
+    const t = text(<SignalsNarrativeFlow data={NARR_DATA} days={30} activeIds={[]} defaultOpen />);
+    expect(t).toContain("RAN FURTHER");
+    expect(t).toContain("ORDINARY");
+  });
+});

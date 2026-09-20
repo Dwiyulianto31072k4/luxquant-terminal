@@ -19,7 +19,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InfoTip } from "../GuideInfo";
 import { fmtMultiple, num, price as fmtPrice, usdShort } from "./flowMetrics";
-import { cull, pickTicks, placeLabels, projector, sq } from "./scatterKit";
+import {
+  cull,
+  domainFor,
+  pickTicks,
+  placeLabels,
+  projector,
+  quadrantCaptions,
+  scaleFor,
+  sq,
+} from "./scatterKit";
 import useZoomPan from "./useZoomPan";
 import ZoomControls, { ZoomHint } from "./ZoomControls";
 import ScatterTip from "./ScatterTip";
@@ -73,6 +82,32 @@ const EXPLAIN =
   "values.\n\n" +
   "This is a snapshot, refreshed every four hours, and it is descriptive. A busy coin is not a " +
   "signal, and the dots do not know what happens next.";
+
+/** The rows a plot cannot place, named with the reason and still openable. */
+function MissingTray({ items, onOpen }) {
+  if (!items?.length) return null;
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ink/[0.03] px-2.5 py-1.5">
+      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+        not on this chart
+      </span>
+      {items.slice(0, 14).map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          onClick={() => onOpen?.(m.raw)}
+          className="inline-flex items-center gap-1 rounded-full border border-ink/[0.1] py-0.5 px-2 text-[11px] text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
+        >
+          <span className="font-medium">{m.pair || m.name}</span>
+          <span className="text-text-muted">{m.why}</span>
+        </button>
+      ))}
+      {items.length > 14 ? (
+        <span className="text-[11px] text-text-muted">+{items.length - 14} more</span>
+      ) : null}
+    </div>
+  );
+}
 
 function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   const { W, H, pad: PAD, fs } = G;
@@ -166,6 +201,22 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
 
   const clipId = `plot-${W}-${H}`;
   const zeroX = project(model.px(0), 0).x;
+  const busyY = model.busyY != null ? project(0, model.busyY).y : H / 2;
+
+  // Named, never shaded. This panel's whole argument is that turnover has no
+  // direction of its own — shading a corner would hand one of them a verdict
+  // the chart exists to withhold. Naming them says what each one IS.
+  const captions = quadrantCaptions({
+    W, H, pad: PAD, zeroX, midY: busyY, fs: fz,
+    // room for the floating zoom controls
+    reserveTopRight: W * 0.11,
+    labels: {
+      tr: "BUSY · BID",
+      tl: "BUSY · SOLD",
+      br: "QUIET · RISING",
+      bl: "QUIET · DRIFTING",
+    },
+  });
 
   return (
     <div className="relative">
@@ -219,6 +270,19 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
 
       </g>
 
+      {captions.map((c) => (
+        <text
+          key={c.key}
+          x={c.x}
+          y={c.y}
+          textAnchor={c.anchor}
+          className="fill-text-muted"
+          style={{ fontSize: fz - 1.5, fontFamily: "monospace", letterSpacing: "0.1em", opacity: 0.5 }}
+        >
+          {c.text}
+        </text>
+      ))}
+
       {/* Ticks live OUTSIDE the clip and are thinned for the window actually on
           screen, so zooming in produces finer gradations rather than the same
           four numbers drifting apart. */}
@@ -258,7 +322,8 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
         className="fill-text-muted"
         style={{ fontSize: fs - 0.5, fontFamily: "monospace", letterSpacing: "0.1em" }}
       >
-        24H MOVE (%) · √ SCALE
+        24H MOVE (%)
+        {model.xScale === "sqrt" ? " · √ SCALE" : ""}
       </text>
       <text
         x={PAD.l - 6}
@@ -372,6 +437,19 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   );
 }
 
+/** What a coin is missing, in words. A plot that says "238 of 238 coins" and
+ *  draws 223 is lying about its own count. */
+export function coinMissing(rows) {
+  return rows
+    .filter((r) => num(r.c.flow_intensity) == null || num(r.c.price_change_24h) == null)
+    .map((r) => ({
+      id: r.c.coin_id || r.c.symbol,
+      pair: r.c.symbol,
+      raw: r,
+      why: num(r.c.flow_intensity) == null ? "no turnover in this snapshot" : "no 24h move",
+    }));
+}
+
 function buildModel(rows, G) {
   const { W, H, pad: PAD } = G;
   const pts = rows
@@ -394,11 +472,22 @@ function buildModel(rows, G) {
   const yHi = Math.max(...ys);
   const maxVol = Math.max(...pts.map((p) => p.vol), 1);
 
+  // Scale from the data. Both of these usually have a real tail — one coin
+  // trades ninety percent of itself while the median trades four — but on a
+  // quiet day they do not, and an axis should only bend when there is
+  // something to bend for.
+  const xScale = scaleFor(xs);
+  const yScale = scaleFor(ys);
+  const xw = domainFor(xs, { zero: true });
+  // Turnover has a true floor at zero and no meaning below it.
+  const yw = domainFor(ys, { zero: true });
   const px = projector({
-    lo: xLo, hi: xHi, from: PAD.l, to: W - PAD.r, inset: 12, transform: sq,
+    lo: xw.lo, hi: xw.hi, from: PAD.l, to: W - PAD.r, inset: 12,
+    transform: xScale === "sqrt" ? sq : (v) => v,
   });
   const pyRaw = projector({
-    lo: 0, hi: yHi, from: PAD.t, to: H - PAD.b, inset: 10, transform: Math.sqrt,
+    lo: Math.max(0, yw.lo), hi: yw.hi, from: PAD.t, to: H - PAD.b, inset: 10,
+    transform: yScale === "sqrt" ? Math.sqrt : (v) => v,
   });
   // The y projector runs top-down in SVG space, so flip it.
   const py = (v) => H - PAD.b - (pyRaw(v) - PAD.t);
@@ -460,6 +549,8 @@ function buildModel(rows, G) {
     busyY: yHi >= 0.3 ? py(0.3) : null,
     xTicks: pickTicks(X_TICKS, xLo, xHi, px, G.fs * 3.4, 0),
     yTicks: pickTicks(Y_TICKS, 0, yHi, py, G.fs * 1.9),
+    xScale,
+    yScale,
     busy: busy.length,
     busyUp: busy.filter((p) => p.x >= 0).length,
     calledCount: placed.filter((p) => p.called).length,
@@ -478,12 +569,14 @@ export function CoinScatterHeadline({ model }) {
 /** The expanded plot, for the modal. One geometry, all the room it needs. */
 export function CoinScatterLarge({ rows = [], onOpen }) {
   const model = useMemo(() => buildModel(rows, LARGE), [rows]);
+  const missing = useMemo(() => coinMissing(rows), [rows]);
   if (!model) return null;
   return (
     <div className="min-w-0">
       {/* The modal locks the page behind it, so there is no scroll to steal:
           the plain wheel zooms here and only asks for a modifier inline. */}
       <Plot model={model} G={LARGE} onOpen={onOpen} wheel="direct" />
+      <MissingTray items={missing} onOpen={onOpen} />
       <p className="mt-1">
         <ZoomHint wheel="direct" />
       </p>
@@ -508,6 +601,7 @@ export function CoinScatterLarge({ rows = [], onOpen }) {
 export default function CoinScatter({ rows = [], onOpen, onExpand }) {
   const desk = useMemo(() => buildModel(rows, DESK), [rows]);
   const phone = useMemo(() => buildModel(rows, PHONE), [rows]);
+  const missing = useMemo(() => coinMissing(rows), [rows]);
   if (!desk || !phone) return null;
 
   return (
@@ -538,6 +632,7 @@ export default function CoinScatter({ rows = [], onOpen, onExpand }) {
         <Plot model={desk} G={DESK} onOpen={onOpen} />
       </div>
 
+      <MissingTray items={missing} onOpen={onOpen} />
       <p className="mt-1 text-[11px] leading-snug text-text-muted">
         Up is a coin that traded more of itself today, right is a coin that rose. Dot size is the
         dollars traded and gold is a coin we have called — {desk.calledCount} of{" "}

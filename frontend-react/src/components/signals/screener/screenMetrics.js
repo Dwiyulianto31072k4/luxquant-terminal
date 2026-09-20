@@ -33,6 +33,8 @@ export const CHASE_TABLE = [
 /** The point past which the published trade is usually gone. */
 export const CHASE_LINE = 5;
 
+export { domainFor, scaleFor } from "../scatterKit";
+
 export const num = (v) => {
   const n = Number(v);
   return v == null || v === "" || Number.isNaN(n) ? null : n;
@@ -301,39 +303,6 @@ export function missingReason(row, key) {
   if (key === "peak") return "nothing recorded yet";
   if (key === "vol24") return "no volume";
   return "not available";
-}
-
-/** Which scale an axis should use, decided from the DATA rather than by blanket
- *  rule.
- *
- *  A square root is the right answer for a heavy tail — turnover, volume,
- *  rotation — and the wrong answer for anything else. Applied to reward-for-
- *  risk, which runs about -0.5 to 2, it bunched every tick into the bottom
- *  eighth of an axis and left the plot looking like a bug. So: measure the
- *  tail, and only bend the axis when there is a tail to bend. */
-export function scaleFor(values) {
-  const v = values.filter((x) => x != null && Number.isFinite(x)).map(Math.abs).sort((a, b) => a - b);
-  if (v.length < 4) return "linear";
-  const med = v[Math.floor(v.length / 2)] || 0;
-  const max = v[v.length - 1] || 0;
-  if (!med) return max > 0 ? "sqrt" : "linear";
-  return max / med > 8 ? "sqrt" : "linear";
-}
-
-/** The window an axis should show: the data, with a little air — and zero only
- *  when zero means something on that metric. Always including it is how a plot
- *  of hours-old calls ends up with half its canvas reserved for "0 hours". */
-export function domainFor(values, metric, padFrac = 0.08) {
-  const v = values.filter((x) => x != null && Number.isFinite(x));
-  if (!v.length) return { lo: 0, hi: 1 };
-  let lo = Math.min(...v);
-  let hi = Math.max(...v);
-  if (metric?.zero) {
-    lo = Math.min(lo, 0);
-    hi = Math.max(hi, 0);
-  }
-  const span = hi - lo || Math.abs(hi) || 1;
-  return { lo: lo - span * padFrac, hi: hi + span * padFrac };
 }
 
 /** The corner of the plot worth looking at, from the two metrics' own sense of
