@@ -16,16 +16,18 @@
 // +87% and turnover runs 0 to 0.90, each around a median a fraction of its
 // maximum. Ticks carry their real values.
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InfoTip } from "../GuideInfo";
 import { fmtMultiple, num, price as fmtPrice, usdShort } from "./flowMetrics";
-import { pickTicks, placeLabels, projector, sq } from "./scatterKit";
+import { cull, pickTicks, placeLabels, projector, sq } from "./scatterKit";
+import useZoomPan from "./useZoomPan";
+import ZoomControls, { ZoomHint } from "./ZoomControls";
 import ScatterTip from "./ScatterTip";
 import CoinDisc from "./CoinDisc";
 
 const DESK = {
   W: 640, H: 330, pad: { t: 16, r: 22, b: 34, l: 44 },
-  fs: 9.5, r0: 4, r1: 11, maxLabels: 30, minLogo: 7,
+  fs: 9.5, r0: 4, r1: 11, maxLabels: 38, minLogo: 7,
 };
 const PHONE = {
   W: 360, H: 300, pad: { t: 14, r: 16, b: 38, l: 34 },
@@ -44,8 +46,17 @@ const LARGE = {
   fs: 11, r0: 7, r1: 16, maxLabels: 80, minLogo: 7,
 };
 
-const X_TICKS = [-50, -20, -10, -5, 0, 5, 10, 20, 50, 100];
-const Y_TICKS = [0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1];
+// Deliberately finer than any one view needs: pickTicks thins whatever will
+// not fit, so the coarse values survive at 1x and the fine ones appear as the
+// axis stretches under a zoom. One list, every scale.
+const X_TICKS = [
+  -50, -40, -30, -20, -15, -10, -8, -6, -5, -4, -3, -2, -1, -0.5, 0,
+  0.5, 1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 40, 50, 75, 100, 150,
+];
+const Y_TICKS = [
+  0.005, 0.01, 0.015, 0.02, 0.03, 0.04, 0.05, 0.07, 0.1, 0.15, 0.2, 0.25, 0.3,
+  0.4, 0.5, 0.6, 0.75, 0.9, 1,
+];
 
 const EXPLAIN =
   "Each dot is one coin in the current snapshot. Left to right is its move over the last 24 " +
@@ -63,22 +74,114 @@ const EXPLAIN =
   "This is a snapshot, refreshed every four hours, and it is descriptive. A busy coin is not a " +
   "signal, and the dots do not know what happens next.";
 
-function Plot({ model, G, onOpen, logos = true }) {
+function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   const { W, H, pad: PAD, fs } = G;
   const [hover, setHover] = useState(null);
-  const zeroX = model.px(0);
+  // Labels are re-placed when a gesture settles, never during it — see
+  // useZoomPan. Between settles each label rides its own dot by the offset it
+  // was placed at, so nothing detaches while you drag.
+  const [labels, setLabels] = useState(model.labels);
+  const stateRef = useRef(null);
+
+  const resettle = useCallback(() => {
+    const st = stateRef.current;
+    if (!st) return;
+    setLabels(st.place());
+  }, []);
+
+  const zp = useZoomPan({ W, H, wheel, onSettle: resettle });
+  const { t, project, mark } = zp;
+
+  // Positions after the transform. Radii grow sub-linearly, which is what makes
+  // a zoom de-clutter rather than magnify: the cloud spreads faster than the
+  // marks do, and small dots still cross the threshold where they gain a logo.
+  const points = useMemo(
+    () =>
+      model.points.map((p) => {
+        const q = project(p.cx, p.cy);
+        return { ...p, cx: q.x, cy: q.y, r: p.r * mark };
+      }),
+    [model.points, project, mark]
+  );
+
+  const visible = useMemo(() => cull(points, W, H), [points, W, H]);
+
+  stateRef.current = {
+    place: () =>
+      placeLabels(
+        cull(
+          model.points.map((p) => {
+            const q = project(p.cx, p.cy);
+            return { ...p, cx: q.x, cy: q.y, r: p.r * mark };
+          }),
+          W,
+          H,
+          0
+        ),
+        {
+          W,
+          H,
+          fs: G.fs,
+          // The cap is a guard for the UNZOOMED view, where every point is on
+          // screen and a wall of text helps nobody. Zoomed in, the frame holds
+          // a handful of dots with room to spare, and the collision rule is
+          // the only limit that should still apply.
+          max: zp.zoomed ? 999 : G.maxLabels,
+          maxChars: 10,
+        }
+      ),
+  };
+
+  // The unzoomed labels are the model's own; anything else is placed here.
+  useEffect(() => {
+    if (t.k <= 1.001 && t.x === 0 && t.y === 0) setLabels(model.labels);
+  }, [t, model.labels]);
+
+  // Ticks for the window actually on screen: filter the full candidate list to
+  // what falls inside the frame after the transform, then thin what cannot fit.
+  // Zooming therefore produces FINER gradations rather than the same four
+  // numbers drifting apart.
+  const xTicks = useMemo(() => {
+    const inFrame = X_TICKS.filter((v) => {
+      const x = project(model.px(v), 0).x;
+      return x >= PAD.l - 1 && x <= W - PAD.r + 1;
+    });
+    return pickTicks(inFrame, -Infinity, Infinity, (v) => project(model.px(v), 0).x, fs * 3.4, 0);
+  }, [project, model, PAD.l, PAD.r, W, fs]);
+
+  const yTicks = useMemo(() => {
+    const inFrame = Y_TICKS.filter((v) => {
+      const y = project(0, model.py(v)).y;
+      return y >= 4 && y <= H - PAD.b - 2;
+    });
+    return pickTicks(inFrame, -Infinity, Infinity, (v) => project(0, model.py(v)).y, fs * 1.9);
+  }, [project, model, H, PAD.b, fs]);
+
+  const clipId = `plot-${W}-${H}`;
+  const zeroX = project(model.px(0), 0).x;
+
   return (
     <div className="relative">
     <svg
+      ref={zp.hostRef}
       viewBox={`0 0 ${W} ${H}`}
-      className="h-auto w-full touch-manipulation"
+      className={`h-auto w-full select-none ${zp.panning ? "cursor-grabbing" : "cursor-grab"}`}
+        style={{ touchAction: zp.touchAction }}
       role="img"
-      aria-label="Each coin's 24 hour move against how much of it changed hands today"
+      tabIndex={0}
+      aria-label="Each coin's 24 hour move against how much of it changed hands today. Drag to pan, plus and minus to zoom, zero to reset."
+      {...zp.handlers}
     >
+      <defs>
+        <clipPath id={clipId}>
+          <rect x={PAD.l} y={0} width={W - PAD.l - 2} height={H - PAD.b} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
       <line
         x1={zeroX}
         x2={zeroX}
-        y1={PAD.t}
+        y1={0}
         y2={H - PAD.b}
         stroke="rgb(var(--ink) / 0.2)"
         strokeWidth="1"
@@ -89,15 +192,15 @@ function Plot({ model, G, onOpen, logos = true }) {
           <line
             x1={PAD.l}
             x2={W - PAD.r}
-            y1={model.busyY}
-            y2={model.busyY}
+            y1={project(0, model.busyY).y}
+            y2={project(0, model.busyY).y}
             stroke="rgb(var(--accent) / 0.35)"
             strokeWidth="1"
             strokeDasharray="4 3"
           />
           <text
             x={W - PAD.r}
-            y={model.busyY - 4}
+            y={project(0, model.busyY).y - 4}
             textAnchor="end"
             className="fill-text-muted"
             style={{ fontSize: fs - 0.5, fontFamily: "monospace", letterSpacing: "0.08em" }}
@@ -107,36 +210,38 @@ function Plot({ model, G, onOpen, logos = true }) {
         </>
       ) : null}
 
-      {model.xTicks.map((t) => (
-        <g key={`x${t}`}>
-          <line
-            x1={model.px(t)}
-            x2={model.px(t)}
-            y1={H - PAD.b}
-            y2={H - PAD.b + 3}
-            stroke="rgb(var(--ink) / 0.25)"
-          />
-          <text
-            x={model.px(t)}
-            y={H - PAD.b + 13}
-            textAnchor="middle"
-            className="fill-text-muted"
-            style={{ fontSize: fs - 0.5, fontFamily: "monospace" }}
-          >
-            {t > 0 ? `+${t}` : t}
-          </text>
-        </g>
-      ))}
-      {model.yTicks.map((t) => (
+      </g>
+
+      {/* Ticks live OUTSIDE the clip and are thinned for the window actually on
+          screen, so zooming in produces finer gradations rather than the same
+          four numbers drifting apart. */}
+      {xTicks.map((v) => {
+        const x = project(model.px(v), 0).x;
+        return (
+          <g key={`x${v}`}>
+            <line x1={x} x2={x} y1={H - PAD.b} y2={H - PAD.b + 3} stroke="rgb(var(--ink) / 0.25)" />
+            <text
+              x={x}
+              y={H - PAD.b + 13}
+              textAnchor="middle"
+              className="fill-text-muted"
+              style={{ fontSize: fs - 0.5, fontFamily: "monospace" }}
+            >
+              {v > 0 ? `+${v}` : v}
+            </text>
+          </g>
+        );
+      })}
+      {yTicks.map((v) => (
         <text
-          key={`y${t}`}
+          key={`y${v}`}
           x={PAD.l - 6}
-          y={model.py(t) + 3}
+          y={project(0, model.py(v)).y + 3}
           textAnchor="end"
           className="fill-text-muted"
           style={{ fontSize: fs - 0.5, fontFamily: "monospace" }}
         >
-          {t.toFixed(2).replace(/0$/, "")}
+          {v < 0.01 ? v.toFixed(3) : v.toFixed(2).replace(/0$/, "")}
         </text>
       ))}
       <text
@@ -158,14 +263,18 @@ function Plot({ model, G, onOpen, logos = true }) {
         churn
       </text>
 
-      {model.points.map((p) => {
-        const label = model.labels.get(p.id);
+      <g clipPath={`url(#${clipId})`}>
+      {visible.map((p) => {
+        const label = labels.get(p.id);
         const on = hover?.id === p.id;
         return (
           <g
             key={p.id}
             className="cursor-pointer"
-            onClick={() => onOpen?.(p.raw)}
+            onClick={() => {
+              if (zp.swallowClick()) return;
+              onOpen?.(p.raw);
+            }}
             onMouseEnter={() => setHover(p)}
             onMouseLeave={() => setHover((h) => (h?.id === p.id ? null : h))}
           >
@@ -202,7 +311,17 @@ function Plot({ model, G, onOpen, logos = true }) {
                 y={label.y}
                 textAnchor={label.anchor}
                 className="pointer-events-none fill-text-primary"
-                style={{ fontSize: fs, fontWeight: 600 }}
+                /* A halo in the surface colour, drawn UNDER the glyphs. It is
+                   what lets a label sit over a mark and still be read, which
+                   is what buys the plot three times as many names. */
+                style={{
+                  fontSize: fs,
+                  fontWeight: 600,
+                  paintOrder: "stroke",
+                  stroke: "rgb(var(--surface-raised))",
+                  strokeWidth: 3.2,
+                  strokeLinejoin: "round",
+                }}
               >
                 {label.text}
               </text>
@@ -210,7 +329,13 @@ function Plot({ model, G, onOpen, logos = true }) {
           </g>
         );
       })}
+      </g>
     </svg>
+    {/* Over the plot rather than in the header, because this is where the hand
+        already is, and because the modal header has no room for it. */}
+    <span className="absolute right-1.5 top-1.5">
+      <ZoomControls zoomed={zp.zoomed} zoomBy={zp.zoomBy} reset={zp.reset} k={t.k} />
+    </span>
     <ScatterTip
       point={hover}
       W={W}
@@ -342,7 +467,12 @@ export function CoinScatterLarge({ rows = [], onOpen }) {
   if (!model) return null;
   return (
     <div className="min-w-0">
-      <Plot model={model} G={LARGE} onOpen={onOpen} />
+      {/* The modal locks the page behind it, so there is no scroll to steal:
+          the plain wheel zooms here and only asks for a modifier inline. */}
+      <Plot model={model} G={LARGE} onOpen={onOpen} wheel="direct" />
+      <p className="mt-1">
+        <ZoomHint wheel="direct" />
+      </p>
       <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {model.quadrants.map((q) => (
           <div key={q.key} className="rounded-lg bg-ink/[0.03] px-3 py-2">
@@ -399,6 +529,9 @@ export default function CoinScatter({ rows = [], onOpen, onExpand }) {
         dollars traded and gold is a coin we have called — {desk.calledCount} of{" "}
         {desk.points.length} here. Turnover has no direction on its own; this is the chart that
         gives it one. Hover any dot for its figures; tap to open the coin.
+      </p>
+      <p className="mt-1">
+        <ZoomHint wheel="modifier" />
       </p>
     </div>
   );

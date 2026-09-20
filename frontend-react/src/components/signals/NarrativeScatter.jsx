@@ -27,10 +27,12 @@
 // Plain SVG on purpose — forty points, two axes and six labels do not justify a
 // chart bundle, and hand-drawn marks take the theme tokens directly.
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InfoTip } from "../GuideInfo";
 import { median as medianOf, num } from "./flowMetrics";
-import { pickTicks, placeLabels, spearman, sq } from "./scatterKit";
+import { cull, pickTicks, placeLabels, spearman, sq } from "./scatterKit";
+import useZoomPan from "./useZoomPan";
+import ZoomControls, { ZoomHint } from "./ZoomControls";
 import ScatterTip from "./ScatterTip";
 
 // Two geometries, same data. A 640-wide viewBox squeezed into a 358px phone
@@ -163,33 +165,102 @@ function buildModel(narratives, marketChange7d, G) {
       medianPeak: medianOf(ys),
       py,
       px,
-      ticks: pickTicks([-50, -20, -10, -5, 0, 5, 10, 20, 50, 100, 200], xLo, xHi, px, G.fs * 3.4, 0),
+      xLo,
+      xHi,
       rho: spearman(pts),
       market: m,
     };
   }
 }
 
+// Deliberately finer than any one view needs: pickTicks thins whatever will not
+// fit, so the coarse values survive at 1x and the fine ones appear as the axis
+// stretches under a zoom.
+const X_TICKS = [
+  -50, -30, -20, -15, -10, -8, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 8,
+  10, 15, 20, 30, 40, 50, 75, 100, 150, 200,
+];
+
 /** The plot itself, at one geometry. */
-function Plot({ model, G, activeIds, onOpen }) {
+function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
   const { W, H, pad: PAD, fs } = G;
   const [hover, setHover] = useState(null);
+  // Labels re-place when a gesture settles, never during it; between settles
+  // each rides its own dot by the offset it was placed at.
+  const [labels, setLabels] = useState(model.labels);
+  const stateRef = useRef(null);
+  const resettle = useCallback(() => {
+    const st = stateRef.current;
+    if (st) setLabels(st.place());
+  }, []);
+
+  const zp = useZoomPan({ W, H, wheel, onSettle: resettle });
+  const { t, project, mark } = zp;
   const active = new Set(activeIds || []);
-  const zeroX = model.px(0);
-  const midY = model.py(model.medianPeak);
+
+  const points = useMemo(
+    () =>
+      model.points.map((p) => {
+        const q = project(p.cx, p.cy);
+        return { ...p, cx: q.x, cy: q.y, r: p.r * mark };
+      }),
+    [model.points, project, mark]
+  );
+  const visible = useMemo(() => cull(points, W, H), [points, W, H]);
+
+  stateRef.current = {
+    place: () =>
+      placeLabels(cull(points, W, H, 0), {
+        W,
+        H,
+        fs: G.fs,
+        // The cap guards the UNZOOMED view, where every point is on screen and
+        // a wall of text helps nobody. Zoomed in, the frame holds a handful of
+        // dots with room to spare, and collision is the only limit that should
+        // still apply.
+        max: zp.zoomed ? 999 : G.maxLabels,
+        maxChars: G.maxChars,
+      }),
+  };
+
+  useEffect(() => {
+    if (t.k <= 1.001 && t.x === 0 && t.y === 0) setLabels(model.labels);
+  }, [t, model.labels]);
+
+  const xTicks = useMemo(() => {
+    const inFrame = X_TICKS.filter((v) => {
+      const x = project(model.px(v), 0).x;
+      return x >= PAD.l - 1 && x <= W - PAD.r + 1;
+    });
+    return pickTicks(inFrame, -Infinity, Infinity, (v) => project(model.px(v), 0).x, fs * 3.4, 0);
+  }, [project, model, PAD.l, PAD.r, W, fs]);
+
+  const clipId = `narr-${W}-${H}`;
+  const zeroX = project(model.px(0), 0).x;
+  const midY = project(0, model.py(model.medianPeak)).y;
   return (
     <div className="relative">
       <svg
+        ref={zp.hostRef}
         viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full touch-manipulation"
+        className={`h-auto w-full select-none ${zp.panning ? "cursor-grabbing" : "cursor-grab"}`}
+        style={{ touchAction: zp.touchAction }}
         role="img"
-        aria-label="Each narrative's move against the market, against how far our calls ran there"
+        tabIndex={0}
+        aria-label="Each narrative's move against the market, against how far our calls ran there. Drag to pan, plus and minus to zoom, zero to reset."
+        {...zp.handlers}
       >
+        <defs>
+          <clipPath id={clipId}>
+            <rect x={PAD.l} y={0} width={W - PAD.l - 2} height={H - PAD.b} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
         {/* Quadrant splits: moved-with-the-market, and the median typical peak. */}
         <line
           x1={zeroX}
           x2={zeroX}
-          y1={PAD.t}
+          y1={0}
           y2={H - PAD.b}
           stroke="rgb(var(--ink) / 0.18)"
           strokeWidth="1"
@@ -205,26 +276,28 @@ function Plot({ model, G, activeIds, onOpen }) {
           strokeDasharray="3 3"
         />
 
-        {model.ticks.map((t) => (
-          <g key={t}>
-            <line
-              x1={model.px(t)}
-              x2={model.px(t)}
-              y1={H - PAD.b}
-              y2={H - PAD.b + 3}
-              stroke="rgb(var(--ink) / 0.25)"
-            />
-            <text
-              x={model.px(t)}
-              y={H - PAD.b + 14}
-              textAnchor="middle"
-              className="fill-text-muted"
-              style={{ fontSize: fs - 0.5, fontFamily: "monospace" }}
-            >
-              {t > 0 ? `+${t}` : t}
-            </text>
-          </g>
-        ))}
+        </g>
+
+        {/* Ticks sit OUTSIDE the clip and are thinned for the window actually
+            on screen, so a zoom yields finer gradations rather than the same
+            handful drifting apart. */}
+        {xTicks.map((v) => {
+          const x = project(model.px(v), 0).x;
+          return (
+            <g key={v}>
+              <line x1={x} x2={x} y1={H - PAD.b} y2={H - PAD.b + 3} stroke="rgb(var(--ink) / 0.25)" />
+              <text
+                x={x}
+                y={H - PAD.b + 14}
+                textAnchor="middle"
+                className="fill-text-muted"
+                style={{ fontSize: fs - 0.5, fontFamily: "monospace" }}
+              >
+                {v > 0 ? `+${v}` : v}
+              </text>
+            </g>
+          );
+        })}
         <text
           x={W - PAD.r}
           y={H - 3}
@@ -253,16 +326,20 @@ function Plot({ model, G, activeIds, onOpen }) {
           {model.medianPeak == null ? "" : `${model.medianPeak.toFixed(0)}%`}
         </text>
 
-        {model.points.map((p) => {
+        <g clipPath={`url(#${clipId})`}>
+        {visible.map((p) => {
           const on = active.has(p.id);
           const hot = hover?.id === p.id;
           const ahead = p.x >= 0;
-          const label = model.labels.get(p.id);
+          const label = labels.get(p.id);
           return (
             <g
               key={p.id}
               className="cursor-pointer"
-              onClick={() => onOpen?.(p.raw)}
+              onClick={() => {
+                if (zp.swallowClick()) return;
+                onOpen?.(p.raw);
+              }}
               onMouseEnter={() => setHover(p)}
               onMouseLeave={() => setHover((h) => (h?.id === p.id ? null : h))}
               tabIndex={-1}
@@ -291,8 +368,18 @@ function Plot({ model, G, activeIds, onOpen }) {
                   x={label.x}
                   y={label.y}
                   textAnchor={label.anchor}
-                  className="pointer-events-none fill-text-primary"
-                  style={{ fontSize: fs, fontWeight: 600 }}
+                className="pointer-events-none fill-text-primary"
+                  /* A halo in the surface colour, drawn UNDER the glyphs. It is
+                     what lets a label sit over a mark and still be read, which
+                     is what buys the plot three times as many names. */
+                  style={{
+                    fontSize: fs,
+                    fontWeight: 600,
+                    paintOrder: "stroke",
+                    stroke: "rgb(var(--surface-raised))",
+                    strokeWidth: 3.2,
+                    strokeLinejoin: "round",
+                  }}
                 >
                   {label.text}
                 </text>
@@ -300,7 +387,11 @@ function Plot({ model, G, activeIds, onOpen }) {
             </g>
           );
         })}
+        </g>
       </svg>
+      <span className="absolute right-1.5 top-1.5">
+        <ZoomControls zoomed={zp.zoomed} zoomBy={zp.zoomBy} reset={zp.reset} k={t.k} />
+      </span>
       <ScatterTip
         point={hover}
         W={W}
@@ -341,7 +432,12 @@ export function NarrativeScatterLarge({ narratives = [], marketChange7d = null, 
   if (!model) return null;
   return (
     <div className="min-w-0">
-      <Plot model={model} G={LARGE} activeIds={activeIds} onOpen={onOpen} />
+      {/* The modal locks the page behind it, so there is no scroll to steal:
+          the plain wheel zooms here and only asks for a modifier inline. */}
+      <Plot model={model} G={LARGE} activeIds={activeIds} onOpen={onOpen} wheel="direct" />
+      <p className="mt-1">
+        <ZoomHint wheel="direct" />
+      </p>
       <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {model.quadrants.map((q) => (
           <div key={q.key} className="rounded-lg bg-ink/[0.03] px-3 py-2">
@@ -417,6 +513,9 @@ export default function NarrativeScatter({
           ? "capital arriving in a narrative is not a reason to expect more from a call in it."
           : "read the corner figure before drawing a line through it."}{" "}
         Hover any dot for its figures; tap for the calls behind it.
+      </p>
+      <p className="mt-1">
+        <ZoomHint wheel="modifier" />
       </p>
     </div>
   );

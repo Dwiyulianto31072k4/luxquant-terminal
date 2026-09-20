@@ -100,11 +100,15 @@ export function placeLabels(items, { W, H, fs, max = 26, maxChars = 18, pad = 3 
   const ascent = fs * 0.98;
   const h = fs * 1.3;
   const placed = [];
-  // A label may cover a small dot; covering a big one hides data. Only the
-  // visually significant ones block.
-  const obstacles = items
-    .filter((p) => p.r > fs * 0.62)
-    .map((p) => [p.cx - p.r, p.cy - p.r, p.r * 2, p.r * 2]);
+  // Dots are NOT obstacles, and every label is drawn with a halo instead.
+  //
+  // Treating them as obstacles is the obvious rule and it was measurably wrong:
+  // raising the mark floor so coins could carry their logos pushed most dots
+  // over the threshold, and the inline plot fell from 30 names to 12 — the
+  // chart lost more by going quiet than it gained by keeping text off circles.
+  // Zoomed in it was worse: three names for seven visible dots, in a frame with
+  // room for all seven. A haloed label reads cleanly over a mark, so the only
+  // collision that still matters is label against label.
 
   const hits = (a, b) =>
     !(
@@ -134,11 +138,23 @@ export function placeLabels(items, { W, H, fs, max = 26, maxChars = 18, pad = 3 
       const [bx, by, bw, bh] = o.box;
       if (bx < 2 || bx + bw > W - 2 || by < 2 || by + bh > H - 2) continue;
       if (placed.some((b) => hits(o.box, b))) continue;
-      if (obstacles.some((b) => hits(o.box, b))) continue;
       placed.push(o.box);
-      out.set(p.id, { ...o, text });
+      // The offset from the dot rides along, so a label can follow its own
+      // mark through a pan or a zoom without being re-placed on every frame —
+      // re-placing is a settle-time job, not a per-frame one.
+      out.set(p.id, { ...o, text, dx: o.x - p.cx, dy: o.y - p.cy });
       break;
     }
   }
   return out;
+}
+
+/** Everything still inside the frame, with a margin so a mark half over the
+ *  edge is not popped out mid-drag. Zoomed in this is most of the work saved:
+ *  223 dots become the twenty you are looking at, which is what lets the label
+ *  placer find room for names the unzoomed plot had no space for. */
+export function cull(points, W, H, pad = 40) {
+  return points.filter(
+    (p) => p.cx > -pad && p.cx < W + pad && p.cy > -pad && p.cy < H + pad
+  );
 }
