@@ -54,12 +54,17 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
       aria-modal={asDialog ? "true" : undefined}
       aria-labelledby={asDialog ? titleId : undefined}
       tabIndex={asDialog ? -1 : undefined}
+      // The 420px cap belongs to the floating card, not the sheet. Applied at
+      // every width it left a band from 421px to 639px — large phones in
+      // landscape, small tablets, a narrowed desktop window — rendering a
+      // bottom sheet that stopped short of both edges: grabber showing, square
+      // bottom corners, and 90px of scrim down each side at 600px wide.
       // Border on the top edge only while this is a full-width bottom sheet.
       // A 1px line down the left and right separated the sheet from nothing —
       // it is already at the edge of the screen — and with full-bleed artwork
       // behind it, it read as a pale seam beside the picture. From `sm` up the
       // card floats in the middle of a scrim and needs its outline back.
-      className="relative w-full max-w-[420px] max-h-[min(var(--lq-modal-maxh),100%)] flex flex-col overflow-hidden rounded-t-[28px] border-t border-ink/10 sm:rounded-3xl sm:border-x sm:border-b animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
+      className="relative w-full max-w-none sm:max-w-[420px] max-h-[min(var(--lq-modal-maxh),100%)] flex flex-col overflow-hidden rounded-t-[28px] border-t border-ink/10 sm:rounded-3xl sm:border-x sm:border-b animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
       style={{
         boxShadow: "0 -20px 60px rgb(var(--scrim) / 0.35)",
       }}
