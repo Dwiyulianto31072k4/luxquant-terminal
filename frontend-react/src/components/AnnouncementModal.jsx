@@ -99,41 +99,43 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* artwork tile — inset, not full-bleed */}
         {hasArt && (
-          // Full-bleed to the card's own edges, the way the signal modal
-          // handles its media. An inset tile needed a border and a fill to stop
-          // white-background artwork dissolving into the white card; running it
-          // edge to edge removes the problem instead of decorating around it,
-          // and the card's overflow-hidden clips it to the sheet's radius.
-          <div
-            className="relative overflow-hidden bg-ink/[0.04]"
-            style={{
-              aspectRatio: "16 / 9",
-              // On a landscape phone (measured 740x380) an uncapped tile filled
-              // the whole scroll area and pushed the headline below the fold.
-              // Does not bite on a portrait phone or on desktop.
-              maxHeight: "min(38vh, 260px)",
-            }}
-          >
-            <img
-              src={ann.image_url}
-              alt=""
-              className="h-full w-full object-cover"
-              onError={() => setArtOk(false)}
-            />
-            {badge && (
-              <span
-                // Left edge lines up with the headline below it, not with the
-                // image edge, so the badge reads as part of the text column.
-                className="absolute bottom-4 left-5 rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider sm:left-6"
-                style={{
-                  background: "rgb(var(--accent))",
-                  color: "rgb(var(--accent-fg))",
-                  boxShadow: "0 2px 10px rgb(var(--scrim) / 0.45)",
-                }}
-              >
-                {badge}
-              </span>
-            )}
+          <div className="px-3 pt-3 sm:px-4 sm:pt-4">
+            <div
+              // Inset tile, not full-bleed. It ran edge to edge for one build
+              // and the card lost its shape: the artwork became the top of the
+              // sheet instead of an object sitting on it. The fill and hairline
+              // are what let a white-background slide still read as a tile on
+              // the white Bright card.
+              className="relative overflow-hidden rounded-2xl bg-ink/[0.04]"
+              style={{
+                // 16:9 so a 1920x1080 slide export lands uncropped.
+                aspectRatio: "16 / 9",
+                // On a landscape phone (measured 740x380) an uncapped tile
+                // filled the whole scroll area and pushed the headline below
+                // the fold. Does not bite on a portrait phone or on desktop.
+                maxHeight: "min(38vh, 260px)",
+                border: "1px solid rgb(var(--ink) / 0.12)",
+              }}
+            >
+              <img
+                src={ann.image_url}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={() => setArtOk(false)}
+              />
+              {badge && (
+                <span
+                  className="absolute bottom-3 left-3 rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider"
+                  style={{
+                    background: "rgb(var(--accent))",
+                    color: "rgb(var(--accent-fg))",
+                    boxShadow: "0 2px 10px rgb(var(--scrim) / 0.45)",
+                  }}
+                >
+                  {badge}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
