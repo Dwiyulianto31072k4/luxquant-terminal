@@ -21,14 +21,27 @@ import { InfoTip } from "../GuideInfo";
 import { fmtMultiple, num, price as fmtPrice, usdShort } from "./flowMetrics";
 import { pickTicks, placeLabels, projector, sq } from "./scatterKit";
 import ScatterTip from "./ScatterTip";
+import CoinDisc from "./CoinDisc";
 
 const DESK = {
   W: 640, H: 330, pad: { t: 16, r: 22, b: 34, l: 44 },
-  fs: 9.5, r0: 3, r1: 11, maxLabels: 30,
+  fs: 9.5, r0: 4, r1: 11, maxLabels: 30, minLogo: 7,
 };
 const PHONE = {
   W: 360, H: 300, pad: { t: 14, r: 16, b: 38, l: 34 },
-  fs: 10, r0: 2.5, r1: 8, maxLabels: 12,
+  fs: 10, r0: 2.5, r1: 8, maxLabels: 12, minLogo: 7,
+};
+// Expanded. Nearly four times the area of the inline plot, which is why this is
+// not a zoom: the marks grow past the logo threshold, and the label placer —
+// which only ever keeps what fits — finds room for two or three times as many
+// names without a single collision.
+const LARGE = {
+  W: 1240, H: 620, pad: { t: 20, r: 30, b: 42, l: 56 },
+  // The floor is the point: at r0 = 7 every mark is big enough to carry a
+  // logo, so the expanded plot is read by recognising coins rather than by
+  // reading labels. Area still tracks dollars above the floor — a minimum mark
+  // size is why r0 exists at all, here it is just set where the logos start.
+  fs: 11, r0: 7, r1: 16, maxLabels: 80, minLogo: 7,
 };
 
 const X_TICKS = [-50, -20, -10, -5, 0, 5, 10, 20, 50, 100];
@@ -50,7 +63,7 @@ const EXPLAIN =
   "This is a snapshot, refreshed every four hours, and it is descriptive. A busy coin is not a " +
   "signal, and the dots do not know what happens next.";
 
-function Plot({ model, G, onOpen }) {
+function Plot({ model, G, onOpen, logos = true }) {
   const { W, H, pad: PAD, fs } = G;
   const [hover, setHover] = useState(null);
   const zeroX = model.px(0);
@@ -159,10 +172,12 @@ function Plot({ model, G, onOpen }) {
             {/* A transparent disc under every dot, so a 3px mark is still a
                 target a mouse can find without hunting for it. */}
             <circle cx={p.cx} cy={p.cy} r={Math.max(p.r + 4, 9)} fill="transparent" />
-            <circle
+            <CoinDisc
+              symbol={p.name}
               cx={p.cx}
               cy={p.cy}
               r={p.r}
+              minLogo={logos ? G.minLogo : Infinity}
               fill={
                 p.called
                   ? "rgb(var(--accent) / 0.4)"
@@ -170,7 +185,7 @@ function Plot({ model, G, onOpen }) {
                     ? "rgb(var(--pos) / 0.26)"
                     : "rgb(var(--neg) / 0.26)"
               }
-              stroke={
+              ring={
                 on
                   ? "rgb(var(--fg))"
                   : p.called
@@ -179,7 +194,7 @@ function Plot({ model, G, onOpen }) {
                       ? "rgb(var(--pos) / 0.75)"
                       : "rgb(var(--neg) / 0.75)"
               }
-              strokeWidth={on ? 2.4 : p.called ? 1.6 : 1}
+              ringWidth={on ? 2.4 : p.called ? 1.8 : 1.1}
             />
             {label ? (
               <text
@@ -285,7 +300,20 @@ function buildModel(rows, G) {
   );
 
   const busy = placed.filter((p) => p.y >= 0.3);
+  // The four states the plot exists to separate, counted — and how many of each
+  // are ours, which is the question the gold is there to answer.
+  const quad = (label, key, fn) => {
+    const set = placed.filter(fn);
+    return { key, label, count: set.length, ours: set.filter((p) => p.called).length };
+  };
+  const quadrants = [
+    quad("Busy and bid", "bb", (p) => p.y >= 0.3 && p.x >= 0),
+    quad("Busy and sold", "bs", (p) => p.y >= 0.3 && p.x < 0),
+    quad("Quiet and rising", "qr", (p) => p.y < 0.3 && p.x >= 0),
+    quad("Quiet and drifting", "qd", (p) => p.y < 0.3 && p.x < 0),
+  ];
   return {
+    quadrants,
     points: placed,
     labels,
     px,
@@ -299,7 +327,41 @@ function buildModel(rows, G) {
   };
 }
 
-export default function CoinScatter({ rows = [], onOpen }) {
+export function CoinScatterHeadline({ model }) {
+  if (!model?.busy) return null;
+  return (
+    <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-text-muted">
+      {model.busyUp} of {model.busy} busy coins up today
+    </span>
+  );
+}
+
+/** The expanded plot, for the modal. One geometry, all the room it needs. */
+export function CoinScatterLarge({ rows = [], onOpen }) {
+  const model = useMemo(() => buildModel(rows, LARGE), [rows]);
+  if (!model) return null;
+  return (
+    <div className="min-w-0">
+      <Plot model={model} G={LARGE} onOpen={onOpen} />
+      <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {model.quadrants.map((q) => (
+          <div key={q.key} className="rounded-lg bg-ink/[0.03] px-3 py-2">
+            <p className="text-[11.5px] font-medium leading-snug text-text-primary">{q.label}</p>
+            <p className="mt-0.5 font-mono text-[15px] tabular-nums text-text-primary">
+              {q.count}
+              <span className="ml-1.5 text-[10.5px] text-text-muted">coins</span>
+            </p>
+            <p className="text-[10.5px] text-text-muted">
+              <span className="font-mono tabular-nums text-accent">{q.ours}</span> of them ours
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function CoinScatter({ rows = [], onOpen, onExpand }) {
   const desk = useMemo(() => buildModel(rows, DESK), [rows]);
   const phone = useMemo(() => buildModel(rows, PHONE), [rows]);
   if (!desk || !phone) return null;
@@ -310,12 +372,17 @@ export default function CoinScatter({ rows = [], onOpen }) {
         <span className="text-[12.5px] font-medium text-text-primary">
           Is the busy money buying or selling?
         </span>
-        {desk.busy ? (
-          <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-text-muted">
-            {desk.busyUp} of {desk.busy} busy coins up today
-          </span>
-        ) : null}
-        <span className="ml-auto">
+        <CoinScatterHeadline model={desk} />
+        <span className="ml-auto flex items-center gap-2">
+          {onExpand ? (
+            <button
+              type="button"
+              onClick={onExpand}
+              className="rounded-md border border-ink/[0.12] px-2 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-accent/40 hover:text-accent"
+            >
+              Expand
+            </button>
+          ) : null}
           <InfoTip side="bottom" title="Churn against direction" text={EXPLAIN} />
         </span>
       </div>

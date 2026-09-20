@@ -34,7 +34,8 @@ import NarrativeCallsModal from "./NarrativeCallsModal";
 import { useChartTokens } from "./charts/EChart";
 import useStickyOpen from "./signals/useStickyOpen";
 import { BulletCell, RateCell } from "./signals/FlowUI";
-import NarrativeScatter from "./signals/NarrativeScatter";
+import NarrativeScatter, { NarrativeScatterLarge } from "./signals/NarrativeScatter";
+import ChartModal from "./signals/ChartModal";
 import { median as medianOf, num, sortNarratives } from "./signals/flowMetrics";
 
 // The TP ladder, ordinal: tp1 → tp4 is "ran further". One validated hue ramp.
@@ -171,6 +172,7 @@ export default function SignalsNarrativeFlow({
   // question from "narrow the desk to it" — so it opens, and filtering stays an
   // explicit action inside.
   const [drill, setDrill] = useState(null);
+  const [mapOpen, setMapOpen] = useState(false);
   // Ten rows is the readable default; forty is a wall you scroll past to reach
   // whatever is under this panel.
   const [rowLimit, setRowLimit] = useState(10);
@@ -408,6 +410,7 @@ export default function SignalsNarrativeFlow({
                   narratives={narratives}
                   marketChange7d={data?.market_change_7d ?? null}
                   activeIds={activeIds}
+                  onExpand={() => setMapOpen(true)}
                   onOpen={(n) =>
                     setDrill({
                       ...n,
@@ -605,6 +608,43 @@ export default function SignalsNarrativeFlow({
           )}
         </div>
       ) : null}
+
+      <ChartModal
+        isOpen={mapOpen}
+        onClose={() => setMapOpen(false)}
+        eyebrow="Narratives"
+        title="Does a hot narrative pay more?"
+        subtitle={`${narratives.length} narratives · rotation against how far our calls ran · tap one for the calls behind it`}
+        controls={
+          <SegGroup
+            size="sm"
+            aria-label="Lookback window"
+            value={String(days)}
+            onChange={(k) => onDaysChange?.(Number(k))}
+            options={windowOpts}
+          />
+        }
+        footer={
+          <p className="text-[11px] leading-snug text-text-muted">
+            Right is ahead of the market this week, up is calls that ran further, dot size is how
+            many coins we called there. The horizontal axis is a square-root scale because one
+            narrative regularly sits ninety points ahead of the market while the typical one sits
+            four; the ticks carry their real values.
+          </p>
+        }
+      >
+        <NarrativeScatterLarge
+          narratives={narratives}
+          marketChange7d={data?.market_change_7d ?? null}
+          activeIds={activeIds}
+          onOpen={(n) => {
+            // One modal at a time: the map hands over to the calls rather than
+            // stacking a sheet on top of a sheet.
+            setMapOpen(false);
+            setDrill({ ...n, __rs: (n.mcap_change_7d ?? 0) - (data?.market_change_7d ?? 0) });
+          }}
+        />
+      </ChartModal>
 
       <NarrativeCallsModal
         narrative={drill}

@@ -26,9 +26,16 @@
 
 import { useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
-import { SegGroup } from "./ui/SegGroup";
+import {
+  SegGroup,
+  DESK_SHELL,
+  deskBadgeClass,
+  deskGhostClass,
+  deskSegClass,
+} from "./ui/SegGroup";
 import CoinDetailModal from "./signals/CoinDetailModal";
-import CoinScatter from "./signals/CoinScatter";
+import CoinScatter, { CoinScatterLarge } from "./signals/CoinScatter";
+import ChartModal from "./signals/ChartModal";
 import useStickyOpen from "./signals/useStickyOpen";
 import {
   BandTag,
@@ -38,8 +45,9 @@ import {
   VolCell,
 } from "./signals/FlowUI";
 import {
-  COIN_SCOPES,
+  coinCounts,
   coinFindings,
+  filterCoins,
   enrichCoins,
   price as fmtPrice,
   HIGH_TURNOVER,
@@ -56,6 +64,36 @@ const COUNT_OPTS = [
   { key: "50", label: "50" },
   { key: "250", label: "All" },
 ];
+
+/** The trait rail: toggles, not segments.
+ *
+ *  Same shell, same segment class and the same badge token as SegGroup, so it
+ *  measures identically beside it — a hand-rolled badge without the shared
+ *  token came out three pixels shorter and broke the one-height rule the whole
+ *  desk console is built on. What differs is the semantics: aria-pressed, not
+ *  a tablist, because any number of these can be on at once. */
+function TraitRail({ options, flags, onToggle }) {
+  return (
+    <div role="group" aria-label="How the coin is trading" className={DESK_SHELL}>
+      {options.map((o) => {
+        const on = flags.includes(o.key);
+        return (
+          <button
+            key={o.key}
+            type="button"
+            aria-pressed={on}
+            title={o.title}
+            onClick={() => onToggle(o.key)}
+            className={deskSegClass(on)}
+          >
+            {o.label}
+            <span className={deskBadgeClass(on)}>{o.badge}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function timeAgo(iso) {
   if (!iso) return null;
@@ -120,7 +158,13 @@ export default function SignalsCoinFlow({
 }) {
   const [open, setOpen] = useStickyOpen("lq:signals:coinflow-open", defaultOpen);
   const [count, setCount] = useState(25);
-  const [scope, setScope] = useState("all"); // all | called | uncalled | surge | busy
+  // Two controls, because they are two questions. Scope is a state a coin is
+  // IN and only one can be true; traits are things a coin is DOING and any
+  // number can be. Folded into one exclusive control, the obvious question —
+  // which of the coins we are on are also busy — could not be asked.
+  const [scope, setScope] = useState("all"); // all | called | uncalled
+  const [flags, setFlags] = useState([]); // surge, busy
+  const [mapOpen, setMapOpen] = useState(false);
   const [sort, setSort] = useState({ key: "intensity", dir: "desc" });
   // Rows answer "rank them"; bubbles answer "where is the weight". Same data,
   // two questions, so it is a mode rather than a second panel.
@@ -144,31 +188,36 @@ export default function SignalsCoinFlow({
   // Turnover rails are percentile ranks over the WHOLE snapshot, so a coin's
   // bar is the same length whether the table is showing ten rows or two
   // hundred and fifty, and whether it is filtered to the calls or not.
+  const toggleFlag = (k) =>
+    setFlags((f) => (f.includes(k) ? f.filter((x) => x !== k) : [...f, k]));
+
   const turnoverRank = useMemo(
     () => percentileRanker(enriched.map((r) => num(r.c.flow_intensity))),
     [enriched]
   );
   const busyRank = useMemo(() => turnoverRank(HIGH_TURNOVER), [turnoverRank]);
 
-  const counts = useMemo(() => {
-    const out = {};
-    for (const k of Object.keys(COIN_SCOPES)) out[k] = enriched.filter(COIN_SCOPES[k]).length;
-    return out;
-  }, [enriched]);
+  // Every badge is the size of the result you would get, not of the trait in
+  // isolation: a chip that promises 41 and hands over 6 is worse than no chip.
+  const counts = useMemo(() => coinCounts(enriched, scope, flags), [enriched, scope, flags]);
+  // The collapsed subtitle is a headline about the snapshot, so it counts the
+  // whole snapshot — not whatever the panel happens to be filtered to.
+  const snapshot = useMemo(() => coinCounts(enriched, "all", []), [enriched]);
+  const total = enriched.length;
 
-  // Counts ride in the badge slot the control already has, so the segment
-  // labels stay the same width whether a snapshot holds 8 calls or 108.
   const scopeOpts = [
-    { key: "all", label: "All", badge: counts.all },
-    { key: "called", label: "Called", badge: counts.called, title: "LuxQuant called this coin in the last 7 days" },
-    { key: "uncalled", label: "No call", badge: counts.uncalled, title: "No LuxQuant call in the last 7 days" },
-    { key: "surge", label: "Woke up", badge: counts.surge, title: "Trading at 3x or more of last week's volume" },
-    { key: "busy", label: "Busy", badge: counts.busy, title: "24h volume above 30% of market cap" },
-  ].filter((o) => o.key === "all" || o.badge > 0);
+    { key: "all", label: "All", badge: counts.scopes.all },
+    { key: "called", label: "Called", badge: counts.scopes.called, title: "LuxQuant called this coin in the last 7 days" },
+    { key: "uncalled", label: "No call", badge: counts.scopes.uncalled, title: "No LuxQuant call in the last 7 days" },
+  ];
+  const traitOpts = [
+    { key: "surge", label: "Woke up", badge: counts.flags.surge, title: "Trading at 3x or more of last week's volume" },
+    { key: "busy", label: "Busy", badge: counts.flags.busy, title: "24h volume above 30% of market cap" },
+  ];
 
   const sorted = useMemo(
-    () => sortCoins(enriched.filter(COIN_SCOPES[scope] || COIN_SCOPES.all), sort.key, sort.dir),
-    [enriched, scope, sort]
+    () => sortCoins(filterCoins(enriched, scope, flags), sort.key, sort.dir),
+    [enriched, scope, flags, sort]
   );
 
   const rows = sorted.slice(0, count);
@@ -182,6 +231,7 @@ export default function SignalsCoinFlow({
   const top = stripRows[0]?.c;
   // Columns that only ever hold a dash for uncalled coins.
   const showCallCols = scope !== "uncalled";
+  const filtered = scope !== "all" || flags.length > 0;
 
   const toggleSort = (key) =>
     setSort((s) =>
@@ -240,8 +290,8 @@ export default function SignalsCoinFlow({
             <span className="block text-[13px] font-medium text-text-primary">Coin flow</span>
             <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted sm:block">
               {top ? `${top.symbol} ${Number(top.flow_intensity || 0).toFixed(2)}` : "turnover"}
-              {counts.surge ? ` · ${counts.surge} woke up` : ""}
-              {counts.called ? ` · ${counts.called} called` : ""}
+              {snapshot.flags.surge ? ` · ${snapshot.flags.surge} woke up` : ""}
+              {snapshot.scopes.called ? ` · ${snapshot.scopes.called} called` : ""}
               {/* Not "tap to filter": a coin chip here opens that coin.
                   Only the Narratives row filters the desk, and saying the same
                   thing on both would make one of them a lie. */}
@@ -272,8 +322,14 @@ export default function SignalsCoinFlow({
                   headline={f.headline}
                   detail={f.detail}
                   count={f.count}
-                  active={scope === f.filter}
-                  onClick={() => setScope((s) => (s === f.filter ? "all" : f.filter))}
+                  active={
+                    f.filter.scope ? scope === f.filter.scope : flags.includes(f.filter.flag)
+                  }
+                  onClick={() =>
+                    f.filter.scope
+                      ? setScope((s) => (s === f.filter.scope ? "all" : f.filter.scope))
+                      : toggleFlag(f.filter.flag)
+                  }
                 />
               ))}
             </div>
@@ -288,6 +344,19 @@ export default function SignalsCoinFlow({
               onChange={setScope}
               options={scopeOpts}
             />
+            <TraitRail options={traitOpts} flags={flags} onToggle={toggleFlag} />
+            {filtered ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setScope("all");
+                  setFlags([]);
+                }}
+                className={deskGhostClass()}
+              >
+                Reset
+              </button>
+            ) : null}
             <SegGroup
               size="sm"
               aria-label="How many coins"
@@ -307,21 +376,26 @@ export default function SignalsCoinFlow({
             />
             <p className="w-full text-[11px] leading-snug text-text-muted sm:w-auto sm:flex-1">
               Turnover = 24h volume ÷ market cap. The rail is where the coin sits among all{" "}
-              {counts.all} in the snapshot and the tick is the 30% busy line. Vol 7d is
+              {total} in the snapshot and the tick is the 30% busy line. Vol 7d is
               today&apos;s volume against its own level a week ago.
             </p>
           </div>
 
           {!rows.length ? (
             <p className="py-6 text-center text-[12.5px] text-text-muted">
-              Nothing in this snapshot matches that filter.
+              No coin in this snapshot is{" "}
+              {[scope !== "all" ? (scope === "called" ? "one we called" : "uncalled") : null]
+                .concat(flags.map((f) => (f === "surge" ? "trading at 3× last week" : "busy")))
+                .filter(Boolean)
+                .join(" and ")}
+              . Drop one of the filters.
             </p>
           ) : view === "map" ? (
             /* The whole filtered snapshot, not the table's page of it: the row
                limit is a reading aid for a list and a scatter has no rows to
                scroll. Twenty-five dots would also hide the thing the plot is
                for — where the rest of the market sits around them. */
-            <CoinScatter rows={sorted} onOpen={openCoin} />
+            <CoinScatter rows={sorted} onOpen={openCoin} onExpand={() => setMapOpen(true)} />
           ) : (
             <>
               {/* Mobile cards */}
@@ -508,6 +582,56 @@ export default function SignalsCoinFlow({
           )}
         </div>
       ) : null}
+
+      <ChartModal
+        isOpen={mapOpen}
+        onClose={() => setMapOpen(false)}
+        eyebrow="Coin flow"
+        title="Is the busy money buying or selling?"
+        subtitle={`${sorted.length} of ${total} coins · turnover against the day's move · tap a coin to open it`}
+        controls={
+          <>
+            <SegGroup
+              size="sm"
+              aria-label="Which coins"
+              value={scope}
+              onChange={setScope}
+              options={scopeOpts}
+            />
+            <TraitRail options={traitOpts} flags={flags} onToggle={toggleFlag} />
+            {filtered ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setScope("all");
+                  setFlags([]);
+                }}
+                className={deskGhostClass()}
+              >
+                Reset
+              </button>
+            ) : null}
+          </>
+        }
+        footer={
+          <p className="text-[11px] leading-snug text-text-muted">
+            Up is a coin that traded more of itself today, right is a coin that rose. Dot size is
+            the dollars traded and gold is a coin we have called. Turnover has no direction on its
+            own; this is the chart that gives it one. Both axes are square-root scales — the ticks
+            carry their real values.
+          </p>
+        }
+      >
+        <CoinScatterLarge
+          rows={sorted}
+          onOpen={(r) => {
+            // One modal at a time: the map hands over to the coin rather than
+            // stacking a sheet on top of a sheet.
+            setMapOpen(false);
+            openCoin(r);
+          }}
+        />
+      </ChartModal>
 
       <CoinDetailModal
         row={drill}

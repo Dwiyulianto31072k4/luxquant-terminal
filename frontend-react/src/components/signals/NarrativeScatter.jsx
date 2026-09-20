@@ -40,6 +40,12 @@ const DESK = {
   W: 640, H: 320, pad: { t: 14, r: 26, b: 32, l: 40 },
   fs: 9.5, r0: 4, r1: 9, axis: "VS MARKET, 7D (pp) · √ SCALE", maxLabels: 22, maxChars: 18,
 };
+// Expanded. Nearly four times the area, so the label placer finds room for
+// most of the forty narratives instead of nine.
+const LARGE = {
+  W: 1240, H: 600, pad: { t: 20, r: 34, b: 44, l: 56 },
+  fs: 11.5, r0: 6, r1: 18, axis: "VS MARKET, 7D (pp) · √ SCALE", maxLabels: 40, maxChars: 26,
+};
 const PHONE = {
   W: 360, H: 300, pad: { t: 14, r: 18, b: 38, l: 30 },
   fs: 10, r0: 3.5, r1: 7, axis: "VS MARKET 7D (pp) · √", maxLabels: 10, maxChars: 13,
@@ -130,7 +136,28 @@ function buildModel(narratives, marketChange7d, G) {
       { W, H, fs: G.fs, max: G.maxLabels, maxChars: G.maxChars }
     );
 
+    // The four states the plot separates, with the biggest name in each so a
+    // count is never just a count.
+    const quad = (label, key, fn) => {
+      const set = placed.filter(fn);
+      const lead = [...set].sort((a, b) => b.coins - a.coins)[0];
+      return {
+        key,
+        label,
+        count: set.length,
+        lead: lead ? `${lead.name} leads, ${lead.coins} coins` : null,
+      };
+    };
+    const midPeak = medianOf(ys) ?? 0;
+    const quadrants = [
+      quad("Hot and rewarding", "hr", (p) => p.x >= 0 && p.y >= midPeak),
+      quad("Hot but ordinary", "ho", (p) => p.x >= 0 && p.y < midPeak),
+      quad("Quiet but rewarding", "qr", (p) => p.x < 0 && p.y >= midPeak),
+      quad("Quiet and ordinary", "qo", (p) => p.x < 0 && p.y < midPeak),
+    ];
+
     return {
+      quadrants,
       points: placed,
       labels,
       medianPeak: medianOf(ys),
@@ -305,11 +332,38 @@ function Plot({ model, G, activeIds, onOpen }) {
   );
 }
 
+/** The expanded plot, for the modal. */
+export function NarrativeScatterLarge({ narratives = [], marketChange7d = null, activeIds = [], onOpen }) {
+  const model = useMemo(
+    () => buildModel(narratives, marketChange7d, LARGE),
+    [narratives, marketChange7d]
+  );
+  if (!model) return null;
+  return (
+    <div className="min-w-0">
+      <Plot model={model} G={LARGE} activeIds={activeIds} onOpen={onOpen} />
+      <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {model.quadrants.map((q) => (
+          <div key={q.key} className="rounded-lg bg-ink/[0.03] px-3 py-2">
+            <p className="text-[11.5px] font-medium leading-snug text-text-primary">{q.label}</p>
+            <p className="mt-0.5 font-mono text-[15px] tabular-nums text-text-primary">
+              {q.count}
+              <span className="ml-1.5 text-[10.5px] text-text-muted">narratives</span>
+            </p>
+            <p className="truncate text-[10.5px] text-text-muted">{q.lead || "—"}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function NarrativeScatter({
   narratives = [],
   marketChange7d = null,
   activeIds = [],
   onOpen,
+  onExpand,
 }) {
   const desk = useMemo(
     () => buildModel(narratives, marketChange7d, DESK),
@@ -335,7 +389,16 @@ export default function NarrativeScatter({
             {Math.abs(model.rho) < 0.2 ? " \u00b7 essentially none" : ""}
           </span>
         ) : null}
-        <span className="ml-auto">
+        <span className="ml-auto flex items-center gap-2">
+          {onExpand ? (
+            <button
+              type="button"
+              onClick={onExpand}
+              className="rounded-md border border-ink/[0.12] px-2 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-accent/40 hover:text-accent"
+            >
+              Expand
+            </button>
+          ) : null}
           <InfoTip side="bottom" title="Rotation against reward" text={EXPLAIN} />
         </span>
       </div>

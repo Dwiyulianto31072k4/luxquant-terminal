@@ -4,7 +4,10 @@ import {
   barScale,
   barWidth,
   coinFindings,
-  COIN_SCOPES,
+  CALL_SCOPES,
+  coinCounts,
+  filterCoins,
+  matchCoin,
   enrichCoins,
   fmtMultiple,
   median,
@@ -187,7 +190,10 @@ describe("coin rows", () => {
     const findings = coinFindings(many);
     expect(findings.length).toBeGreaterThan(0);
     for (const f of findings) {
-      expect(many.filter(COIN_SCOPES[f.filter]).length).toBe(f.count);
+      const got = f.filter.scope
+        ? filterCoins(many, f.filter.scope, [])
+        : filterCoins(many, "all", [f.filter.flag]);
+      expect(got.length).toBe(f.count);
     }
   });
 
@@ -283,5 +289,57 @@ describe("percentile ranker — the turnover rail", () => {
     expect(rank(null)).toBeNull();
     expect(percentileRanker([])(1)).toBeNull();
     expect(percentileRanker([null, undefined])(1)).toBeNull();
+  });
+});
+
+describe("scope and traits combine", () => {
+  const rows = enrichCoins(
+    [
+      coin({ symbol: "A", is_luxquant_signal: true, flow_intensity: 0.5, vol_change_7d: 400 }), // ours, busy, woke up
+      coin({ symbol: "B", is_luxquant_signal: true, flow_intensity: 0.5, vol_change_7d: 10 }), // ours, busy
+      coin({ symbol: "C", is_luxquant_signal: true, flow_intensity: 0.01, vol_change_7d: 400 }), // ours, woke up
+      coin({ symbol: "D", flow_intensity: 0.5, vol_change_7d: 400 }), // theirs, busy, woke up
+      coin({ symbol: "E", flow_intensity: 0.01, vol_change_7d: 0 }), // theirs, quiet
+    ],
+    new Map()
+  );
+  const syms = (scope, flags) => filterCoins(rows, scope, flags).map((r) => r.c.symbol);
+
+  it("answers the question one exclusive control could not: ours AND busy", () => {
+    expect(syms("called", ["busy"])).toEqual(["A", "B"]);
+  });
+
+  it("stacks traits with AND, not OR", () => {
+    expect(syms("all", ["busy", "surge"])).toEqual(["A", "D"]);
+    expect(syms("called", ["busy", "surge"])).toEqual(["A"]);
+  });
+
+  it("leaves scope alone when no trait is on, and vice versa", () => {
+    expect(syms("called", [])).toEqual(["A", "B", "C"]);
+    expect(syms("all", ["surge"])).toEqual(["A", "C", "D"]);
+    expect(syms("all", [])).toHaveLength(5);
+  });
+
+  it("ignores a trait nobody defined rather than emptying the table", () => {
+    expect(syms("all", ["nonsense"])).toHaveLength(5);
+    expect(matchCoin(rows[0], "nope", [])).toBe(true);
+  });
+
+  it("badges the size of the RESULT, so a chip cannot promise what it will not give", () => {
+    // With "called" on, the Busy chip must read 2 — the busy coins that are
+    // ours — not 3, which is every busy coin in the snapshot.
+    const c = coinCounts(rows, "called", []);
+    expect(c.flags.busy).toBe(2);
+    expect(c.scopes.called).toBe(3);
+    // With Busy already on, the scope chips count within it.
+    const d = coinCounts(rows, "called", ["busy"]);
+    expect(d.scopes.all).toBe(3);
+    expect(d.scopes.called).toBe(2);
+    // A chip already on shows what it is holding, not what dropping it opens.
+    expect(d.flags.busy).toBe(2);
+  });
+
+  it("exposes every scope it claims to", () => {
+    expect(Object.keys(CALL_SCOPES)).toEqual(["all", "called", "uncalled"]);
   });
 });

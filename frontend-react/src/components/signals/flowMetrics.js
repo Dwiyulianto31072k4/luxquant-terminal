@@ -193,7 +193,7 @@ export function coinFindings(rows = []) {
         `Trading at ${VOL_SURGE_X}× or more of the volume they did seven days ago — ` +
         `${top.c.symbol} leads at ${fmtMultiple(top.volX)}. We are on ${ours} of them.`,
       count: surge.length,
-      filter: "surge",
+      filter: { flag: "surge" },
     });
   }
 
@@ -207,7 +207,7 @@ export function coinFindings(rows = []) {
         `The ${uncalled.length} we are not sit at ${um.toFixed(1)}%. Median move in this ` +
         `snapshot — a description of where the desk is pointed, not a claim about what it earns.`,
       count: called.length,
-      filter: "called",
+      filter: { scope: "called" },
     });
   }
 
@@ -219,19 +219,28 @@ export function coinFindings(rows = []) {
         `24h volume above ${Math.round(HIGH_TURNOVER * 100)}% of market cap. That is churn, ` +
         `not direction — it says a coin is contested, not which way it resolves.`,
       count: busy.length,
-      filter: "busy",
+      filter: { flag: "busy" },
     });
   }
 
   return out;
 }
 
-/** The filters the findings hand out, so a headline and the rows behind it can
- *  never drift apart. */
-export const COIN_SCOPES = {
+/** Two kinds of filter, because they are two kinds of question.
+ *
+ *  "Called" and "No call" are states a coin is IN — exclusive, so they behave
+ *  like a radio. "Woke up" and "Busy" are things a coin is DOING — a coin can
+ *  be both, and either can be true of a called coin or an uncalled one. Folding
+ *  all five into one exclusive control made the obvious question unaskable:
+ *  which of the coins we are on are also busy right now.
+ */
+export const CALL_SCOPES = {
   all: () => true,
   called: (r) => r.called,
   uncalled: (r) => !r.called,
+};
+
+export const TRAIT_FLAGS = {
   surge: (r) => r.volX != null && r.volX >= VOL_SURGE_X,
   busy: (r) => r.band.key === "high",
 };
@@ -243,6 +252,38 @@ export const COIN_SCOPE_LABEL = {
   surge: "Woke up",
   busy: "Busy",
 };
+
+/** Scope AND every trait switched on. */
+export function matchCoin(row, scope = "all", flags = []) {
+  if (!(CALL_SCOPES[scope] || CALL_SCOPES.all)(row)) return false;
+  for (const f of flags) {
+    const fn = TRAIT_FLAGS[f];
+    if (fn && !fn(row)) return false;
+  }
+  return true;
+}
+
+export function filterCoins(rows = [], scope = "all", flags = []) {
+  return rows.filter((r) => matchCoin(r, scope, flags));
+}
+
+/** What a chip would leave you with if you clicked it — the count has to be the
+ *  count of the result, not of the trait in isolation, or a badge promises 41
+ *  rows and hands over 6. */
+export function coinCounts(rows = [], scope = "all", flags = []) {
+  const others = (f) => flags.filter((x) => x !== f);
+  const out = { scopes: {}, flags: {} };
+  for (const k of Object.keys(CALL_SCOPES)) out.scopes[k] = filterCoins(rows, k, flags).length;
+  for (const k of Object.keys(TRAIT_FLAGS)) {
+    const on = flags.includes(k);
+    out.flags[k] = filterCoins(rows, scope, on ? flags : [...flags, k]).length;
+    // What switching it OFF would give, so a chip that is on still shows the
+    // size of what it is holding rather than of what removing it would open.
+    if (on) out.flags[k] = filterCoins(rows, scope, flags).length;
+    void others;
+  }
+  return out;
+}
 
 export function sortCoins(rows, key, dir) {
   const val = (x) => {
