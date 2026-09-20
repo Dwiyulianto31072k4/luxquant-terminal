@@ -318,9 +318,12 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
         >
           peak
         </text>
+        {/* The median-peak label is skipped when it would land on the axis
+            name — the same pixels twice reads as one broken word. */}
         <text
           x={PAD.l - 6}
           y={midY - 3}
+          opacity={Math.abs(midY - 3 - (PAD.t + 8)) < fs * 1.2 ? 0 : 1}
           textAnchor="end"
           className="fill-text-muted"
           style={{ fontSize: fs - 0.5, fontFamily: "monospace" }}

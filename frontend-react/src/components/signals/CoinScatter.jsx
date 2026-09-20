@@ -152,12 +152,17 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   }, [project, model, PAD.l, PAD.r, W, fs]);
 
   const yTicks = useMemo(() => {
+    // The axis NAME is drawn at a fixed spot near the top of the rail, and a
+    // zoom can slide a tick straight underneath it — "churn" and "0.9" printed
+    // on the same pixels reads as "ch0rn". The name is the fixed thing, so the
+    // tick is the one that gives way.
+    const nameY = PAD.t + 6;
     const inFrame = Y_TICKS.filter((v) => {
       const y = project(0, model.py(v)).y;
-      return y >= 4 && y <= H - PAD.b - 2;
+      return y >= 4 && y <= H - PAD.b - 2 && Math.abs(y - nameY) > fs * 1.2;
     });
     return pickTicks(inFrame, -Infinity, Infinity, (v) => project(0, model.py(v)).y, fs * 1.9);
-  }, [project, model, H, PAD.b, fs]);
+  }, [project, model, H, PAD.b, PAD.t, fs]);
 
   const clipId = `plot-${W}-${H}`;
   const zeroX = project(model.px(0), 0).x;

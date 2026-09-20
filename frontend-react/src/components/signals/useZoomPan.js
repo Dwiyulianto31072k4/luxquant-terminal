@@ -178,8 +178,14 @@ export default function useZoomPan({ W, H, min = 1, max = 16, wheel = "modifier"
         setPanning(false);
         return;
       }
-      e.currentTarget.setPointerCapture?.(e.pointerId);
-      drag.current = { x: e.clientX, y: e.clientY, t0: t };
+      // NOT setPointerCapture here. Capturing on PRESS retargets the release
+      // to the capturing element, so the click the browser derives from the
+      // pair fires on the <svg> rather than on the mark that was pressed — and
+      // every mark on these plots exists to be clicked. Capture is taken in
+      // onPointerMove instead, at the moment the gesture becomes a drag, which
+      // is the only moment it is needed (so a drag that leaves the plot keeps
+      // tracking) and is after any click has already been ruled out.
+      drag.current = { x: e.clientX, y: e.clientY, t0: t, el: e.currentTarget, captured: false };
       setPanning(true);
     },
     [t, toLocal]
@@ -213,7 +219,14 @@ export default function useZoomPan({ W, H, min = 1, max = 16, wheel = "modifier"
       const dy = ((e.clientY - drag.current.y) / r.height) * H;
       if (Math.hypot(e.clientX - drag.current.x, e.clientY - drag.current.y) > DRAG_PX) {
         moved.current = true;
+        if (!drag.current.captured) {
+          drag.current.captured = true;
+          drag.current.el?.setPointerCapture?.(e.pointerId);
+        }
       }
+      // Below the threshold this is still a click in progress, and moving the
+      // plot under it would make every press twitch.
+      if (!moved.current) return;
       const { t0 } = drag.current;
       apply(clampOffset({ k: t0.k, x: t0.x + dx, y: t0.y + dy }, W, H));
     },
