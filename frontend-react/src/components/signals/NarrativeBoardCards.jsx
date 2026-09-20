@@ -110,6 +110,16 @@ export default function NarrativeBoardCards({ narratives = [], marketChange7d = 
         resolved += v;
       }
     }
+    // Win rate and the ladder depth from the SAME conserved totals the bar is
+    // drawn from, so the headline and the bar can never disagree.
+    //
+    // A note on why this is legitimate here while the table refuses to rank on
+    // it: the finding is that win rate cannot separate one narrative from
+    // another — 40 small samples whose confidence bands all overlap. As a
+    // single aggregate over the whole window it rests on every resolved call
+    // and is perfectly solid. Different question, different sample.
+    const stopped = resolved ? (totals.sl || 0) / resolved : null;
+    const winRate = stopped == null ? null : 1 - stopped;
     const fullTp = resolved ? ((totals.tp3 || 0) + (totals.tp4 || 0)) / resolved : null;
 
     const byCoins = [...narratives]
@@ -119,13 +129,13 @@ export default function NarrativeBoardCards({ narratives = [], marketChange7d = 
 
     return {
       withRs, ahead, moved, meanRs, biggest, bigSpread,
-      totals, resolved, fullTp, byCoins, pairs, market: m,
+      totals, resolved, fullTp, winRate, stopped, byCoins, pairs, market: m,
     };
   }, [narratives, marketChange7d]);
 
   if (!model.withRs.length) return null;
 
-  const { ahead, withRs, moved, meanRs, bigSpread, totals, resolved, fullTp, byCoins, pairs, market } = model;
+  const { ahead, withRs, moved, meanRs, bigSpread, totals, resolved, fullTp, winRate, stopped, byCoins, pairs, market } = model;
   const topCoins = byCoins[0]?.coins_called || 1;
 
   return (
@@ -189,18 +199,24 @@ export default function NarrativeBoardCards({ narratives = [], marketChange7d = 
               "Every resolved call in the window, split by the level it reached.\n\nA coin sits in several " +
               "narratives at once, so each call is divided evenly across the ones it belongs to. The totals " +
               "therefore come to the NUMBER OF CALLS rather than counting one call five times.\n\n" +
-              "TP3+ is the share that reached the third target or better. It is the figure this desk ranks " +
-              "narratives on, because it is the one with a spread worth ranking — win rate is 83% to 94% " +
-              "everywhere and its confidence bands overlap almost completely."
+              "WIN RATE HERE MEANS THE HIGHEST LEVEL A CALL REACHED WAS TP1 OR BETTER. It is not profit, " +
+              "and it is not what a trade returned: a call that tagged its stop before running to target " +
+              "still counts as a win, and a call that touched TP1 and fell back counts the same as one that " +
+              "ran to TP4. The bar underneath is where the difference lives.\n\n" +
+              "This is a single figure over every resolved call in the window, which is why it is quoted " +
+              "here while the table below refuses to rank narratives on it — forty small samples with " +
+              "overlapping confidence bands cannot be ordered, and one large one is perfectly solid."
             }
           />
         }
       >
         <p className="font-mono text-[26px] font-medium leading-none tabular-nums text-profit">
-          {fullTp == null ? "—" : `${(fullTp * 100).toFixed(1)}%`}
+          {winRate == null ? "—" : `${(winRate * 100).toFixed(1)}%`}
         </p>
         <p className="mt-1 text-[11.5px] text-text-muted">
-          reached TP3 or better ·{" "}
+          {/* Named precisely, because this number is the one people misread.
+              It is the level a call TOUCHED, not what a trade returned. */}
+          reached TP1 or better ·{" "}
           <span className="font-mono tabular-nums">{Math.round(resolved).toLocaleString()}</span>{" "}
           calls resolved
         </p>
@@ -228,6 +244,16 @@ export default function NarrativeBoardCards({ narratives = [], marketChange7d = 
             ) : null
           )}
         </span>
+        <p className="mt-1.5 text-[11.5px] leading-snug text-text-secondary">
+          <span className="font-mono tabular-nums text-profit">
+            {fullTp == null ? "—" : `${(fullTp * 100).toFixed(0)}%`}
+          </span>{" "}
+          ran on to TP3 or beyond ·{" "}
+          <span className="font-mono tabular-nums text-loss">
+            {stopped == null ? "—" : `${(stopped * 100).toFixed(0)}%`}
+          </span>{" "}
+          took the stop. Levels touched, not what a trade returned.
+        </p>
         <div className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-0.5">
           {OUT.map((o) =>
             totals[o.key] ? (

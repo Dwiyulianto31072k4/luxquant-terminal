@@ -499,9 +499,32 @@ describe("the narrative board's three cards", () => {
     expect(t).toContain(`${Math.round(conserved).toLocaleString()} calls resolved`);
   });
 
-  it("leads the outcome card with TP3+, the figure the desk ranks on", () => {
+  it("leads the outcome card with the win rate, over every resolved call", () => {
+    // Legitimate as ONE aggregate even though the table refuses to rank
+    // narratives on it: forty small samples with overlapping bands cannot be
+    // ordered, one large sample is perfectly solid.
     const t = board();
-    expect(t).toContain("reached TP3 or better");
+    expect(t).toContain("reached TP1 or better");
+    expect(t).toMatch(/\d+\.\d% reached TP1 or better/);
+  });
+
+  it("names the win rate as a level touched, never as a return", () => {
+    const t = board();
+    expect(t).toContain("Levels touched, not what a trade returned");
+    expect(t).toMatch(/ran on to TP3 or beyond/);
+    expect(t).toMatch(/took the stop/);
+  });
+
+  it("derives the win rate from the same totals the bar is drawn from", () => {
+    const totals = {};
+    let resolved = 0;
+    for (const x of NARR_DATA.narratives)
+      for (const [k, v] of Object.entries(x.outcome_flow || {})) {
+        totals[k] = (totals[k] || 0) + Number(v);
+        resolved += Number(v);
+      }
+    const wr = (1 - (totals.sl || 0) / resolved) * 100;
+    expect(board()).toContain(`${wr.toFixed(1)}%`);
   });
 
   it("says WHY breadth is what it is, not just what it is", () => {
