@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { announcementApi } from "../../../services/announcementApi";
 import { CampaignCard } from "../../AnnouncementModal";
+import { ViewportFrame } from "./ViewportFrame";
 import { palette } from "../designSystem";
 import { Surface, SectionHeader, StatusBadge } from "../primitives";
 import { PlusIcon, EditIcon, TrashIcon, CloseIcon } from "../Icons";
@@ -21,6 +22,17 @@ const AUDIENCES = [
 ];
 const ROLES = ["free", "subscriber", "premium", "admin"];
 const STATUSES = ["draft", "active", "archived"];
+
+// Two frames, because the card has exactly two shapes. Every width at or above
+// Tailwind's `sm` (640px) renders the same floating card, so 720 stands in for
+// every desktop; below it the card is a bottom sheet. Scaled to fit the form,
+// never resized — a resized frame would change the media query being shown.
+const PREVIEW_FRAMES = (phoneShape) => [
+  phoneShape === "landscape"
+    ? { key: "phone", w: 740, h: 380, scale: 0.62, label: "Phone landscape 740x380" }
+    : { key: "phone", w: 390, h: 760, scale: 0.62, label: "Phone 390x760" },
+  { key: "desktop", w: 720, h: 620, scale: 0.62, label: "Desktop 720x620 and wider" },
+];
 
 const EMPTY = {
   title: "",
@@ -59,7 +71,7 @@ export const AnnouncementsTab = () => {
   const [err, setErr] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [previewShape, setPreviewShape] = useState("tall");
+  const [phoneShape, setPhoneShape] = useState("portrait");
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -396,59 +408,66 @@ export const AnnouncementsTab = () => {
             </div>
           </div>
 
-          {/* Live preview - the same <CampaignCard> the app renders, fed by
-              this form. Before this the only feedback was a 112px thumbnail,
-              which showed neither the 16:10 crop, the badge on the artwork,
-              nor whether the headline still fit beside it. */}
+          {/* Live preview, at two real viewports. See ViewportFrame for why
+              this cannot be done with a CSS-sized box. */}
           <div>
-            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
               <label className={labelCls + " !mb-0"}>Preview</label>
-              {/* Phone and desktop render the same card — it is capped at 420px
-                  wide either way, so there is nothing to compare. The one shape
-                  that differs is a landscape phone, where the tile loses height
-                  and the artwork is cropped from the centre. That is the case
-                  worth showing, so it is the only toggle. */}
               {[
-                { k: "tall", label: "Phone / desktop" },
-                { k: "short", label: "Landscape phone" },
+                { k: "portrait", label: "Portrait" },
+                { k: "landscape", label: "Landscape" },
               ].map((o) => (
                 <button
                   key={o.k}
                   type="button"
-                  onClick={() => setPreviewShape(o.k)}
+                  onClick={() => setPhoneShape(o.k)}
                   className={
                     "rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors " +
-                    (previewShape === o.k
+                    (phoneShape === o.k
                       ? "bg-ink/[0.10] text-text-primary"
                       : "text-text-muted hover:text-text-primary")
                   }
                 >
-                  {o.label}
+                  Phone {o.label}
                 </button>
               ))}
             </div>
-            <div
-              className="flex justify-center rounded-xl p-5 sm:justify-start sm:px-8"
-              style={{
-                background: "rgb(var(--scrim) / 0.55)",
-                ...(previewShape === "short" ? { "--lq-campaign-art-maxh": "144px" } : {}),
-              }}
-            >
-              <div className="w-full max-w-[400px]">
-                <CampaignCard
-                  asDialog={false}
-                  ann={{
-                    title: form.title || "Announcement title",
-                    body: form.body,
-                    badge: form.badge,
-                    image_url: form.image_url,
-                    cta_label: form.cta_label,
-                    cta_url: form.cta_url,
-                  }}
-                  onDismiss={() => {}}
-                  onAct={(e) => e.preventDefault()}
-                />
-              </div>
+            <div className="flex flex-wrap items-start gap-4">
+              {PREVIEW_FRAMES(phoneShape).map((f) => (
+                <div key={f.key}>
+                  <ViewportFrame width={f.w} height={f.h} scale={f.scale}>
+                    <div
+                      className="fixed inset-0 flex flex-col"
+                      style={{ background: "rgb(var(--surface))" }}
+                    >
+                      {/* something under the scrim, so the blur has work to do */}
+                      <div className="flex-1 space-y-2.5 p-5">
+                        {Array.from({ length: 12 }).map((_, i) => (
+                          <div key={i} className="h-5 rounded bg-ink/[0.06]" />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="lq-modal-safe lq-scrim-bg fixed inset-0 flex items-end justify-center p-0 sm:items-center sm:p-4">
+                      <CampaignCard
+                        asDialog={false}
+                        ann={{
+                          title: form.title || "Announcement title",
+                          body: form.body,
+                          badge: form.badge,
+                          image_url: form.image_url,
+                          cta_label: form.cta_label,
+                          cta_url: form.cta_url,
+                        }}
+                        onDismiss={() => {}}
+                        onAct={(e) => e.preventDefault()}
+                      />
+                    </div>
+                  </ViewportFrame>
+                  <p className="mt-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+                    {f.label}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 

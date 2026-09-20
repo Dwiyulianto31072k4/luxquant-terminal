@@ -113,9 +113,10 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
                 // On a landscape phone (measured 740x380) an uncapped tile
                 // filled the whole scroll area and pushed the headline below
                 // the fold — the card opened as a picture with no message.
-                // Overridable so the admin form can show that case without
-                // emulating a viewport. Does not bite on a portrait phone.
-                maxHeight: "var(--lq-campaign-art-maxh, min(38vh, 260px))",
+                // Does not bite on a portrait phone or on desktop. This was
+                // briefly a CSS variable so the admin form could fake a short
+                // viewport; the form now previews in a real one.
+                maxHeight: "min(38vh, 260px)",
                 border: "1px solid rgb(var(--ink) / 0.08)",
               }}
             >
