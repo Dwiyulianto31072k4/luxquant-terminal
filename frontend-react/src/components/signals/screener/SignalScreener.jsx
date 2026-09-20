@@ -15,10 +15,12 @@ import Modal from "../../ui/Modal";
 import { SegGroup, DESK_SHELL, deskBadgeClass, deskGhostClass, deskSegClass } from "../../ui/SegGroup";
 import { InfoTip } from "../../GuideInfo";
 import ScreenMap from "./ScreenMap";
-import PlanLadder from "./PlanLadder";
+import Shortlist from "./Shortlist";
+import MetricSelect from "./MetricSelect";
 import {
   CHASE_LINE,
   CHASE_TABLE,
+  METRICS,
   METRIC_LIST,
   SCREEN_LIST,
   applyScreens,
@@ -28,11 +30,13 @@ import {
   screenRow,
 } from "./screenMetrics";
 
+// Sorting is ranking, and every one of these is "best first". `distEntry` and
+// `ageH` invert because for those two the good end is the small end.
 const SORTS = [
   { key: "rr", label: "Reward ÷ risk", get: (r) => r.rr },
   { key: "roomTp3", label: "Room left", get: (r) => r.roomTp3 },
   { key: "distEntry", label: "Nearest the entry", get: (r) => (r.distEntry == null ? null : -Math.abs(r.distEntry)) },
-  { key: "ageH", label: "Newest", get: (r) => (r.ageH == null ? null : -r.ageH) },
+  { key: "ageH", label: "Newest first", get: (r) => (r.ageH == null ? null : -r.ageH) },
   { key: "vol24", label: "Deepest book", get: (r) => r.vol24 },
 ];
 
@@ -85,6 +89,14 @@ function Finding({ summary }) {
   );
 }
 
+/** What the two axes mean together, in one line, so a reader never has to work
+ *  out what the corner they are looking at represents. */
+const METRICS_HINT = (x, y) => {
+  if (x === "distEntry" && y === "roomTp3")
+    return "Top left is the corner to look at: still near the entry, still room to the target.";
+  return `Right is more ${METRICS[x].label.toLowerCase()}, up is more ${METRICS[y].label.toLowerCase()}.`;
+};
+
 export default function SignalScreener({
   isOpen,
   onClose,
@@ -96,7 +108,9 @@ export default function SignalScreener({
   onOpenSignal,
   countLabel,
 }) {
-  const [view, setView] = useState("map");
+  // The list leads. A scatter is how you explore a relationship across a
+  // cloud; nobody picks a trade out of a cloud. Picking is ranking.
+  const [view, setView] = useState("list");
   const [screens, setScreens] = useState([]);
   const [xKey, setXKey] = useState("distEntry");
   const [yKey, setYKey] = useState("roomTp3");
@@ -148,105 +162,101 @@ export default function SignalScreener({
       <div className="space-y-3">
         <Finding summary={summary} />
 
-        {/* One-click screens. Each badge is what the screen would LEAVE, given
-            whatever else is already on — a chip that promises 30 and hands over
-            4 is worse than no chip. */}
+        {/* ONE toolbar row, not five.
+            This was three segmented rails of eight options stacked over a row
+            of screens and a row of sorts — twenty-four buttons before the first
+            call, and the plot got whatever was left. A segmented control earns
+            its width at two or three choices; past that it is a menu wearing
+            the wrong clothes, so the axis pickers are selects and they only
+            appear for the view that has axes. */}
         <div className="flex flex-wrap items-center gap-2">
+          <SegGroup
+            size="sm"
+            aria-label="How to look at these"
+            value={view}
+            onChange={setView}
+            options={[
+              { key: "list", label: "Shortlist", title: "Ranked, with where the price sits inside each published plan" },
+              { key: "map", label: "Map", title: "Every call on two axes you choose" },
+            ]}
+          />
+
           <div role="group" aria-label="Quick screens" className={DESK_SHELL}>
-            {SCREEN_LIST.map((s) => {
-              const on = screens.includes(s.key);
+            {SCREEN_LIST.map((sc) => {
+              const on = screens.includes(sc.key);
               return (
                 <button
-                  key={s.key}
+                  key={sc.key}
                   type="button"
                   aria-pressed={on}
-                  title={s.hint}
-                  onClick={() => toggle(s.key)}
+                  title={sc.hint}
+                  onClick={() => toggle(sc.key)}
                   className={deskSegClass(on)}
                 >
-                  {s.label}
-                  <span className={deskBadgeClass(on)}>{counts[s.key]}</span>
+                  {sc.label}
+                  <span className={deskBadgeClass(on)}>{counts[sc.key]}</span>
                 </button>
               );
             })}
           </div>
+
           {screens.length ? (
             <button type="button" className={deskGhostClass()} onClick={() => setScreens([])}>
               Reset
             </button>
           ) : null}
-          <SegGroup
-            size="sm"
-            aria-label="Map or ladder"
-            value={view}
-            onChange={setView}
-            options={[
-              { key: "map", label: "Map", title: "Every call on two axes you choose" },
-              { key: "ladder", label: "Ladder", title: "Where the price sits inside each published plan" },
-            ]}
-          />
+
           <span className="ml-auto flex items-center gap-2">
-            <SegGroup
-              size="sm"
-              aria-label="Order"
-              value={sortKey}
-              onChange={setSortKey}
-              options={SORTS.map((s) => ({ key: s.key, label: s.label }))}
-              className="hidden lg:inline-flex"
-            />
+            {view === "list" ? (
+              <MetricSelect
+                label="Rank by"
+                value={sortKey}
+                onChange={setSortKey}
+                options={SORTS}
+                title="Best first, whichever you pick"
+              />
+            ) : null}
             <InfoTip side="bottom" title="Reading this" text={EXPLAIN} />
           </span>
         </div>
 
         {view === "map" ? (
-          <>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <label className="flex items-center gap-1.5">
-                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-                  Across
-                </span>
-                <SegGroup size="sm" aria-label="Horizontal axis" value={xKey} onChange={setXKey} options={axisOpts} />
-              </label>
-              <label className="flex items-center gap-1.5">
-                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-                  Up
-                </span>
-                <SegGroup size="sm" aria-label="Vertical axis" value={yKey} onChange={setYKey} options={axisOpts} />
-              </label>
-              <label className="flex items-center gap-1.5">
-                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-                  Size
-                </span>
-                <SegGroup
-                  size="sm"
-                  aria-label="Mark size"
-                  value={sizeKey}
-                  onChange={setSizeKey}
-                  options={[
-                    { key: "vol24", label: "Volume" },
-                    { key: "rr", label: "Reward ÷ risk" },
-                    { key: "roomTp3", label: "Room left" },
-                  ]}
-                />
-              </label>
-            </div>
-            <ScreenMap
-              rows={screened}
-              xKey={xKey}
-              yKey={yKey}
-              sizeKey={sizeKey}
-              onOpen={(s) => {
-                onClose?.();
-                onOpenSignal?.(s);
-              }}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <MetricSelect label="Across" value={xKey} onChange={setXKey} options={axisOpts} />
+            <MetricSelect label="Up" value={yKey} onChange={setYKey} options={axisOpts} />
+            <MetricSelect
+              label="Dot size"
+              value={sizeKey}
+              onChange={setSizeKey}
+              options={[
+                { key: "vol24", label: "24h volume" },
+                { key: "rr", label: "Reward ÷ risk" },
+                { key: "roomTp3", label: "Room left" },
+              ]}
             />
-          </>
-        ) : (
-          <PlanLadder
-            rows={sorted}
-            onOpen={(s) => {
+            <span className="text-[11px] text-text-muted">{METRICS_HINT(xKey, yKey)}</span>
+          </div>
+        ) : null}
+
+        {view === "map" ? (
+          <ScreenMap
+            rows={screened}
+            xKey={xKey}
+            yKey={yKey}
+            sizeKey={sizeKey}
+            onOpen={(sig) => {
               onClose?.();
-              onOpenSignal?.(s);
+              onOpenSignal?.(sig);
+            }}
+          />
+        ) : (
+          <Shortlist
+            rows={sorted}
+            sortKey={sortKey}
+            onSort={setSortKey}
+            onOpen={(sig) => {
+              onClose?.();
+              onOpenSignal?.(sig);
             }}
           />
         )}

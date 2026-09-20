@@ -111,10 +111,14 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
       }),
   };
 
-  // Re-place whenever the data or the axes change, not only after a gesture.
+  // Re-place when the DATA or the axes change. Never on `t`: that fires on
+  // every frame of a pan, and the placer walks every point against every label
+  // already down — which is exactly the stutter that reads as "the names are
+  // not keeping up". During a gesture each label rides its own dot by the
+  // offset it was placed at, and useZoomPan re-places once the gesture stops.
   useEffect(() => {
     if (stateRef.current) setLabels(stateRef.current.place());
-  }, [model, t, fz]);
+  }, [model, xKey, yKey, sizeKey]);
 
   const xTicks = useMemo(() => {
     if (!model) return [];
@@ -127,9 +131,12 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
 
   const yTicks = useMemo(() => {
     if (!model) return [];
+    // A tick that slides under the axis name prints the two on top of each
+    // other. The name is fixed, so the tick gives way.
+    const nameY = G.pad.t + 2;
     const inFrame = TICKS.filter((v) => {
       const y = project(0, model.py(v)).y;
-      return y >= 6 && y <= G.H - G.pad.b - 2;
+      return y >= 6 && y <= G.H - G.pad.b - 2 && Math.abs(y - nameY) > fz * 1.2;
     });
     return pickTicks(inFrame, -Infinity, Infinity, (v) => project(0, model.py(v)).y, fz * 2, 0);
   }, [model, project, fz]);
