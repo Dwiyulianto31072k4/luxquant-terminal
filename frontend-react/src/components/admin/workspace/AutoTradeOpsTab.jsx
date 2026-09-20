@@ -996,6 +996,7 @@ export function AgentMonitorView({
                 ["unsigned", `No agreement ${t.unsigned || 0}`],
                 ["ok", "Healthy"],
                 ["paused", "Paused"],
+                ["blocked", "Switched off"],
                 ["all", `All bots ${t.linked ?? 0}`],
                 ["unlinked", `Never connected ${t.never_linked ?? 0}`],
               ].map(([key, label]) => (

@@ -187,7 +187,7 @@ export function incidents({ totals = {}, users = [], positions = {} } = {}) {
       count: blocked,
       label: "switched off by us",
       hint: "an operator blocked the bot; the person sees the reason",
-      filter: "all",
+      filter: "blocked",
       tone: "warn",
     },
     {
