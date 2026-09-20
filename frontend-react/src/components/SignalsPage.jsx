@@ -1554,101 +1554,7 @@ const SignalsPage = () => {
   // at a time. Before this the only evidence a filter was on lived inside the
   // Filter sheet — so a narrative tapped in the row above silently cut the
   // table and nothing on the page said why.
-  const activeFilterChips = useMemo(() => {
-    const out = [];
-    const pretty = (v) =>
-      String(v).replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-    for (const n of narratives)
-      out.push({
-        key: `narrative:${n.category_id}`,
-        label: `Narrative: ${n.name}`,
-        clear: () =>
-          setNarratives((prev) => prev.filter((x) => x.category_id !== n.category_id)),
-      });
-    if (searchPair)
-      out.push({
-        key: "search",
-        label: `Search: ${searchPair.toUpperCase()}`,
-        clear: () => setSearchPair(""),
-      });
-    if (topRunnersOnly)
-      out.push({
-        key: "toprunners",
-        label: "Top Runners only",
-        clear: () => setTopRunnersOnly(false),
-      });
-    if (showWatchlistOnly)
-      out.push({
-        key: "watchlist",
-        label: "Watchlist only",
-        clear: () => setShowWatchlistOnly(false),
-      });
-    if (statusFilter !== "all")
-      out.push({
-        key: "status",
-        label: `Status: ${pretty(statusFilter)}`,
-        clear: () => setStatusFilter("all"),
-      });
-    if (riskFilter !== "all")
-      out.push({
-        key: "risk",
-        label: `Risk: ${pretty(riskFilter)}`,
-        clear: () => setRiskFilter("all"),
-      });
-    if (streakFilter !== "all")
-      out.push({
-        key: "streak",
-        label: "High win streak",
-        clear: () => setStreakFilter("all"),
-      });
-    if (corrDecoupled)
-      out.push({
-        key: "decoupled",
-        label: "BTC decoupled",
-        clear: () => setCorrDecoupled(false),
-      });
-    if (corrHighAlign)
-      out.push({
-        key: "align",
-        label: "High BTC alignment",
-        clear: () => setCorrHighAlign(false),
-      });
-    if (edgeTop)
-      out.push({
-        key: "edge",
-        label: `Edge top ${edgeTop}`,
-        clear: () => setEdgeTop(null),
-      });
-    for (const t of selectedTags)
-      out.push({
-        key: `tag:${t}`,
-        label: `Tag: ${t}`,
-        clear: () => setSelectedTags((prev) => prev.filter((x) => x !== t)),
-      });
-    // Days only counts as a filter when it is not the default single day —
-    // "Today" is the desk's resting state, not something the user switched on.
-    if (!dayIsDefault)
-      out.push({
-        key: "days",
-        label: selectedDates.length === 0 ? "All days" : `${selectedDates.length} days`,
-        clear: () => setSelectedDates([utcTodayYmd()]),
-      });
-    return out;
-  }, [
-    narratives,
-    searchPair,
-    topRunnersOnly,
-    showWatchlistOnly,
-    statusFilter,
-    riskFilter,
-    streakFilter,
-    corrDecoupled,
-    corrHighAlign,
-    edgeTop,
-    selectedTags,
-    dayIsDefault,
-    selectedDates,
-  ]);
+
 
   const resetFilters = useCallback(() => {
     setSearchPair("");
@@ -2618,64 +2524,6 @@ const SignalsPage = () => {
         </div>
       ) : null}
 
-      {activeFilterChips.length > 0 ? (
-        <div
-          role="status"
-          aria-label="Active filters"
-          className="flex flex-wrap items-center gap-1.5 rounded-xl border border-ink/[0.07] bg-surface-raised px-3 py-2"
-        >
-          <span className="mr-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-            Filtering by
-          </span>
-          {activeFilterChips.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={c.clear}
-              title={`Remove — ${c.label}`}
-              className="group inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/[0.08] py-1 pl-2.5 pr-1.5 text-[11.5px] text-text-primary transition-colors hover:border-accent/70"
-            >
-              <span className="max-w-[220px] truncate">{c.label}</span>
-              <span
-                aria-hidden="true"
-                className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-text-muted group-hover:bg-accent/20 group-hover:text-text-primary"
-              >
-                <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </span>
-            </button>
-          ))}
-          {activeFilterChips.length > 1 ? (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="ml-1 rounded-md px-2 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-text-muted hover:text-text-primary"
-            >
-              Clear all
-            </button>
-          ) : null}
-          {/* Right here, because this bar is where the set was just decided and
-              "which of these do I take" is the question that follows it. */}
-          {totalSignals > 1 ? (
-            <button
-              type="button"
-              onClick={() => setScreenerOpen(true)}
-              title="Compare these calls on how far past the entry they are and what is left to target"
-              className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-ink/[0.12] px-2.5 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-accent/50 hover:text-accent"
-            >
-              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                <circle cx="4.5" cy="11" r="1.8" />
-                <circle cx="11" cy="5" r="1.8" />
-                <path d="M2 14 14 2" strokeDasharray="2 2" opacity="0.5" />
-              </svg>
-              Visualize
-              <span className="rounded-sm bg-ink/[0.06] px-1 tabular-nums">{totalSignals}</span>
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-
       {mineExtra ? (
         <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-ink/[0.07] bg-surface-raised p-3 text-sm text-text-secondary">
           <span className="flex-1 min-w-[12rem]">
@@ -3133,6 +2981,14 @@ const SignalsPage = () => {
       <EdgeActiveFilters
         variant="bar"
         sticky
+        /* The narrative picks and the Runners refinement used to live in a
+           second strip above this one, which printed the same Edge cut and the
+           same tags again under a different count. One bar now. */
+        narratives={narratives}
+        onRemoveNarrative={pickNarrative}
+        topRunnersOnly={topRunnersOnly}
+        onClearTopRunners={() => setTopRunnersOnly(false)}
+        onVisualize={() => setScreenerOpen(true)}
         selectedTags={selectedTags}
         tagMatchMode={tagMatchMode}
         statusFilter={statusFilter}

@@ -1,6 +1,22 @@
-// EdgeActiveFilters — sticky “current drill” strip.
-// Shows every active edge/filter dimension as a removable chip (×) + Clear all.
-// Deep, always-visible summary so users never lose track of what’s filtering the table.
+// EdgeActiveFilters — the ONE bar that says what the desk is currently showing.
+//
+// It used to be one of two. A second strip above it listed narratives, the
+// search, the day span and the Edge cut as its own chips, so "Edge top 30" and
+// "Top 30% Edge" were the same filter printed twice in two casings, under two
+// different counts, beside two different Clear alls. A reader had no way to
+// tell which was authoritative, and removing a filter from one bar silently
+// changed the other. They are merged here.
+//
+// Three rules from the way a filter bar is actually read:
+//
+//  1. THE COUNT IS THE HEADLINE. The bar exists to answer "what did I narrow
+//     this to", and that was a ten-pixel mono footnote. It leads now.
+//  2. SORT IS NOT A FILTER. A sort chain changes the ORDER of a set, not its
+//     membership, and mixing the two in one run of chips invites people to
+//     remove a sort expecting rows back. They are separate groups, labelled.
+//  3. THE ACTION ON THE RESULT BELONGS BESIDE THE RESULT. Visualize sits with
+//     the count it operates on, and carries the accent, because a ghost button
+//     in a grey bar is a button nobody finds.
 
 const nice = (tag) => String(tag || "").replace(/_/g, " ").toLowerCase();
 
@@ -12,6 +28,11 @@ import { SORT_LABELS, isDefaultSorts, normalizeSorts } from "../utils/signalSort
  */
 export default function EdgeActiveFilters({
   variant = "bar",
+  narratives = [],
+  topRunnersOnly = false,
+  onRemoveNarrative,
+  onClearTopRunners,
+  onVisualize,
   selectedTags = [],
   tagMatchMode = "any",
   statusFilter = "all",
@@ -46,6 +67,29 @@ export default function EdgeActiveFilters({
   sticky = true,
 }) {
   const chips = [];
+
+  // Narratives and the Top Runners refinement came from the strip this bar
+  // replaced. They lead, because they are the widest cut: a narrative pick
+  // decides which coins are even eligible.
+  for (const n of narratives) {
+    chips.push({
+      key: `narrative:${n.category_id}`,
+      label: n.name,
+      group: "narrative",
+      tone: "accent",
+      clear: () => onRemoveNarrative?.(n),
+    });
+  }
+  if (topRunnersOnly) {
+    chips.push({
+      key: "toprunners",
+      label: "Top Runners only",
+      group: "toprunners",
+      tone: "accent",
+      clear: () => onClearTopRunners?.(),
+    });
+  }
+
   const sortChain = normalizeSorts(
     Array.isArray(sorts) && sorts.length
       ? sorts
@@ -226,6 +270,10 @@ export default function EdgeActiveFilters({
     neutral: "border-ink/12 bg-ink/[0.05] text-text-primary",
   };
 
+  // Two runs, because they are two kinds of state.
+  const filterChips = chips.filter((c) => c.group !== "sort");
+  const sortChips = chips.filter((c) => c.group === "sort");
+
   const shell =
     variant === "card"
       ? "rounded-2xl border border-ink/[0.1] bg-surface-raised p-3.5 shadow-sm"
@@ -237,28 +285,63 @@ export default function EdgeActiveFilters({
 
   return (
     <div className={`${shell} mb-3`} role="region" aria-label="Current filters">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="mb-1.5 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Filters
+      {/* The count leads. This bar exists to answer "what did I narrow this
+          to", and that answer used to be a ten-pixel footnote beside the word
+          Filters. */}
+      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="flex items-baseline gap-1.5">
+          <span className="font-mono text-[19px] font-medium leading-none tabular-nums text-text-primary">
+            {filteredCount != null ? filteredCount.toLocaleString() : "—"}
+          </span>
+          {totalUnfiltered != null && totalUnfiltered !== filteredCount ? (
+            <span className="font-mono text-[11.5px] tabular-nums text-text-muted">
+              of {totalUnfiltered.toLocaleString()}
             </span>
-            <span className="rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
-              {chips.length} active
-            </span>
-            {filteredCount != null && (
-              <span className="font-mono text-[11px] tabular-nums text-text-primary">
-                {filteredCount}
-                {totalUnfiltered != null && totalUnfiltered !== filteredCount
-                  ? ` / ${totalUnfiltered}`
-                  : ""}{" "}
-                <span className="text-text-muted">signals</span>
-              </span>
-            )}
-          </div>
+          ) : null}
+          <span className="text-[11.5px] text-text-muted">signals</span>
+        </span>
+        {/* Counts what FILTERS. The sort chips sit in their own group below
+            and are not filters, so counting them here contradicted the layout
+            two lines under it. */}
+        <span className="rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted">
+          {filterChips.length} filter{filterChips.length === 1 ? "" : "s"}
+        </span>
 
+        <span className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onClearAll?.()}
+            className="rounded-lg border border-ink/[0.12] px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-ink/25 hover:text-text-primary"
+          >
+            Clear all
+          </button>
+          {/* The action on the result, beside the result, in the accent — a
+              ghost button in a grey bar is a button nobody finds. */}
+          {onVisualize && filteredCount > 1 ? (
+            <button
+              type="button"
+              onClick={onVisualize}
+              title="Compare these calls on how far past the entry they are and what is left to target"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-fg shadow-sm transition-colors hover:bg-accent-dark"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                <circle cx="4.5" cy="11" r="1.9" />
+                <circle cx="11" cy="5" r="1.9" />
+                <path d="M2 14 14 2" strokeDasharray="2 2" opacity="0.55" />
+              </svg>
+              Visualize
+              <span className="rounded bg-black/15 px-1 font-mono text-[10px] tabular-nums">
+                {filteredCount}
+              </span>
+            </button>
+          ) : null}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            {chips.map((chip) => (
+            {filterChips.map((chip) => (
               <span
                 key={chip.key}
                 className={`inline-flex max-w-full items-center gap-0.5 rounded-lg border pl-2 pr-0.5 py-0.5 font-mono text-[11px] ${
@@ -294,13 +377,43 @@ export default function EdgeActiveFilters({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => onClearAll?.()}
-          className="shrink-0 rounded-lg border border-ink/15 bg-surface-raised px-3 py-1.5 text-[11.5px] font-semibold text-text-primary shadow-sm transition-colors hover:border-ink/25 hover:bg-ink/[0.04]"
-        >
-          Clear all
-        </button>
+        {/* Sort is NOT a filter: it changes the order of a set, not its
+            membership. Mixed into the same run of chips it invited people to
+            remove a sort expecting rows back. */}
+        {sortChips.length ? (
+          <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-1.5 border-ink/[0.08] sm:border-l sm:pl-3">
+            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+              Order
+            </span>
+            {sortChips.map((chip) => (
+              <span
+                key={chip.key}
+                className={`inline-flex max-w-full items-center gap-0.5 rounded-lg border py-0.5 pl-2 pr-0.5 font-mono text-[11px] ${
+                  toneCls[chip.tone] || toneCls.neutral
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={chip.onClick || chip.clear}
+                  className="min-w-0 truncate text-left normal-case tracking-normal hover:opacity-90"
+                >
+                  {chip.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    chip.clear?.();
+                  }}
+                  aria-label={`Remove ${chip.label}`}
+                  className="ml-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-ink/10 hover:text-text-primary"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {selectedTags.length > 1 && (
