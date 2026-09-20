@@ -397,6 +397,7 @@ export default function SignalsNarrativeFlow({
               <SignalsNarrativeBoard
                 narratives={narratives}
                 marketChange7d={data?.market_change_7d ?? null}
+                days={days}
                 rankedByPeak={sort === "peak"}
                 onRankByPeak={() => setSort((s) => (s === "peak" ? "coins" : "peak"))}
               />

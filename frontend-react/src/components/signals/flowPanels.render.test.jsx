@@ -481,3 +481,50 @@ describe("the flow charts now say what they cannot draw", () => {
     expect(t).toContain("ORDINARY");
   });
 });
+
+describe("the narrative board's three cards", () => {
+  const board = () =>
+    text(<SignalsNarrativeFlow data={NARR_DATA} days={30} activeIds={[]} defaultOpen />);
+
+  it("counts a call ONCE across the narratives it belongs to", () => {
+    // A coin sits in about five narratives. Summing `n` would count one call
+    // five times; the fractional outcome_flow conserves to the call count.
+    const t = board();
+    const totalN = NARR_DATA.narratives.reduce((s, x) => s + (x.n || 0), 0);
+    const conserved = NARR_DATA.narratives.reduce(
+      (s, x) => s + Object.values(x.outcome_flow || {}).reduce((a, b) => a + Number(b), 0),
+      0
+    );
+    expect(conserved).toBeLessThan(totalN);
+    expect(t).toContain(`${Math.round(conserved).toLocaleString()} calls resolved`);
+  });
+
+  it("leads the outcome card with TP3+, the figure the desk ranks on", () => {
+    const t = board();
+    expect(t).toContain("reached TP3 or better");
+  });
+
+  it("says WHY breadth is what it is, not just what it is", () => {
+    // "83% breadth" is a number. The finding is that the baseline is
+    // cap-weighted and the biggest narratives barely moved.
+    const t = board();
+    expect(t).toMatch(/narratives beat it/);
+    expect(t).toMatch(/five biggest sit within|average narrative ran/);
+  });
+
+  it("answers where the book is concentrated, which the table does not", () => {
+    const t = board();
+    expect(t).toContain("Where the desk is pointed");
+    expect(t).toMatch(/coins called across \d+ narratives/);
+  });
+
+  it("stays silent when nothing has a 7-day snapshot", () => {
+    const bare = {
+      ...NARR_DATA,
+      market_change_7d: null,
+      narratives: NARR_DATA.narratives.map((n) => ({ ...n, mcap_change_7d: null })),
+    };
+    const out = html(<SignalsNarrativeFlow data={bare} days={30} defaultOpen />);
+    expect(out).not.toContain("Where the desk is pointed");
+  });
+});
