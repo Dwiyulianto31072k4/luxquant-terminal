@@ -268,7 +268,11 @@ def build_message(sig, hit_tags, tag_stats, top: bool = False) -> str:
 
 # ─────────────────────────────── sending ────────────────────────────────
 
-def send(caption: str, photo: str | None, reply_to: int | None = None) -> int:
+# Not `send`: a module-level plain `def send` collides by NAME with the async
+# websocket `send` the market workers await, and the repo's await-a-sync-def
+# gate can only compare names. One generic name turned that gate red and kept
+# it red, which is worse than the name is good.
+def post_to_topic(caption: str, photo: str | None, reply_to: int | None = None) -> int:
     api = f"https://api.telegram.org/bot{BOT_TOKEN}"
     base = {"chat_id": str(CHAT_ID), "message_thread_id": str(TOPIC_ID), "parse_mode": "HTML"}
     if reply_to:
@@ -358,7 +362,7 @@ def post_updates(db, dry_run: bool = False) -> None:
             _log(f"update {u['pair']} {u['update_type']} -> reply to {u['parent_id']}")
             continue
         try:
-            mid = send(build_update(u), None, reply_to=u["parent_id"])
+            mid = post_to_topic(build_update(u), None, reply_to=u["parent_id"])
             db.execute(text("""
                 INSERT INTO runner_call_updates (signal_id, event_type, tg_message_id, attempts, posted_at)
                 VALUES (:sid, :et, :mid, 1, now())
@@ -436,7 +440,7 @@ def run(dry_run: bool = False) -> None:
                 if not matched:
                     continue
             try:
-                mid = send(build_message(sig, hit, tag_stats, top=top), sig.get("entry_chart_path"))
+                mid = post_to_topic(build_message(sig, hit, tag_stats, top=top), sig.get("entry_chart_path"))
                 db.execute(text("""
                     UPDATE runner_call_posts SET tg_message_id = :mid, posted_at = now(),
                            attempts = attempts + 1, last_error = NULL WHERE signal_id = :sid

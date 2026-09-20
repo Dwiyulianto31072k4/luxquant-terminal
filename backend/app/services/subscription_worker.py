@@ -37,6 +37,8 @@ from app.models.workspace import AdminFollowup
 from app.services.referral_service import refund_redemption
 from app.services.notifier import create_notification, notification_exists
 from app.services.telegram_group import is_in_group, kick_member, send_dm
+from app.services import vip_seat
+from app.services.vip_seat import ACTIVE_ACCESS_SQL
 from app.services import billing_delivery, email_lifecycle, payment_recovery, referral_outreach
 
 logger = logging.getLogger(__name__)
@@ -318,11 +320,10 @@ MSG_KICKED = (
 # SQL predicate: user currently HAS active access (admin, or premium/subscriber
 # with lifetime `subscription_expires_at IS NULL` or a future expiry). Such users
 # must NEVER receive expiry reminders or be kicked. Requires a :now bind param.
-_ACTIVE_ACCESS = """(
-    role = 'admin'
-    OR (role IN ('premium', 'subscriber')
-        AND (subscription_expires_at IS NULL OR subscription_expires_at > :now))
-)"""
+# Defined in vip_seat so the seat-release path and this worker cannot drift on
+# what "has access" means — two copies of this predicate is how a desk ends up
+# kicking people it still bills.
+_ACTIVE_ACCESS = ACTIVE_ACCESS_SQL
 
 
 def _acquire_cycle_lock() -> bool:
@@ -855,6 +856,10 @@ async def subscription_expiry_loop():
                 reminded = await _send_final_reminders(db, now)
                 kicked = await _kick_past_grace(db, now)
                 reconciled = await _reconcile_in_group(db, now)
+                # Seats detached from an account that Telegram would not let go
+                # of at the time — an unlink happens in a request, and a request
+                # cannot wait out an API outage.
+                seats = await vip_seat.retry_pending(db)
 
                 # Refund redeemed credit on invoices about to expire (before we
                 # flip them to 'expired'). Otherwise the referee permanently
@@ -972,12 +977,16 @@ async def subscription_expiry_loop():
 
                 if (expired or kicked or reminded or expired_payments or reconciled
                         or unstuck or refunded_credit or churned_refs or checkout_nudges
+                        or seats.get("tried") or seats.get("dropped")
                         or recovery["notified"] or recovery["dm_sent"] or recovery["queued"]):
                     logger.info(
                         f"♻️ Subscription worker: expired {expired} users, "
                         f"reminded {reminded}, kicked {kicked}, "
                         f"unstuck {unstuck} stale-grace, "
                         f"reconciled {reconciled} in-group, "
+                        f"seats retried {seats.get('tried', 0)}"
+                        f" (took back {seats.get('kicked', 0)},"
+                        f" gave up on {seats.get('dropped', 0)}), "
                         f"expired {expired_payments} payments, "
                         f"nudged {checkout_nudges} open invoices, "
                         f"recovery notified {recovery['notified']}, "

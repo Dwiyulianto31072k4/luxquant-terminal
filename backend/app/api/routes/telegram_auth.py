@@ -677,6 +677,10 @@ async def link_telegram(
             actor="atas permintaan pemilik Telegram",
         )
 
+    # The id this account was holding before. Linking a new Telegram replaces it
+    # silently, and once replaced it belongs to no row — so this is the only
+    # moment its VIP seat can be taken back.
+    replaced = current_user.telegram_id
     current_user.telegram_id = data.id
     current_user.telegram_username = data.username
     if data.photo_url and not current_user.avatar_url:
@@ -691,6 +695,12 @@ async def link_telegram(
     _maybe_claim_legacy(db, current_user, new_source, is_legacy)
 
     db.commit()
+    if replaced and replaced != data.id:
+        from app.services.vip_seat import note_on_user, release_seat_bounded
+
+        outcome = await release_seat_bounded(db, replaced, reason="replaced by a newly linked Telegram")
+        note_on_user(current_user, replaced, outcome, "replaced on link")
+        db.commit()
     db.refresh(current_user)
 
     return UserResponse.model_validate(current_user)
