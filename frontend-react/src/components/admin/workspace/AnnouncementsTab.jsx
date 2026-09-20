@@ -56,6 +56,25 @@ const fmtDate = (d) =>
     ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
 
+// <input type="datetime-local"> speaks naive local wall-clock time; the API
+// speaks UTC. With no conversion either way the two silently disagree by the
+// operator's own offset — and the failure is invisible, because the row looks
+// correct in the form. A campaign set to start "now" from Jakarta (UTC+7) was
+// stored as 18:57 UTC and sat unseen for seven hours, reading as "the modal is
+// broken". Convert on the way in and on the way out.
+const toLocalInput = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
+const toUtcIso = (local) => {
+  if (!local) return null;
+  const d = new Date(local); // a bare "YYYY-MM-DDTHH:mm" is parsed as local time
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
+
 const inputCls =
   "w-full px-3 py-2 rounded-md bg-ink/[0.03] border border-ink/[0.08] text-text-primary text-xs " +
   "placeholder:text-text-primary/30 focus:outline-none focus:border-ink/20 transition-colors";
@@ -117,8 +136,8 @@ export const AnnouncementsTab = () => {
       cta_label: a.cta_label ?? "",
       cta_url: a.cta_url ?? "",
       target_user_id: a.target_user_id ?? "",
-      starts_at: a.starts_at ? a.starts_at.slice(0, 16) : "",
-      ends_at: a.ends_at ? a.ends_at.slice(0, 16) : "",
+      starts_at: toLocalInput(a.starts_at),
+      ends_at: toLocalInput(a.ends_at),
     });
     setEditing(a.id);
     setErr("");
@@ -161,8 +180,8 @@ export const AnnouncementsTab = () => {
       target_role: form.audience === "role" ? form.target_role : null,
       max_shows: Number(form.max_shows) || 1,
       cooldown_hours: Number(form.cooldown_hours) || 1,
-      starts_at: form.starts_at || null,
-      ends_at: form.ends_at || null,
+      starts_at: toUtcIso(form.starts_at),
+      ends_at: toUtcIso(form.ends_at),
     };
     try {
       if (editing === "new") await announcementApi.create(payload);
