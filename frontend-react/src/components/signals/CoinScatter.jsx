@@ -16,18 +16,19 @@
 // +87% and turnover runs 0 to 0.90, each around a median a fraction of its
 // maximum. Ticks carry their real values.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { InfoTip } from "../GuideInfo";
-import { num } from "./flowMetrics";
-import { pickTicks, projector, sq } from "./scatterKit";
+import { fmtMultiple, num, price as fmtPrice, usdShort } from "./flowMetrics";
+import { pickTicks, placeLabels, projector, sq } from "./scatterKit";
+import ScatterTip from "./ScatterTip";
 
 const DESK = {
   W: 640, H: 330, pad: { t: 16, r: 22, b: 34, l: 44 },
-  fs: 9.5, r0: 3, r1: 11,
+  fs: 9.5, r0: 3, r1: 11, maxLabels: 30,
 };
 const PHONE = {
   W: 360, H: 300, pad: { t: 14, r: 16, b: 38, l: 34 },
-  fs: 10, r0: 2.5, r1: 8,
+  fs: 10, r0: 2.5, r1: 8, maxLabels: 12,
 };
 
 const X_TICKS = [-50, -20, -10, -5, 0, 5, 10, 20, 50, 100];
@@ -51,8 +52,10 @@ const EXPLAIN =
 
 function Plot({ model, G, onOpen }) {
   const { W, H, pad: PAD, fs } = G;
+  const [hover, setHover] = useState(null);
   const zeroX = model.px(0);
   return (
+    <div className="relative">
     <svg
       viewBox={`0 0 ${W} ${H}`}
       className="h-auto w-full touch-manipulation"
@@ -142,47 +145,76 @@ function Plot({ model, G, onOpen }) {
         churn
       </text>
 
-      {model.points.map((p) => (
-        <g key={p.id} className="cursor-pointer" onClick={() => onOpen?.(p.raw)}>
-          <circle
-            cx={p.cx}
-            cy={p.cy}
-            r={p.r}
-            fill={
-              p.called
-                ? "rgb(var(--accent) / 0.4)"
-                : p.x >= 0
-                  ? "rgb(var(--pos) / 0.26)"
-                  : "rgb(var(--neg) / 0.26)"
-            }
-            stroke={
-              p.called
-                ? "rgb(var(--accent))"
-                : p.x >= 0
-                  ? "rgb(var(--pos) / 0.75)"
-                  : "rgb(var(--neg) / 0.75)"
-            }
-            strokeWidth={p.called ? 1.6 : 1}
-          />
-          {model.named.has(p.id) ? (
-            <text
-              /* Clamped into the frame: a name centred on a dot at the right
-                 edge runs off the viewBox and gets cut mid-word. */
-              x={Math.min(W - PAD.r, Math.max(PAD.l, p.cx))}
-              y={p.cy - p.r - 3.5}
-              textAnchor={p.cx > W * 0.7 ? "end" : p.cx < W * 0.16 ? "start" : "middle"}
-              className="pointer-events-none fill-text-primary"
-              style={{ fontSize: fs, fontWeight: 600 }}
-            >
-              {p.name}
-            </text>
-          ) : null}
-          <title>{`${p.name}\n${p.x >= 0 ? "+" : "−"}${Math.abs(p.x).toFixed(
-            2
-          )}% today · turnover ${p.y.toFixed(2)}${p.called ? " · LuxQuant call" : ""}`}</title>
-        </g>
-      ))}
+      {model.points.map((p) => {
+        const label = model.labels.get(p.id);
+        const on = hover?.id === p.id;
+        return (
+          <g
+            key={p.id}
+            className="cursor-pointer"
+            onClick={() => onOpen?.(p.raw)}
+            onMouseEnter={() => setHover(p)}
+            onMouseLeave={() => setHover((h) => (h?.id === p.id ? null : h))}
+          >
+            {/* A transparent disc under every dot, so a 3px mark is still a
+                target a mouse can find without hunting for it. */}
+            <circle cx={p.cx} cy={p.cy} r={Math.max(p.r + 4, 9)} fill="transparent" />
+            <circle
+              cx={p.cx}
+              cy={p.cy}
+              r={p.r}
+              fill={
+                p.called
+                  ? "rgb(var(--accent) / 0.4)"
+                  : p.x >= 0
+                    ? "rgb(var(--pos) / 0.26)"
+                    : "rgb(var(--neg) / 0.26)"
+              }
+              stroke={
+                on
+                  ? "rgb(var(--fg))"
+                  : p.called
+                    ? "rgb(var(--accent))"
+                    : p.x >= 0
+                      ? "rgb(var(--pos) / 0.75)"
+                      : "rgb(var(--neg) / 0.75)"
+              }
+              strokeWidth={on ? 2.4 : p.called ? 1.6 : 1}
+            />
+            {label ? (
+              <text
+                x={label.x}
+                y={label.y}
+                textAnchor={label.anchor}
+                className="pointer-events-none fill-text-primary"
+                style={{ fontSize: fs, fontWeight: 600 }}
+              >
+                {label.text}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
     </svg>
+    <ScatterTip
+      point={hover}
+      W={W}
+      H={H}
+      title={hover?.name}
+      rows={
+        hover
+          ? [
+              { label: "24h", value: `${hover.x >= 0 ? "+" : "\u2212"}${Math.abs(hover.x).toFixed(2)}%`, tone: hover.x >= 0 ? "text-profit" : "text-loss" },
+              { label: "turnover", value: hover.y.toFixed(2) },
+              { label: "24h volume", value: usdShort(hover.vol) },
+              { label: "price", value: fmtPrice(hover.raw?.c?.price) },
+              { label: "vol vs 7d ago", value: fmtMultiple(hover.raw?.volX) },
+            ]
+          : []
+      }
+      note={hover?.called ? "LuxQuant call \u00b7 tap to open" : "tap to open"}
+    />
+    </div>
   );
 }
 
@@ -225,19 +257,37 @@ function buildModel(rows, G) {
     r: G.r0 + Math.sqrt(p.vol / maxVol) * G.r1,
   }));
 
-  // Label the corners of the story, not the market: the biggest mover each
-  // way, the busiest, and the two largest by dollars traded.
-  const byX = [...placed].sort((a, b) => b.x - a.x);
-  const byY = [...placed].sort((a, b) => b.y - a.y);
-  const byVol = [...placed].sort((a, b) => b.vol - a.vol);
-  const named = new Set(
-    [byX[0], byX.at(-1), byY[0], byY[1], byVol[0], byVol[1]].filter(Boolean).map((p) => p.id)
+  // Who gets a name. The corners of the story come first — the biggest mover
+  // each way, the busiest, the largest by dollars traded — then everything else
+  // in order of how much money is behind it, and a coin we called outranks one
+  // we did not. placeLabels keeps whatever fits; the rest have the hover card.
+  const maxX = Math.max(...placed.map((p) => Math.abs(p.x)), 1);
+  const corners = new Set(
+    [
+      [...placed].sort((a, b) => b.x - a.x)[0],
+      [...placed].sort((a, b) => a.x - b.x)[0],
+      [...placed].sort((a, b) => b.y - a.y)[0],
+      [...placed].sort((a, b) => b.vol - a.vol)[0],
+    ]
+      .filter(Boolean)
+      .map((p) => p.id)
+  );
+  const labels = placeLabels(
+    placed.map((p) => ({
+      ...p,
+      priority:
+        (corners.has(p.id) ? 100 : 0) +
+        Math.sqrt(p.vol / maxVol) * 10 +
+        (Math.abs(p.x) / maxX) * 4 +
+        (p.called ? 1.5 : 0),
+    })),
+    { W, H, fs: G.fs, max: G.maxLabels, maxChars: 10 }
   );
 
   const busy = placed.filter((p) => p.y >= 0.3);
   return {
     points: placed,
-    named,
+    labels,
     px,
     py,
     busyY: yHi >= 0.3 ? py(0.3) : null,
@@ -281,7 +331,7 @@ export default function CoinScatter({ rows = [], onOpen }) {
         Up is a coin that traded more of itself today, right is a coin that rose. Dot size is the
         dollars traded and gold is a coin we have called — {desk.calledCount} of{" "}
         {desk.points.length} here. Turnover has no direction on its own; this is the chart that
-        gives it one. Tap a dot to open the coin.
+        gives it one. Hover any dot for its figures; tap to open the coin.
       </p>
     </div>
   );

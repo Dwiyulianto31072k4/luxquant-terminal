@@ -326,16 +326,65 @@ describe("Narratives renders", () => {
 });
 
 describe("the two scatters", () => {
-  it("Coin flow's map draws every coin and names only the corners", () => {
+  it("Coin flow's map draws every coin, labels what fits, and leaves the rest to hover", () => {
     const rows = enrichCoins(COINS, new Map());
     const out = html(<CoinScatter rows={rows} onOpen={() => {}} />);
     expect(out).toContain("Is the busy money buying or selling?");
-    // Two geometries — one for the phone, one for the desk.
-    const circles = (out.match(/<circle/g) || []).length;
-    expect(circles).toBe(rows.filter((r) => r.c.flow_intensity != null).length * 2);
-    // Labelled corners only, never a name on every dot.
+    const plotted = rows.filter((r) => r.c.flow_intensity != null).length;
+    // One group per point, in each of the two geometries (phone and desk).
+    const groups = (out.match(/<g class="cursor-pointer"/g) || []).length;
+    expect(groups).toBe(plotted * 2);
+    // Every dot carries an invisible hit target as well as its mark, because a
+    // 3px circle is not something a mouse can find.
+    expect((out.match(/fill="transparent"/g) || []).length).toBe(plotted * 2);
+    // Some names, never all of them.
     const names = (out.match(/font-weight:600/g) || []).length;
-    expect(names).toBeLessThan(circles / 2);
+    expect(names).toBeGreaterThan(0);
+    expect(names).toBeLessThan(groups);
+  });
+
+  it("never places two labels on top of each other", async () => {
+    const { placeLabels } = await import("./scatterKit");
+    // Ten points stacked in the same place: at most one of them can be named.
+    const stacked = Array.from({ length: 10 }, (_, i) => ({
+      id: `s${i}`, cx: 300, cy: 160, r: 5, name: "OVERLAP", priority: i,
+    }));
+    expect(placeLabels(stacked, { W: 640, H: 320, fs: 9.5 }).size).toBeLessThanOrEqual(4);
+
+    // Spread out, they all get one.
+    const spread = Array.from({ length: 6 }, (_, i) => ({
+      id: `p${i}`, cx: 60 + i * 95, cy: 60 + (i % 2) * 120, r: 4, name: "AAA", priority: i,
+    }));
+    expect(placeLabels(spread, { W: 640, H: 320, fs: 9.5 }).size).toBe(6);
+  });
+
+  it("keeps every label inside the frame and honours the cap", async () => {
+    const { placeLabels } = await import("./scatterKit");
+    const pts = Array.from({ length: 60 }, (_, i) => ({
+      id: `p${i}`,
+      cx: 20 + ((i * 53) % 600),
+      cy: 20 + ((i * 97) % 280),
+      r: 4,
+      name: `NAME${i}`,
+      priority: 60 - i,
+    }));
+    const placed = placeLabels(pts, { W: 640, H: 320, fs: 9.5, max: 12 });
+    expect(placed.size).toBeLessThanOrEqual(12);
+    for (const l of placed.values()) {
+      expect(l.x).toBeGreaterThanOrEqual(0);
+      expect(l.x).toBeLessThanOrEqual(640);
+      expect(l.y).toBeGreaterThanOrEqual(0);
+      expect(l.y).toBeLessThanOrEqual(320);
+    }
+  });
+
+  it("truncates a name rather than letting it run out of the plot", async () => {
+    const { placeLabels } = await import("./scatterKit");
+    const placed = placeLabels(
+      [{ id: "a", cx: 320, cy: 160, r: 5, name: "Artificial Intelligence (AI)", priority: 1 }],
+      { W: 640, H: 320, fs: 9.5, maxChars: 12 }
+    );
+    expect(placed.get("a").text).toBe("Artificial…");
   });
 
   it("the map says nothing when there is nothing to plot", () => {

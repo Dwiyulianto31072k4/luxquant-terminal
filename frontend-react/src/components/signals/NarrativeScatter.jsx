@@ -27,21 +27,22 @@
 // Plain SVG on purpose — forty points, two axes and six labels do not justify a
 // chart bundle, and hand-drawn marks take the theme tokens directly.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { InfoTip } from "../GuideInfo";
 import { median as medianOf, num } from "./flowMetrics";
-import { pickTicks, spearman, sq } from "./scatterKit";
+import { pickTicks, placeLabels, spearman, sq } from "./scatterKit";
+import ScatterTip from "./ScatterTip";
 
 // Two geometries, same data. A 640-wide viewBox squeezed into a 358px phone
 // column renders its 9.5px labels at 5.3px, which is not a label. The phone
 // gets a viewBox close to its own width so the type lands near its real size.
 const DESK = {
   W: 640, H: 320, pad: { t: 14, r: 26, b: 32, l: 40 },
-  fs: 9.5, r0: 4, r1: 9, axis: "VS MARKET, 7D (pp) · √ SCALE",
+  fs: 9.5, r0: 4, r1: 9, axis: "VS MARKET, 7D (pp) · √ SCALE", maxLabels: 22, maxChars: 18,
 };
 const PHONE = {
   W: 360, H: 300, pad: { t: 14, r: 18, b: 38, l: 30 },
-  fs: 10, r0: 3.5, r1: 7, axis: "VS MARKET 7D (pp) · √",
+  fs: 10, r0: 3.5, r1: 7, axis: "VS MARKET 7D (pp) · √", maxLabels: 10, maxChars: 13,
 };
 
 const EXPLAIN =
@@ -103,15 +104,35 @@ function buildModel(narratives, marketChange7d, G) {
       r: G.r0 + Math.sqrt(p.coins / maxCoins) * G.r1,
     }));
 
-    // Label the extremes only. Every dot labelled is the wall of overlapping
-    // text this chart replaced.
-    const byX = [...placed].sort((a, b) => b.x - a.x);
-    const byY = [...placed].sort((a, b) => b.y - a.y);
-    const named = new Set([byX[0]?.id, byX.at(-1)?.id, byY[0]?.id, byY[1]?.id, byY.at(-1)?.id]);
+    // Who gets a name. The extremes first, then everything else by how many
+    // coins we called there — the narratives the desk is most invested in are
+    // the ones worth recognising without a hover. placeLabels keeps whatever
+    // fits without colliding; the rest have the hover card.
+    const maxX = Math.max(...placed.map((p) => Math.abs(p.x)), 1);
+    const corners = new Set(
+      [
+        [...placed].sort((a, b) => b.x - a.x)[0],
+        [...placed].sort((a, b) => a.x - b.x)[0],
+        [...placed].sort((a, b) => b.y - a.y)[0],
+        [...placed].sort((a, b) => a.y - b.y)[0],
+      ]
+        .filter(Boolean)
+        .map((p) => p.id)
+    );
+    const labels = placeLabels(
+      placed.map((p) => ({
+        ...p,
+        priority:
+          (corners.has(p.id) ? 100 : 0) +
+          Math.sqrt(p.coins / maxCoins) * 10 +
+          (Math.abs(p.x) / maxX) * 3,
+      })),
+      { W, H, fs: G.fs, max: G.maxLabels, maxChars: G.maxChars }
+    );
 
     return {
       points: placed,
-      named,
+      labels,
       medianPeak: medianOf(ys),
       py,
       px,
@@ -125,10 +146,12 @@ function buildModel(narratives, marketChange7d, G) {
 /** The plot itself, at one geometry. */
 function Plot({ model, G, activeIds, onOpen }) {
   const { W, H, pad: PAD, fs } = G;
+  const [hover, setHover] = useState(null);
   const active = new Set(activeIds || []);
   const zeroX = model.px(0);
   const midY = model.py(model.medianPeak);
   return (
+    <div className="relative">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full touch-manipulation"
@@ -205,42 +228,80 @@ function Plot({ model, G, activeIds, onOpen }) {
 
         {model.points.map((p) => {
           const on = active.has(p.id);
+          const hot = hover?.id === p.id;
           const ahead = p.x >= 0;
+          const label = model.labels.get(p.id);
           return (
             <g
               key={p.id}
               className="cursor-pointer"
               onClick={() => onOpen?.(p.raw)}
+              onMouseEnter={() => setHover(p)}
+              onMouseLeave={() => setHover((h) => (h?.id === p.id ? null : h))}
               tabIndex={-1}
             >
+              {/* A transparent disc under every dot, so a small mark is still a
+                  target a mouse can find without hunting for it. */}
+              <circle cx={p.cx} cy={p.cy} r={Math.max(p.r + 4, 10)} fill="transparent" />
               <circle
                 cx={p.cx}
                 cy={p.cy}
                 r={p.r}
                 fill={ahead ? "rgb(var(--pos) / 0.45)" : "rgb(var(--neg) / 0.45)"}
-                stroke={on ? "rgb(var(--accent))" : ahead ? "rgb(var(--pos))" : "rgb(var(--neg))"}
-                strokeWidth={on ? 2.5 : 1.4}
+                stroke={
+                  hot
+                    ? "rgb(var(--fg))"
+                    : on
+                      ? "rgb(var(--accent))"
+                      : ahead
+                        ? "rgb(var(--pos))"
+                        : "rgb(var(--neg))"
+                }
+                strokeWidth={hot ? 2.6 : on ? 2.5 : 1.4}
               />
-              {model.named.has(p.id) || on ? (
+              {label ? (
                 <text
-                  /* Clamped into the frame: a name centred on a dot at the
-                     right edge runs off the viewBox and gets cut mid-word. */
-                  x={Math.min(W - PAD.r, Math.max(PAD.l, p.cx))}
-                  y={p.cy - p.r - 4}
-                  textAnchor={p.cx > W * 0.7 ? "end" : p.cx < W * 0.2 ? "start" : "middle"}
+                  x={label.x}
+                  y={label.y}
+                  textAnchor={label.anchor}
                   className="pointer-events-none fill-text-primary"
                   style={{ fontSize: fs, fontWeight: 600 }}
                 >
-                  {p.name.length > 22 ? `${p.name.slice(0, 21).trim()}…` : p.name}
+                  {label.text}
                 </text>
               ) : null}
-              <title>{`${p.name}\n${p.x >= 0 ? "+" : "−"}${Math.abs(p.x).toFixed(
-                1
-              )}pp vs market · typical peak ${p.y.toFixed(1)}% · ${p.coins} coins called`}</title>
             </g>
           );
         })}
       </svg>
+      <ScatterTip
+        point={hover}
+        W={W}
+        H={H}
+        title={hover?.name}
+        rows={
+          hover
+            ? [
+                {
+                  label: "vs market, 7d",
+                  value: `${hover.x >= 0 ? "+" : "\u2212"}${Math.abs(hover.x).toFixed(1)}pp`,
+                  tone: hover.x >= 0 ? "text-profit" : "text-loss",
+                },
+                { label: "typical peak", value: `${hover.y.toFixed(1)}%`, tone: "text-profit" },
+                { label: "coins called", value: hover.coins },
+                {
+                  label: "TP3+",
+                  value:
+                    hover.raw?.full_tp_rate == null
+                      ? "\u2014"
+                      : `${hover.raw.full_tp_rate.toFixed(1)}%`,
+                },
+              ]
+            : []
+        }
+        note="tap for the calls behind it"
+      />
+    </div>
   );
 }
 
@@ -292,7 +353,7 @@ export default function NarrativeScatter({
         {model.rho != null && Math.abs(model.rho) < 0.2
           ? "capital arriving in a narrative is not a reason to expect more from a call in it."
           : "read the corner figure before drawing a line through it."}{" "}
-        Tap a dot for the calls behind it.
+        Hover any dot for its figures; tap for the calls behind it.
       </p>
     </div>
   );
