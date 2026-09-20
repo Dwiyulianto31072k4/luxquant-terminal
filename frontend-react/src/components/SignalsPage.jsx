@@ -533,6 +533,10 @@ const SignalsPage = () => {
     () => new Set((deskEdge?.runners?.top_ids || []).map(String)),
     [deskEdge]
   );
+  // Narrow Runners to the day's Top Runners. A refinement of Runners, not a
+  // fourth mode: a Top Runner IS a Runner, so it lives beside the mode rail
+  // rather than inside it, and it means nothing at all outside Runners.
+  const [topRunnersOnly, setTopRunnersOnly] = useState(false);
   const [apiIsSubscriber, setIsSubscriber] = useState(
     () => bootCache?.isSubscriber ?? false
   );
@@ -1563,6 +1567,12 @@ const SignalsPage = () => {
         label: `Search: ${searchPair.toUpperCase()}`,
         clear: () => setSearchPair(""),
       });
+    if (topRunnersOnly)
+      out.push({
+        key: "toprunners",
+        label: "Top Runners only",
+        clear: () => setTopRunnersOnly(false),
+      });
     if (showWatchlistOnly)
       out.push({
         key: "watchlist",
@@ -1623,6 +1633,7 @@ const SignalsPage = () => {
   }, [
     narratives,
     searchPair,
+    topRunnersOnly,
     showWatchlistOnly,
     statusFilter,
     riskFilter,
@@ -1637,6 +1648,7 @@ const SignalsPage = () => {
 
   const resetFilters = useCallback(() => {
     setSearchPair("");
+    setTopRunnersOnly(false);
     setNarratives([]);
     setJournalFilter("all");
     setStatusFilter("all");
@@ -1683,6 +1695,10 @@ const SignalsPage = () => {
   const applyRecipeState = useCallback((state) => {
     if (!state || typeof state !== "object") return;
     setMineExtra(null);
+    // Switching mode drops the Runners refinement. Left on, it would survive
+    // into All as an invisible filter with no control on screen to clear it —
+    // the exact shape of bug the chip bar exists to prevent.
+    setTopRunnersOnly(false);
     setSelectedTags(Array.isArray(state.selectedTags) ? state.selectedTags : []);
     setTagMatchMode(state.tagMatchMode === "all" ? "all" : "any");
     setStatusFilter(state.statusFilter || "all");
@@ -1861,7 +1877,13 @@ const SignalsPage = () => {
       deskEdge?.runners
     );
     if (runnersView) {
-      const ids = new Set(deskEdge.runners.ids.map(String));
+      // Top Runners first, because it is the stricter set: the topic's own
+      // top_ids, decided at publish, not re-derived here — the same reason
+      // Runners itself is a membership list rather than a live rule.
+      const ids =
+        topRunnersOnly && topRunnerIds.size
+          ? topRunnerIds
+          : new Set(deskEdge.runners.ids.map(String));
       filtered = filtered.filter((s) => ids.has(String(s.signal_id)));
     } else if (edgeTop) {
       const cut = deskEdge?.book_scores
@@ -1930,6 +1952,8 @@ const SignalsPage = () => {
     signalTags,
     edgeScoreMap,
     deskEdge,
+    topRunnersOnly,
+    topRunnerIds,
     showWatchlistOnly,
     watchlistIds,
     watchlistSignals,
@@ -2377,6 +2401,9 @@ const SignalsPage = () => {
           watchlistCount={watchlistIds.length}
           watchlistActive={showWatchlistOnly}
           onWatchlist={enterWatchlist}
+          topRunnersOnly={topRunnersOnly}
+          topRunnersCount={topRunnerIds.size}
+          onToggleTopRunners={() => setTopRunnersOnly((v) => !v)}
           guideMode={guideMode}
           onGuideMode={setGuideMode}
           onDeskGuide={() => {

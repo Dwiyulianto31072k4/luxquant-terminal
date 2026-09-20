@@ -10,7 +10,7 @@ import RecipeExplainModal, { HuntResults } from "./RecipeExplainModal";
 import RunnersResults from "./runners/RunnersResults";
 import ModeGuideModal, { isModeGuideMuted } from "./ModeGuideModal";
 import Modal from "./ui/Modal";
-import { SegGroup, deskChipClass } from "./ui/SegGroup";
+import { SegGroup, deskBadgeClass, deskChipClass } from "./ui/SegGroup";
 import edgeLabApi from "../services/edgeLabApi";
 
 export const ALL_MODE_STATE = {
@@ -114,6 +114,12 @@ export default function EdgeRecipesBar({
   watchlistCount = 0,
   watchlistActive = false,
   onWatchlist,
+  /** Runners narrowed to the day's Top Runners. A refinement of the Runners
+   *  mode, not a fourth mode — a Top Runner IS a Runner — so it rides beside
+   *  the rail and only exists while Runners is the mode. */
+  topRunnersOnly = false,
+  topRunnersCount = 0,
+  onToggleTopRunners,
   guideMode: guideModeProp = null,
   onGuideMode,
   onDeskGuide,
@@ -380,6 +386,23 @@ export default function EdgeRecipesBar({
             options={modeOptions}
           />
         </div>
+        {/* Only while Runners is on, because outside it the words mean
+            nothing and a dead control is worse than a missing one. */}
+        {showRecipes && modeValue === "full_tp" && onToggleTopRunners ? (
+          <button
+            type="button"
+            aria-pressed={topRunnersOnly}
+            className={`${deskChipClass(topRunnersOnly)} justify-center !px-2 sm:!px-2.5`}
+            title="Only the Runners carrying the day's leading runner tag when they were posted"
+            onClick={onToggleTopRunners}
+          >
+            <span aria-hidden="true">★</span>
+            <span>Top only</span>
+            {topRunnersCount > 0 ? (
+              <span className={deskBadgeClass(topRunnersOnly)}>{topRunnersCount}</span>
+            ) : null}
+          </button>
+        ) : null}
         {showRecipes ? (
           <button
             type="button"
