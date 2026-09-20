@@ -288,9 +288,23 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
       }),
   };
 
+  // Re-place whenever the MODEL changes — new rows, a new filter, a new
+  // window. This is the bug that made the names look like they had come
+  // unstuck: a label carries the offset from the dot it was placed against,
+  // and changing the filter changes the axis domain, which moves every dot.
+  // The offsets were still correct and the positions they were measured from
+  // no longer existed, so each label drifted by a different amount. There was
+  // no path back either — the only reset ran at exactly 1x with no pan, and a
+  // reader who had touched the zoom never saw it fire.
+  //
+  // Deliberately NOT keyed on the transform: the placer walks every point
+  // against every label already down, and running that per frame is the
+  // stutter this panel was accused of. Gestures are handled by useZoomPan's
+  // settle instead.
   useEffect(() => {
-    if (t.k <= 1.001 && t.x === 0 && t.y === 0) setLabels(model.labels);
-  }, [t, model.labels]);
+    if (stateRef.current) setLabels(stateRef.current.place());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [model]);
 
   const xTicks = useMemo(() => {
     const inFrame = X_TICKS.filter((v) => {
