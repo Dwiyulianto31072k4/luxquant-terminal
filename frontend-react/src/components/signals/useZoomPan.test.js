@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { IDENTITY, markScale, zoomAbout } from "./useZoomPan";
+import { IDENTITY, labelScale, markScale, zoomAbout } from "./useZoomPan";
 
 const W = 640;
 const H = 320;
@@ -106,5 +106,22 @@ describe("the two-finger rule, which is what keeps a phone scrollable", () => {
   it("never withholds a mouse or pen drag, which has no page-scroll to steal", () => {
     expect(wouldPan("mouse", 1)).toBe(true);
     expect(wouldPan("pen", 1)).toBe(true);
+  });
+});
+
+describe("type keeps its proportion to the marks", () => {
+  it("grows with the zoom, because marks do", () => {
+    // Held fixed, a name stops reading as the name OF the logo beside it.
+    expect(labelScale(1)).toBe(1);
+    expect(labelScale(4)).toBeGreaterThan(1);
+  });
+
+  it("grows slower than the marks, so the zoom still declutters", () => {
+    for (const k of [2, 4, 8]) expect(labelScale(k)).toBeLessThan(markScale(k));
+  });
+
+  it("is capped, so a deep zoom does not turn the plot into a word list", () => {
+    expect(labelScale(16)).toBeLessThanOrEqual(1.5);
+    expect(labelScale(400)).toBeLessThanOrEqual(1.5);
   });
 });

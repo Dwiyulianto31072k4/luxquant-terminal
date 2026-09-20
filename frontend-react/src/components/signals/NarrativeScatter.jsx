@@ -196,6 +196,8 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
 
   const zp = useZoomPan({ W, H, wheel, onSettle: resettle });
   const { t, project, mark } = zp;
+  // Type grows with the zoom too, or it shrinks away beside marks that do.
+  const fz = fs * zp.label;
   const active = new Set(activeIds || []);
 
   const points = useMemo(
@@ -213,7 +215,7 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
       placeLabels(cull(points, W, H, 0), {
         W,
         H,
-        fs: G.fs,
+        fs: fz,
         // The cap guards the UNZOOMED view, where every point is on screen and
         // a wall of text helps nobody. Zoomed in, the frame holds a handful of
         // dots with room to spare, and collision is the only limit that should
@@ -373,7 +375,7 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
                      what lets a label sit over a mark and still be read, which
                      is what buys the plot three times as many names. */
                   style={{
-                    fontSize: fs,
+                    fontSize: fz,
                     fontWeight: 600,
                     paintOrder: "stroke",
                     stroke: "rgb(var(--surface-raised))",

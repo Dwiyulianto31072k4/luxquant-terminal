@@ -129,10 +129,14 @@ export function placeLabels(items, { W, H, fs, max = 26, maxChars = 18, pad = 3 
     // ascender above it.
     const at = (bx, by, anchor) => ({ x: bx, y: by, anchor, box: null });
     const options = [
-      { ...at(p.cx, p.cy - p.r - 4, "middle"), left: p.cx - w / 2 },
-      { ...at(p.cx, p.cy + p.r + fs, "middle"), left: p.cx - w / 2 },
-      { ...at(p.cx + p.r + 4, p.cy + fs * 0.34, "start"), left: p.cx + p.r + 4 },
-      { ...at(p.cx - p.r - 4, p.cy + fs * 0.34, "end"), left: p.cx - p.r - 4 - w },
+      // The gap rides the mark, so a label sits the same distance off a big
+      // logo as off a small dot. It is deliberately tight: at a deep zoom the
+      // marks are large, and r + 4 left enough air between a logo and its own
+      // name to read as two unrelated things.
+      { ...at(p.cx, p.cy - p.r - 2.5, "middle"), left: p.cx - w / 2 },
+      { ...at(p.cx, p.cy + p.r + fs * 0.9, "middle"), left: p.cx - w / 2 },
+      { ...at(p.cx + p.r + 3, p.cy + fs * 0.34, "start"), left: p.cx + p.r + 3 },
+      { ...at(p.cx - p.r - 3, p.cy + fs * 0.34, "end"), left: p.cx - p.r - 3 - w },
     ].map((o) => ({ ...o, box: [o.left, o.y - ascent, w, h] }));
     for (const o of options) {
       const [bx, by, bw, bh] = o.box;

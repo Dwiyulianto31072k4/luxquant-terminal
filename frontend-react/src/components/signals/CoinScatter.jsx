@@ -91,6 +91,8 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
 
   const zp = useZoomPan({ W, H, wheel, onSettle: resettle });
   const { t, project, mark } = zp;
+  // Type grows with the zoom too, or it shrinks away beside marks that do.
+  const fz = fs * zp.label;
 
   // Positions after the transform. Radii grow sub-linearly, which is what makes
   // a zoom de-clutter rather than magnify: the cloud spreads faster than the
@@ -121,7 +123,7 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
         {
           W,
           H,
-          fs: G.fs,
+          fs: fz,
           // The cap is a guard for the UNZOOMED view, where every point is on
           // screen and a wall of text helps nobody. Zoomed in, the frame holds
           // a handful of dots with room to spare, and the collision rule is
@@ -315,7 +317,7 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
                    what lets a label sit over a mark and still be read, which
                    is what buys the plot three times as many names. */
                 style={{
-                  fontSize: fs,
+                  fontSize: fz,
                   fontWeight: 600,
                   paintOrder: "stroke",
                   stroke: "rgb(var(--surface-raised))",

@@ -46,6 +46,16 @@ export const IDENTITY = { k: 1, x: 0, y: 0 };
  *  with one coin. */
 export const markScale = (k) => Math.min(2.6, Math.sqrt(k));
 
+/** How much the TYPE grows with the zoom.
+ *
+ *  Not at all was wrong, and it read as a bug rather than as a choice: marks
+ *  grow by the square root of the zoom, so type held at a fixed size looks
+ *  smaller and smaller beside them until a name stops reading as the name OF
+ *  the logo next to it. Not linearly either — that would undo the decluttering
+ *  the zoom is for. A gentle exponent keeps the proportion without eating the
+ *  space the zoom just bought. */
+export const labelScale = (k) => Math.min(1.5, Math.pow(k, 0.3));
+
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /** Keep the plot from being dragged off its own frame: at k the content is k
@@ -277,5 +287,6 @@ export default function useZoomPan({ W, H, min = 1, max = 16, wheel = "modifier"
     /** data position -> screen position, for every mark on the plot */
     project: useCallback((x, y) => ({ x: t.k * x + t.x, y: t.k * y + t.y }), [t]),
     mark: markScale(t.k),
+    label: labelScale(t.k),
   };
 }
