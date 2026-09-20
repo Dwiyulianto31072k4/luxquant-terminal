@@ -98,16 +98,23 @@ export const CampaignCard = ({ ann, onDismiss, onAct, dialogRef, asDialog = true
           <div className="px-3 pt-3 sm:px-4 sm:pt-4">
             <div
               className="relative overflow-hidden rounded-2xl"
-              // 16:10 is the shape, but not at any cost: on a landscape phone
-              // (measured 740x380) the tile filled the whole scroll area and
-              // pushed the title below the fold, so the card opened as a
-              // picture with no message. The cap lets the art lose height —
-              // object-cover crops it — and keeps the headline on screen. It
-              // does not bite on a normal portrait phone.
+              // 16:9, which is PowerPoint/Keynote's default slide and every
+              // screenshot of a 16:9 display — so artwork authored the way this
+              // team actually authors it lands with nothing cropped. The tile
+              // was 16:10 first and the mismatch was immediately visible: a
+              // 1200x630 image (1.905) lost 16% off its sides, taking the
+              // wordmark with it.
+              //
+              // The shape still is not guaranteed: object-cover crops whatever
+              // does not match, and the cap below can take height on a short
+              // viewport. Keep anything that must be read away from the edges.
               style={{
-                aspectRatio: "16 / 10",
-                // Overridable so the admin form can show the worst case
-                // (a landscape phone) without emulating a viewport.
+                aspectRatio: "16 / 9",
+                // On a landscape phone (measured 740x380) an uncapped tile
+                // filled the whole scroll area and pushed the headline below
+                // the fold — the card opened as a picture with no message.
+                // Overridable so the admin form can show that case without
+                // emulating a viewport. Does not bite on a portrait phone.
                 maxHeight: "var(--lq-campaign-art-maxh, min(38vh, 260px))",
                 border: "1px solid rgb(var(--ink) / 0.08)",
               }}

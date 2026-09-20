@@ -257,11 +257,14 @@ export const AnnouncementsTab = () => {
             </div>
             <p className="mt-1.5 text-[10px] leading-relaxed text-text-muted">
               One image serves every device: the card is 375-420px wide
-              everywhere, so the artwork is always 16:10. Upload{" "}
-              <span className="font-mono text-text-secondary">1600x1000</span>{" "}
-              (or 1200x750) and keep anything that must be read away from the
-              edges - it is cropped from the centre, and on a landscape phone
-              the tile loses height. See it in Preview below.
+              everywhere, so the artwork is always{" "}
+              <span className="font-mono text-text-secondary">16:9</span> — a
+              PowerPoint or Keynote slide exported at{" "}
+              <span className="font-mono text-text-secondary">1920x1080</span>{" "}
+              fits exactly, nothing cropped. Any other ratio is cropped from the
+              centre, and on a landscape phone the tile loses height, so keep
+              anything that must be read away from the edges. Check it in
+              Preview below.
             </p>
           </div>
 
