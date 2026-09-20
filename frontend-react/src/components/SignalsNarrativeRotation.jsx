@@ -19,6 +19,7 @@
 
 import { useMemo } from "react";
 import { InfoTip } from "./GuideInfo";
+import { barScale, barWidth } from "./signals/flowMetrics";
 
 const money = (v) => {
   const n = Math.abs(Number(v) || 0);
@@ -38,12 +39,17 @@ const EXPLAIN =
   "The dollar figure is the actual change in that narrative's market cap, which is why a small " +
   "percentage on a huge narrative can still be billions.\n\n" +
   "This is not net inflow. Market cap rises when price rises, with no new money required — read " +
-  "it as 'gained value faster than the market', not 'this much cash arrived'.";
+  "it as 'gained value faster than the market', not 'this much cash arrived'.\n\n" +
+  "The rail is scaled to the 90th percentile of the week's moves, not to the biggest one. One " +
+  "narrative regularly runs ninety points ahead of the market while the typical one runs four; " +
+  "scaled to that outlier every other bar is a few pixels long and the panel shows one fact " +
+  "instead of twelve. Anything past the scale is drawn full length with a bright cap, so a bar " +
+  "that is clipped says so.";
 
-function Row({ item, maxAbs, market, rank, active, onPick }) {
+function Row({ item, scaleRef, market, rank, active, onPick }) {
   const rs = (item.mcap_change_7d ?? 0) - (market ?? 0);
   const pos = rs >= 0;
-  const width = maxAbs > 0 ? Math.min(100, (Math.abs(rs) / maxAbs) * 100) : 0;
+  const { w: width, over } = barWidth(rs, scaleRef);
   return (
     <button
       type="button"
@@ -75,18 +81,18 @@ function Row({ item, maxAbs, market, rank, active, onPick }) {
         <span className="absolute inset-y-0 left-1/2 w-px bg-ink/[0.12]" aria-hidden="true" />
         <span className="flex h-full w-1/2 justify-end">
           {!pos ? (
-            <span
-              className="h-full rounded-l-sm bg-loss/70"
-              style={{ width: `${width}%` }}
-            />
+            <span className="relative h-full rounded-l-sm bg-loss/70" style={{ width: `${width}%` }}>
+              {/* A clipped bar says so, rather than quietly reading as "the
+                  worst there is". */}
+              {over ? <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-sm bg-loss" aria-hidden="true" /> : null}
+            </span>
           ) : null}
         </span>
         <span className="flex h-full w-1/2">
           {pos ? (
-            <span
-              className="h-full rounded-r-sm bg-profit/70"
-              style={{ width: `${width}%` }}
-            />
+            <span className="relative h-full rounded-r-sm bg-profit/70" style={{ width: `${width}%` }}>
+              {over ? <span className="absolute inset-y-0 right-0 w-[3px] rounded-r-sm bg-profit" aria-hidden="true" /> : null}
+            </span>
           ) : null}
         </span>
       </span>
@@ -113,7 +119,7 @@ export default function SignalsNarrativeRotation({
   onPick = null,
   perSide = 6,
 }) {
-  const { inflow, outflow, maxAbs, up, down, moved } = useMemo(() => {
+  const { inflow, outflow, scale, up, down, moved } = useMemo(() => {
     const active = new Set(activeIds || []);
     const pool = (active.size
       ? narratives.filter((x) => active.has(x.category_id))
@@ -128,13 +134,25 @@ export default function SignalsNarrativeRotation({
     // a rotation, and the money leaving is the same story as the money arriving.
     const inflow = withRs.filter((x) => x.rs > 0).slice(0, perSide);
     const outflow = withRs.filter((x) => x.rs < 0).slice(-perSide).reverse();
-    const maxAbs = Math.max(...withRs.map((x) => Math.abs(x.rs)), 0.001);
+    // Scaled over the ROWS ON SCREEN, at their 90th percentile.
+    //
+    // Two wrong answers were tried first. The maximum across all narratives
+    // leaves the outflow side as slivers — the live week runs +95.8 to −4.2, so
+    // the whole "money moved out" half draws at 4% of the rail. The 90th
+    // percentile across all narratives is worse: these twelve rows ARE the two
+    // tails, so almost every one of them sits above it and five of the six
+    // inflow bars came out at full length, which is the flat column the scale
+    // existed to prevent. Taking the quantile of the displayed set spreads the
+    // twelve rows that are actually drawn and clips only the true outliers,
+    // which then wear a cap so the clipping is visible.
+    const shown = [...inflow, ...outflow];
+    const scale = barScale(shown.map((x) => x.rs), 0.9);
     // Counted over EVERY narrative, not the twelve drawn: a summary of the
     // rows that happen to be on screen is not a summary of the rotation.
     const up = withRs.filter((x) => x.rs > 0);
     const down = withRs.filter((x) => x.rs < 0);
     const moved = withRs.reduce((t, x) => t + Math.abs(x.flow_usd_7d || 0), 0);
-    return { inflow, outflow, maxAbs, up: up.length, down: down.length, moved };
+    return { inflow, outflow, scale, up: up.length, down: down.length, moved };
   }, [narratives, marketChange7d, activeIds, perSide]);
 
   if (!inflow.length && !outflow.length) return null;
@@ -181,7 +199,7 @@ export default function SignalsNarrativeRotation({
               <Row
                 key={x.category_id}
                 item={x}
-                maxAbs={maxAbs}
+                scaleRef={scale.ref}
                 market={marketChange7d}
                 rank={rankOf?.get?.(x.category_id)}
                 active={(activeIds || []).includes(x.category_id)}
@@ -200,7 +218,7 @@ export default function SignalsNarrativeRotation({
               <Row
                 key={x.category_id}
                 item={x}
-                maxAbs={maxAbs}
+                scaleRef={scale.ref}
                 market={marketChange7d}
                 rank={rankOf?.get?.(x.category_id)}
                 active={(activeIds || []).includes(x.category_id)}
@@ -213,8 +231,9 @@ export default function SignalsNarrativeRotation({
 
       <p className="mt-2 text-[11px] leading-snug text-text-muted">
         Bars are each narrative&apos;s 7-day market-cap change minus the market&apos;s own, so zero
-        means it moved with everything else. Dollars are the change in market cap, not cash
-        arriving.
+        means it moved with everything else. The rail is scaled to the 90th percentile of the
+        week; a bar with a bright cap runs past it. Dollars are the change in market cap, not
+        cash arriving.
       </p>
     </div>
   );

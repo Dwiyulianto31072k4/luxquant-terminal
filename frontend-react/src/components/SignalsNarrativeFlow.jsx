@@ -15,6 +15,14 @@
 // call is counted under each. "Coins" therefore reads "how much of this
 // narrative we have called", never "share of the book" — the columns are not
 // meant to sum to 100%.
+//
+// Reranked 2026-09-20. The table used to lead with "Our calls" and carry a bare
+// win rate, which invited the one reading the data cannot support: measured on
+// the live 30-day window, 1 of 780 win-rate pairs is separable and at 90 days
+// it is 5 of 780. Typical peak separates 17% of pairs. So the default sort is
+// now typical peak, win rate is printed WITH its interval and set back, and
+// TP3+ — already in the payload, never drawn — joins it as the outcome column
+// that actually moves (37% to 55%, against win rate's 83–94).
 
 import { useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
@@ -22,9 +30,12 @@ import { SegGroup } from "./ui/SegGroup";
 import { InfoTip } from "./GuideInfo";
 import SignalsNarrativeRotation from "./SignalsNarrativeRotation";
 import SignalsNarrativeBoard from "./SignalsNarrativeBoard";
-import BubbleField from "./BubbleField";
 import NarrativeCallsModal from "./NarrativeCallsModal";
 import { useChartTokens } from "./charts/EChart";
+import useStickyOpen from "./signals/useStickyOpen";
+import { BulletCell, RateCell } from "./signals/FlowUI";
+import NarrativeScatter from "./signals/NarrativeScatter";
+import { median as medianOf, num, sortNarratives } from "./signals/flowMetrics";
 
 // The TP ladder, ordinal: tp1 → tp4 is "ran further". One validated hue ramp.
 const OUTCOMES = [
@@ -43,10 +54,15 @@ const WINDOW_OPTS = [
 // No 7d window, deliberately. Measured over 7 days the thinnest narratives fall
 // to single-digit n, which is the exact rate-on-nothing the desk keeps getting
 // burned by. 30d is the shortest window every row survives.
+// Typical peak leads because it is the only one of these that separates
+// narratives at all — see the header note. "Our calls" is a count of where the
+// desk is pointed, not a claim about outcome, so it sits beside it rather than
+// in front of it.
 const SORT_OPTS = [
+  { key: "peak", label: "Typ. peak", title: "Median best-case move of our calls here — the one column with a real spread" },
+  { key: "tp3", label: "TP3+", title: "Share of calls here that reached TP3 or further" },
   { key: "coins", label: "Our calls", title: "Coins we called inside this narrative" },
   { key: "move", label: "Live move", title: "Category market cap change, last 24h" },
-  { key: "peak", label: "Typ. peak", title: "Median best-case move of our calls here" },
 ];
 
 function snapAge(iso) {
@@ -120,29 +136,21 @@ function OutcomeMix({ flow, coins, tokens }) {
   );
 }
 
-/** WR beside the n it rests on. The n is not decoration: the top narratives sit
- *  inside two points of each other, so the sample is the only thing that tells
- *  a real gap from a wobble. */
-function WrCell({ wr, n }) {
-  if (wr == null) return <span className="text-text-muted">—</span>;
-  return (
-    <span className="whitespace-nowrap font-mono tabular-nums">
-      <span className="text-[12px] text-text-primary">{wr.toFixed(1)}%</span>
-      <span className="ml-1 text-[9.5px] text-text-muted">{n}</span>
-    </span>
-  );
-}
-
 const EXPLAIN =
   "Narratives are CoinGecko categories. A coin belongs to several at once, so a call is " +
   "counted under each one — these sets overlap and do not add up to the book.\n\n" +
   "Coins = how many coins we called inside that narrative in the window.\n" +
   "24h = the category's own market-cap move, from the 4-hourly snapshot.\n" +
-  "WR = the highest level our calls there reached was TP1 or better. It is not profit, " +
-  "and a call that tagged SL1 before running to target still counts as a win. The small " +
-  "number beside it is the sample.\n" +
   "Typ. peak = the median best-case move of those calls — what the call reached at its " +
-  "high, not what a trade returned.\n\n" +
+  "high, not what a trade returned. This is the column the table is ranked on, because it " +
+  "is the only one with a spread worth ranking: across narratives it runs from about 9% to " +
+  "about 26%.\n" +
+  "TP3+ = the share of calls there that reached TP3 or further.\n" +
+  "WR = the highest level our calls there reached was TP1 or better. It is not profit, " +
+  "and a call that tagged SL1 before running to target still counts as a win. It is printed " +
+  "with its 95% interval and its sample, and it is set back on purpose: every narrative wins " +
+  "between 83% and 94% of the time and those intervals overlap almost everywhere, so ordering " +
+  "narratives by win rate is ordering noise.\n\n" +
   "Only narratives with 3+ coins we called are listed, and categories under $50M market " +
   "cap are excluded: below that a category's 24h change is usually a constituent change, " +
   "not a market move.";
@@ -157,6 +165,7 @@ export default function SignalsNarrativeFlow({
   onMore,
   signals = [],
   onOpenSignal,
+  defaultOpen = false,
 }) {
   // Tapping a bubble asks "what did we call in there", which is a different
   // question from "narrow the desk to it" — so it opens, and filtering stays an
@@ -165,8 +174,8 @@ export default function SignalsNarrativeFlow({
   // Ten rows is the readable default; forty is a wall you scroll past to reach
   // whatever is under this panel.
   const [rowLimit, setRowLimit] = useState(10);
-  const [open, setOpen] = useState(false);
-  const [sort, setSort] = useState("coins");
+  const [open, setOpen] = useStickyOpen("lq:signals:narratives-open", defaultOpen);
+  const [sort, setSort] = useState("peak");
   // Phone only: the two halves are a toggle, not a stack. Stacked, the flow
   // panel sits under a 40-row table where nobody scrolls to it.
   const [view, setView] = useState("table");
@@ -174,14 +183,18 @@ export default function SignalsNarrativeFlow({
 
   const narratives = useMemo(() => data?.narratives || [], [data]);
 
-  const sorted = useMemo(() => {
-    const val = (x) => {
-      if (sort === "move") return x.mcap_change_24h ?? -Infinity;
-      if (sort === "peak") return x.median_peak ?? -Infinity;
-      return x.coins_called ?? -Infinity;
+  const sorted = useMemo(() => sortNarratives(narratives, sort), [narratives, sort]);
+
+  // The book this table is read against: a row's peak means nothing until you
+  // know what a typical narrative does. Computed over every narrative, not the
+  // ten on screen.
+  const book = useMemo(() => {
+    const peaks = narratives.map((x) => num(x.median_peak)).filter((v) => v != null);
+    return {
+      peakMax: peaks.length ? Math.max(...peaks) : null,
+      peakMedian: medianOf(peaks),
     };
-    return [...narratives].sort((a, b) => val(b) - val(a));
-  }, [narratives, sort]);
+  }, [narratives]);
 
   // The strip always leads with where we are most invested, whatever the table
   // is sorted by: it is the headline, not a second copy of the table.
@@ -197,20 +210,6 @@ export default function SignalsNarrativeFlow({
   const activeSet = useMemo(() => new Set(activeIds || []), [activeIds]);
   // Where each narrative sits in the table right now. The rotation panel prints
   // it so a row there can be found here instead of looking like another list.
-  const bubbleItems = useMemo(() => {
-    const m = data?.market_change_7d ?? 0;
-    return narratives
-      .filter((x) => x.mcap_change_7d != null)
-      .map((x) => ({
-        id: x.category_id,
-        label: x.name,
-        size: x.coins_called || 1,
-        delta: (x.mcap_change_7d ?? 0) - m,
-        sub: `${x.coins_called} coins called`,
-        raw: x,
-      }));
-  }, [narratives, data?.market_change_7d]);
-
   const rankOf = useMemo(() => {
     const m = new Map();
     sorted.forEach((x, i) => m.set(x.category_id, i + 1));
@@ -379,7 +378,8 @@ export default function SignalsNarrativeFlow({
             </span>
             <span className="flex items-center gap-1.5">
               <p className="text-[11px] leading-snug text-text-muted">
-                Narratives we have 3+ calls in. Tap one to filter the desk.
+                Narratives we have 3+ calls in, ranked by how far a call runs there. Tap one to
+                filter the desk.
               </p>
               <InfoTip side="bottom" title="Narratives" text={EXPLAIN} />
             </span>
@@ -395,6 +395,8 @@ export default function SignalsNarrativeFlow({
               <SignalsNarrativeBoard
                 narratives={narratives}
                 marketChange7d={data?.market_change_7d ?? null}
+                rankedByPeak={sort === "peak"}
+                onRankByPeak={() => setSort((s) => (s === "peak" ? "coins" : "peak"))}
               />
 
               <div
@@ -402,31 +404,17 @@ export default function SignalsNarrativeFlow({
                   view === "table" ? "hidden lg:grid" : ""
                 }`}
               >
-                <div className="flex h-full min-h-0 flex-col">
-                  <div className="mb-1 flex flex-wrap items-baseline gap-x-2">
-                    <span className="text-[12.5px] font-medium text-text-primary">
-                      Narrative bubbles
-                    </span>
-                    <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-                      size = coins called · tap to open
-                    </span>
-                  </div>
-                  <BubbleField
-                    items={bubbleItems}
-                    activeIds={activeIds}
-                    suffix="pp"
-                    onOpen={(n) =>
-                      setDrill({
-                        ...n,
-                        __rs: (n.mcap_change_7d ?? 0) - (data?.market_change_7d ?? 0),
-                      })
-                    }
-                  />
-                  <p className="mt-1 text-[11px] leading-snug text-text-muted">
-                    Bigger means we called more coins there; green means it beat the market this
-                    week, red means it lagged. Tap one for the calls behind it.
-                  </p>
-                </div>
+                <NarrativeScatter
+                  narratives={narratives}
+                  marketChange7d={data?.market_change_7d ?? null}
+                  activeIds={activeIds}
+                  onOpen={(n) =>
+                    setDrill({
+                      ...n,
+                      __rs: (n.mcap_change_7d ?? 0) - (data?.market_change_7d ?? 0),
+                    })
+                  }
+                />
                 <SignalsNarrativeRotation
                   narratives={narratives}
                   marketChange7d={data?.market_change_7d ?? null}
@@ -464,17 +452,25 @@ export default function SignalsNarrativeFlow({
                         <span className="block truncate text-[13px] font-medium text-text-primary">
                           {x.name}
                         </span>
-                        <span className="mt-0.5 flex items-center gap-2 font-mono text-[10px] tabular-nums text-text-muted">
+                        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-[10px] tabular-nums text-text-muted">
                           <Chg pct={x.mcap_change_24h} />
                           <span>
-                            WR <WrCell wr={x.wr} n={x.n} />
+                            TP3+ <RateCell value={x.full_tp_rate} dim />
+                          </span>
+                          <span>
+                            WR <RateCell value={x.wr} half={x.wr_ci_half} dim />
                           </span>
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
-                        <OutcomeMix flow={x.outcome_flow} coins={x.coins_called} tokens={tokens} />
-                        <span className="mt-0.5 block font-mono text-[10.5px] tabular-nums text-profit">
+                        <span className="block font-mono text-[13px] font-medium tabular-nums text-profit">
                           {x.median_peak == null ? "—" : `+${x.median_peak.toFixed(1)}%`}
+                        </span>
+                        <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted">
+                          typ. peak
+                        </span>
+                        <span className="mt-1 block">
+                          <OutcomeMix flow={x.outcome_flow} coins={x.coins_called} tokens={tokens} />
                         </span>
                       </span>
                     </button>
@@ -505,11 +501,23 @@ export default function SignalsNarrativeFlow({
                       <th className="px-2 py-1.5 text-right font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
                         7d
                       </th>
-                      <th className="px-2 py-1.5 text-right font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-                        WR
-                      </th>
-                      <th className="px-2 py-1.5 text-right font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+                      <th
+                        className="px-2 py-1.5 text-right font-mono text-[9px] uppercase tracking-[0.12em] text-text-primary"
+                        title="Median best-case move of our calls here. The tick on the rail is the book's own median."
+                      >
                         Typ. peak
+                      </th>
+                      <th
+                        className="hidden px-2 py-1.5 text-right font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted lg:table-cell"
+                        title="Share of calls here that reached TP3 or further"
+                      >
+                        TP3+
+                      </th>
+                      <th
+                        className="px-2 py-1.5 text-right font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted"
+                        title="Reached TP1 or better, with its 95% interval and sample. The intervals overlap almost everywhere — do not rank on this."
+                      >
+                        WR ±
                       </th>
                     </tr>
                   </thead>
@@ -549,11 +557,24 @@ export default function SignalsNarrativeFlow({
                           <td className="px-2 py-2 text-right text-[12px]">
                             <Chg pct={x.mcap_change_7d} />
                           </td>
-                          <td className="px-2 py-2 text-right">
-                            <WrCell wr={x.wr} n={x.n} />
+                          {/* The ranked column, and the only one drawn with a
+                              mark: the rail is the value against the widest
+                              narrative in the book, the tick is the book's
+                              median, so a row reads "above or below typical"
+                              rather than just "big". */}
+                          <td className="px-2 py-2">
+                            <BulletCell
+                              value={x.median_peak}
+                              max={book.peakMax}
+                              median={book.peakMedian}
+                              tone="profit"
+                            />
                           </td>
-                          <td className="px-2 py-2 text-right font-mono text-[12px] tabular-nums text-profit">
-                            {x.median_peak == null ? "—" : `+${x.median_peak.toFixed(1)}%`}
+                          <td className="hidden px-2 py-2 text-right lg:table-cell">
+                            <RateCell value={x.full_tp_rate} dim />
+                          </td>
+                          <td className="px-2 py-2 text-right">
+                            <RateCell value={x.wr} half={x.wr_ci_half} n={x.n} dim />
                           </td>
                         </tr>
                       );

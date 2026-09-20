@@ -3,19 +3,58 @@
 // Collapsed: the busiest coins by name and face, not an abstract bar strip. A
 // row of ten anonymous blocks stretched across a desktop is a colour band, not
 // a chart, and it never said which coin was which.
-// Open: ranked table, filterable by whether the coin has a LuxQuant call.
+// Open: the findings this snapshot supports, then a table that uses the whole
+// width, then any row opens into the full picture of that coin.
+//
+// Rebuilt 2026-09-20. Three things were wrong and all three were measurable:
+//
+//  1. The table was capped at 1100px and centred, so a third of a wide desk was
+//     empty. The old note said spreading six columns over 1900px puts a screen
+//     between each number — true, and the answer is more columns, not less
+//     table. The snapshot carries price, 7d, 30d, the turnover band and volume
+//     against a week ago; none of it was on screen.
+//  2. `vol_change_7d` was in every payload and drawn nowhere. It is the only
+//     field here that says something CHANGED: 46 of 250 coins are trading at 3x
+//     the volume they did a week ago, ZAMA at 35x. Turnover is a level; this is
+//     the news.
+//  3. The intensity bar was scaled to the busiest coin on screen, so the same
+//     coin drew a different length at 10 rows and at 250 (14% of the rail, then
+//     6%, for an unchanged number). It is now scaled to a fixed reference — the
+//     backend's own 30%-of-market-cap "high turnover" line.
 //
 // Intensity = 24h volume / market cap — size-adjusted churn, descriptive only.
 
 import { useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
 import { SegGroup } from "./ui/SegGroup";
-import BubbleField from "./BubbleField";
+import CoinDetailModal from "./signals/CoinDetailModal";
+import CoinScatter from "./signals/CoinScatter";
+import useStickyOpen from "./signals/useStickyOpen";
+import {
+  BandTag,
+  Delta,
+  Finding,
+  TurnoverCell,
+  VolCell,
+} from "./signals/FlowUI";
+import {
+  COIN_SCOPES,
+  coinFindings,
+  enrichCoins,
+  price as fmtPrice,
+  HIGH_TURNOVER,
+  num,
+  percentileRanker,
+  sortCoins,
+  statusMeta,
+  usdShort,
+} from "./signals/flowMetrics";
 
 const COUNT_OPTS = [
   { key: "10", label: "10" },
   { key: "25", label: "25" },
   { key: "50", label: "50" },
+  { key: "250", label: "All" },
 ];
 
 function timeAgo(iso) {
@@ -28,73 +67,26 @@ function timeAgo(iso) {
   return `${Math.floor(h / 24)}d`;
 }
 
-function statusMeta(st) {
-  const s = (st || "").toLowerCase();
-  if (s === "sl" || s === "closed_loss") return { l: "SL", c: "bg-loss/12 text-loss" };
-  if (s === "closed_win") return { l: "Win", c: "bg-profit/12 text-profit" };
-  if (s.startsWith("tp")) return { l: s.toUpperCase(), c: "bg-profit/12 text-profit" };
-  return { l: "Open", c: "bg-accent/12 text-accent" };
-}
-
-function statusRank(st) {
-  const s = (st || "").toLowerCase();
-  if (!st) return -1;
-  if (s === "sl" || s === "closed_loss") return 0;
-  if (s === "open") return 1;
-  if (s.startsWith("tp")) return 1 + (parseInt(s.slice(2), 10) || 1);
-  if (s === "closed_win") return 6;
-  return 1;
-}
-
-function Chg({ pct, className = "" }) {
-  if (pct == null || Number.isNaN(Number(pct)))
-    return <span className={`text-text-muted ${className}`}>—</span>;
-  const n = Number(pct);
-  return (
-    <span className={`font-mono tabular-nums ${n >= 0 ? "text-profit" : "text-loss"} ${className}`}>
-      {n >= 0 ? "+" : ""}
-      {n.toFixed(2)}%
-    </span>
-  );
-}
-
-function IntensityCell({ value, max }) {
-  const v = value || 0;
-  const pct = Math.max(4, Math.min(100, (v / (max || 1)) * 100));
-  return (
-    <div className="flex items-center justify-end gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-ink/[0.07] sm:w-20">
-        <div
-          className={`h-full rounded-full ${pct > 70 ? "bg-accent" : "bg-accent/55"}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="w-10 text-right font-mono text-[11px] tabular-nums text-text-primary">
-        {value != null ? value.toFixed(2) : "—"}
-      </span>
-    </div>
-  );
-}
-
 /** The collapsed strip: who is busiest, by face and by name. */
 function TopStrip({ rows, onPick }) {
   return (
     <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
-      {rows.map(({ c, called }) => {
+      {rows.map((r) => {
+        const c = r.c;
         const chg = c.price_change_24h;
         return (
           <button
             key={c.coin_id || c.symbol}
             type="button"
-            title={`${c.symbol} · intensity ${c.flow_intensity?.toFixed(2) ?? "—"}${
-              called ? " · LuxQuant call" : ""
+            title={`${c.symbol} · turnover ${c.flow_intensity?.toFixed(2) ?? "—"}${
+              r.called ? " · LuxQuant call" : ""
             }`}
             onClick={(e) => {
               e.stopPropagation();
-              onPick(c);
+              onPick(r);
             }}
             className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-2 transition-colors ${
-              called
+              r.called
                 ? "border-accent/50 bg-accent/[0.08]"
                 : "border-ink/[0.1] hover:bg-ink/[0.04]"
             }`}
@@ -117,14 +109,23 @@ function TopStrip({ rows, onPick }) {
   );
 }
 
-export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal, onMore }) {
-  const [open, setOpen] = useState(false);
-  const [count, setCount] = useState(10);
-  const [scope, setScope] = useState("all"); // all | called | uncalled
+export default function SignalsCoinFlow({
+  coins = [],
+  signals = [],
+  narratives = [],
+  onOpenSignal,
+  onPickNarrative,
+  onMore,
+  defaultOpen = false,
+}) {
+  const [open, setOpen] = useStickyOpen("lq:signals:coinflow-open", defaultOpen);
+  const [count, setCount] = useState(25);
+  const [scope, setScope] = useState("all"); // all | called | uncalled | surge | busy
   const [sort, setSort] = useState({ key: "intensity", dir: "desc" });
   // Rows answer "rank them"; bubbles answer "where is the weight". Same data,
   // two questions, so it is a mode rather than a second panel.
   const [view, setView] = useState("rows");
+  const [drill, setDrill] = useState(null);
 
   const signalBySymbol = useMemo(() => {
     const m = new Map();
@@ -137,27 +138,22 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
     return m;
   }, [signals]);
 
-  const enriched = useMemo(
-    () =>
-      coins.map((c) => {
-        const sig = signalBySymbol.get(String(c.symbol).toUpperCase());
-        const entry = sig?.entry ? Number(sig.entry) : null;
-        // Both sources mean "called in the last 7 days" — the desk list is live
-        // and the snapshot flag is up to four hours old, so a coin counts as
-        // called if either knows about it.
-        return {
-          c,
-          sig,
-          called: !!sig || !!c.is_luxquant_signal,
-          fromCall: entry && c.price ? ((c.price - entry) / entry) * 100 : null,
-        };
-      }),
-    [coins, signalBySymbol]
+  const enriched = useMemo(() => enrichCoins(coins, signalBySymbol), [coins, signalBySymbol]);
+  const findings = useMemo(() => coinFindings(enriched), [enriched]);
+
+  // Turnover rails are percentile ranks over the WHOLE snapshot, so a coin's
+  // bar is the same length whether the table is showing ten rows or two
+  // hundred and fifty, and whether it is filtered to the calls or not.
+  const turnoverRank = useMemo(
+    () => percentileRanker(enriched.map((r) => num(r.c.flow_intensity))),
+    [enriched]
   );
+  const busyRank = useMemo(() => turnoverRank(HIGH_TURNOVER), [turnoverRank]);
 
   const counts = useMemo(() => {
-    const called = enriched.filter((x) => x.called).length;
-    return { all: enriched.length, called, uncalled: enriched.length - called };
+    const out = {};
+    for (const k of Object.keys(COIN_SCOPES)) out[k] = enriched.filter(COIN_SCOPES[k]).length;
+    return out;
   }, [enriched]);
 
   // Counts ride in the badge slot the control already has, so the segment
@@ -166,64 +162,21 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
     { key: "all", label: "All", badge: counts.all },
     { key: "called", label: "Called", badge: counts.called, title: "LuxQuant called this coin in the last 7 days" },
     { key: "uncalled", label: "No call", badge: counts.uncalled, title: "No LuxQuant call in the last 7 days" },
-  ];
+    { key: "surge", label: "Woke up", badge: counts.surge, title: "Trading at 3x or more of last week's volume" },
+    { key: "busy", label: "Busy", badge: counts.busy, title: "24h volume above 30% of market cap" },
+  ].filter((o) => o.key === "all" || o.badge > 0);
 
-  const sorted = useMemo(() => {
-    const pool =
-      scope === "all" ? enriched : enriched.filter((x) => (scope === "called" ? x.called : !x.called));
-    const val = (x) => {
-      switch (sort.key) {
-        case "coin":
-          return x.c.symbol || "";
-        case "chg":
-          return x.c.price_change_24h ?? -Infinity;
-        case "intensity":
-          return x.c.flow_intensity ?? -Infinity;
-        case "fromcall":
-          return x.fromCall ?? -Infinity;
-        case "status":
-          return x.sig ? statusRank(x.sig.status) : -Infinity;
-        case "called":
-          return x.sig?.created_at ? new Date(x.sig.created_at).getTime() : -Infinity;
-        default:
-          return 0;
-      }
-    };
-    return [...pool].sort((a, b) => {
-      const va = val(a);
-      const vb = val(b);
-      const cmp = typeof va === "string" ? String(va).localeCompare(String(vb)) : va - vb;
-      return sort.dir === "asc" ? cmp : -cmp;
-    });
-  }, [enriched, scope, sort]);
+  const sorted = useMemo(
+    () => sortCoins(enriched.filter(COIN_SCOPES[scope] || COIN_SCOPES.all), sort.key, sort.dir),
+    [enriched, scope, sort]
+  );
 
   const rows = sorted.slice(0, count);
 
-  // Size is turnover in DOLLARS, not the intensity ratio: intensity is already
-  // size-adjusted, so bubbling it would draw every coin nearly the same and
-  // throw away the one thing a bubble is good at.
-  const bubbleItems = useMemo(
-    () =>
-      rows
-        .filter((r) => (r.c.volume_24h ?? 0) > 0)
-        .map(({ c, called }) => ({
-          id: c.coin_id || c.symbol,
-          label: c.symbol,
-          size: c.volume_24h,
-          delta: c.price_change_24h ?? 0,
-          sub: called ? "LuxQuant called this" : undefined,
-          raw: c,
-        })),
-    [rows]
-  );
-  const maxInt = Math.max(...rows.map((r) => r.c.flow_intensity || 0), 0.0001);
   // The strip always shows the busiest coins overall, whatever the table is
   // filtered to: it is the headline, not a second copy of the table.
   const stripRows = useMemo(
-    () =>
-      [...enriched]
-        .sort((a, b) => (b.c.flow_intensity ?? -1) - (a.c.flow_intensity ?? -1))
-        .slice(0, 12),
+    () => sortCoins(enriched, "intensity", "desc").slice(0, 12),
     [enriched]
   );
   const top = stripRows[0]?.c;
@@ -235,14 +188,13 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
       s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }
     );
 
-  const openCoin = (c) => {
-    const sig = signalBySymbol.get(String(c.symbol).toUpperCase());
-    if (sig) onOpenSignal?.(sig);
-    else onMore?.();
-  };
+  const openCoin = (r) => setDrill(r);
 
-  const SortHead = ({ label, k, align = "right" }) => (
-    <th className={`whitespace-nowrap px-2 py-1.5 ${align === "left" ? "text-left" : "text-right"}`}>
+  const SortHead = ({ label, k, align = "right", className = "", title }) => (
+    <th
+      title={title}
+      className={`whitespace-nowrap px-2 py-1.5 ${align === "left" ? "text-left" : "text-right"} ${className}`}
+    >
       <button
         type="button"
         onClick={() => toggleSort(k)}
@@ -288,8 +240,9 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
             <span className="block text-[13px] font-medium text-text-primary">Coin flow</span>
             <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted sm:block">
               {top ? `${top.symbol} ${Number(top.flow_intensity || 0).toFixed(2)}` : "turnover"}
+              {counts.surge ? ` · ${counts.surge} woke up` : ""}
               {counts.called ? ` · ${counts.called} called` : ""}
-              {/* Not "tap to filter": a coin chip here opens that coin's call.
+              {/* Not "tap to filter": a coin chip here opens that coin.
                   Only the Narratives row filters the desk, and saying the same
                   thing on both would make one of them a lie. */}
               {top ? " · tap to open" : ""}
@@ -308,6 +261,24 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
 
       {open ? (
         <div className="border-t border-ink/[0.06] px-3 pb-3 pt-2.5 sm:px-3.5">
+          {/* What this snapshot says, before any table. Each one carries the
+              filter that proves it, so reading a finding and checking it are
+              the same click. */}
+          {findings.length ? (
+            <div className="mb-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {findings.map((f) => (
+                <Finding
+                  key={f.key}
+                  headline={f.headline}
+                  detail={f.detail}
+                  count={f.count}
+                  active={scope === f.filter}
+                  onClick={() => setScope((s) => (s === f.filter ? "all" : f.filter))}
+                />
+              ))}
+            </div>
+          ) : null}
+
           <div className="mb-2.5 flex flex-wrap items-center gap-2">
             <SegGroup
               size="sm"
@@ -331,48 +302,38 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
               onChange={setView}
               options={[
                 { key: "rows", label: "Rows" },
-                { key: "bubbles", label: "Bubbles" },
+                { key: "map", label: "Map" },
               ]}
             />
             <p className="w-full text-[11px] leading-snug text-text-muted sm:w-auto sm:flex-1">
-              Intensity = 24h volume ÷ market cap. Called = LuxQuant has called the coin in the
-              last 7 days.
+              Turnover = 24h volume ÷ market cap. The rail is where the coin sits among all{" "}
+              {counts.all} in the snapshot and the tick is the 30% busy line. Vol 7d is
+              today&apos;s volume against its own level a week ago.
             </p>
           </div>
 
           {!rows.length ? (
             <p className="py-6 text-center text-[12.5px] text-text-muted">
-              {scope === "called"
-                ? "None of the coins in this snapshot has a call in the last 7 days."
-                : "Every coin in this snapshot has a call in the last 7 days."}
+              Nothing in this snapshot matches that filter.
             </p>
+          ) : view === "map" ? (
+            /* The whole filtered snapshot, not the table's page of it: the row
+               limit is a reading aid for a list and a scatter has no rows to
+               scroll. Twenty-five dots would also hide the thing the plot is
+               for — where the rest of the market sits around them. */
+            <CoinScatter rows={sorted} onOpen={openCoin} />
           ) : (
-            view === "bubbles" ? (
-            <>
-              <BubbleField
-                items={bubbleItems}
-                activeIds={rows.filter((r) => r.called).map((r) => r.c.coin_id || r.c.symbol)}
-                suffix="%"
-                deltaScale={8}
-                height={290}
-                onOpen={(c) => openCoin(c)}
-              />
-              <p className="mt-1 text-[11px] leading-snug text-text-muted">
-                Bigger means more dollars traded in 24h; green is up on the day, red is down. A gold
-                ring is a coin LuxQuant has called. Tap one to open it.
-              </p>
-            </>
-            ) : (
             <>
               {/* Mobile cards */}
               <div className="space-y-1 sm:hidden">
-                {rows.map(({ c, sig, called, fromCall }, i) => {
+                {rows.map((r, i) => {
+                  const { c, sig, called, fromCall } = r;
                   const sm = sig ? statusMeta(sig.status) : null;
                   return (
                     <button
                       key={c.coin_id || c.symbol}
                       type="button"
-                      onClick={() => openCoin(c)}
+                      onClick={() => openCoin(r)}
                       className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left ${
                         called ? "bg-accent/[0.06]" : "hover:bg-ink/[0.03]"
                       }`}
@@ -393,54 +354,76 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
                             </span>
                           ) : null}
                         </span>
-                        <span className="mt-0.5 flex items-center gap-2 font-mono text-[10px] tabular-nums">
-                          <Chg pct={c.price_change_24h} />
+                        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-[10px] tabular-nums text-text-muted">
+                          <span>
+                            24h <Delta value={c.price_change_24h} digits={1} />
+                          </span>
+                          <span>
+                            7d <Delta value={c.price_change_7d} digits={1} />
+                          </span>
+                          <span>
+                            vol <VolCell x={r.volX} />
+                          </span>
                           {fromCall != null ? (
-                            <span className="text-text-muted">
-                              from call <Chg pct={fromCall} />
+                            <span>
+                              from call <Delta value={fromCall} digits={1} />
                             </span>
                           ) : null}
                         </span>
                       </span>
-                      <IntensityCell value={c.flow_intensity} max={maxInt} />
+                      <TurnoverCell value={c.flow_intensity} band={r.band} compact />
                     </button>
                   );
                 })}
               </div>
 
-              {/* Desktop table */}
+              {/* Desktop table — FULL WIDTH.
+                  It was capped and centred because six narrow columns across a
+                  wide desk read as dead space. The columns that were missing
+                  are what fills it: price, three horizons, the turnover band
+                  and volume against a week ago all live in the same payload. */}
               <div className="no-scrollbar -mx-1 hidden overflow-x-auto sm:block">
-                {/* Capped, not full-width: a row of small figures spread across a
-                    1900px desk puts a third of a screen between each number, and
-                    the No call view drops to four columns where that is worse.
-                    The cap follows the column count — and it is CENTRED, because
-                    a capped block pinned left just moves the same dead space to
-                    one side and makes the panel look half-loaded. */}
-                <table
-                  className={`mx-auto w-full min-w-[480px] border-collapse ${
-                    showCallCols ? "max-w-[1100px]" : "max-w-[640px]"
-                  }`}
-                >
+                <table className="w-full min-w-[620px] border-collapse">
                   <thead>
                     <tr className="border-b border-ink/[0.06]">
                       <th className="w-6 py-1.5 pl-2 text-left font-mono text-[9px] text-text-muted">
                         #
                       </th>
                       <SortHead label="Coin" k="coin" align="left" />
+                      <SortHead label="Price" k="price" className="hidden md:table-cell" />
                       <SortHead label="24h" k="chg" />
-                      <SortHead label="Intensity" k="intensity" />
+                      <SortHead label="7d" k="chg7" />
+                      <SortHead label="30d" k="chg30" className="hidden xl:table-cell" />
+                      <SortHead label="Cap" k="cap" className="hidden xl:table-cell" />
+                      <SortHead
+                        label="Turnover"
+                        k="intensity"
+                        title="24h volume ÷ market cap — the rail fills at 30%"
+                      />
+                      <th className="hidden px-2 py-1.5 text-left font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted lg:table-cell">
+                        Band
+                      </th>
+                      <SortHead
+                        label="Vol 7d"
+                        k="vol"
+                        className="hidden md:table-cell"
+                        title="Today's 24h volume against its own level seven days ago"
+                      />
                       {showCallCols && <SortHead label="From call" k="fromcall" />}
                       {showCallCols && <SortHead label="Status" k="status" align="left" />}
-                      {showCallCols && <SortHead label="Called" k="called" align="left" />}
+                      {showCallCols && (
+                        <SortHead label="Called" k="called" align="left" className="hidden lg:table-cell" />
+                      )}
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map(({ c, sig, called, fromCall }, i) => {
+                    {rows.map((r, i) => {
+                      const { c, sig, called, fromCall } = r;
                       const sm = sig ? statusMeta(sig.status) : null;
                       return (
                         <tr
                           key={c.coin_id || c.symbol}
-                          onClick={() => openCoin(c)}
+                          onClick={() => openCoin(r)}
                           className={`cursor-pointer border-b border-ink/[0.04] last:border-0 hover:bg-ink/[0.03] ${
                             called ? "bg-accent/[0.04]" : ""
                           }`}
@@ -457,15 +440,38 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
                               {called ? <CallBadge /> : null}
                             </div>
                           </td>
+                          <td className="hidden whitespace-nowrap px-2 py-2 text-right font-mono text-[12px] tabular-nums text-text-secondary md:table-cell">
+                            {fmtPrice(c.price)}
+                          </td>
                           <td className="px-2 py-2 text-right text-[12px]">
-                            <Chg pct={c.price_change_24h} className="font-medium" />
+                            <Delta value={c.price_change_24h} className="font-medium" />
+                          </td>
+                          <td className="px-2 py-2 text-right text-[12px]">
+                            <Delta value={c.price_change_7d} />
+                          </td>
+                          <td className="hidden px-2 py-2 text-right text-[12px] xl:table-cell">
+                            <Delta value={c.price_change_30d} />
+                          </td>
+                          <td className="hidden whitespace-nowrap px-2 py-2 text-right font-mono text-[11.5px] tabular-nums text-text-muted xl:table-cell">
+                            {usdShort(c.market_cap)}
                           </td>
                           <td className="px-2 py-2">
-                            <IntensityCell value={c.flow_intensity} max={maxInt} />
+                            <TurnoverCell
+                              value={c.flow_intensity}
+                              band={r.band}
+                              rank={turnoverRank(num(c.flow_intensity))}
+                              busyRank={busyRank}
+                            />
+                          </td>
+                          <td className="hidden px-2 py-2 lg:table-cell">
+                            <BandTag band={r.band} />
+                          </td>
+                          <td className="hidden px-2 py-2 text-right md:table-cell">
+                            <VolCell x={r.volX} />
                           </td>
                           {showCallCols && (
                             <td className="px-2 py-2 text-right text-[12px]">
-                              <Chg pct={fromCall} className="font-medium" />
+                              <Delta value={fromCall} className="font-medium" />
                             </td>
                           )}
                           {showCallCols && (
@@ -482,7 +488,7 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
                             </td>
                           )}
                           {showCallCols && (
-                            <td className="whitespace-nowrap px-2 py-2 font-mono text-[11px] tabular-nums text-text-muted">
+                            <td className="hidden whitespace-nowrap px-2 py-2 font-mono text-[11px] tabular-nums text-text-muted lg:table-cell">
                               {sig?.created_at ? timeAgo(sig.created_at) : "—"}
                             </td>
                           )}
@@ -492,11 +498,27 @@ export default function SignalsCoinFlow({ coins = [], signals = [], onOpenSignal
                   </tbody>
                 </table>
               </div>
+
+              {sorted.length > rows.length ? (
+                <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
+                  {rows.length} of {sorted.length}
+                </p>
+              ) : null}
             </>
-            )
           )}
         </div>
       ) : null}
+
+      <CoinDetailModal
+        row={drill}
+        rows={enriched}
+        narratives={narratives}
+        signals={signals}
+        isOpen={!!drill}
+        onClose={() => setDrill(null)}
+        onOpenSignal={onOpenSignal}
+        onPickNarrative={onPickNarrative}
+      />
     </div>
   );
 }

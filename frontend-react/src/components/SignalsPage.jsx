@@ -2048,6 +2048,38 @@ const SignalsPage = () => {
     ? sortOptions
     : sortOptions.filter((o) => COMMON_SORTS.includes(o.value));
 
+  // One way to filter the desk by narrative, shared by the Narratives row and
+  // by a coin's own detail sheet. Two copies of this drifted apart the last
+  // time a second caller appeared.
+  const pickNarrative = useCallback(
+    (n) => {
+      if (!n?.category_id) return;
+      setNarratives((prev) => {
+        // Tapping one already picked removes it, so the row is its own off
+        // switch and never strands the desk on an empty filter.
+        const on = prev.some((x) => x.category_id === n.category_id);
+        if (on) return prev.filter((x) => x.category_id !== n.category_id);
+        return [
+          ...prev,
+          {
+            category_id: n.category_id,
+            name: n.name,
+            pairs: new Set(n.pairs || []),
+          },
+        ];
+      });
+      // The narrative window is 30-90 days but the day tabs default to today,
+      // so filtering without widening the dates would usually land on an empty
+      // table and read as a broken filter. Only on the way IN: clearing the
+      // last pick should not also throw the day tabs back.
+      if (!narratives.some((x) => x.category_id === n.category_id)) {
+        setSelectedDates([]);
+      }
+      setPage(1);
+    },
+    [narratives]
+  );
+
   const riskOptions = [
     { value: "all", label: "All" },
     { value: "low", label: "Low", dotColor: "bg-profit" },
@@ -2211,7 +2243,12 @@ const SignalsPage = () => {
         <SignalsCoinFlow
           coins={flowCoins}
           signals={allSignals}
+          /* Coin flow borrows the narrative payload so a coin can say which
+             stories it sits in — a coin is in a median of four of them, and
+             the mapping is already on the page. */
+          narratives={narrativeData?.narratives || []}
           onOpenSignal={openSignal}
+          onPickNarrative={pickNarrative}
           onMore={() => navigate("/money-flow")}
         />
       )}
@@ -2225,30 +2262,7 @@ const SignalsPage = () => {
         signals={allSignals}
         onOpenSignal={openSignal}
         onMore={() => navigate("/money-flow")}
-        onPick={(n) => {
-          setNarratives((prev) => {
-            // Tapping one already picked removes it, so the row is its own off
-            // switch and never strands the desk on an empty filter.
-            const on = prev.some((x) => x.category_id === n.category_id);
-            if (on) return prev.filter((x) => x.category_id !== n.category_id);
-            return [
-              ...prev,
-              {
-                category_id: n.category_id,
-                name: n.name,
-                pairs: new Set(n.pairs || []),
-              },
-            ];
-          });
-          // The narrative window is 30-90 days but the day tabs default to
-          // today, so filtering without widening the dates would usually land
-          // on an empty table and read as a broken filter. Only on the way IN:
-          // clearing the last pick should not also throw the day tabs back.
-          if (!narratives.some((x) => x.category_id === n.category_id)) {
-            setSelectedDates([]);
-          }
-          setPage(1);
-        }}
+        onPick={pickNarrative}
       />
 
 

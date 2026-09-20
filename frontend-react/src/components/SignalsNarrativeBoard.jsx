@@ -24,9 +24,19 @@
 //
 // Drawn in plain SVG rather than a chart library: 40 points and two axes do not
 // justify a bundle, and hand-drawn marks let the theme tokens apply directly.
+//
+// Added 2026-09-20 — the sentence that tells you how to read the table below.
+// Win rate across narratives runs 83% to 94% with intervals of two to eight
+// points: on the live 30-day window exactly ONE pair of 780 is separable, and at
+// 90 days with three times the sample it is five. So a win-rate ranking of
+// narratives is a ranking of noise. Typical peak is a different matter — 9.1% to
+// 25.7%, and a bootstrap separates 17% of pairs. The desk can say where its
+// calls run FURTHER; it cannot say where they win MORE OFTEN. The panel now says
+// so out loud instead of quietly sorting on the flat column.
 
 import { useMemo } from "react";
 import { InfoTip } from "./GuideInfo";
+import { narrativeFinding } from "./signals/flowMetrics";
 
 const OUT = [
   { key: "tp4", label: "TP4", token: "--viz-tp4" },
@@ -160,8 +170,56 @@ function buildModel(narratives, marketChange7d) {
   };
 }
 
-export default function SignalsNarrativeBoard({ narratives = [], marketChange7d = null }) {
+/** How to read the table underneath, measured from the table's own numbers.
+ *  Not a hardcoded claim: if a future window ever DOES separate win rates, this
+ *  card changes its own wording. */
+function HowToRead({ finding, onRankByPeak, ranked }) {
+  if (!finding) return null;
+  const flat = finding.wrSeparable <= Math.max(1, finding.wrPairs * 0.02);
+  return (
+    <button
+      type="button"
+      onClick={onRankByPeak}
+      aria-pressed={ranked}
+      className={`mt-2 flex w-full flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors ${
+        ranked
+          ? "border-accent/50 bg-accent/[0.06]"
+          : "border-ink/[0.08] hover:border-accent/40 hover:bg-ink/[0.02]"
+      }`}
+    >
+      <span className="flex w-full min-w-0 items-baseline gap-2">
+        <span className="min-w-0 flex-1 text-[12.5px] font-medium leading-snug text-text-primary">
+          {flat
+            ? "Every narrative wins about as often. What differs is how far a call runs."
+            : "Win rates do separate in this window — and so does how far a call runs."}
+        </span>
+        <span
+          className={`shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] ${
+            ranked ? "text-accent" : "text-text-muted"
+          }`}
+        >
+          {ranked ? "Ranked by peak" : "Rank by peak"}
+        </span>
+      </span>
+      <span className="text-[11px] leading-snug text-text-muted">
+        Win rate runs {finding.wrLo.toFixed(0)}–{finding.wrHi.toFixed(0)}% and the confidence
+        bands overlap on {finding.wrPairs - finding.wrSeparable} of {finding.wrPairs} pairs, so
+        that column cannot rank anything. Typical peak runs{" "}
+        {finding.peakLo.toFixed(1)}% to {finding.peakHi.toFixed(1)}% — a{" "}
+        {finding.peakSpread.toFixed(1)}× spread, and the one number here worth choosing on.
+      </span>
+    </button>
+  );
+}
+
+export default function SignalsNarrativeBoard({
+  narratives = [],
+  marketChange7d = null,
+  onRankByPeak,
+  rankedByPeak = false,
+}) {
   const model = useMemo(() => buildModel(narratives, marketChange7d), [narratives, marketChange7d]);
+  const finding = useMemo(() => narrativeFinding(narratives), [narratives]);
 
   if (!model.items.length) return null;
 
@@ -194,6 +252,7 @@ export default function SignalsNarrativeBoard({ narratives = [], marketChange7d 
         </span>
       </div>
 
+      <HowToRead finding={finding} onRankByPeak={onRankByPeak} ranked={rankedByPeak} />
     </div>
   );
 }
