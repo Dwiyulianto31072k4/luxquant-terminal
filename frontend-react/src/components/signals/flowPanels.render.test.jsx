@@ -227,6 +227,17 @@ describe("Coin flow renders", () => {
     expect(Math.max(...widths)).toBeLessThanOrEqual(100);
   });
 
+  it("marks every finding as a switch, with its current state", () => {
+    const out = html(<SignalsCoinFlow coins={COINS} signals={SIGNALS} defaultOpen />);
+    const findings = (out.match(/aria-pressed="(true|false)"/g) || []).length;
+    expect(findings).toBeGreaterThan(0);
+    // A checkbox per finding, so the card reads as something you turn on
+    // rather than as a caption with a number in the corner.
+    expect(out).toContain("M2 6.2 4.6 8.8 10 3.4");
+    expect(out).toContain("cursor-pointer");
+    expect(out).toContain("Show");
+  });
+
   it("names the coins it is on in the collapsed subtitle", () => {
     const out = html(<SignalsCoinFlow coins={COINS} signals={SIGNALS} />);
     expect(out).toContain("woke up");

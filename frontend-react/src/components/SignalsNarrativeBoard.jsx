@@ -37,6 +37,7 @@
 import { useMemo } from "react";
 import { InfoTip } from "./GuideInfo";
 import { narrativeFinding } from "./signals/flowMetrics";
+import { ToggleBox } from "./signals/FlowUI";
 
 const OUT = [
   { key: "tp4", label: "TP4", token: "--viz-tp4" },
@@ -181,12 +182,16 @@ function HowToRead({ finding, onRankByPeak, ranked }) {
       type="button"
       onClick={onRankByPeak}
       aria-pressed={ranked}
-      className={`mt-2 flex w-full flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors ${
+      className={`group mt-2 flex w-full cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
         ranked
           ? "border-accent/50 bg-accent/[0.06]"
           : "border-ink/[0.08] hover:border-accent/40 hover:bg-ink/[0.02]"
       }`}
     >
+      {/* Same switch the findings above wear, for the same reason: without it
+          the corner text reads as a caption rather than as the control it is. */}
+      <ToggleBox active={ranked} />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
       <span className="flex w-full min-w-0 items-baseline gap-2">
         <span className="min-w-0 flex-1 text-[12.5px] font-medium leading-snug text-text-primary">
           {flat
@@ -195,7 +200,7 @@ function HowToRead({ finding, onRankByPeak, ranked }) {
         </span>
         <span
           className={`shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] ${
-            ranked ? "text-accent" : "text-text-muted"
+            ranked ? "text-accent" : "text-text-muted group-hover:text-accent"
           }`}
         >
           {ranked ? "Ranked by peak" : "Rank by peak"}
@@ -207,6 +212,7 @@ function HowToRead({ finding, onRankByPeak, ranked }) {
         that column cannot rank anything. Typical peak runs{" "}
         {finding.peakLo.toFixed(1)}% to {finding.peakHi.toFixed(1)}% — a{" "}
         {finding.peakSpread.toFixed(1)}× spread, and the one number here worth choosing on.
+      </span>
       </span>
     </button>
   );

@@ -182,6 +182,31 @@ export function RateCell({ value, half, n, digits = 1, dim = false }) {
   );
 }
 
+/** The mark that says "this whole card is a switch".
+ *
+ *  A count in the corner reading SHOW 41 is a label until you happen to hover
+ *  it. A checkbox is the one shape every reader already knows means "this is
+ *  something you turn on", it shows the CURRENT state as well as the
+ *  affordance, and it matches what the control actually does — these findings
+ *  toggle a filter, they do not navigate anywhere, so an arrow or a chevron
+ *  would be a promise the card does not keep. */
+export function ToggleBox({ active, className = "" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`mt-px flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+        active
+          ? "border-accent bg-accent text-accent-fg"
+          : "border-ink/25 bg-transparent text-transparent group-hover:border-accent/70"
+      } ${className}`}
+    >
+      <svg viewBox="0 0 12 12" className="h-[9px] w-[9px]" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 6.2 4.6 8.8 10 3.4" />
+      </svg>
+    </span>
+  );
+}
+
 /** A finding: a sentence the data supports, and the filter that proves it.
  *  Reading it and checking it are the same click. */
 export function Finding({ headline, detail, active, onClick, count }) {
@@ -190,30 +215,34 @@ export function Finding({ headline, detail, active, onClick, count }) {
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`group flex min-w-0 flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors ${
+      className={`group flex min-w-0 cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
         active
           ? "border-accent bg-accent/[0.08]"
           : "border-ink/[0.08] hover:border-accent/40 hover:bg-ink/[0.02]"
       }`}
     >
-      <span className="flex w-full min-w-0 items-baseline gap-1.5">
-        <span className="min-w-0 flex-1 text-[12.5px] font-medium leading-snug text-text-primary">
-          {headline}
+      <ToggleBox active={active} />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex w-full min-w-0 items-baseline gap-1.5">
+          <span className="min-w-0 flex-1 text-[12.5px] font-medium leading-snug text-text-primary">
+            {headline}
+          </span>
+          <span
+            className={`shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] ${
+              active ? "text-accent" : "text-text-muted group-hover:text-accent"
+            }`}
+          >
+            {active ? "Showing" : "Show"}
+            {count != null ? ` ${count}` : ""}
+          </span>
         </span>
-        <span
-          className={`shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] ${
-            active ? "text-accent" : "text-text-muted group-hover:text-accent"
-          }`}
-        >
-          {active ? "Showing" : "Show"}
-          {count != null ? ` ${count}` : ""}
-        </span>
+        {/* The reasoning is desk-only. Three findings with their full detail
+            push 420px of prose above the first row on a phone, which is a
+            scroll past the thing the panel is for. The headline and the count
+            are the whole claim; the sentence behind it is for the screen that
+            has room. */}
+        <span className="hidden text-[11px] leading-snug text-text-muted sm:block">{detail}</span>
       </span>
-      {/* The reasoning is desk-only. Three findings with their full detail push
-          420px of prose above the first row on a phone, which is a scroll past
-          the thing the panel is for. The headline and the count are the whole
-          claim; the sentence behind it is for the screen that has room. */}
-      <span className="hidden text-[11px] leading-snug text-text-muted sm:block">{detail}</span>
     </button>
   );
 }
