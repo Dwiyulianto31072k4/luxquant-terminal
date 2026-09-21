@@ -244,8 +244,14 @@ def _drc_ids_from_blob(blob: dict[str, Any]) -> list[str]:
 async def compute_and_cache() -> dict[str, Any]:
     blob = await compute()
     if blob.get("discord_ok"):
+        previous = cache_get(DRC_KEY)
+        current = _drc_ids_from_blob(blob)
         cache_set(BLOB_KEY, blob, ttl=TTL)
-        cache_set(DRC_KEY, _drc_ids_from_blob(blob), ttl=TTL)
+        cache_set(DRC_KEY, current, ttl=TTL)
+        try:
+            lapse_drc_grants(set(current), previous_count=len(previous) if previous is not None else None)
+        except Exception:
+            log.exception("entitlement: DRC lapse pass failed")
     else:
         # The Discord member list did not come back whole. Keep yesterday's
         # picture — its generated_at stays honest about its age — rather than
@@ -340,6 +346,10 @@ def note_discord_premium(discord_id, has_premium: bool | None) -> None:
     """
     if discord_id is None or has_premium is None:
         return  # no id, or Discord could not answer: do not guess either way
+    try:
+        _sync_drc_grant(discord_id, has_premium)
+    except Exception:
+        log.exception("entitlement: DRC grant sync failed for discord %s", discord_id)
     ids = drc_premium_ids()
     if ids is None:
         return  # nothing authoritative to amend; the daily run will set it
@@ -352,3 +362,111 @@ def note_discord_premium(discord_id, has_premium: bool | None) -> None:
         return
     cache_set(DRC_KEY, sorted(ids), ttl=TTL)
 
+
+
+# ── Access follows Premium+ ─────────────────────────────────────────────────
+#
+# A `discord_premium` grant exists only because the person holds Premium+ in
+# DRC, so it ends when they stop holding it (owner's rule, 2026-09-21). This
+# does NOT demote anyone itself: it sets subscription_expires_at = now, and the
+# subscription worker (5-minute cycle) does what it does for every ended
+# subscription — role -> free, VIP group seat withdrawn, DM or email. One
+# downgrade path, not two that can drift.
+#
+# Only grants whose SOURCE is discord_premium. Someone who bought lifetime or
+# paid, and also happens to be in DRC, keeps what they paid for. Staff never
+# match (role is admin). An account with no linked Discord id cannot be checked
+# and is never touched on a guess.
+
+# A complete sweep that suddenly shows far fewer Premium+ holders than the last
+# one is more likely a Discord-side problem (role renamed, bot kicked, intent
+# switched off) than a mass cancellation. Refuse rather than demote everyone.
+LAPSE_MIN_RATIO = 0.5
+LAPSE_MAX_PER_SWEEP = 10
+
+_LAPSE_WHERE = """
+    subscription_source = 'discord_premium'
+    AND role IN ('subscriber', 'premium')
+    AND discord_id IS NOT NULL
+    AND (subscription_expires_at IS NULL OR subscription_expires_at > NOW())
+"""
+
+
+def lapse_drc_grants(current_ids: set[str], *, previous_count: int | None) -> list[int]:
+    """Daily sweep: end the DRC grant of everyone no longer holding Premium+."""
+    if not current_ids:
+        log.warning("entitlement: Premium+ set is empty; not lapsing any grant")
+        return []
+    if previous_count and len(current_ids) < previous_count * LAPSE_MIN_RATIO:
+        log.warning(
+            "entitlement: Premium+ fell %s -> %s in one day; not lapsing any grant",
+            previous_count, len(current_ids),
+        )
+        return []
+
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            text(f"SELECT id, username, discord_id FROM users WHERE {_LAPSE_WHERE}"),
+        ).fetchall()
+        lapsed = [r for r in rows if str(r.discord_id) not in current_ids]
+        if not lapsed:
+            return []
+        if len(lapsed) > LAPSE_MAX_PER_SWEEP:
+            log.warning(
+                "entitlement: %s DRC grants would lapse at once (cap %s); not lapsing — check the Discord sweep",
+                len(lapsed), LAPSE_MAX_PER_SWEEP,
+            )
+            return []
+        ids = [r.id for r in lapsed]
+        _lapse(db, ids, "no longer Premium+ in DRC (daily sweep)")
+        log.info("entitlement: lapsed DRC grant for %s", [(r.id, r.username) for r in lapsed])
+        return ids
+    finally:
+        db.close()
+
+
+def _sync_drc_grant(discord_id, has_premium: bool) -> None:
+    """Sign-in: Discord gave a definite answer for this one person."""
+    db = SessionLocal()
+    try:
+        if has_premium:
+            # Premium+ again before the worker got to them: take back the
+            # pending end. A discord_premium grant never carries an expiry of
+            # its own, so clearing one cannot shorten anything.
+            db.execute(
+                text("""
+                    UPDATE users SET subscription_expires_at = NULL, updated_at = NOW()
+                    WHERE discord_id = :d
+                      AND subscription_source = 'discord_premium'
+                      AND role IN ('subscriber', 'premium')
+                      AND subscription_expires_at IS NOT NULL
+                """),
+                {"d": int(discord_id)},
+            )
+            db.commit()
+            return
+        rows = db.execute(
+            text(f"SELECT id FROM users WHERE {_LAPSE_WHERE} AND discord_id = :d"),
+            {"d": int(discord_id)},
+        ).fetchall()
+        if rows:
+            _lapse(db, [r.id for r in rows], "no longer Premium+ in DRC (checked at sign-in)")
+            log.info("entitlement: lapsed DRC grant for users %s at sign-in", [r.id for r in rows])
+    finally:
+        db.close()
+
+
+def _lapse(db, ids: list[int], reason: str) -> None:
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    db.execute(
+        text(f"""
+            UPDATE users
+            SET subscription_expires_at = NOW(),
+                subscription_note = :note,
+                updated_at = NOW()
+            WHERE id = ANY(:ids) AND {_LAPSE_WHERE}
+        """),
+        {"ids": ids, "note": f"DRC access ended {stamp}: {reason}"},
+    )
+    db.commit()

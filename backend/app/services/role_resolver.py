@@ -9,6 +9,9 @@ INVARIANT (v3 — sticky grant):
   Pencabutan akses VIP HANYA boleh terjadi lewat 2 jalur:
     1. Admin revoke (eksplisit, revoke_subscription)
     2. Expiry worker (subscription_expires_at lewat — time-bound: payment/admin)
+  discord_premium punya pemicu sendiri untuk jalur 2: kalau Premium+ di DRC
+  hilang, entitlement_audit men-set subscription_expires_at = now dan expiry
+  worker yang menurunkan (lihat lapse_drc_grants). Resolver tetap promote-only.
   Pengecekan OAuth (telegram/discord/google) bersifat PROMOTE-ONLY:
   boleh menaikkan/menegaskan akses, TIDAK PERNAH menurunkan ke free.
 
@@ -19,7 +22,7 @@ Rules:
   payment (active)   → never touched (user paid, expires_at NOT expired)
   payment (expired)  → dibiarkan apa adanya di sini; downgrade-nya tugas worker
   telegram_vip       → di-refresh oleh Telegram login; TIDAK di-downgrade
-  discord_premium    → di-refresh oleh Discord login; TIDAK di-downgrade
+  discord_premium    → di-refresh oleh Discord login; berakhir saat Premium+ hilang
   NULL source        → kalau sudah subscriber/premium, tetap dipertahankan
                        (promote-only); kalau free, OAuth signal langsung berlaku
 """
