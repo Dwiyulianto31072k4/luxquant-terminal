@@ -163,7 +163,11 @@ export const ChannelBars = ({ channels = [], labelOf = (c) => c }) => {
     <div className="space-y-2.5">
       {channels.map((c, i) => {
         const pct = (c.count / total) * 100;
-        const hue = `rgb(var(${VIZ[i % VIZ.length]}))`;
+        // var(), not rgb(var()): the --viz-* tokens are hex, unlike --accent and
+        // --pos which are space-separated channels. rgb(#3987e5) is invalid CSS,
+        // so the declaration was dropped and every bar and legend square in
+        // this chart rendered with no colour at all.
+        const hue = `var(${VIZ[i % VIZ.length]})`;
         return (
           <div
             key={c.channel}

@@ -153,7 +153,7 @@ export default function WatchlistAnalytics({ rows = [], deskWr = null }) {
     key: b.key,
     label: b.label,
     n: s.peak[b.key],
-    color: `rgb(var(--viz-${(i % 3) + 1}))`,
+    color: `var(--viz-${(i % 3) + 1})`,
   }));
 
   return (
@@ -256,7 +256,7 @@ export default function WatchlistAnalytics({ rows = [], deskWr = null }) {
                 key: b.key,
                 label: b.label,
                 n: s.lag[b.key],
-                color: `rgb(var(--viz-${(i % 3) + 1}))`,
+                color: `var(--viz-${(i % 3) + 1})`,
               }))}
               total={s.lagN}
             />
@@ -265,7 +265,7 @@ export default function WatchlistAnalytics({ rows = [], deskWr = null }) {
                 <div key={b.key} className="flex items-baseline gap-1.5 text-[10px]">
                   <span
                     className="inline-block h-2 w-2 shrink-0 rounded-sm"
-                    style={{ background: `rgb(var(--viz-${(LAG_BANDS.indexOf(b) % 3) + 1}))` }}
+                    style={{ background: `var(--viz-${(LAG_BANDS.indexOf(b) % 3) + 1})` }}
                   />
                   <strong className="font-mono text-text-primary">{s.lag[b.key]}</strong>
                   <span className="text-text-muted">{b.label}</span>
