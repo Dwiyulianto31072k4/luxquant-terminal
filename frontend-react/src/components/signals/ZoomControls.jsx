@@ -56,10 +56,18 @@ export default function ZoomControls({ zoomed, zoomBy, reset, k, min = 0.2, max 
 
 /** One line, so nobody has to guess which gesture the wheel is bound to. */
 export function ZoomHint({ wheel }) {
+  // Said in the words of the hand that is holding it. A phone was told to
+  // click and scroll, which it cannot do; one finger scrolls the page here, so
+  // the chart moves with two.
   return (
     <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted">
-      click a mark to open it · drag to pan ·{" "}
-      {wheel === "direct" ? "scroll to zoom" : `${navigatorMod()}+scroll to zoom`} · pinch on touch
+      <span className="[@media(pointer:coarse)]:hidden">
+        click a mark to open it · drag to pan ·{" "}
+        {wheel === "direct" ? "scroll to zoom" : `${navigatorMod()}+scroll to zoom`} · pinch on touch
+      </span>
+      <span className="hidden [@media(pointer:coarse)]:inline">
+        tap a mark to open it · pinch to zoom · two fingers to move
+      </span>
     </span>
   );
 }

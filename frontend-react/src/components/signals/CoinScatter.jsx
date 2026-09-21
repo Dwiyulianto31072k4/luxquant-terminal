@@ -30,6 +30,9 @@ import {
   sq,
 } from "./scatterKit";
 import useZoomPan from "./useZoomPan";
+import usePhone from "./usePhone";
+import useControlsReserve from "./useControlsReserve";
+import MissingTray from "./MissingTray";
 import ZoomControls, { ZoomHint } from "./ZoomControls";
 import ScatterTip from "./ScatterTip";
 import CoinDisc from "./CoinDisc";
@@ -39,7 +42,7 @@ const DESK = {
   fs: 9.5, r0: 4, r1: 11, maxLabels: 38, minLogo: 7,
 };
 const PHONE = {
-  W: 360, H: 300, pad: { t: 14, r: 16, b: 38, l: 34 },
+  W: 360, H: 300, pad: { t: 14, r: 16, b: 38, l: 42 },
   fs: 10, r0: 2.5, r1: 8, maxLabels: 12, minLogo: 7,
 };
 // Expanded. Nearly four times the area of the inline plot, which is why this is
@@ -53,6 +56,13 @@ const LARGE = {
   // reading labels. Area still tracks dollars above the floor — a minimum mark
   // size is why r0 exists at all, here it is just set where the logos start.
   fs: 11, r0: 7, r1: 16, maxLabels: 80, minLogo: 7,
+};
+// Expanded on a phone. LARGE fitted to a 358px sheet drew every name at 3px,
+// so opening the chart made it smaller than the inline one. A phone sheet has
+// height to spare, so the expanded plot grows DOWN instead of across.
+const PHONE_TALL = {
+  W: 360, H: 520, pad: { t: 14, r: 16, b: 38, l: 44 },
+  fs: 10.5, r0: 4, r1: 11, maxLabels: 24, minLogo: 7,
 };
 
 // Deliberately finer than any one view needs: pickTicks thins whatever will
@@ -84,31 +94,6 @@ const EXPLAIN =
   "signal, and the dots do not know what happens next.";
 
 /** The rows a plot cannot place, named with the reason and still openable. */
-function MissingTray({ items, onOpen }) {
-  if (!items?.length) return null;
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ink/[0.03] px-2.5 py-1.5">
-      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-        not on this chart
-      </span>
-      {items.slice(0, 14).map((m) => (
-        <button
-          key={m.id}
-          type="button"
-          onClick={() => onOpen?.(m.raw)}
-          className="inline-flex items-center gap-1 rounded-full border border-ink/[0.1] py-0.5 px-2 text-[11px] text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
-        >
-          <span className="font-medium">{m.pair || m.name}</span>
-          <span className="text-text-muted">{m.why}</span>
-        </button>
-      ))}
-      {items.length > 14 ? (
-        <span className="text-[11px] text-text-muted">+{items.length - 14} more</span>
-      ) : null}
-    </div>
-  );
-}
-
 function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   const { W, H, pad: PAD, fs } = G;
   const [hover, setHover] = useState(null);
@@ -125,6 +110,7 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   }, []);
 
   const zp = useZoomPan({ W, H, wheel, onSettle: resettle });
+  const [controlsRef, ctl] = useControlsReserve(zp.hostRef, W, W * 0.11);
   const { t, project, mark } = zp;
   // Type grows with the zoom too, or it shrinks away beside marks that do.
   const fz = fs * zp.label;
@@ -165,6 +151,7 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
           // the only limit that should still apply.
           max: zp.zoomed ? 999 : G.maxLabels,
           maxChars: 10,
+          blocked: ctl.w ? [[W - ctl.w, 0, ctl.w, ctl.h]] : [],
         }
       ),
   };
@@ -186,7 +173,7 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   useEffect(() => {
     if (stateRef.current) setLabels(stateRef.current.place());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [model]);
+  }, [model, ctl.w, ctl.h]);
 
   // Ticks for the window actually on screen: filter the full candidate list to
   // what falls inside the frame after the transform, then thin what cannot fit.
@@ -222,8 +209,9 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   // the chart exists to withhold. Naming them says what each one IS.
   const captions = quadrantCaptions({
     W, H, pad: PAD, zeroX, midY: busyY, fs: fz,
-    // room for the floating zoom controls
-    reserveTopRight: W * 0.11,
+    // room for the floating zoom controls, measured
+    reserveTopRight: ctl.w,
+    reserveTopRightDown: ctl.h,
     labels: {
       tr: "BUSY · BID",
       tl: "BUSY · SOLD",
@@ -351,7 +339,6 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
 
       <g clipPath={`url(#${clipId})`}>
       {visible.map((p) => {
-        const label = labels.get(p.id);
         const on = hover?.id === p.id;
         return (
           <g
@@ -391,35 +378,45 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
               }
               ringWidth={on ? 2.4 : p.called ? 1.8 : 1.1}
             />
-            {label ? (
-              <text
-                x={label.x}
-                y={label.y}
-                textAnchor={label.anchor}
-                className="pointer-events-none fill-text-primary"
-                /* A halo in the surface colour, drawn UNDER the glyphs. It is
-                   what lets a label sit over a mark and still be read, which
-                   is what buys the plot three times as many names. */
-                style={{
-                  fontSize: fz,
-                  fontWeight: 600,
-                  paintOrder: "stroke",
-                  stroke: "rgb(var(--surface-raised))",
-                  strokeWidth: 3.2,
-                  strokeLinejoin: "round",
-                }}
-              >
-                {label.text}
-              </text>
-            ) : null}
           </g>
         );
+      })}
+
+      {/* Names are a layer of their own, drawn after EVERY mark. Inside each
+         mark's group, the next mark painted straight over the previous name —
+         "OP" and "FIL" read as one word, and a big disc could hide a name
+         entirely. The halo lets a name sit over any mark; it only works when
+         the name is on top. */}
+      {visible.map((p) => {
+        const label = labels.get(p.id);
+        return label ? (
+          <text
+            key={`label-${p.id}`}
+            x={label.x}
+            y={label.y}
+            textAnchor={label.anchor}
+            className="pointer-events-none fill-text-primary"
+            /* A halo in the surface colour, drawn UNDER the glyphs. It is what
+               lets a label sit over a mark and still be read, which is what buys
+               the plot three times as many names. */
+            style={{
+              fontSize: fz,
+              fontWeight: 600,
+              paintOrder: "stroke",
+              stroke: "rgb(var(--surface-raised))",
+              strokeWidth: 3.2,
+              strokeLinejoin: "round",
+            }}
+          >
+            {label.text}
+          </text>
+        ) : null;
       })}
       </g>
     </svg>
     {/* Over the plot rather than in the header, because this is where the hand
         already is, and because the modal header has no room for it. */}
-    <span className="absolute right-1.5 top-1.5">
+    <span ref={controlsRef} className="absolute right-1.5 top-1.5">
       <ZoomControls
           zoomed={zp.zoomed}
           zoomBy={zp.zoomBy}
@@ -529,17 +526,19 @@ function buildModel(rows, G) {
       .filter(Boolean)
       .map((p) => p.id)
   );
-  const labels = placeLabels(
-    placed.map((p) => ({
-      ...p,
-      priority:
-        (corners.has(p.id) ? 100 : 0) +
-        Math.sqrt(p.vol / maxVol) * 10 +
-        (Math.abs(p.x) / maxX) * 4 +
-        (p.called ? 1.5 : 0),
-    })),
-    { W, H, fs: G.fs, max: G.maxLabels, maxChars: 10 }
-  );
+  // The priority is kept ON the points, not on a throwaway copy: the plot
+  // re-places its labels (on open, on a new filter, after a zoom), and a
+  // re-place that could not see it fell back to data order — the extremes
+  // the chart is about went unnamed while the first ten rows got names.
+  const ranked = placed.map((p) => ({
+    ...p,
+    priority:
+      (corners.has(p.id) ? 100 : 0) +
+      Math.sqrt(p.vol / maxVol) * 10 +
+      (Math.abs(p.x) / maxX) * 4 +
+      (p.called ? 1.5 : 0),
+  }));
+  const labels = placeLabels(ranked, { W, H, fs: G.fs, max: G.maxLabels, maxChars: 10 });
 
   const busy = placed.filter((p) => p.y >= 0.3);
   // The four states the plot exists to separate, counted — and how many of each
@@ -556,7 +555,7 @@ function buildModel(rows, G) {
   ];
   return {
     quadrants,
-    points: placed,
+    points: ranked,
     labels,
     px,
     py,
@@ -582,14 +581,16 @@ export function CoinScatterHeadline({ model }) {
 
 /** The expanded plot, for the modal. One geometry, all the room it needs. */
 export function CoinScatterLarge({ rows = [], onOpen }) {
-  const model = useMemo(() => buildModel(rows, LARGE), [rows]);
+  const phone = usePhone();
+  const G = phone ? PHONE_TALL : LARGE;
+  const model = useMemo(() => buildModel(rows, G), [rows, G]);
   const missing = useMemo(() => coinMissing(rows), [rows]);
   if (!model) return null;
   return (
     <div className="min-w-0">
       {/* The modal locks the page behind it, so there is no scroll to steal:
           the plain wheel zooms here and only asks for a modifier inline. */}
-      <Plot model={model} G={LARGE} onOpen={onOpen} wheel="direct" />
+      <Plot model={model} G={G} onOpen={onOpen} wheel="direct" />
       <MissingTray items={missing} onOpen={onOpen} />
       <p className="mt-1">
         <ZoomHint wheel="direct" />

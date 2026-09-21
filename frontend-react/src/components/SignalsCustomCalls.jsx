@@ -475,7 +475,7 @@ function FilterCard({ field, rule, total, onChange }) {
   );
 }
 
-export default function SignalsCustomCalls({ active = false, activeName = null, onApply, show }) {
+export default function SignalsCustomCalls({ active = false, activeName = null, onApply, show, className = "" }) {
   const [open, setOpen] = useState(false);
   const [catalog, setCatalog] = useState(null);
   const [items, setItems] = useState([]);
@@ -642,7 +642,7 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
         type="button"
         onClick={start}
         title={activeName ? `Custom screen: ${activeName}` : "Build a screen from your own conditions"}
-        className={`${deskChipClass(active)} min-w-0 justify-center !px-2 sm:!px-2.5`}
+        className={`${deskChipClass(active)} ${className} min-w-0 justify-center !px-2 sm:!px-2.5`}
       >
         <span className="truncate">
           Custom{activeName ? ` · ${activeName}` : active ? " · active" : ""}

@@ -56,15 +56,30 @@ const EXPLAIN =
   "somebody already published.";
 
 function Finding({ summary }) {
+  const [why, setWhy] = useState(false);
   if (!summary) return null;
   const { total, atPlan, passed, chased } = summary;
   return (
     <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3 py-2.5">
-      <p className="text-[12.5px] font-medium leading-snug text-text-primary">
+      <p className="text-[13px] font-medium leading-snug text-text-primary sm:text-[12.5px]">
         {atPlan} of {total} are still at the plan — target ahead and price within {CHASE_LINE}% of
         the entry.
       </p>
-      <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
+      {/* On a phone the reasoning is one tap away rather than six lines in the
+          way: the headline and the table below it are the finding, and the
+          list the reader came for starts on the first screen. */}
+      <button
+        type="button"
+        onClick={() => setWhy((v) => !v)}
+        aria-expanded={why}
+        className="mt-1 inline-flex items-center gap-1 text-[12px] font-medium text-accent sm:hidden"
+      >
+        Why {CHASE_LINE}%?
+        <svg className={`h-3 w-3 transition-transform ${why ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <p className={`mt-0.5 text-[11px] leading-snug text-text-muted ${why ? "block" : "hidden"} sm:block`}>
         {passed} have already passed the target and {chased} have run more than {CHASE_LINE}% past
         the entry. Measured over 10,003 calls, entering {CHASE_LINE}% above the call leaves TP3
         ahead only 65% of the time and puts the stop 7.7% away instead of 2.7% — the coin may well
@@ -169,6 +184,12 @@ export default function SignalScreener({
             its width at two or three choices; past that it is a menu wearing
             the wrong clothes, so the axis pickers are selects and they only
             appear for the view that has axes. */}
+        {/* Phone: the view switch and the ⓘ share line one; the screens get
+            line two to themselves as a rail that runs off the sheet's edge and
+            scrolls, which is how a phone says "there is more this way". Five
+            segments forced into a 358px shell overflowed its border instead.
+            From sm up it is the one row it always was — `order` rearranges,
+            the DOM and the tab order do not move. */}
         <div className="flex flex-wrap items-center gap-2">
           <SegGroup
             size="sm"
@@ -181,62 +202,88 @@ export default function SignalScreener({
             ]}
           />
 
-          <div role="group" aria-label="Quick screens" className={DESK_SHELL}>
-            {SCREEN_LIST.map((sc) => {
-              const on = screens.includes(sc.key);
-              return (
-                <button
-                  key={sc.key}
-                  type="button"
-                  aria-pressed={on}
-                  title={sc.hint}
-                  onClick={() => toggle(sc.key)}
-                  className={deskSegClass(on)}
-                >
-                  {sc.label}
-                  <span className={deskBadgeClass(on)}>{counts[sc.key]}</span>
+          <div className="relative order-3 -mx-4 w-[calc(100%+2rem)] min-w-0 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-8 after:bg-gradient-to-l after:from-surface-raised after:content-[''] sm:order-none sm:mx-0 sm:w-auto sm:after:hidden">
+            <div className="no-scrollbar flex items-center gap-2 overflow-x-auto px-4 pr-10 sm:overflow-visible sm:p-0">
+              <div role="group" aria-label="Quick screens" className={`${DESK_SHELL} shrink-0 max-sm:max-w-none`}>
+                {SCREEN_LIST.map((sc) => {
+                  const on = screens.includes(sc.key);
+                  return (
+                    <button
+                      key={sc.key}
+                      type="button"
+                      aria-pressed={on}
+                      title={sc.hint}
+                      onClick={() => toggle(sc.key)}
+                      className={`${deskSegClass(on)} max-sm:h-9`}
+                    >
+                      {sc.label}
+                      <span className={deskBadgeClass(on)}>{counts[sc.key]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {screens.length ? (
+                <button type="button" className={`${deskGhostClass()} shrink-0`} onClick={() => setScreens([])}>
+                  Reset
                 </button>
-              );
-            })}
+              ) : null}
+            </div>
           </div>
 
-          {screens.length ? (
-            <button type="button" className={deskGhostClass()} onClick={() => setScreens([])}>
-              Reset
-            </button>
-          ) : null}
-
-          <span className="ml-auto flex items-center gap-2">
+          <span className="order-2 ml-auto flex items-center gap-2 sm:order-none">
             {view === "list" ? (
-              <MetricSelect
-                label="Rank by"
-                value={sortKey}
-                onChange={setSortKey}
-                options={SORTS}
-                title="Best first, whichever you pick"
-              />
+              <span className="hidden sm:inline-flex">
+                <MetricSelect
+                  label="Rank by"
+                  value={sortKey}
+                  onChange={setSortKey}
+                  options={SORTS}
+                  title="Best first, whichever you pick"
+                />
+              </span>
             ) : null}
             <InfoTip side="bottom" title="Reading this" text={EXPLAIN} />
           </span>
         </div>
 
         {view === "map" ? (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <MetricSelect label="Across" value={xKey} onChange={setXKey} options={axisOpts} />
-            <MetricSelect label="Up" value={yKey} onChange={setYKey} options={axisOpts} />
-            <MetricSelect
-              label="Dot size"
-              value={sizeKey}
-              onChange={setSizeKey}
-              options={[
-                { key: "vol24", label: "24h volume" },
-                { key: "rr", label: "Reward ÷ risk" },
-                { key: "roomTp3", label: "Room left" },
-              ]}
-            />
-            <span className="text-[11px] text-text-muted">{METRICS_HINT(xKey, yKey)}</span>
+          // Phone: the two axes side by side as equal columns — three across
+          // a 343px line cut every value to "PAST THE …" — and dot size, the
+          // lesser choice, on a line of its own under them.
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
+            <MetricSelect stack label="Across" value={xKey} onChange={setXKey} options={axisOpts} />
+            <MetricSelect stack label="Up" value={yKey} onChange={setYKey} options={axisOpts} />
+            <div className="col-span-2 sm:contents">
+              <MetricSelect
+                label="Dot size"
+                value={sizeKey}
+                onChange={setSizeKey}
+                options={[
+                  { key: "vol24", label: "24h volume" },
+                  { key: "rr", label: "Reward ÷ risk" },
+                  { key: "roomTp3", label: "Room left" },
+                ]}
+              />
+            </div>
+            <span className="col-span-2 text-[11px] leading-snug text-text-muted">{METRICS_HINT(xKey, yKey)}</span>
           </div>
-        ) : null}
+        ) : (
+          // Phone: the ranking control sits on the list it ranks, the way
+          // every sorted list on a phone does.
+          <div className="flex items-center justify-between gap-2 sm:hidden">
+            <MetricSelect
+              label="Rank by"
+              value={sortKey}
+              onChange={setSortKey}
+              options={SORTS}
+              title="Best first, whichever you pick"
+            />
+            <span className="font-mono text-[10px] tabular-nums text-text-muted">
+              {screened.length} call{screened.length === 1 ? "" : "s"}
+            </span>
+          </div>
+        )}
 
         {view === "map" ? (
           <ScreenMap

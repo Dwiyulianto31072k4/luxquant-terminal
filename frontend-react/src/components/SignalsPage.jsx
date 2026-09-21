@@ -479,14 +479,14 @@ const CONSOLE_LABEL =
  *  mono; prose in the middle of that reads as something to be read rather than
  *  operated, which is the whole job. Presence comes from the resting border,
  *  not from colour or motion. */
-function ModeGuideLink({ onClick }) {
+function ModeGuideLink({ onClick, className = "" }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label="What these mean"
       title="What these mean"
-      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5 sm:font-mono sm:text-[10px] sm:font-semibold sm:uppercase sm:tracking-[0.06em]"
+      className={`${className} inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/20 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5 sm:font-mono sm:text-[10px] sm:font-semibold sm:uppercase sm:tracking-[0.06em]`}
     >
       <svg
         className="h-3.5 w-3.5 shrink-0"
@@ -2318,7 +2318,13 @@ const SignalsPage = () => {
           status, sort and the advanced filters moved into a sheet, and the
           chip bar under this card reports what is on. */}
       <div className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-3 sm:p-4">
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:gap-3">
+        {/* Phone: the mode rail and "What these mean" share the first line, and
+            everything that refines a mode shares the second, each at its own
+            width. The old three-column grid was sized for two buttons; the
+            third (Top only) pushed Custom into the 44px slot, cut to "CUS…",
+            and left the ⓘ alone on a line of its own. `order` does the
+            arranging so the DOM, and the tab order, stay as they were. */}
+        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
           <span className={CONSOLE_LABEL}>Mode</span>
           <EdgeRecipesBar
           tagWr={tagWr}
@@ -2356,6 +2362,7 @@ const SignalsPage = () => {
           {isSubscriber ? (
             <SignalsCustomCalls
               show
+              className="order-3 flex-auto sm:order-none sm:flex-none"
               active={!!mineExtra}
               activeName={mineExtra?.name || null}
               tagWr={tagWr}
@@ -2380,7 +2387,7 @@ const SignalsPage = () => {
               }}
             />
           ) : null}
-          <ModeGuideLink onClick={() => setGuideMode("__browse")} />
+          <ModeGuideLink className="order-2 sm:order-none" onClick={() => setGuideMode("__browse")} />
         </div>
 
         {/* Day strip — eight-plus options, so not a segmented control: Apple

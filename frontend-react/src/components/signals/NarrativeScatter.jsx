@@ -41,6 +41,9 @@ import {
   sq,
 } from "./scatterKit";
 import useZoomPan from "./useZoomPan";
+import usePhone from "./usePhone";
+import useControlsReserve from "./useControlsReserve";
+import MissingTray from "./MissingTray";
 import ZoomControls, { ZoomHint } from "./ZoomControls";
 import ScatterTip from "./ScatterTip";
 
@@ -60,6 +63,12 @@ const LARGE = {
 const PHONE = {
   W: 360, H: 300, pad: { t: 14, r: 18, b: 38, l: 30 },
   fs: 10, r0: 3.5, r1: 7, axis: "VS MARKET 7D (pp) · √", maxLabels: 10, maxChars: 13,
+};
+// Expanded on a phone: taller, not wider — LARGE fitted to a 358px sheet
+// printed its names at 3px, smaller than the inline chart it was expanding.
+const PHONE_TALL = {
+  W: 360, H: 520, pad: { t: 14, r: 18, b: 38, l: 30 },
+  fs: 10.5, r0: 4.5, r1: 10, axis: "VS MARKET 7D (pp) · √", maxLabels: 16, maxChars: 14,
 };
 
 const EXPLAIN =
@@ -159,16 +168,18 @@ function buildModel(narratives, marketChange7d, G) {
         .filter(Boolean)
         .map((p) => p.id)
     );
-    const labels = placeLabels(
-      placed.map((p) => ({
-        ...p,
-        priority:
-          (corners.has(p.id) ? 100 : 0) +
-          Math.sqrt(p.coins / maxCoins) * 10 +
-          (Math.abs(p.x) / maxX) * 3,
-      })),
-      { W, H, fs: G.fs, max: G.maxLabels, maxChars: G.maxChars }
-    );
+    // The priority is kept ON the points, not on a throwaway copy: the plot
+    // re-places its labels (on open, on a new filter, after a zoom), and a
+    // re-place that could not see it fell back to data order — the extremes
+    // the chart is about went unnamed while the first ten rows got names.
+    const ranked = placed.map((p) => ({
+      ...p,
+      priority:
+        (corners.has(p.id) ? 100 : 0) +
+        Math.sqrt(p.coins / maxCoins) * 10 +
+        (Math.abs(p.x) / maxX) * 3,
+    }));
+    const labels = placeLabels(ranked, { W, H, fs: G.fs, max: G.maxLabels, maxChars: G.maxChars });
 
     // The four states the plot separates, with the biggest name in each so a
     // count is never just a count.
@@ -192,7 +203,7 @@ function buildModel(narratives, marketChange7d, G) {
 
     return {
       quadrants,
-      points: placed,
+      points: ranked,
       labels,
       medianPeak: medianOf(ys),
       py,
@@ -222,28 +233,6 @@ const X_TICKS = [
 const Y_TICKS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 50, 60, 75, 100];
 
 /** The narratives a plot cannot place, named with the reason. */
-function NarrativeMissingTray({ items, onOpen }) {
-  if (!items?.length) return null;
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ink/[0.03] px-2.5 py-1.5">
-      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-        not on this chart
-      </span>
-      {items.slice(0, 10).map((m) => (
-        <button
-          key={m.id}
-          type="button"
-          onClick={() => onOpen?.(m.raw)}
-          className="inline-flex items-center gap-1 rounded-full border border-ink/[0.1] py-0.5 px-2 text-[11px] text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
-        >
-          <span className="max-w-[150px] truncate font-medium">{m.name}</span>
-          <span className="text-text-muted">{m.why}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 /** The plot itself, at one geometry. */
 function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
   const { W, H, pad: PAD, fs } = G;
@@ -258,6 +247,7 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
   }, []);
 
   const zp = useZoomPan({ W, H, wheel, onSettle: resettle });
+  const [controlsRef, ctl] = useControlsReserve(zp.hostRef, W, W * 0.11);
   const { t, project, mark } = zp;
   // Type grows with the zoom too, or it shrinks away beside marks that do.
   const fz = fs * zp.label;
@@ -285,6 +275,7 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
         // still apply.
         max: zp.zoomed ? 999 : G.maxLabels,
         maxChars: G.maxChars,
+        blocked: ctl.w ? [[W - ctl.w, 0, ctl.w, ctl.h]] : [],
       }),
   };
 
@@ -304,7 +295,7 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
   useEffect(() => {
     if (stateRef.current) setLabels(stateRef.current.place());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [model]);
+  }, [model, ctl.w, ctl.h]);
 
   const xTicks = useMemo(() => {
     const inFrame = X_TICKS.filter((v) => {
@@ -317,9 +308,18 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
   // The axis this chart RANKS on finally gets a scale you can read a value off.
   const yTicks = useMemo(() => {
     const nameY = PAD.t + 8;
+    // The median line prints its own value at the axis. A tick at the same
+    // height printed "14%" twice, one over the other. Computed here, not read
+    // from `midY` below — that is declared after this memo runs.
+    const medY = model.medianPeak == null ? null : project(0, model.py(model.medianPeak)).y;
     const inFrame = Y_TICKS.filter((v) => {
       const y = project(0, model.py(v)).y;
-      return y >= 6 && y <= H - PAD.b - 2 && Math.abs(y - nameY) > fz * 1.2;
+      return (
+        y >= 6 &&
+        y <= H - PAD.b - 2 &&
+        Math.abs(y - nameY) > fz * 1.2 &&
+        (medY == null || Math.abs(y - (medY - 3)) > fz * 1.1)
+      );
     });
     return pickTicks(inFrame, -Infinity, Infinity, (v) => project(0, model.py(v)).y, fz * 2);
   }, [project, model, H, PAD.b, PAD.t, fz]);
@@ -341,8 +341,9 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
         zeroX,
         midY,
         fs: fz,
-        // room for the floating zoom controls
-        reserveTopRight: W * 0.11,
+        // room for the floating zoom controls, measured
+        reserveTopRight: ctl.w,
+        reserveTopRightDown: ctl.h,
         labels: {
           tr: "HOT · RAN FURTHER",
           tl: "QUIET · RAN FURTHER",
@@ -350,7 +351,7 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
           bl: "QUIET · ORDINARY",
         },
       }),
-    [W, H, PAD, zeroX, midY, fz]
+    [W, H, PAD, zeroX, midY, fz, ctl.w, ctl.h]
   );
 
   return (
@@ -474,7 +475,6 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
           const on = active.has(p.id);
           const hot = hover?.id === p.id;
           const ahead = p.x >= 0;
-          const label = labels.get(p.id);
           return (
             <g
               key={p.id}
@@ -505,33 +505,43 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
                 }
                 strokeWidth={hot ? 2.6 : on ? 2.5 : 1.4}
               />
-              {label ? (
-                <text
-                  x={label.x}
-                  y={label.y}
-                  textAnchor={label.anchor}
-                className="pointer-events-none fill-text-primary"
-                  /* A halo in the surface colour, drawn UNDER the glyphs. It is
-                     what lets a label sit over a mark and still be read, which
-                     is what buys the plot three times as many names. */
-                  style={{
-                    fontSize: fz,
-                    fontWeight: 600,
-                    paintOrder: "stroke",
-                    stroke: "rgb(var(--surface-raised))",
-                    strokeWidth: 3.2,
-                    strokeLinejoin: "round",
-                  }}
-                >
-                  {label.text}
-                </text>
-              ) : null}
             </g>
           );
         })}
+
+        {/* Names are a layer of their own, drawn after EVERY mark. Inside each
+           mark's group, the next mark painted straight over the previous name —
+           "OP" and "FIL" read as one word, and a big disc could hide a name
+           entirely. The halo lets a name sit over any mark; it only works when
+           the name is on top. */}
+        {visible.map((p) => {
+          const label = labels.get(p.id);
+          return label ? (
+            <text
+              key={`label-${p.id}`}
+              x={label.x}
+              y={label.y}
+              textAnchor={label.anchor}
+              className="pointer-events-none fill-text-primary"
+              /* A halo in the surface colour, drawn UNDER the glyphs. It is what
+                 lets a label sit over a mark and still be read, which is what buys
+                 the plot three times as many names. */
+              style={{
+                fontSize: fz,
+                fontWeight: 600,
+                paintOrder: "stroke",
+                stroke: "rgb(var(--surface-raised))",
+                strokeWidth: 3.2,
+                strokeLinejoin: "round",
+              }}
+            >
+              {label.text}
+            </text>
+          ) : null;
+        })}
         </g>
       </svg>
-      <span className="absolute right-1.5 top-1.5">
+      <span ref={controlsRef} className="absolute right-1.5 top-1.5">
         <ZoomControls
           zoomed={zp.zoomed}
           zoomBy={zp.zoomBy}
@@ -574,9 +584,11 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
 
 /** The expanded plot, for the modal. */
 export function NarrativeScatterLarge({ narratives = [], marketChange7d = null, activeIds = [], onOpen }) {
+  const phone = usePhone();
+  const G = phone ? PHONE_TALL : LARGE;
   const model = useMemo(
-    () => buildModel(narratives, marketChange7d, LARGE),
-    [narratives, marketChange7d]
+    () => buildModel(narratives, marketChange7d, G),
+    [narratives, marketChange7d, G]
   );
   const missing = useMemo(() => narrativeMissing(narratives), [narratives]);
   if (!model) return null;
@@ -584,8 +596,8 @@ export function NarrativeScatterLarge({ narratives = [], marketChange7d = null, 
     <div className="min-w-0">
       {/* The modal locks the page behind it, so there is no scroll to steal:
           the plain wheel zooms here and only asks for a modifier inline. */}
-      <Plot model={model} G={LARGE} activeIds={activeIds} onOpen={onOpen} wheel="direct" />
-      <NarrativeMissingTray items={missing} onOpen={onOpen} />
+      <Plot model={model} G={G} activeIds={activeIds} onOpen={onOpen} wheel="direct" />
+      <MissingTray items={missing} onOpen={onOpen} nameOf={(m) => m.name} limit={6} />
       <p className="mt-1">
         <ZoomHint wheel="direct" />
       </p>
@@ -658,7 +670,7 @@ export default function NarrativeScatter({
         <Plot model={desk} G={DESK} activeIds={activeIds} onOpen={onOpen} />
       </div>
 
-      <NarrativeMissingTray items={missing} onOpen={onOpen} />
+      <MissingTray items={missing} onOpen={onOpen} nameOf={(m) => m.name} limit={6} />
       <p className="mt-1 text-[11px] leading-snug text-text-muted">
         Right is ahead of the market this week, up is calls that ran further, dot size is how many
         coins we called there. The cloud does not tilt:{" "}

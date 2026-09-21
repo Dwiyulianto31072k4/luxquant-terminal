@@ -11,17 +11,29 @@
 // screen-reader-complete without a line of code, and on a phone it opens the
 // platform's own wheel instead of a custom sheet nobody has learned.
 
-export default function MetricSelect({ label, value, onChange, options, title }) {
+// `stack` puts the label over the select below `sm`, so three of them can sit
+// side by side across a phone as equal columns instead of wrapping into a
+// ragged pile of label-select pairs.
+export default function MetricSelect({ label, value, onChange, options, title, stack = false }) {
   return (
-    <label className="inline-flex min-w-0 items-center gap-1.5" title={title}>
+    <label
+      className={
+        stack
+          ? "flex min-w-0 flex-col items-stretch gap-1 sm:inline-flex sm:flex-row sm:items-center sm:gap-1.5"
+          : "inline-flex min-w-0 items-center gap-1.5"
+      }
+      title={title}
+    >
       <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
         {label}
       </span>
-      <span className="relative inline-flex min-w-0 items-center">
+      <span className={`relative min-w-0 items-center ${stack ? "flex sm:inline-flex" : "inline-flex"}`}>
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-8 min-w-0 max-w-[160px] appearance-none truncate rounded-md border border-ink/[0.12] bg-surface-secondary py-0 pl-2.5 pr-6 font-mono text-[10.5px] font-semibold uppercase tracking-[0.04em] text-text-primary transition-colors hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+          className={`${
+            stack ? "h-10 w-full max-w-none sm:h-8 sm:w-auto sm:max-w-[160px]" : "h-8 max-w-[160px]"
+          } min-w-0 appearance-none truncate rounded-md border border-ink/[0.12] bg-surface-secondary py-0 pl-2.5 pr-6 font-mono text-[10.5px] font-semibold uppercase tracking-[0.04em] text-text-primary transition-colors hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent`}
         >
           {options.map((o) => (
             <option key={o.key} value={o.key}>

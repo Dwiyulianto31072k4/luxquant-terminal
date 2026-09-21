@@ -85,7 +85,7 @@ export function projector({ lo, hi, from, to, inset = 0, transform = (v) => v })
  *  @param items [{ id, cx, cy, r, name, priority }] — priority high to low
  *  @returns Map id -> { x, y, anchor, text }
  */
-export function placeLabels(items, { W, H, fs, max = 26, maxChars = 18, pad = 3 }) {
+export function placeLabels(items, { W, H, fs, max = 26, maxChars = 18, pad = 3, blocked = [] }) {
   // Measured against the rendered getBBox of the real labels: 0.58 left one
   // colliding pair in thirty, 0.63 leaves none. Estimating rather than
   // measuring keeps this a pure function that runs before paint.
@@ -99,7 +99,9 @@ export function placeLabels(items, { W, H, fs, max = 26, maxChars = 18, pad = 3 
   const charW = fs * 0.63;
   const ascent = fs * 0.98;
   const h = fs * 1.3;
-  const placed = [];
+  // `blocked` is chrome drawn over the plot — the zoom controls — which a
+  // label would sit underneath, unreadable. Seeded as if already placed.
+  const placed = blocked.filter(Boolean).map((b) => [...b]);
   // Dots are NOT obstacles, and every label is drawn with a halo instead.
   //
   // Treating them as obstacles is the obvious rule and it was measurably wrong:
@@ -201,7 +203,7 @@ export function domainFor(values, { zero = false, padFrac = 0.08 } = {}) {
  *  these two are descriptive and their own findings say the axes do not predict
  *  each other, so naming the quadrants informs without smuggling in a
  *  recommendation the data refuses to support. */
-export function quadrantCaptions({ W, H, pad, zeroX, midY, labels, fs, reserveTopRight = 0 }) {
+export function quadrantCaptions({ W, H, pad, zeroX, midY, labels, fs, reserveTopRight = 0, reserveTopRightDown = 0 }) {
   const inset = 10;
   const topY = fs + 6;
   const botY = H - pad.b - 8;
@@ -218,8 +220,19 @@ export function quadrantCaptions({ W, H, pad, zeroX, midY, labels, fs, reserveTo
   // "BUSY · SOLD" printed as "SOLD".
   // The zoom controls float over the top-right of the plot, so that caption
   // starts where they end — otherwise the two print on top of each other.
-  if (hasRight && hasTop)
-    out.push({ key: "tr", x: W - pad.r - inset - reserveTopRight, y: topY, anchor: "end", text: labels.tr });
+  if (hasRight && hasTop) {
+    // Beside the controls when there is room; where there is not — a phone,
+    // or the zero line far to the right — under them, so the caption never
+    // runs back across the line into the other quadrant.
+    const beside = W - pad.r - inset - reserveTopRight;
+    const textW = String(labels.tr || "").length * fs * 0.62;
+    const fits = beside - textW > zeroX + 6;
+    if (fits || !reserveTopRightDown) {
+      out.push({ key: "tr", x: beside, y: topY, anchor: "end", text: labels.tr });
+    } else if (midY > topY + reserveTopRightDown + 14) {
+      out.push({ key: "tr", x: W - pad.r - inset, y: topY + reserveTopRightDown, anchor: "end", text: labels.tr });
+    }
+  }
   if (hasLeft && hasTop) out.push({ key: "tl", x: pad.l + inset, y: topY, anchor: "start", text: labels.tl });
   if (hasRight && hasBottom) out.push({ key: "br", x: W - pad.r - inset, y: botY, anchor: "end", text: labels.br });
   if (hasLeft && hasBottom) out.push({ key: "bl", x: pad.l + inset, y: botY, anchor: "start", text: labels.bl });

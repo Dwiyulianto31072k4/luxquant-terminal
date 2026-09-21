@@ -124,11 +124,14 @@ export default function EdgeActiveFilters({
         tone: "neutral",
         clear: () => onClearDates?.(),
       });
-    } else if (selectedDates.length === 1 && selectedDates[0] !== today) {
+    } else if (selectedDates.length === 1) {
+      // Today is stated too. Skipping it left "8 of 736" with no span on the
+      // one day people look at most — the count is a different claim over a
+      // day than over the week, and the bar exists to say which.
       chips.push({
         key: "dates",
         group: "date",
-        label: `Day: ${selectedDates[0]}`,
+        label: selectedDates[0] === today ? "Today" : `Day: ${selectedDates[0]}`,
         tone: "neutral",
         clear: () => onClearDates?.(),
       });
@@ -283,6 +286,15 @@ export default function EdgeActiveFilters({
             : ""
         }`;
 
+  const canVisualize = Boolean(onVisualize) && filteredCount > 1;
+  const visualizeIcon = (
+    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+      <circle cx="4.5" cy="11" r="1.9" />
+      <circle cx="11" cy="5" r="1.9" />
+      <path d="M2 14 14 2" strokeDasharray="2 2" opacity="0.55" />
+    </svg>
+  );
+
   return (
     <div className={`${shell} mb-3`} role="region" aria-label="Current filters">
       {/* The count leads. This bar exists to answer "what did I narrow this
@@ -311,24 +323,23 @@ export default function EdgeActiveFilters({
           <button
             type="button"
             onClick={() => onClearAll?.()}
-            className="rounded-lg border border-ink/[0.12] px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-ink/25 hover:text-text-primary"
+            className="inline-flex h-8 items-center rounded-lg border border-ink/[0.12] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted transition-colors hover:border-ink/25 hover:text-text-primary sm:h-auto sm:py-1.5"
           >
             Clear all
           </button>
           {/* The action on the result, beside the result, in the accent — a
-              ghost button in a grey bar is a button nobody finds. */}
-          {onVisualize && filteredCount > 1 ? (
+              ghost button in a grey bar is a button nobody finds. On a phone
+              it leaves this row for a full-width bar under the chips: squeezed
+              in here it wrapped onto a line of its own, pushed to the right
+              edge with nothing beside it. */}
+          {canVisualize ? (
             <button
               type="button"
               onClick={onVisualize}
               title="Compare these calls on how far past the entry they are and what is left to target"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-fg shadow-sm transition-colors hover:bg-accent-dark"
+              className="hidden items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-fg shadow-sm transition-colors hover:bg-accent-dark sm:inline-flex"
             >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                <circle cx="4.5" cy="11" r="1.9" />
-                <circle cx="11" cy="5" r="1.9" />
-                <path d="M2 14 14 2" strokeDasharray="2 2" opacity="0.55" />
-              </svg>
+              {visualizeIcon}
               Visualize
               <span className="rounded bg-black/15 px-1 font-mono text-[10px] tabular-nums">
                 {filteredCount}
@@ -339,12 +350,12 @@ export default function EdgeActiveFilters({
       </div>
 
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-[1_1_18rem]">
           <div className="flex flex-wrap items-center gap-1.5">
             {filterChips.map((chip) => (
               <span
                 key={chip.key}
-                className={`inline-flex max-w-full items-center gap-0.5 rounded-lg border pl-2 pr-0.5 py-0.5 font-mono text-[11px] ${
+                className={`inline-flex max-w-full items-center gap-0.5 rounded-lg border py-0.5 pl-2.5 pr-0.5 font-mono text-[11.5px] sm:pl-2 sm:text-[11px] ${
                   toneCls[chip.tone] || toneCls.neutral
                 }`}
               >
@@ -368,7 +379,7 @@ export default function EdgeActiveFilters({
                     chip.clear?.();
                   }}
                   aria-label={`Remove ${chip.label}`}
-                  className="ml-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-ink/10 hover:text-text-primary"
+                  className="ml-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[14px] text-text-muted transition-colors hover:bg-ink/10 hover:text-text-primary sm:h-5 sm:w-5 sm:text-[12px]"
                 >
                   ×
                 </button>
@@ -381,14 +392,14 @@ export default function EdgeActiveFilters({
             membership. Mixed into the same run of chips it invited people to
             remove a sort expecting rows back. */}
         {sortChips.length ? (
-          <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-1.5 border-ink/[0.08] sm:border-l sm:pl-3">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 border-ink/[0.08] sm:w-auto sm:shrink-0 sm:border-l sm:pl-3">
             <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
               Order
             </span>
             {sortChips.map((chip) => (
               <span
                 key={chip.key}
-                className={`inline-flex max-w-full items-center gap-0.5 rounded-lg border py-0.5 pl-2 pr-0.5 font-mono text-[11px] ${
+                className={`inline-flex max-w-full items-center gap-0.5 rounded-lg border py-0.5 pl-2.5 pr-0.5 font-mono text-[11.5px] sm:pl-2 sm:text-[11px] ${
                   toneCls[chip.tone] || toneCls.neutral
                 }`}
               >
@@ -406,7 +417,7 @@ export default function EdgeActiveFilters({
                     chip.clear?.();
                   }}
                   aria-label={`Remove ${chip.label}`}
-                  className="ml-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-ink/10 hover:text-text-primary"
+                  className="ml-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[14px] text-text-muted transition-colors hover:bg-ink/10 hover:text-text-primary sm:h-5 sm:w-5 sm:text-[12px]"
                 >
                   ×
                 </button>
@@ -429,6 +440,20 @@ export default function EdgeActiveFilters({
           . Click the match chip or this text to switch.
         </p>
       )}
+
+      {/* Phone: the result's action as the bar's last line, full width and at
+          thumb height — the "Show 119 results" button every filter sheet ends
+          on, because that is what it is. */}
+      {canVisualize ? (
+        <button
+          type="button"
+          onClick={onVisualize}
+          className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent text-[14px] font-semibold text-accent-fg shadow-sm transition-colors active:bg-accent-dark sm:hidden"
+        >
+          {visualizeIcon}
+          Visualize {filteredCount.toLocaleString()} calls
+        </button>
+      ) : null}
     </div>
   );
 }

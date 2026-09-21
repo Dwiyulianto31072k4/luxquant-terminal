@@ -15,8 +15,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CoinDisc from "../CoinDisc";
 import ScatterTip from "../ScatterTip";
+import MissingTray from "../MissingTray";
 import { cull, pickTicks, placeLabels, projector, sq } from "../scatterKit";
 import useZoomPan from "../useZoomPan";
+import usePhone from "../usePhone";
+import useControlsReserve from "../useControlsReserve";
 import ZoomControls, { ZoomHint } from "../ZoomControls";
 import {
   CHASE_LINE,
@@ -37,6 +40,13 @@ import {
 const BIG = { W: 1180, H: 560, pad: { t: 18, r: 28, b: 44, l: 72 }, fs: 11, r0: 7, r1: 15, maxLabels: 70 };
 const FEW = { W: 1180, H: 400, pad: { t: 18, r: 28, b: 44, l: 72 }, fs: 12.5, r0: 13, r1: 16, maxLabels: 40 };
 const FEW_MAX = 12;
+// A phone draws in its own units. The 1180-wide canvas above, fitted to a
+// 358px sheet, printed every name at 3.5px and every mark at a third of its
+// size — a smear of dots nobody could read or hit. These are close to the
+// sheet's real width, and portrait, because a phone has height to spare and
+// no width at all.
+const PHONE_BIG = { W: 360, H: 440, pad: { t: 14, r: 12, b: 36, l: 40 }, fs: 10, r0: 4.5, r1: 9.5, maxLabels: 16, phone: true };
+const PHONE_FEW = { W: 360, H: 380, pad: { t: 14, r: 12, b: 36, l: 40 }, fs: 11, r0: 10, r1: 12, maxLabels: 12, phone: true };
 
 const TICKS = [
   -1e6, -1e5, -1e4, -1000, -500, -200, -100, -50, -30, -20, -15, -10, -8, -6, -5, -4, -3, -2, -1,
@@ -82,10 +92,13 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
     [rows, xKey, yKey]
   );
 
-  const G = plottable.length <= FEW_MAX ? FEW : BIG;
-  const few = G === FEW;
+  const phone = usePhone();
+  const fewPoints = plottable.length <= FEW_MAX;
+  const G = fewPoints ? (phone ? PHONE_FEW : FEW) : phone ? PHONE_BIG : BIG;
+  const few = fewPoints;
 
   const zp = useZoomPan({ W: G.W, H: G.H, wheel: "direct", onSettle: resettle });
+  const [controlsRef, ctl] = useControlsReserve(zp.hostRef, G.W, 0);
   const { t, project, mark } = zp;
   const fz = G.fs * zp.label;
 
@@ -116,12 +129,19 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
 
     const sizes = pts.map((p) => Math.abs(p[sizeKey] ?? 0));
     const maxSize = Math.max(...sizes, 1);
-    const placed = pts.map((p) => ({
-      ...p,
-      cx: px(p.x),
-      cy: py(p.y),
-      r: G.r0 + Math.sqrt(Math.abs(p[sizeKey] ?? 0) / maxSize) * G.r1,
-    }));
+    const placed = pts.map((p) => {
+      const size = Math.sqrt(Math.abs(p[sizeKey] ?? 0) / maxSize);
+      return {
+        ...p,
+        cx: px(p.x),
+        cy: py(p.y),
+        r: G.r0 + size * G.r1,
+        // Who gets a name when not everyone can: a call still at the plan,
+        // then a Top Runner, then the biggest mark. In data order the names
+        // went to whichever calls happened to be first in the list.
+        priority: (p.atPlan ? 10 : 0) + (p.isTop ? 5 : 0) + size * 3,
+      };
+    });
     return { points: placed, px, py, xs, ys, xScale, yScale, xd, yd };
   }, [plottable, xKey, yKey, sizeKey, mx, my, G]);
 
@@ -139,6 +159,7 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
     place: () =>
       placeLabels(cull(points, G.W, G.H, 0), {
         W: G.W, H: G.H, fs: fz, max: zp.zoomed ? 999 : G.maxLabels, maxChars: 9,
+        blocked: ctl.w ? [[G.W - ctl.w, 0, ctl.w, ctl.h]] : [],
       }),
   };
 
@@ -149,7 +170,7 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
   // offset it was placed at, and useZoomPan re-places once the gesture stops.
   useEffect(() => {
     if (stateRef.current) setLabels(stateRef.current.place());
-  }, [model, xKey, yKey, sizeKey]);
+  }, [model, xKey, yKey, sizeKey, ctl.w, ctl.h]);
 
   const corner = useMemo(() => goodCorner(mx, my), [mx, my]);
 
@@ -191,6 +212,18 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
   const cornerY = project(0, model.py(my.good ?? (model.yd.lo + model.yd.hi) / 2)).y;
   const chaseX = xKey === "distEntry" ? project(model.px(CHASE_LINE), 0).x : null;
   const clip = "screen-map-clip";
+  const cornerName =
+    corner.x === "max" && corner.y === "max"
+      ? { x: G.W - G.pad.r - 6, y: Math.max(15, cornerY - 6), anchor: "end" }
+      : {
+          x: corner.x === "max" ? G.W - G.pad.r - 6 : G.pad.l + 6,
+          y: corner.y === "max" ? 15 : G.H - G.pad.b - 6,
+          anchor: corner.x === "max" ? "end" : "start",
+        };
+  // On a phone the +5% line sits a hundred-odd units from the left edge, right
+  // where the corner's own name is printed, so its label goes to the other end
+  // of the line — and says only the number; the sentence is under the chart.
+  const chaseLabelY = G.phone && corner.y === "max" ? G.H - G.pad.b - 6 : 14;
 
   return (
     <div className="relative">
@@ -222,9 +255,9 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
             fill="rgb(var(--pos) / 0.05)"
           />
           <text
-            x={corner.x === "max" ? G.W - G.pad.r - 6 : G.pad.l + 6}
-            y={corner.y === "max" ? 15 : G.H - G.pad.b - 6}
-            textAnchor={corner.x === "max" ? "end" : "start"}
+            x={cornerName.x}
+            y={cornerName.y}
+            textAnchor={cornerName.anchor}
             className="fill-profit"
             style={{ fontSize: fz - 1, fontFamily: "monospace", letterSpacing: "0.08em", opacity: 0.75 }}
           >
@@ -240,11 +273,11 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
                 stroke="rgb(var(--neg) / 0.4)" strokeDasharray="5 3"
               />
               <text
-                x={chaseX + 5} y={14}
+                x={chaseX + 5} y={chaseLabelY}
                 className="fill-text-muted"
                 style={{ fontSize: fz - 1, fontFamily: "monospace", letterSpacing: "0.08em" }}
               >
-                +{CHASE_LINE}% · TP3 BEHIND 35% OF CALLS
+                {G.phone ? `+${CHASE_LINE}%` : `+${CHASE_LINE}% · TP3 BEHIND 35% OF CALLS`}
               </text>
             </>
           ) : null}
@@ -280,7 +313,6 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
 
         <g clipPath={`url(#${clip})`}>
           {visible.map((p) => {
-            const label = labels.get(p.id);
             const on = hover?.id === p.id;
             const good = p.atPlan;
             const dead = p.roomTp3 != null && p.roomTp3 <= 0;
@@ -322,33 +354,44 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
                   }
                   ringWidth={on ? 2.6 : p.isTop ? 2.2 : 1.3}
                 />
-                {label ? (
-                  <text
-                    x={Math.min(G.W - G.pad.r, Math.max(G.pad.l, p.cx + label.dx))}
-                    y={p.cy + label.dy}
-                    textAnchor={label.anchor}
-                    className="pointer-events-none fill-text-primary"
-                    style={{
-                      fontSize: fz,
-                      fontWeight: 600,
-                      paintOrder: "stroke",
-                      stroke: "rgb(var(--surface-raised))",
-                      strokeWidth: 3.2,
-                      strokeLinejoin: "round",
-                    }}
-                  >
-                    {label.text}
-                  </text>
-                ) : null}
+              </g>
+            );
+          })}
+
+          {/* Names and their values are a layer of their own, drawn after
+              every mark: inside each mark's group the next disc painted over
+              the previous name. */}
+          {visible.map((p) => {
+            const label = labels.get(p.id);
+            if (!label) return null;
+            const x = Math.min(G.W - G.pad.r, Math.max(G.pad.l, p.cx + label.dx));
+            return (
+              <g key={`label-${p.id}`} className="pointer-events-none">
+                <text
+                  x={x}
+                  y={p.cy + label.dy}
+                  textAnchor={label.anchor}
+                  className="fill-text-primary"
+                  style={{
+                    fontSize: fz,
+                    fontWeight: 600,
+                    paintOrder: "stroke",
+                    stroke: "rgb(var(--surface-raised))",
+                    strokeWidth: 3.2,
+                    strokeLinejoin: "round",
+                  }}
+                >
+                  {label.text}
+                </text>
                 {/* With a dozen marks or fewer the plot has room to say what
                     each one IS, so a reader never has to trace a dot back to
                     two axes to read it. */}
-                {few && label ? (
+                {few ? (
                   <text
-                    x={Math.min(G.W - G.pad.r, Math.max(G.pad.l, p.cx + label.dx))}
+                    x={x}
                     y={p.cy + label.dy + fz + 1}
                     textAnchor={label.anchor}
-                    className="pointer-events-none fill-text-muted"
+                    className="fill-text-muted"
                     style={{
                       fontSize: fz - 2,
                       fontFamily: "monospace",
@@ -367,7 +410,7 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
         </g>
       </svg>
 
-      <span className="absolute right-1.5 top-1.5">
+      <span ref={controlsRef} className="absolute right-1.5 top-1.5">
         <ZoomControls
           zoomed={zp.zoomed}
           zoomBy={zp.zoomBy}
@@ -403,29 +446,21 @@ export default function ScreenMap({ rows, xKey, yKey, sizeKey = "vol24", onOpen 
         note={hover?.atPlan ? "still at the plan · tap to open" : "tap to open"}
       />
 
-      {unplottable.length ? (
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ink/[0.03] px-2.5 py-1.5">
-          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-            not on this chart
-          </span>
-          {unplottable.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => onOpen?.(r.signal)}
-              className="inline-flex items-center gap-1 rounded-full border border-ink/[0.1] py-0.5 pl-2 pr-2 text-[11px] text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
-            >
-              <span className="font-medium">{r.pair}</span>
-              <span className="text-text-muted">{r.why}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <MissingTray
+        items={unplottable}
+        onOpen={onOpen}
+        payloadOf={(r) => r.signal}
+        nameOf={(r) => r.pair}
+      />
 
       <p className="mt-1.5 text-[11px] leading-snug text-text-muted">
         Dot size is {METRICS[sizeKey].label.toLowerCase()}; a gold ring is a Top Runner; a grey dot
         has already passed its target. The shaded corner is{" "}
-        {corner.label}. <ZoomHint wheel="direct" />
+        {corner.label}.
+        {chaseX != null && G.phone
+          ? ` The red dashed line is +${CHASE_LINE}%: past it, TP3 is already behind for 35% of calls.`
+          : ""}{" "}
+        <ZoomHint wheel="direct" />
       </p>
     </div>
   );

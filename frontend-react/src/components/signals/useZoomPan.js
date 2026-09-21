@@ -183,6 +183,10 @@ export default function useZoomPan({ W, H, min = 0.1, max = 24, wheel = "modifie
 
   const onPointerDown = useCallback(
     (e) => {
+      // Reached by a hand, not the keyboard: no focus ring. Safari counts a
+      // tap on a tabindex element as focus-visible and drew a gold frame
+      // round the whole chart on every touch. Tab still rings it.
+      if (e.currentTarget?.dataset) e.currentTarget.dataset.pointer = "1";
       if (e.button != null && e.button !== 0) return;
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       moved.current = false;
@@ -266,6 +270,7 @@ export default function useZoomPan({ W, H, min = 0.1, max = 24, wheel = "modifie
   // tenth of the frame, +/- zoom about the centre, 0 resets.
   const onKeyDown = useCallback(
     (e) => {
+      if (e.currentTarget?.dataset) delete e.currentTarget.dataset.pointer;
       const step = W / 10;
       const map = {
         ArrowLeft: [step, 0],
@@ -294,8 +299,14 @@ export default function useZoomPan({ W, H, min = 0.1, max = 24, wheel = "modifie
   /** A click that came at the end of a drag is not a click. */
   const swallowClick = useCallback(() => moved.current, []);
 
+  // Leaving clears the pointer mark, so Tab back in rings the chart again.
+  const onBlur = useCallback((e) => {
+    if (e.currentTarget?.dataset) delete e.currentTarget.dataset.pointer;
+  }, []);
+
   const handlers = useMemo(
     () => ({
+      onBlur,
       onPointerDown,
       onPointerMove,
       onPointerUp: endPointer,
@@ -303,7 +314,7 @@ export default function useZoomPan({ W, H, min = 0.1, max = 24, wheel = "modifie
       onPointerLeave: endPointer,
       onKeyDown,
     }),
-    [onPointerDown, onPointerMove, endPointer, onKeyDown]
+    [onBlur, onPointerDown, onPointerMove, endPointer, onKeyDown]
   );
 
   return {

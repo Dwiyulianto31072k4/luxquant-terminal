@@ -64,7 +64,10 @@ function BreadthStrip({ values }) {
   return (
     <span className="mt-2 flex h-9 w-full items-center gap-[1.5px]" aria-hidden="true">
       {values.map((v, i) => {
-        const h = Math.max(8, (Math.abs(v) / max) * 100);
+        // Half the strip, not all of it: each bar grows from the midline, so
+        // at 100% the largest one rose a whole strip above it and ran into
+        // the line of text overhead.
+        const h = Math.max(4, (Math.abs(v) / max) * 50);
         return (
           <span key={i} className="relative flex h-full min-w-0 flex-1 items-center">
             <span

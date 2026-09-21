@@ -89,7 +89,12 @@ describe("the consolidated filter bar", () => {
   it("always states the day span, because a count means nothing without it", () => {
     // 8 of 736 is a different claim over one day than over all of them.
     expect(text(bar({ selectedDates: [] }))).toContain("All days");
-    expect(text(bar({ selectedDates: ["2026-09-21"] }))).toContain("2026-09-21");
-    expect(text(bar({ selectedDates: ["2026-09-21", "2026-09-20"] }))).toContain("Days: 2");
+    // Dates are derived from the clock: a literal date passes until the day
+    // it becomes "today", which is how this test first went red.
+    const today = new Date().toISOString().slice(0, 10);
+    const earlier = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+    expect(text(bar({ selectedDates: [earlier] }))).toContain(earlier);
+    expect(text(bar({ selectedDates: [today] }))).toContain("Today");
+    expect(text(bar({ selectedDates: [today, earlier] }))).toContain("Days: 2");
   });
 });

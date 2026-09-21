@@ -1462,6 +1462,16 @@ body[data-lq-selecting] [data-lq-bottomnav] {
   outline: none !important;
 }
 
+/* A chart that takes the keyboard (tabindex, arrow keys to pan) is also
+   tapped and dragged, and Safari treats a tap on it as focus-visible — a gold
+   frame round the plot on every touch; some Chromium builds ring plain :focus
+   too. useZoomPan marks pointer arrivals and clears the mark on blur, so Tab
+   back in still gets the ring. */
+[data-pointer="1"]:focus,
+[data-pointer="1"]:focus-visible {
+  outline: none !important;
+}
+
 /* Inputs already carry their own border treatment; keep the ring tight so it
    does not collide with adjacent controls in dense filter rows. */
 input:focus-visible,

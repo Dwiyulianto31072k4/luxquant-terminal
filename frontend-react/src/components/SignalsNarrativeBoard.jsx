@@ -68,8 +68,11 @@ function HowToRead({ finding, onRankByPeak, ranked }) {
           the corner text reads as a caption rather than as the control it is. */}
       <ToggleBox active={ranked} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-      <span className="flex w-full min-w-0 items-baseline gap-2">
-        <span className="min-w-0 flex-1 text-[12.5px] font-medium leading-snug text-text-primary">
+      {/* Phone: the state under the claim, not beside it — "Ranked by peak"
+          is fourteen characters of mono and squeezed the sentence into a
+          column three words wide. */}
+      <span className="flex w-full min-w-0 flex-col items-start gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
+        <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug text-text-primary sm:text-[12.5px]">
           {flat
             ? "Every narrative wins about as often. What differs is how far a call runs."
             : "Win rates do separate in this window — and so does how far a call runs."}
@@ -82,7 +85,10 @@ function HowToRead({ finding, onRankByPeak, ranked }) {
           {ranked ? "Ranked by peak" : "Rank by peak"}
         </span>
       </span>
-      <span className="text-[11px] leading-snug text-text-muted">
+      {/* The numbers behind the claim are desk-only, as on the Coin flow
+          findings: on a phone the headline is the claim and the table under
+          it is the proof. */}
+      <span className="hidden text-[11px] leading-snug text-text-muted sm:block">
         Win rate runs {finding.wrLo.toFixed(0)}–{finding.wrHi.toFixed(0)}% and the confidence
         bands overlap on {finding.wrPairs - finding.wrSeparable} of {finding.wrPairs} pairs, so
         that column cannot rank anything. Typical peak runs{" "}

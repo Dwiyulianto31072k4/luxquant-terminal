@@ -370,7 +370,9 @@ export default function EdgeRecipesBar({
           phone: "Record" on its own reads like a button that starts recording,
           and the label measures ~110px against a ~118px column at 320px. */}
       <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:items-center sm:gap-1.5">
-        <div className="col-span-3 min-w-0 sm:flex-1">
+        {/* Phone: this and the 44px "What these mean" square fill line one
+            exactly, so whatever follows starts line two. */}
+        <div className="order-1 min-w-0 flex-[1_1_calc(100%_-_3.25rem)] sm:order-none sm:flex-1">
           <SegGroup
             size="touch"
             fill="mobile"
@@ -392,7 +394,7 @@ export default function EdgeRecipesBar({
           <button
             type="button"
             aria-pressed={topRunnersOnly}
-            className={`${deskChipClass(topRunnersOnly)} justify-center !px-2 sm:!px-2.5`}
+            className={`${deskChipClass(topRunnersOnly)} order-3 flex-auto justify-center !px-2 sm:order-none sm:flex-none sm:!px-2.5`}
             title="Only the Runners carrying the day's leading runner tag when they were posted"
             onClick={onToggleTopRunners}
           >
@@ -406,7 +408,7 @@ export default function EdgeRecipesBar({
         {showRecipes ? (
           <button
             type="button"
-            className={`${deskChipClass(resultsOpen)} justify-center !px-2 sm:!px-2.5`}
+            className={`${deskChipClass(resultsOpen)} order-3 flex-auto justify-center !px-2 sm:order-none sm:flex-none sm:!px-2.5`}
             title="Closed-call record of Runners vs the unfiltered desk"
             onClick={() => setResultsOpen(true)}
           >
