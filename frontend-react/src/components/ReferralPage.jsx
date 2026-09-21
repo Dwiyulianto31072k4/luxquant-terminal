@@ -9,9 +9,9 @@ import CashoutRequestModal from "./referral/CashoutRequestModal";
 import CashoutHistoryList from "./referral/CashoutHistoryList";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
-import SharePlatformGrid from "./referral/SharePlatforms";
+import SharePlatformGrid, { PLATFORMS } from "./referral/SharePlatforms";
+import { MessageStudio, MESSAGE_VARIANTS } from "./referral/MessageStudio";
 import {
-  Eyebrow,
   Panel,
   StatTile,
   StatusChip,
@@ -59,13 +59,6 @@ const CopyButton = ({ text, label, onCopied, className = "" }) => {
     </button>
   );
 };
-
-// These are the words a person actually sends. No long dash: it is the
-// clearest tell that a message was not typed by the person sharing it.
-const SCRIPT_PROOF = (link) =>
-  `LuxQuant publishes every call since December 2023, so you can verify the record yourself. Join free with my link:\n${link}`;
-const SCRIPT_MONEY = (link) =>
-  `I earn USDT when you subscribe. You get 5% off your first payment. We both win:\n${link}`;
 
 const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
   const dialogRef = useRef(null);
@@ -163,7 +156,8 @@ const ReferralPage = () => {
   const [cashoutBalance, setCashoutBalance] = useState(null);
   const [cashoutHistory, setCashoutHistory] = useState([]);
   const [showCashoutModal, setShowCashoutModal] = useState(false);
-  const [script, setScript] = useState("proof");
+  const [message, setMessage] = useState("");
+  const [previewPlatform, setPreviewPlatform] = useState("whatsapp");
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -232,12 +226,18 @@ const ReferralPage = () => {
     }
   };
 
-  const scriptText =
-    script === "money" ? SCRIPT_MONEY(shareLink) : SCRIPT_PROOF(shareLink);
+  // Seeded once the link is known, then left alone so an edit survives a
+  // re-render. Sending a message the person has reworded is the whole point.
+  useEffect(() => {
+    if (!shareLink) return;
+    setMessage((m) => m || MESSAGE_VARIANTS[0].build(shareLink));
+  }, [shareLink]);
+
+  const scriptText = message || (shareLink ? MESSAGE_VARIANTS[0].build(shareLink) : "");
 
   const shareNative = async () => {
     handleShareTracked("other");
-    const payload = { title: "LuxQuant", text: SCRIPT_PROOF(""), url: shareLink };
+    const payload = { title: "LuxQuant", text: scriptText, url: shareLink };
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share(payload);
@@ -247,7 +247,7 @@ const ReferralPage = () => {
       }
     }
     try {
-      await navigator.clipboard.writeText(`${SCRIPT_PROOF("")}\n${shareLink}`);
+      await navigator.clipboard.writeText(scriptText);
     } catch {
       /* ignore */
     }
@@ -343,7 +343,6 @@ const ReferralPage = () => {
         {/* ── HEADER ─────────────────────────────────────────────── */}
         <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <Eyebrow live>{t("referral.chip_full", "Invite · Earn USDT")}</Eyebrow>
             <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-text-primary sm:text-4xl lg:text-5xl">
               {t("referral.page_title", "Invite friends. Earn USDT.")}
             </h1>
@@ -465,43 +464,24 @@ const ReferralPage = () => {
                   </div>
                 </div>
 
-                {/* The message first, then where to send it. Picking a
-                    platform before knowing what it will say is the wrong
-                    order, and it is why most people never send anything. */}
                 <div className="mt-5 border-t border-ink/[0.06] pt-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-wider"
-                      style={{ color: "rgb(var(--fg-muted))" }}
-                    >
-                      {t("referral.message_label", "Your message")}
-                    </p>
-                    <div className="flex gap-1">
-                      {[
-                        { id: "proof", label: t("referral.script_proof", "Proof") },
-                        { id: "money", label: t("referral.script_money", "Money") },
-                      ].map((o) => (
-                        <button
-                          key={o.id}
-                          type="button"
-                          onClick={() => setScript(o.id)}
-                          className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors"
-                          style={{
-                            background: script === o.id ? "rgb(var(--accent) / 0.14)" : "transparent",
-                            color: script === o.id ? "rgb(var(--accent-text))" : "rgb(var(--fg-muted))",
-                          }}
-                        >
-                          {o.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="rounded-lg px-3 py-2.5 text-xs leading-relaxed text-text-secondary"
-                     style={{ background: "rgb(var(--ink) / 0.03)" }}>
-                    {scriptText}
+                  <p
+                    className="mb-2.5 text-[10px] font-semibold uppercase tracking-wider"
+                    style={{ color: "rgb(var(--fg-muted))" }}
+                  >
+                    {t("referral.message_label", "Your message")}
                   </p>
 
-                  <div className="mt-3">
+                  <MessageStudio
+                    link={shareLink}
+                    value={scriptText}
+                    onChange={setMessage}
+                    platform={previewPlatform}
+                    onPlatformChange={setPreviewPlatform}
+                    platforms={PLATFORMS}
+                  />
+
+                  <div className="mt-4">
                     <SharePlatformGrid
                       link={shareLink}
                       message={scriptText}
