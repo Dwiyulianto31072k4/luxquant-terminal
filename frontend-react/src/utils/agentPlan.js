@@ -84,7 +84,7 @@ export function agentBlockedByDrc(user) {
 export const DRC_AGENT_TITLE = "Agent isn't part of your access through Daily Rekom Crypto";
 export const DRC_AGENT_PARAGRAPHS = [
   "Your LuxQuant access comes through our partnership with Daily Rekom Crypto, and we work closely with their team on what that access includes.",
-  "Automated trading is growing quickly around the world, but every community has its own considerations. Daily Rekom Crypto has decided not to offer automated trade execution to its members for now, and we fully respect that direction. So the Agent isn't available on your account, while everything else remains yours to use without limits.",
+  "Automated trading is growing quickly around the world, but every community has its own considerations. Jaxx, CEO of Daily Rekom Crypto, has asked that automated trade execution not be offered to DRC members for now. We fully respect that decision and follow their direction for their members, so the Agent isn't available on your account. Everything else remains yours to use without limits.",
   "You still have full access to live signals, the terminal and its analytics, and our research. That covers everything you need to make your own trading decisions.",
   "If you have any questions about this, the Daily Rekom Crypto team is happy to help, and you can always reach us through chat.",
 ];

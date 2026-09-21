@@ -55,7 +55,7 @@ export const RISK_EVENTS = {
     title: "Agent isn't part of access through Daily Rekom Crypto",
     blocking: true,
     what: "No entries are placed on this account, live or simulated. Your subscription, your signals and any open position are untouched, and open positions keep their take-profit and stop-loss.",
-    why: "Daily Rekom Crypto has decided not to offer automated trade execution to its members for now, and we respect that direction. It is checked before every entry.",
+    why: "Jaxx, CEO of Daily Rekom Crypto, has asked that automated trade execution not be offered to DRC members for now. We respect that decision and follow their direction for their members. It is checked before every entry.",
     fix: "Nothing to change on this side. If you have questions, the Daily Rekom Crypto team is happy to help, and you can always reach us through chat.",
   },
   subscription_inactive: {
