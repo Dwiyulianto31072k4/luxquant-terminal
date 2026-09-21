@@ -5,7 +5,6 @@
 //
 
 import { useState } from "react";
-import { DISCORD_PREMIUM_LABEL } from "./users/helpers";
 import { FilterIcon, ChevronDownIcon, XCircleIcon } from "./Icons";
 import { Select } from "./primitives";
 import { palette, surface, tint, motion } from "./designSystem";
@@ -162,8 +161,21 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 { value: "admin", label: "Admin grant" },
                 { value: "admin_approve", label: "Admin approve" },
                 { value: "telegram_vip", label: "Telegram VIP" },
-                { value: "discord_premium", label: DISCORD_PREMIUM_LABEL },
+                // How access was granted — 28 today, two of whom have since left the
+                // server. The DRC set itself is the Membership filter below.
+                { value: "discord_premium", label: "Discord Premium+ grant" },
                 { value: "manual_admin_record", label: "Manual record" },
+              ]}
+            />
+            <Select
+              label="Membership"
+              value={filters.plan}
+              onChange={update("plan")}
+              options={[
+                { value: null, label: "All members" },
+                // Same rule as the badge (backend plan=drc), so this returns
+                // exactly the people wearing it.
+                { value: "drc", label: "DRC clients" },
               ]}
             />
             <Select

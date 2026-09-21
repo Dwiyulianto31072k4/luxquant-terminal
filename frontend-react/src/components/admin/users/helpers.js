@@ -72,13 +72,22 @@ export const isReachable = (u) => hasTelegram(u) || hasDiscord(u) || hasRealEmai
 // different economics. Their source says which they are; use it.
 export const DISCORD_PREMIUM_LABEL = "DRC Subscriber";
 
+// Holds Premium+ in the DRC server right now. The server computes this
+// (`is_drc`) from the daily Premium+ audit plus the live check at every
+// Discord sign-in. The fallback mirrors the server's own, for payloads that
+// predate the field: granted via Discord AND still linked, so an account that
+// has since unlinked is not tagged on a guess.
+export const isDrc = (u) =>
+  u?.is_drc ?? (u?.subscription_source === "discord_premium" && u?.discord_id != null);
+
 export const subscriptionStatus = (user) => {
   if (user.role === "admin") return { type: "admin", label: "Admin" };
   if (user.role === "co_admin") return { type: "co_admin", label: "Co-Admin" };
   if (user.role === "founder") return { type: "founder", label: "Founder" };
+  // Before the free check: anyone detected as Premium+ is a DRC client, even
+  // if they have not signed in since and their role has not been promoted yet.
+  if (isDrc(user)) return { type: "discord_premium", label: DISCORD_PREMIUM_LABEL };
   if (user.role !== "subscriber" && user.role !== "premium") return { type: "free", label: "—" };
-  if (user.subscription_source === "discord_premium")
-    return { type: "discord_premium", label: DISCORD_PREMIUM_LABEL };
   if (!user.subscription_expires_at) return { type: "lifetime", label: "Lifetime" };
   const days = daysUntil(user.subscription_expires_at);
   if (days <= 0) return { type: "expired", label: "Expired", days };

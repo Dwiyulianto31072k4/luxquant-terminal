@@ -26,6 +26,8 @@ from urllib.parse import urlencode, quote
 from typing import Optional, Tuple
 
 import httpx
+
+from app.services.entitlement_audit import note_discord_premium
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -480,10 +482,18 @@ async def _get_discord_user(access_token: str) -> Optional[dict]:
         return None
 
 
-async def _check_guild_role(discord_user_id: int) -> bool:
+async def _guild_role_state(discord_user_id: int) -> Optional[bool]:
+    """True: holds Premium+. False: confirmed not (left the server, or the role
+    is absent). None: could not tell.
+
+    The distinction exists for the DRC badge. The old bool folded "Discord
+    answered 429 / 500 / timed out" into False, which is harmless to a
+    promote-only role resolver but would strip a real client's badge on every
+    transient Discord hiccup.
+    """
     if not DISCORD_BOT_TOKEN:
         logger.warning("DISCORD_BOT_TOKEN not configured, skipping role check")
-        return False
+        return None
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -497,7 +507,7 @@ async def _check_guild_role(discord_user_id: int) -> bool:
 
             if response.status_code != 200:
                 logger.error(f"Discord guild member check failed: {response.status_code}")
-                return False
+                return None
 
             member = response.json()
             roles = member.get("roles", [])
@@ -506,7 +516,15 @@ async def _check_guild_role(discord_user_id: int) -> bool:
 
     except Exception as e:
         logger.error(f"Discord role check error: {e}")
-        return False
+        return None
+
+
+async def _check_guild_role(discord_user_id: int) -> bool:
+    """Premium+ as a plain yes/no, for the role resolver. Unknown reads as no,
+    exactly as before — the resolver only ever promotes, so that is safe there."""
+    state = await _guild_role_state(discord_user_id)
+    note_discord_premium(discord_user_id, state)
+    return bool(state)
 
 
 def _generate_username(username: str, global_name: str, db: Session) -> str:

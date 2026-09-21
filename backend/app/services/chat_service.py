@@ -623,7 +623,7 @@ def admin_conversation_list(
                        c.last_admin_message_at, c.tg_topic_state,
                        c.handoff_sent_at, c.dm_bound_at,
                        u.username, u.email, u.avatar_url, u.role,
-                       u.subscription_expires_at, u.subscription_source,
+                       u.subscription_expires_at, u.subscription_source, u.discord_id,
                        u.telegram_id,
                        u.telegram_username, u.telegram_in_group,
                        u.last_active_at, u.created_at AS user_created_at,
@@ -658,9 +658,14 @@ def admin_conversation_list(
         _guard_schema(e)
         raise
 
+    # Resolved once for the page, not per thread.
+    from app.services.entitlement_audit import drc_premium_ids, is_drc_client
+    drc_ids = drc_premium_ids()
+
     items = []
     for r in rows:
         d = dict(r)
+        d["is_drc"] = is_drc_client(d.get("discord_id"), d.get("subscription_source"), drc_ids)
         state = _derive_read_state(
             last_seq=d.get("last_seq") or 0,
             admin_last_read_seq=d.get("admin_last_read_seq") or 0,

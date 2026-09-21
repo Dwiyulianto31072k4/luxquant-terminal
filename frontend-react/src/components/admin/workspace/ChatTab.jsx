@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDialog } from "../../../hooks/useDialog";
 import { adminApi } from "../../../services/adminApi";
-import { DISCORD_PREMIUM_LABEL } from "../users/helpers";
+import { DISCORD_PREMIUM_LABEL, isDrc } from "../users/helpers";
 import { adminChatApi } from "../../../services/adminChatApi";
 import { NEUTRAL } from "../designSystem";
 import { Surface, Avatar, Badge, EmptyState, LoadingState, SearchInput, Spinner } from "../primitives";
@@ -78,7 +78,7 @@ const fmtTime = (iso) => {
 
 const planLabel = (row) => {
   if (row.role === "free") return "Free";
-  if (row.subscription_source === "discord_premium") return DISCORD_PREMIUM_LABEL;
+  if (isDrc(row)) return DISCORD_PREMIUM_LABEL;
   if (!row.subscription_expires_at) return "Lifetime";
   const exp = new Date(row.subscription_expires_at);
   return exp < new Date() ? `Expired ${fmtDate(exp)}` : `Until ${fmtDate(exp)}`;

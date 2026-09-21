@@ -44,7 +44,20 @@ from app.services.telegram_group import get_member_status
 log = logging.getLogger(__name__)
 
 BLOB_KEY = "lq:admin:entitlements"
-TTL = 60 * 60 * 12
+# 48h, not 12h. The loop below refreshes once a day, so a 12h TTL left the
+# cache empty for the other 12 — measured 2026-09-21: expired 12:06 UTC with
+# no recompute until 00:00, i.e. the Unclaimed access panel was blank from
+# 19:06 to 07:00 WIB every day. Two refreshes of margin also survives one
+# failed pass.
+TTL = 60 * 60 * 48
+
+# Current Discord Premium+ holders, as a list of Discord user ids (strings).
+# This is what "DRC client" means: holds Premium+ in the Daily Rekom Crypto
+# server right now. Not the same as subscription_source == 'discord_premium',
+# which records how access was first granted — measured, that rule tagged two
+# accounts that had since left and missed three real Premium+ holders whose
+# access came from legacy, lifetime or an admin grant.
+DRC_KEY = "lq:drc:premium_ids"
 
 DISCORD_API = "https://discord.com/api/v10"
 GUILD_ID = os.getenv("DISCORD_GUILD_ID", "1199773381097181317")
@@ -210,9 +223,18 @@ async def compute() -> dict[str, Any]:
     }
 
 
+def _drc_ids_from_blob(blob: dict[str, Any]) -> list[str]:
+    return sorted({
+        str(r["platform_id"])
+        for r in (blob.get("rows") or [])
+        if r.get("platform") == "discord" and r.get("platform_id")
+    })
+
+
 async def compute_and_cache() -> dict[str, Any]:
     blob = await compute()
     cache_set(BLOB_KEY, blob, ttl=TTL)
+    cache_set(DRC_KEY, _drc_ids_from_blob(blob), ttl=TTL)
     log.info("entitlement audit: %s rows, %s unclaimed",
              blob["summary"]["total_rows"], blob["summary"]["discord_unclaimed"] + blob["summary"]["legacy_unclaimed"])
     return blob
@@ -235,6 +257,11 @@ async def entitlement_daily_loop() -> None:
             await compute_and_cache()
         except Exception:
             log.exception("entitlement: initial compute failed")
+    elif cache_get(DRC_KEY) is None:
+        # Blob survived a restart but the DRC set predates it (first deploy of
+        # this key): derive it now rather than leave every badge off until
+        # midnight.
+        cache_set(DRC_KEY, _drc_ids_from_blob(cache_get(BLOB_KEY)), ttl=TTL)
 
     while True:
         now = datetime.now(timezone.utc)
@@ -250,3 +277,57 @@ async def entitlement_daily_loop() -> None:
 
 def read_cached() -> dict[str, Any] | None:
     return cache_get(BLOB_KEY)
+
+
+def drc_premium_ids() -> set[str] | None:
+    """Discord ids currently holding Premium+, or None when unknown.
+
+    None is not the same as empty: it means neither the set nor the blob it is
+    derived from is in cache, and callers fall back rather than strip every
+    badge.
+    """
+    ids = cache_get(DRC_KEY)
+    if ids is not None:
+        return set(ids)
+    blob = cache_get(BLOB_KEY)
+    if blob:
+        derived = _drc_ids_from_blob(blob)
+        cache_set(DRC_KEY, derived, ttl=TTL)
+        return set(derived)
+    return None
+
+
+def is_drc_client(discord_id, subscription_source, ids: set[str] | None) -> bool:
+    """Holds Premium+ in the DRC server right now.
+
+    Without a known set, the only signal left is how access was granted — used
+    only when a Discord account is still linked, so accounts that have since
+    unlinked are not tagged on a guess.
+    """
+    if ids is None:
+        return subscription_source == "discord_premium" and discord_id is not None
+    return discord_id is not None and str(discord_id) in ids
+
+
+def note_discord_premium(discord_id, has_premium: bool | None) -> None:
+    """Live detection at Discord login: tag or untag this one person now.
+
+    The daily audit is the full sweep; this closes the gap for someone who
+    gains Premium+ during the day, and drops someone who lost it the moment
+    they sign in rather than at midnight. Read-modify-write, so two logins in
+    the same instant can lose one update — the next daily rebuild restores it.
+    """
+    if discord_id is None or has_premium is None:
+        return  # no id, or Discord could not answer: do not guess either way
+    ids = drc_premium_ids()
+    if ids is None:
+        return  # nothing authoritative to amend; the daily run will set it
+    did = str(discord_id)
+    if has_premium and did not in ids:
+        ids.add(did)
+    elif not has_premium and did in ids:
+        ids.discard(did)
+    else:
+        return
+    cache_set(DRC_KEY, sorted(ids), ttl=TTL)
+

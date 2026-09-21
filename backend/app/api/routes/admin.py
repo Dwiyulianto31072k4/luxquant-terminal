@@ -283,6 +283,19 @@ def list_users(
             User.role.in_(['premium', 'subscriber']),
             User.subscription_expires_at.isnot(None),
         )
+    elif plan == "drc":
+        # Holds Premium+ in the DRC server right now — the same rule the badge
+        # uses, so the filter returns exactly the people wearing it.
+        from app.services.entitlement_audit import drc_premium_ids
+        ids = drc_premium_ids()
+        if ids is None:
+            query = query.filter(
+                User.subscription_source == "discord_premium",
+                User.discord_id.isnot(None),
+            )
+        else:
+            # users.discord_id is bigint; the set holds Discord snowflake strings.
+            query = query.filter(User.discord_id.in_([int(i) for i in ids if i.isdigit()]))
 
     # Status filter
     if status_filter == "active":
@@ -516,11 +529,14 @@ def list_users(
             fu_map[row.user_id] = {"last_at": row.last_at, "open": row.open_cnt or 0}
 
     # Serialize with computed effective_* fields + CRM status
+    from app.services.entitlement_audit import drc_premium_ids, is_drc_client
+    drc_ids = drc_premium_ids()
     items = []
     for u in users:
         d = AdminUserResponse.model_validate(u).model_dump(mode="json")
         d["effective_telegram_username"] = u.effective_telegram_username
         d["effective_discord_handle"] = u.effective_discord_handle
+        d["is_drc"] = is_drc_client(u.discord_id, u.subscription_source, drc_ids)
         fu = fu_map.get(u.id)
         if not fu or not fu["last_at"]:
             d["crm_status"] = "untouched"      # never had a followup
@@ -1518,6 +1534,8 @@ def get_user_full_detail(
     user_dict = AdminUserResponse.model_validate(user).model_dump(mode="json")
     user_dict["effective_telegram_username"] = user.effective_telegram_username
     user_dict["effective_discord_handle"] = user.effective_discord_handle
+    from app.services.entitlement_audit import drc_premium_ids, is_drc_client
+    user_dict["is_drc"] = is_drc_client(user.discord_id, user.subscription_source, drc_premium_ids())
 
     return {
         "user": user_dict,
@@ -1567,6 +1585,8 @@ def update_user_contact(
     user_dict = AdminUserResponse.model_validate(user).model_dump(mode="json")
     user_dict["effective_telegram_username"] = user.effective_telegram_username
     user_dict["effective_discord_handle"] = user.effective_discord_handle
+    from app.services.entitlement_audit import drc_premium_ids, is_drc_client
+    user_dict["is_drc"] = is_drc_client(user.discord_id, user.subscription_source, drc_premium_ids())
 
     return {
         "success": True,
