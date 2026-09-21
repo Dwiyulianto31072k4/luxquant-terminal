@@ -23,6 +23,7 @@ from app.models.user import User
 from app.models.subscription import Payment
 from app.models.referral import (
     ReferralCode,
+    ReferralShareEvent,
     ReferralUse,
     REFERRAL_STATUS_PENDING,
     REFERRAL_STATUS_ACTIVE,
@@ -343,6 +344,16 @@ def track_share_event(db: Session, code: str, channel: str) -> Optional[Referral
         referral.share_count = (referral.share_count or 0) + 1
 
     referral.last_shared_at = datetime.now(timezone.utc)
+
+    # The counters answer "how many"; this row answers "where". The channel
+    # used to be accepted and dropped on the floor, so every share before
+    # 2026-09-21 is unattributable.
+    db.add(ReferralShareEvent(
+        code_id=referral.id,
+        user_id=referral.user_id,
+        channel=(channel or "other")[:32],
+    ))
+
     db.commit()
     db.refresh(referral)
 

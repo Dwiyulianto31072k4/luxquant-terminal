@@ -4,13 +4,21 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { referralApi } from "../services/referralApi";
 import { Z } from "../constants/zIndex";
-import { buildReferralMiniAppUrl } from "../utils/telegramCampaign";
 
 import CashoutRequestModal from "./referral/CashoutRequestModal";
 import CashoutHistoryList from "./referral/CashoutHistoryList";
-import { UsdtCoin } from "./referral/UsdtCoin";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
+import {
+  Eyebrow,
+  Panel,
+  StatTile,
+  StatusChip,
+  FunnelBars,
+  ChannelBars,
+  ReferralNetwork,
+  UnlockProgress,
+} from "./referral/ReferralUI";
 import { useDialog } from "../hooks/useDialog";
 
 const BTN =
@@ -66,42 +74,10 @@ const CopyButton = ({ text, label, onCopied, className = "" }) => {
   );
 };
 
-const refereeStatus = (referee) => {
-  if (referee.qualified_at) return referee.status === "subscribed" ? "subscribed" : "qualified";
-  return referee.status || "pending";
-};
-
-const StatusBadge = ({ status }) => {
-  const { t } = useTranslation();
-  const config = {
-    pending: { cls: "border-ink/12 bg-surface-secondary text-text-muted", key: "status_pending" },
-    active: { cls: "border-profit/25 bg-profit/10 text-profit", key: "status_active" },
-    qualified: { cls: "border-accent/30 bg-accent/10 text-accent", key: "status_qualified" },
-    subscribed: { cls: "border-transparent bg-accent text-accent-fg", key: "status_subscribed" },
-    churned: { cls: "border-ink/12 bg-surface-secondary text-text-muted", key: "status_churned" },
-    cancelled: { cls: "border-loss/25 bg-loss/10 text-loss", key: "status_cancelled" },
-  }[status] || { cls: "border-ink/12 bg-surface-secondary text-text-muted", key: status };
-  return (
-    <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${config.cls}`}>
-      {t(`referral.${config.key}`, { defaultValue: status })}
-    </span>
-  );
-};
-
-const formatRelativeTime = (iso) => {
-  if (!iso) return "";
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 60) return `${Math.max(1, minutes)}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return `${Math.floor(days / 30)}mo ago`;
-};
-
+// These are the words a person actually sends. No long dash: it is the
+// clearest tell that a message was not typed by the person sharing it.
 const SCRIPT_PROOF = (link) =>
-  `LuxQuant publishes every call since December 2023 — verify the record yourself. Join free with my link:\n${link}`;
+  `LuxQuant publishes every call since December 2023, so you can verify the record yourself. Join free with my link:\n${link}`;
 const SCRIPT_MONEY = (link) =>
   `I earn USDT when you subscribe. You get 5% off your first payment. We both win:\n${link}`;
 
@@ -179,8 +155,6 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
 
 // Plan prices are whole dollars; 1000 reads better with a separator, and a
 // stray .00 from the API would read as precision nobody asked for.
-const fmtPlanPrice = (v) => Number(v || 0).toLocaleString("en-US");
-
 const ReferralPage = () => {
   const { t } = useTranslation();
   const [code, setCode] = useState(null);
@@ -197,7 +171,7 @@ const ReferralPage = () => {
   });
   const [refereesPage, setRefereesPage] = useState({ items: [], total: 0, page: 1, has_more: false });
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("overview");
+  const [shareBreakdown, setShareBreakdown] = useState(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [refereesPageNum, setRefereesPageNum] = useState(1);
   const [cashoutBalance, setCashoutBalance] = useState(null);
@@ -208,11 +182,12 @@ const ReferralPage = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, refereesRes, cashoutBalanceRes, cashoutHistoryRes] = await Promise.allSettled([
+      const [statsRes, refereesRes, cashoutBalanceRes, cashoutHistoryRes, shareRes] = await Promise.allSettled([
         referralApi.getStats(),
         referralApi.getReferees(1, 20),
         referralApi.getCashoutBalance(),
         referralApi.getCashoutHistory(50),
+        referralApi.getShareBreakdown(90).catch(() => null),
       ]);
       if (statsRes.status === "fulfilled" && statsRes.value) {
         setCode(statsRes.value.code);
@@ -231,6 +206,7 @@ const ReferralPage = () => {
       if (refereesRes.status === "fulfilled") setRefereesPage(refereesRes.value);
       if (cashoutBalanceRes.status === "fulfilled") setCashoutBalance(cashoutBalanceRes.value);
       if (cashoutHistoryRes.status === "fulfilled") setCashoutHistory(cashoutHistoryRes.value.items || []);
+      if (shareRes.status === "fulfilled") setShareBreakdown(shareRes.value);
     } catch (err) {
       console.error("Referral data load error:", err);
     } finally {
@@ -243,7 +219,6 @@ const ReferralPage = () => {
   }, [fetchAll]);
 
   const shareLink = code?.share_link || "";
-  const tgLink = code?.telegram_share_link || (code?.code ? buildReferralMiniAppUrl(code.code) : "");
   const qualified = funnel?.qualified || 0;
   const paid = funnel?.paid || 0;
   const needUse = funnel?.unlock_qualified_need || 3;
@@ -339,352 +314,301 @@ const ReferralPage = () => {
     );
   }
 
+  // ── derived ────────────────────────────────────────────────────────
+  const commissionPct = code?.commission_pct ?? estimator?.commission_pct ?? 5;
+  const invited = funnel?.signed_up || 0;
+  const activeCount = funnel?.active || 0;
+  const subscribedCount = funnel?.subscribed || 0;
+  const referees = refereesPage.items || [];
+  const channels = shareBreakdown?.channels || [];
+
+  // 682 of 686 code holders have never referred anyone, so the empty page IS
+  // the page for almost everyone. Panels appear as they earn the right to
+  // exist rather than standing there full of zeros.
+  const started = invited > 0 || hasEarnings;
+  // A hub with two spokes says less than a two-row list. Below this the list
+  // is the better form and the network simply is not drawn.
+  const NETWORK_MIN = 8;
+
+  const CHANNEL_LABEL = {
+    telegram: "Telegram",
+    whatsapp: "WhatsApp",
+    twitter: "X",
+    copy_link: "Copied link",
+    qr_download: "QR code",
+    native: "Share sheet",
+    other: "Other",
+  };
+
   return (
-    <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 pb-8 sm:space-y-6 sm:px-6 sm:py-6">
-      {/* HERO — QR + offer */}
-      <section className="rounded-2xl border border-accent/20 bg-surface-raised p-5 sm:p-7">
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[auto_1fr] lg:items-start lg:gap-8">
-          {code && (
-            <div className="flex flex-col items-center gap-3">
-              <div className="rounded-lg border border-ink/10 bg-white p-2">
-                <img
-                  src={`${code.qr_url}?v=${encodeURIComponent(code.created_at || code.code)}`}
-                  alt={`QR for ${code.code}`}
-                  className="block h-40 w-40 sm:h-48 sm:w-48"
-                />
-              </div>
-              <button type="button" onClick={handleDownloadQR} className={`${BTN} w-full max-w-[12.5rem]`}>
-                {t("referral.download_qr")}
-              </button>
-            </div>
-          )}
-
-          <div className="min-w-0">
-            <p className="mb-2 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
-              <UsdtCoin size={16} />
-              {t("referral.chip_full")}
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
-              {t("referral.title")}
-            </h1>
-            <p className="mt-3 text-sm leading-relaxed text-text-muted sm:text-base">
-              {t("referral.subtitle")}
-            </p>
-
-            {code && (
-              <div className="mt-5">
-                <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-text-muted">
-                  {t("referral.copy_code")}
-                </p>
-                <p className="break-all font-mono text-xl font-semibold tracking-wider text-accent sm:text-2xl">
-                  {code.code}
-                </p>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <CopyButton
-                    text={code.code}
-                    label={t("referral.copy_code")}
-                    onCopied={() => handleShareTracked("copy_link")}
-                    className="w-full"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowGenerateModal(true)}
-                    className={`${BTN} w-full`}
-                  >
-                    Customize
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4">
-              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-text-muted">
-                {t("referral.copy_link")}
-              </p>
-              <div className="rounded-md border border-ink/12 bg-ink/[0.03] px-3 py-2.5 font-mono text-xs leading-relaxed text-text-secondary break-all">
-                {shareLink}
-              </div>
-              <CopyButton
-                text={shareLink}
-                label={t("referral.copy_link")}
-                onCopied={() => handleShareTracked("copy_link")}
-                className="mt-2 w-full sm:w-auto"
-              />
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <button type="button" onClick={shareNative} className={`${BTN} w-full`}>
-                <IconShare />
-                {t("referral.share")}
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  shareTo(
-                    "whatsapp",
-                    `https://wa.me/?text=${encodeURIComponent(`${SCRIPT_PROOF("")} ${shareLink}`)}`,
-                  )
-                }
-                className={`${BTN} w-full`}
-              >
-                <IconWhatsApp />
-                {t("referral.share_whatsapp")}
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  shareTo(
-                    "telegram",
-                    `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(SCRIPT_PROOF(""))}`,
-                  )
-                }
-                className={`${BTN} w-full`}
-              >
-                <IconTelegram />
-                {t("referral.share_telegram")}
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  shareTo(
-                    "twitter",
-                    `https://twitter.com/intent/tweet?text=${encodeURIComponent(SCRIPT_PROOF(""))}&url=${encodeURIComponent(shareLink)}`,
-                  )
-                }
-                className={`${BTN} w-full`}
-              >
-                <IconX />
-                X
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Dual reward — free = VIP */}
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-accent/20 bg-surface-raised p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
-                <UsdtCoin size={14} />
-                {t("referral.earn_usdt")}
-              </p>
-              <p className="mt-2 text-sm text-text-muted">{t("referral.earn_usdt_body")}</p>
-            </div>
-            <UsdtCoin size={48} className="shrink-0" />
-          </div>
-          {hasEarnings ? (
-            <div className="mt-4 flex items-end justify-between gap-3">
-              <div>
-                <p className="font-mono text-[10px] uppercase text-text-muted">{t("referral.available")}</p>
-                <p className="font-mono text-3xl font-semibold tabular-nums text-accent">
-                  ${available.toFixed(2)} <span className="text-sm font-semibold">USDT</span>
-                </p>
-              </div>
-              {canCashout && (
-                <button type="button" onClick={() => setShowCashoutModal(true)} className={BTN}>
-                  {t("referral.request_cashout")}
-                </button>
-              )}
-            </div>
-          ) : (
-            <p className="mt-4 font-mono text-sm font-semibold text-accent">
-              {t("referral.you_earn")} ${estimator.monthly_usdt} · ${estimator.annual_usdt} · $
-              {estimator.lifetime_usdt} USDT
-            </p>
-          )}
-        </div>
-
-        <div className="rounded-xl border border-ink/[0.08] bg-surface-raised p-5">
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-            {t("referral.unlock_access")}
-          </p>
-          <p className="mt-2 text-sm text-text-muted">{t("referral.unlock_body")}</p>
-          <div className="mt-4 space-y-3">
-            <div>
-              <div className="mb-1 flex items-baseline justify-between">
-                <span className="font-mono text-xl font-semibold tabular-nums text-text-primary">
-                  {qualified}
-                  <span className="text-sm font-medium text-text-muted"> / {needUse}</span>
-                </span>
-                <span className="text-[11px] text-text-muted">{t("referral.unlock_use")}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-ink/[0.06]">
-                <div
-                  className="h-full rounded-full bg-accent transition-all"
-                  style={{ width: `${Math.min(100, (qualified / Math.max(needUse, 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="mb-1 flex items-baseline justify-between">
-                <span className="font-mono text-xl font-semibold tabular-nums text-text-primary">
-                  {paid}
-                  <span className="text-sm font-medium text-text-muted"> / {needPaid}</span>
-                </span>
-                <span className="text-[11px] text-text-muted">{t("referral.unlock_subscribe")}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-ink/[0.06]">
-                <div
-                  className={`h-full rounded-full transition-all ${unlockDone ? "bg-profit" : "bg-profit/70"}`}
-                  style={{ width: `${Math.min(100, (paid / Math.max(needPaid, 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="rounded-xl border border-ink/[0.08] bg-surface-raised p-5 sm:p-6">
-        <h2 className="mb-4 text-sm font-semibold text-text-primary">{t("referral.how_title")}</h2>
-        <ol className="grid gap-4 sm:grid-cols-3">
-          {[1, 2, 3].map((n) => (
-            <li key={n}>
-              <p className="font-mono text-[10px] text-accent">0{n}</p>
-              <p className="mt-1 text-sm font-semibold text-text-primary">{t(`referral.step${n}_title`)}</p>
-              <p className="mt-1 text-xs leading-relaxed text-text-muted">{t(`referral.step${n}_desc`)}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* Estimator — never lead with $0.00 */}
-      <section className="rounded-xl border border-ink/[0.08] bg-surface-raised p-5 sm:p-6">
-        <h2 className="mb-4 text-sm font-semibold text-text-primary">{t("referral.estimator_title")}</h2>
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
-          {[
-            {
-              label: `${t("referral.estimator_monthly")} $${fmtPlanPrice(estimator.monthly_price)}`,
-              value: estimator.monthly_usdt,
-            },
-            {
-              label: `${t("referral.estimator_annual")} $${fmtPlanPrice(estimator.annual_price)}`,
-              value: estimator.annual_usdt,
-            },
-            {
-              label: `${t("referral.estimator_lifetime")} $${fmtPlanPrice(estimator.lifetime_price)}`,
-              value: estimator.lifetime_usdt,
-            },
-          ].map((row) => (
-            <div key={row.label} className="rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-1.5 py-3 text-center sm:p-3">
-              <div className="mb-1 flex justify-center">
-                <UsdtCoin size={22} />
-              </div>
-              <p className="px-0.5 text-[9px] font-medium leading-tight text-text-muted sm:text-[10px]">{row.label}</p>
-              <p className="mt-1 font-mono text-base font-semibold tabular-nums text-accent sm:text-2xl">
-                ${row.value}
-              </p>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-accent sm:text-[10px]">USDT</p>
-            </div>
-          ))}
-        </div>
-        {hasEarnings && (
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-ink/[0.06] pt-4 sm:grid-cols-3">
-            <div>
-              <p className="text-[10px] uppercase text-text-muted">{t("referral.available")}</p>
-              <p className="font-mono text-lg font-semibold tabular-nums">${available.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase text-text-muted">{t("referral.lifetime_earned")}</p>
-              <p className="font-mono text-lg font-semibold tabular-nums">${(earnings.lifetime_earned || 0).toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase text-text-muted">{t("referral.this_month")}</p>
-              <p className="font-mono text-lg font-semibold tabular-nums">${(earnings.this_month_earned || 0).toFixed(2)}</p>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Share kit */}
-      <section className="rounded-xl border border-ink/[0.08] bg-surface-raised p-5 sm:p-6">
-        <h2 className="mb-3 text-sm font-semibold leading-snug text-text-primary">{t("referral.scripts_title")}</h2>
-        <div className="mb-3 flex gap-1">
-          {["proof", "money"].map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setScript(id)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-                script === id ? "bg-accent/12 text-accent" : "text-text-muted hover:text-text-primary"
-              }`}
-            >
-              {t(id === "proof" ? "referral.script_proof" : "referral.script_money")}
-            </button>
-          ))}
-        </div>
-        <pre className="whitespace-pre-wrap rounded-lg border border-ink/10 bg-ink/[0.03] p-3 text-xs leading-relaxed text-text-secondary">
-          {scriptText}
-        </pre>
-        <CopyButton
-          text={scriptText}
-          label={t("referral.copy_link")}
-          onCopied={() => handleShareTracked("copy_link")}
-          className="mt-3 w-full sm:w-auto"
+    <div className="relative">
+      {/* A plane for the cards to sit on, the way /payment does it. Without
+          it the panels float on the raw page background and the column never
+          reads as a composed page. */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div
+          style={{
+            position: "absolute",
+            top: "-15%",
+            left: "30%",
+            width: "900px",
+            height: "600px",
+            background: "radial-gradient(ellipse, rgb(var(--accent) / 0.04) 0%, transparent 70%)",
+          }}
         />
-      </section>
-
-      {/* Tabs: people / cashouts */}
-      <div className="flex gap-1 rounded-xl border border-ink/[0.04] bg-ink/[0.02] p-1">
-        {[
-          { id: "overview", label: t("referral.people_title") },
-          { id: "cashouts", label: `${t("referral.cashouts")} (${cashoutHistory.length})` },
-        ].map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id)}
-            className="flex-1 rounded-lg px-3 py-2 text-xs font-medium sm:text-sm"
-            style={{
-              background: tab === item.id ? "rgb(var(--accent) / 0.12)" : "transparent",
-              color: tab === item.id ? "rgb(var(--accent))" : "rgb(var(--fg-muted))",
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
       </div>
 
-      {tab === "overview" && (
-        <div className="overflow-hidden rounded-2xl border border-ink/[0.06] bg-surface-raised">
-          {refereesPage.items.length === 0 ? (
-            <div className="px-4 py-14 text-center">
-              <p className="text-sm text-text-secondary">{t("referral.no_people")}</p>
-            </div>
-          ) : (
-            <>
-              <div className="divide-y divide-ink/[0.06]">
-                {refereesPage.items.map((referee) => (
-                  <div key={referee.user_id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent/12 text-xs font-bold text-accent">
-                      {referee.avatar_url ? (
-                        <img src={referee.avatar_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        (referee.username || "?").slice(0, 2).toUpperCase()
-                      )}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 pb-12 sm:px-6 sm:py-12 lg:px-8">
+        {/* ── HEADER ─────────────────────────────────────────────── */}
+        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <Eyebrow live>{t("referral.chip_full", "Invite · Earn USDT")}</Eyebrow>
+            <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-text-primary sm:text-4xl lg:text-5xl">
+              {t("referral.page_title", "Invite friends. Earn USDT.")}
+            </h1>
+            <p className="mt-2 text-sm" style={{ color: "rgb(var(--fg-muted))" }}>
+              {t("referral.page_sub", "{{pct}}% of every payment they make, renewals included", {
+                pct: commissionPct,
+              })}
+            </p>
+          </div>
+
+          {hasEarnings && (
+            <button
+              type="button"
+              onClick={() => setShowCashoutModal(true)}
+              disabled={!canCashout}
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-full px-6 font-display text-sm font-bold shadow-cta transition-transform active:scale-[0.985] disabled:opacity-40"
+              style={{ background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" }}
+            >
+              {t("referral.withdraw_cta", "Withdraw")} {available.toFixed(2)} USDT
+            </button>
+          )}
+        </div>
+
+        {/* ── STATS ──────────────────────────────────────────────── */}
+        {started && (
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatTile
+              label={t("referral.stat_available", "Available")}
+              value={available.toFixed(2)}
+              unit="USDT"
+              hint={t("referral.stat_available_hint", "Ready to withdraw")}
+            />
+            <StatTile
+              label={t("referral.stat_lifetime", "Lifetime earned")}
+              value={(earnings?.lifetime_earned || 0).toFixed(2)}
+              unit="USDT"
+              hint={t("referral.stat_lifetime_hint", "Since you joined")}
+            />
+            <StatTile
+              label={t("referral.stat_invited", "People invited")}
+              value={invited}
+              hint={t("referral.stat_invited_hint", "Signed up with your link")}
+            />
+            <StatTile
+              label={t("referral.stat_subscribed", "Subscribed")}
+              value={subscribedCount}
+              tone="rgb(var(--pos))"
+              hint={t("referral.stat_subscribed_hint", "They pay, you earn")}
+            />
+          </div>
+        )}
+
+        {/* ── LINK + PEOPLE ──────────────────────────────────────── */}
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+          <Panel label={t("referral.your_link", "Your link")}>
+            {!code ? (
+              <div className="py-2">
+                <p className="mb-3 text-xs text-text-secondary">
+                  {t("referral.no_code_yet", "You do not have a code yet.")}
+                </p>
+                <button type="button" onClick={() => setShowGenerateModal(true)} className={BTN}>
+                  {t("referral.create_code", "Create my link")}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="shrink-0 self-center sm:self-start">
+                    <div className="rounded-xl border border-ink/10 bg-white p-2">
+                      <img
+                        src={`${code.qr_url}?v=${encodeURIComponent(code.created_at || code.code)}`}
+                        alt={`QR for ${code.code}`}
+                        className="h-[104px] w-[104px]"
+                      />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-text-primary">@{referee.username}</span>
-                        <StatusBadge status={refereeStatus(referee)} />
-                      </div>
-                      <p className="mt-0.5 text-xs text-text-muted">
-                        Joined {formatRelativeTime(referee.joined_at)}
-                        {referee.last_login_at && ` · ${formatRelativeTime(referee.last_login_at)}`}
+                    <button
+                      type="button"
+                      onClick={handleDownloadQR}
+                      className="mt-2 w-full text-center text-[11px] font-semibold text-text-secondary hover:text-text-primary"
+                    >
+                      {t("referral.download_qr", "Download QR")}
+                    </button>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: "rgb(var(--fg-muted))" }}
+                    >
+                      {t("referral.code_label", "Code")}
+                    </p>
+                    <p className="font-mono text-2xl font-bold tracking-wide text-accent-text">
+                      {code.code}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <CopyButton text={code.code} label={t("referral.copy_code", "Copy code")} />
+                      <button
+                        type="button"
+                        onClick={() => setShowGenerateModal(true)}
+                        className={BTN}
+                      >
+                        {t("referral.customize", "Customize")}
+                      </button>
+                    </div>
+
+                    <p
+                      className="mt-4 text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: "rgb(var(--fg-muted))" }}
+                    >
+                      {t("referral.link_label", "Link")}
+                    </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <code className="min-w-0 flex-1 truncate rounded-lg px-3 py-2 font-mono text-[11px] text-text-secondary"
+                            style={{ background: "rgb(var(--ink) / 0.04)" }}>
+                        {shareLink}
+                      </code>
+                      <CopyButton text={shareLink} label={t("referral.copy", "Copy")} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* The message first, then where to send it. Picking a
+                    platform before knowing what it will say is the wrong
+                    order, and it is why most people never send anything. */}
+                <div className="mt-5 border-t border-ink/[0.06] pt-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: "rgb(var(--fg-muted))" }}
+                    >
+                      {t("referral.message_label", "Your message")}
+                    </p>
+                    <div className="flex gap-1">
+                      {[
+                        { id: "proof", label: t("referral.script_proof", "Proof") },
+                        { id: "money", label: t("referral.script_money", "Money") },
+                      ].map((o) => (
+                        <button
+                          key={o.id}
+                          type="button"
+                          onClick={() => setScript(o.id)}
+                          className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors"
+                          style={{
+                            background: script === o.id ? "rgb(var(--accent) / 0.14)" : "transparent",
+                            color: script === o.id ? "rgb(var(--accent-text))" : "rgb(var(--fg-muted))",
+                          }}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="rounded-lg px-3 py-2.5 text-xs leading-relaxed text-text-secondary"
+                     style={{ background: "rgb(var(--ink) / 0.03)" }}>
+                    {scriptText}
+                  </p>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <button type="button" onClick={shareNative} className={`${BTN} w-full`}>
+                      <IconShare />
+                      {t("referral.share", "Share")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        shareTo(
+                          "whatsapp",
+                          `https://wa.me/?text=${encodeURIComponent(`${scriptText}`)}`,
+                        )
+                      }
+                      className={`${BTN} w-full`}
+                    >
+                      <IconWhatsApp />
+                      WhatsApp
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        shareTo(
+                          "telegram",
+                          `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(SCRIPT_PROOF(""))}`,
+                        )
+                      }
+                      className={`${BTN} w-full`}
+                    >
+                      <IconTelegram />
+                      Telegram
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        shareTo(
+                          "twitter",
+                          `https://twitter.com/intent/tweet?text=${encodeURIComponent(SCRIPT_PROOF(""))}&url=${encodeURIComponent(shareLink)}`,
+                        )
+                      }
+                      className={`${BTN} w-full`}
+                    >
+                      <IconX />
+                      X
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </Panel>
+
+          {started ? (
+            <Panel
+              label={t("referral.your_people", "Your people")}
+              action={
+                <span className="font-mono text-[11px] tabular-nums" style={{ color: "rgb(var(--fg-muted))" }}>
+                  {refereesPage.total || referees.length}
+                </span>
+              }
+            >
+              <div className="space-y-2">
+                {referees.map((r) => (
+                  <div
+                    key={r.user_id}
+                    className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5"
+                    style={{ background: "rgb(var(--ink) / 0.03)" }}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-medium text-text-primary">{r.username}</p>
+                      <p className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+                        {new Date(r.joined_at).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                        {r.login_count > 0 && ` · ${r.login_count} sign-ins`}
                       </p>
                     </div>
-                    {referee.total_commission_earned > 0 && (
-                      <p className="flex-shrink-0 font-mono text-sm font-semibold tabular-nums text-accent">
-                        ${Number(referee.total_commission_earned).toFixed(2)}
-                      </p>
-                    )}
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="font-mono text-[11px] tabular-nums" style={{ color: "rgb(var(--fg-muted))" }}>
+                        {Number(r.total_commission_earned || 0).toFixed(2)} USDT
+                      </span>
+                      <StatusChip status={r.status} />
+                    </div>
                   </div>
                 ))}
               </div>
-              {(refereesPageNum > 1 || refereesPage.has_more) && (
-                <div className="flex items-center justify-between border-t border-ink/[0.06] px-4 py-3">
+
+              {(refereesPage.has_more || refereesPageNum > 1) && (
+                <div className="mt-3 flex items-center justify-between">
                   <button
                     type="button"
                     onClick={() => fetchRefereesPage(refereesPageNum - 1)}
@@ -693,7 +617,9 @@ const ReferralPage = () => {
                   >
                     ← Prev
                   </button>
-                  <span className="text-xs text-text-muted">Page {refereesPageNum}</span>
+                  <span className="font-mono text-[11px]" style={{ color: "rgb(var(--fg-muted))" }}>
+                    {refereesPageNum}
+                  </span>
                   <button
                     type="button"
                     onClick={() => fetchRefereesPage(refereesPageNum + 1)}
@@ -704,18 +630,129 @@ const ReferralPage = () => {
                   </button>
                 </div>
               )}
-            </>
+            </Panel>
+          ) : (
+            <Panel label={t("referral.how_it_works", "How it works")}>
+              <ol className="space-y-4">
+                {[
+                  t("referral.step_1", "Send your link to someone who trades."),
+                  t("referral.step_2", "They subscribe and save {{pct}}% on their first payment.", {
+                    pct: code?.discount_pct ?? 5,
+                  }),
+                  t("referral.step_3", "You earn {{pct}}% in USDT, and again every time they renew.", {
+                    pct: commissionPct,
+                  }),
+                ].map((step, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold"
+                      style={{ background: "rgb(var(--accent) / 0.14)", color: "rgb(var(--accent-text))" }}
+                    >
+                      {i + 1}
+                    </span>
+                    <p className="pt-0.5 text-xs leading-relaxed text-text-secondary">{step}</p>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-5 border-t border-ink/[0.06] pt-4 text-[11px] leading-relaxed"
+                 style={{ color: "rgb(var(--fg-muted))" }}>
+                {t(
+                  "referral.how_footnote",
+                  "Your earnings arrive as USDT, not points, so you can withdraw them.",
+                )}
+              </p>
+            </Panel>
           )}
         </div>
-      )}
 
-      {tab === "cashouts" && (
-        <div className="rounded-2xl border border-ink/[0.06] bg-surface-raised p-5">
-          <CashoutHistoryList items={cashoutHistory} onUpdate={fetchAll} />
-        </div>
-      )}
+        {/* ── CHARTS ─────────────────────────────────────────────── */}
+        {started && (
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+            <Panel label={t("referral.your_funnel", "Your funnel")}>
+              <FunnelBars invited={invited} active={activeCount} subscribed={subscribedCount} />
+            </Panel>
 
-      <p className="pb-2 text-center text-[11px] text-text-muted">{t("referral.privacy")}</p>
+            <Panel label={t("referral.where_shared", "Where you shared it")}>
+              {channels.length > 0 ? (
+                <>
+                  <ChannelBars channels={channels} labelOf={(c) => CHANNEL_LABEL[c] || c} />
+                  {shareBreakdown?.tracked_since && (
+                    <p className="mt-3 text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+                      {t("referral.tracked_since", "Counted since")}{" "}
+                      {new Date(shareBreakdown.tracked_since).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs leading-relaxed" style={{ color: "rgb(var(--fg-muted))" }}>
+                  {t(
+                    "referral.no_shares_yet",
+                    "Nothing tracked yet. Every share from here on is counted by platform.",
+                  )}
+                </p>
+              )}
+            </Panel>
+          </div>
+        )}
+
+        {referees.length >= NETWORK_MIN && (
+          <div className="mt-4">
+            <Panel label={t("referral.your_network", "Your network")}>
+              <ReferralNetwork
+                centre={t("referral.you", "You")}
+                referees={referees}
+                total={refereesPage.total || referees.length}
+              />
+            </Panel>
+          </div>
+        )}
+
+        {/* ── UNLOCK ─────────────────────────────────────────────── */}
+        {!unlockDone && (
+          <div className="mt-4">
+            <Panel label={t("referral.unlock_access", "Unlock access")}>
+              <p className="mb-4 text-xs leading-relaxed text-text-secondary">
+                {t(
+                  "referral.unlock_body",
+                  "{{a}} friends who actually use LuxQuant, plus {{b}} who subscribes, unlocks 7 days of full Terminal access for you.",
+                  { a: needUse, b: needPaid },
+                )}
+              </p>
+              <UnlockProgress
+                rows={[
+                  {
+                    label: t("referral.unlock_use", "Friends actually using LuxQuant"),
+                    have: qualified,
+                    need: needUse,
+                  },
+                  {
+                    label: t("referral.unlock_paid", "Friends who subscribed"),
+                    have: paid,
+                    need: needPaid,
+                  },
+                ]}
+              />
+            </Panel>
+          </div>
+        )}
+
+        {/* ── CASHOUTS ───────────────────────────────────────────── */}
+        {cashoutHistory.length > 0 && (
+          <div className="mt-4">
+            <Panel label={t("referral.withdrawals", "Withdrawals")}>
+              <CashoutHistoryList items={cashoutHistory} onUpdate={fetchAll} />
+            </Panel>
+          </div>
+        )}
+
+        <p className="mt-8 text-center text-[11px]" style={{ color: "rgb(var(--fg-muted))" }}>
+          {t("referral.privacy")}
+        </p>
+      </div>
 
       <GenerateModal
         isOpen={showGenerateModal}

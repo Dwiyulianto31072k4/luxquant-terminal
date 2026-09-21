@@ -57,6 +57,15 @@ export const referralApi = {
 
   // ─── Share Tracking ──────────────────────────────────────────
 
+  // Per-channel share rows only start at the 2026-09-21 deploy, while the
+  // lifetime share_count on the code goes back months. The response carries
+  // `tracked_since` so the page can say why the two numbers disagree instead
+  // of looking broken.
+  getShareBreakdown: async (days = 90) => {
+    const res = await api.get(`/api/v1/referral/share-breakdown?days=${days}`);
+    return res.data;
+  },
+
   trackShare: async (code, channel = "copy_link") => {
     const response = await api.post("/api/v1/referral/track-share", {
       code,

@@ -33,7 +33,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import Response
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -435,6 +435,50 @@ def track_share(
         share_count=updated.share_count or 0,
         qr_count=updated.qr_count or 0,
     )
+
+
+# ════════════════════════════════════════════════════════════════════
+# 10b. SHARE BREAKDOWN — which platform the link actually went to
+# ════════════════════════════════════════════════════════════════════
+
+@router.get("/share-breakdown")
+def share_breakdown(
+    days: int = 90,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Shares grouped by channel, for this user.
+
+    `tracked_since` matters more than it looks: per-channel rows only start at
+    the 2026-09-21 deploy, while share_count on the code goes back months. A
+    breakdown that totals less than the lifetime counter is correct, not broken,
+    and the page has to be able to say so rather than reading as "you never
+    shared anything".
+    """
+    days = max(1, min(int(days or 90), 365))
+
+    rows = db.execute(text("""
+        SELECT channel, count(*) AS n, max(created_at) AS last_at
+        FROM referral_share_events
+        WHERE user_id = :uid
+          AND created_at > now() - make_interval(days => :days)
+        GROUP BY channel
+        ORDER BY n DESC, channel
+    """), {"uid": current_user.id, "days": days}).mappings().all()
+
+    first = db.execute(text("""
+        SELECT min(created_at) FROM referral_share_events WHERE user_id = :uid
+    """), {"uid": current_user.id}).scalar()
+
+    return {
+        "days": days,
+        "total": sum(r["n"] for r in rows),
+        "tracked_since": first,
+        "channels": [
+            {"channel": r["channel"], "count": r["n"], "last_at": r["last_at"]}
+            for r in rows
+        ],
+    }
 
 
 # ════════════════════════════════════════════════════════════════════

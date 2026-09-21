@@ -1,5 +1,5 @@
 # backend/app/models/referral.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, Text, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Numeric, Text, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -57,6 +57,28 @@ class ReferralCode(Base):
 
     def __repr__(self):
         return f"<ReferralCode {self.code} user={self.user_id}>"
+
+
+class ReferralShareEvent(Base):
+    """One row per share, so "where did you share it" can be answered.
+
+    The counters on ReferralCode (share_count / qr_count) say how many times,
+    never where: track_share_event() took a `channel` argument and discarded
+    it. 134 shares were recorded that way with no channel attached to any of
+    them. The counters stay as the cheap running total; this is the detail.
+    """
+
+    __tablename__ = "referral_share_events"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    code_id = Column(Integer, ForeignKey("referral_codes.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # copy_link | qr_download | telegram | whatsapp | twitter | native | other
+    channel = Column(String(32), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<ReferralShareEvent {self.channel} code={self.code_id}>"
 
 
 class ReferralUse(Base):
