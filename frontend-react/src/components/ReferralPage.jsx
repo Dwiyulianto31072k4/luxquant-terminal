@@ -9,6 +9,7 @@ import CashoutRequestModal from "./referral/CashoutRequestModal";
 import CashoutHistoryList from "./referral/CashoutHistoryList";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
+import SharePlatformGrid from "./referral/SharePlatforms";
 import {
   Eyebrow,
   Panel,
@@ -30,21 +31,6 @@ const IconShare = () => (
     <circle cx="6" cy="12" r="3" />
     <circle cx="18" cy="19" r="3" />
     <path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5" />
-  </svg>
-);
-const IconWhatsApp = () => (
-  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M17.5 14.4c-.3-.1-1.8-.9-2-.9s-.5-.1-.7.2-.8.9-1 1.1-.4.2-.7.1a8.1 8.1 0 0 1-2.4-1.5 8.8 8.8 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.3.3-.5s0-.4 0-.5l-.9-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4s-1 1-1 2.5 1.1 2.9 1.2 3.1a13.4 13.4 0 0 0 5.1 5c.7.3 1.3.4 1.8.3s1.6-.7 1.8-1.3.2-1.2.1-1.3-.3-.2-.6-.3zM12.1 21.5h-.1A9.5 9.5 0 0 1 5.2 4.8a9.5 9.5 0 0 1 13.5 13.4 9.5 9.5 0 0 1-6.6 3.3zm8.2-17.6A11.5 11.5 0 1 0 12 23.5l.2-.1 4.3 1.1-1.2-4.1A11.5 11.5 0 0 0 20.3 3.9z" />
-  </svg>
-);
-const IconTelegram = () => (
-  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M21.2 3.4 2.9 10.5c-1.3.5-1.2 1.2-.2 1.5l4.7 1.5 10.8-6.8c.5-.3 1-.1.6.2l-8.8 7.9-.3 4.7c.5 0 .7-.2 1-.5l2.4-2.3 5 3.7c.9.5 1.6.2 1.8-.9l3.3-15.5c.3-1.4-.5-2-1.5-1.6z" />
-  </svg>
-);
-const IconX = () => (
-  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
 
@@ -265,11 +251,6 @@ const ReferralPage = () => {
     } catch {
       /* ignore */
     }
-  };
-
-  const shareTo = (channel, url) => {
-    handleShareTracked(channel);
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleDownloadQR = async () => {
@@ -520,51 +501,22 @@ const ReferralPage = () => {
                     {scriptText}
                   </p>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <button type="button" onClick={shareNative} className={`${BTN} w-full`}>
-                      <IconShare />
-                      {t("referral.share", "Share")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        shareTo(
-                          "whatsapp",
-                          `https://wa.me/?text=${encodeURIComponent(`${scriptText}`)}`,
-                        )
-                      }
-                      className={`${BTN} w-full`}
-                    >
-                      <IconWhatsApp />
-                      WhatsApp
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        shareTo(
-                          "telegram",
-                          `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(SCRIPT_PROOF(""))}`,
-                        )
-                      }
-                      className={`${BTN} w-full`}
-                    >
-                      <IconTelegram />
-                      Telegram
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        shareTo(
-                          "twitter",
-                          `https://twitter.com/intent/tweet?text=${encodeURIComponent(SCRIPT_PROOF(""))}&url=${encodeURIComponent(shareLink)}`,
-                        )
-                      }
-                      className={`${BTN} w-full`}
-                    >
-                      <IconX />
-                      X
-                    </button>
+                  <div className="mt-3">
+                    <SharePlatformGrid
+                      link={shareLink}
+                      message={scriptText}
+                      onShare={handleShareTracked}
+                    />
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={shareNative}
+                    className={`${BTN} mt-3 w-full`}
+                  >
+                    <IconShare />
+                    {t("referral.share_other", "Share somewhere else")}
+                  </button>
                 </div>
               </>
             )}
@@ -633,6 +585,16 @@ const ReferralPage = () => {
             </Panel>
           ) : (
             <Panel label={t("referral.how_it_works", "How it works")}>
+              {/* The artwork earns its place only while the page is empty. Once
+                  there are referrals the charts want this room, and a poster
+                  above live numbers reads as decoration. */}
+              <img
+                src="/referral-hero.jpg"
+                alt=""
+                className="mb-5 w-full rounded-xl"
+                style={{ aspectRatio: "16 / 9", objectFit: "cover" }}
+                loading="lazy"
+              />
               <ol className="space-y-4">
                 {[
                   t("referral.step_1", "Send your link to someone who trades."),
