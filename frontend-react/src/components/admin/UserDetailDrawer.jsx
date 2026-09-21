@@ -14,6 +14,8 @@
 // Gate/Home visual polish — Tailwind semantic tokens, no gold hairlines/glows.
 
 import { useState, useEffect, useCallback } from "react";
+import { DISCORD_PREMIUM_LABEL } from "./users/helpers";
+import { DrcBadge } from "./users/DrcBadge";
 import { AutoTradeTab } from "./users/AutoTradeTab";
 import { ChatTab } from "./users/ChatTab";
 import { ActivityTab } from "./users/ActivityTab";
@@ -195,6 +197,7 @@ const UserHero = ({ user }) => (
         >
           {user.role}
         </span>
+        {user.subscription_source === "discord_premium" && <DrcBadge compact />}
         <span className="rounded-lg border border-ink/[0.08] bg-ink/[0.04] px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-text-muted">
           {user.auth_provider}
         </span>
@@ -1004,9 +1007,13 @@ const OverviewTab = ({
         <Section title="Subscription" Icon={StarIcon}>
           <div className="grid grid-cols-2 gap-2">
             <StatTile
-              label="Expires"
+              label={user.subscription_source === "discord_premium" ? "Plan" : "Expires"}
               value={
-                user.subscription_expires_at ? formatDate(user.subscription_expires_at) : "Lifetime"
+                user.subscription_source === "discord_premium"
+                  ? DISCORD_PREMIUM_LABEL
+                  : user.subscription_expires_at
+                    ? formatDate(user.subscription_expires_at)
+                    : "Lifetime"
               }
               accentClass={
                 user.subscription_expires_at ? "text-profit" : "text-accent"

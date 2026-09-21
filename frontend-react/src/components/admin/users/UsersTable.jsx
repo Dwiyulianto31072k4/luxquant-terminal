@@ -8,6 +8,7 @@
 //
 
 import { ContactBadgeRow } from "../ContactBadge";
+import { DrcBadge } from "./DrcBadge";
 import { Avatar, Badge, LoadingState, EmptyState } from "../primitives";
 import { palette, surface, tint, motion } from "../designSystem";
 import {
@@ -30,6 +31,7 @@ import { formatDate, relativeTime, subscriptionStatus } from "./helpers";
 
 const SubscriptionPill = ({ user }) => {
   const s = subscriptionStatus(user);
+  if (s.type === "discord_premium") return <DrcBadge compact />;
   const map = {
     admin: { color: palette.violet[400], label: "∞ Admin" },
     co_admin: { color: palette.blue[400], label: "View Co-Admin" },

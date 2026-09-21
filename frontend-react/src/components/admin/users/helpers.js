@@ -65,11 +65,20 @@ export const isReachable = (u) => hasTelegram(u) || hasDiscord(u) || hasRealEmai
 // Subscription status
 // ════════════════════════════════════════════════════════════════════
 
+// Members who came in through the Daily Rekom Crypto Discord and hold its
+// Premium+ role. The resolver grants them `subscriber` with no expiry, so the
+// no-expiry branch below used to label them "Lifetime" — beside the twelve
+// people who actually bought lifetime, under the same word, with completely
+// different economics. Their source says which they are; use it.
+export const DISCORD_PREMIUM_LABEL = "DRC Subscriber";
+
 export const subscriptionStatus = (user) => {
   if (user.role === "admin") return { type: "admin", label: "Admin" };
   if (user.role === "co_admin") return { type: "co_admin", label: "Co-Admin" };
   if (user.role === "founder") return { type: "founder", label: "Founder" };
   if (user.role !== "subscriber" && user.role !== "premium") return { type: "free", label: "—" };
+  if (user.subscription_source === "discord_premium")
+    return { type: "discord_premium", label: DISCORD_PREMIUM_LABEL };
   if (!user.subscription_expires_at) return { type: "lifetime", label: "Lifetime" };
   const days = daysUntil(user.subscription_expires_at);
   if (days <= 0) return { type: "expired", label: "Expired", days };

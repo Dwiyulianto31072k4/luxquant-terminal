@@ -5,6 +5,7 @@
 //
 
 import { useState } from "react";
+import { DISCORD_PREMIUM_LABEL } from "./users/helpers";
 import { FilterIcon, ChevronDownIcon, XCircleIcon } from "./Icons";
 import { Select } from "./primitives";
 import { palette, surface, tint, motion } from "./designSystem";
@@ -161,7 +162,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 { value: "admin", label: "Admin grant" },
                 { value: "admin_approve", label: "Admin approve" },
                 { value: "telegram_vip", label: "Telegram VIP" },
-                { value: "discord_premium", label: "Discord premium" },
+                { value: "discord_premium", label: DISCORD_PREMIUM_LABEL },
                 { value: "manual_admin_record", label: "Manual record" },
               ]}
             />

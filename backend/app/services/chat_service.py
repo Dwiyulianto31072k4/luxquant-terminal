@@ -623,7 +623,8 @@ def admin_conversation_list(
                        c.last_admin_message_at, c.tg_topic_state,
                        c.handoff_sent_at, c.dm_bound_at,
                        u.username, u.email, u.avatar_url, u.role,
-                       u.subscription_expires_at, u.telegram_id,
+                       u.subscription_expires_at, u.subscription_source,
+                       u.telegram_id,
                        u.telegram_username, u.telegram_in_group,
                        u.last_active_at, u.created_at AS user_created_at,
                        (SELECT CASE WHEN m.kind = 'expired_image'
