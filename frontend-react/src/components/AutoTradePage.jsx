@@ -714,13 +714,21 @@ export function DrcAgentNotice() {
   return (
     <div className="mx-auto max-w-xl rounded-2xl border border-ink/10 bg-surface-raised p-6">
       <div className="flex items-center gap-3">
-        <img
-          src="/DRC%20LOGO.webp"
-          alt="Daily Rekom Crypto"
-          width={40}
-          height={40}
-          className="h-10 w-10 shrink-0 rounded-xl object-cover"
-        />
+        {/* DRC's lockup is drawn for a dark ground: its wordmark is white and
+            vanished on the Bright card, leaving a lone "C". It sits on its own
+            dark plate in every theme, the way a partner logo is shown. */}
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+          style={{ background: "#0b0d12" }}
+        >
+          <img
+            src="/DRC%20LOGO.webp"
+            alt="Daily Rekom Crypto"
+            width={40}
+            height={40}
+            className="h-10 w-10 object-cover"
+          />
+        </span>
         <h2 className="font-display text-[17px] font-semibold leading-snug text-text-primary">
           {DRC_AGENT_TITLE}
         </h2>
