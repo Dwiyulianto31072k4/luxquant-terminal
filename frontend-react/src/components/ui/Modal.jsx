@@ -13,16 +13,38 @@ import { useDialog } from "../../hooks/useDialog";
 
 const EXIT_MS = 200;
 
+// Content-heavy sheets open at the full ("large") detent on a phone and stay
+// there. Sized to their content they changed height every time a tab inside
+// them did, so the grabber jumped up and down the screen under your thumb.
+const TALL = new Set(["desk", "full"]);
+
+// Swipe to dismiss, the way a phone sheet has closed since iOS 13: past a
+// quarter of the sheet, or a flick, and it goes; anything less springs back.
+const SWIPE_DISTANCE = 0.25;
+const SWIPE_MAX_PX = 150;
+const SWIPE_FLICK = 0.5; // px per ms
+const PHONE_QUERY = "(max-width: 639.98px)";
+
+function canTranslate() {
+  // The drag moves the card with the individual `translate` property, because
+  // the entry animation holds `transform` and an animation outranks an inline
+  // style. Where `translate` is missing the gesture would move nothing, so it
+  // is not offered at all.
+  return typeof CSS !== "undefined" && CSS.supports?.("translate", "0 1px");
+}
+
 const SIZES = {
   sm: "max-w-md",
   md: "max-w-lg",
   lg: "max-w-2xl",
   xl: "max-w-[820px]",
   "2xl": "max-w-[1100px]",
-  // Same width as SignalModal — planners and other wide desks.
-  desk: "max-w-[min(1280px,96vw)] xl:max-w-[1360px]",
+  // Same width as SignalModal — planners and other wide desks. Below `sm` a
+  // sheet is the screen's own width: 96vw left a 9px strip of page down both
+  // sides, which is a card floating in front of the app, not a sheet.
+  desk: "max-w-full sm:max-w-[min(1280px,96vw)] xl:max-w-[1360px]",
   // Data desk — wide tables that are unreadable at any fixed width.
-  full: "max-w-[98vw]",
+  full: "max-w-full sm:max-w-[98vw]",
   // Reading / news desk — narrow phone sheet · wide desktop reader
   reader: "max-w-full sm:max-w-[min(720px,92vw)] md:max-w-[min(800px,90vw)] lg:max-w-[840px]",
 };
@@ -68,6 +90,8 @@ export default function Modal({
   // version here was not: a dialog opened from inside another dialog used to
   // unlock the page on its way out while the outer one was still covering it.
   const cardRef = useRef(null);
+  const scrimRef = useRef(null);
+  const drag = useRef(null);
   useDialog({ isOpen: mounted && !closing, onClose: requestClose, ref: cardRef });
 
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -91,6 +115,131 @@ export default function Modal({
     runExit(true);
   }
 
+  // Only a bottom sheet that may be dismissed casually — a dialog that refuses
+  // the backdrop tap is refusing this too — and only where it is a sheet.
+  const swipeable = placement === "bottom" && closeOnBackdrop;
+
+  // The gesture is followed on the window from the moment the finger lands.
+  // Listening only on the header lost every move that left it before the drag
+  // was recognised — and the release too, which left a half-started drag
+  // behind that swallowed every swipe after it.
+  function endListeners(d) {
+    window.removeEventListener("pointermove", d.onMove);
+    window.removeEventListener("pointerup", d.onEnd);
+    window.removeEventListener("pointercancel", d.onEnd);
+  }
+
+  function onDragStart(e) {
+    if (!swipeable) return;
+    if (e.button != null && e.button !== 0) return;
+    if (typeof window === "undefined" || !window.matchMedia?.(PHONE_QUERY).matches) return;
+    if (!canTranslate()) return;
+    // A tap on a control inside the header stays a tap.
+    if (e.target?.closest?.("button, a, input, select, textarea, label, [role='button'], [data-no-drag]")) return;
+    const card = cardRef.current;
+    if (!card) return;
+    if (drag.current) endListeners(drag.current);
+    const d = {
+      id: e.pointerId,
+      x0: e.clientX,
+      y0: e.clientY,
+      dy: 0,
+      h: card.offsetHeight || 1,
+      live: false,
+      trail: [{ t: e.timeStamp, y: e.clientY }],
+    };
+    d.onMove = (ev) => onDragMove(ev, d);
+    d.onEnd = (ev) => onDragEnd(ev, d);
+    drag.current = d;
+    window.addEventListener("pointermove", d.onMove);
+    window.addEventListener("pointerup", d.onEnd);
+    window.addEventListener("pointercancel", d.onEnd);
+  }
+
+  function onDragMove(e, d) {
+    if (e.pointerId !== d.id || drag.current !== d) return;
+    const dx = e.clientX - d.x0;
+    const dy = e.clientY - d.y0;
+    if (!d.live) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      // Up or sideways is somebody reading, not dismissing.
+      if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) {
+        endListeners(d);
+        drag.current = null;
+        return;
+      }
+      d.live = true;
+      cardRef.current.style.transition = "none";
+      if (scrimRef.current) scrimRef.current.style.transition = "none";
+    }
+    d.dy = Math.max(0, dy);
+    cardRef.current.style.translate = `0 ${d.dy}px`;
+    if (scrimRef.current) {
+      scrimRef.current.style.opacity = String(Math.max(0, 1 - d.dy / (d.h * 1.1)));
+    }
+    d.trail.push({ t: e.timeStamp, y: e.clientY });
+    if (d.trail.length > 6) d.trail.shift();
+  }
+
+  function onDragEnd(e, d) {
+    if (e.pointerId !== d.id) return;
+    endListeners(d);
+    if (drag.current === d) drag.current = null;
+    if (!d.live) return;
+    // A drag is not a tap: the click the browser derives from this release
+    // must not land on whatever ended up under the finger — the backdrop
+    // included.
+    const swallow = (ev) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    };
+    window.addEventListener("click", swallow, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 0);
+
+    const card = cardRef.current;
+    const scrim = scrimRef.current;
+    if (!card) return;
+    const a = d.trail[0];
+    const b = d.trail[d.trail.length - 1];
+    const v = b.t > a.t ? (b.y - a.y) / (b.t - a.t) : 0;
+    const go =
+      e.type !== "pointercancel" &&
+      (d.dy > Math.min(SWIPE_MAX_PX, d.h * SWIPE_DISTANCE) || (v > SWIPE_FLICK && d.dy > 24));
+    if (go) {
+      card.style.transition = "translate 220ms cubic-bezier(.3,.7,.4,1)";
+      card.style.translate = `0 ${d.h + 24}px`;
+      if (scrim) {
+        scrim.style.transition = "opacity 220ms ease";
+        scrim.style.opacity = "0";
+      }
+      clearTimeout(timer.current);
+      // It has already left the screen, so it closes without the keyframe exit
+      // — that one starts from the resting position and would bounce back up.
+      timer.current = setTimeout(() => {
+        setMounted(false);
+        setClosing(false);
+        onClose?.();
+      }, 220);
+    } else {
+      card.style.transition = "translate 320ms cubic-bezier(.2,.9,.25,1)";
+      card.style.translate = "0 0";
+      if (scrim) {
+        scrim.style.transition = "opacity 320ms ease";
+        scrim.style.opacity = "";
+      }
+    }
+  }
+
+  // A drag in flight when the sheet unmounts must not leave window listeners.
+  useEffect(
+    () => () => {
+      if (drag.current) endListeners(drag.current);
+    },
+    []
+  );
+
+  const dragHandlers = swipeable ? { onPointerDown: onDragStart } : {};
+
   if (!mounted) return null;
 
   const renderSlot = (slot) => (typeof slot === "function" ? slot(requestClose) : slot);
@@ -105,7 +254,7 @@ export default function Modal({
     >
       <style>{`
  .lqm-root.lqm-animate .lqm-scrim {
- animation: lqmOverlayIn .22s ease forwards;
+ animation: lqmOverlayIn .22s ease;
  }
  .lqm-root.lqm-animate.is-closing .lqm-scrim {
  animation: lqmOverlayOut ${EXIT_MS}ms ease forwards;
@@ -137,6 +286,8 @@ export default function Modal({
  .lqm-scroll::-webkit-scrollbar-track { background: transparent; }
  .lqm-scroll::-webkit-scrollbar-thumb { background: rgb(var(--ink) / 0.1); border-radius: 6px; }
  .lqm-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink) / 0.18); }
+ /* A phone sheet slides, solid, the whole way — faded in from .6 it showed
+    the page through itself for the first half of the rise. */
  @media (max-width: 639px) {
  .lqm-root.lqm-animate .lqm-card.lqm-sheet {
  animation: lqmSheetIn .32s cubic-bezier(.16,1,.3,1) forwards;
@@ -146,12 +297,15 @@ export default function Modal({
  }
  }
  @keyframes lqmSheetIn {
- from { opacity: .6; transform: translateY(100%); }
- to { opacity: 1; transform: translateY(0); }
+ from { transform: translateY(100%); }
+ to { transform: translateY(0); }
  }
  @keyframes lqmSheetOut {
- from { opacity: 1; transform: translateY(0); }
- to { opacity: .5; transform: translateY(100%); }
+ from { transform: translateY(0); }
+ to { transform: translateY(100%); }
+ }
+ @media (max-width: 639px) {
+ .lqm-card.lqm-sheet.lqm-tall { height: min(100%, var(--lq-modal-maxh)); }
  }
  `}</style>
 
@@ -159,6 +313,7 @@ export default function Modal({
           to the viewport, so it covers the strip behind the header too and the
           dialog never floats over a sharp, undimmed band. */}
       <div
+        ref={scrimRef}
         className="lqm-scrim lq-scrim"
         onClick={closeOnBackdrop ? requestClose : undefined}
         aria-hidden="true"
@@ -186,7 +341,9 @@ export default function Modal({
             SIZES[size] || SIZES.md
           } ${
             placement === "bottom"
-              ? "lqm-sheet rounded-t-2xl border-b-0 sm:rounded-2xl sm:border-b"
+              ? `lqm-sheet rounded-t-[20px] border-x-0 border-b-0 sm:rounded-2xl sm:border-x sm:border-b ${
+                  TALL.has(size) ? "lqm-tall" : ""
+                }`
               : "rounded-2xl"
           } ${className}`}
           style={{
@@ -200,10 +357,13 @@ export default function Modal({
         >
           {placement === "bottom" ? (
             <div
-              className="flex shrink-0 justify-center pb-0.5 pt-2.5 sm:hidden"
+              className={`flex shrink-0 justify-center pb-1 pt-2 sm:hidden ${
+                swipeable ? "cursor-grab touch-none active:cursor-grabbing" : ""
+              }`}
               aria-hidden="true"
+              {...dragHandlers}
             >
-              <span className="h-1 w-10 rounded-full bg-ink/25" />
+              <span className="h-[5px] w-9 rounded-full bg-ink/20" />
             </div>
           ) : null}
 
@@ -217,18 +377,20 @@ export default function Modal({
           {header ? (
             <div
               className={`relative z-20 flex shrink-0 items-center border-b border-ink/[0.07] px-4 py-3 sm:px-5 sm:py-3.5 ${
-                showClose ? "pr-12 sm:pr-14" : ""
-              }`}
+                placement === "bottom" ? "pt-1.5 sm:pt-3.5" : ""
+              } ${showClose ? "pr-12 sm:pr-14" : ""} ${swipeable ? "touch-pan-x" : ""}`}
               style={{ background: "rgb(var(--surface-raised))" }}
+              {...dragHandlers}
             >
               <div className="min-w-0 flex-1">{renderSlot(header)}</div>
             </div>
           ) : simpleHeader ? (
             <div
-              className={`relative z-20 shrink-0 border-b border-ink/[0.07] px-5 py-4 sm:px-6 ${
-                showClose ? "pr-12 sm:pr-14" : ""
-              }`}
+              className={`relative z-20 shrink-0 border-b border-ink/[0.07] px-4 pb-3.5 sm:px-6 sm:py-4 ${
+                placement === "bottom" ? "pt-1 sm:pt-4" : "pt-4"
+              } ${showClose ? "pr-14" : ""} ${swipeable ? "touch-pan-x" : ""}`}
               style={{ background: "rgb(var(--surface-raised))" }}
+              {...dragHandlers}
             >
               {eyebrow ? (
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
@@ -239,14 +401,16 @@ export default function Modal({
                 <div className={`flex items-center gap-3 ${eyebrow ? "mt-2" : ""}`}>
                   {icon ? <span className="shrink-0">{icon}</span> : null}
                   {title ? (
-                    <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary sm:text-xl">
+                    <h2 className="font-display text-[17px] font-semibold leading-snug tracking-tight text-text-primary sm:text-xl">
                       {title}
                     </h2>
                   ) : null}
                 </div>
               ) : null}
               {subtitle ? (
-                <p className="mt-1.5 text-sm leading-relaxed text-text-muted">{subtitle}</p>
+                <p className="mt-1 text-[13px] leading-snug text-text-muted sm:mt-1.5 sm:text-sm sm:leading-relaxed">
+                  {subtitle}
+                </p>
               ) : null}
             </div>
           ) : null}
@@ -257,9 +421,9 @@ export default function Modal({
               type="button"
               onClick={requestClose}
               aria-label="Close"
-              className={`absolute right-3 z-30 flex h-9 w-9 items-center justify-center rounded-md border border-ink/12 bg-surface-secondary text-text-secondary transition-colors hover:border-ink/25 hover:text-text-primary sm:right-4 ${
-                placement === "bottom" && !hasChrome
-                  ? "top-3 sm:top-3.5"
+              className={`absolute right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-ink/12 bg-surface-secondary text-text-secondary transition-colors hover:border-ink/25 hover:text-text-primary sm:right-4 sm:rounded-md ${
+                placement === "bottom"
+                  ? "top-4 sm:top-3"
                   : hasChrome
                     ? "top-2.5 sm:top-3"
                     : "top-3 sm:top-3.5"
@@ -281,12 +445,26 @@ export default function Modal({
           {/* Body scroll */}
           <div className="lqm-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {padded ? (
-              <div className={hasChrome ? "px-5 py-5 sm:px-6 sm:py-6" : "p-5 sm:p-6"}>
+              <div
+                className={`px-4 pt-4 ${footer ? "pb-4" : ""} ${
+                  hasChrome ? "sm:px-6 sm:py-6" : "sm:p-6"
+                }`}
+              >
                 {children}
               </div>
             ) : (
               children
             )}
+            {/* On a phone the sheet runs to the last pixel, so the end of the
+                content has to clear the home indicator itself. A footer owns
+                that padding when there is one. */}
+            {!footer ? (
+              <div
+                aria-hidden="true"
+                className={padded ? "sm:hidden" : "h-0 sm:hidden"}
+                style={{ height: padded ? "max(16px, env(safe-area-inset-bottom, 0px))" : "env(safe-area-inset-bottom, 0px)" }}
+              />
+            ) : null}
           </div>
 
           {/* Sticky footer — solid + safe-area */}

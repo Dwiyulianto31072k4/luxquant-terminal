@@ -3,6 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- iOS Safari zooms the page into any field set under 16px the moment it
+         is focused — every select and search box in the app — and leaves it
+         zoomed after. maximum-scale stops that on iOS, where it no longer
+         blocks pinch zoom (Safari ignores it for pinch since iOS 10). Other
+         platforms keep the plain tag: on Android it WOULD disable pinch zoom,
+         and Chrome does not zoom on focus anyway. -->
+    <script>
+      (function () {
+        var ua = navigator.userAgent || '';
+        var ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (!ios) return;
+        var vp = document.querySelector('meta[name="viewport"]');
+        if (vp) vp.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1');
+      })();
+    </script>
     <meta name="theme-color" content="#0a0506" />
 
     <!-- Theme anti-flash. Two independent preferences, matching ThemeContext:
