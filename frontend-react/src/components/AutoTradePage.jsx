@@ -37,7 +37,15 @@ import { LIVE_FORM } from "./autotrade/agentDisclaimerCopy";
 
 import AppliedRulesCard from "./autotrade/AppliedRulesCard";
 import { skipSummary } from "./autotrade/autotradeEventGuide";
-import { AGENT_PLAN_LABEL, planAllowsAgent, planName, planRefusalReason } from "../utils/agentPlan";
+import {
+  AGENT_PLAN_LABEL,
+  DRC_AGENT_PARAGRAPHS,
+  DRC_AGENT_TITLE,
+  agentBlockedByDrc,
+  planAllowsAgent,
+  planName,
+  planRefusalReason,
+} from "../utils/agentPlan";
 import { useAuth } from "../context/AuthContext";
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import ExchangeUnlinkModal from "./autotrade/ExchangeUnlinkModal";
@@ -697,11 +705,45 @@ function UpgradeForAgent({ user }) {
   );
 }
 
+/* Daily Rekom Crypto members: the partner asked that its members get no
+   automated execution, so this is not an upsell. No price, no button to a
+   plan, because no purchase changes it. The last line is ours, not the
+   partner's: somebody with a position the Agent opened before this rule needs
+   to know it is still protected. */
+export function DrcAgentNotice() {
+  return (
+    <div className="mx-auto max-w-xl rounded-2xl border border-ink/10 bg-surface-raised p-6">
+      <div className="flex items-center gap-3">
+        <img
+          src="/DRC%20LOGO.webp"
+          alt="Daily Rekom Crypto"
+          width={40}
+          height={40}
+          className="h-10 w-10 shrink-0 rounded-xl object-cover"
+        />
+        <h2 className="font-display text-[17px] font-semibold leading-snug text-text-primary">
+          {DRC_AGENT_TITLE}
+        </h2>
+      </div>
+      <div className="mt-4 space-y-3 text-[13px] leading-relaxed text-text-secondary">
+        {DRC_AGENT_PARAGRAPHS.map((p) => (
+          <p key={p.slice(0, 24)}>{p}</p>
+        ))}
+      </div>
+      <p className="mt-4 border-t border-ink/10 pt-3 text-[12px] leading-relaxed text-text-muted">
+        Any position the Agent already opened keeps its take-profit and stop-loss
+        until it closes, and you can follow it on your exchange.
+      </p>
+    </div>
+  );
+}
+
 export default function AutoTradePage() {
   const { user } = useAuth();
   // The backend re-checks this before every live entry, so this is the page
   // being honest rather than the page enforcing anything.
   const planOk = planAllowsAgent(user);
+  const drcBlocked = agentBlockedByDrc(user);
   const [tab, setTab] = useState("overview");
   const [settingsSection, setSettingsSection] = useState("strategy");
   const [loading, setLoading] = useState(true);
@@ -1070,7 +1112,9 @@ export default function AutoTradePage() {
 
       {error ? <Notice tone="error">{error}</Notice> : null}
 
-      {!planOk ? (
+      {drcBlocked ? (
+        <DrcAgentNotice />
+      ) : !planOk ? (
         <UpgradeForAgent user={user} />
       ) : !prefsReady || !acksReady ? (
         <LoadingState />

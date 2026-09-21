@@ -385,6 +385,62 @@ const BotAccessControl = ({ userId, blocked, reason, blockedBy, onChanged }) => 
   );
 };
 
+/* The DRC partner rule, kept apart from the operator switch above: "Switch
+   back on" there must never look like it could lift this. Daily Rekom Crypto
+   asked that its members get no automated execution, live or dry-run. Only a
+   DRC client is shown this panel; the exemption is for accounts the owner
+   vouches for. */
+const DrcAgentControl = ({ userId, blocked, exempt, onChanged }) => {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const toggle = async () => {
+    setBusy(true);
+    setErr("");
+    try {
+      await adminApi.setAgentDrcExempt(userId, !exempt);
+      onChanged?.();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || e?.message || "Could not apply");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className={`rounded-xl border px-4 py-3 ${
+        blocked ? "border-warning/40 bg-warning/[0.06]" : "border-ink/[0.08] bg-surface-raised"
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
+            DAILY REKOM CRYPTO
+          </p>
+          <p className="mt-1 text-[13px] font-semibold text-text-primary">
+            {blocked ? "Blocked — DRC client" : "DRC client, exempted by an admin"}
+          </p>
+          <p className="mt-0.5 text-[11px] text-text-muted">
+            {blocked
+              ? "DRC asked that its members get no Agent. No entries, live or dry-run. Settings and open positions are untouched."
+              : "This account may use the Agent despite holding Premium+ in DRC."}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={toggle}
+          className="shrink-0 rounded-xl border border-ink/[0.08] px-3 py-1.5 text-[12px] text-text-secondary transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
+        >
+          {busy ? "Applying…" : blocked ? "Exempt this account" : "Remove exemption"}
+        </button>
+      </div>
+      {err ? <p className="mt-2 text-[11px] text-loss">{err}</p> : null}
+    </div>
+  );
+};
+
 function Verdict({ summary, trades, errors }) {
   const liveVenues = (summary?.venues || []).filter((v) => v.connected);
   const liveNames = liveVenues
@@ -1659,6 +1715,14 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                 blockedBy={s.bot_access_blocked_by}
                 onChanged={reload}
               />
+              {s.drc_client ? (
+                <DrcAgentControl
+                  userId={userId}
+                  blocked={Boolean(s.agent_blocked_by_drc)}
+                  exempt={Boolean(s.drc_exempt)}
+                  onChanged={reload}
+                />
+              ) : null}
               <div className="rounded-xl border border-ink/[0.08] bg-surface-raised px-4 py-3 text-[12px] text-text-muted">
                 <p className="inline-flex items-center gap-1.5 font-semibold text-text-primary">
                   <KeyIcon size={13} /> Read-only credentials

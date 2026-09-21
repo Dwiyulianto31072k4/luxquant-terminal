@@ -33,6 +33,11 @@ from app.core.database import get_db
 from app.core.security import decode_token
 from app.models.agent_disclaimer import AgentDisclaimerAck
 from app.models.user import User
+from app.services.entitlement_audit import (
+    DRC_AGENT_MESSAGE,
+    DRC_AGENT_TITLE,
+    agent_blocked_by_drc,
+)
 
 router = APIRouter(prefix="/autotrade", tags=["AutoTrade Auth"])
 
@@ -133,6 +138,7 @@ def _plan_display(user: User) -> str:
 def _entitlement_payload(user: User, db: Session) -> dict:
     """Bentuk response entitlement yang konsisten dipakai kedua endpoint."""
     google_linked = user.google_id is not None
+    drc_blocked = agent_blocked_by_drc(user)
     return {
         "user_id": user.id,
         "email": user.email,
@@ -151,6 +157,12 @@ def _entitlement_payload(user: User, db: Session) -> dict:
         # Third gate. Absent in an older LuxQuant, which the bot reads as
         # permitted, so a rollout never locks anyone out by omission.
         "plan_allows_bot": _plan_allows_bot(user),
+        # Fourth gate: Daily Rekom Crypto asked that its members get no
+        # automated execution. Unlike the plan gate it covers dry-run too, and
+        # no purchase lifts it, so it carries its own code and message.
+        "partner_blocks_bot": drc_blocked,
+        "partner_block_title": DRC_AGENT_TITLE if drc_blocked else None,
+        "partner_block_message": DRC_AGENT_MESSAGE if drc_blocked else None,
         "plan_required": BOT_TIER_LABEL,
         "plan_name": _plan_display(user),
         "subscription_tier": getattr(user, "subscription_tier", None),

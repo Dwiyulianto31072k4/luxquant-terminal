@@ -22,6 +22,13 @@ from app.models.agent_disclaimer import AgentDisclaimerAck
 from app.models.user import User
 from app.services import autotrade_monitor
 from app.services.autotrade_monitor import TRACKING_RESET_AT
+from app.services.entitlement_audit import (
+    agent_blocked_by_drc,
+    agent_drc_exempt_ids,
+    drc_premium_ids,
+    is_drc_client_now,
+    set_agent_drc_exempt,
+)
 
 router = APIRouter(prefix="/admin/autotrade", tags=["Admin AutoTrade"])
 
@@ -44,6 +51,8 @@ def _attach_identities(db: Session, rows: list[dict[str, Any]]) -> None:
         u.id: u
         for u in db.query(User).filter(User.id.in_(ids)).all()
     }
+    drc_ids = drc_premium_ids()
+    exempt = agent_drc_exempt_ids()
     for row in rows:
         user = lookup.get(row.get("luxquant_user_id"))
         row["username"] = getattr(user, "username", None)
@@ -57,6 +66,11 @@ def _attach_identities(db: Session, rows: list[dict[str, Any]]) -> None:
         row["bot_access_blocked"] = bool(getattr(user, "autotrade_blocked", False))
         row["bot_access_blocked_reason"] = getattr(user, "autotrade_blocked_reason", None)
         row["bot_access_blocked_by"] = getattr(user, "autotrade_blocked_by", None)
+        # Separate from the operator switch: this is the DRC partner rule, and
+        # "Switch back on" must not look like it could lift it.
+        row["drc_client"] = user is not None and is_drc_client_now(user.discord_id, drc_ids)
+        row["drc_exempt"] = user is not None and user.id in exempt
+        row["agent_blocked_by_drc"] = user is not None and agent_blocked_by_drc(user, ids=drc_ids, exempt=exempt)
 
 
 def _attach_agreements(db: Session, rows: list[dict[str, Any]]) -> None:
@@ -232,6 +246,34 @@ def set_bot_access(
             user.autotrade_blocked_at.isoformat() if user.autotrade_blocked_at else None
         ),
         # AutoTrade caches an "allowed" answer, so a block is not instant.
+        "takes_effect_within_seconds": 120,
+    }
+
+
+class DrcExemptRequest(BaseModel):
+    exempt: bool
+
+
+@router.post("/users/{user_id}/drc-exempt")
+def set_drc_exempt(
+    user_id: int,
+    body: DrcExemptRequest,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Let one DRC client use the Agent anyway, or take that back.
+
+    For accounts the owner vouches for (his own second account, 2026-09-21).
+    Every other DRC client stays refused, as Daily Rekom Crypto asked.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    set_agent_drc_exempt(user.id, body.exempt)
+    return {
+        "user_id": user.id,
+        "drc_exempt": body.exempt,
+        "agent_blocked_by_drc": agent_blocked_by_drc(user),
         "takes_effect_within_seconds": 120,
     }
 

@@ -82,6 +82,7 @@ const STATUS = {
   warn: { label: "Warning", dot: "bg-warning", fg: "text-warning", chip: "bg-warning/10" },
   recovered: { label: "Recovered", dot: "bg-warning", fg: "text-warning", chip: "bg-warning/10" },
   blocked: { label: "Switched off", dot: "bg-warning", fg: "text-warning", chip: "bg-warning/10" },
+  drc: { label: "Blocked — DRC client", dot: "bg-warning", fg: "text-warning", chip: "bg-warning/10" },
   ok: { label: "Healthy", dot: "bg-positive", fg: "text-positive", chip: "bg-positive/10" },
   paused: { label: "Paused", dot: "bg-ink/30", fg: "text-text-muted", chip: "bg-ink/[0.06]" },
   unsigned: { label: "No agreement", dot: "bg-ink/30", fg: "text-text-muted", chip: "bg-ink/[0.06]" },
@@ -124,8 +125,14 @@ const marksMissing = (rows) =>
   Array.isArray(rows) && rows.length > 0 && rows.every((p) => p.mark_price == null);
 const who = (u) => u.username || u.email || u.cb_email || `lq:${u.luxquant_user_id}`;
 
-function Pill({ status, recovered, blocked }) {
-  const key = blocked ? "blocked" : status === "warn" && recovered ? "recovered" : status;
+function Pill({ status, recovered, blocked, drc }) {
+  const key = blocked
+    ? "blocked"
+    : drc
+      ? "drc"
+      : status === "warn" && recovered
+        ? "recovered"
+        : status;
   const s = STATUS[key] || STATUS.unlinked;
   return (
     <span
@@ -774,6 +781,7 @@ export function AgentMonitorView({
                         status={u.status}
                         recovered={u.errors_recovered}
                         blocked={u.bot_access_blocked}
+                        drc={u.agent_blocked_by_drc}
                       />
                     </td>
                     <td className="py-2.5 pr-3">
@@ -850,7 +858,9 @@ export function AgentMonitorView({
                     <td className="max-w-[24ch] truncate py-2.5 pr-4 text-[11.5px] text-text-muted">
                       {u.bot_access_blocked
                         ? u.bot_access_blocked_reason || "switched off by an operator"
-                        : u.reasons?.[0]}
+                        : u.agent_blocked_by_drc
+                          ? "DRC client: Agent not offered to Daily Rekom Crypto members"
+                          : u.reasons?.[0]}
                     </td>
                   </tr>
                 ))}

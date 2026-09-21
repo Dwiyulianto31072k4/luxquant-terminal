@@ -58,6 +58,11 @@ TTL = 60 * 60 * 48
 # accounts that had since left and missed three real Premium+ holders whose
 # access came from legacy, lifetime or an admin grant.
 DRC_KEY = "lq:drc:premium_ids"
+# The DRC set outlives the audit blob on purpose. It now gates the Agent, and
+# that gate fails CLOSED when the set is missing, so an expired set would lock
+# every Discord-linked member out of the Agent. A stale set only errs towards
+# blocking someone who has since left DRC, and the daily run replaces it.
+DRC_TTL = 60 * 60 * 24 * 30
 
 DISCORD_API = "https://discord.com/api/v10"
 GUILD_ID = os.getenv("DISCORD_GUILD_ID", "1199773381097181317")
@@ -247,7 +252,7 @@ async def compute_and_cache() -> dict[str, Any]:
         previous = cache_get(DRC_KEY)
         current = _drc_ids_from_blob(blob)
         cache_set(BLOB_KEY, blob, ttl=TTL)
-        cache_set(DRC_KEY, current, ttl=TTL)
+        cache_set(DRC_KEY, current, ttl=DRC_TTL)
         try:
             lapse_drc_grants(set(current), previous_count=len(previous) if previous is not None else None)
         except Exception:
@@ -288,7 +293,7 @@ async def entitlement_daily_loop() -> None:
         # Blob survived a restart but the DRC set predates it (first deploy of
         # this key): derive it now rather than leave every badge off until
         # midnight.
-        cache_set(DRC_KEY, _drc_ids_from_blob(cache_get(BLOB_KEY)), ttl=TTL)
+        cache_set(DRC_KEY, _drc_ids_from_blob(cache_get(BLOB_KEY)), ttl=DRC_TTL)
 
     while True:
         now = datetime.now(timezone.utc)
@@ -319,7 +324,7 @@ def drc_premium_ids() -> set[str] | None:
     blob = cache_get(BLOB_KEY)
     if blob:
         derived = _drc_ids_from_blob(blob)
-        cache_set(DRC_KEY, derived, ttl=TTL)
+        cache_set(DRC_KEY, derived, ttl=DRC_TTL)
         return set(derived)
     return None
 
@@ -360,7 +365,7 @@ def note_discord_premium(discord_id, has_premium: bool | None) -> None:
         ids.discard(did)
     else:
         return
-    cache_set(DRC_KEY, sorted(ids), ttl=TTL)
+    cache_set(DRC_KEY, sorted(ids), ttl=DRC_TTL)
 
 
 
@@ -470,3 +475,79 @@ def _lapse(db, ids: list[int], reason: str) -> None:
         {"ids": ids, "note": f"DRC access ended {stamp}: {reason}"},
     )
     db.commit()
+
+
+# ── Agent is never offered to DRC clients ───────────────────────────────────
+#
+# Daily Rekom Crypto's founder asked that its members get no automated trade
+# execution (2026-09-21). The owner's rule: every DRC client is refused the
+# Agent, live AND dry-run, whatever the source of their LuxQuant access and
+# even if they buy a plan themselves. Staff pass (they support the feature),
+# and an admin can exempt one account by hand.
+#
+# Fails CLOSED. Without a known Premium+ set, anyone with a linked Discord
+# account is treated as a possible DRC client until the set is back.
+#
+# The exemption lives in Redis with no expiry rather than in a new column: no
+# schema change, and if Redis ever loses it the account falls back to blocked,
+# which is the safe direction.
+
+AGENT_DRC_EXEMPT_KEY = "lq:agent:drc_exempt"
+
+DRC_AGENT_TITLE = "Agent isn't part of your access through Daily Rekom Crypto"
+DRC_AGENT_MESSAGE = (
+    "Your LuxQuant access comes through our partnership with Daily Rekom Crypto, "
+    "and we work closely with their team on what that access includes.\n\n"
+    "Automated trading is growing quickly around the world, but every community "
+    "has its own considerations. Daily Rekom Crypto has decided not to offer "
+    "automated trade execution to its members for now, and we fully respect that "
+    "direction. So the Agent isn't available on your account, while everything "
+    "else remains yours to use without limits.\n\n"
+    "You still have full access to live signals, the terminal and its analytics, "
+    "and our research. That covers everything you need to make your own trading "
+    "decisions.\n\n"
+    "If you have any questions about this, the Daily Rekom Crypto team is happy "
+    "to help, and you can always reach us through chat."
+)
+
+
+def agent_drc_exempt_ids() -> set[int]:
+    try:
+        from app.core.redis import get_redis
+        return {int(x) for x in get_redis().smembers(AGENT_DRC_EXEMPT_KEY)}
+    except Exception:
+        return set()  # unknown exemption = no exemption
+
+
+def set_agent_drc_exempt(user_id: int, exempt: bool) -> None:
+    from app.core.redis import get_redis
+    r = get_redis()
+    if exempt:
+        r.sadd(AGENT_DRC_EXEMPT_KEY, int(user_id))
+    else:
+        r.srem(AGENT_DRC_EXEMPT_KEY, int(user_id))
+
+
+def is_drc_client_now(discord_id, ids: set[str] | None) -> bool:
+    """Fail-closed variant of is_drc_client, for gating rather than badges."""
+    if discord_id is None:
+        return False
+    if ids is None:
+        return True
+    return str(discord_id) in ids
+
+
+def agent_blocked_by_drc(user, *, ids=..., exempt=None) -> bool:
+    """True when this account may not use the Agent because it is a DRC client.
+
+    `ids` / `exempt` can be passed in when checking many users at once.
+    """
+    if user is None or getattr(user, "is_admin_staff", False):
+        return False
+    if ids is ...:
+        ids = drc_premium_ids()
+    if not is_drc_client_now(getattr(user, "discord_id", None), ids):
+        return False
+    if exempt is None:
+        exempt = agent_drc_exempt_ids()
+    return int(user.id) not in exempt

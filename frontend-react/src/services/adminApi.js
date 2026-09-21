@@ -96,6 +96,16 @@ export const adminApi = {
     return response.data;
   },
 
+  // Lets one Daily Rekom Crypto client use the Agent anyway (or takes that
+  // back). Every other DRC client stays refused, as DRC asked.
+  setAgentDrcExempt: async (userId, exempt) => {
+    const response = await api.post(
+      `/api/v1/admin/autotrade/users/${userId}/drc-exempt`,
+      { exempt },
+    );
+    return response.data;
+  },
+
   // ════════════════════════════════════════
   // Dashboard stats
   // ════════════════════════════════════════

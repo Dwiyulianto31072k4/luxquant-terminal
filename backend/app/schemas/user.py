@@ -228,6 +228,8 @@ class UserResponse(BaseModel):
     telegram_in_group: Optional[bool] = False
     telegram_grace_until: Optional[datetime] = None
     has_active_access: Optional[bool] = None
+    # Daily Rekom Crypto clients are never offered the Agent.
+    agent_blocked_by_drc: Optional[bool] = None
 
     # Staff capability flags (from User properties)
     is_admin: Optional[bool] = None

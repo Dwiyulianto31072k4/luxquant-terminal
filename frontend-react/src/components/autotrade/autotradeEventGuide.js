@@ -51,6 +51,13 @@ export const RISK_EVENTS = {
     why: "The Agent is part of the Annual and Lifetime plans. Monthly covers the terminal and the signal feed, but not automated execution. The test is the length of the plan, not its name — a custom plan granted for less than twelve months is treated the same as Monthly. It is checked before every live entry, so it applies the moment the plan changes in either direction.",
     fix: "Upgrade to Annual or Lifetime and the Agent resumes on the next check, within about two minutes. Nothing needs reconnecting.",
   },
+  partner_blocked: {
+    title: "Agent isn't part of access through Daily Rekom Crypto",
+    blocking: true,
+    what: "No entries are placed on this account, live or simulated. Your subscription, your signals and any open position are untouched, and open positions keep their take-profit and stop-loss.",
+    why: "Daily Rekom Crypto has decided not to offer automated trade execution to its members for now, and we respect that direction. It is checked before every entry.",
+    fix: "Nothing to change on this side. If you have questions, the Daily Rekom Crypto team is happy to help, and you can always reach us through chat.",
+  },
   subscription_inactive: {
     title: "LuxQuant subscription is not active",
     blocking: true,

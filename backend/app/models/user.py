@@ -177,6 +177,19 @@ class User(Base):
         return self.autotrade_blocked_at is not None
 
     @property
+    def agent_blocked_by_drc(self) -> bool:
+        """DRC clients are never offered the Agent (partner's request).
+
+        Surfaced on /me so the Agent page can explain itself; the authority is
+        the entitlement endpoint the bot calls before every entry.
+        """
+        from app.services.entitlement_audit import agent_blocked_by_drc
+        try:
+            return agent_blocked_by_drc(self)
+        except Exception:
+            return self.discord_id is not None and not self.is_admin_staff
+
+    @property
     def is_admin(self) -> bool:
         """Full admin — all write actions allowed."""
         return self.role == 'admin'

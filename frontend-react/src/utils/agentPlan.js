@@ -69,3 +69,22 @@ export function planRefusalReason(user) {
   }
   return "The Agent is part of the paid plans that run for a year or more.";
 }
+
+// Daily Rekom Crypto clients are never offered the Agent: DRC's founder asked
+// that its members get no automated execution (2026-09-21). The server decides
+// (`agent_blocked_by_drc` on /me, and `partner_blocks_bot` on the entitlement
+// the bot re-checks before every entry, dry-run included); this only reads it.
+// No purchase lifts it, so the page must not offer one.
+export function agentBlockedByDrc(user) {
+  return user?.agent_blocked_by_drc === true;
+}
+
+// Mirrors DRC_AGENT_TITLE / DRC_AGENT_MESSAGE in
+// backend/app/services/entitlement_audit.py. Wording approved by the owner.
+export const DRC_AGENT_TITLE = "Agent isn't part of your access through Daily Rekom Crypto";
+export const DRC_AGENT_PARAGRAPHS = [
+  "Your LuxQuant access comes through our partnership with Daily Rekom Crypto, and we work closely with their team on what that access includes.",
+  "Automated trading is growing quickly around the world, but every community has its own considerations. Daily Rekom Crypto has decided not to offer automated trade execution to its members for now, and we fully respect that direction. So the Agent isn't available on your account, while everything else remains yours to use without limits.",
+  "You still have full access to live signals, the terminal and its analytics, and our research. That covers everything you need to make your own trading decisions.",
+  "If you have any questions about this, the Daily Rekom Crypto team is happy to help, and you can always reach us through chat.",
+];
