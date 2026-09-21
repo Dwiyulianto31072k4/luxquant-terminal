@@ -71,15 +71,22 @@ _UA = "DiscordBot (https://luxquant.tw, 1.0)"
 _IN_GROUP = {"creator", "administrator", "member", "restricted"}
 
 
-async def _discord_premium_holders() -> list[dict]:
-    """Every member of the guild carrying the Premium+ role.
+async def _discord_premium_holders() -> list[dict] | None:
+    """Every member of the guild carrying the Premium+ role, or None when the
+    member list could not be read in full.
 
-    Needs the Server Members Intent (Developer Portal → Bot). Without it this
-    route answers 403 and the Discord half of the audit is simply empty — the
-    Telegram half still works.
+    None, not a short list, because a short list is indistinguishable from
+    people losing the role. The loop pages through ~7,000 members; a 429 or
+    5xx on page 4 used to `break` and return the first three pages as if they
+    were the whole server — and since the DRC badge is built from this list,
+    one Discord hiccup at midnight would have stripped it from everyone past
+    the failed page.
+
+    Needs the Server Members Intent (Developer Portal → Bot); without it the
+    route answers 403, which is also None.
     """
     if not BOT_TOKEN:
-        return []
+        return None
     out, after = [], "0"
     headers = {"Authorization": f"Bot {BOT_TOKEN}", "User-Agent": _UA}
     async with httpx.AsyncClient(timeout=30.0, headers=headers) as c:
@@ -88,7 +95,7 @@ async def _discord_premium_holders() -> list[dict]:
                             params={"limit": 1000, "after": after})
             if r.status_code != 200:
                 log.warning("entitlement: discord members %s %s", r.status_code, r.text[:120])
-                break
+                return None
             page = r.json()
             if not page:
                 break
@@ -155,6 +162,8 @@ async def compute() -> dict[str, Any]:
     rows: list[dict] = []
 
     dc = await _discord_premium_holders()
+    discord_ok = dc is not None
+    dc = dc or []
     for m in dc:
         u = lux_by_dc.get(m["platform_id"])
         # `joined` is when they joined the GUILD, not when Premium+ was granted.
@@ -200,6 +209,7 @@ async def compute() -> dict[str, Any]:
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "discord_ok": discord_ok,
         "summary": {
             "legacy_snapshot_at": (legacy[0]["snapshot_at"].date().isoformat()
                                    if legacy and legacy[0].get("snapshot_at") else None),
@@ -233,8 +243,19 @@ def _drc_ids_from_blob(blob: dict[str, Any]) -> list[str]:
 
 async def compute_and_cache() -> dict[str, Any]:
     blob = await compute()
-    cache_set(BLOB_KEY, blob, ttl=TTL)
-    cache_set(DRC_KEY, _drc_ids_from_blob(blob), ttl=TTL)
+    if blob.get("discord_ok"):
+        cache_set(BLOB_KEY, blob, ttl=TTL)
+        cache_set(DRC_KEY, _drc_ids_from_blob(blob), ttl=TTL)
+    else:
+        # The Discord member list did not come back whole. Keep yesterday's
+        # picture — its generated_at stays honest about its age — rather than
+        # replace it with one that says nobody holds Premium+. Only when there
+        # is no picture at all is the partial blob better than nothing, and
+        # even then the DRC set is left unset so badges fall back instead of
+        # vanishing.
+        log.warning("entitlement: Discord member fetch incomplete; keeping previous audit and DRC set")
+        if not cache_get(BLOB_KEY):
+            cache_set(BLOB_KEY, blob, ttl=TTL)
     log.info("entitlement audit: %s rows, %s unclaimed",
              blob["summary"]["total_rows"], blob["summary"]["discord_unclaimed"] + blob["summary"]["legacy_unclaimed"])
     return blob
