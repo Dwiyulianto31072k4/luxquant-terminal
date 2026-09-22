@@ -1,4 +1,13 @@
 import os, sys, time, logging, json, html
+
+# systemd runs this file as a script (ExecStart=python …/telegram_delivery_worker.py),
+# so sys.path[0] is app/workers and `import app…` fails. It did, on 2026-09-22:
+# the first Custom-screen alert rendered through app.services.call_format raised
+# ModuleNotFoundError and every delivery pass crashed for 2h20m. Put the backend
+# root on the path so the shared formatter is importable however this is started.
+_BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _BACKEND_ROOT not in sys.path:
+    sys.path.insert(0, _BACKEND_ROOT)
 from datetime import datetime, timedelta, timezone
 import httpx
 from sqlalchemy import create_engine, text
@@ -270,9 +279,15 @@ def run_instant_personal(conn, cutoff):
     for notif in rows:
         nid, uid = notif[0], notif[1]
         buttons = photo = None
+        msg = None
         if notif[2] == "signal_match":
-            msg, buttons, photo = render_signal_match(notif, conn)
-        else:
+            try:
+                msg, buttons, photo = render_signal_match(notif, conn)
+            except Exception as e:
+                # One bad render must never stop the queue behind it.
+                log.exception("render_signal_match failed notif=%s; sending plain: %s", nid, e)
+                buttons = photo = None
+        if msg is None:
             msg = render_personal(notif)
         ok, err, bot_i = send_telegram(str(notif[7]), msg, buttons, photo)
         if ok:
