@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import CoinLogo from "./CoinLogo";
 import Modal from "./ui/Modal";
+import TelegramConnectModal, { ALERT_BOT } from "./TelegramConnectModal";
+import { telegramCheck } from "../services/telegramReach";
 import { deskChipClass } from "./ui/SegGroup";
 import { signalAlertApi, criteriaToDeskState } from "../services/signalAlertApi";
 import {
@@ -494,6 +496,8 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
   const [linked, setLinked] = useState(false);
   const [notify, setNotify] = useState(false);
   const [telegram, setTelegram] = useState(false);
+  const [telegramReady, setTelegramReady] = useState(true);
+  const [connectOpen, setConnectOpen] = useState(false);
   const [savedSignature, setSavedSignature] = useState("");
   // Range and search controls hold their own half-typed state. Bumping this
   // remounts every card, so "Clear all" and switching saved screens actually
@@ -548,6 +552,7 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
       setCatalog(c);
       setItems(d.items || []);
       setLinked(d.telegram_linked);
+      setTelegramReady(d.telegram_ready !== false);
       if (!(active && rules.length)) loadRow(d.items?.[0], !!d.telegram);
     } catch (e) {
       setCatalog(null);
@@ -629,6 +634,31 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
       setBusy(false);
     }
   }
+  // Ticking Telegram is the moment to find out whether the bot can reach them —
+  // not a day later when an alert silently fails.
+  async function toggleTelegram(on) {
+    setTelegram(on);
+    if (!on) return;
+    try {
+      const r = await telegramCheck();
+      setTelegramReady(!!r.ready);
+      if (!r.ready && !r.unknown) setConnectOpen(true);
+    } catch {
+      /* the saved state still says whether it is connected */
+    }
+  }
+  // What a NEW call looks like when alerts test it: minutes old, still open,
+  // never moved. Rules that exclude that describe the book, not a live alert.
+  const alertBlockers = rules
+    .map((r) => {
+      if (r.field === "updated_days") return "Last move — a new call has not hit a TP or SL yet";
+      if (r.field === "status" && !(r.op === "in" ? r.value.includes("open") : !r.value.includes("open")))
+        return "Status — a new call is always Open";
+      if (r.field === "called_days" && (r.op === "gte" ? r.value > 0.1 : r.op === "between" ? r.value[0] > 0.1 : r.op === "eq"))
+        return "Called — a new call is minutes old";
+      return null;
+    })
+    .filter(Boolean);
   if (!show) return null;
   return (
     <>
@@ -885,15 +915,40 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
                               type="checkbox"
                               disabled={!linked}
                               checked={telegram}
-                              onChange={(e) => setTelegram(e.target.checked)}
+                              onChange={(e) => toggleTelegram(e.target.checked)}
                             />
                             Send signal-match notifications to Telegram
                           </label>
+                          {linked && telegram && (
+                            telegramReady ? (
+                              <p className="text-[12px] text-text-secondary">
+                                Alerts arrive from{" "}
+                                <span className="font-mono text-text-primary">@{ALERT_BOT}</span>.
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] p-2.5 text-[12px] text-text-secondary">
+                                <span className="min-w-0 flex-1">
+                                  Not connected yet — Telegram can’t deliver until you press Start
+                                  in <span className="font-mono">@{ALERT_BOT}</span>.
+                                </span>
+                                <button type="button" className={BUTTON} onClick={() => setConnectOpen(true)}>
+                                  Connect
+                                </button>
+                              </div>
+                            )
+                          )}
+                          {notify && alertBlockers.length > 0 && (
+                            <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] p-2.5 text-[12px] leading-relaxed text-text-secondary">
+                              This screen will never alert. Each new call is checked minutes after it
+                              is published, and these rules rule that out: {alertBlockers.join("; ")}.
+                            </p>
+                          )}
                           <p className="text-[11px] leading-relaxed text-text-muted">
                             {!linked ? "Link Telegram in Notifications first. " : ""}Telegram
                             delivery applies to all your enabled Custom screens. Changes take effect
-                            when you save. Alerts use these same conditions for new calls after
-                            saving, with a 12-hour lookback; older desk results are not sent.
+                            when you save. Alerts check each new call once, minutes after it is
+                            published — the match count above is the whole book as it stands now,
+                            so it can read 0 while alerts still fire. Older desk results are not sent.
                           </p>
                         </div>
                       </details>
@@ -905,6 +960,17 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
           </div>
         )}
       </Modal>
+      <TelegramConnectModal
+        nested
+        isOpen={connectOpen}
+        onConnected={() => setTelegramReady(true)}
+        onClose={() => {
+          setConnectOpen(false);
+          // Closed without connecting: an alert switched on that cannot reach
+          // anyone is the exact silent failure this exists to prevent.
+          if (!telegramReady) setTelegram(false);
+        }}
+      />
     </>
   );
 }

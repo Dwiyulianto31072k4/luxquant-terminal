@@ -47,6 +47,40 @@ def _norm_pair(p) -> str:
     return u + "USDT"
 
 
+def _num(v):
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if f == f and f not in (float("inf"), float("-inf")) else None
+
+
+def fmt_price(p) -> str:
+    """Enough significant digits for a 0.00000925 coin and a 124,300 one."""
+    if p is None:
+        return "n/a"
+    a = abs(p)
+    if a >= 1000:
+        return f"{p:,.1f}".rstrip("0").rstrip(".")
+    if a >= 1:
+        return f"{p:,.4f}".rstrip("0").rstrip(".")
+    return f"{p:.8g}"
+
+
+def _one_line_body(entry, targets, stop, risk, rating, score, v2) -> str:
+    bits = [f"Entry {fmt_price(entry)}"]
+    last = next((t for t in reversed(targets) if t is not None), None)
+    if last is not None:
+        pct = f" ({(last - entry) / entry * 100:+.1f}%)" if entry else ""
+        bits.append(f"TP{targets.index(last) + 1} {fmt_price(last)}{pct}")
+    if stop is not None:
+        bits.append(f"SL {fmt_price(stop)}")
+    bits.append(f"Risk {risk or 'n/a'}")
+    if not v2:
+        bits.append(f"{(rating or 'n/a').lower()} · score {score if score is not None else 'n/a'}")
+    return " · ".join(bits)
+
+
 def _as_list(value):
     if value is None:
         return []
@@ -296,7 +330,8 @@ def generate_filter_match_notifications(db) -> int:
 
         params.update({"fid": fid, "since": updated_at, "lim": MAX_MATCHES_PER_PASS})
         rows = db.execute(text(f"""
-            SELECT s.signal_id, s.pair, s.entry, s.risk_level, e.rating, e.confidence_score
+            SELECT s.signal_id, s.pair, s.entry, s.risk_level, e.rating, e.confidence_score,
+                   s.target1, s.target2, s.target3, s.target4, s.stop1
             FROM signals s
             LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
             LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
@@ -311,9 +346,11 @@ def generate_filter_match_notifications(db) -> int:
             LIMIT :lim
         """), params).fetchall()
 
-        for signal_id, pair, entry, risk_level, rating, score in rows:
+        for signal_id, pair, entry, risk_level, rating, score, *ladder in rows:
             coin = (pair or "").replace("USDT", "") or pair
-            entry_str = f"{float(entry)}" if entry is not None else "N/A"
+            targets = [_num(t) for t in ladder[:4]]
+            stop = _num(ladder[4])
+            entry_f = _num(entry)
             summary = _describe(criteria)
             db.execute(text("""
                 INSERT INTO notifications
@@ -323,20 +360,23 @@ def generate_filter_match_notifications(db) -> int:
             """), {
                 "uid": user_id,
                 "title": f"{coin} matches “{name}”",
-                "body": (
-                    f"Entry {entry_str} · risk {risk_level or 'n/a'} · "
-                    + ("Matches your saved filters" if "rules_v2" in criteria else f"{(rating or 'n/a').lower()} · score {score if score is not None else 'n/a'}")
-                    + (f"\nFilter: {summary}" if summary else "")
-                ),
+                # One line: the bell clamps the body to a line and the page to
+                # two. The full ladder and chart go to Telegram, which is built
+                # from `data` by the delivery worker, not from this string.
+                "body": _one_line_body(entry_f, targets, stop, risk_level, rating, score,
+                                       "rules_v2" in criteria),
                 "data": json.dumps({
                     "signal_id": signal_id,
                     "pair": pair,
-                    "entry": float(entry) if entry is not None else None,
+                    "entry": entry_f,
+                    "targets": targets,
+                    "stop": stop,
                     "risk_level": risk_level,
                     "rating": rating,
                     "confidence_score": score,
                     "filter_id": fid,
                     "filter_name": name,
+                    "filter_summary": summary,
                 }),
                 "sid": signal_id,
             })
@@ -353,6 +393,13 @@ def generate_filter_match_notifications(db) -> int:
                 WHERE id = :fid
             """), {"n": len(rows), "fid": fid})
 
+    # This function used to end without a commit. notification_worker closes
+    # the session after every cycle, which rolls back, so each match was
+    # inserted and discarded once a minute until the hourly cleanup happened to
+    # commit in the same cycle — alerts landed 8 to 59 minutes after the call,
+    # and a row committed that late could fall behind the Telegram delivery
+    # watermark and never be sent at all.
+    db.commit()
     if created:
         log.info("signal_match notifications created: %d", created)
     return created

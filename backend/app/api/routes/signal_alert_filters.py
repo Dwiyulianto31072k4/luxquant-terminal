@@ -147,6 +147,11 @@ def list_filters(
     tg = _telegram_on(db, current_user.id)
     return {
         "telegram_linked": current_user.telegram_id is not None,
+        # Whether @LuxQuantTerminalBot is known to be able to write to this
+        # account. Linking is not enough: a bot may only message someone who
+        # pressed Start, and alerts that cannot be delivered used to fail with
+        # no sign anywhere on the site.
+        "telegram_ready": bool(current_user.telegram_bot_started_at),
         "telegram": tg,
         "items": [_row(r, tg) for r in rows],
     }
@@ -287,3 +292,26 @@ def filter_catalog(current_user: User = Depends(get_current_user), db: Session =
         raise HTTPException(403, "Subscription required")
     from app.services.custom_signal_rules import catalog
     return catalog(db)
+
+
+@router.post("/telegram-check")
+async def telegram_check(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Can @LuxQuantTerminalBot write to this account right now?
+
+    Probed with sendChatAction, which Telegram permission-checks like a real
+    message but shows nothing. Only a success is recorded; a refusal today may
+    be someone who has not pressed Start yet, and a network error is neither.
+    """
+    if current_user.telegram_id is None:
+        return {"linked": False, "ready": False}
+    from datetime import datetime, timezone
+    from app.services.telegram_group import can_message
+
+    ok = await can_message(current_user.telegram_id)
+    if ok and not current_user.telegram_bot_started_at:
+        current_user.telegram_bot_started_at = datetime.now(timezone.utc)
+        db.commit()
+    return {"linked": True, "ready": bool(ok), "unknown": ok is None}

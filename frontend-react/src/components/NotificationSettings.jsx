@@ -6,6 +6,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { notificationApi } from "../services/notificationApi";
+import TelegramConnectModal, { ALERT_BOT } from "./TelegramConnectModal";
+import { telegramCheck } from "../services/telegramReach";
 
 const GROUP_ORDER = ["autotrade", "signals", "market", "account"];
 const GROUP_LABEL = {
@@ -61,6 +63,10 @@ const NotificationSettings = ({ _t, navigate }) => {
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingType, setSavingType] = useState(null);
+  // null = not checked yet. Linked is not the same as reachable: the bot may
+  // only write to someone who pressed Start in it.
+  const [reachable, setReachable] = useState(null);
+  const [connectOpen, setConnectOpen] = useState(false);
 
   const fetchPrefs = useCallback(async () => {
     setLoading(true);
@@ -68,6 +74,13 @@ const NotificationSettings = ({ _t, navigate }) => {
       const data = await notificationApi.getPreferences();
       setItems(data.items || []);
       setTelegramLinked(!!data.telegram_linked);
+      // Someone who already switched Telegram on should see now, not after a
+      // missed alert, if the bot cannot reach them.
+      if (data.telegram_linked && (data.items || []).some((i) => i.telegram)) {
+        telegramCheck()
+          .then((r) => setReachable(r.unknown ? null : !!r.ready))
+          .catch(() => {});
+      }
     } catch (err) {
       console.error("Failed to fetch preferences:", err);
     } finally {
@@ -98,6 +111,14 @@ const NotificationSettings = ({ _t, navigate }) => {
 
     try {
       await notificationApi.updatePreference(item.type, next.in_app, next.telegram);
+      if (channel === "telegram" && next.telegram) {
+        telegramCheck()
+          .then((r) => {
+            setReachable(!!r.ready);
+            if (!r.ready && !r.unknown) setConnectOpen(true);
+          })
+          .catch(() => {});
+      }
     } catch (err) {
       const detail = err?.response?.data?.detail;
       if (detail === "LINK_TELEGRAM_REQUIRED") {
@@ -129,8 +150,8 @@ const NotificationSettings = ({ _t, navigate }) => {
                 Connect Telegram to receive alerts there
               </p>
               <p className="text-xs text-text-muted leading-relaxed">
-                Link your Telegram in profile, then start{" "}
-                <span className="font-mono text-text-muted">@LuxQuantAlert_Bot</span> so the bot can
+                Link your Telegram in profile, then press Start in{" "}
+                <span className="font-mono text-text-muted">@{ALERT_BOT}</span> so the bot can
                 message you. Until then, Telegram delivery stays locked.
               </p>
             </div>
@@ -143,13 +164,30 @@ const NotificationSettings = ({ _t, navigate }) => {
           </div>
         </div>
       ) : (
-        <div className="rounded-md border border-ink/[0.06] bg-ink/[0.01] p-3">
-          <p className="text-xs text-text-muted leading-relaxed">
-            Telegram linked. Make sure you've started{" "}
-            <span className="font-mono text-text-muted">@LuxQuantAlert_Bot</span> in Telegram,
-            otherwise the bot can't deliver messages to you.
-          </p>
-        </div>
+        reachable === false ? (
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/25 bg-amber-500/[0.07] p-3">
+            <p className="min-w-0 flex-1 text-xs leading-relaxed text-text-secondary">
+              Telegram is linked, but{" "}
+              <span className="font-mono">@{ALERT_BOT}</span> can’t message you yet. Press Start in
+              the bot so your alerts can be delivered.
+            </p>
+            <button
+              type="button"
+              onClick={() => setConnectOpen(true)}
+              className="shrink-0 rounded-md border border-ink/12 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent hover:bg-accent/10"
+            >
+              Connect
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-md border border-ink/[0.06] bg-ink/[0.01] p-3">
+            <p className="text-xs text-text-muted leading-relaxed">
+              Telegram linked. Alerts arrive from{" "}
+              <span className="font-mono text-text-muted">@{ALERT_BOT}</span> — make sure you’ve
+              pressed Start in it.
+            </p>
+          </div>
+        )
       )}
 
       {/* Column legend */}
@@ -205,6 +243,11 @@ const NotificationSettings = ({ _t, navigate }) => {
           </div>
         ))
       )}
+      <TelegramConnectModal
+        isOpen={connectOpen}
+        onClose={() => setConnectOpen(false)}
+        onConnected={() => setReachable(true)}
+      />
     </div>
   );
 };

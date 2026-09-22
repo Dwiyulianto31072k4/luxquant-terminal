@@ -1,4 +1,4 @@
-import os, sys, time, logging
+import os, sys, time, logging, json, html
 from datetime import datetime, timedelta, timezone
 import httpx
 from sqlalchemy import create_engine, text
@@ -58,33 +58,84 @@ LUX_DSN = os.getenv("DATABASE_URL")
 # endpoint baked into it is an open invitation. TELEGRAM_PROXY is set in
 # backend/.env; without it the worker talks to Telegram directly.
 PROXY = os.getenv("TELEGRAM_PROXY") or None
-ALERT_BOTS = [t for t in [os.getenv("ALERT_BOT_TOKEN")] if t]
-if not LUX_DSN or not ALERT_BOTS:
+# Which bot speaks. Personal alerts used to go out through @LuxQuantAlert_Bot
+# alone — a bot nobody was ever told to open. The site links Telegram through
+# @LuxQuantTerminalBot, its write-access check promises "saved signals and entry
+# alerts can now reach you here", and 450+ accounts can already be written to
+# there. On 2026-09-22 six of the eight people with Telegram alerts switched on
+# were unreachable through the Alert bot ("chat not found" / blocked) and every
+# one of them was reachable through the Terminal bot.
+#
+# So the Terminal bot goes first and the Alert bot is kept as a fallback for
+# anyone who only ever started that one. Order matters: an account is tried on
+# the next bot only when the one before says it cannot open the chat.
+PRIMARY_BOT = os.getenv("TELEGRAM_BOT_TOKEN") or None
+FALLBACK_BOT = os.getenv("ALERT_BOT_TOKEN") or None
+BOTS = [t for t in dict.fromkeys([PRIMARY_BOT, FALLBACK_BOT]) if t]
+if not LUX_DSN or not BOTS:
     log.error("MISSING ENV"); sys.exit(1)
+SITE = "https://luxquant.tw"
 
 def _norm(dsn):
     return dsn.replace("postgresql://", "postgresql+psycopg2://") if dsn.startswith("postgresql://") else dsn
 engine = create_engine(_norm(LUX_DSN), pool_pre_ping=True)
 
-def pick_bot(user_id): return ALERT_BOTS[user_id % len(ALERT_BOTS)]
 
 def _target_clause(col="u.id"):
     if TARGET_USER_IDS is None: return ""
     ids = ",".join(str(int(i)) for i in TARGET_USER_IDS)
     return f" AND {col} IN ({ids})"
 
-def send_telegram(token, chat_id, text_msg):
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text_msg, "parse_mode": "HTML", "disable_web_page_preview": True}
+def _send_once(token, chat_id, text_msg, buttons=None, photo=None):
+    base = f"https://api.telegram.org/bot{token}"
+    markup = {"inline_keyboard": buttons} if buttons else None
     try:
-        with httpx.Client(timeout=15, proxy=PROXY) as client:
-            resp = client.post(url, json=payload)
+        with httpx.Client(timeout=30 if photo else 15, proxy=PROXY) as client:
+            if photo:
+                data = {"chat_id": chat_id, "caption": text_msg[:1024], "parse_mode": "HTML"}
+                if markup:
+                    data["reply_markup"] = json.dumps(markup)
+                with open(photo, "rb") as fh:
+                    resp = client.post(f"{base}/sendPhoto", data=data,
+                                       files={"photo": (os.path.basename(photo), fh, "image/png")})
+            else:
+                payload = {"chat_id": chat_id, "text": text_msg, "parse_mode": "HTML",
+                           "disable_web_page_preview": True}
+                if markup:
+                    payload["reply_markup"] = markup
+                resp = client.post(f"{base}/sendMessage", json=payload)
             return (True, "") if resp.status_code == 200 else (False, f"{resp.status_code} {resp.text[:200]}")
     except Exception as e:
-        return False, str(e)
+        return False, f"{type(e).__name__}: {e}"
+
+def send_telegram(chat_id, text_msg, buttons=None, photo=None):
+    """Try each bot in order; move on only when a bot cannot open the chat.
+
+    Returns (ok, err, bot_index). A photo that fails for any reason other than
+    reachability is retried once as text — a slow upload must never cost the
+    alert itself (a stalled upload once ate a whole day's card post).
+    """
+    err = ""
+    for i, token in enumerate(BOTS):
+        ok, err = _send_once(token, chat_id, text_msg, buttons, photo)
+        if not ok and photo and not _unreachable(err):
+            log.warning("photo send failed (%s); retrying as text", err[:120])
+            ok, err = _send_once(token, chat_id, text_msg, buttons)
+        if ok:
+            return True, "", i
+        if not _unreachable(err):
+            return False, err, i
+    return False, err, len(BOTS) - 1
 
 def _unreachable(err):
     return "403" in err or "chat not found" in err.lower() or "blocked" in err.lower()
+
+def _record_reachable(conn, uid, bot_index):
+    # Same rule as everywhere else that learns reach: record a success, never
+    # infer a failure. Only the Terminal bot's reach lives in this column.
+    if bot_index == 0 and BOTS[0] == PRIMARY_BOT:
+        conn.execute(text("UPDATE users SET telegram_bot_started_at = NOW() "
+                          "WHERE id = :id AND telegram_bot_started_at IS NULL"), {"id": uid})
 
 def get_cutoff(conn):
     r = conn.execute(text("SELECT value FROM autotrade_relay_config WHERE key='tg_cutoff_ts'")).first()
@@ -96,6 +147,69 @@ def get_config_ts(conn, key):
 
 def set_config_ts(conn, key, value):
     conn.execute(text("INSERT INTO autotrade_relay_config (key, value) VALUES (:k, :v) ON CONFLICT (key) DO UPDATE SET value = :v"), {"k": key, "v": value})
+
+def _esc(v):
+    return html.escape(str(v), quote=False)
+
+def _fmt_price(p):
+    if p is None:
+        return "n/a"
+    a = abs(p)
+    if a >= 1000:
+        return f"{p:,.1f}".rstrip("0").rstrip(".")
+    if a >= 1:
+        return f"{p:,.4f}".rstrip("0").rstrip(".")
+    return f"{p:.8g}"
+
+def _pct(level, entry):
+    return f" <i>({(level - entry) / entry * 100:+.2f}%)</i>" if level is not None and entry else ""
+
+def _chart_for(conn, signal_id):
+    """The entry chart the chart worker already rendered for this call, if any."""
+    row = conn.execute(text("SELECT entry_chart_path FROM signals WHERE signal_id = :sid"),
+                       {"sid": signal_id}).first()
+    path = row[0] if row else None
+    if path and os.path.isfile(path) and os.path.getsize(path) < 9_500_000:
+        return path
+    return None
+
+def render_signal_match(notif, conn):
+    """Caption + buttons + chart for a Custom-screen match.
+
+    Built from `data`, not from the one-line in-app body: Telegram has room for
+    the whole ladder, and the chart the chart worker drew for the call is on
+    this box already, so the alert looks like the call it points at.
+    """
+    _id, uid, ntype, title, body, data, created, tg_id = notif
+    d = data if isinstance(data, dict) else {}
+    pair = d.get("pair") or ""
+    coin = pair.replace("USDT", "") or pair
+    entry = d.get("entry")
+    targets = d.get("targets") or []
+    stop = d.get("stop")
+    if not targets and "targets" not in d:
+        return render_personal(notif), None, None      # a row from before this format
+    side = "Long"
+    first = next((t for t in targets if t is not None), None)
+    if first is not None and entry is not None and first < entry:
+        side = "Short"
+    lines = [f"🎯 <b>{_esc(coin)}</b> · {side} · matches <b>“{_esc(d.get('filter_name') or '')}”</b>", ""]
+    lines.append(f"Entry  <code>{_esc(_fmt_price(entry))}</code>")
+    for i, t in enumerate(targets, 1):
+        if t is not None:
+            lines.append(f"TP{i}    <code>{_esc(_fmt_price(t))}</code>{_pct(t, entry)}")
+    if stop is not None:
+        lines.append(f"SL      <code>{_esc(_fmt_price(stop))}</code>{_pct(stop, entry)}")
+    lines += ["", f"Risk: <b>{_esc(d.get('risk_level') or 'n/a')}</b>"]
+    if d.get("filter_summary"):
+        lines.append(f"<i>{_esc(d['filter_summary'][:300])}</i>")
+    lines += ["", "<i>Not financial advice.</i>"]
+    buttons = []
+    if d.get("signal_id"):
+        buttons.append([{"text": "Open signal", "url": f"{SITE}/signals?signal={d['signal_id']}"}])
+    buttons.append([{"text": "Edit alerts", "url": f"{SITE}/signals"}])
+    photo = _chart_for(conn, d["signal_id"]) if d.get("signal_id") else None
+    return "\n".join(lines), buttons, photo
 
 def render_personal(notif):
     _id, uid, ntype, title, body, data, created, tg_id = notif
@@ -162,12 +276,21 @@ def run_instant_personal(conn, cutoff):
     """), {"cutoff": cutoff, "lim": BATCH_LIMIT}).fetchall()
     for notif in rows:
         nid, uid = notif[0], notif[1]
-        ok, err = send_telegram(pick_bot(uid), str(notif[7]), render_personal(notif))
+        buttons = photo = None
+        if notif[2] == "signal_match":
+            msg, buttons, photo = render_signal_match(notif, conn)
+        else:
+            msg = render_personal(notif)
+        ok, err, bot_i = send_telegram(str(notif[7]), msg, buttons, photo)
         if ok:
             conn.execute(text("UPDATE notifications SET telegram_sent_at=now() WHERE id=:id"), {"id": nid}); sent += 1
+            _record_reachable(conn, uid, bot_i)
         else:
             failed += 1; log.warning("instant-personal fail notif=%s uid=%s: %s", nid, uid, err)
             if _unreachable(err):
+                # Every bot refused. Stamped so it is not retried forever, and
+                # said plainly in the log — the stamp alone reads as "sent".
+                log.warning("instant-personal UNDELIVERABLE notif=%s uid=%s: no bot can open this chat", nid, uid)
                 conn.execute(text("UPDATE notifications SET telegram_sent_at=now() WHERE id=:id"), {"id": nid})
         time.sleep(PACING_DELAY)
     return sent, failed
@@ -186,7 +309,7 @@ def run_instant_broadcast(conn, cutoff):
         ORDER BY n.created_at ASC LIMIT :lim
     """), {"cutoff": cutoff, "lim": BATCH_LIMIT}).fetchall()
     for nid, ntype, title, body, data, uid, tg_id in rows:
-        ok, err = send_telegram(pick_bot(uid), str(tg_id), render_instant_broadcast(title, body, data))
+        ok, err, _ = send_telegram(str(tg_id), render_instant_broadcast(title, body, data))
         if ok or _unreachable(err):
             conn.execute(text("INSERT INTO notification_tg_deliveries (notification_id, user_id) VALUES (:nid, :uid) ON CONFLICT DO NOTHING"), {"nid": nid, "uid": uid})
             sent += 1 if ok else 0
@@ -226,7 +349,7 @@ def run_digest(conn):
             pending_ids = [n[0] for n in notifs if n[0] not in done]
             if not pending: continue
             msg = render_digest_pulse(pending) if dtype == "market_pulse" else render_digest_news(pending)
-            ok, err = send_telegram(pick_bot(uid), str(tg_id), msg)
+            ok, err, _ = send_telegram(str(tg_id), msg)
             if ok or _unreachable(err):
                 for nid in pending_ids:
                     conn.execute(text("INSERT INTO notification_tg_deliveries (notification_id, user_id) VALUES (:nid, :uid) ON CONFLICT DO NOTHING"), {"nid": nid, "uid": uid})
@@ -296,7 +419,7 @@ def run_once():
 
 def main():
     once = "--once" in sys.argv
-    log.info("tg delivery v2 start mode=%s bots=%d target=%s", "once" if once else "loop", len(ALERT_BOTS), TARGET_USER_IDS)
+    log.info("tg delivery v3 start mode=%s bots=%d (terminal first=%s) target=%s", "once" if once else "loop", len(BOTS), bool(PRIMARY_BOT), TARGET_USER_IDS)
     while True:
         try:
             r = run_once()
