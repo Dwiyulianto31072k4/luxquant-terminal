@@ -71,8 +71,12 @@ def _get_read_cutoff(db: Session, user_id: int) -> datetime:
 
 # SQL constants
 
+# News notifications are retired (2026-09-22) — the producer no longer makes
+# them and the preference is gone. Rows already written age out with the 30-day
+# retention; until then they are hidden rather than deleted.
 SQL_VISIBLE = (
     "(n.user_id = :uid OR n.user_id IS NULL) "
+    "AND n.type <> 'news' "
     "AND NOT EXISTS ("
     "  SELECT 1 FROM notification_preferences np "
     "  WHERE np.user_id = :uid AND np.notif_type = CASE WHEN n.type LIKE 'autotrade%' THEN 'autotrade' ELSE n.type END AND np.in_app = false"

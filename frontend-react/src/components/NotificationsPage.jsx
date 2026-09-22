@@ -111,7 +111,6 @@ const NotificationsPage = () => {
     { key: "btcdom_call", label: t("notifications.type_btcdom_call") || "BTCDOM" },
     { key: "watchlist_update", label: t("notifications.type_watchlist_update") || "Watchlist" },
     { key: "coin_called", label: t("notifications.type_coin_called") || "Watchlist Calls" },
-    { key: "news", label: t("notifications.type_news") || "News" },
     { key: "market_pulse", label: t("notifications.type_market_pulse") || "Market Pulse" },
     { key: "autotrade", label: "Agent" },
     { key: "sub_expiry", label: t("notifications.type_sub_expiry") || "Expiry" },

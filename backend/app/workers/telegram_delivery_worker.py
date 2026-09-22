@@ -22,7 +22,7 @@ POLL_INTERVAL = 20
 BATCH_LIMIT = 50
 PACING_DELAY = 0.04
 DIGEST_INTERVAL_MIN = 15
-DIGEST_TYPES = {"news", "market_pulse"}
+DIGEST_TYPES = {"news", "market_pulse"}   # news: excluded from instant sends; no longer digested
 DIGEST_MAX_ITEMS = 8
 # Hard ceiling on how far back Telegram delivery will ever reach, whatever the
 # stored watermark says. See the note in run_once().
@@ -322,7 +322,8 @@ def run_digest(conn):
     window_start = last if last else get_cutoff(conn)
     sent = failed = 0
     tclause = _target_clause("u.id")
-    for dtype in ("market_pulse", "news"):
+    # News is retired as a notification (2026-09-22); only Market Pulse digests.
+    for dtype in ("market_pulse",):
         users = conn.execute(text(f"""
             SELECT u.id, u.telegram_id FROM users u
             JOIN notification_preferences p ON p.user_id = u.id AND p.notif_type = :t AND p.telegram = true

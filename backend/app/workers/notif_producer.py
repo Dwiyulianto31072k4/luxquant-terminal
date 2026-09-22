@@ -140,7 +140,11 @@ def produce_market_pulse(db) -> int:
 def run_once():
     db = SessionLocal()
     try:
-        n = produce_news(db)
+        # News notifications are switched off (owner, 2026-09-22): seven in ten
+        # notifications were headlines, and they buried the ones worth acting
+        # on. News still lives on /news and in the news channel; it just no
+        # longer rings anyone's bell. produce_news stays for a deliberate return.
+        n = 0
         p = produce_market_pulse(db)
         if n or p:
             print(f"[notif_producer] news={n} pulse={p}", flush=True)
