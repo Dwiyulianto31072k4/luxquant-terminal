@@ -111,12 +111,44 @@ def test_failed_photo_is_retried_as_text(worker, monkeypatch):
     assert calls == [True, False]
 
 
-def test_signal_match_caption_carries_the_ladder_and_buttons(worker, monkeypatch):
+class _Row:
+    def __init__(self, m):
+        self._mapping = m
+
+
+class _Conn:
+    """Answers the signals lookup; the track-record queries find nothing."""
+    def __init__(self, sig):
+        self.sig = sig
+
+    def execute(self, stmt, params=None):
+        q = str(stmt)
+        sig = self.sig
+
+        class R:
+            def first(self_inner):
+                return _Row(sig) if "FROM signals WHERE signal_id" in q else None
+
+            def fetchone(self_inner):
+                return None
+
+            def fetchall(self_inner):
+                return []
+        return R()
+
+
+SIG = {"signal_id": "abc", "pair": "BTCUSDT", "entry": 100.0, "target1": 101.0, "target2": 102.0,
+       "target3": 103.0, "target4": 110.0, "stop1": 97.0, "stop2": 95.0, "risk_level": "Normal",
+       "market_cap": "1.6T", "volume_rank_num": 1, "volume_rank_den": 500, "risk_reasons": None}
+
+
+def test_signal_match_uses_the_call_post_body(worker, monkeypatch):
     monkeypatch.setattr(worker, "_chart_for", lambda conn, sid: None)
-    data = {"signal_id": "abc", "pair": "BTCUSDT", "entry": 100.0, "targets": [101.0, 102.0, 103.0, 110.0],
-            "stop": 97.0, "risk_level": "Normal", "filter_name": "BTC <only>", "filter_summary": "Pair is any of BTCUSDT"}
-    msg, buttons, photo = worker.render_signal_match((1, 30, "signal_match", "t", "b", data, None, 1), None)
-    assert "BTC" in msg and "Long" in msg and "TP4" in msg and "+10.00%" in msg and "SL" in msg
-    assert "BTC &lt;only&gt;" in msg, "user text must be HTML-escaped for parse_mode=HTML"
+    data = {"signal_id": "abc", "filter_name": "BTC <only>", "filter_summary": "Pair is any of BTCUSDT"}
+    msg, buttons, photo = worker.render_signal_match((1, 30, "signal_match", "t", "b", data, None, 1), _Conn(SIG))
+    assert msg.startswith("🎯 <b>BTC matches “BTC &lt;only&gt;”</b>"), "user text must be HTML-escaped"
+    for line in ("📊 Vol #1/500 · MCap 1.6T · Risk Normal", "<b>Entry: 100</b>", "🎯 Targets &amp; Stop Loss",
+                 "Target 4      110      +10.00%", "Stop Loss 1   97      -3.00%", "Open this call on LuxQuant"):
+        assert line in msg, line
     assert buttons[0][0]["url"].endswith("/signals?signal=abc")
     assert photo is None

@@ -174,42 +174,35 @@ def _chart_for(conn, signal_id):
     return None
 
 def render_signal_match(notif, conn):
-    """Caption + buttons + chart for a Custom-screen match.
+    """Custom-screen match: its own head over the main call post's body.
 
-    Built from `data`, not from the one-line in-app body: Telegram has room for
-    the whole ladder, and the chart the chart worker drew for the call is on
-    this box already, so the alert looks like the call it points at.
+    The body (facts, Entry, Targets & Stop Loss, track record, links) is
+    app.services.call_format — the same lines the LuxQuant Call topic prints —
+    and the chart the chart worker drew for the call rides along as the photo.
     """
+    from app.services import call_format as cf
+
     _id, uid, ntype, title, body, data, created, tg_id = notif
     d = data if isinstance(data, dict) else {}
-    pair = d.get("pair") or ""
-    coin = pair.replace("USDT", "") or pair
-    entry = d.get("entry")
-    targets = d.get("targets") or []
-    stop = d.get("stop")
-    if not targets and "targets" not in d:
-        return render_personal(notif), None, None      # a row from before this format
-    side = "Long"
-    first = next((t for t in targets if t is not None), None)
-    if first is not None and entry is not None and first < entry:
-        side = "Short"
-    lines = [f"🎯 <b>{_esc(coin)}</b> · {side} · matches <b>“{_esc(d.get('filter_name') or '')}”</b>", ""]
-    lines.append(f"Entry  <code>{_esc(_fmt_price(entry))}</code>")
-    for i, t in enumerate(targets, 1):
-        if t is not None:
-            lines.append(f"TP{i}    <code>{_esc(_fmt_price(t))}</code>{_pct(t, entry)}")
-    if stop is not None:
-        lines.append(f"SL      <code>{_esc(_fmt_price(stop))}</code>{_pct(stop, entry)}")
-    lines += ["", f"Risk: <b>{_esc(d.get('risk_level') or 'n/a')}</b>"]
+    sid = d.get("signal_id")
+    sig = None
+    if sid:
+        row = conn.execute(text("""
+            SELECT signal_id, pair, entry, target1, target2, target3, target4, stop1, stop2,
+                   risk_level, market_cap, volume_rank_num, volume_rank_den, risk_reasons
+            FROM signals WHERE signal_id = :sid
+        """), {"sid": sid}).first()
+        sig = dict(row._mapping) if row else None
+    if not sig or sig.get("entry") is None:
+        return render_personal(notif), None, None
+    coin = cf.pure(sig["pair"])
+    head = [(f"🎯 <b>{_esc(coin)} matches “{_esc(d.get('filter_name') or '')}”</b>", 0)]
     if d.get("filter_summary"):
-        lines.append(f"<i>{_esc(d['filter_summary'][:300])}</i>")
-    lines += ["", "<i>Not financial advice.</i>"]
-    buttons = []
-    if d.get("signal_id"):
-        buttons.append([{"text": "Open signal", "url": f"{SITE}/signals?signal={d['signal_id']}"}])
-    buttons.append([{"text": "Edit alerts", "url": f"{SITE}/signals"}])
-    photo = _chart_for(conn, d["signal_id"]) if d.get("signal_id") else None
-    return "\n".join(lines), buttons, photo
+        head.append((f"<i>{_esc(d['filter_summary'][:200])}</i>", 1))
+    msg = cf.fit_caption(head, cf.call_body(sig, conn))
+    buttons = [[{"text": "Open signal", "url": cf.SIGNAL_URL.format(signal_id=sid)}],
+               [{"text": "Edit alerts", "url": f"{SITE}/signals"}]]
+    return msg, buttons, _chart_for(conn, sid)
 
 def render_personal(notif):
     _id, uid, ntype, title, body, data, created, tg_id = notif

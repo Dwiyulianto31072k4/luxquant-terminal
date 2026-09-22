@@ -127,7 +127,7 @@ def candidates(db, since_ts, max_age_min):
     return [dict(r._mapping) for r in db.execute(text("""
         SELECT s.signal_id, s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
                s.stop1, s.stop2, s.status, s.created_at, s.entry_chart_path,
-               s.risk_level, s.market_cap,
+               s.risk_level, s.market_cap, s.volume_rank_num, s.volume_rank_den, s.risk_reasons,
                ARRAY(SELECT DISTINCT t->>'name' FROM jsonb_array_elements(
                    COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
                             e.entry_snapshot->'tags_annotated', '[]'::jsonb)) t
@@ -200,70 +200,47 @@ def _tag_label(tag):
     return tag.replace("_", " ").lower()
 
 
-def build_message(sig, hit_tags, tag_stats, top: bool = False) -> str:
-    """HTML caption, kept under Telegram's 1024-character photo caption limit.
+def build_message(sig, hit_tags, tag_stats, top: bool = False, db=None) -> str:
+    """HTML caption: a Runners head over the same body as the main call post.
 
-    The levels use the same monospace board as the free channel's plan, so the
-    columns line up; the call topic above carries the long version with the
-    coin's track record, linked at the bottom."""
+    Only the head is Runners' own — why it was picked, when, and what it has
+    already hit. Everything under it (facts, Entry, the Targets & Stop Loss
+    table, the track record, the links) is app.services.call_format's call
+    body, so a Runner reads exactly like the call it came from. Head lines are
+    dropped, least useful first, if the photo caption would pass 1024 chars;
+    the body never is.
+    """
+    from app.services import call_format as cf
+    from app.services.signal_screen import RUNNERS_EDGE_TOP
+
     e = html.escape
     pair = sig["pair"]
     created = datetime.fromisoformat(str(sig["created_at"]).replace("Z", "+00:00"))
     age_min = max(0, int((datetime.now(timezone.utc) - created).total_seconds() // 60))
 
-    from app.services.signal_screen import RUNNERS_EDGE_TOP
-
-    lines = [f"🏃 <b>RUNNERS CALL</b>{' · ⭐ <b>TOP RUNNER</b>' if top else ''} · "
-             f"<a href=\"https://www.tradingview.com/symbols/{e(pair)}.P/\">{e(pair)}</a>"]
-
+    head = [(f"🏃 <b>RUNNERS CALL</b>{' · ⭐ <b>TOP RUNNER</b>' if top else ''} · "
+             f"{cf.pair_link(pair)}", 0)]
     why = []
     for t in hit_tags:
         st = tag_stats.get(t) or {}
         rate = st.get("full_tp_rate")
         why.append(f"{_tag_label(t)} (TP3+ {float(rate):.0f}%)" if rate is not None else _tag_label(t))
-    lines.append("Runner tag: " + e(" · ".join(why)) if why else "Runner tag")
+    head.append(("Runner tag: " + e(" · ".join(why)) if why else "Runner tag", 0))
     if top:
-        lines.append("Top Runner: carries the #1 runner tag")
-    lines.append(f"Edge score: top {RUNNERS_EDGE_TOP}% of the last 7 days")
-    lines.append(f"Called {created.strftime('%H:%M')} UTC · {age_min} min ago")
+        head.append(("Top Runner: carries the #1 runner tag", 0))
+    head.append((f"Edge score: top {RUNNERS_EDGE_TOP}% of the last 7 days", 3))
+    head.append((f"Called {created.strftime('%H:%M')} UTC · {age_min} min ago", 2))
     # A call can reach TP1/TP2 inside the minutes enrichment takes — GUSDT did,
     # TP2 four minutes before its Runners post. Saying so keeps the post from
     # reading as a fresh entry at a price that has already moved.
     hits = sorted(h.upper() for h in (sig.get("hits_so_far") or []))
     if hits:
-        lines.append("Already hit: " + ", ".join(hits))
-    lines.append("")
-
-    # One precision for the whole column: 0.049 under 0.0474 reads as a typo,
-    # not as the same coin (the free channel's ladder learned this first).
-    levels = [("Entry", sig["entry"])]
-    levels += [(f"TP{i}", sig.get(f"target{i}")) for i in (1, 2, 3, 4)]
-    levels += [(f"SL{i}", sig.get(f"stop{i}")) for i in (1, 2)]
-    levels = [(n, v) for n, v in levels if v is not None]
-    dec = max((len(_num(v).split(".")[1]) if "." in _num(v) else 0) for _, v in levels)
-    rows = [(n, f"{float(v):.{dec}f}", None if n == "Entry" else _pct(sig["entry"], v))
-            for n, v in levels]
-    pw = max(len(p or "") for _, p, _ in rows)
-    for name, price, pct in rows:
-        pct_s = "" if pct is None else f"{pct:+.2f}%"
-        row = f"{name:<5}  {(price or ''):<{pw}}  {pct_s:>7}".rstrip()
-        lines.append(f"<code>{e(row)}</code>")
-
-    facts = [x for x in (f"Risk {sig['risk_level']}" if sig.get("risk_level") else None,
-                         f"MCap {sig['market_cap']}" if sig.get("market_cap") else None) if x]
-    if facts:
-        lines.append("")
-        lines.append(e(" · ".join(facts)))
-
-    lines.append("")
+        head.append(("Already hit: " + ", ".join(hits), 0))
     if sig.get("call_msg_id"):
         internal = str(CHAT_ID).replace("-100", "", 1)
-        lines.append(f"📍 <a href=\"https://t.me/c/{internal}/{sig['call_msg_id']}\">Original call</a>"
-                     f" · 👉 <a href=\"{SIGNAL_URL.format(sid=e(str(sig['signal_id'])))}\">Open on LuxQuant</a>")
-    else:
-        lines.append(f"👉 <a href=\"{SIGNAL_URL.format(sid=e(str(sig['signal_id'])))}\">Open this call on LuxQuant</a>")
-    lines.append("<i>Runners reach TP3 more often than other calls, not always. Size for the stop.</i>")
-    return "\n".join(lines)
+        head.append((f"📍 <a href=\"https://t.me/c/{internal}/{sig['call_msg_id']}\">Original call</a>", 1))
+    head.append(("<i>Runners reach TP3 more often than other calls, not always. Size for the stop.</i>", 4))
+    return cf.fit_caption(head, cf.call_body(sig, db))
 
 
 # ─────────────────────────────── sending ────────────────────────────────
@@ -337,22 +314,10 @@ def _elapsed(start, end) -> str:
 
 
 def build_update(u) -> str:
-    e = html.escape
-    et = u["update_type"]
-    pct = _pct(u["entry"], u["price"])
-    pct_s = f" ({pct:+.2f}%)" if pct is not None else ""
-    when = _elapsed(u["created_at"], u["update_at"])
-    after = f" · {when} after the call" if when else ""
-    price = e(_num(u["price"]) or "")
-    if et == "sl":
-        head = "🛑 <b>STOP LOSS HIT</b>"
-    elif et == "tp4":
-        head = "🏁 <b>TP4 HIT · plan complete</b>"
-    else:
-        head = f"✅ <b>{et.upper()} HIT</b>"
-    link = SIGNAL_URL.format(sid=e(str(u["signal_id"])))
-    return (f"{head} · {e(u['pair'])} {price}{pct_s}{after}\n"
-            f"👉 <a href=\"{link}\">Open on LuxQuant</a>")
+    # Shared with the LuxQuant Call Tracking topic, which now prints the same line.
+    from app.services.call_format import update_message
+    return update_message(u["pair"], u["update_type"], u["price"], u["entry"],
+                          u["created_at"], u["update_at"], u["signal_id"])
 
 
 def post_updates(db, dry_run: bool = False) -> None:
@@ -440,7 +405,7 @@ def run(dry_run: bool = False) -> None:
                 if not matched:
                     continue
             try:
-                mid = post_to_topic(build_message(sig, hit, tag_stats, top=top), sig.get("entry_chart_path"))
+                mid = post_to_topic(build_message(sig, hit, tag_stats, top=top, db=db), sig.get("entry_chart_path"))
                 db.execute(text("""
                     UPDATE runner_call_posts SET tg_message_id = :mid, posted_at = now(),
                            attempts = attempts + 1, last_error = NULL WHERE signal_id = :sid

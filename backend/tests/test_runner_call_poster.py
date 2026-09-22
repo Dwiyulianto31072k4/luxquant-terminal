@@ -21,7 +21,9 @@ def test_top_runner_is_labelled_and_explained():
     msg = build_message(SIG, ["VOL_CLIMAX", "RSI_OVERBOUGHT_H1"], STATS, top=True)
     assert "RUNNERS CALL</b> · ⭐ <b>TOP RUNNER</b>" in msg
     assert "Top Runner: carries the #1 runner tag" in msg
-    assert len(msg) < 1024  # Telegram photo caption limit
+    from app.services.call_format import CAPTION_LIMIT, visible_len
+    assert visible_len(msg) <= CAPTION_LIMIT  # Telegram counts visible text
+    assert "🎯 Targets &amp; Stop Loss" in msg  # the main call post's body
 
 
 from app.workers.runner_call_poster import decide
