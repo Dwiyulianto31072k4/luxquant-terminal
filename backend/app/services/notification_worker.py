@@ -18,6 +18,18 @@ from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.core.redis import cache_get, cache_set, is_redis_available
 
+# How long a notification lives. The hourly cleanup deletes anything older, and
+# the generators below must never create anything older either.
+#
+# Three of them stamp created_at with the SOURCE's date (the channel message,
+# the signal update, the signal) and dedupe only by "does a notification for
+# this source exist?". With no lookback, every source older than this window
+# produced a row the cleanup deleted, whose absence the next cycle read as
+# "never notified" — about 3,000 rows (watchlist updates back to March, BTCDOM
+# calls back to 2024) deleted and re-inserted every hour, each time losing its
+# read state. The generators now skip sources older than the window.
+RETENTION_DAYS = 30
+
 
 # ============================================
 # NOTIFICATION GENERATOR
@@ -37,13 +49,14 @@ def generate_channel_message_notifications(db):
                cm.summary_data, cm.message_date
         FROM channel_messages cm
         WHERE cm.message_type IN ('price_pump', 'daily_results')
+        AND cm.message_date > NOW() - make_interval(days => :ret)
         AND NOT EXISTS (
             SELECT 1 FROM notifications n
             WHERE n.source_type = 'channel_message'
             AND n.source_id = CAST(cm.id AS TEXT)
         )
         ORDER BY cm.message_date ASC
-    """)).fetchall()
+    """), {"ret": RETENTION_DAYS}).fetchall()
 
     for r in rows:
         cm_id, msg_type, pair, pct, direction, summary_data, msg_date = r
@@ -98,6 +111,7 @@ def generate_btcdom_notifications(db):
         SELECT s.signal_id, s.pair, s.entry, s.risk_level, s.created_at
         FROM signals s
         WHERE s.pair LIKE 'BTCDOM%'
+        AND s.created_at::timestamptz > NOW() - make_interval(days => :ret)
         AND NOT EXISTS (
             SELECT 1 FROM notifications n
             WHERE n.source_type = 'signal'
@@ -105,7 +119,7 @@ def generate_btcdom_notifications(db):
             AND n.type = 'btcdom_call'
         )
         ORDER BY s.call_message_id ASC
-    """)).fetchall()
+    """), {"ret": RETENTION_DAYS}).fetchall()
 
     for r in rows:
         signal_id, pair, entry, risk_level, created_at = r
@@ -149,6 +163,7 @@ def generate_watchlist_notifications(db):
         JOIN watchlist w ON w.signal_id = su.signal_id
         JOIN signals s ON s.signal_id = su.signal_id
         WHERE su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4', 'sl')
+        AND su.update_at::timestamptz > NOW() - make_interval(days => :ret)
         AND NOT EXISTS (
             SELECT 1 FROM notifications n
             WHERE n.user_id = w.user_id
@@ -156,7 +171,7 @@ def generate_watchlist_notifications(db):
             AND n.source_id = CONCAT(su.signal_id, ':', su.update_type, ':', CAST(su.update_message_id AS TEXT))
         )
         ORDER BY su.update_at ASC
-    """)).fetchall()
+    """), {"ret": RETENTION_DAYS}).fetchall()
 
     for r in rows:
         user_id, signal_id, update_type, price, update_msg_id, update_at, pair = r
@@ -391,7 +406,7 @@ def generate_coin_called_notifications(db):
 # CLEANUP OLD NOTIFICATIONS
 # ============================================
 
-def cleanup_old_notifications(db, max_age_days=30):
+def cleanup_old_notifications(db, max_age_days=RETENTION_DAYS):
     """Delete notifications older than max_age_days"""
     result = db.execute(text("""
         DELETE FROM notifications
@@ -449,7 +464,7 @@ async def notification_worker_loop():
                 if is_redis_available():
                     last_cleanup = cache_get("lq:notif:last_cleanup")
                     if not last_cleanup:
-                        cleaned = cleanup_old_notifications(db, max_age_days=30)
+                        cleaned = cleanup_old_notifications(db, max_age_days=RETENTION_DAYS)
                         if cleaned > 0:
                             print(f"🧹 Cleaned {cleaned} old notifications")
                         cache_set("lq:notif:last_cleanup", {"ts": time.time()}, ttl=3600)
