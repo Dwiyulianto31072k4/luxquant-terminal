@@ -39,14 +39,14 @@ def test_incomplete_profile_warns():
     assert row["status"] == "warn" and "photo" in row["checks"][0]["text"]
 
 
-def test_webhook_failing_now_is_down_but_old_error_is_ignored():
+def test_webhook_verdict_depends_on_the_queue():
     import time
-    fresh = {**PROFILE, "wh": {"url": "https://luxquant.tw/x", "last_error_date": time.time() - 60,
-                              "last_error_message": "504"}}
-    old = {**PROFILE, "wh": {"url": "https://luxquant.tw/x", "last_error_date": time.time() - 3 * 86400,
-                            "last_error_message": "504"}}
-    assert bm._judge(TERMINAL, fresh, [UP], {}, {})["status"] == "down"
-    assert bm._judge(TERMINAL, old, [UP], {}, {})["status"] == "ok"
+    def wh(age, pending):
+        return {**PROFILE, "wh": {"url": "https://luxquant.tw/x", "last_error_date": time.time() - age,
+                                 "last_error_message": "504", "pending_update_count": pending}}
+    assert bm._judge(TERMINAL, wh(60, 5), [UP], {}, {})["status"] == "down"      # stuck
+    assert bm._judge(TERMINAL, wh(60, 0), [UP], {}, {})["status"] == "warn"      # blipped, recovered
+    assert bm._judge(TERMINAL, wh(3 * 86400, 0), [UP], {}, {})["status"] == "ok" # history
 
 
 def test_calls_piling_up_unposted_is_down():

@@ -301,10 +301,17 @@ def _judge(bot: dict, probe: dict, units: list[dict], act: dict, journal: dict) 
         if bot["webhook"]:
             if not wh.get("url"):
                 checks.append(("down", "Webhook is not set — /start, commands and the Mini App button get no reply"))
-            elif err_age is not None and err_age < 3600:
-                checks.append(("down", f"Webhook failing: {wh.get('last_error_message')}"))
+            elif err_age is not None and err_age < 3600 and (wh.get("pending_update_count") or 0) > 0:
+                # Stuck, not blipped: Telegram keeps the updates it could not
+                # deliver, so a recent error WITH a queue means users are waiting.
+                checks.append(("down", f"Webhook failing: {wh.get('last_error_message')} "
+                                       f"({wh['pending_update_count']} updates waiting)"))
             elif err_age is not None and err_age < 86400:
-                checks.append(("warn", f"Webhook error {round(err_age / 3600)}h ago: {wh.get('last_error_message')}"))
+                # A recent error with an empty queue already recovered — Telegram
+                # retried and got through (e.g. one 504 during a backend reload).
+                when = f"{round(err_age / 60)}m" if err_age < 3600 else f"{round(err_age / 3600)}h"
+                checks.append(("warn", f"Webhook error {when} ago, recovered (queue empty): "
+                                       f"{wh.get('last_error_message')}"))
         elif (wh.get("pending_update_count") or 0) > 20:
             checks.append(("info", f"{wh['pending_update_count']} messages sent to this bot were never read — nothing handles its DMs"))
 
