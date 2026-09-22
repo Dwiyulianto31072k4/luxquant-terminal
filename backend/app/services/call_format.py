@@ -216,11 +216,16 @@ def elapsed(start, end) -> str:
     return f"{h}h {m}m" if h < 24 else f"{h // 24}d {h % 24}h"
 
 
-def update_message(pair, event_type, price, entry, called_at, hit_at, signal_id) -> str:
+def update_message(pair, event_type, price, entry, called_at, hit_at, signal_id, call_url=None) -> str:
     """A TP/SL update, as Runners has always printed it and Call Tracking now does.
 
     One line of what hit, where, how far from entry and how long it took, then
     the link. Text only — no link preview card under it.
+
+    `call_url` (a t.me link to the call post) turns the pair into a jump to the
+    call. Telegram accepts a reply to a message in another forum topic but the
+    apps do not draw it (checked 2026-09-22), so the link is what actually
+    takes a reader from the update to the call.
     """
     et = {"closed_loss": "sl", "closed_win": "tp4"}.get(event_type, event_type)
     try:
@@ -237,7 +242,8 @@ def update_message(pair, event_type, price, entry, called_at, hit_at, signal_id)
     else:
         head = f"✅ <b>{_e(str(et).upper())} HIT</b>"
     link = _e(SIGNAL_URL.format(signal_id=signal_id))
-    return (f"{head} · {_e(pair)} {_e(fmt_num(price) or '')}{pct_s}{after}\n"
+    name = f"<a href=\"{_e(call_url)}\">{_e(pair)}</a>" if call_url else _e(pair)
+    return (f"{head} · {name} {_e(fmt_num(price) or '')}{pct_s}{after}\n"
             f"👉 <a href=\"{link}\">Open on LuxQuant</a>")
 
 

@@ -37,3 +37,9 @@ def test_update_line_is_the_runner_format():
     assert sl.startswith("🛑 <b>STOP LOSS HIT</b> · X 90 (-10.00%)")
     tp4 = cf.update_message("X", "closed_win", 110, 100, None, None, "id")
     assert tp4.startswith("🏁 <b>TP4 HIT · plan complete</b>")
+
+
+def test_update_links_the_pair_to_the_call_post():
+    m = cf.update_message("ANIMEUSDT", "tp3", 0.00345, 0.00327, None, None, "id",
+                          call_url="https://t.me/c/2670915863/857500")
+    assert '<a href="https://t.me/c/2670915863/857500">ANIMEUSDT</a>' in m.splitlines()[0]
