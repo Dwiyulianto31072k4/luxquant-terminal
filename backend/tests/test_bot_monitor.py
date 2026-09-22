@@ -60,3 +60,12 @@ def test_tokens_are_read_per_file(tmp_path):
     b.write_text('export TG_BOT_TOKEN="bbb"\n')
     assert bm._token("TG_BOT_TOKEN", str(a)) == "aaa"
     assert bm._token("TG_BOT_TOKEN", str(b)) == "bbb"
+
+
+def test_a_crashing_delivery_worker_is_down_and_one_stuck_alert_warns():
+    t = {**BOT, "key": "terminal", "webhook": False}
+    crash = {"available": True, "failed_24h": 0, "crashes": 406, "last_crash_age_s": 20,
+             "last_crash": "No module named 'app'", "fail_reasons": {}, "failing_users": 0}
+    assert bm._judge(t, PROFILE, [UP], {}, crash)["status"] == "down"
+    assert bm._judge(t, PROFILE, [UP], {"alerts_unsent_6h": 1}, {})["status"] == "warn"
+    assert bm._judge(t, PROFILE, [UP], {"alerts_unsent_6h": 5}, {})["status"] == "down"

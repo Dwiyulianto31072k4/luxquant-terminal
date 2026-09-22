@@ -188,6 +188,17 @@ def _delivery_journal(uptime_s: float | None) -> dict[str, Any]:
     except Exception:
         return {"available": False}
     fails = re.findall(r"fail (?:notif=\d+ )?(?:type=\S+ )?uid=(\d+): (.*)", out)
+    # A crashed pass sends nothing at all and logs no per-message "fail" line —
+    # which is how a ModuleNotFoundError held every alert for 2h20m on
+    # 2026-09-22 while this page said OK. Count them, and when the last was.
+    crashes = re.findall(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d+ \[tg-deliver\] ERROR pass failed: (.*)$", out, re.M)
+    last_crash_age = None
+    if crashes:
+        try:
+            last = datetime.strptime(crashes[-1][0], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            last_crash_age = (datetime.now(timezone.utc) - last).total_seconds()
+        except ValueError:
+            pass
     reasons: dict[str, int] = {}
     for _, err in fails:
         key = ("blocked" if "blocked" in err else "chat not found" if "chat not found" in err
@@ -201,6 +212,9 @@ def _delivery_journal(uptime_s: float | None) -> dict[str, Any]:
         "failed_24h": len(fails),
         "undeliverable_24h": out.count("UNDELIVERABLE"),
         "failing_users": len({u for u, _ in fails}),
+        "crashes": len(crashes),
+        "last_crash": crashes[-1][1][:200] if crashes else None,
+        "last_crash_age_s": round(last_crash_age) if last_crash_age is not None else None,
         "fail_reasons": reasons,
     }
 
@@ -332,8 +346,14 @@ def _judge(bot: dict, probe: dict, units: list[dict], act: dict, journal: dict) 
         if act.get("runner_failures_24h"):
             checks.append(("warn", f"{act['runner_failures_24h']} Runners posts failed in 24h — last: {act.get('last_runner_error') or 'n/a'}"))
     if k == "terminal":
-        if act.get("alerts_unsent_6h", 0) >= 5:
-            checks.append(("warn", f"{act['alerts_unsent_6h']} personal alerts from the last 6h are still unsent"))
+        if journal.get("last_crash_age_s") is not None and journal["last_crash_age_s"] < 900:
+            checks.append(("down", f"Delivery worker is crashing ({journal['crashes']} failed passes) — "
+                                   f"no personal alert is going out: {journal.get('last_crash')}"))
+        unsent = act.get("alerts_unsent_6h", 0)
+        if unsent:
+            # The worker polls every 20s; anything still unsent after 5 minutes is stuck.
+            checks.append(("down" if unsent >= 5 else "warn",
+                           f"{unsent} personal alert{'s' if unsent != 1 else ''} stuck for over 5 minutes"))
         if journal.get("available") and journal.get("failed_24h"):
             why = ", ".join(f"{n}× {r}" for r, n in sorted(journal["fail_reasons"].items(), key=lambda x: -x[1]))
             hrs = round(journal.get("window_s", 86400) / 3600, 1)
