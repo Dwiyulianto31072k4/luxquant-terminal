@@ -940,7 +940,7 @@ export default function SignalsCustomCalls({ active = false, activeName = null, 
                           {notify && alertBlockers.length > 0 && (
                             <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] p-2.5 text-[12px] leading-relaxed text-text-secondary">
                               This screen will never alert. Each new call is checked minutes after it
-                              is published, and these rules rule that out: {alertBlockers.join("; ")}.
+                              is published, which these rules exclude: {alertBlockers.join("; ")}.
                             </p>
                           )}
                           <p className="text-[11px] leading-relaxed text-text-muted">

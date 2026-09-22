@@ -127,7 +127,7 @@ export default function TelegramConnectModal({ isOpen, onClose, onConnected, nes
               className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-accent-fg"
             >
               <TelegramIcon className="h-4 w-4" />
-              Open @{ALERT_BOT}
+              Open in Telegram
             </button>
             <button
               type="button"
