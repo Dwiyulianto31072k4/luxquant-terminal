@@ -106,6 +106,16 @@ export const workspaceApi = {
     return response.data;
   },
 
+  getBots: async () => {
+    const response = await api.get("/api/v1/workspace/bots");
+    return response.data;
+  },
+
+  refreshBots: async () => {
+    const response = await api.post("/api/v1/workspace/bots/refresh");
+    return response.data;
+  },
+
   // ════════════════════════════════════
   // AI COST TRACKER
   // ════════════════════════════════════

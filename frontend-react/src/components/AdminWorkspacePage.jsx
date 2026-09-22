@@ -36,6 +36,7 @@ import { ProfitSharingTab } from "./admin/workspace/ProfitSharingTab";
 import { AiCostTab } from "./admin/workspace/AiCostTab";
 import { ApiHealthTab } from "./admin/workspace/ApiHealthTab";
 import { EmailTab } from "./admin/workspace/EmailTab";
+import { BotsTab } from "./admin/workspace/BotsTab";
 import { EdgeHealthTab } from "./admin/workspace/EdgeHealthTab";
 import { XTrackerTab } from "./admin/workspace/XTrackerTab";
 import { BroadcastTab } from "./admin/workspace/BroadcastTab";
@@ -77,6 +78,7 @@ import {
   AnnouncementIcon,
   BookOpenIcon,
   BotIcon,
+  TelegramIcon,
   KeyIcon,
   SplitCoinIcon,
   CpuChipIcon,
@@ -241,6 +243,13 @@ const TABS = [
     label: "Delivery",
     description: "Cloudflare 522 & origin vs edge",
     Icon: ActivityIcon,
+    group: "platform",
+  },
+  {
+    id: "bots",
+    label: "Bots",
+    description: "Telegram bots: profile, delivery, errors",
+    Icon: TelegramIcon,
     group: "platform",
   },
   {
@@ -1004,6 +1013,7 @@ const AdminWorkspacePage = () => {
               {activeTab === "aicost" && <AiCostTab />}
               {activeTab === "apihealth" && <ApiHealthTab />}
               {activeTab === "email" && <EmailTab />}
+              {activeTab === "bots" && <BotsTab />}
               {activeTab === "delivery" && <EdgeHealthTab />}
               {activeTab === "broadcast" && <BroadcastTab />}
               {activeTab === "xtracker" && <XTrackerTab />}
