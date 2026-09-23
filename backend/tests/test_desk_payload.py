@@ -94,3 +94,27 @@ def test_ensure_schema_adds_only_what_is_missing():
         ("index", "ix_users_acq_source", "CREATE INDEX IF NOT EXISTS ix_users_acq_source ON users (acq_source)"),
     ])
     assert len(db.ran) == 2 and all("acq_medium" in q or "ix_users_acq_source" in q for q in db.ran)
+
+
+# ── outreach: stop retrying a chat that does not exist ────────────────
+
+def test_referral_outreach_stops_after_repeated_failures():
+    from app.services.referral_outreach import MAX_FAILED_ATTEMPTS, _consecutive_failures
+
+    class DB:
+        def __init__(self, statuses):
+            self.statuses = statuses
+
+        def execute(self, *a, **k):
+            class R:
+                def __init__(self, rows):
+                    self.rows = rows
+
+                def fetchall(self):
+                    return self.rows
+            return R([(s,) for s in self.statuses])
+
+    assert _consecutive_failures(DB(["failed", "failed", "failed"]), 1) >= MAX_FAILED_ATTEMPTS
+    # A success anywhere in the recent run means the account is reachable again.
+    assert _consecutive_failures(DB(["failed", "sent", "failed"]), 1) == 1
+    assert _consecutive_failures(DB([]), 1) == 0

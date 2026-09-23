@@ -35,6 +35,28 @@ ENABLED = os.getenv("REFERRAL_OUTREACH_ENABLED", "0") == "1"
 PER_CYCLE = int(os.getenv("REFERRAL_OUTREACH_PER_CYCLE", "2"))
 
 
+# After this many failed DMs in a row we stop trying this account. A Telegram
+# DM only reaches someone who pressed Start; when that is not true it will
+# never be true by retrying, and the retries were the loudest thing in the
+# poller's log.
+MAX_FAILED_ATTEMPTS = 3
+
+
+def _consecutive_failures(db, user_id: int) -> int:
+    rows = db.execute(
+        text("""SELECT status FROM referral_reminder_events
+                 WHERE user_id = :uid AND channel = 'telegram'
+                 ORDER BY created_at DESC LIMIT :lim"""),
+        {"uid": user_id, "lim": MAX_FAILED_ATTEMPTS},
+    ).fetchall()
+    n = 0
+    for (status,) in rows:
+        if status != "failed":
+            break
+        n += 1
+    return n
+
+
 async def run(db, now=None) -> dict:
     if not ENABLED:
         return {"skipped": "disabled"}
@@ -71,6 +93,13 @@ async def run(db, now=None) -> dict:
         user = db.query(User).filter(User.id == adv["user_id"]).first()
         code = db.query(ReferralCode).filter(ReferralCode.id == adv["code_id"]).first()
         if not user or not code or not user.telegram_id:
+            out["skipped"] += 1
+            continue
+
+        # Stop knocking on a door that is not there. The same accounts came
+        # back eligible every cycle and failed every time — 322 "chat not
+        # found" sends in one day — because nothing read the previous failure.
+        if _consecutive_failures(db, user.id) >= MAX_FAILED_ATTEMPTS:
             out["skipped"] += 1
             continue
 

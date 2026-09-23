@@ -292,6 +292,66 @@ def _log_tail(unit: str, lines: int = 8) -> list[str]:
     return [ln for ln in out.splitlines() if ln.strip()][-lines:]
 
 
+def _describe_many(units: list[str]) -> dict[str, dict[str, Any]]:
+    """One `systemctl show` for every unit instead of one per unit.
+
+    102 units meant 102 forks per uncached admin load, on a 2-core box that is
+    already ~65% busy — this endpoint was the slowest thing on the server
+    (141 slow requests today, worst 19.7s). `systemctl show` takes any number
+    of units and answers with blank-line-separated blocks, measured at 7ms for
+    two; the parsing below is the same `_parse_show` the single version uses.
+    """
+    # Template units ("foo@.service") are patterns, not units: systemctl
+    # rejects the WHOLE call if one is in the list, which is how this first
+    # came back empty. They are dropped from the result later anyway.
+    real = [u for u in units if "@." not in u]
+    if not real:
+        return {}
+    rc, out, err = _run(["systemctl", "show", *real, "--no-pager", f"--property={_SHOW_PROPS}"],
+                        timeout=20.0)
+    if not out.strip():
+        return {}
+    blocks = [b for b in out.split("\n\n") if b.strip()]
+    parsed: dict[str, dict[str, Any]] = {}
+    # Match on the Id systemd echoes back, never on position: one rejected unit
+    # would otherwise shift every following block onto the wrong service.
+    for block in blocks:
+        props = _parse_show(block)
+        unit_id = props.get("Id")
+        if unit_id:
+            parsed[unit_id] = props
+    return parsed
+
+
+def _from_props(unit: str, p: dict[str, str]) -> dict[str, Any]:
+    """Shape one parsed block the way _describe does."""
+    kind = unit.rsplit(".", 1)[-1]
+    active_state = p.get("ActiveState", "")
+    sub_state = p.get("SubState", "")
+    info: dict[str, Any] = {
+        "unit": unit,
+        "name": (p.get("Id") or unit).rsplit(".", 1)[0],
+        "kind": kind,
+        "category": _category(unit),
+        "description": p.get("Description", ""),
+        "health": _health(active_state, sub_state, p.get("Result", "")),
+        "load_state": p.get("LoadState", ""),
+        "active_state": active_state,
+        "sub_state": sub_state,
+        "unit_file_state": p.get("UnitFileState", ""),
+        "result": p.get("Result", ""),
+        "uptime_seconds": _uptime_seconds(p),
+        "restarts": int(p["NRestarts"]) if p.get("NRestarts", "").isdigit() else 0,
+        "memory_bytes": _mem_bytes(p.get("MemoryCurrent")),
+        "main_pid": int(p["MainPID"]) if p.get("MainPID", "").isdigit() and p["MainPID"] != "0" else None,
+    }
+    if kind == "timer":
+        info["last_trigger_usec"] = p.get("LastTriggerUSec", "")
+        info["next_elapse"] = p.get("NextElapseUSecRealtime", "")
+        info["triggers_unit"] = p.get("TriggersUnit", "")
+    return info
+
+
 def _describe(unit: str, include_log: bool = False) -> dict[str, Any]:
     rc, out, err = _run([
         "systemctl", "show", unit, "--no-pager", f"--property={_SHOW_PROPS}",
@@ -487,7 +547,18 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
         }
 
     units = _discover_units()
-    services = [_describe(u, include_log=True) for u in units]
+    props = _describe_many(units)
+    services = []
+    for u in units:
+        p = props.get(u)
+        if p is None:
+            services.append(_describe(u, include_log=True))
+            continue
+        info = _from_props(u, p)
+        # A log tail only for what is not healthy — that is the expensive call.
+        if info["health"] in ("down", "warn"):
+            info["log_tail"] = _log_tail(u)
+        services.append(info)
     # Drop units systemd doesn't actually know (avoids ghost cards).
     services = [s for s in services if s.get("load_state") != "not-found"]
     # Drop systemd templates. "foo@.service" is the pattern instances are made
@@ -536,7 +607,7 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
                 summary["total"] += 1
 
     result = {"available": True, "services": services, "summary": summary, "hosts": hosts}
-    cache_set("workspace:services", result, ttl=15)
+    cache_set("workspace:services", result, ttl=45)
     return result
 
 
