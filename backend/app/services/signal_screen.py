@@ -210,7 +210,10 @@ def desk_edge(db):
     # never become one heavy computation per open tab: one caller computes,
     # the rest get the previous answer (see cache_single_flight). The topic
     # worker does not come through here — it reads live_runner_ids fresh.
-    return cache_single_flight("lq:desk-edge:v2", 30, lambda: _compute_desk_edge(db),
+    # 150s, not 30s: the cache worker refreshes this every 90s, so a reader
+    # should always find a warm copy. At 30s it expired between cycles and the
+    # next visitor paid the whole compute — 163 slow requests today, worst 38s.
+    return cache_single_flight("lq:desk-edge:v2", 150, lambda: _compute_desk_edge(db),
                                keep=lambda v: bool(v.get("ok")))
 
 

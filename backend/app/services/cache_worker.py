@@ -1052,13 +1052,29 @@ async def signal_cache_loop():
                     _ms7 = -1
                     print(f"   ⚠️ Top Performers prewarm error: {type(e).__name__}: {e}")
 
+                # Step 8: Desk Edge — the Signals page and its refresh both
+                # ask for this, and a 30s TTL against a multi-second compute
+                # meant users kept paying for it themselves: 163 slow requests
+                # today, worst 38s. Warmed here every cycle, so a reader finds
+                # it fresh; single-flight still protects a genuine cold miss.
+                try:
+                    _t8 = time.time()
+                    from app.services.signal_screen import desk_edge
+
+                    desk_edge(db)
+                    cached += 1
+                    _ms8 = round((time.time() - _t8) * 1000)
+                except Exception as e:
+                    _ms8 = -1
+                    print(f"   ⚠️ Desk Edge prewarm error: {type(e).__name__}: {e}")
+
                 elapsed = round((time.time() - start) * 1000)
                 intel_info = f" | Intel: {intel_ms}ms" if intel_ms >= 0 else ""
                 print(
                     f"✅ Signal cache: {cached} keys in {elapsed}ms "
                     f"(CTE: {cte_ms}ms | bulk7d: {_msb}ms | pages7d: {_ms2}ms | pagesAll: {_ms3}ms"
                     f"{intel_info} | stats+active: {_ms4}ms "
-                    f"| analyze: {_ms5}ms | topperf: {_ms7}ms)"
+                    f"| analyze: {_ms5}ms | topperf: {_ms7}ms | deskEdge: {_ms8}ms)"
                 )
 
             finally:
