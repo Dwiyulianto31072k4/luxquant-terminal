@@ -106,6 +106,34 @@ export const workspaceApi = {
     return response.data;
   },
 
+  getVipMembers: async ({ trace, q } = {}) => {
+    const params = {};
+    if (trace) params.trace = trace;
+    if (q) params.q = q;
+    const response = await api.get("/api/v1/workspace/vip-members", { params });
+    return response.data;
+  },
+
+  vipMemberEvents: async (telegramId) => {
+    const response = await api.get(`/api/v1/workspace/vip-members/${telegramId}/events`);
+    return response.data;
+  },
+
+  vipMemberNote: async (telegramId, note) => {
+    const response = await api.post(`/api/v1/workspace/vip-members/${telegramId}/note`, { note });
+    return response.data;
+  },
+
+  vipMemberRemove: async (telegramId) => {
+    const response = await api.post(`/api/v1/workspace/vip-members/${telegramId}/remove`);
+    return response.data;
+  },
+
+  vipScan: async () => {
+    const response = await api.post("/api/v1/workspace/vip-members/scan");
+    return response.data;
+  },
+
   getBots: async () => {
     const response = await api.get("/api/v1/workspace/bots");
     return response.data;

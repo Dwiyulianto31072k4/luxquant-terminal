@@ -189,6 +189,25 @@ async def telegram_bot_webhook(
     except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid update")
 
+    # Group membership first: `chat_member` is the only update that names the
+    # invite link someone used and who created it, and it carries no `message`.
+    # Recorded, never acted on — see app/services/vip_members.py.
+    member_update = update.get("chat_member") if isinstance(update, dict) else None
+    if isinstance(member_update, dict):
+        from app.services.telegram_group import VIP_GROUP_CHAT_ID
+        from app.services import vip_members
+
+        if (member_update.get("chat") or {}).get("id") != VIP_GROUP_CHAT_ID:
+            return {"ok": True, "handled": False, "reason": "other_chat"}
+        try:
+            vip_members.ensure_tables(db)
+            recorded = vip_members.record_chat_member_update(db, member_update)
+        except Exception:
+            db.rollback()
+            logger.exception("could not record a VIP membership change")
+            return {"ok": True, "handled": False, "reason": "record_failed"}
+        return {"ok": True, "handled": True, "membership": recorded}
+
     message = update.get("message") if isinstance(update, dict) else None
     if not isinstance(message, dict):
         return {"ok": True, "handled": False}

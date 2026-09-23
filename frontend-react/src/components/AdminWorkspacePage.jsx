@@ -37,6 +37,7 @@ import { AiCostTab } from "./admin/workspace/AiCostTab";
 import { ApiHealthTab } from "./admin/workspace/ApiHealthTab";
 import { EmailTab } from "./admin/workspace/EmailTab";
 import { BotsTab } from "./admin/workspace/BotsTab";
+import { VipMembersTab } from "./admin/workspace/VipMembersTab";
 import { EdgeHealthTab } from "./admin/workspace/EdgeHealthTab";
 import { XTrackerTab } from "./admin/workspace/XTrackerTab";
 import { BroadcastTab } from "./admin/workspace/BroadcastTab";
@@ -251,6 +252,13 @@ const TABS = [
     description: "Telegram bots: profile, delivery, errors",
     Icon: TelegramIcon,
     group: "platform",
+  },
+  {
+    id: "vipmembers",
+    label: "VIP Members",
+    description: "Who is in the group, and on whose authority",
+    Icon: UsersRingIcon,
+    group: "people",
   },
   {
     id: "broadcast",
@@ -1014,6 +1022,7 @@ const AdminWorkspacePage = () => {
               {activeTab === "apihealth" && <ApiHealthTab />}
               {activeTab === "email" && <EmailTab />}
               {activeTab === "bots" && <BotsTab />}
+              {activeTab === "vipmembers" && <VipMembersTab />}
               {activeTab === "delivery" && <EdgeHealthTab />}
               {activeTab === "broadcast" && <BroadcastTab />}
               {activeTab === "xtracker" && <XTrackerTab />}
