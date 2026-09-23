@@ -175,9 +175,17 @@ class TestDeriveDirection:
     def test_short(self):
         assert derive_direction(entry=100, target1=90) == 'short'
 
-    def test_ambiguous_raises(self):
-        with pytest.raises(ValueError, match="Cannot derive"):
-            derive_direction(entry=100, target1=100)
+    def test_tp1_on_the_entry_tick_is_not_ambiguous(self):
+        # This used to raise, and the raise was invisible: journey_persistor
+        # calls derive_direction while building the record, so 70 signals that
+        # hit the tie never got a journey row at all. The stop and the far
+        # targets still say which way the plan points.
+        assert derive_direction(entry=100, target1=100, stop1=97) == "long"
+        assert derive_direction(entry=100, target1=100, stop1=103) == "short"
+        assert derive_direction(entry=100, target1=100, target4=110) == "long"
+        # Nothing but the entry to go on: the only direction this desk has
+        # ever published.
+        assert derive_direction(entry=100, target1=100) == "long"
 
     def test_negative_entry_raises(self):
         with pytest.raises(ValueError, match="must be > 0"):

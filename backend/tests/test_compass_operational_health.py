@@ -103,6 +103,25 @@ def _redis(connected: bool = True) -> dict:
     return {"connected": False, "error": "connection refused"}
 
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _feature_health_without_a_database(monkeypatch):
+    """These tests are about the health SUMMARY, not about scoring features.
+
+    The feature check opens its own SessionLocal, so without a live database it
+    returns "unknown" and drags the overall status to degraded — the suite then
+    failed on a laptop and passed on the server, which is the worst way for a
+    test to behave. The check itself is covered by its own tests.
+    """
+    import app.services.compass_operational_health as coh
+
+    monkeypatch.setattr(coh, "_feature_health_check", lambda: coh._check(
+        key="feature_health", label="Scoring feature health", status="healthy",
+        severity="info", detail="stubbed in tests"))
+
+
 def test_phase7_reports_healthy_runtime_without_decision_authority():
     health = build_operational_health_from_report(
         _report(),
