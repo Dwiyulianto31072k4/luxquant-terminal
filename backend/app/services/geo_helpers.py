@@ -19,7 +19,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Request
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -137,33 +136,26 @@ def _ensure_user_geo_columns(db: Session) -> None:
     global _COLS_READY
     if _COLS_READY:
         return
-    for stmt in (
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_country VARCHAR(2)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_country_first VARCHAR(2)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_region VARCHAR(100)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_city VARCHAR(100)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_timezone VARCHAR(64)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_ip_prefix VARCHAR(64)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_ip_first_prefix VARCHAR(64)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_ip_hash VARCHAR(64)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_ip_first_hash VARCHAR(64)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_last_seen_at TIMESTAMPTZ",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_first_seen_at TIMESTAMPTZ",
-        "CREATE INDEX IF NOT EXISTS ix_users_geo_country ON users (geo_country)",
-        "CREATE INDEX IF NOT EXISTS ix_users_geo_country_first ON users (geo_country_first)",
-        "CREATE INDEX IF NOT EXISTS ix_users_geo_ip_hash ON users (geo_ip_hash)",
-    ):
-        try:
-            db.execute(text(stmt))
-        except Exception:
-            logger.exception("geo column ensure failed: %s", stmt[:50])
-            db.rollback()
-            return
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        return
+    # Same lock trap as acq_helpers: fourteen no-op statements on `users`.
+    from app.core.database import ensure_schema
+
+    ensure_schema(db, "users", [
+        ("column", "geo_country", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_country VARCHAR(2)"),
+        ("column", "geo_country_first", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_country_first VARCHAR(2)"),
+        ("column", "geo_region", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_region VARCHAR(100)"),
+        ("column", "geo_city", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_city VARCHAR(100)"),
+        ("column", "geo_timezone", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_timezone VARCHAR(64)"),
+        ("column", "geo_ip_prefix", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_ip_prefix VARCHAR(64)"),
+        ("column", "geo_ip_first_prefix", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_ip_first_prefix VARCHAR(64)"),
+        ("column", "geo_ip_hash", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_ip_hash VARCHAR(64)"),
+        ("column", "geo_ip_first_hash", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_ip_first_hash VARCHAR(64)"),
+        ("column", "geo_last_seen_at", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_last_seen_at TIMESTAMPTZ"),
+        ("column", "geo_first_seen_at", "ALTER TABLE users ADD COLUMN IF NOT EXISTS geo_first_seen_at TIMESTAMPTZ"),
+        ("index", "ix_users_geo_country", "CREATE INDEX IF NOT EXISTS ix_users_geo_country ON users (geo_country)"),
+        ("index", "ix_users_geo_country_first", "CREATE INDEX IF NOT EXISTS ix_users_geo_country_first ON users (geo_country_first)"),
+        ("index", "ix_users_geo_ip_hash", "CREATE INDEX IF NOT EXISTS ix_users_geo_ip_hash ON users (geo_ip_hash)"),
+    ])
+    # ensure_schema commits what it runs; nothing to flush when it ran nothing.
     _COLS_READY = True
 
 

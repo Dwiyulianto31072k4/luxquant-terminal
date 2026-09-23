@@ -47,3 +47,50 @@ def test_desk_view_is_much_smaller():
 
 def test_allowlist_has_no_heavy_field():
     assert not DESK_COIN_FIELDS.intersection(HEAVY)
+
+
+# ── ensure_schema: look before you lock ──────────────────────────────
+
+class _Catalog:
+    """Answers the two catalogue reads, records the DDL that actually ran."""
+    def __init__(self, columns, indexes):
+        self.columns, self.indexes, self.ran = columns, indexes, []
+
+    def execute(self, stmt, params=None):
+        q = str(stmt)
+        if "information_schema.columns" in q:
+            return [(c,) for c in self.columns]
+        if "pg_indexes" in q:
+            return [(i,) for i in self.indexes]
+        if not q.startswith("SET lock_timeout"):
+            self.ran.append(q)
+        return []
+
+    def commit(self):
+        pass
+
+    def rollback(self):
+        pass
+
+
+def test_ensure_schema_runs_nothing_when_everything_exists():
+    from app.core.database import ensure_schema
+
+    db = _Catalog({"acq_source"}, {"ix_users_acq_source"})
+    ensure_schema(db, "users", [
+        ("column", "acq_source", "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_source VARCHAR(40)"),
+        ("index", "ix_users_acq_source", "CREATE INDEX IF NOT EXISTS ix_users_acq_source ON users (acq_source)"),
+    ])
+    assert db.ran == [], "a no-op ALTER still takes an ACCESS EXCLUSIVE lock"
+
+
+def test_ensure_schema_adds_only_what_is_missing():
+    from app.core.database import ensure_schema
+
+    db = _Catalog({"acq_source"}, set())
+    ensure_schema(db, "users", [
+        ("column", "acq_source", "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_source VARCHAR(40)"),
+        ("column", "acq_medium", "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_medium VARCHAR(40)"),
+        ("index", "ix_users_acq_source", "CREATE INDEX IF NOT EXISTS ix_users_acq_source ON users (acq_source)"),
+    ])
+    assert len(db.ran) == 2 and all("acq_medium" in q or "ix_users_acq_source" in q for q in db.ran)

@@ -68,9 +68,12 @@ def _ensure_user_columns(db: Session) -> None:
     if _USER_COLUMNS_READY:
         return
     try:
-        db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_id BIGINT"))
-        db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_label TEXT"))
-        db.commit()
+        from app.core.database import ensure_schema
+
+        ensure_schema(db, "ai_usage_log", [
+            ("column", "user_id", "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_id BIGINT"),
+            ("column", "user_label", "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_label TEXT"),
+        ])
         _USER_COLUMNS_READY = True
     except Exception:
         try:

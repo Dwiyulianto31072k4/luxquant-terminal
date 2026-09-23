@@ -97,9 +97,13 @@ def _ensure_table(db) -> None:
     db.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_usage_ts ON ai_usage_log (ts);"))
     db.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_usage_feature ON ai_usage_log (feature);"))
     # Who asked (nullable — assistant is usable while logged out).
-    db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_id BIGINT"))
-    db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_label TEXT"))
-    db.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage_log (user_id);"))
+    from app.core.database import ensure_schema
+
+    ensure_schema(db, "ai_usage_log", [
+        ("column", "user_id", "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_id BIGINT"),
+        ("column", "user_label", "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_label TEXT"),
+        ("index", "idx_ai_usage_user", "CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage_log (user_id)"),
+    ])
     db.commit()
     _TABLE_READY = True
 

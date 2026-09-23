@@ -10,7 +10,6 @@ import logging
 import re
 from typing import Any, Optional
 
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -40,26 +39,21 @@ def _ensure_columns(db: Session) -> None:
     global _COLS_READY
     if _COLS_READY:
         return
-    for stmt in (
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_source VARCHAR(40)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_medium VARCHAR(40)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_campaign VARCHAR(60)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_content VARCHAR(60)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_path VARCHAR(200)",
-        "CREATE INDEX IF NOT EXISTS ix_users_acq_source ON users (acq_source)",
-        "CREATE INDEX IF NOT EXISTS ix_users_acq_campaign ON users (acq_campaign)",
-    ):
-        try:
-            db.execute(text(stmt))
-        except Exception:
-            logger.exception("acq column ensure failed: %s", stmt[:60])
-            db.rollback()
-            return
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        return
+    # Look before you lock: these ran as seven no-op ALTER/CREATE statements on
+    # `users` at every process start, each taking an ACCESS EXCLUSIVE lock that
+    # every reader queued behind (measured: id lookups at 15.6s).
+    from app.core.database import ensure_schema
+
+    ensure_schema(db, "users", [
+        ("column", "acq_source", "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_source VARCHAR(40)"),
+        ("column", "acq_medium", "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_medium VARCHAR(40)"),
+        ("column", "acq_campaign", "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_campaign VARCHAR(60)"),
+        ("column", "acq_content", "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_content VARCHAR(60)"),
+        ("column", "acq_path", "ALTER TABLE users ADD COLUMN IF NOT EXISTS acq_path VARCHAR(200)"),
+        ("index", "ix_users_acq_source", "CREATE INDEX IF NOT EXISTS ix_users_acq_source ON users (acq_source)"),
+        ("index", "ix_users_acq_campaign", "CREATE INDEX IF NOT EXISTS ix_users_acq_campaign ON users (acq_campaign)"),
+    ])
+    # ensure_schema commits what it runs; nothing to flush when it ran nothing.
     _COLS_READY = True
 
 

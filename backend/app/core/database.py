@@ -112,5 +112,60 @@ def ensure_runtime_columns():
         logging.getLogger(__name__).warning("ensure_runtime_columns skipped: %s", e)
 
 
+def ensure_schema(db, table: str, statements) -> None:
+    """Run only the DDL a table is actually missing.
+
+    `ADD COLUMN IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` still take their
+    locks when the object is already there. On `users` that is an ACCESS
+    EXCLUSIVE lock, and Postgres lock queues are FIFO, so one no-op ALTER parks
+    every reader behind it — measured on production: 16 no-op ALTERs on `users`
+    at process start, and plain `SELECT ... WHERE id = N` lookups taking 15.6
+    seconds while they ran.
+
+    Looking first costs one lock-free catalogue read and skips the DDL in every
+    case except a genuinely un-migrated database, where a short lock_timeout
+    keeps a blocked ALTER from becoming everyone's problem.
+
+    `statements` is a sequence of (kind, name, ddl) where kind is "column" or
+    "index"; anything else is always executed.
+    """
+    import logging
+
+    try:
+        present_cols = {
+            r[0] for r in db.execute(
+                text("SELECT column_name FROM information_schema.columns "
+                     "WHERE table_schema = current_schema() AND table_name = :t"),
+                {"t": table},
+            )
+        }
+        present_idx = {
+            r[0] for r in db.execute(
+                text("SELECT indexname FROM pg_indexes "
+                     "WHERE schemaname = current_schema() AND tablename = :t"),
+                {"t": table},
+            )
+        }
+    except Exception as e:  # catalogue unreadable — do nothing rather than lock
+        logging.getLogger(__name__).warning("ensure_schema(%s) skipped: %s", table, e)
+        return
+
+    for kind, name, ddl in statements:
+        if kind == "column" and name in present_cols:
+            continue
+        if kind == "index" and name in present_idx:
+            continue
+        try:
+            db.execute(text("SET lock_timeout = '3s'"))
+            db.execute(text(ddl))
+            db.commit()
+        except Exception:
+            logging.getLogger(__name__).warning("ensure_schema(%s): %s failed", table, name)
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+
 # Run once at import so the column exists before any query touches it.
 ensure_runtime_columns()

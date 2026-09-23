@@ -73,8 +73,11 @@ def _ensure_gen_meta(db) -> None:
     if _GEN_META_READY:
         return
     try:
-        db.execute(text("ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS gen_meta JSONB"))
-        db.commit()
+        from app.core.database import ensure_schema
+
+        ensure_schema(db, "social_posts", [
+            ("column", "gen_meta", "ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS gen_meta JSONB"),
+        ])
         _GEN_META_READY = True
     except Exception:
         db.rollback()
