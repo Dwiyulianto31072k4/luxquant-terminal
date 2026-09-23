@@ -14,8 +14,10 @@ UPDATED:
 - TOP GAINERS v6: peak-based logic using peak_price column (filter by created_at)
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
+
+from app.core.http_cache import cached_json
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc, text
 from typing import Optional, List
@@ -1653,32 +1655,111 @@ def _compute_coin_intel_once():
             pass
 
 
-@router.get("/coin-intel")
-async def get_coin_intel(
-    current_user: User = Depends(require_subscription),
-):
-    # 1) Fresh cache — the normal path (poller keeps this warm).
+# What the SIGNALS DESK reads off a coin. Measured on the live payload: the
+# full object is 7.0 MB across 496 coins and `signal_history` alone is 5.4 MB,
+# yet the desk only needs a handful of scalars for the WR / streak columns, the
+# desk band and the leave-one-out recalculation. Trimming to this list takes the
+# response from 817 KB gzipped to 48 KB — the page used to spend 10-90 seconds
+# downloading history it never showed. The detail panel fetches one pair in
+# full, on open, from /coin-intel/pair/{pair}.
+DESK_COIN_FIELDS = frozenset({
+    "pair", "win_rate", "win_rate_shrunk", "win_rate_30d", "win_rate_30d_trend",
+    "sl_rate", "closed_trades", "open_trades", "total_calls", "current_streak",
+    "outcome_dist", "recent_outcomes", "desk_band", "verdict", "risk_score",
+    "avg_outcome", "anomaly_flags", "is_top", "rank", "first_signal", "last_signal",
+    # Coin Intelligence filters its list by active_days and prints volatility,
+    # so both stay in the desk view even though the Signals table ignores them.
+    "active_days", "volatility",
+})
+DESK_VIEW_KEY = "lq:signals:coin-intel:desk"
+
+
+def _desk_view(payload: dict) -> dict:
+    """The same payload shape, carrying only the fields the desk reads."""
+    def trim(c):
+        return {k: v for k, v in c.items() if k in DESK_COIN_FIELDS}
+
+    out = {k: v for k, v in payload.items() if k not in ("top_coins", "rest_coins")}
+    out["top_coins"] = [trim(c) for c in (payload.get("top_coins") or [])]
+    out["rest_coins"] = [trim(c) for c in (payload.get("rest_coins") or [])]
+    out["view"] = "desk"
+    return out
+
+
+def _coin_intel_payload():
+    """Fresh cache, else the stale copy — never blocks on a compute."""
     cached = cache_get("lq:signals:coin-intel")
     if cached:
         return cached
+    stale, _ = cache_get_with_stale("lq:signals:coin-intel")
+    return stale
 
+
+async def coin_intel_data(view: Optional[str] = None) -> dict:
+    """The payload itself, with no request plumbing.
+
+    A route function is a plain function to anything that calls it: every
+    Query()/Depends() left out arrives as the FastAPI object. The public API
+    calls this one, so the logic lives here and the routes stay thin.
+    """
+    # 1) Fresh cache — the normal path (poller keeps this warm).
     # 2) Cache expired but a recent stale copy exists → serve it instantly.
     #    NEVER block the event loop just because the poller is mid-refresh.
-    stale, _ = cache_get_with_stale("lq:signals:coin-intel")
-    if stale:
-        return stale
+    result = _coin_intel_payload()
 
     # 3) Truly cold cache: compute OFF the event loop (threadpool) + single-flight.
-    try:
-        result = await run_in_threadpool(_compute_coin_intel_once)
-    except Exception:
-        result = None
+    if not result:
+        try:
+            result = await run_in_threadpool(_compute_coin_intel_once)
+        except Exception:
+            result = None
     if not result:
         raise HTTPException(
             status_code=503,
             detail="Coin intelligence not yet available. Ready after first cache cycle (~90s)."
         )
+
+    if view == "desk":
+        desk = cache_get(DESK_VIEW_KEY)
+        if not desk or desk.get("computed_at") != result.get("computed_at"):
+            desk = _desk_view(result)
+            cache_set(DESK_VIEW_KEY, desk, ttl=180)
+        return desk
     return result
+
+
+@router.get("/coin-intel")
+async def get_coin_intel(
+    request: Request,
+    view: Optional[str] = Query(None, description="`desk` trims to the fields the desk reads"),
+    current_user: User = Depends(require_subscription),
+):
+    result = await coin_intel_data(view if view == "desk" else None)
+    return cached_json(request, result,
+                       version=f"{result.get('computed_at')}|{view or 'full'}", max_age=60)
+
+
+@router.get("/coin-intel/pair/{pair}")
+async def get_coin_intel_pair(
+    request: Request,
+    pair: str,
+    current_user: User = Depends(require_subscription),
+):
+    """One coin, in full — what the desk's detail panel opens.
+
+    Read straight out of the same cached payload, so this costs a dictionary
+    lookup rather than a second computation of the whole book.
+    """
+    payload = await coin_intel_data()
+    want = pair.upper()
+    for coin in (payload.get("top_coins") or []) + (payload.get("rest_coins") or []):
+        if str(coin.get("pair", "")).upper() == want:
+            return cached_json(
+                request,
+                {"coin": coin, "platform_avg_wr": payload.get("platform_avg_wr"),
+                 "current_flow": payload.get("current_flow"), "computed_at": payload.get("computed_at")},
+                version=f"{payload.get('computed_at')}|{want}", max_age=120)
+    raise HTTPException(status_code=404, detail=f"No coin intelligence for {pair}")
 
 
 # ============================================

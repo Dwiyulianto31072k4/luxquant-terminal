@@ -711,7 +711,9 @@ const SignalsPage = () => {
       const [signalsRes, statsRes, intelRes, tagWrRes] = await Promise.allSettled([
         fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/stats`, { headers: authHeaders }),
-        fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
+        // `view=desk` trims each coin to the fields this page reads: 817 KB → 48 KB
+        // gzipped. The detail panel fetches a pair in full when it opens.
+        fetch(`${API_BASE}/api/v1/signals/coin-intel?view=desk`, { headers: authHeaders }),
         // days=0 = all since tag-metrics era (2026-03-10); min_n=40 matches correlation.
         fetch(`${API_BASE}/api/v1/analytics/tag-wr?days=0&min_n=40`, { headers: authHeaders }),
       ]);

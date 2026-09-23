@@ -287,6 +287,7 @@ app.add_middleware(ActivityTrackerMiddleware)
 # the worker SIGABRT'd never return, but the surviving-but-slow siblings still
 # reveal the culprit path. Logs to journald (grep: "SLOW").
 import time as _slow_time
+from starlette.responses import Response as StarletteResponse
 
 @app.middleware("http")
 async def _log_slow_requests(request, call_next):
@@ -299,6 +300,61 @@ async def _log_slow_requests(request, call_next):
         except Exception:
             pass
     return response
+
+# ── Conditional GETs on the heavy read endpoints ────────────────────
+# These responses carried no validator and no cache directive, so every tab,
+# reload and 90-second poll re-downloaded an identical body: /signals/coin-intel
+# alone shipped 1.63 GB in fourteen hours. An ETag turns an unchanged payload
+# into a 304 with no body, and a short private max-age keeps a reload inside
+# that window off the network entirely.
+#
+# Deliberately an allowlist, not everything: these are cache-backed reads whose
+# bodies are small enough to hash, and `private` because each is scoped to the
+# caller's entitlement — Cloudflare must never hand one to another account.
+# Endpoints that set their own ETag (coin-intel, which versions by computed_at
+# instead of hashing 7 MB) are left alone.
+_ETAG_PATHS = (
+    "/api/v1/signals/bulk-7d",
+    "/api/v1/signals/stats",
+    "/api/v1/signals/desk-edge",
+    "/api/v1/signals/top-performers",
+    "/api/v1/analytics/tag-wr",
+    "/api/v1/analytics/edge-lab",
+    "/api/v1/terminal/screener",
+    "/api/v1/market/overview",
+)
+_ETAG_MAX_BYTES = 4 * 1024 * 1024
+
+
+@app.middleware("http")
+async def _conditional_get(request, call_next):
+    if request.method != "GET" or not request.url.path.startswith(_ETAG_PATHS):
+        return await call_next(request)
+    response = await call_next(request)
+    if response.status_code != 200 or "etag" in response.headers:
+        return response
+    if not response.headers.get("content-type", "").startswith("application/json"):
+        return response
+    try:
+        body = b"".join([chunk async for chunk in response.body_iterator])
+    except Exception:
+        return response
+    if len(body) > _ETAG_MAX_BYTES:
+        return StarletteResponse(content=body, status_code=200,
+                                 headers=dict(response.headers), media_type=response.media_type)
+    import hashlib as _h
+
+    etag = 'W/"' + _h.md5(body).hexdigest()[:20] + '"'
+    headers = dict(response.headers)
+    headers.pop("content-length", None)
+    headers.update({"ETag": etag,
+                    "Cache-Control": "private, max-age=45, stale-while-revalidate=300",
+                    "Vary": "Authorization, Accept-Encoding"})
+    if etag in [t.strip() for t in request.headers.get("if-none-match", "").split(",") if t.strip()]:
+        return StarletteResponse(status_code=304, headers=headers)
+    return StarletteResponse(content=body, status_code=200, headers=headers,
+                             media_type=response.media_type)
+
 
 # Routes
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])

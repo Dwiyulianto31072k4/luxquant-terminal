@@ -133,7 +133,10 @@ class TestNotifGroups:
         # The whole point of the split: coin_called was 2.7% of an undivided
         # inbox behind 5,350 news items.
         assert "coin_called" in NOTIF_GROUPS["signals"]
-        assert "news" in NOTIF_GROUPS["market"]
+        # News notifications were retired 2026-09-22 (seven in ten notifications
+        # were headlines): no `news` type in any group, and /news is untouched.
+        assert "news" not in NOTIF_GROUPS.get("market", [])
+        assert not any("news" in types for types in NOTIF_GROUPS.values())
         assert "news" not in NOTIF_GROUPS["signals"]
 
 

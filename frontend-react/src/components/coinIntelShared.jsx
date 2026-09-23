@@ -693,7 +693,50 @@ const StatBox = ({ label, value, color }) => (
 // ═══════════════════════════════════════════
 // FULL PAGE MODAL (deep analysis)
 // ═══════════════════════════════════════════
-export const CoinDetailModal = ({ coin, currentFlow, deskWr, onClose }) => {
+const INTEL_API = import.meta.env.VITE_API_URL || "";
+
+/** One coin's full intel, fetched on open and remembered for the session.
+ *
+ * The desk payload carries only the columns the table shows: the full object
+ * is 7 MB across 496 coins, 5.4 MB of it signal_history, and shipping that to
+ * everyone made the Signals page take up to 90 seconds on a slow connection.
+ * The panel that actually draws the history asks for one pair instead.
+ */
+const pairIntelCache = new Map();
+
+function useFullCoin(coin) {
+  const pair = coin?.pair;
+  // `signal_history` only exists on the full object, so its absence is the
+  // signal that this came from the trimmed desk payload.
+  const isLite = !!coin && !coin.signal_history;
+  const [full, setFull] = useState(() => (isLite ? pairIntelCache.get(pair) || null : null));
+
+  useEffect(() => {
+    if (!isLite || !pair || pairIntelCache.has(pair)) return;
+    let alive = true;
+    const token = localStorage.getItem("access_token");
+    fetch(`${INTEL_API}/api/v1/signals/coin-intel/pair/${encodeURIComponent(pair)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d?.coin) return;
+        pairIntelCache.set(pair, d.coin);
+        if (alive) setFull(d.coin);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [pair, isLite]);
+
+  // Merge, never replace: a leave-one-out coin carries recalculated numbers
+  // that must survive the detail arriving.
+  return full ? { ...full, ...coin } : coin;
+}
+
+export const CoinDetailModal = ({ coin: coinProp, currentFlow, deskWr, onClose }) => {
+  const coin = useFullCoin(coinProp);
   const [isClosing, setIsClosing] = useState(false);
   const [histPage, setHistPage] = useState(1); // pagination Signal History
   const HIST_PER_PAGE = 10;

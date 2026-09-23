@@ -222,7 +222,10 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
     try {
       const token = localStorage.getItem("access_token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers });
+      // The list only needs the desk fields; CoinDetailModal fetches the
+      // selected pair in full. This page refetches every 90s, and at 817 KB
+      // a tab left open cost 32 MB an hour.
+      const res = await fetch(`${API_BASE}/api/v1/signals/coin-intel?view=desk`, { headers });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setData(await res.json());
       setError(null);

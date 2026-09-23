@@ -28,7 +28,7 @@ from app.api.deps_public import get_api_key_user
 # Dipanggil sebagai fungsi biasa (bukan via FastAPI), jadi Depends bawaan
 # masing-masing handler TIDAK ikut jalan — auth/role sudah di-handle
 # get_api_key_user di level router ini.
-from app.api.routes.signals import get_coin_intel
+from app.api.routes.signals import coin_intel_data
 from app.api.routes.analytics import get_daily_winrate
 from app.api.routes.daily_dashboard import get_daily_dashboard
 
@@ -47,12 +47,15 @@ router = APIRouter(
 # ════════════════════════════════════════════════════════════
 @router.get("/analytics/coin-intel")
 async def public_coin_intel(user: User = Depends(get_api_key_user)):
-    # get_coin_intel() membuka SessionLocal sendiri + cache sendiri.
+    # coin_intel_data() membuka SessionLocal sendiri + cache sendiri.
     # Param current_user hanya gate di web; di sini sudah di-gate oleh
     # get_api_key_user, jadi kita teruskan user yang sudah terautentikasi.
     # Depends(get_api_key_user) di-cache per-request (sama dengan router-level),
     # jadi auth + rate-limit tetap dihitung SEKALI, bukan dobel.
-    return await get_coin_intel(current_user=user)
+    # Never the route function: its Query()/Depends() defaults would arrive as
+    # FastAPI objects (a Query object is truthy). coin_intel_data is the plain
+    # one, and the public contract stays the full payload.
+    return await coin_intel_data()
 
 
 # ════════════════════════════════════════════════════════════
