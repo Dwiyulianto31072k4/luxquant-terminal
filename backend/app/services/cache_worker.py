@@ -110,19 +110,46 @@ _tracker = FailureTracker()
 # PERSISTENT OUTCOMES TABLE (replaces TEMP TABLE)
 # ============================================
 
+def _swap_in(db, name: str, build_sql: str, indexes: list[tuple[str, str]]) -> None:
+    """Build a cache table beside the live one, then swap it in.
+
+    These two tables are read by the desk, the watchlist, the screener and the
+    Custom screen, and they were DROPped and rebuilt in place every cache cycle
+    — roughly 800 times a day. A DROP takes an ACCESS EXCLUSIVE lock, so every
+    reader waited for the whole rebuild: normally ~1.2s, but 111.9s during the
+    nightly pg_dump, which is where the request timeouts came from.
+
+    Building under a temporary name costs nothing to anyone, and the swap — one
+    transaction holding DROP + RENAME — is the only moment a reader waits.
+    """
+    tmp = f"{name}__build"
+    db.execute(text(f"DROP TABLE IF EXISTS {tmp}"))
+    db.execute(text(build_sql.format(table=tmp)))
+    for idx, cols in indexes:
+        db.execute(text(f"CREATE INDEX {idx}__build ON {tmp}({cols})"))
+    db.commit()
+
+    # One transaction: if the rename fails the drop rolls back with it, so the
+    # live table can never be missing — readers only ever wait for the lock.
+    db.execute(text("SET lock_timeout = '10s'"))
+    db.execute(text(f"DROP TABLE IF EXISTS {name}"))
+    db.execute(text(f"ALTER TABLE {tmp} RENAME TO {name}"))
+    for idx, _ in indexes:
+        db.execute(text(f"ALTER INDEX {idx}__build RENAME TO {idx}"))
+    db.commit()
+
+
 def precompute_outcomes(db):
     """
-    Pre-compute signal outcomes into a PERSISTENT unlogged table.
-    
-    FIXED: Uses UNLOGGED TABLE instead of TEMP TABLE.
-    TEMP tables are session-scoped and disappear when connection closes.
-    UNLOGGED tables persist across sessions but skip WAL for speed.
+    Pre-compute signal outcomes into PERSISTENT unlogged tables.
+
+    UNLOGGED (not TEMP): temp tables are session-scoped and vanish when the
+    connection closes. Each table is built beside the live one and swapped in
+    — see _swap_in for why.
     """
     try:
-        # Drop and recreate atomically
-        db.execute(text("DROP TABLE IF EXISTS _cache_outcomes"))
-        db.execute(text("""
-            CREATE UNLOGGED TABLE _cache_outcomes AS
+        _swap_in(db, "_cache_outcomes", """
+            CREATE UNLOGGED TABLE {table} AS
             SELECT signal_id, outcome
             FROM (
                 SELECT 
@@ -149,9 +176,7 @@ def precompute_outcomes(db):
                 WHERE update_type IS NOT NULL
             ) ranked
             WHERE rn = 1 AND outcome IS NOT NULL
-        """))
-        db.execute(text("CREATE INDEX idx_cache_outcomes_sid ON _cache_outcomes(signal_id)"))
-        db.execute(text("CREATE INDEX idx_cache_outcomes_out ON _cache_outcomes(outcome)"))
+        """, [("idx_cache_outcomes_sid", "signal_id"), ("idx_cache_outcomes_out", "outcome")])
 
         # ── _cache_last_updates ──────────────────────────────────────────
         # The DISTINCT-ON "latest update per signal" pass used to run inline
@@ -160,9 +185,8 @@ def precompute_outcomes(db):
         # is one scan per cycle, and readers get a 3.8ms table instead of a
         # 1.5s window function. Validated before wiring: 52,802 rows, exact
         # agreement with the live CTE on every signal.
-        db.execute(text("DROP TABLE IF EXISTS _cache_last_updates"))
-        db.execute(text("""
-            CREATE UNLOGGED TABLE _cache_last_updates AS
+        _swap_in(db, "_cache_last_updates", """
+            CREATE UNLOGGED TABLE {table} AS
             SELECT signal_id, last_update_at, last_update_type FROM (
                 SELECT signal_id, update_at AS last_update_at,
                     CASE
@@ -185,9 +209,7 @@ def precompute_outcomes(db):
                     ) AS rn
                 FROM signal_updates WHERE update_type IS NOT NULL
             ) ranked WHERE rn = 1
-        """))
-        db.execute(text("CREATE INDEX idx_cache_last_updates_sid ON _cache_last_updates(signal_id)"))
-        db.commit()
+        """, [("idx_cache_last_updates_sid", "signal_id")])
     except Exception as e:
         db.rollback()
         raise e
