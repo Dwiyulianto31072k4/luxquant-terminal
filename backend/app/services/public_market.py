@@ -6,7 +6,7 @@ import re
 
 from fastapi import HTTPException
 from app.core.http_client import get_general_client
-from app.core.redis import cache_get, cache_set
+from app.core.redis import cache_get, cache_set, cache_get_with_stale
 
 HOSTS = {
     "binance-futures": "https://fapi.binance.com",
@@ -79,6 +79,21 @@ def _is_not_listed(status: int, body) -> bool:
     return False
 
 
+def _last_good(key):
+    """The previous answer for this exact call, or None.
+
+    Prefer it over a 502 when a venue wobbles: 35 of today's 39 5xx were
+    Binance/Bybit failing during the nightly backup window, each one a blank
+    field in someone's signal modal. cache_set keeps a stale copy at 10x the
+    TTL, so this is seconds-to-minutes old; a venue down longer than that still
+    falls through to the error.
+    """
+    stale, _ = cache_get_with_stale(key)
+    if stale is None or (isinstance(stale, dict) and stale.get(_NOT_LISTED_FLAG)):
+        return None
+    return stale
+
+
 async def exchange_data(provider, path, params):
     validate_request(provider, path, params)
     digest = hashlib.sha256(json.dumps([provider, path, params], sort_keys=True).encode()).hexdigest()
@@ -115,15 +130,24 @@ async def exchange_data(provider, path, params):
                 raise HTTPException(404, "Symbol not listed on this venue")
 
             if response.status_code != 200:
+                fallback = _last_good(key)
+                if fallback is not None:
+                    return fallback
                 raise HTTPException(502, "Market provider unavailable")
             data = body if body is not None else response.json()
             if isinstance(data, dict) and (data.get("retCode", 0) != 0 or data.get("code", 0) < 0):
+                fallback = _last_good(key)
+                if fallback is not None:
+                    return fallback
                 raise HTTPException(502, "Market instrument unavailable")
             cache_set(key, data, ttl=15)
             return data
         except HTTPException:
             raise
         except Exception:
+            fallback = _last_good(key)
+            if fallback is not None:
+                return fallback
             raise HTTPException(502, "Market data temporarily unavailable")
         finally:
             _pending.pop(key, None)

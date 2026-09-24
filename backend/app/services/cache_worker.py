@@ -1068,13 +1068,28 @@ async def signal_cache_loop():
                     _ms8 = -1
                     print(f"   ⚠️ Desk Edge prewarm error: {type(e).__name__}: {e}")
 
+                # Step 9: Edge Lab — the landing and the desk both open on the
+                # all-time and 90-day boards, and a cold one costs 20-32s in a
+                # user's request. Warmed for the two windows the UI asks for.
+                try:
+                    _t9 = time.time()
+                    from app.api.routes.edge_lab import get_edge_lab
+
+                    for el_days in (0, 90):
+                        get_edge_lab(days=el_days, sector="all", db=db)
+                        cached += 1
+                    _ms9 = round((time.time() - _t9) * 1000)
+                except Exception as e:
+                    _ms9 = -1
+                    print(f"   ⚠️ Edge Lab prewarm error: {type(e).__name__}: {e}")
+
                 elapsed = round((time.time() - start) * 1000)
                 intel_info = f" | Intel: {intel_ms}ms" if intel_ms >= 0 else ""
                 print(
                     f"✅ Signal cache: {cached} keys in {elapsed}ms "
                     f"(CTE: {cte_ms}ms | bulk7d: {_msb}ms | pages7d: {_ms2}ms | pagesAll: {_ms3}ms"
                     f"{intel_info} | stats+active: {_ms4}ms "
-                    f"| analyze: {_ms5}ms | topperf: {_ms7}ms | deskEdge: {_ms8}ms)"
+                    f"| analyze: {_ms5}ms | topperf: {_ms7}ms | deskEdge: {_ms8}ms | edgeLab: {_ms9}ms)"
                 )
 
             finally:

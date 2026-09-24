@@ -118,3 +118,18 @@ def test_referral_outreach_stops_after_repeated_failures():
     # A success anywhere in the recent run means the account is reachable again.
     assert _consecutive_failures(DB(["failed", "sent", "failed"]), 1) == 1
     assert _consecutive_failures(DB([]), 1) == 0
+
+
+# ── market data: a wobbling venue should not blank the modal ──────────
+
+def test_last_good_ignores_a_not_listed_marker(monkeypatch):
+    from app.services import public_market as pm
+
+    monkeypatch.setattr(pm, "cache_get_with_stale", lambda k: ({pm._NOT_LISTED_FLAG: True}, True))
+    assert pm._last_good("k") is None, "a 404 answer must never be replayed as data"
+
+    monkeypatch.setattr(pm, "cache_get_with_stale", lambda k: ({"lastPrice": "1"}, True))
+    assert pm._last_good("k") == {"lastPrice": "1"}
+
+    monkeypatch.setattr(pm, "cache_get_with_stale", lambda k: (None, False))
+    assert pm._last_good("k") is None
