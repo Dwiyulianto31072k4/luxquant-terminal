@@ -47,6 +47,7 @@ import httpx
 from sqlalchemy import text
 
 from app.core.database import SessionLocal
+from app.services import call_images
 
 CHAT_ID = int(os.getenv("RUNNER_CHAT_ID", "-1002670915863"))
 TOPIC_ID = int(os.getenv("RUNNER_TOPIC_ID", "855639"))
@@ -279,13 +280,16 @@ def post_to_topic(caption: str, photo: str | None, reply_to: int | None = None) 
 
 UPDATE_TYPES = ("tp1", "tp2", "tp3", "tp4", "sl")
 UPDATE_WINDOW_DAYS = 14
+# `u` in the shared fragment is this query's `su`; the signal is `r.signal_id`.
+IS_LATEST = call_images.IS_LATEST_SQL.format(sid="r.signal_id").replace("u.update_type", "su.update_type")
 
 
 def pending_updates(db):
-    return [dict(r._mapping) for r in db.execute(text("""
+    return [dict(r._mapping) for r in db.execute(text(f"""
         SELECT DISTINCT ON (r.signal_id, su.update_type)
                r.signal_id, r.tg_message_id AS parent_id, s.pair, s.entry, s.created_at,
-               su.update_type, su.price, su.update_at
+               su.update_type, su.price, su.update_at, s.pnl_leverage,
+               {IS_LATEST} AS is_latest
         FROM runner_call_posts r
         JOIN signals s ON s.signal_id = r.signal_id
         JOIN signal_updates su ON su.signal_id = r.signal_id
@@ -313,21 +317,47 @@ def _elapsed(start, end) -> str:
     return f"{h}h {m}m" if h < 24 else f"{h // 24}d {h % 24}h"
 
 
+def _age_minutes(hit_at) -> float:
+    """Minutes since the milestone happened, not since we noticed it."""
+    try:
+        t = datetime.fromisoformat(str(hit_at).replace("Z", "+00:00"))
+    except ValueError:
+        return 9999.0
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - t).total_seconds() / 60.0
+
+
 def build_update(u) -> str:
-    # Shared with the LuxQuant Call Tracking topic, which now prints the same line.
+    # Shared with the LuxQuant Call Tracking topic, which prints the same line.
+    # The levered figure is not repeated here: the PnL card in the picture
+    # already states it, beside the leverage that produced it.
     from app.services.call_format import update_message
+
     return update_message(u["pair"], u["update_type"], u["price"], u["entry"],
                           u["created_at"], u["update_at"], u["signal_id"])
 
 
 def post_updates(db, dry_run: bool = False) -> None:
+    from app.services import call_images
+
     for u in pending_updates(db):
         key = {"sid": str(u["signal_id"]), "et": u["update_type"]}
+        photo, kind = call_images.event_image(u["signal_id"], u["pair"], u["update_type"])
         if dry_run:
-            _log(f"update {u['pair']} {u['update_type']} -> reply to {u['parent_id']}")
+            _log(f"update {u['pair']} {u['update_type']} -> reply to {u['parent_id']} "
+                 f"({kind or 'no picture'})")
+            continue
+        # Nothing is written when it waits: the row stays pending and the next
+        # run (a minute later) tries again, so waiting never spends an attempt.
+        if call_images.should_wait(kind, _age_minutes(u["update_at"]), bool(u.get("is_latest"))):
+            _log(f"update {u['pair']} {u['update_type']} held for its picture ({kind or 'none yet'})")
             continue
         try:
-            mid = post_to_topic(build_update(u), None, reply_to=u["parent_id"])
+            # Past the wait, whatever exists goes out: half a picture still
+            # shows more than a line of text, and the Call Tracking topic
+            # settles the same way.
+            mid = post_to_topic(build_update(u), photo, reply_to=u["parent_id"])
             db.execute(text("""
                 INSERT INTO runner_call_updates (signal_id, event_type, tg_message_id, attempts, posted_at)
                 VALUES (:sid, :et, :mid, 1, now())
@@ -335,7 +365,8 @@ def post_updates(db, dry_run: bool = False) -> None:
                    SET tg_message_id = :mid, attempts = runner_call_updates.attempts + 1,
                        posted_at = now(), last_error = NULL
             """), {**key, "mid": mid})
-            _log(f"update {u['pair']} {u['update_type']} -> msg {mid} (reply to {u['parent_id']})")
+            _log(f"update {u['pair']} {u['update_type']} -> msg {mid} "
+                 f"(reply to {u['parent_id']}, {kind or 'text only'})")
         except Exception as exc:
             db.execute(text("""
                 INSERT INTO runner_call_updates (signal_id, event_type, attempts, last_error)
