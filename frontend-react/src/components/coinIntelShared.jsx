@@ -1066,7 +1066,7 @@ export const CoinDetailModal = ({ coin: coinProp, currentFlow, deskWr, onClose }
                     )}
                   </Section>
 
-                  {coin.volatility?.profile !== "unknown" && (
+                  {coin.volatility && coin.volatility.profile !== "unknown" && (
                     <Section title="Volatility Profile">
                       <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                         <StatBox
@@ -1099,7 +1099,7 @@ export const CoinDetailModal = ({ coin: coinProp, currentFlow, deskWr, onClose }
                     </Section>
                   )}
 
-                  {coin.entry_quality?.score !== "unknown" && (
+                  {coin.entry_quality && coin.entry_quality.score !== "unknown" && (
                     <Section title="Entry Quality Metrics">
                       <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                         <StatBox
