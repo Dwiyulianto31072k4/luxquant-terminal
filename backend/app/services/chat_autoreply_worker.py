@@ -118,7 +118,9 @@ def _collect_admin_alerts() -> List[Dict[str, Any]]:
 def _collect_user_pings() -> List[Dict[str, Any]]:
     db = SessionLocal()
     try:
-        rows = chat_service.replies_unseen_by_user(db, chat_service.REPLY_UNSEEN_AFTER_MIN)
+        rows = chat_service.replies_unseen_by_user(
+            db, chat_service.REPLY_UNSEEN_AFTER_MIN, notified_type=USER_REPLY_TYPE
+        )
         out = []
         for row in rows:
             source_id = str(row["message_id"])

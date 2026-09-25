@@ -32,6 +32,10 @@ DEFAULT_PAGE = 200
 # long enough that someone reading the panel right now is never pinged.
 REPLY_UNSEEN_AFTER_MIN = 2
 
+# ...and how long it stays worth pulling back for. Past a day the nudge is
+# stale, and without a bound every unread reply ever written is re-scanned.
+REPLY_NUDGE_WITHIN_HOURS = 24
+
 DEFAULT_AWAY_MESSAGE = (
     "Thanks for the message — we're not at the desk right now, but we read "
     "every one and will reply as soon as we're back."
@@ -1040,13 +1044,26 @@ def conversations_awaiting_admin(db: Session, older_than_min: int, limit: int = 
     return [dict(r) for r in rows]
 
 
-def replies_unseen_by_user(db: Session, older_than_min: int, limit: int = 50) -> List[Dict[str, Any]]:
+def replies_unseen_by_user(
+    db: Session,
+    older_than_min: int,
+    limit: int = 50,
+    *,
+    notified_type: str,
+) -> List[Dict[str, Any]]:
     """Admin replies the user still hasn't read after `older_than_min`.
 
     This is the whole offline-reach mechanism, and it works for every account
     regardless of auth provider — most users have no Telegram and the backend
     has no email sender, so the in-app bell is the only channel that reaches
     all of them.
+
+    Replies that already carry a `notified_type` notification are dropped here,
+    before LIMIT. The caller used to drop them afterwards, in Python: from
+    5 Aug 2026 the 50 oldest unread replies were welcome messages nobody ever
+    opened, all long since notified, so every pass skipped all 50 and never
+    reached a newer reply. 1,269 replies went without a bell or a Telegram
+    nudge before that was noticed on 25 Sep.
     """
     rows = db.execute(
         text("""
@@ -1060,10 +1077,23 @@ def replies_unseen_by_user(db: Session, older_than_min: int, limit: int = 50) ->
                AND m.visibility = 'all'
                AND m.seq > c.user_last_read_seq
                AND m.created_at < now() - make_interval(mins => :mins)
+               AND m.created_at >= now() - make_interval(hours => :within_hours)
                AND m.seq = c.last_seq
+               AND NOT EXISTS (
+                     SELECT 1 FROM notifications n
+                      WHERE n.user_id = c.user_id
+                        AND n.type = :notified_type
+                        AND n.source_type = 'chat'
+                        AND n.source_id = CAST(m.id AS text)
+                   )
              ORDER BY m.created_at ASC
              LIMIT :lim
         """),
-        {"mins": max(0, older_than_min), "lim": limit},
+        {
+            "mins": max(0, older_than_min),
+            "within_hours": REPLY_NUDGE_WITHIN_HOURS,
+            "notified_type": notified_type,
+            "lim": limit,
+        },
     ).mappings().all()
     return [dict(r) for r in rows]
