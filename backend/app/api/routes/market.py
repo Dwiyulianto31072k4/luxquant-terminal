@@ -956,6 +956,11 @@ async def get_market_overview():
 # SECTOR / CATEGORIES PERFORMANCE (CoinGecko)
 # ============================================================
 
+# Sector floor. Below this a category is one or two coins wide, and its 24h
+# change says more about a single token than about a rotation.
+CATEGORY_MIN_MCAP = 25_000_000
+
+
 @router.get("/categories")
 async def get_categories(limit: int = Query(10, ge=1, le=50)):
     """Top crypto sectors/narratives sorted by 24h market cap change."""
@@ -981,20 +986,31 @@ async def get_categories(limit: int = Query(10, ge=1, le=50)):
         categories = []
         for cat in raw:
             mcap = cat.get("market_cap", 0) or 0
-            if mcap < 1_000_000:
+            # $25M floor, not $1M. CoinGecko lists ~770 categories and the tiny
+            # ones swing hardest: the board's top "narrative" was a $2.8M
+            # category up 76%, which one coin can move on its own, ranked above
+            # a $571M one. A floor is the difference between a rotation signal
+            # and noise.
+            if mcap < CATEGORY_MIN_MCAP:
                 continue
             categories.append({
                 "id": cat.get("id", ""),
                 "name": cat.get("name", ""),
                 "market_cap": mcap,
                 "market_cap_change_24h": cat.get("market_cap_change_24h", 0) or 0,
-                "volume_24h": cat.get("content", {}).get("total_volume", 0) if isinstance(cat.get("content"), dict) else (cat.get("total_volume", 0) or 0),
+                # CoinGecko sends this at the top level. Reading it off
+                # `content` returned 0 for every category, every time, which is
+                # why the sector panel never had a liquidity number.
+                "volume_24h": cat.get("volume_24h", 0) or 0,
                 "top_3_coins": cat.get("top_3_coins", [])[:3],
                 "updated_at": cat.get("updated_at", ""),
             })
 
         categories.sort(key=lambda x: abs(x["market_cap_change_24h"]), reverse=True)
-        cache_set("lq:market:categories", categories[:30], ttl=300)
+        # Cache enough of both tails that a caller asking for 30 still sees the
+        # ones that FELL. With 30 cached, a green day pushed every loser out and
+        # the "cooling down" column was empty by construction, not by market.
+        cache_set("lq:market:categories", categories[:60], ttl=300)
         return categories[:limit]
 
     except HTTPException:

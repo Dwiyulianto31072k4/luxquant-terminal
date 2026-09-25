@@ -172,15 +172,14 @@ const CardShell = ({ children, className = "", hover = true }) => (
 );
 
 const CardHead = ({ icon, label, right }) => (
-  <div className="px-4 sm:px-5 py-3.5 border-b border-ink/[0.06] bg-ink/[0.015] flex items-center justify-between gap-3 flex-wrap">
-    <div className="flex items-center gap-2.5 min-w-0">
-      <span className="w-6 h-6 flex items-center justify-center rounded-md border border-ink/[0.08] bg-ink/[0.04] text-text-primary/65 flex-shrink-0">
-        {icon}
-      </span>
-      <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary truncate">
-        {label}
-      </h3>
-    </div>
+  // Sentence case, no icon tile, no tinted band. The tables on this page label
+  // themselves with plain text; a panel that shouts ITS NAME IN CAPS beside
+  // them reads as a different product. `icon` is accepted and ignored so the
+  // call sites stay unchanged.
+  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-3 sm:px-5">
+    <h3 className="min-w-0 truncate text-[13px] font-semibold tracking-tight text-text-primary">
+      {label}
+    </h3>
     {right}
   </div>
 );
@@ -207,7 +206,7 @@ const OverviewPage = () => {
       setMarketError(null);
       const [globalRes, catRes, trendRes, derivRes] = await Promise.allSettled([
         fetch(`${API_BASE}/market/global`),
-        fetch(`${API_BASE}/market/categories?limit=10`),
+        fetch(`${API_BASE}/market/categories?limit=30`),
         fetch(`${API_BASE}/market/trending-categories`),
         fetch(`${API_BASE}/market/derivatives-pulse`),
       ]);
@@ -231,6 +230,8 @@ const OverviewPage = () => {
             totalMarketCap: globalData?.total_market_cap?.usd || 0,
             marketCapChange24h: globalData?.market_cap_change_percentage_24h_usd || 0,
             totalVolume24h: globalData?.total_volume?.usd || 0,
+            volumeChange24h: globalData?.volume_change_percentage_24h_usd ?? null,
+            markets: globalData?.markets || 0,
             btcDominance: globalData?.market_cap_percentage?.btc || 0,
             ethDominance: globalData?.market_cap_percentage?.eth || 0,
             altcoinMarketCap:
@@ -375,22 +376,21 @@ const OverviewPage = () => {
                   label={t("overview.total_mcap")}
                   value={formatLargeNumber(data.totalMarketCap)}
                   change={data.marketCapChange24h}
-                  icon={<IconWallet />}
                 />
                 <MetricCard
                   label={t("overview.vol_24h")}
                   value={formatLargeNumber(data.totalVolume24h)}
-                  icon={<IconChart />}
+                  change={data.volumeChange24h}
                 />
                 <MetricCard
                   label={t("overview.btc_dom")}
                   value={`${data.btcDominance.toFixed(1)}%`}
-                  icon={<IconCrown />}
+                  sub={`ETH ${data.ethDominance?.toFixed(1)}%`}
                 />
                 <MetricCard
                   label={t("overview.active_crypto")}
                   value={data.activeCryptos.toLocaleString()}
-                  icon={<IconCoins />}
+                  sub={data.markets ? `${data.markets.toLocaleString()} markets` : undefined}
                 />
               </div>
             </div>
@@ -433,17 +433,13 @@ const OverviewPage = () => {
                     />
                     <div className="pt-3 border-t border-ink/[0.06] space-y-2.5">
                       <div className="flex justify-between items-center">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                          {t("overview.alt_mcap")}
-                        </span>
+                        <span className="text-[11px] text-text-muted">{t("overview.alt_mcap")}</span>
                         <span className="text-text-primary font-mono text-sm tabular-nums">
                           {formatLargeNumber(data.altcoinMarketCap)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                          {t("overview.eth_btc")}
-                        </span>
+                        <span className="text-[11px] text-text-muted">{t("overview.eth_btc")}</span>
                         <span className="text-text-primary font-mono text-sm tabular-nums">
                           {data.ethBtcRatio?.toFixed(5)}
                         </span>
@@ -517,7 +513,7 @@ const OverviewPage = () => {
                           strokeWidth="2.5"
                         />
                       </svg>
-                      <div className="absolute inset-x-2 bottom-0 flex justify-between font-mono text-[8px] uppercase tracking-[0.15em] text-text-muted/50 pointer-events-none">
+                      <div className="pointer-events-none absolute inset-x-2 bottom-0 flex justify-between text-[10px] text-text-muted">
                         <span>Fear</span>
                         <span>Greed</span>
                       </div>
@@ -530,7 +526,7 @@ const OverviewPage = () => {
                         {data.fearGreed.value}
                       </span>
                       <span
-                        className="font-mono text-[9px] uppercase tracking-[0.2em] mt-1"
+                        className="mt-1 text-[11px]"
                         style={{ color: fgStroke(data.fearGreed.value) }}
                       >
                         {data.fearGreed.label}
@@ -540,9 +536,7 @@ const OverviewPage = () => {
                       <FGStat label={t("overview.yesterday")} value={data.fearGreed.yesterday} />
                       <FGStat label={t("overview.last_week")} value={data.fearGreed.lastWeek} />
                       <div className="text-center">
-                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted mb-1.5">
-                          {t("overview.trend")}
-                        </p>
+                        <p className="mb-1.5 text-[11px] text-text-muted">{t("overview.trend")}</p>
                         <p
                           className="font-mono text-sm tabular-nums"
                           style={{
@@ -572,7 +566,7 @@ const OverviewPage = () => {
               <DerivativesPulseCard data={derivPulse} t={t} />
             ) : (
               <CardShell className="flex items-center justify-center min-h-[200px]">
-                <span className="text-text-muted font-mono text-xs uppercase tracking-wider">
+                <span className="text-[11px] text-text-muted">
                   {t("overview.deriv_pending")}
                 </span>
               </CardShell>
@@ -613,89 +607,67 @@ const SectorPerformance = ({ categories, trending, t }) => {
   // Same drill-down Money Flow uses — one component, so the two pages cannot
   // drift apart.
   const [drillSector, setDrillSector] = useState(null);
-  const gainers = categories.filter((c) => c.market_cap_change_24h > 0).slice(0, 5);
-  const losers = categories
-    .filter((c) => c.market_cap_change_24h < 0)
-    .sort((a, b) => a.market_cap_change_24h - b.market_cap_change_24h)
-    .slice(0, 5);
 
-  const maxAbs = Math.max(
-    1,
-    ...gainers.map((c) => Math.abs(c.market_cap_change_24h || 0)),
-    ...losers.map((c) => Math.abs(c.market_cap_change_24h || 0))
-  );
+  // ONE ranked list, not two columns. The old layout kept a "cooling down"
+  // column that was empty nearly every day — the page asked for the ten
+  // biggest movers, and on any green day all ten are gainers, so the column
+  // was empty by construction rather than by market. Ranked top-down, the
+  // sign of each row does that job, and a day with no fallers simply has no
+  // red rows instead of a panel half-filled with "NO LOSING SECTORS".
+  const rows = [...categories]
+    .sort((a, b) => (b.market_cap_change_24h || 0) - (a.market_cap_change_24h || 0))
+    .slice(0, 8);
+
+  const maxAbs = Math.max(1, ...rows.map((c) => Math.abs(c.market_cap_change_24h || 0)));
 
   return (
     <>
-    <CardShell>
-      <CardHead
-        icon={<IconFlame className="w-3.5 h-3.5" />}
-        label={t("overview.sector_perf")}
-        right={
-          trending?.categories?.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                {t("overview.trending")}
-              </span>
-              {trending.categories.slice(0, 3).map((cat, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setDrillSector(cat)}
-                  className="font-mono text-[10px] px-2 py-0.5 bg-ink/[0.04] text-text-primary/70 border border-ink/[0.08] hover:bg-ink/[0.07] hover:border-ink/[0.14] hover:text-text-primary transition-all rounded-sm"
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          )
-        }
-      />
+      <CardShell>
+        <CardHead
+          label={t("overview.sector_perf")}
+          right={
+            trending?.categories?.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-text-muted">{t("overview.trending")}</span>
+                {trending.categories.slice(0, 3).map((cat, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setDrillSector(cat)}
+                    className="rounded-md bg-ink/[0.04] px-2 py-0.5 text-[11px] text-text-secondary transition-colors hover:bg-ink/[0.08] hover:text-text-primary"
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            )
+          }
+        />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-ink/[0.06]">
-        {/* HOT */}
-        <div className="p-4 lg:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-profit" />
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-profit">
-              {t("overview.hot")}
-            </p>
-          </div>
-          <div className="space-y-0.5">
-            {gainers.length > 0 ? (
-              gainers.map((cat, idx) => (
-                <SectorRow onOpen={setDrillSector} key={idx} cat={cat} rank={idx + 1} />
-              ))
-            ) : (
-              <p className="text-text-muted font-mono text-xs uppercase tracking-wider py-2">
-                {t("overview.no_gain_sec")}
-              </p>
-            )}
-          </div>
+        <div className="hidden items-center gap-3 border-b border-ink/[0.06] px-4 py-2 text-[11px] text-text-muted sm:flex sm:px-5">
+          <span className="w-4" />
+          <span className="flex-1">Narrative</span>
+          <span className="w-[150px] text-center">24h move</span>
+          <span className="w-24 text-right">Market cap</span>
+          <span className="w-24 text-right">24h volume</span>
+          <span className="w-3.5" />
         </div>
 
-        {/* COOL */}
-        <div className="p-4 lg:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-negative" />
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-loss">
-              {t("overview.cool")}
-            </p>
-          </div>
-          <div className="space-y-0.5">
-            {losers.length > 0 ? (
-              losers.map((cat, idx) => (
-                <SectorRow onOpen={setDrillSector} key={idx} cat={cat} rank={idx + 1} />
-              ))
-            ) : (
-              <p className="text-text-muted font-mono text-xs uppercase tracking-wider py-2">
-                {t("overview.no_lose_sec")}
-              </p>
-            )}
-          </div>
+        <div className="divide-y divide-ink/[0.04]">
+          {rows.map((cat, idx) => (
+            <SectorRow
+              key={cat.id || idx}
+              cat={cat}
+              rank={idx + 1}
+              maxAbs={maxAbs}
+              onOpen={setDrillSector}
+            />
+          ))}
         </div>
-      </div>
-    </CardShell>
+        <p className="border-t border-ink/[0.06] px-4 py-2.5 text-[11px] text-text-muted sm:px-5">
+          Sectors above $25M market cap, ranked by 24h change. Tap one for its coins.
+        </p>
+      </CardShell>
       <SectorCoinsModal
         sector={drillSector}
         isOpen={!!drillSector}
@@ -721,7 +693,7 @@ const DerivativesPulseCard = ({ data, t }) => {
         {/* LONG/SHORT BARS */}
         {ls && (
           <div className="mb-4 space-y-3">
-            <div className="flex items-center gap-3 font-mono text-[8px] uppercase tracking-wider text-text-muted/70">
+            <div className="flex items-center gap-3 text-[11px] text-text-muted">
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-sm bg-profit" />
                 Long
@@ -740,7 +712,7 @@ const DerivativesPulseCard = ({ data, t }) => {
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-xs text-text-primary font-semibold">{sym}</span>
                     <span
-                      className={`font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border ${netLong ? "text-profit border-profit/25 bg-profit/10" : "text-loss border-loss/25 bg-loss/10"}`}
+                      className={`rounded-md px-1.5 py-0.5 text-[10.5px] ${netLong ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"}`}
                     >
                       {netLong ? "Net Long" : "Net Short"}
                     </span>
@@ -777,7 +749,7 @@ const DerivativesPulseCard = ({ data, t }) => {
         {/* OPEN INTEREST */}
         {oi && (
           <div className="flex justify-between items-center py-2.5 px-3 bg-ink/[0.02] border border-ink/[0.06] mb-3 rounded-lg">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            <span className="text-[11px] text-text-muted">
               {t("overview.total_oi")}
             </span>
             <span className="text-text-primary font-mono text-base font-light tabular-nums">
@@ -790,7 +762,7 @@ const DerivativesPulseCard = ({ data, t }) => {
         {funding && (
           <div className="pt-2 border-t border-ink/[0.06]">
             <div className="flex items-center justify-between mb-2.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+              <span className="text-[11px] text-text-muted">
                 {t("overview.funding")}
               </span>
               <span
@@ -824,7 +796,7 @@ const DerivativesPulseCard = ({ data, t }) => {
                 ))}
               </div>
             </div>
-            <p className="text-text-muted font-mono text-[9px] uppercase tracking-wider mt-2.5 text-center opacity-50">
+            <p className="mt-2.5 text-center text-[11px] text-text-muted">
               {funding.total_symbols} {t("overview.pairs_tracked")}
             </p>
           </div>
@@ -838,16 +810,33 @@ const DerivativesPulseCard = ({ data, t }) => {
 // COIN LIST CARD (Gainers / Losers)
 // ================================================================
 
-const CoinListCard = ({ title, icon, coins, isLoser }) => (
-  <CardShell>
-    <CardHead icon={icon} label={title} />
-    <div className="divide-y divide-ink/[0.04]">
-      {coins.map((coin, idx) => (
-        <CoinRow key={idx} coin={coin} rank={idx + 1} isLoser={isLoser} />
-      ))}
-    </div>
-  </CardShell>
-);
+const CoinListCard = ({ title, icon, coins, isLoser }) => {
+  // A "top loser" at half a percent is not a loser, it is a flat tape. Saying
+  // so costs one line and stops the card implying a sell-off that is not
+  // there — the same reason the gainers side says it when nothing is running.
+  const extreme = Math.max(
+    0,
+    ...(coins || []).map((c) => Math.abs(c.price_change_percentage_24h || 0))
+  );
+  const quiet = extreme < 2;
+  return (
+    <CardShell>
+      <CardHead icon={icon} label={title} />
+      <div className="divide-y divide-ink/[0.04]">
+        {coins.map((coin, idx) => (
+          <CoinRow key={idx} coin={coin} rank={idx + 1} isLoser={isLoser} />
+        ))}
+      </div>
+      {quiet && coins?.length > 0 ? (
+        <p className="border-t border-ink/[0.06] px-4 py-2.5 text-[11px] text-text-muted sm:px-5">
+          {isLoser
+            ? "Nothing fell more than 2% today — the market is flat, not selling off."
+            : "Nothing ran more than 2% today — a quiet tape."}
+        </p>
+      ) : null}
+    </CardShell>
+  );
+};
 
 // ================================================================
 // HELPER COMPONENTS
@@ -857,10 +846,8 @@ const CoinListCard = ({ title, icon, coins, isLoser }) => (
 const IndicatorRow = ({ label, value, pct, max = 100, opacity = 1 }) => (
   <div>
     <div className="flex justify-between items-baseline mb-1.5">
-      <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-        {label}
-      </span>
-      <span className="text-text-primary font-mono text-sm tabular-nums">{value}</span>
+      <span className="text-[11px] text-text-muted">{label}</span>
+      <span className="font-mono text-sm tabular-nums text-text-primary">{value}</span>
     </div>
     <div className="h-1.5 bg-ink/[0.04] overflow-hidden rounded-full">
       <div
@@ -876,9 +863,7 @@ const IndicatorRow = ({ label, value, pct, max = 100, opacity = 1 }) => (
 
 const FGStat = ({ label, value }) => (
   <div className="text-center">
-    <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted mb-1.5">
-      {label}
-    </p>
+    <p className="mb-1.5 text-[11px] text-text-muted">{label}</p>
     <p className="font-mono text-sm tabular-nums" style={{ color: fgStroke(value) }}>
       {value}
     </p>
@@ -942,58 +927,60 @@ const TriDown = ({ className = "w-2 h-2" }) => (
   </svg>
 );
 
-const MetricCard = ({ label, value, change, icon }) => (
-  <div className="group bg-surface-raised flex items-center gap-3 px-4 py-3.5 hover:bg-ink/[0.02] transition-colors">
-    <span className="w-8 h-8 flex items-center justify-center rounded-md border border-ink/[0.08] bg-ink/[0.04] text-text-primary/60 flex-shrink-0">
-      {icon}
-    </span>
-    <div className="min-w-0">
-      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted leading-tight truncate">
-        {label}
+const MetricCard = ({ label, value, change, sub }) => (
+  // Label, number, and its change — in that order, left aligned, one per tile.
+  // The old tile spent a third of its width on a grey icon square that carried
+  // no information, then had to shrink the number that did.
+  <div className="bg-surface-raised px-4 py-3.5 transition-colors hover:bg-ink/[0.02]">
+    <p className="truncate text-[11px] leading-tight text-text-muted">{label}</p>
+    <div className="mt-1.5 flex items-baseline gap-2">
+      <p className="font-mono text-lg font-semibold leading-none tabular-nums text-text-primary lg:text-xl">
+        {value}
       </p>
-      <div className="flex items-baseline gap-2 mt-1.5">
-        <p className="font-mono text-lg lg:text-xl font-semibold text-text-primary tabular-nums leading-none">
-          {value}
-        </p>
-        {change !== undefined && (
-          <span
-            className={`font-mono text-[10px] tabular-nums inline-flex items-center gap-0.5 ${change >= 0 ? "text-profit" : "text-loss"}`}
-          >
-            {change >= 0 ? <TriUp /> : <TriDown />}
-            {change >= 0 ? "+" : ""}
-            {change?.toFixed(2)}%
-          </span>
-        )}
-      </div>
+      {change !== undefined && change !== null && (
+        <span
+          className={`inline-flex items-center gap-0.5 font-mono text-[11px] tabular-nums ${
+            change >= 0 ? "text-profit" : "text-loss"
+          }`}
+        >
+          {change >= 0 ? <TriUp /> : <TriDown />}
+          {change >= 0 ? "+" : ""}
+          {change?.toFixed(2)}%
+        </span>
+      )}
     </div>
+    {sub ? <p className="mt-1 truncate text-[11px] text-text-muted">{sub}</p> : null}
   </div>
 );
 
 const CoinRow = ({ coin, rank, isLoser }) => (
-  <div className="flex items-center justify-between px-4 sm:px-5 py-3 hover:bg-ink/[0.02] transition-colors group">
-    <div className="flex items-center gap-3 min-w-0">
-      <span className="font-mono text-[10px] text-text-muted/50 tabular-nums w-4 text-right flex-shrink-0">
+  // Identity left, price right, change under the price — the same shape the
+  // two tables on this page use, so a reader learns one row and reads all of
+  // them.
+  <div className="group flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-ink/[0.02] sm:px-5">
+    <div className="flex min-w-0 items-center gap-3">
+      <span className="w-4 shrink-0 text-right font-mono text-[11px] tabular-nums text-text-muted">
         {rank}
       </span>
       <img
         src={coin.image}
-        alt={coin.symbol}
-        className="w-7 h-7 rounded-full border border-ink/[0.06] flex-shrink-0"
+        alt=""
+        className="h-7 w-7 shrink-0 rounded-full border border-ink/[0.06]"
         onError={(e) => {
           e.target.style.display = "none";
         }}
       />
-      <div className="min-w-0">
-        <p className="font-mono text-sm text-text-primary group-hover:text-text-primary transition-colors">
+      <div className="min-w-0 leading-tight">
+        <p className="truncate text-[13px] font-medium text-text-primary">
           {coin.symbol.toUpperCase()}
         </p>
-        <p className="text-text-muted text-[10px] hidden sm:block truncate max-w-[140px]">
+        <p className="hidden max-w-[140px] truncate text-[11px] text-text-muted sm:block">
           {coin.name}
         </p>
       </div>
     </div>
-    <div className="text-right flex-shrink-0">
-      <p className="font-mono text-sm text-text-primary tabular-nums">
+    <div className="shrink-0 text-right leading-tight">
+      <p className="font-mono text-[13px] tabular-nums text-text-primary">
         ${coin.current_price?.toLocaleString()}
       </p>
       <p className={`font-mono text-[11px] tabular-nums ${isLoser ? "text-loss" : "text-profit"}`}>
@@ -1004,60 +991,75 @@ const CoinRow = ({ coin, rank, isLoser }) => (
   </div>
 );
 
-const SectorRow = ({ cat, rank, onOpen }) => {
+const SectorRow = ({ cat, rank, maxAbs, onOpen }) => {
   const change = cat.market_cap_change_24h || 0;
+  const up = change >= 0;
+  // A bar that grows from the centre: right for a sector that rose, left for
+  // one that fell, every row on the same scale. Two separate lists could only
+  // be compared by reading the numbers.
+  const width = `${Math.min(50, (Math.abs(change) / maxAbs) * 50)}%`;
   return (
     <button
       type="button"
       onClick={() => onOpen?.(cat)}
-      className="relative flex w-full items-center justify-between py-2 px-2 text-left hover:bg-ink/[0.02] transition-all cursor-pointer group rounded-md overflow-hidden"
+      className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-ink/[0.02] sm:px-5"
     >
-      <div className="relative flex items-center gap-3 min-w-0 flex-1">
-        <span className="font-mono text-[10px] text-text-muted/60 w-4 text-right tabular-nums">
-          {rank}
-        </span>
-        <div className="flex -space-x-1.5 flex-shrink-0">
-          {(cat.top_3_coins || []).map((url, i) => (
+      <span className="w-4 shrink-0 text-right font-mono text-[11px] tabular-nums text-text-muted">
+        {rank}
+      </span>
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <div className="flex shrink-0 -space-x-1.5">
+          {(cat.top_3_coins || []).slice(0, 3).map((url, i) => (
             <img
               key={i}
               src={url}
               alt=""
-              className="w-4 h-4 rounded-full border border-surface-raised bg-surface-raised"
+              className="h-4 w-4 rounded-full border border-surface-raised bg-surface-raised"
               onError={(e) => {
                 e.target.style.display = "none";
               }}
             />
           ))}
         </div>
-        <span className="text-text-primary text-sm truncate group-hover:text-text-primary transition-colors">
-          {cat.name}
-        </span>
+        <span className="truncate text-[13px] text-text-primary">{cat.name}</span>
       </div>
-      <div className="relative flex items-center gap-3 flex-shrink-0">
-        <span className="font-mono text-[10px] text-text-muted tabular-nums hidden sm:inline">
-          {formatLargeNumber(cat.market_cap)}
-        </span>
-        <span
-          className={`font-mono text-xs tabular-nums min-w-[56px] text-right ${change < 0 ? "text-loss" : "text-profit"}`}
-        >
-          {change >= 0 ? "+" : ""}
-          {change?.toFixed(2)}%
-        </span>
-        {/* Nothing said these rows opened anything. A chevron that firms up on
-            hover is the standard "there is more behind this" cue. */}
-        <svg
-          className="h-3.5 w-3.5 shrink-0 text-text-muted/40 transition-colors group-hover:text-text-primary/70"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
+
+      <div className="hidden w-[150px] shrink-0 items-center sm:flex">
+        <div className="relative h-[6px] w-full rounded-full bg-ink/[0.04]">
+          <span className="absolute inset-y-0 left-1/2 w-px bg-ink/[0.10]" />
+          <span
+            className={`absolute top-0 h-full rounded-full ${up ? "bg-positive" : "bg-negative"}`}
+            style={up ? { left: "50%", width } : { right: "50%", width }}
+          />
+        </div>
       </div>
+
+      <span
+        className={`w-[70px] shrink-0 text-right font-mono text-[12.5px] tabular-nums ${
+          up ? "text-profit" : "text-loss"
+        }`}
+      >
+        {up ? "+" : ""}
+        {change.toFixed(2)}%
+      </span>
+      <span className="hidden w-24 shrink-0 text-right font-mono text-[12px] tabular-nums text-text-secondary sm:inline">
+        {formatLargeNumber(cat.market_cap)}
+      </span>
+      <span className="hidden w-24 shrink-0 text-right font-mono text-[12px] tabular-nums text-text-muted sm:inline">
+        {cat.volume_24h ? formatLargeNumber(cat.volume_24h) : "—"}
+      </span>
+      <svg
+        className="hidden h-3.5 w-3.5 shrink-0 text-text-muted/40 transition-colors group-hover:text-text-primary/70 sm:block"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="m9 18 6-6-6-6" />
+      </svg>
     </button>
   );
 };
