@@ -1175,14 +1175,23 @@ def _spark_symbol(pair: str) -> str:
 
 
 def _spark_interval(duration_seconds) -> str:
-    """Pick a kline interval so the call->peak span yields a readable sparkline."""
-    d = float(duration_seconds or 0)
-    if d <= 6 * 3600:
-        return '5m'
-    if d <= 2 * 86400:
+    """Finest Binance interval that still fits the call->peak span in ~80 bars.
+
+    The old version bucketed by span (<=6h, <=2d, <=10d, else daily), which for
+    a two-day call meant 4h bars: THIRTEEN points for a move worth 600%. The
+    line came out as a few straight segments and read as a diagram rather than
+    a price path. Bar count is what governs how a sparkline looks, so pick on
+    bar count.
+    """
+    span = float(duration_seconds or 0)
+    if span <= 0:
         return '1h'
-    if d <= 10 * 86400:
-        return '4h'
+    for interval, seconds in (
+        ('1m', 60), ('5m', 300), ('15m', 900), ('30m', 1800), ('1h', 3600), ('2h', 7200),
+        ('4h', 14400), ('6h', 21600), ('12h', 43200), ('1d', 86400),
+    ):
+        if span / seconds <= SPARK_BARS:
+            return interval
     return '1d'
 
 
@@ -1195,18 +1204,42 @@ def _to_ms(ts):
         return None
 
 
-def _downsample(arr, n=24):
+# Points kept per sparkline, and the bar budget the interval picker aims for.
+# 40 points across a multi-day call is dense enough to show the shape of the
+# move; 24 was leaving long straight runs.
+SPARK_POINTS = 40
+SPARK_BARS = 80
+
+
+def _downsample(arr, n=SPARK_POINTS):
+    """Thin a series to n points while KEEPING its maximum.
+
+    Plain stride sampling can drop the bar that holds the peak, which is the one
+    point the row is actually about: the line would stop short of the gain
+    printed beside it. The sample nearest the true peak carries the peak value.
+    """
     if not arr:
         return None
-    if len(arr) <= n:
-        return [round(float(x), 10) for x in arr]
-    step = len(arr) / n
-    return [round(float(arr[int(i * step)]), 10) for i in range(n)]
+    vals = [float(x) for x in arr]
+    if len(vals) <= n:
+        return [round(v, 10) for v in vals]
+    step = len(vals) / n
+    out = [vals[int(i * step)] for i in range(n)]
+    peak_at = max(range(len(vals)), key=lambda i: vals[i])
+    slot = min(n - 1, int(peak_at / step))
+    out[slot] = max(out[slot], vals[peak_at])
+    return [round(v, 10) for v in out]
 
 
 async def _fetch_sparkline(client, symbol, start_ms, end_ms, interval):
-    """Closing-price series from Binance (futures, then spot). Returns ~24 points or None."""
-    params = {"symbol": symbol, "interval": interval, "startTime": int(start_ms), "limit": 80}
+    """The call's path to its peak, from Binance (futures, then spot).
+
+    Each point is a bar's HIGH, not its close. gain_pct is measured on the peak
+    — an intraday high — so a line of closes topped out far below the number
+    printed next to it: AKE showed +606.85% beside a line that rose 185%. The
+    high series ends exactly at the peak the row claims.
+    """
+    params = {"symbol": symbol, "interval": interval, "startTime": int(start_ms), "limit": 100}
     if end_ms:
         params["endTime"] = int(end_ms)
     for base in ("https://fapi.binance.com/fapi/v1/klines",
@@ -1216,7 +1249,7 @@ async def _fetch_sparkline(client, symbol, start_ms, end_ms, interval):
             if r.status_code == 200:
                 data = r.json()
                 if isinstance(data, list) and len(data) >= 2:
-                    return _downsample([c[4] for c in data], 24)
+                    return _downsample([c[2] for c in data])
         except Exception:
             continue
     return None
@@ -1243,7 +1276,15 @@ async def _enrich_sparklines(items):
                 _spark_interval(item.get("duration_seconds")),
             )
             if spark:
-                item["sparkline"] = spark
+                # Start the line at the call's own entry. Without it the path
+                # starts at the first bar's high, which on a four-minute TP hit
+                # can sit ABOVE the target — a falling line beside a green gain.
+                entry = item.get("entry")
+                try:
+                    entry = float(entry) if entry else None
+                except (TypeError, ValueError):
+                    entry = None
+                item["sparkline"] = ([round(entry, 10)] + spark) if entry else spark
         except Exception:
             pass
 
@@ -1272,11 +1313,11 @@ async def get_top_performers(
     if date_from and date_to:
         actual_from = date_from
         actual_to = date_to
-        cache_key = f"lq:signals:top-performers:v11:custom:{date_from}:{date_to}"
+        cache_key = f"lq:signals:top-performers:v13:custom:{date_from}:{date_to}"
     elif date_from:
         actual_from = date_from
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:v11:from:{date_from}"
+        cache_key = f"lq:signals:top-performers:v13:from:{date_from}"
     else:
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
         actual_to = None
@@ -1287,7 +1328,7 @@ async def get_top_performers(
         # 00:00:37, squarely inside that gap -- which is how $RAYSOL was named
         # standout call on two consecutive daily recaps with the same +69%,
         # having dropped out of the window entirely on the second.
-        cache_key = f"lq:signals:top-performers:v11:{days}:{actual_from}"
+        cache_key = f"lq:signals:top-performers:v13:{days}:{actual_from}"
 
     # The stored board always holds this many rows; `limit` only trims the copy
     # handed back. Matches the Query ceiling above -- raise both together.
@@ -1383,6 +1424,22 @@ async def get_top_performers(
                 ARRAY_AGG(signal_id ORDER BY signal_time ASC) as all_signal_ids
             FROM signal_gains
             GROUP BY pair
+        ),
+        -- Highest published target reached on this pair, across ALL its calls.
+        -- The UI used to read the level off the peak call's chart filename, and
+        -- the peak call is not always the one that got furthest: TAKE was called
+        -- three times, the first reached TP3 and the other two reached TP4, and
+        -- because all three shared one peak price the row reported TP3.
+        pair_tp AS (
+            SELECT
+                sg.pair,
+                MAX(CASE su.update_type
+                        WHEN 'tp4' THEN 4 WHEN 'tp3' THEN 3
+                        WHEN 'tp2' THEN 2 WHEN 'tp1' THEN 1 ELSE 0 END) as max_tp
+            FROM signal_gains sg
+            JOIN signal_updates su ON su.signal_id = sg.signal_id
+            WHERE su.update_type IN ('tp1','tp2','tp3','tp4')
+            GROUP BY sg.pair
         )
         SELECT
             pa.best_peak_signal_id as signal_id,
@@ -1407,9 +1464,11 @@ async def get_top_performers(
             -- The peak call's OWN entry. gain_pct is measured from the first
             -- call, but realized_pct below is a TP gain on this call and must be
             -- measured against this call's entry or the two numbers disagree.
-            sig.entry as best_signal_entry
+            sig.entry as best_signal_entry,
+            pt.max_tp
         FROM pair_agg pa
         JOIN signals sig ON sig.signal_id = pa.best_peak_signal_id
+        LEFT JOIN pair_tp pt ON pt.pair = pa.pair
         WHERE pa.best_peak_price > pa.first_entry
           AND pa.first_entry > 0
         ORDER BY gain_pct DESC
@@ -1540,6 +1599,10 @@ async def get_top_performers(
                 d["latest_chart_url"] = chart_path_to_url(latest_path)
                 d["pnl_leverage"] = int(lev) if lev else None
                 d["realized_pct"] = realized_pct
+                # Best published target reached on the pair (1-4), across every
+                # call in the window.
+                max_tp = r[20] if len(r) > 20 else None
+                d["max_tp"] = int(max_tp) if max_tp else None
                 # Chronological ends of the run, so a caller can show the call
                 # that opened it beside the one that closed it.
                 d["first_signal_id"] = r[17] if len(r) > 17 else None

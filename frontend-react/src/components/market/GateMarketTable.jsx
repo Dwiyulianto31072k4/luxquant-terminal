@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import CoinLogo from "../CoinLogo";
+import { RangeDumbbell, RowSpark, fmtPrice } from "./rowPrimitives";
+import Segmented from "../ui/Segmented";
 
 /**
  * The market table that anchors the Home page, in the shape Gate's /price uses:
@@ -16,14 +18,6 @@ import CoinLogo from "../CoinLogo";
 // SPA fallback answers with index.html and the JSON parse dies on "<!DOCTYPE".
 // Same relative base OverviewPage uses.
 const API_BASE = "/api/v1";
-
-const fmtPrice = (n) => {
-  if (n == null) return "—";
-  if (n >= 1000) return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
-  if (n >= 1) return n.toFixed(3);
-  if (n >= 0.01) return n.toFixed(5);
-  return n.toPrecision(4);
-};
 
 const fmtCompact = (n) => {
   if (!n) return "—";
@@ -47,57 +41,6 @@ const QUICK_FILTERS = [
   { id: "losers", label: "Losers" },
   { id: "volume", label: "Top Volume" },
 ];
-
-/** 24h price path. Flat/short series degrade to a centre line rather than NaN. */
-const RowSpark = ({ points, up, w = 88, h = 26 }) => {
-  const path = useMemo(() => {
-    if (!Array.isArray(points) || points.length < 2) return null;
-    const min = Math.min(...points);
-    const max = Math.max(...points);
-    const span = max - min;
-    const stepX = w / (points.length - 1);
-    return points
-      .map((p, i) => {
-        const y = span === 0 ? h / 2 : h - ((p - min) / span) * (h - 2) - 1;
-        return `${i === 0 ? "M" : "L"}${(i * stepX).toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
-  }, [points, w, h]);
-
-  if (!path) {
-    return <div className="h-[26px] w-[88px]" aria-hidden="true" />;
-  }
-  const stroke = up ? "rgb(var(--pos))" : "rgb(var(--neg))";
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible" aria-hidden="true">
-      <path d={path} fill="none" stroke={stroke} strokeWidth="1.25" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-};
-
-/** Where the last price sits between the 24h low and high. */
-const RangeDumbbell = ({ low, high, last }) => {
-  if (low == null || high == null || last == null || high <= low) {
-    return <span className="text-[11px] text-text-muted">—</span>;
-  }
-  const pct = Math.min(100, Math.max(0, ((last - low) / (high - low)) * 100));
-  return (
-    <div className="w-[150px]">
-      <div className="relative h-[10px]">
-        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 border-t border-dashed border-ink/25" />
-        <div
-          className="absolute top-1/2 h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-ink/40 bg-surface-raised"
-          style={{ left: `${pct}%` }}
-          title={`${pct.toFixed(0)}% of the 24h range`}
-        />
-      </div>
-      <div className="mt-1 flex justify-between font-mono text-[10px] tabular-nums text-text-muted">
-        <span>{fmtPrice(low)}</span>
-        <span>{fmtPrice(high)}</span>
-      </div>
-    </div>
-  );
-};
 
 const SortHead = ({ id, label, sort, setSort, align = "right" }) => {
   const active = sort.key === id;
@@ -217,36 +160,19 @@ const GateMarketTable = ({ pageSize = 10 }) => {
     <div className="rounded-xl border border-ink/[0.06] bg-surface-raised">
       {/* Filter chips + change-window selector */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-3">
-        <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
-          {QUICK_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              className={`whitespace-nowrap rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
-                filter === f.id
-                  ? "bg-accent text-accent-fg"
-                  : "bg-ink/[0.04] text-text-secondary hover:bg-ink/[0.08]"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1 rounded-lg bg-ink/[0.04] p-0.5">
-          {Object.keys(CHANGE_FIELDS).map((w) => (
-            <button
-              key={w}
-              type="button"
-              onClick={() => setChangeWindow(w)}
-              className={`rounded-md px-2.5 py-1 font-mono text-[11px] transition-colors ${
-                changeWindow === w ? "bg-surface-raised text-text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"
-              }`}
-            >
-              {w}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          ariaLabel="Quick filter"
+          value={filter}
+          onChange={setFilter}
+          options={QUICK_FILTERS.map((f) => ({ value: f.id, label: f.label }))}
+        />
+        <Segmented
+          ariaLabel="Change window"
+          mono
+          value={changeWindow}
+          onChange={setChangeWindow}
+          options={Object.keys(CHANGE_FIELDS).map((w) => ({ value: w, label: w }))}
+        />
       </div>
 
       {/* The table scrolls inside itself so the page body never scrolls sideways */}

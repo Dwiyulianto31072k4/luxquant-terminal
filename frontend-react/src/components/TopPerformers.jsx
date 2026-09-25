@@ -7,7 +7,8 @@ import SignalJourneyExtended from "./SignalJourneyExtended";
 import SignalModal from "./SignalModal";
 import { ShimmerStyles } from "./ui/Loaders";
 import { getActiveTheme, getTradingViewTheme, subscribeTheme } from "../utils/themeColors";
-import GateSelect from "./ui/GateSelect";
+import { RangeDumbbell, RowSpark } from "./market/rowPrimitives";
+import Segmented from "./ui/Segmented";
 import { buildProofJourneyEvents } from "../utils/journeyEvents";
 import { useAuth } from "../context/AuthContext";
 import { isEntitled } from "../utils/entitlement";
@@ -16,6 +17,69 @@ import { watchlistApi } from "../services/watchlistApi";
 import { requestTelegramWriteAccess } from "../utils/telegramWriteAccess";
 
 const API_BASE = "/api/v1";
+
+/** Highest published target the call reached, 1-4, or null when unknown.
+ *
+ * No new API field: the PnL card is rendered at the TP that fired, so its
+ * filename carries the level (..._tp4_20260918_172929.png). deriveChartWithCard
+ * below already reads the same marker. */
+const tpLevel = (item) => {
+  // max_tp is the best level across EVERY call on the pair. The chart filename
+  // only knows the peak call's level, which understates a pair whose later
+  // calls got further — TAKE showed TP3 while two of its three calls hit TP4.
+  const best = Number(item?.max_tp);
+  if (best >= 1 && best <= 4) return best;
+  // Fastest Hits rows are a different shape: the level arrives as "TP 2".
+  const lvl = /tp\s*(\d)/i.exec(item?.tp_level || "");
+  if (lvl) {
+    const n = Number(lvl[1]);
+    if (n >= 1 && n <= 4) return n;
+  }
+  const m = /_tp(\d)_/i.exec(item?.latest_chart_url || "");
+  const n = m ? Number(m[1]) : NaN;
+  return n >= 1 && n <= 4 ? n : null;
+};
+
+/** TP1-TP4 as four rungs, filled to the one that was reached. */
+const TargetLadder = ({ level }) => {
+  if (!level) return <span className="text-[11px] text-text-muted">—</span>;
+  return (
+    <div
+      className="flex items-center gap-1.5"
+      title={`Reached TP${level} of the 4 published targets`}
+    >
+      <div className="flex items-center gap-[3px]">
+        {[1, 2, 3, 4].map((n) => (
+          <span
+            key={n}
+            className={`h-[9px] w-[5px] rounded-[1px] ${
+              n <= level ? "bg-positive" : "bg-ink/[0.12]"
+            }`}
+          />
+        ))}
+      </div>
+      <span className="font-mono text-[11px] tabular-nums text-text-secondary">TP{level}</span>
+    </div>
+  );
+};
+
+/** Decorative separator between two facts. Screen readers skip it. */
+const Sep = () => (
+  <span className="px-[3px] text-text-muted/70" aria-hidden="true">
+    ·
+  </span>
+);
+
+/** What a screen reader announces for a row, as one sentence. */
+const rowLabel = (item, level, symbol) => {
+  const parts = [symbol];
+  const day = callDay(item.signal_time);
+  if (day) parts.push(`called ${day}`);
+  if ((item.signal_count || 1) > 1) parts.push(`first of ${item.signal_count} calls`);
+  if (level) parts.push(`reached TP${level}`);
+  parts.push(`peak gain ${(item.gain_pct || 0) >= 0 ? "plus " : "minus "}${Math.abs(item.gain_pct || 0).toFixed(2)} percent`);
+  return `${parts.join(", ")}. Open call proof.`;
+};
 
 const deriveChartWithCard = (rawUrl) => {
   if (!rawUrl || typeof rawUrl !== "string") return null;
@@ -115,6 +179,7 @@ const TopPerformers = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
   useEffect(() => {
     if (activeFilter === "custom") return;
     const iv = setInterval(fetchData, 60000);
@@ -216,31 +281,29 @@ const TopPerformers = () => {
     return (
       <div className="relative">
         <ShimmerStyles />
-        {/* Gate-style soft card skeleton — same shell as loaded state */}
-        <div className="lqsk-group relative overflow-hidden rounded-2xl border border-ink/[0.05] bg-surface-raised p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="h-6 w-40 rounded-md bg-ink/[0.05]" />
-              <div className="mt-2 h-3 w-56 rounded bg-ink/[0.03]" />
+        {/* Same shell as the loaded state: header outside, table card below. */}
+        <div className="lqsk-group">
+          <div className="h-5 w-40 rounded-md bg-ink/[0.05]" />
+          <div className="mt-2 h-3 w-64 rounded bg-ink/[0.03]" />
+          <div className="mt-2 h-2.5 w-48 rounded bg-ink/[0.03]" />
+          <div className="mt-5 overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised lg:mt-7">
+            <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-3">
+              <div className="flex gap-1.5">
+                {[24, 20, 22, 18].map((w, i) => (
+                  <div key={i} className="h-6 rounded-full bg-ink/[0.04]" style={{ width: `${w * 4}px` }} />
+                ))}
+              </div>
+              <div className="h-7 w-44 rounded-lg bg-ink/[0.04]" />
             </div>
-            <div className="flex gap-2">
-              <div className="h-8 w-24 rounded-lg bg-ink/[0.04]" />
-              <div className="h-8 w-20 rounded-lg bg-ink/[0.04]" />
-            </div>
-          </div>
-          <div className="mt-5 h-px bg-ink/[0.06]" />
-          <div className="mt-1 divide-y divide-ink/[0.04]">
             {[...Array(8)].map((_, j) => (
-              <div key={j} className="flex items-center gap-3 py-3.5">
-                <div className="h-3.5 w-5 shrink-0 rounded bg-ink/[0.04]" />
-                <div className="h-8 w-8 shrink-0 rounded-full bg-ink/[0.05]" />
-                <div className="min-w-0 flex-1">
-                  <div className="h-3.5 w-24 rounded bg-ink/[0.05]" />
-                  <div className="mt-1.5 h-2.5 w-20 rounded bg-ink/[0.03]" />
-                </div>
-                <div className="hidden h-4 w-16 rounded bg-ink/[0.03] sm:block" />
-                <div className="hidden h-5 w-20 rounded bg-ink/[0.03] md:block" />
-                <div className="h-4 w-14 shrink-0 rounded bg-ink/[0.05]" />
+              <div key={j} className="flex items-center gap-3 border-b border-ink/[0.04] px-4 py-3 last:border-0">
+                <div className="h-3.5 w-4 shrink-0 rounded bg-ink/[0.04]" />
+                <div className="h-6 w-6 shrink-0 rounded-full bg-ink/[0.05]" />
+                <div className="h-3.5 w-24 rounded bg-ink/[0.05]" />
+                <div className="ml-auto hidden h-3.5 w-20 rounded bg-ink/[0.03] sm:block" />
+                <div className="hidden h-6 w-[88px] rounded bg-ink/[0.03] sm:block" />
+                <div className="hidden h-6 w-[140px] rounded bg-ink/[0.03] md:block" />
+                <div className="h-3.5 w-16 shrink-0 rounded bg-ink/[0.05]" />
               </div>
             ))}
           </div>
@@ -257,59 +320,72 @@ const TopPerformers = () => {
   );
 
   const resultCount = displayed.length;
+  // Fastest Hits measures a different event: the first target, not the peak.
+  // Its columns carry the same numbers about a different thing, so they say so.
+  const fastest = category === "fastest";
 
   return (
     <div className="relative">
-      {/* Gate-inspired soft market card: airy padding, quiet border, no chrome */}
-      <div className="relative overflow-hidden rounded-2xl border border-ink/[0.05] bg-surface-raised p-5 sm:p-6">
-        {/* Header + controls in one row (Gate Koin Hot / Gainer pattern) */}
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="font-display text-[17px] font-semibold tracking-tight text-text-primary sm:text-xl">
-                LuxQuant Calls
-              </h2>
-              {resultCount > 0 && (
-                <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-text-muted">
-                  {resultCount}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12.5px] leading-snug text-text-muted">
-              <span>Resolved signal leaderboard · open a row for call proof</span>
-              {periodRange.from ? (
-                <span className="font-mono text-[11px] tabular-nums text-text-muted/75">
-                  · {periodRange.from}
-                  {periodRange.to ? ` – ${periodRange.to}` : ""}
-                </span>
-              ) : null}
-            </p>
-          </div>
-
-          {data && data.top_gainers?.length > 0 && (
-            <div className="flex shrink-0 items-center gap-2">
-              <GateSelect
-                label="View"
-                value={category}
-                onChange={setCategory}
-                options={CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
-              />
-              <GateSelect
-                label="Range"
-                value={activeFilter}
-                onChange={handlePresetClick}
-                options={presets.map(({ key, label, short }) => ({
-                  value: key,
-                  label: short || label,
-                  hint: short && label !== short ? label : undefined,
-                }))}
-              />
-            </div>
+      {/* Section header, outside the card — the same shape Crypto Market Data
+          uses further down the page, so Home reads as one table stack instead
+          of one card with its title inside and one with its title above. */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h2 className="font-display text-lg font-semibold leading-none tracking-tight text-text-primary sm:text-xl">
+            LuxQuant Calls
+          </h2>
+          {resultCount > 0 && (
+            <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-text-muted">
+              {resultCount}
+            </span>
           )}
         </div>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">
+          Resolved signal leaderboard. Open a row for the call proof.
+          {data?.total_tp_hits ? (
+            <>
+              {" "}
+              <span className="text-text-secondary">
+                {data.total_tp_hits.toLocaleString("en-US")} targets hit across{" "}
+                {data.unique_pairs?.toLocaleString("en-US")} pairs in this window.
+              </span>
+            </>
+          ) : null}
+        </p>
+        {periodRange.from ? (
+          <p className="mt-1 font-mono text-[11.5px] tabular-nums text-text-muted/75">
+            {periodRange.from}
+            {periodRange.to ? ` – ${periodRange.to}` : ""}
+          </p>
+        ) : null}
+      </div>
 
-        {data && data.top_gainers?.length > 0 && showCustom && (
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-3 sm:flex sm:flex-wrap sm:items-end">
+      {/* Same gap the page puts between the Crypto Market Data header and its
+          table (space-y-5 / lg:space-y-7), so both sections sit alike. */}
+      <div className="mt-5 rounded-xl border border-ink/[0.06] bg-surface-raised lg:mt-7">
+        {/* View chips + range selector, exactly the market table's controls */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-3">
+          <Segmented
+            ariaLabel="What to show"
+            value={category}
+            onChange={setCategory}
+            options={CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
+          />
+          <Segmented
+            ariaLabel="Time range"
+            mono
+            value={activeFilter}
+            onChange={handlePresetClick}
+            options={presets.map(({ key, short, label }) => ({
+              value: key,
+              label: short || label,
+              hint: short && label !== short ? label : undefined,
+            }))}
+          />
+        </div>
+
+        {showCustom && (
+          <div className="grid grid-cols-2 gap-2 border-b border-ink/[0.06] px-4 py-3 sm:flex sm:flex-wrap sm:items-end">
             <label className="flex min-w-0 flex-col gap-1">
               <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
                 {t("top.from")}
@@ -344,31 +420,25 @@ const TopPerformers = () => {
         )}
 
         {data && (!data.top_gainers || data.top_gainers.length === 0) && (
-          <div className="mt-6 border-t border-ink/[0.05] py-14 text-center">
+          <div className="py-14 text-center">
             <p className="text-[13px] text-text-muted">{t("top.no_tp")}</p>
           </div>
         )}
 
         {data && data.top_gainers?.length > 0 && (
-          <div className={`mt-5 ${loading ? "opacity-50 transition-opacity" : ""}`}>
-            {/* Quiet proof cue */}
+          <div className={loading ? "opacity-50 transition-opacity" : ""}>
             {showProofHint && !modalOpen && (
               <div
                 role="status"
                 aria-live="polite"
-                className={`mb-3 flex items-center gap-2.5 overflow-hidden rounded-xl bg-ink/[0.03] px-3 py-2 transition-all duration-400 ${
+                className={`flex items-center gap-2.5 overflow-hidden border-b border-ink/[0.06] bg-ink/[0.02] px-4 transition-all duration-400 ${
                   isProofHintClosing
-                    ? "mb-0 max-h-0 opacity-0 py-0"
-                    : "max-h-20 opacity-100 animate-[proofHintIn_.28s_ease-out]"
+                    ? "max-h-0 py-0 opacity-0"
+                    : "max-h-20 py-2 opacity-100 animate-[proofHintIn_.28s_ease-out]"
                 }`}
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-ink/[0.05] text-text-muted">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="h-3.5 w-3.5"
-                    aria-hidden="true"
-                  >
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
                     <path d="M12 4.25c-5.1 0-9.24 3.36-10.85 7.3a1.2 1.2 0 0 0 0 .9c1.61 3.94 5.75 7.3 10.85 7.3s9.24-3.36 10.85-7.3a1.2 1.2 0 0 0 0-.9C21.24 7.61 17.1 4.25 12 4.25Zm0 11.2a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5Zm0-2.05a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z" />
                   </svg>
                 </span>
@@ -379,31 +449,127 @@ const TopPerformers = () => {
               </div>
             )}
 
-            {/* Column headers — SignalsTable-style single band */}
-            <div className="hidden border-b border-ink/[0.06] py-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_6.75rem_minmax(4.5rem,1fr)_5.75rem_6.5rem_1.25rem] sm:items-center sm:gap-3">
-              <span className="text-center text-[11px] font-medium text-text-muted">#</span>
-              <span className="text-[11px] font-medium text-text-muted">Token</span>
-              <span className="text-right text-[11px] font-medium text-text-muted">
-                {t("top.first_entry") || "First Entry"}
-              </span>
-              <span className="text-center text-[11px] font-medium text-text-muted">Path</span>
-              <span className="text-right text-[11px] font-medium text-text-muted">
-                {t("top.duration") || "Duration"}
-              </span>
-              <span className="text-right text-[11px] font-medium text-text-muted">Gain</span>
-              <span />
+            {/* Desktop table — the market table's shape, with the call's own
+                columns: where it was called, the path it took, and how far the
+                coin still sits inside that entry-to-peak range today. */}
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full min-w-[920px] border-collapse">
+                <thead>
+                  <tr className="border-b border-ink/[0.06] text-text-muted">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium">#</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium">Token</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium">Path</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium">
+                      {fastest ? "Entry → Target" : "Entry → Peak"}
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-[11px] font-medium">
+                      {fastest ? "Time to hit" : "Time to peak"}
+                    </th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-medium">Targets hit</th>
+                    <th className="px-3 py-2.5 text-right text-[11px] font-medium">
+                      {fastest ? "Gain at TP" : "Peak Gain"}
+                    </th>
+                    <th className="w-6 px-3 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayed.map((item, idx) => {
+                    const rank = idx + 1;
+                    const gainUp = (item.gain_pct || 0) >= 0;
+                    const multi = (item.signal_count || 1) > 1;
+                    return (
+                      <tr
+                        key={`${item.signal_id || item.pair}-${idx}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={rowLabel(item, tpLevel(item), coinSymbol(item.pair))}
+                        onClick={() => handleItemClick(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleItemClick(item);
+                          }
+                        }}
+                        style={{ animationDelay: `${Math.min(idx * 16, 160)}ms` }}
+                        className="tp-row group cursor-pointer border-b border-ink/[0.04] transition-colors last:border-0 hover:bg-ink/[0.02] focus-visible:bg-ink/[0.03] focus-visible:outline-none"
+                      >
+                        <td className="px-4 py-3 font-mono text-[12px] tabular-nums text-text-muted">
+                          {rank}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <CoinLogo pair={cleanPair(item.pair)} size={24} />
+                            <div className="leading-tight">
+                              <div className="text-[13px] font-medium text-text-primary">
+                                {coinSymbol(item.pair)}
+                                <span className="text-text-muted">/USDT</span>
+                              </div>
+                              <div className="text-[10.5px] font-normal leading-tight text-text-muted">
+                                {callDay(item.signal_time)}
+                                {/* Nothing for a single call: a table should not
+                                    spell out its own default on every row. */}
+                                {multi ? (
+                                  <>
+                                    <Sep />
+                                    {`1st of ${item.signal_count} calls`}
+                                  </>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <SinceCallSpark item={item} />
+                        </td>
+                        <td className="px-3 py-3">
+                          <RangeDumbbell low={item.entry} high={item.tp_price} width={140} variant="span" />
+                        </td>
+                        <td className="px-3 py-3 text-right font-mono text-[12px] tabular-nums text-text-muted">
+                          {item.duration_display}
+                        </td>
+                        <td className="px-3 py-3">
+                          <TargetLadder level={tpLevel(item)} />
+                        </td>
+                        <td
+                          className={`px-3 py-3 text-right font-mono text-[13px] tabular-nums ${
+                            gainUp ? "text-profit" : "text-loss"
+                          }`}
+                        >
+                          {gainUp ? "+" : ""}
+                          {formatGainDisplay(item.gain_pct)}
+                        </td>
+                        <td className="px-3 py-3 text-right text-text-muted/35 transition-colors group-hover:text-text-muted">
+                          <svg
+                            className="ml-auto h-3.5 w-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
-            <div className="divide-y divide-ink/[0.04]">
+            {/* Phone: a leaderboard, not an analysis. One identity on the
+                left, one number on the right, and nothing else competing for
+                attention — the path, the range and the entry are all one tap
+                away in the call proof, at a size where they can be read. */}
+            <div className="divide-y divide-ink/[0.04] sm:hidden">
               {displayed.map((item, idx) => {
-                const rank = idx + 1;
                 const gainUp = (item.gain_pct || 0) >= 0;
-                const multi = (item.signal_count || 1) > 1;
+                const level = tpLevel(item);
                 return (
                   <div
-                    key={`${item.signal_id || item.pair}-${idx}`}
+                    key={`${item.signal_id || item.pair}-m-${idx}`}
                     role="button"
                     tabIndex={0}
+                    aria-label={rowLabel(item, level, coinSymbol(item.pair))}
                     onClick={() => handleItemClick(item)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -412,94 +578,32 @@ const TopPerformers = () => {
                       }
                     }}
                     style={{ animationDelay: `${Math.min(idx * 16, 160)}ms` }}
-                    className="tp-row group -mx-2 cursor-pointer px-2 transition-colors hover:bg-ink/[0.028] active:bg-ink/[0.04] focus-visible:bg-ink/[0.03] focus-visible:outline-none sm:-mx-3 sm:px-3"
+                    className="tp-row flex items-center gap-3 px-4 py-3 transition-colors active:bg-ink/[0.04]"
                   >
-                    {/* Desktop — strict single line, no stacked subtext */}
-                    <div className="hidden h-12 items-center gap-3 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_6.75rem_minmax(4.5rem,1fr)_5.75rem_6.5rem_1.25rem]">
-                      <div className="flex justify-center">{rankBadge(rank)}</div>
-
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <CoinLogo pair={cleanPair(item.pair)} size={26} />
-                        <span className="truncate text-[13px] font-semibold tracking-tight text-text-primary">
-                          {coinSymbol(item.pair)}
-                        </span>
-                        <span className="shrink-0 text-[11px] text-text-muted">USDT</span>
-                        {multi && (
-                          <span className="shrink-0 rounded bg-ink/[0.05] px-1 py-px font-mono text-[10px] tabular-nums text-text-muted">
-                            ×{item.signal_count}
-                          </span>
-                        )}
+                    {rankBadge(idx + 1)}
+                    <CoinLogo pair={cleanPair(item.pair)} size={28} />
+                    <div className="min-w-0 flex-1 leading-tight">
+                      <div className="truncate text-[14px] font-semibold text-text-primary">
+                        {coinSymbol(item.pair)}
                       </div>
-
-                      <div className="whitespace-nowrap text-right font-mono text-[13px] tabular-nums text-text-primary">
-                        ${formatPrice(item.entry)}
-                      </div>
-
-                      <div className="flex justify-center px-1">
-                        <div className="w-full max-w-[110px]">
-                          <SinceCallSpark item={item} />
-                        </div>
-                      </div>
-
-                      <div className="whitespace-nowrap text-right font-mono text-[12px] tabular-nums text-text-muted">
-                        {item.duration_display}
-                      </div>
-
-                      <div className="whitespace-nowrap text-right">
-                        <span
-                          className={`font-mono text-[13px] font-medium tabular-nums ${
-                            gainUp ? "text-profit" : "text-loss"
-                          }`}
-                        >
-                          {gainUp ? "+" : ""}
-                          {formatGainDisplay(item.gain_pct)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-end text-text-muted/35 transition-colors group-hover:text-text-muted">
-                        <svg
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.75}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
+                      {/* One sentence, the proof first: "Hit TP4 on 18 Sept".
+                          It survives a 320px screen with the longest symbol on
+                          the board, which the "Called 18 Sept, hit TP4" order
+                          did not — that one truncated away the TP. */}
+                      <div className="truncate text-[11px] font-normal text-text-muted">
+                        {level
+                          ? `Hit TP${level} on ${callDay(item.signal_time)}`
+                          : `Called ${callDay(item.signal_time)}`}
                       </div>
                     </div>
-
-                    {/* Mobile — one line only: rank · logo · token · spark · gain */}
-                    <div className="flex h-12 items-center gap-2 sm:hidden">
-                      {rankBadge(rank)}
-                      <CoinLogo pair={cleanPair(item.pair)} size={26} />
-                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                        <span className="truncate text-[13.5px] font-semibold text-text-primary">
-                          {coinSymbol(item.pair)}
-                        </span>
-                        {multi && (
-                          <span className="shrink-0 rounded bg-ink/[0.05] px-1 py-px font-mono text-[10px] tabular-nums text-text-muted">
-                            ×{item.signal_count}
-                          </span>
-                        )}
-                      </div>
-                      <div className="w-[44px] shrink-0 opacity-80">
-                        <SinceCallSpark item={item} compact />
-                      </div>
-                      <span
-                        className={`w-[4.4rem] shrink-0 text-right font-mono text-[13px] font-medium tabular-nums ${
-                          gainUp ? "text-profit" : "text-loss"
-                        }`}
-                      >
-                        {gainUp ? "+" : ""}
-                        {formatGainDisplay(item.gain_pct)}
-                      </span>
-                    </div>
+                    <span
+                      className={`shrink-0 font-mono text-[14px] font-medium tabular-nums ${
+                        gainUp ? "text-profit" : "text-loss"
+                      }`}
+                    >
+                      {gainUp ? "+" : ""}
+                      {formatGainDisplay(item.gain_pct)}
+                    </span>
                   </div>
                 );
               })}
@@ -512,8 +616,13 @@ const TopPerformers = () => {
             )}
 
             {displayed.length > 0 && (
-              <div className="mt-1 flex items-center justify-between gap-3 border-t border-ink/[0.05] pt-3">
-                <p className="text-[11px] text-text-muted">Tap a row to open call proof</p>
+              <div className="flex items-center justify-between gap-3 border-t border-ink/[0.06] px-4 py-3">
+                <p className="text-[11px] text-text-muted">
+                  Tap a row to open call proof
+                  <span className="hidden sm:inline">
+                    {" · targets are the published TP levels for that call"}
+                  </span>
+                </p>
                 <p className="font-mono text-[11px] tabular-nums text-text-muted">
                   {resultCount} listed
                 </p>
@@ -556,60 +665,10 @@ const TopPerformers = () => {
   );
 };
 
-// === SPARK — mini price path (call -> peak) line+area, MEXC "24H Market" analog ===
-const Spark = ({ data, up = true, compact = false }) => {
-  const height = compact ? 20 : 28;
-  const pad = compact ? 2 : 3;
-  if (!Array.isArray(data) || data.length < 2) {
-    return (
-      <div className={`flex w-full items-center ${compact ? "h-5" : "h-7"}`}>
-        <span className="h-px w-full bg-ink/[0.06]" />
-      </div>
-    );
-  }
-  const w = 100,
-    h = height;
-  const min = Math.min(...data),
-    max = Math.max(...data);
-  const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = pad + (h - pad * 2) - ((v - min) / range) * (h - pad * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  const line = pts.join(" ");
-  const area = `0,${h} ${line} ${w},${h}`;
-  const col = up ? "#4ade80" : "#f87171";
-  const gid = `sg${Math.round((min + max + data.length) * 1000) % 100000}`;
-  return (
-    <svg
-      viewBox={`0 0 ${w} ${h}`}
-      className={`${compact ? "h-5" : "h-7"} w-full`}
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={col} stopOpacity="0.22" />
-          <stop offset="1" stopColor={col} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon points={area} fill={`url(#${gid})`} />
-      <polyline
-        points={line}
-        fill="none"
-        stroke={col}
-        strokeWidth={compact ? "1.25" : "1.5"}
-        vectorEffect="non-scaling-stroke"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-};
-
-// === Client-side sparkline fetch (call -> peak) — uses backend `sparkline` if
-// present, else pulls Binance (futures/spot) then Bybit klines directly. ===
+// === SPARK — the call\'s price path, call -> peak ===
+// Drawn by the shared RowSpark so this table and Crypto Market Data agree on
+// what a price line looks like. The series is closing prices, so it can end
+// below the peak in the Gain column: the peak is an intraday high.
 const _sparkCache = {};
 const sparkSymbol = (p) =>
   (p || "")
@@ -617,15 +676,37 @@ const sparkSymbol = (p) =>
     .replace(/USDT$/i, "")
     .replace(/[^A-Za-z0-9]/g, "")
     .toUpperCase() + "USDT";
-const _spBin = (sec) =>
-  sec <= 6 * 3600 ? "5m" : sec <= 2 * 86400 ? "1h" : sec <= 10 * 86400 ? "4h" : "1d";
-const _spBybit = (sec) =>
-  sec <= 6 * 3600 ? "5" : sec <= 2 * 86400 ? "60" : sec <= 10 * 86400 ? "240" : "D";
-const _dsp = (arr, n = 24) => {
+// Mirrors _spark_interval / SPARK_POINTS in backend/app/api/routes/signals.py:
+// pick the finest interval that fits the span in ~80 bars, keep 40 points.
+const SPARK_POINTS = 40;
+const _spIntervals = [
+  ["1m", 60, "1"],
+  ["5m", 300, "5"],
+  ["15m", 900, "15"],
+  ["30m", 1800, "30"],
+  ["1h", 3600, "60"],
+  ["2h", 7200, "120"],
+  ["4h", 14400, "240"],
+  ["6h", 21600, "360"],
+  ["12h", 43200, "720"],
+  ["1d", 86400, "D"],
+];
+const _spPick = (sec) => _spIntervals.find(([, s]) => sec / s <= 80) || _spIntervals[_spIntervals.length - 1];
+const _spBin = (sec) => _spPick(sec)[0];
+const _spBybit = (sec) => _spPick(sec)[2];
+// Thin to n points but KEEP the maximum: the peak bar is the one the row is
+// about, and stride sampling can drop it, leaving the line short of the gain
+// printed beside it. Mirrors _downsample in the backend.
+const _dsp = (arr, n = SPARK_POINTS) => {
   if (!arr || arr.length < 2) return null;
   if (arr.length <= n) return arr;
   const step = arr.length / n;
-  return Array.from({ length: n }, (_, i) => arr[Math.floor(i * step)]);
+  const out = Array.from({ length: n }, (_, i) => arr[Math.floor(i * step)]);
+  let peakAt = 0;
+  for (let i = 1; i < arr.length; i += 1) if (arr[i] > arr[peakAt]) peakAt = i;
+  const slot = Math.min(n - 1, Math.floor(peakAt / step));
+  out[slot] = Math.max(out[slot], arr[peakAt]);
+  return out;
 };
 
 async function fetchSinceCall(item) {
@@ -636,15 +717,15 @@ async function fetchSinceCall(item) {
   const span = Math.max((end - start) / 1000, 60);
   const bi = _spBin(span);
   const urls = [
-    `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${bi}&startTime=${start}&endTime=${end}&limit=90`,
-    `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${bi}&startTime=${start}&endTime=${end}&limit=90`,
+    `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${bi}&startTime=${start}&endTime=${end}&limit=100`,
+    `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${bi}&startTime=${start}&endTime=${end}&limit=100`,
   ];
   for (const u of urls) {
     try {
       const r = await fetch(u);
       if (r.ok) {
         const d = await r.json();
-        if (Array.isArray(d) && d.length >= 2) return _dsp(d.map((c) => parseFloat(c[4])));
+        if (Array.isArray(d) && d.length >= 2) return _dsp(d.map((c) => parseFloat(c[2])));
       }
     } catch {
       /* try next */
@@ -652,11 +733,11 @@ async function fetchSinceCall(item) {
   }
   try {
     const r = await fetch(
-      `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${_spBybit(span)}&start=${start}&end=${end}&limit=90`
+      `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${_spBybit(span)}&start=${start}&end=${end}&limit=100`
     );
     if (r.ok) {
       const j = await r.json();
-      const list = (j?.result?.list || []).map((k) => parseFloat(k[4])).reverse();
+      const list = (j?.result?.list || []).map((k) => parseFloat(k[2])).reverse();
       if (list.length >= 2) return _dsp(list);
     }
   } catch {
@@ -690,7 +771,19 @@ const SinceCallSpark = ({ item, compact = false }) => {
       alive = false;
     };
   }, [item.signal_id, item.pair, item.sparkline]);
-  return <Spark data={pts} up={(item.gain_pct || 0) >= 0} compact={compact} />;
+  // Same line the market table draws below it — thin stroke, no area fill.
+  // Same reason as the server: the path starts where the call was made.
+  const entry = Number(item.entry);
+  const series =
+    pts && entry > 0 && pts[0] !== entry ? [entry, ...pts] : pts;
+  return (
+    <RowSpark
+      points={series}
+      up={(item.gain_pct || 0) >= 0}
+      w={compact ? 44 : 88}
+      h={compact ? 20 : 26}
+    />
+  );
 };
 
 function formatDuration(s) {
@@ -704,6 +797,14 @@ function formatDuration(s) {
   if (m > 0) return `${m}m ${sec}s`;
   return `${sec}s`;
 }
+/** "18 Sep" — the day the call went out, under its entry price. */
+function callDay(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
 function formatPrice(p) {
   if (!p || p <= 0) return "0.00";
   if (p >= 1000)
