@@ -47,9 +47,9 @@ class PaymentVerify(BaseModel):
     def validate_tx_hash(cls, v):
         v = v.strip()
         if not v.startswith('0x'):
-            raise ValueError('TX hash harus dimulai dengan 0x')
+            raise ValueError('A TX hash must start with 0x')
         if len(v) != 66:
-            raise ValueError('TX hash harus 66 karakter (0x + 64 hex)')
+            raise ValueError('A TX hash must be 66 characters (0x + 64 hex)')
         return v.lower()
 
 

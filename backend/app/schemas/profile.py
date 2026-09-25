@@ -55,5 +55,5 @@ class ProfileUpdate(BaseModel):
             return v
         v = v.strip().upper()
         if v not in SUPPORTED_CURRENCIES:
-            raise ValueError(f'Currency code "{v}" tidak didukung. Gunakan kode ISO 4217 yang valid (USD, IDR, EUR, dll).')
+            raise ValueError(f'Currency code "{v}" is not supported. Use a valid ISO 4217 code (USD, IDR, EUR, …).')
         return v
