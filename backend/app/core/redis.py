@@ -148,13 +148,35 @@ def cache_delete_pattern(pattern: str) -> int:
         return 0
 
 
+# Aggregates over the whole book, where being one cache cycle behind is
+# invisible to a reader. Everything else — the paged list, bulk-7d, active,
+# stats — has to show a new call the moment it lands, so those lose their
+# last-good copy too and the next reader recomputes.
+KEEP_LAST_GOOD = ("coin-intel", "analyze", "top-performers", "desk-edge", "edge-lab")
+
+
 def invalidate_signals_cache() -> int:
-    """Invalidate all signals-related cache"""
+    """Drop the signal caches a new call invalidates.
+
+    `cache_set` writes a second copy at `<key>:stale`, and the read paths fall
+    back to it so nobody waits on a cold recompute. Wiping `lq:signals:*`
+    deleted those backups along with the thing they back up: on 24 Sep that
+    left /coin-intel with no fresh copy, no fallback and one worker holding the
+    compute lock, so it answered 503 thirty-four times — in bursts, about a
+    minute after each of 74 invalidations. The aggregates keep their last-good
+    copy now; the list does not, because that is what has to be current.
+    """
     try:
         client = get_redis()
         keys = client.keys("lq:signals:*")
-        if keys:
-            return client.delete(*keys)
+        doomed = []
+        for key in keys:
+            name = key.decode() if isinstance(key, bytes) else key
+            if name.endswith(":stale") and any(t in name for t in KEEP_LAST_GOOD):
+                continue
+            doomed.append(key)
+        if doomed:
+            return client.delete(*doomed)
         return 0
     except Exception as e:
         print(f"⚠️ Redis invalidate error: {e}")
