@@ -28,18 +28,38 @@ def test_caption_drops_head_lines_never_body():
     assert cf.visible_len(cap) <= cf.CAPTION_LIMIT
 
 
-def test_update_line_is_the_runner_format():
+def test_the_update_breaks_at_its_own_seams():
+    """One packed line wrapped mid-phrase on a phone; the facts now break first."""
     m = cf.update_message("SONICUSDT", "tp3", 0.0295, 0.0271, "2026-09-22T06:00:00+00:00",
                           "2026-09-22T11:44:00+00:00", "abc-1")
-    assert m.splitlines()[0] == "✅ <b>TP3 HIT</b> · SONICUSDT 0.0295 (+8.86%) · 5h 44m after the call"
-    assert "Open on LuxQuant" in m
+    head, move, blank, go = m.splitlines()
+    assert head == "✅ <b>SONICUSDT</b> · TP3 HIT"
+    assert move == "0.0295 (+8.86%) · 5h 44m after the call"
+    assert blank == ""
+    assert "Open on LuxQuant" in go
     sl = cf.update_message("X", "closed_loss", 90, 100, None, None, "id")
-    assert sl.startswith("🛑 <b>STOP LOSS HIT</b> · X 90 (-10.00%)")
+    assert sl.startswith("🛑 <b>X</b> · STOP LOSS HIT\n90 (-10.00%)")
     tp4 = cf.update_message("X", "closed_win", 110, 100, None, None, "id")
-    assert tp4.startswith("🏁 <b>TP4 HIT · plan complete</b>")
+    assert tp4.startswith("🏁 <b>X</b> · TP4 HIT")
 
 
-def test_update_links_the_pair_to_the_call_post():
+def test_the_pair_leads_and_the_longest_one_still_fits():
+    """The reader scans for their coin; the emoji has already given the outcome.
+
+    TP4 carried a third segment ("plan complete") that pushed the pair past the
+    width of a phone line — the flag and the last target both already say it.
+    """
+    first = cf.update_message("BROCCOLI714USDT", "closed_win", 1.09, 0.9421,
+                              None, None, "id").splitlines()[0]
+    assert first == "🏁 <b>BROCCOLI714USDT</b> · TP4 HIT"
+    assert cf.visible_len(first) <= 36        # one line on a narrow phone
+    assert "plan complete" not in first
+
+
+def test_the_call_gets_its_own_tappable_line():
+    """A reply across forum topics is never drawn, so this link is the way back."""
     m = cf.update_message("ANIMEUSDT", "tp3", 0.00345, 0.00327, None, None, "id",
                           call_url="https://t.me/c/2670915863/857500")
-    assert '<a href="https://t.me/c/2670915863/857500">ANIMEUSDT</a>' in m.splitlines()[0]
+    assert '📍 <a href="https://t.me/c/2670915863/857500">Original call</a>' in m.splitlines()[-1]
+    assert "ANIMEUSDT</a>" not in m          # the pair is no longer the link
+    assert "Original call" not in cf.update_message("A", "tp1", 2, 1, None, None, "id")

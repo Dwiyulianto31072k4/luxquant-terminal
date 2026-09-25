@@ -65,6 +65,10 @@ MAX_AGE_MIN = int(os.getenv("RUNNER_MAX_AGE_MIN", "60"))
 # so waiting that long after enrichment rules it out and not a second more.
 SETTLE_SEC = int(os.getenv("RUNNER_SETTLE_SEC", "50"))
 MAX_ATTEMPTS = 5
+# The LuxQuant Call topic. A link into a forum carries the topic id — that is
+# the form Telegram's own "Copy Message Link" produces, and it opens the thread
+# the message lives in rather than leaving the client to find it.
+CALL_TOPIC_ID = int(os.getenv("RUNNER_CALL_TOPIC_ID", "39"))
 
 SIGNAL_URL = "https://luxquant.tw/signals?signal={sid}"
 
@@ -238,8 +242,7 @@ def build_message(sig, hit_tags, tag_stats, top: bool = False, db=None) -> str:
     if hits:
         head.append(("Already hit: " + ", ".join(hits), 0))
     if sig.get("call_msg_id"):
-        internal = str(CHAT_ID).replace("-100", "", 1)
-        head.append((f"📍 <a href=\"https://t.me/c/{internal}/{sig['call_msg_id']}\">Original call</a>", 1))
+        head.append((f"📍 <a href=\"{_call_url(sig['call_msg_id'])}\">Original call</a>", 1))
     head.append(("<i>Runners reach TP3 more often than other calls, not always. Size for the stop.</i>", 4))
     return cf.fit_caption(head, cf.call_body(sig, db))
 
@@ -289,6 +292,8 @@ def pending_updates(db):
         SELECT DISTINCT ON (r.signal_id, su.update_type)
                r.signal_id, r.tg_message_id AS parent_id, s.pair, s.entry, s.created_at,
                su.update_type, su.price, su.update_at, s.pnl_leverage,
+               (SELECT p.tg_message_id FROM tg_call_posts p
+                 WHERE p.signal_id = s.signal_id AND p.event_type = 'call') AS call_msg_id,
                {IS_LATEST} AS is_latest
         FROM runner_call_posts r
         JOIN signals s ON s.signal_id = r.signal_id
@@ -328,14 +333,23 @@ def _age_minutes(hit_at) -> float:
     return (datetime.now(timezone.utc) - t).total_seconds() / 60.0
 
 
+def _call_url(msg_id) -> str | None:
+    """The t.me link to a call post in the LuxQuant Call topic."""
+    if not msg_id:
+        return None
+    return f"https://t.me/c/{str(CHAT_ID).replace('-100', '', 1)}/{CALL_TOPIC_ID}/{msg_id}"
+
+
 def build_update(u) -> str:
-    # Shared with the LuxQuant Call Tracking topic, which prints the same line.
-    # The levered figure is not repeated here: the PnL card in the picture
-    # already states it, beside the leverage that produced it.
+    # Shared with the LuxQuant Call Tracking topic, which prints the same line
+    # including the 📍 link — an update should lead back to the call from
+    # either topic. The levered figure is not repeated: the PnL card in the
+    # picture already states it, beside the leverage that produced it.
     from app.services.call_format import update_message
 
     return update_message(u["pair"], u["update_type"], u["price"], u["entry"],
-                          u["created_at"], u["update_at"], u["signal_id"])
+                          u["created_at"], u["update_at"], u["signal_id"],
+                          call_url=_call_url(u.get("call_msg_id")))
 
 
 def post_updates(db, dry_run: bool = False) -> None:

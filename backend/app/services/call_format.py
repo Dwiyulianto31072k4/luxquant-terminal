@@ -217,15 +217,17 @@ def elapsed(start, end) -> str:
 
 
 def update_message(pair, event_type, price, entry, called_at, hit_at, signal_id, call_url=None) -> str:
-    """A TP/SL update, as Runners has always printed it and Call Tracking now does.
+    """A TP/SL update, in the one shape both VIP topics print.
 
-    One line of what hit, where, how far from entry and how long it took, then
-    the link. Text only — no link preview card under it.
+    Three parts a phone can read at a glance: what hit and on what, then the
+    move and how long it took, then where to go. Packed onto one line these
+    wrapped mid-phrase on a narrow screen ("… after the" / "call"), so the
+    facts break at their own seam and the links sit below a blank line.
 
-    `call_url` (a t.me link to the call post) turns the pair into a jump to the
-    call. Telegram accepts a reply to a message in another forum topic but the
-    apps do not draw it (checked 2026-09-22), so the link is what actually
-    takes a reader from the update to the call.
+    `call_url` is a t.me link to the call post, printed as its own tappable
+    line rather than hidden behind the pair. A reply that crosses forum topics
+    is accepted by Telegram but never drawn by the apps (checked 2026-09-22),
+    so this link is the only way back to the call from here.
     """
     et = {"closed_loss": "sl", "closed_win": "tp4"}.get(event_type, event_type)
     try:
@@ -235,16 +237,20 @@ def update_message(pair, event_type, price, entry, called_at, hit_at, signal_id,
     pct_s = f" ({p:+.2f}%)" if p is not None else ""
     when = elapsed(called_at, hit_at) if called_at and hit_at else ""
     after = f" · {when} after the call" if when else ""
-    if et == "sl":
-        head = "🛑 <b>STOP LOSS HIT</b>"
-    elif et == "tp4":
-        head = "🏁 <b>TP4 HIT · plan complete</b>"
-    else:
-        head = f"✅ <b>{_e(str(et).upper())} HIT</b>"
+    # The coin leads: a reader scanning this topic is looking for their pair,
+    # and the emoji has already told them the outcome. "plan complete" is gone
+    # from TP4 — the flag and the last target both say it, and as a third
+    # segment it pushed the pair off the end of a phone-width line.
+    mark, what = {"sl": ("🛑", "STOP LOSS HIT"), "tp4": ("🏁", "TP4 HIT")}.get(
+        et, ("✅", f"{_e(str(et).upper())} HIT"))
     link = _e(SIGNAL_URL.format(signal_id=signal_id))
-    name = f"<a href=\"{_e(call_url)}\">{_e(pair)}</a>" if call_url else _e(pair)
-    return (f"{head} · {name} {_e(fmt_num(price) or '')}{pct_s}{after}\n"
-            f"👉 <a href=\"{link}\">Open on LuxQuant</a>")
+    facts = [f"{mark} <b>{_e(pair)}</b> · {what}",
+             f"{_e(fmt_num(price) or '')}{pct_s}{after}".strip()]
+    go = []
+    if call_url:
+        go.append(f"📍 <a href=\"{_e(call_url)}\">Original call</a>")
+    go.append(f"👉 <a href=\"{link}\">Open on LuxQuant</a>")
+    return "\n".join(f for f in facts if f) + "\n\n" + " · ".join(go)
 
 
 def fit_caption(head: list[tuple[str, int]], body: str) -> str:
