@@ -107,7 +107,7 @@ def _track_key_ips(api_key_id: int, user_id: int, ip: Optional[str]) -> None:
                 raw = list(r.smembers(ips_key))[:10]
                 sample = [m.decode() if isinstance(m, bytes) else m for m in raw]
                 logger.warning(
-                    "[IP-ANOMALY] api_key=%s user=%s distinct_ips=%s window=%ss sample=%s",
+                    "[IP-ANOMALY] api_key_id=%s user=%s distinct_ips=%s window=%ss sample=%s",
                     api_key_id, user_id, distinct, IP_TRACK_WINDOW_SECONDS, sample,
                 )
                 # flag persisten buat review manual (key_id -> "user|count|ts")

@@ -29,6 +29,7 @@ from typing import Optional
 import httpx
 
 from app.core.redis import get_redis
+from app.core.redact import redact
 
 # ── Config ──
 BLOCKCHAIN_COM_BASE = "https://blockchain.info"
@@ -378,7 +379,7 @@ async def _fetch_eth_whales(min_eth: float = 50.0, limit: int = 30) -> list:
             return transactions
 
     except Exception as e:
-        print(f"❌ ETH Etherscan error: {e}")
+        print(f"❌ ETH Etherscan error: {redact(e)}")
         return []
 
 
@@ -482,7 +483,7 @@ async def refresh_whale_cache() -> dict:
             for tx in result:
                 sources_used.add(tx.get("source", "unknown"))
         elif isinstance(result, Exception):
-            print(f"⚠️ Whale refresh fetch error: {result}")
+            print(f"⚠️ Whale refresh fetch error: {redact(result)}")
 
     # Deduplicate by hash
     seen = set()

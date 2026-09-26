@@ -35,6 +35,8 @@ import statistics
 from typing import Optional
 
 import httpx
+
+from app.core.redact import redact
 from sqlalchemy import text
 
 from app.core.redis import cache_get, cache_set, cache_get_with_stale, is_redis_available
@@ -43,6 +45,12 @@ from app.core.leader import is_leader
 # ── Config ──────────────────────────────────────────────────────────
 COINALYZE_BASE = "https://api.coinalyze.net/v1"
 API_KEY = os.getenv("COINALYZEAPIKEY_TERMINAL", "")   # set in backend/.env (VPS)
+
+
+def _auth() -> dict:
+    """The key goes in a header, never the URL: httpx prints the URL in its
+    errors, and a query-string key reached journald on every 429."""
+    return {"api_key": API_KEY}
 
 INTERVAL = "5min"          # base granularity; we roll up to 1H / 4H ourselves
 LOOKBACK_HOURS = 48        # history window for the robust-z baseline
@@ -88,11 +96,11 @@ async def _build_symbol_map() -> dict:
     url = f"{COINALYZE_BASE}/future-markets"
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(url, params={"api_key": API_KEY})
+            resp = await client.get(url, headers=_auth())
             resp.raise_for_status()
             markets = resp.json()
     except Exception as e:
-        print(f"❌ Coinalyze future-markets error: {e}")
+        print(f"❌ Coinalyze future-markets error: {redact(e)}")
         return {}
 
     # group candidate perps by LuxQuant-style pair (base+quote, e.g. BTCUSDT)
@@ -137,9 +145,8 @@ async def _fetch_liq_batch(coinalyze_symbols: list[str], since: int, until: int)
         "from": since,
         "to": until,
         "convert_to_usd": "true",
-        "api_key": API_KEY,
     }
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with httpx.AsyncClient(timeout=20.0, headers=_auth()) as client:
         resp = await client.get(url, params=params)
         if resp.status_code == 429:
             ra = resp.headers.get("Retry-After", "5")
@@ -207,7 +214,7 @@ async def refresh_scoped(pairs: list[str]) -> dict:
         try:
             blobs = await _fetch_liq_batch([s for _, s in chunk], since, until)
         except Exception as e:
-            print(f"❌ Coinalyze liquidation batch error: {e}")
+            print(f"❌ Coinalyze liquidation batch error: {redact(e)}")
             blobs = []
 
         for blob in blobs:
@@ -331,7 +338,7 @@ async def coinalyze_liquidation_loop():
                 await asyncio.to_thread(_persist_flow_snapshots, out)   # calibration capture
                 print(f"✅ Coinalyze liquidations: {len(out)}/{len(pairs)} pairs cached")
         except Exception as e:
-            print(f"❌ Coinalyze worker error: {type(e).__name__}: {e}")
+            print(f"❌ Coinalyze worker error: {type(e).__name__}: {redact(e)}")
         await asyncio.sleep(REFRESH_INTERVAL)
 
 

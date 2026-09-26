@@ -38,6 +38,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import httpx
+from app.core.redact import redact
 
 logger = logging.getLogger(__name__)
 
@@ -515,7 +516,7 @@ async def _http_fetch(client: httpx.AsyncClient, endpoint: str) -> BGMetric:
         except httpx.TimeoutException:
             last_err = "timeout"
         except Exception as e:
-            last_err = f"exception: {type(e).__name__}: {e}"
+            last_err = f"exception: {type(e).__name__}: {redact(e)}"
 
     return BGMetric(key=endpoint, error=last_err or "unknown_error")
 
