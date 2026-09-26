@@ -89,12 +89,19 @@ export default function RiskRSection() {
 
   useEffect(() => {
     if (reports[population]) return;
+    const token = localStorage.getItem("access_token");
+    // Signed-in only on the server: a signed-out visitor used to get this
+    // same prompt after a 403 from every /performance view.
+    if (!token) {
+      setErr("auth");
+      setLoading(false);
+      return;
+    }
     let alive = true;
     setLoading(true);
     setErr(null);
-    const token = localStorage.getItem("access_token");
     fetch(`${API_BASE}/performance/r-metrics?population=${population}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => {
         if (r.status === 401 || r.status === 403) throw new Error("auth");

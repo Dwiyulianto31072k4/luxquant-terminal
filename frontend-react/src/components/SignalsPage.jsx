@@ -685,6 +685,15 @@ const SignalsPage = () => {
   // Coin Intelligence hot-streak heuristic).
   const HOT_STREAK_MIN = 5;
 
+  // Coin intel is subscriber-only: free and signed-out visitors took a 403 on
+  // every 30 s refresh (304 in two days). A ref, so the refresh loop reads the
+  // current answer without rebuilding itself; an upgrade mid-session is
+  // picked up on the next tick.
+  const intelAllowedRef = useRef(entitledByAccount);
+  useEffect(() => {
+    intelAllowedRef.current = entitledByAccount;
+  }, [entitledByAccount]);
+
   const fetchBulkSignals = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
@@ -692,6 +701,7 @@ const SignalsPage = () => {
 
       const token = localStorage.getItem("access_token");
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+      const wantIntel = Boolean(token) && intelAllowedRef.current;
 
       // Server Edge + Runners, fetched beside the rest but never awaited with
       // it: under load it can take a while, and the table must not wait for
@@ -713,7 +723,9 @@ const SignalsPage = () => {
         fetch(`${API_BASE}/api/v1/signals/stats`, { headers: authHeaders }),
         // `view=desk` trims each coin to the fields this page reads: 817 KB → 48 KB
         // gzipped. The detail panel fetches a pair in full when it opens.
-        fetch(`${API_BASE}/api/v1/signals/coin-intel?view=desk`, { headers: authHeaders }),
+        wantIntel
+          ? fetch(`${API_BASE}/api/v1/signals/coin-intel?view=desk`, { headers: authHeaders })
+          : Promise.resolve(null),
         // days=0 = all since tag-metrics era (2026-03-10); min_n=40 matches correlation.
         fetch(`${API_BASE}/api/v1/analytics/tag-wr?days=0&min_n=40`, { headers: authHeaders }),
       ]);
@@ -745,7 +757,7 @@ const SignalsPage = () => {
       }
       // Coin Intelligence is best-effort: if it fails, the Win Streak column /
       // filter simply shows nothing — the rest of the page is unaffected.
-      if (intelRes.status === "fulfilled" && intelRes.value.ok) {
+      if (intelRes.status === "fulfilled" && intelRes.value?.ok) {
         const intel = await intelRes.value.json();
         const all = [...(intel.top_coins || []), ...(intel.rest_coins || [])];
         const map = {};
@@ -1103,7 +1115,10 @@ const SignalsPage = () => {
   );
 
   // Coin Flow Intensity (exclude stablecoin) untuk strip — sumber Money Flow.
+  // Subscriber-only on the server; a free account's strip was empty after a
+  // 403 anyway, so it is now empty without one.
   useEffect(() => {
+    if (!entitledByAccount) return undefined;
     let alive = true;
     const STABLE = new Set([
       "USDT",
@@ -1140,11 +1155,13 @@ const SignalsPage = () => {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [entitledByAccount]);
 
   // Narrative row. Re-runs on window change; the endpoint caches for 15m and
   // the snapshot behind it only moves every 4h, so this is cheap to re-ask.
+  // Subscriber-only as well; free accounts see the row empty, as the 403 did.
   useEffect(() => {
+    if (!entitledByAccount) return undefined;
     let alive = true;
     setNarrativeLoading(true);
     const token = localStorage.getItem("access_token");
@@ -1162,7 +1179,7 @@ const SignalsPage = () => {
     return () => {
       alive = false;
     };
-  }, [narrativeDays]);
+  }, [narrativeDays, entitledByAccount]);
 
   const updatedCount = useMemo(() => {
     return allSignals.filter((s) => s.last_update_at).length;

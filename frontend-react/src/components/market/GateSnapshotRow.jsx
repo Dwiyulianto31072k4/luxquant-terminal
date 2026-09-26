@@ -132,6 +132,13 @@ const GateSnapshotRow = ({ hot, gainers }) => {
   const [flow, setFlow] = useState(null);
 
   useEffect(() => {
+    // Both previews are signed-in only; a visitor's cards ended empty after
+    // two 403s, and now end empty without them.
+    if (!localStorage.getItem("access_token")) {
+      setSpikes([]);
+      setFlow([]);
+      return undefined;
+    }
     let alive = true;
 
     const loadSpikes = async () => {

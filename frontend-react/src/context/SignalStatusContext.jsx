@@ -9,6 +9,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { isEntitled } from "../utils/entitlement";
+import { pollWhileVisible } from "../utils/pollWhileVisible";
 import PremiumModal from "../components/subscription/PremiumModal";
 
 export const SignalStatusContext = createContext(null);
@@ -61,6 +62,13 @@ export function SignalStatusProvider({ children }) {
   const [paywallPair, setPaywallPair] = useState(null);
 
   useEffect(() => {
+    // Subscriber-only: every free or signed-out session used to take a 403
+    // from this once a minute. They keep the null map the 403 left them —
+    // and signing out now clears it, which a failed poll never did.
+    if (!entitled) {
+      setMap(null);
+      return undefined;
+    }
     let alive = true;
     const load = async () => {
       try {
@@ -97,13 +105,12 @@ export function SignalStatusProvider({ children }) {
         /* silent — hover status is a nice-to-have overlay */
       }
     };
-    load();
-    const iv = setInterval(load, 60000);
+    const stop = pollWhileVisible(load, 60000);
     return () => {
       alive = false;
-      clearInterval(iv);
+      stop();
     };
-  }, []);
+  }, [entitled]);
 
   const openPair = useCallback(
     (pair) => {

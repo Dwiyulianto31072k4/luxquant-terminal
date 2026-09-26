@@ -11,23 +11,33 @@
 import { useEffect, useState, useCallback } from "react";
 
 let cache = null; // last known prefs object (null = not loaded yet)
+let cacheFor = null; // the access token `cache` was loaded with
 let inflight = null; // de-dupes concurrent first loads
 const subs = new Set();
 
 const notify = () => subs.forEach((fn) => fn(cache));
 
-const authHeaders = () => {
-  const t = localStorage.getItem("access_token");
-  return t ? { Authorization: `Bearer ${t}` } : {};
-};
+const storedToken = () => localStorage.getItem("access_token");
 
+// The endpoint is signed-in only, so a visitor gets the defaults without
+// asking — every signed-out /performance view used to spend a 403 on it. The
+// cache is keyed to the token, so signing in (or switching account) loads the
+// real prefs instead of keeping the visitor's defaults for the session.
 async function load() {
-  if (cache) return cache;
+  const token = storedToken();
+  if (cache && cacheFor === token) return cache;
+  if (!token) {
+    cache = {};
+    cacheFor = null;
+    notify();
+    return cache;
+  }
   if (!inflight) {
-    inflight = fetch("/api/v1/profile/ui-prefs", { headers: authHeaders() })
+    inflight = fetch("/api/v1/profile/ui-prefs", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => (r.ok ? r.json() : {}))
       .then((d) => {
         cache = d && typeof d === "object" ? d : {};
+        cacheFor = token;
         notify();
         return cache;
       })
@@ -66,9 +76,11 @@ export function useUiPrefs(defaults = {}) {
   const setPref = useCallback((key, value) => {
     cache = { ...(cache || {}), [key]: value };
     notify();
+    const token = storedToken();
+    if (!token) return; // a visitor's toggle lives for the visit
     fetch("/api/v1/profile/ui-prefs", {
       method: "PUT",
-      headers: { "Content-Type": "application/json", ...authHeaders() },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ [key]: value }),
     }).catch(() => {});
   }, []);
