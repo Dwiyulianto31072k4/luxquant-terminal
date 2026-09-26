@@ -94,6 +94,24 @@ def _last_good(key):
     return stale
 
 
+def _binance_futures_ok() -> bool:
+    try:
+        from app.services.terminal_worker import _fapi_ok
+    except Exception:
+        return True
+    return _fapi_ok()
+
+
+def _note_binance_ban(response) -> None:
+    """Publish the ban so every caller on this IP backs off, not just us."""
+    try:
+        from app.services.terminal_worker import _note_ban
+
+        _note_ban(response, 600 if response.status_code == 418 else 120)
+    except Exception:
+        pass
+
+
 async def exchange_data(provider, path, params):
     validate_request(provider, path, params)
     digest = hashlib.sha256(json.dumps([provider, path, params], sort_keys=True).encode()).hexdigest()
@@ -108,8 +126,21 @@ async def exchange_data(provider, path, params):
 
     async def load():
         try:
+            # Binance escalates an IP ban (2 min up to 3 days) every time it is
+            # hit DURING one, and this proxy used to keep calling straight
+            # through the shared ban every other caller respects — 33 of the
+            # day's 502s on 26 Sep were binance-futures here. Serve the last
+            # good copy, or say plainly that it is a rate limit (503), without
+            # calling; the modal already falls back to Bybit.
+            if provider == "binance-futures" and not _binance_futures_ok():
+                fallback = _last_good(key)
+                if fallback is not None:
+                    return fallback
+                raise HTTPException(503, "Binance rate limit — retry shortly", headers={"Retry-After": "60"})
             client = get_general_client()
             response = await client.get(HOSTS[provider] + path, params=params, timeout=8)
+            if provider == "binance-futures" and response.status_code in (418, 429):
+                _note_binance_ban(response)
             body = _json_or_none(response)
 
             # "That pair is not listed here" is an ANSWER, not a gateway

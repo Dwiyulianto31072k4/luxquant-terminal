@@ -45,3 +45,36 @@ def test_failure_is_not_cached(monkeypatch):
         asyncio.run(market.exchange_data('bybit','/v5/market/kline',{'symbol':'BTCUSDT'}))
     assert err.value.status_code==502
     assert not market._pending
+
+
+def test_binance_futures_is_not_called_during_a_shared_ban(monkeypatch):
+    """Hitting Binance during a ban deepens it (2 min → 3 days) for every caller."""
+    calls = []
+
+    async def get(url, params=None, timeout=None):
+        calls.append(url)
+        return SimpleNamespace(status_code=200, json=lambda: {}, headers={})
+
+    monkeypatch.setattr(market, 'cache_get', lambda k: None)
+    monkeypatch.setattr(market, '_last_good', lambda k: None)
+    monkeypatch.setattr(market, 'get_general_client', lambda: SimpleNamespace(get=get))
+    monkeypatch.setattr(market, '_binance_futures_ok', lambda: False)
+    with pytest.raises(HTTPException) as err:
+        asyncio.run(market.exchange_data('binance-futures', '/fapi/v1/premiumIndex', {'symbol': 'BTCUSDT'}))
+    assert err.value.status_code == 503 and calls == []
+
+
+def test_a_binance_429_is_published_to_everyone(monkeypatch):
+    noted = []
+
+    async def get(url, params=None, timeout=None):
+        return SimpleNamespace(status_code=429, json=lambda: {}, headers={'Retry-After': '30'})
+
+    monkeypatch.setattr(market, 'cache_get', lambda k: None)
+    monkeypatch.setattr(market, '_last_good', lambda k: None)
+    monkeypatch.setattr(market, 'get_general_client', lambda: SimpleNamespace(get=get))
+    monkeypatch.setattr(market, '_binance_futures_ok', lambda: True)
+    monkeypatch.setattr(market, '_note_binance_ban', lambda resp: noted.append(resp.status_code))
+    with pytest.raises(HTTPException):
+        asyncio.run(market.exchange_data('binance-futures', '/fapi/v1/premiumIndex', {'symbol': 'ETHUSDT'}))
+    assert noted == [429]
