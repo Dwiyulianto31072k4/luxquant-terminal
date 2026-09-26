@@ -562,7 +562,7 @@ async def url_preview(
 
 
 @router.post("/", response_model=ResourceOut, status_code=status.HTTP_201_CREATED)
-async def create_resource(
+def create_resource(
     type: str = Form("article"),
     title: str = Form(...),
     excerpt: str = Form(None),

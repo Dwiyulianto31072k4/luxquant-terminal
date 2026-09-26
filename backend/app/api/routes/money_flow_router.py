@@ -26,6 +26,7 @@ from app.core.database import get_db
 from app.api.deps import require_subscription
 from app.services.gecko_dex_service import get_dex_trending
 from app.services.gecko_category_service import get_category_coins
+from fastapi.concurrency import run_in_threadpool
 
 # Auth nempel ke SEMUA endpoint di router ini.
 router = APIRouter(
@@ -225,11 +226,11 @@ async def money_flow_sector_coins(
         latest = _latest_snapshot_at(db, "mf_coin_snapshots")
         lux_symbols = set()
         if latest is not None:
-            rows = db.execute(text("""
+            rows = await run_in_threadpool(lambda: db.execute(text("""
                 SELECT UPPER(symbol) AS s
                 FROM mf_coin_snapshots
                 WHERE snapshot_at = :at AND is_luxquant_signal = TRUE
-            """), {"at": latest}).fetchall()
+            """), {"at": latest}).fetchall())
             lux_symbols = {r.s for r in rows if r.s}
         for c in coins:
             c["is_luxquant_signal"] = (c.get("symbol") or "").upper() in lux_symbols

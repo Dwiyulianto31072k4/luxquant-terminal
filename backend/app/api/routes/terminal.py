@@ -37,6 +37,7 @@ from app.core.database import get_db
 from app.core.redis import cache_get, cache_set, cache_get_with_stale
 from app.api.deps import require_subscription, get_current_user
 from app.models.user import User
+from fastapi.concurrency import run_in_threadpool
 
 log = logging.getLogger(__name__)
 
@@ -549,11 +550,11 @@ async def narrative_coins(
         latest = _latest_snapshot_at(db, "mf_coin_snapshots")
         lux_symbols = set()
         if latest is not None:
-            rows = db.execute(text("""
+            rows = await run_in_threadpool(lambda: db.execute(text("""
                 SELECT UPPER(symbol) AS s
                 FROM mf_coin_snapshots
                 WHERE snapshot_at = :at AND is_luxquant_signal = TRUE
-            """), {"at": latest}).fetchall()
+            """), {"at": latest}).fetchall())
             lux_symbols = {r.s for r in rows if r.s}
         for c in coins:
             c["is_luxquant_signal"] = (c.get("symbol") or "").upper() in lux_symbols

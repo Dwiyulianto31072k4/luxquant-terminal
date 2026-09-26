@@ -417,10 +417,10 @@ async def send_post_to_telegram(
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    row = db.execute(text("""
+    row = await run_in_threadpool(lambda: db.execute(text("""
         SELECT id, headline, caption, image_path, gen_meta
         FROM social_posts WHERE id = :id
-    """), {"id": post_id}).mappings().first()
+    """), {"id": post_id}).mappings().first())
     if not row:
         raise HTTPException(404, "social post not found")
 
@@ -450,11 +450,11 @@ async def send_post_to_telegram(
         "sent_at": datetime.utcnow().isoformat() + "Z",
         "sent_by": admin.username,
     }
-    db.execute(
+    await run_in_threadpool(lambda: db.execute(
         text("UPDATE social_posts SET gen_meta = :meta, updated_at = now() WHERE id = :id"),
         {"id": post_id, "meta": json.dumps(meta)},
-    )
-    db.commit()
+    ))
+    await run_in_threadpool(db.commit)
 
     logger.info(
         f"📨 Social post #{post_id} sent to Telegram by @{admin.username} "
@@ -464,7 +464,7 @@ async def send_post_to_telegram(
 
 
 @router.get("/{post_id}/materials")
-async def get_post_materials(
+def get_post_materials(
     post_id: int,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),

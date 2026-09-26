@@ -49,6 +49,7 @@ from app.services.role_resolver import (
     is_role_protected,
     PROVIDER_DISCORD,
 )
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -183,12 +184,12 @@ async def discord_callback(
     # ─── LINK MODE: state=link:<user_id> → link ke user yg sedang login ───
     # OAuth redirect ga bawa Bearer token, jadi identitas user diambil dari state.
     if _link_user_id is not None:
-        link_user = db.query(User).filter(User.id == _link_user_id).first()
+        link_user = await run_in_threadpool(lambda: db.query(User).filter(User.id == _link_user_id).first())
         if not link_user:
             return RedirectResponse(f"{FRONTEND_URL}/profile?error=link_user_not_found")
 
         # Guard collision: discord_id ga boleh dipakai user lain
-        existing = db.query(User).filter(User.discord_id == discord_id).first()
+        existing = await run_in_threadpool(lambda: db.query(User).filter(User.discord_id == discord_id).first())
         if existing and existing.id != link_user.id:
             from urllib.parse import quote as _q
 
@@ -221,8 +222,8 @@ async def discord_callback(
         link_user.role = new_role
         link_user.subscription_source = new_source
 
-        db.commit()
-        db.refresh(link_user)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, link_user)
 
         track_user_login(db, link_user, commit=True, **location_from_request(request))
         tokens = create_tokens(link_user.id, link_user.email)
@@ -238,7 +239,7 @@ async def discord_callback(
 
     # ─── LOGIN MODE: ga ada link context → flow lama (lookup discord_id / email) ───
     # Find or create user
-    user = db.query(User).filter(User.discord_id == discord_id).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.discord_id == discord_id).first())
     is_new_user = False
 
     if user:
@@ -252,8 +253,8 @@ async def discord_callback(
         # another account, leave this one alone rather than break the unique
         # constraint or quietly hijack someone else's identity.
         if discord_email and _is_synthetic(user.email):
-            clash = db.query(User).filter(User.email == discord_email,
-                                          User.id != user.id).first()
+            clash = await run_in_threadpool(lambda: db.query(User).filter(User.email == discord_email,
+                                          User.id != user.id).first())
             if clash is None:
                 logger.info("Discord: upgrading synthetic address for user_id=%s", user.id)
                 user.email = discord_email
@@ -266,14 +267,14 @@ async def discord_callback(
         user.role = new_role
         user.subscription_source = new_source
 
-        db.commit()
-        db.refresh(user)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, user)
     else:
         username = _generate_username(discord_username, discord_global_name, db)
         email = discord_email or f"dc_{discord_id}@discord.luxquant.tw"
 
         # Cek email collision
-        existing_email = db.query(User).filter(User.email == email).first()
+        existing_email = await run_in_threadpool(lambda: db.query(User).filter(User.email == email).first())
         if existing_email:
             # Link Discord ke existing user (BUKAN user baru → no referral apply)
             existing_email.discord_id = discord_id
@@ -285,8 +286,8 @@ async def discord_callback(
             existing_email.role = new_role
             existing_email.subscription_source = new_source
 
-            db.commit()
-            db.refresh(existing_email)
+            await run_in_threadpool(db.commit)
+            await run_in_threadpool(db.refresh, existing_email)
             user = existing_email
         else:
             # Genuinely new user
@@ -311,8 +312,8 @@ async def discord_callback(
                 subscription_source=initial_source,
             )
             db.add(user)
-            db.commit()
-            db.refresh(user)
+            await run_in_threadpool(db.commit)
+            await run_in_threadpool(db.refresh, user)
             is_new_user = True
 
     if not user.is_active:
@@ -328,7 +329,7 @@ async def discord_callback(
                 f"Discord referral apply failed for user {user.id} "
                 f"with code='{referral_code}': {msg}"
             )
-        db.refresh(user)
+        await run_in_threadpool(db.refresh, user)
 
     # ─── Track login + geo ───
     track_user_login(db, user, commit=True, **location_from_request(request))
@@ -405,8 +406,8 @@ async def refresh_discord_role(
     if old_role != new_role or old_source != new_source:
         current_user.role = new_role
         current_user.subscription_source = new_source
-        db.commit()
-        db.refresh(current_user)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, current_user)
 
     return {
         "updated": old_role != new_role or old_source != new_source,

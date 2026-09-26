@@ -67,10 +67,13 @@ async def list_delistings(
     _: bool = Depends(require_subscription),
     db: Session = Depends(get_db),
 ):
-    q = db.query(DelistingEvent).order_by(DelistingEvent.announced_at.desc().nullslast())
-    if exchange:
-        q = q.filter(DelistingEvent.exchange == exchange.lower())
-    rows = q.limit(limit).all()
+    def _load_rows():
+        q = db.query(DelistingEvent).order_by(DelistingEvent.announced_at.desc().nullslast())
+        if exchange:
+            q = q.filter(DelistingEvent.exchange == exchange.lower())
+        return q.limit(limit).all()
+
+    rows = await run_in_threadpool(_load_rows)
 
     # _all_prices() does a synchronous Binance call (cached 60s). Offload to a
     # threadpool so it never blocks the async event loop / freezes the worker.
@@ -81,10 +84,10 @@ async def list_delistings(
     call_map = {}  # PAIR -> [(signal_id, created_at), ...] (desc)
     if pairs:
         try:
-            res = db.execute(text(
+            res = await run_in_threadpool(lambda: db.execute(text(
                 "SELECT signal_id, pair, created_at FROM signals "
                 "WHERE pair = ANY(:p) ORDER BY created_at DESC"
-            ), {"p": pairs}).fetchall()
+            ), {"p": pairs}).fetchall())
             for sid, pair, ca in res:
                 call_map.setdefault((pair or "").upper(), []).append((str(sid), ca))
         except Exception as e:

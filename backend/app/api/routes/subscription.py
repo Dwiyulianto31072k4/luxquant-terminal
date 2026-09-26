@@ -51,6 +51,7 @@ from app.services.commission_service import (
 from app.services.referral_service import refund_redemption
 from app.services.wallet_pool import pick_wallet, increment_usage
 from app.services.growth_measurement import record_growth_event_best_effort
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -285,9 +286,9 @@ async def verify_payment(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    payment = db.query(Payment)\
+    payment = await run_in_threadpool(lambda: db.query(Payment)\
         .filter(Payment.id == data.payment_id, Payment.user_id == current_user.id)\
-        .first()
+        .first())
 
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -326,12 +327,12 @@ async def verify_payment(
 
     tx_hash_clean = data.tx_hash.strip().lower()
 
-    existing_confirmed = db.query(Payment)\
+    existing_confirmed = await run_in_threadpool(lambda: db.query(Payment)\
         .filter(
             Payment.tx_hash == tx_hash_clean,
             Payment.status == "confirmed",
             Payment.id != payment.id
-        ).first()
+        ).first())
 
     if existing_confirmed:
         raise HTTPException(
@@ -342,7 +343,7 @@ async def verify_payment(
     payment.tx_hash = tx_hash_clean
     payment.status = "verifying"
     payment.updated_at = datetime.now(timezone.utc)
-    db.commit()
+    await run_in_threadpool(db.commit)
 
     # Server truth for submit intent. Only a digest of the hash participates in
     # idempotency; the transaction hash itself already belongs to payments and
@@ -379,7 +380,7 @@ async def verify_payment(
         payment.wallet_from = result.data.get("from", "")
         payment.bscscan_data = result.data
 
-        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == payment.plan_id).first()
+        plan = await run_in_threadpool(lambda: db.query(SubscriptionPlan).filter(SubscriptionPlan.id == payment.plan_id).first())
 
         current_user.role = "subscriber"
         current_user.subscription_granted_at = now
@@ -424,8 +425,8 @@ async def verify_payment(
                 exc_info=True,
             )
 
-        db.commit()
-        db.refresh(current_user)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, current_user)
 
         record_growth_event_best_effort(
             db,
@@ -512,7 +513,7 @@ async def verify_payment(
         payment.bscscan_data = result.data if result.data else None
         payment.notes = result.error
         payment.updated_at = datetime.now(timezone.utc)
-        db.commit()
+        await run_in_threadpool(db.commit)
 
         # These buckets read the message text, so they only ever worked on the
         # messages that were already in English. The verifier used to answer in

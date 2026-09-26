@@ -48,6 +48,7 @@ from app.services.hunt_recipe import (
     outcome_mix,
     select_runner_tags,
 )
+from fastapi.concurrency import run_in_threadpool
 
 router = APIRouter()
 
@@ -2349,17 +2350,17 @@ async def get_wr_vs_btc(
 
     # ─── 1. WR series from daily_market_regime ───
     if range == "all":
-        wr_rows = db.execute(text("""
+        wr_rows = await run_in_threadpool(lambda: db.execute(text("""
             SELECT date, win_rate, total_closed, regime
             FROM daily_market_regime ORDER BY date ASC
-        """)).fetchall()
+        """)).fetchall())
     else:
-        wr_rows = db.execute(text("""
+        wr_rows = await run_in_threadpool(lambda: db.execute(text("""
             SELECT date, win_rate, total_closed, regime
             FROM daily_market_regime
             WHERE date >= (CURRENT_DATE - CAST(:days AS int))
             ORDER BY date ASC
-        """), {"days": int(range)}).fetchall()
+        """), {"days": int(range)}).fetchall())
 
     wr_series = {
         r[0].isoformat(): {
@@ -2402,7 +2403,7 @@ async def get_wr_vs_btc(
     # so journeyless rows just drop out of the medians.
     cap_series = {}
     try:
-        cap_rows = db.execute(text(f"""
+        cap_rows = await run_in_threadpool(lambda: db.execute(text(f"""
             WITH {OUTCOMES_CTE}
             SELECT
                 (NULLIF(s.created_at, '')::timestamptz AT TIME ZONE 'UTC')::date AS d,
@@ -2415,7 +2416,7 @@ async def get_wr_vs_btc(
             LEFT JOIN signal_journey j ON j.signal_id = r.signal_id
             WHERE NULLIF(s.created_at, '') IS NOT NULL
             GROUP BY 1
-        """)).fetchall()
+        """)).fetchall())
         for cr in cap_rows:
             if cr[0] is None:
                 continue

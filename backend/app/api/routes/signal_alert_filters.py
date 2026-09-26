@@ -13,6 +13,7 @@ from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.user import User
 from app.services.signal_filter_alerts import _build_conditions
+from fastapi.concurrency import run_in_threadpool
 
 router = APIRouter(prefix="/signal-filters", tags=["signal-filters"])
 
@@ -313,5 +314,5 @@ async def telegram_check(
     ok = await can_message(current_user.telegram_id)
     if ok and not current_user.telegram_bot_started_at:
         current_user.telegram_bot_started_at = datetime.now(timezone.utc)
-        db.commit()
+        await run_in_threadpool(db.commit)
     return {"linked": True, "ready": bool(ok), "unknown": ok is None}

@@ -70,6 +70,7 @@ from app.services.telegram_bot_onboarding import (
     reply_for_command,
     webhook_secret,
 )
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +204,7 @@ async def telegram_bot_webhook(
             vip_members.ensure_tables(db)
             recorded = vip_members.record_chat_member_update(db, member_update)
         except Exception:
-            db.rollback()
+            await run_in_threadpool(db.rollback)
             logger.exception("could not record a VIP membership change")
             return {"ok": True, "handled": False, "reason": "record_failed"}
         return {"ok": True, "handled": True, "membership": recorded}
@@ -249,13 +250,13 @@ async def telegram_bot_webhook(
 
     sender_id = sender.get("id")
     if command == "start" and isinstance(sender_id, int):
-        user = db.query(User).filter(User.telegram_id == sender_id).first()
+        user = await run_in_threadpool(lambda: db.query(User).filter(User.telegram_id == sender_id).first())
         if user is not None and not user.telegram_bot_started_at:
             user.telegram_bot_started_at = datetime.now(timezone.utc)
             try:
-                db.commit()
+                await run_in_threadpool(db.commit)
             except Exception:
-                db.rollback()
+                await run_in_threadpool(db.rollback)
                 logger.exception("Could not record Terminal Bot start for user_id=%s", user.id)
 
     await _send_terminal_bot_message(chat_id, command)
@@ -293,7 +294,7 @@ async def confirm_telegram_write_access(
         )
 
     current_user.telegram_bot_started_at = datetime.now(timezone.utc)
-    db.commit()
+    await run_in_threadpool(db.commit)
     return {"ok": True, "verified": True, "already_verified": False}
 
 
@@ -351,7 +352,7 @@ async def _issue_telegram_session(
     is_legacy = _check_legacy_member(db, data.id)
 
     # Find or create user
-    user = db.query(User).filter(User.telegram_id == data.id).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.telegram_id == data.id).first())
     is_new_user = False
 
     if user:
@@ -367,15 +368,15 @@ async def _issue_telegram_session(
         user.telegram_in_group = is_vip_member
         _maybe_claim_legacy(db, user, new_source, is_legacy)
 
-        db.commit()
-        db.refresh(user)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, user)
     else:
         # User baru
         username = _generate_username(data, db)
         email = f"tg_{data.id}@telegram.luxquant.tw"
 
         # Cek email collision
-        existing_email = db.query(User).filter(User.email == email).first()
+        existing_email = await run_in_threadpool(lambda: db.query(User).filter(User.email == email).first())
         if existing_email:
             # Link Telegram ke existing user (BUKAN user baru, no referral apply)
             existing_email.telegram_id = data.id
@@ -389,8 +390,8 @@ async def _issue_telegram_session(
             existing_email.telegram_in_group = is_vip_member
             _maybe_claim_legacy(db, existing_email, new_source, is_legacy)
 
-            db.commit()
-            db.refresh(existing_email)
+            await run_in_threadpool(db.commit)
+            await run_in_threadpool(db.refresh, existing_email)
             user = existing_email
         else:
             # Genuinely new user
@@ -421,11 +422,11 @@ async def _issue_telegram_session(
                 telegram_in_group=is_vip_member,
             )
             db.add(user)
-            db.commit()
-            db.refresh(user)
+            await run_in_threadpool(db.commit)
+            await run_in_threadpool(db.refresh, user)
             _maybe_claim_legacy(db, user, initial_source, is_legacy)
             if is_legacy:
-                db.commit()
+                await run_in_threadpool(db.commit)
             is_new_user = True
 
     if not user.is_active:
@@ -444,7 +445,7 @@ async def _issue_telegram_session(
                 f"Telegram referral apply failed for user {user.id} "
                 f"with code='{data.referral_code}': {msg}"
             )
-        db.refresh(user)
+        await run_in_threadpool(db.refresh, user)
 
     # --- First-touch acquisition (UTM) — new users, or empty acq on existing ---
     if getattr(data, "acq", None) is not None:
@@ -648,8 +649,8 @@ async def refresh_vip_status(
         current_user.subscription_source = new_source
         current_user.telegram_in_group = is_vip
         _maybe_claim_legacy(db, current_user, new_source, is_legacy)
-        db.commit()
-        db.refresh(current_user)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, current_user)
 
     return {
         "updated": changed,
@@ -679,7 +680,7 @@ async def link_telegram(
         )
 
     # Cek apakah telegram_id sudah dipakai user lain
-    existing = db.query(User).filter(User.telegram_id == data.id).first()
+    existing = await run_in_threadpool(lambda: db.query(User).filter(User.telegram_id == data.id).first())
     if existing and existing.id != current_user.id:
         from app.services.identity_transfer import apply_telegram_transfer, collision_detail
 
@@ -713,14 +714,14 @@ async def link_telegram(
     current_user.telegram_in_group = is_vip
     _maybe_claim_legacy(db, current_user, new_source, is_legacy)
 
-    db.commit()
+    await run_in_threadpool(db.commit)
     if replaced and replaced != data.id:
         from app.services.vip_seat import note_on_user, release_seat_bounded
 
         outcome = await release_seat_bounded(db, replaced, reason="replaced by a newly linked Telegram")
         note_on_user(current_user, replaced, outcome, "replaced on link")
-        db.commit()
-    db.refresh(current_user)
+        await run_in_threadpool(db.commit)
+    await run_in_threadpool(db.refresh, current_user)
 
     return UserResponse.model_validate(current_user)
 
@@ -768,7 +769,7 @@ async def join_vip_group(
     if member_status in ("creator", "administrator", "member", "restricted"):
         if not current_user.telegram_in_group:
             current_user.telegram_in_group = True
-            db.commit()
+            await run_in_threadpool(db.commit)
         return {
             "already_member": True,
             "invite_link": None,

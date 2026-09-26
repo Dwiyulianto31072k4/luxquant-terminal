@@ -48,6 +48,7 @@ from app.services.referral_service import ensure_referral_code
 from app.services.role_resolver import resolve_role_for_google
 from app.services.acq_helpers import apply_acq_to_user
 from app.services.geo_helpers import location_from_request, apply_request_geo_to_user
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -433,11 +434,11 @@ async def google_callback(
     if not email:
         return RedirectResponse(f"{FRONTEND_URL}/login?error=google_no_email")
 
-    user = db.query(User).filter(User.google_id == google_id).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.google_id == google_id).first())
     is_new_user = False
 
     if not user:
-        user = db.query(User).filter(User.email == email).first()
+        user = await run_in_threadpool(lambda: db.query(User).filter(User.email == email).first())
         if user:
             user.google_id = google_id
             if picture and not user.avatar_url:
@@ -446,8 +447,8 @@ async def google_callback(
             if user.role != new_role or user.subscription_source != new_source:
                 user.role = new_role
                 user.subscription_source = new_source
-            db.commit()
-            db.refresh(user)
+            await run_in_threadpool(db.commit)
+            await run_in_threadpool(db.refresh, user)
         else:
             username = _generate_username(name, email, db)
             user = User(
@@ -463,15 +464,15 @@ async def google_callback(
                 subscription_source=None,
             )
             db.add(user)
-            db.commit()
-            db.refresh(user)
+            await run_in_threadpool(db.commit)
+            await run_in_threadpool(db.refresh, user)
             is_new_user = True
     else:
         # Jangan timpa avatar upload-an user (lihat catatan di google_login)
         if picture and user.avatar_url != picture and not is_uploaded_avatar(user.avatar_url):
             user.avatar_url = picture
-            db.commit()
-            db.refresh(user)
+            await run_in_threadpool(db.commit)
+            await run_in_threadpool(db.refresh, user)
 
     if not user.is_active:
         return RedirectResponse(f"{FRONTEND_URL}/login?error=account_inactive")
@@ -483,7 +484,7 @@ async def google_callback(
                 f"Google referral apply failed for user {user.id} "
                 f"with code='{referral_code}': {msg}"
             )
-        db.refresh(user)
+        await run_in_threadpool(db.refresh, user)
 
     track_user_login(db, user, commit=True, **location_from_request(request))
     try:

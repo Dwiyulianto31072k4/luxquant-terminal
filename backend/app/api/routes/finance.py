@@ -34,6 +34,7 @@ from app.models.manual_payment_offer import (
     STATUS_PENDING,
     STATUS_CLAIMED,
 )
+from fastapi.concurrency import run_in_threadpool
 
 
 logger = logging.getLogger(__name__)
@@ -438,12 +439,12 @@ async def verify_tx(
     tx_hash = data.tx_hash
 
     # Build pool address set for membership check
-    pool_rows = db.query(ReceivingWallet.address, ReceivingWallet.exchange_name).all()
+    pool_rows = await run_in_threadpool(lambda: db.query(ReceivingWallet.address, ReceivingWallet.exchange_name).all())
     pool_set = {addr.lower() for (addr, _) in pool_rows if addr}
     addr_to_exchange = {addr.lower(): name for (addr, name) in pool_rows if addr}
 
     # 1. Check duplicate locally first (don't hit BSC if we already have this TX)
-    existing = db.query(Payment).filter(Payment.tx_hash == tx_hash).first()
+    existing = await run_in_threadpool(lambda: db.query(Payment).filter(Payment.tx_hash == tx_hash).first())
 
     # 2. Hit BSC
     details = await fetch_tx_details(tx_hash, valid_pool_addresses=pool_set)
@@ -509,7 +510,7 @@ async def verify_tx(
     if amount_str:
         amt = Decimal(amount_str)
         # Find plan with closest matching price
-        plans = db.query(SubscriptionPlan).all()
+        plans = await run_in_threadpool(lambda: db.query(SubscriptionPlan).all())
         best_plan = None
         best_diff = None
         for p in plans:
@@ -524,14 +525,14 @@ async def verify_tx(
     from_addr = details.get("from")
     if from_addr:
         prev = (
-            db.query(Payment)
+            await run_in_threadpool(lambda: db.query(Payment)
             .filter(
                 Payment.wallet_from.ilike(from_addr),
                 Payment.user_id != None,  # noqa: E711
                 Payment.status.in_(["confirmed", "pending"]),
             )
             .order_by(Payment.created_at.desc())
-            .first()
+            .first())
         )
         if prev:
             suggested_user_id = prev.user_id
@@ -581,7 +582,7 @@ async def create_manual_payment(
         )
 
     # ─── Validate plan ───
-    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == data.plan_id).first()
+    plan = await run_in_threadpool(lambda: db.query(SubscriptionPlan).filter(SubscriptionPlan.id == data.plan_id).first())
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found.")
 
@@ -593,7 +594,7 @@ async def create_manual_payment(
             raise HTTPException(status_code=400, detail="tx_hash is required for on-chain payments.")
 
         # ─── Re-verify TX on chain ───
-        pool_rows = db.query(ReceivingWallet.address).all()
+        pool_rows = await run_in_threadpool(lambda: db.query(ReceivingWallet.address).all())
         pool_set = {addr.lower() for (addr,) in pool_rows if addr}
         details = await fetch_tx_details(data.tx_hash, valid_pool_addresses=pool_set)
 
@@ -605,7 +606,7 @@ async def create_manual_payment(
             raise HTTPException(status_code=400, detail="TX is not a USDT transfer.")
 
         # Duplicate check
-        existing = db.query(Payment).filter(Payment.tx_hash == data.tx_hash).first()
+        existing = await run_in_threadpool(lambda: db.query(Payment).filter(Payment.tx_hash == data.tx_hash).first())
         if existing:
             raise HTTPException(
                 status_code=409,
@@ -646,7 +647,7 @@ async def create_manual_payment(
     now = datetime.now(timezone.utc)
 
     if data.user_id is not None:
-        user = db.query(User).filter(User.id == data.user_id).first()
+        user = await run_in_threadpool(lambda: db.query(User).filter(User.id == data.user_id).first())
         if not user:
             raise HTTPException(status_code=404, detail="User not found.")
         user_was_new = False
@@ -655,19 +656,19 @@ async def create_manual_payment(
         new_data = data.new_user
 
         # Username conflict
-        existing_u = db.query(User).filter(User.username == new_data.username).first()
+        existing_u = await run_in_threadpool(lambda: db.query(User).filter(User.username == new_data.username).first())
         if existing_u:
             raise HTTPException(status_code=409, detail=f"Username @{new_data.username} already exists.")
 
         # Email — use provided or generate dummy
         if new_data.email:
             email = str(new_data.email).lower()
-            if db.query(User).filter(User.email == email).first():
+            if await run_in_threadpool(lambda: db.query(User).filter(User.email == email).first()):
                 raise HTTPException(status_code=409, detail="Email already used by another account.")
         else:
             email = f"manual_{new_data.username.lower()}@{MANUAL_EMAIL_DOMAIN}"
             # Ensure uniqueness of generated email
-            if db.query(User).filter(User.email == email).first():
+            if await run_in_threadpool(lambda: db.query(User).filter(User.email == email).first()):
                 raise HTTPException(
                     status_code=409,
                     detail=f"Generated email collision ({email}). Provide a real email instead.",
@@ -692,7 +693,7 @@ async def create_manual_payment(
             user.admin_enriched_at = now
 
         db.add(user)
-        db.flush()  # populate user.id without committing yet
+        await run_in_threadpool(db.flush)  # populate user.id without committing yet
         user_was_new = True
 
     # ─── Compute effective payment date ───
@@ -827,9 +828,9 @@ async def create_manual_payment(
         now=now,
     )
 
-    db.commit()
-    db.refresh(payment)
-    db.refresh(user)
+    await run_in_threadpool(db.commit)
+    await run_in_threadpool(db.refresh, payment)
+    await run_in_threadpool(db.refresh, user)
 
     logger.info(
         f"\u2705 Manual payment #{payment.id} ({data.method}) recorded by admin @{admin.username} "

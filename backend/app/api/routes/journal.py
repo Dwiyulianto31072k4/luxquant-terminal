@@ -29,6 +29,7 @@ from app.schemas.journal import (
     JournalListResponse, JournalPrefillResponse,
     JournalStatsResponse, AIInsightResponse,
 )
+from fastapi.concurrency import run_in_threadpool
 
 router = APIRouter(prefix="/journal", tags=["Trade Journal"])
 
@@ -174,7 +175,7 @@ def prefill_from_signal(
 # ════════════════════════════════════════════
 
 @router.post("/", response_model=JournalResponse, status_code=201)
-async def create_journal(
+def create_journal(
     data: JournalCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -702,16 +703,19 @@ async def export_journal_excel(
         )
 
     # Fetch entries
-    q = db.query(TradeJournal).filter(TradeJournal.user_id == current_user.id)
-    if pair:
-        q = q.filter(TradeJournal.pair == pair.upper())
-    if status_filter:
-        q = q.filter(TradeJournal.status == status_filter)
-    if date_from:
-        q = q.filter(TradeJournal.entry_at >= date_from)
-    if date_to:
-        q = q.filter(TradeJournal.entry_at <= date_to)
-    entries = q.order_by(TradeJournal.entry_at.asc()).all()
+    def _load_entries():
+        q = db.query(TradeJournal).filter(TradeJournal.user_id == current_user.id)
+        if pair:
+            q = q.filter(TradeJournal.pair == pair.upper())
+        if status_filter:
+            q = q.filter(TradeJournal.status == status_filter)
+        if date_from:
+            q = q.filter(TradeJournal.entry_at >= date_from)
+        if date_to:
+            q = q.filter(TradeJournal.entry_at <= date_to)
+        return q.order_by(TradeJournal.entry_at.asc()).all()
+
+    entries = await run_in_threadpool(_load_entries)
 
     if not entries:
         raise HTTPException(status_code=404, detail="No journal entries to export")

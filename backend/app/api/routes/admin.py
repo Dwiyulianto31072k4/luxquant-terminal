@@ -57,6 +57,7 @@ from app.services.telegram_group import (
     is_in_group,
     send_dm,
 )
+from fastapi.concurrency import run_in_threadpool
 
 # Optional models for /users/{id}/full detail (referral activity)
 # Wrapped in try/except so admin.py still loads even if these don't exist.
@@ -730,7 +731,7 @@ async def admin_generate_vip_invite(
         _post as tg_post,
     )
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.id == user_id).first())
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -744,7 +745,7 @@ async def admin_generate_vip_invite(
     if member_status in ("creator", "administrator", "member", "restricted"):
         if not user.telegram_in_group:
             user.telegram_in_group = True
-            db.commit()
+            await run_in_threadpool(db.commit)
         return {
             "already_member": True,
             "invite_link": None,
@@ -763,7 +764,7 @@ async def admin_generate_vip_invite(
         )
         if user.telegram_in_group:
             user.telegram_in_group = False
-            db.commit()
+            await run_in_threadpool(db.commit)
 
     invite_link = await create_one_time_invite_link(
         expire_seconds=3600,
@@ -797,7 +798,7 @@ async def admin_kick_vip(
     """
     from app.services.telegram_group import kick_member, get_member_status
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.id == user_id).first())
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -817,7 +818,7 @@ async def admin_kick_vip(
     if member_status in ("left", "kicked"):
         if user.telegram_in_group:
             user.telegram_in_group = False
-            db.commit()
+            await run_in_threadpool(db.commit)
         return {
             "ok": True,
             "already_out": True,
@@ -836,7 +837,7 @@ async def admin_kick_vip(
     # Clear grace flag if any — manual kick is explicit
     if hasattr(user, "telegram_grace_until"):
         user.telegram_grace_until = None
-    db.commit()
+    await run_in_threadpool(db.commit)
 
     return {
         "ok": True,
@@ -874,7 +875,7 @@ async def _do_vip_followup(user, db) -> dict:
     if already is True:
         if not user.telegram_in_group:
             user.telegram_in_group = True
-            db.commit()
+            await run_in_threadpool(db.commit)
         return {"ok": False, "reason": "already_member",
                 "message": "User is already in the VIP group."}
 
@@ -892,7 +893,7 @@ async def _do_vip_followup(user, db) -> dict:
 
     # A successful DM proves the bot can reach them \u2192 record it.
     user.telegram_bot_started_at = datetime.now(timezone.utc)
-    db.commit()
+    await run_in_threadpool(db.commit)
 
     return {"ok": True, "reason": "sent", "invite_link": invite_link,
             "message": "Follow-up sent via bot."}
@@ -905,7 +906,7 @@ async def admin_vip_followup(
     db: Session = Depends(get_db),
 ):
     """Send an adaptive VIP follow-up DM (invite link) to a single user."""
-    user = db.query(User).filter(User.id == user_id).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.id == user_id).first())
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     result = await _do_vip_followup(user, db)
@@ -929,7 +930,7 @@ async def admin_vip_followup_bulk(
     failed = 0
     details = []
     for uid in user_ids:
-        user = db.query(User).filter(User.id == uid).first()
+        user = await run_in_threadpool(lambda: db.query(User).filter(User.id == uid).first())
         if not user:
             skipped += 1
             continue
@@ -969,7 +970,7 @@ async def admin_send_message(
     if len(text_msg) > 3500:
         raise HTTPException(status_code=400, detail="Pesan terlalu panjang (max 3500 char)")
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.id == user_id).first())
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not user.telegram_id:
@@ -994,7 +995,7 @@ async def admin_send_message(
 
     # A successful DM proves the bot can reach them \u2192 record it.
     user.telegram_bot_started_at = datetime.now(timezone.utc)
-    db.commit()
+    await run_in_threadpool(db.commit)
 
     return {"ok": True, "reason": "sent", "invite_link": invite_link,
             "message": "Message sent via bot."}
@@ -1752,7 +1753,7 @@ async def get_user_telegram_identity(
     Returns display_name/username/profile_link plus `resolvable` so the UI can
     say why there's no link instead of just showing a dead button.
     """
-    user = db.query(User).filter(User.id == user_id).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.id == user_id).first())
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -1789,8 +1790,8 @@ async def get_user_telegram_identity(
     # seluruh admin UI dan outreach, bukan cuma di popup ini.
     if username and username != (user.telegram_username or ""):
         user.telegram_username = username
-        db.commit()
-        db.refresh(user)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, user)
 
     return {
         "telegram_id": user.telegram_id,

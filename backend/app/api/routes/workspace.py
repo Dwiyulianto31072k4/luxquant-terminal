@@ -28,6 +28,7 @@ from app.schemas.workspace import (
     TodoCreate, TodoUpdate, TodoResponse,
     WorkspaceStats, GenerateFollowupsRequest,
 )
+from fastapi.concurrency import run_in_threadpool
 
 
 router = APIRouter(prefix="/api/v1/workspace", tags=["workspace"])
@@ -948,8 +949,8 @@ async def send_referral_reminder(
     if advocate["reminder"]["state"] != "eligible":
         raise HTTPException(status_code=409, detail=advocate["reminder"]["reason"])
 
-    user = db.query(User).filter(User.id == user_id).first()
-    code = db.query(ReferralCode).filter(ReferralCode.id == advocate["code_id"]).first()
+    user = await run_in_threadpool(lambda: db.query(User).filter(User.id == user_id).first())
+    code = await run_in_threadpool(lambda: db.query(ReferralCode).filter(ReferralCode.id == advocate["code_id"]).first())
     if not user or not code or not user.telegram_id:
         raise HTTPException(status_code=409, detail="Telegram bot is not linked")
 
@@ -964,8 +965,8 @@ async def send_referral_reminder(
         created_by=admin.id,
     )
     db.add(event)
-    db.commit()
-    db.refresh(event)
+    await run_in_threadpool(db.commit)
+    await run_in_threadpool(db.refresh, event)
 
     try:
         sent = await send_dm(user.telegram_id, message)
@@ -976,7 +977,7 @@ async def send_referral_reminder(
     if not sent:
         event.status = "failed"
         event.error = event.error or "Telegram DM failed; user may not have started the bot"
-        db.commit()
+        await run_in_threadpool(db.commit)
         return {
             "ok": False,
             "event_id": event.id,
@@ -987,7 +988,7 @@ async def send_referral_reminder(
     event.status = "sent"
     event.sent_at = datetime.now(timezone.utc)
     user.telegram_bot_started_at = event.sent_at
-    db.commit()
+    await run_in_threadpool(db.commit)
     return {
         "ok": True,
         "event_id": event.id,

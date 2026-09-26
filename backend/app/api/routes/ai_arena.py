@@ -175,7 +175,7 @@ async def get_chart_data(tf: str = Query("4H", description="Timeframe: 1D, 4H, 1
                 from app.core.database import SessionLocal
                 from app.models.ai_arena import AIArenaReport
                 db = SessionLocal()
-                db_report = db.query(AIArenaReport).order_by(AIArenaReport.id.desc()).first()
+                db_report = await run_in_threadpool(lambda: db.query(AIArenaReport).order_by(AIArenaReport.id.desc()).first())
                 db.close()
                 if db_report:
                     report = db_report.report_json

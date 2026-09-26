@@ -43,6 +43,7 @@ from app.services.vip_seat import note_on_user, release_seat_bounded
 from app.models.subscription import Payment
 from app.schemas.user import UserResponse
 from app.schemas.profile import ProfileUpdate
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,7 @@ async def get_ui_prefs(current_user: User = Depends(get_current_user)):
 
 
 @router.put("/ui-prefs")
-async def update_ui_prefs(
+def update_ui_prefs(
     data: dict,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -224,8 +225,8 @@ async def upload_avatar(
 
     # Update user avatar URL
     current_user.avatar_url = f"{AVATAR_URL_PREFIX}{filename}"
-    db.commit()
-    db.refresh(current_user)
+    await run_in_threadpool(db.commit)
+    await run_in_threadpool(db.refresh, current_user)
 
     return UserResponse.model_validate(current_user)
 
@@ -235,7 +236,7 @@ async def upload_avatar(
 # ════════════════════════════════════════════
 
 @router.delete("/avatar", response_model=UserResponse)
-async def remove_avatar(
+def remove_avatar(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -360,7 +361,7 @@ def link_google(
 # ════════════════════════════════════════════
 
 @router.delete("/unlink-google", response_model=UserResponse)
-async def unlink_google(
+def unlink_google(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -418,15 +419,15 @@ async def unlink_telegram(
     current_user.telegram_id = None
     current_user.telegram_username = None
     current_user.telegram_in_group = False
-    db.commit()
+    await run_in_threadpool(db.commit)
 
     # The group is the product: an account left inside it keeps receiving every
     # call. Nothing else can clean this up — the subscription worker only ever
     # reads `users`, and this id is on no row now.
     outcome = await release_seat_bounded(db, released, reason="unlinked by the account owner")
     note_on_user(current_user, released, outcome, "unlink")
-    db.commit()
-    db.refresh(current_user)
+    await run_in_threadpool(db.commit)
+    await run_in_threadpool(db.refresh, current_user)
 
     return UserResponse.model_validate(current_user)
 
@@ -571,7 +572,7 @@ async def link_discord(
     discord_username = discord_user.get("username", "")
 
     # Check if already linked to another user
-    existing = db.query(User).filter(User.discord_id == discord_id).first()
+    existing = await run_in_threadpool(lambda: db.query(User).filter(User.discord_id == discord_id).first())
     if existing and existing.id != current_user.id:
         from app.services.identity_transfer import apply_discord_transfer, collision_detail
 
@@ -586,8 +587,8 @@ async def link_discord(
             discord_username=discord_username,
             actor="atas permintaan pemilik Discord",
         )
-        db.commit()
-        db.refresh(current_user)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, current_user)
         return UserResponse.model_validate(current_user)
 
     # Link
@@ -615,8 +616,8 @@ async def link_discord(
         except Exception:
             pass  # Don't fail linking if role check fails
 
-    db.commit()
-    db.refresh(current_user)
+    await run_in_threadpool(db.commit)
+    await run_in_threadpool(db.refresh, current_user)
 
     return UserResponse.model_validate(current_user)
 
@@ -626,7 +627,7 @@ async def link_discord(
 # ════════════════════════════════════════════
 
 @router.delete("/unlink-discord", response_model=UserResponse)
-async def unlink_discord(
+def unlink_discord(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -687,7 +688,7 @@ async def link_telegram(
         raise HTTPException(status_code=401, detail="Telegram verification failed")
 
     # Cek telegram_id belum dipakai user lain
-    existing = db.query(User).filter(User.telegram_id == tg.id).first()
+    existing = await run_in_threadpool(lambda: db.query(User).filter(User.telegram_id == tg.id).first())
     if existing and existing.id != current_user.id:
         from app.services.identity_transfer import apply_telegram_transfer, collision_detail
 
@@ -710,14 +711,14 @@ async def link_telegram(
         current_user.subscription_source = new_source
         current_user.telegram_in_group = is_vip
         _maybe_claim_legacy(db, current_user, new_source, is_legacy)
-        db.commit()
+        await run_in_threadpool(db.commit)
         if replaced and replaced != tg.id:
             outcome = await release_seat_bounded(
                 db, replaced, reason="replaced by a newly linked Telegram"
             )
             note_on_user(current_user, replaced, outcome, "replaced on link")
-            db.commit()
-        db.refresh(current_user)
+            await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, current_user)
         return UserResponse.model_validate(current_user)
 
     # Link + resolve role
@@ -735,14 +736,14 @@ async def link_telegram(
     current_user.telegram_in_group = is_vip
     _maybe_claim_legacy(db, current_user, new_source, is_legacy)
 
-    db.commit()
+    await run_in_threadpool(db.commit)
     # Linking a second Telegram silently replaces the first one. That first one
     # is now on no row at all, so this is the only moment its seat can be taken
     # back.
     if replaced and replaced != tg.id:
         outcome = await release_seat_bounded(db, replaced, reason="replaced by a newly linked Telegram")
         note_on_user(current_user, replaced, outcome, "replaced on link")
-        db.commit()
-    db.refresh(current_user)
+        await run_in_threadpool(db.commit)
+    await run_in_threadpool(db.refresh, current_user)
 
     return UserResponse.model_validate(current_user)

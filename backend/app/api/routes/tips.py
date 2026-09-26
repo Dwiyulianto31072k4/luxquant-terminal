@@ -154,7 +154,7 @@ def get_tip(tip_id: int, db: Session = Depends(get_db)):
 # ============ Admin Endpoints ============
 
 @router.post("/", response_model=TipResponse, status_code=status.HTTP_201_CREATED)
-async def create_tip(
+def create_tip(
     title: str = Form(...),
     description: str = Form(None),
     category: str = Form("General"),
