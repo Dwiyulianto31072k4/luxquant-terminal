@@ -45,6 +45,7 @@ import httpx
 import psycopg2
 import psycopg2.extensions
 from sqlalchemy import create_engine, text
+from app.core.liveness import beat
 
 
 # ============================================================
@@ -1245,6 +1246,7 @@ def run_listen_daemon() -> None:
             logger.info(f"Mendengarkan '{LISTEN_CHANNEL}'...")
 
             while True:
+                beat("shariah-screening", 30)
                 # Timeout-nya yang membuat pekerjaan berkala tetap jalan meski
                 # tidak ada notifikasi sama sekali.
                 if select.select([conn], [], [], 30) != ([], [], []):

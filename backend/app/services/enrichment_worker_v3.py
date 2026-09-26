@@ -47,6 +47,7 @@ import traceback
 from datetime import datetime, timezone
 
 from sqlalchemy import create_engine, text
+from app.core.liveness import beat
 
 # Reuse core enrichment logic
 from app.services.enrichment_service_v3 import (
@@ -178,6 +179,22 @@ def get_signals_needing_backfill() -> list:
             ORDER BY s.created_at DESC
         """)).fetchall()
     return [dict(r._mapping) for r in rows]
+
+
+def requeue_interrupted() -> int:
+    """Put signals an interrupted run left at 'processing' back in the queue.
+
+    get_pending_signals() only takes 'pending', so a restart or crash between
+    marking a signal 'processing' and finishing it stranded that signal for
+    good. This daemon is the only writer of 'processing', so at startup any
+    such row belongs to a run that is gone.
+    """
+    with engine.begin() as conn:
+        res = conn.execute(text(
+            "UPDATE signals SET enrichment_status = 'pending' "
+            "WHERE enrichment_status = 'processing'"
+        ))
+    return res.rowcount or 0
 
 
 def update_enrichment_status(signal_id: str, status: str):
@@ -450,6 +467,7 @@ async def run_pending_batch(dry_run: bool = False) -> int:
 
     stats = {"success": 0, "failed": 0}
     for sig in signals:
+        beat("enrichment-v3", 30)
         sid = sig["signal_id"]
         if not dry_run:
             update_enrichment_status(sid, "processing")
@@ -518,7 +536,16 @@ async def run_loop(poll_interval: int = 30, dry_run: bool = False):
     logger.info(f"Live refresh threshold: 1 hour")
     logger.info("=" * 60)
 
+    if not dry_run:
+        try:
+            requeued = requeue_interrupted()
+            if requeued:
+                logger.warning(f"Requeued {requeued} signal(s) an earlier run left at 'processing'")
+        except Exception as e:
+            logger.error(f"Requeue of interrupted signals failed: {e}")
+
     while True:
+        beat("enrichment-v3", poll_interval)
         try:
             # Step 1: process new pending signals
             entry_count = await run_pending_batch(dry_run=dry_run)
@@ -558,6 +585,7 @@ async def run_live_refresh_all(dry_run: bool = False):
         if not dry_run and get_pending_signals(limit=1):
             await run_pending_batch(dry_run=dry_run)
 
+        beat("enrichment-v3", 30)  # a batch can run for many minutes
         sid = sig["signal_id"]
         result = await process_signal_live(sig, dry_run=dry_run)
 

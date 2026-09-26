@@ -26,6 +26,7 @@ import httpx
 import psycopg2
 import psycopg2.extensions
 from sqlalchemy import create_engine, text
+from app.core.liveness import beat
 
 
 DATABASE_URL = os.getenv(
@@ -1129,6 +1130,7 @@ def run_listen_daemon():
                 cur.execute(f"LISTEN {LISTEN_CHANNEL};")
                 logger.info(f"Listening on '{LISTEN_CHANNEL}'...")
                 while True:
+                    beat("coin-metadata", 60)
                     if select.select([conn], [], [], 60) == ([], [], []):
                         # Idle tick — ping so a silently-dropped connection is
                         # detected here (→ reconnect) rather than on next poll().

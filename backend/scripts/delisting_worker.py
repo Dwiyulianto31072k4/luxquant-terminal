@@ -35,6 +35,12 @@ from email.utils import parsedate_to_datetime
 import requests
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+# Run as `python scripts/delisting_worker.py`: sys.path[0] is scripts/, so the
+# backend root has to be added before anything under app/ can be imported.
+_BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _BACKEND_ROOT not in sys.path:
+    sys.path.insert(0, _BACKEND_ROOT)
+from app.core.liveness import beat  # noqa: E402
 
 LOCK_FILE = "/tmp/delisting_worker.lock"
 LOG_FILE = os.getenv("DELIST_LOG", "/root/luxquant-terminal/backend/delisting_worker.log")
@@ -1074,6 +1080,7 @@ def main():
         else:
             log.info(f"loop every {CHECK_EVERY}s")
             while True:
+                beat("delisting", CHECK_EVERY)
                 try:
                     run_once(args.dry_run)
                 except Exception as e:

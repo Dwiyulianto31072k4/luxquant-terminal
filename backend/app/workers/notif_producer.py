@@ -17,6 +17,7 @@ from sqlalchemy import text, bindparam
 
 from app.core.database import SessionLocal
 from app.services.notifier import create_notification
+from app.core.liveness import beat
 
 
 # ════════════════════════════════════════════
@@ -158,6 +159,7 @@ def run_once():
 def main():
     print("[notif_producer] started", flush=True)
     while True:
+        beat("notif-producer", POLL_INTERVAL)
         run_once()
         time.sleep(POLL_INTERVAL)
 

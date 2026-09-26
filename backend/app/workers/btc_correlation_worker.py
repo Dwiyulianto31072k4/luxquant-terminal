@@ -47,6 +47,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from app.core.http_client import init_clients, close_clients, get_binance_client, get_coingecko_client
 from app.core.redis import cache_get, cache_set, is_redis_available
 from app.config import settings
+from app.core.liveness import beat
 
 # ============================================================
 # Configuration
@@ -887,6 +888,7 @@ async def backfill_missing(conn: asyncpg.Connection, limit: int = 30):
     if rows:
         log.info(f"🔄 Backfilling {len(rows)} signals without correlation...")
         for r in rows:
+            beat("btc-correlation", 60)  # up to 200 signals on a cold start
             try:
                 await process_signal(conn, r["signal_id"])
                 await asyncio.sleep(0.3)
@@ -935,12 +937,14 @@ async def main():
     log.info(f"🎧 Listening on '{NOTIFY_CHANNEL}'")
 
     try:
+        beat("btc-correlation", 60)
         try:
             await backfill_missing(conn, limit=200)
         except Exception:
             log.exception("Initial backfill failed (continuing)")
 
         while True:
+            beat("btc-correlation", 60)
             try:
                 signal_id = await asyncio.wait_for(queue.get(), timeout=60)
                 await process_signal(conn, signal_id)

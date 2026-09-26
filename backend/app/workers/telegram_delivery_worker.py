@@ -11,6 +11,7 @@ if _BACKEND_ROOT not in sys.path:
 from datetime import datetime, timedelta, timezone
 import httpx
 from sqlalchemy import create_engine, text
+from app.core.liveness import beat
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [tg-deliver] %(levelname)s %(message)s")
 log = logging.getLogger("tg_delivery")
@@ -430,6 +431,7 @@ def main():
     once = "--once" in sys.argv
     log.info("tg delivery v3 start mode=%s bots=%d (terminal first=%s) target=%s", "once" if once else "loop", len(BOTS), bool(PRIMARY_BOT), TARGET_USER_IDS)
     while True:
+        beat("tg-delivery", POLL_INTERVAL)
         try:
             r = run_once()
             if r["ip"] or r["ib"] or r["dg"] or r["fail"]:

@@ -34,6 +34,7 @@ from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.config import settings
 from app.services.journey_calculator import compute_journey
+from app.core.liveness import beat
 from app.services.journey_fetcher import (
     fetch_klines_with_fallback,
     compute_coverage_until,
@@ -167,6 +168,7 @@ def run_listen_mode(channel: str = DEFAULT_CHANNEL):
             log.info(f"Connected to DB & listening on '{channel}'")
 
             while not shutdown.shutdown_requested:
+                beat("journey-worker", 5)
                 if select.select([conn], [], [], 5.0) == ([], [], []):
                     continue
 

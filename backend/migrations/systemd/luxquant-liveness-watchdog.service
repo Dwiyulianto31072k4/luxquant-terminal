@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxQuant worker liveness watchdog (loop heartbeats vs systemd "active")
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=-/root/luxquant-terminal/backend/.env
+Environment=PYTHONPATH=/root/luxquant-terminal/backend
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.workers.liveness_watchdog
+TimeoutStartSec=120
