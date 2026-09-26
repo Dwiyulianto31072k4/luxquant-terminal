@@ -417,3 +417,78 @@ class TestSourcesConfig:
     def test_all_sources_callable(self):
         for name, fn in SOURCES:
             assert callable(fn), f"Source {name} not callable"
+
+
+# ============================================================
+# 2026-09-26: Bybit coverage window + twin instruments
+# ============================================================
+
+def _bybit_page(start_ms, n, price=1.0, step_ms=3600_000):
+    """A Bybit V5 kline response: n hourly candles from start_ms, newest first."""
+    rows = [[str(start_ms + i * step_ms), str(price), str(price), str(price), str(price), "1", "1"] for i in range(n)]
+    rows.reverse()
+    resp = MagicMock()
+    resp.json.return_value = {"retCode": 0, "result": {"list": rows}}
+    resp.raise_for_status.return_value = None
+    return resp
+
+
+class TestBybitCoversTheCallNotTheLatestMonth:
+    @patch('app.services.journey_fetcher.requests.get')
+    def test_pages_forward_from_start_like_binance(self, mock_get):
+        start = int(datetime(2024, 1, 1, tzinfo=UTC).timestamp() * 1000)
+        end = start + 5000 * 3600_000                       # a signal 5000 h long
+        mock_get.side_effect = lambda url, params, timeout: _bybit_page(
+            params['start'], (params['end'] - params['start']) // 3600_000 + 1)
+        klines = _fetch_bybit_linear('XUSDT', start, end, '1h')
+        windows = [(c.kwargs['params']['start'], c.kwargs['params']['end']) for c in mock_get.call_args_list]
+        assert windows[0][0] == start                        # begins at the call
+        assert len(windows) == 2                             # 1000 + 500 candles
+        assert len(klines) == 1500                           # same span as Binance
+        assert klines[0].open_time == datetime(2024, 1, 1, tzinfo=UTC)
+        assert all(a.open_time < b.open_time for a, b in zip(klines, klines[1:]))
+
+    @patch('app.services.journey_fetcher.requests.get')
+    def test_stops_when_a_page_is_empty(self, mock_get):
+        start = int(datetime(2024, 1, 1, tzinfo=UTC).timestamp() * 1000)
+        mock_get.side_effect = [_bybit_page(start, 1000), _bybit_page(start, 0)]
+        klines = _fetch_bybit_spot('XUSDT', start, start + 3000 * 3600_000, '1h')
+        assert len(klines) == 1000 and mock_get.call_count == 2
+
+
+class TestTwinInstrumentsAreSkipped:
+    def _source(self, name, price):
+        from app.services.journey_fetcher import Kline
+        k = [Kline(open_time=datetime(2025, 1, 1, tzinfo=UTC), open=price, high=price, low=price, close=price)]
+        return (name, lambda *a, **kw: k)
+
+    def test_a_source_off_by_orders_of_magnitude_is_skipped(self):
+        # DEFIUSDT: Binance's DeFi index near 1,000 vs a 0.002 token on Bybit spot
+        sources = [self._source('bybit_spot', 0.00189), self._source('bybit_linear', 1010.0)]
+        klines, src = fetch_klines_with_fallback(
+            'DEFIUSDT', datetime(2025, 1, 1, tzinfo=UTC), datetime(2025, 1, 2, tzinfo=UTC),
+            sources=sources, reference_price=1000.0)
+        assert src == 'bybit_linear' and klines[0].close == 1010.0
+
+    def test_no_match_anywhere_is_unavailable_not_a_wrong_path(self):
+        sources = [self._source('a', 0.002), self._source('b', 25_000.0)]
+        klines, src = fetch_klines_with_fallback(
+            'X', datetime(2025, 1, 1, tzinfo=UTC), datetime(2025, 1, 2, tzinfo=UTC),
+            sources=sources, reference_price=1.0)
+        assert (klines, src) == ([], 'unavailable')
+
+    def test_a_limit_entry_away_from_market_still_matches(self):
+        sources = [self._source('a', 1.35)]                 # entry 35% below market
+        _, src = fetch_klines_with_fallback(
+            'X', datetime(2025, 1, 1, tzinfo=UTC), datetime(2025, 1, 2, tzinfo=UTC),
+            sources=sources, reference_price=1.0)
+        assert src == 'a'
+
+    def test_decimal_or_missing_reference_is_tolerated(self):
+        from decimal import Decimal
+        sources = [self._source('a', 1.0)]
+        for ref in (Decimal("1.02"), None, "n/a"):
+            _, src = fetch_klines_with_fallback(
+                'X', datetime(2025, 1, 1, tzinfo=UTC), datetime(2025, 1, 2, tzinfo=UTC),
+                sources=sources, reference_price=ref)
+            assert src == 'a'

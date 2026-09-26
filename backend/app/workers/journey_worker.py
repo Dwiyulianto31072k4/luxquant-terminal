@@ -117,6 +117,7 @@ def process_signal(signal_id: str, force_recompute: bool = False) -> str:
             start_time=signal_data.created_at,
             end_time=coverage_until,
             interval='1h',
+            reference_price=signal_data.entry,
         )
 
         journey = compute_journey(

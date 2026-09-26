@@ -188,6 +188,49 @@ def _fetch_binance_spot(
     return _parse_binance_klines(resp.json())
 
 
+def _fetch_bybit_paged(
+    category: str,
+    pair: str,
+    start_ms: int,
+    end_ms: int,
+    interval: str,
+) -> List[Kline]:
+    """Bybit V5 klines covering the SAME window Binance does: forward from start.
+
+    Given start and end, Bybit answers with the NEWEST `limit` candles of the
+    range, not the oldest. One capped call therefore handed an old signal the
+    last ~41 days before its end — months after the call — and every figure
+    built on it (peak, drawdown, time above entry) described the wrong period:
+    2,690 journeys, their first candle a median 253 days after entry (measured
+    2026-09-26). Binance returns the oldest candles first, so its journeys cover
+    entry → +1500 candles; Bybit is now paged in <=1000-candle windows from
+    start to cover the same span.
+    """
+    step_ms = INTERVAL_SECONDS[interval] * 1000
+    last_ms = min(end_ms, start_ms + BINANCE_MAX_LIMIT * step_ms - 1)
+    url = "https://api.bybit.com/v5/market/kline"
+    out: List[Kline] = []
+    page_start = start_ms
+    while page_start <= last_ms:
+        page_end = min(last_ms, page_start + BYBIT_MAX_LIMIT * step_ms - 1)
+        params = {
+            'category': category,
+            'symbol': pair,
+            'interval': BYBIT_INTERVAL_MAP[interval],
+            'start': page_start,
+            'end': page_end,
+            'limit': _needed_candles(page_start, page_end, interval, BYBIT_MAX_LIMIT),
+        }
+        resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+        resp.raise_for_status()
+        page = _parse_bybit_klines(resp.json())
+        if not page:
+            break
+        out.extend(k for k in page if not out or k.open_time > out[-1].open_time)
+        page_start = page_end + 1
+    return out
+
+
 def _fetch_bybit_linear(
     pair: str,
     start_ms: int,
@@ -195,18 +238,7 @@ def _fetch_bybit_linear(
     interval: str,
 ) -> List[Kline]:
     """Bybit V5 USDT Perpetual kline fetch."""
-    url = "https://api.bybit.com/v5/market/kline"
-    params = {
-        'category': 'linear',
-        'symbol': pair,
-        'interval': BYBIT_INTERVAL_MAP[interval],
-        'start': start_ms,
-        'end': end_ms,
-        'limit': _needed_candles(start_ms, end_ms, interval, BYBIT_MAX_LIMIT),
-    }
-    resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
-    resp.raise_for_status()
-    return _parse_bybit_klines(resp.json())
+    return _fetch_bybit_paged('linear', pair, start_ms, end_ms, interval)
 
 
 def _fetch_bybit_spot(
@@ -216,18 +248,7 @@ def _fetch_bybit_spot(
     interval: str,
 ) -> List[Kline]:
     """Bybit V5 Spot kline fetch."""
-    url = "https://api.bybit.com/v5/market/kline"
-    params = {
-        'category': 'spot',
-        'symbol': pair,
-        'interval': BYBIT_INTERVAL_MAP[interval],
-        'start': start_ms,
-        'end': end_ms,
-        'limit': _needed_candles(start_ms, end_ms, interval, BYBIT_MAX_LIMIT),
-    }
-    resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
-    resp.raise_for_status()
-    return _parse_bybit_klines(resp.json())
+    return _fetch_bybit_paged('spot', pair, start_ms, end_ms, interval)
 
 
 # ============================================================
@@ -296,6 +317,19 @@ def _parse_bybit_klines(raw: dict) -> List[Kline]:
 # MAIN ENTRY POINT
 # ============================================================
 
+# A signal's entry can sit a few percent to tens of percent from the market
+# (limit entries, dip buys); a different instrument is off by 2x to 10^6x.
+PRICE_MATCH_BAND = (0.5, 2.0)
+
+
+def price_matches(first: "Kline", reference_price: Optional[float]) -> bool:
+    """Is this candle plausibly the instrument the signal was called on?"""
+    if not reference_price or reference_price <= 0 or not first or first.close <= 0:
+        return True
+    lo, hi = PRICE_MATCH_BAND
+    return lo <= first.close / reference_price <= hi
+
+
 # Fallback chain — order matters
 SOURCES: List[Tuple[str, Callable]] = [
     ('binance_futures', _fetch_binance_futures),
@@ -311,6 +345,7 @@ def fetch_klines_with_fallback(
     end_time: datetime,
     interval: str = '1h',
     sources: Optional[List[Tuple[str, Callable]]] = None,
+    reference_price: Optional[float] = None,
 ) -> Tuple[List[Kline], str]:
     """
     Fetch OHLCV kline dengan fallback chain across exchanges.
@@ -334,9 +369,19 @@ def fetch_klines_with_fallback(
       - Empty result (pair listed tapi gak ada candle di range) treated as failure,
         lanjut ke source berikutnya
       - Validation: start_time < end_time enforced
+      - reference_price (the signal's entry): a source whose first candle sits
+        more than 2x away from it is serving ANOTHER instrument under the same
+        ticker — DEFIUSDT is Binance's DeFi index (~1,000) and a 0.002 token on
+        Bybit spot; 119 journeys were built on such a twin. That source is
+        skipped and the next one tried; none matching means 'unavailable',
+        which is honest where a twin's price path is not.
     """
     if sources is None:
         sources = SOURCES
+    try:
+        reference_price = float(reference_price) if reference_price is not None else None
+    except (TypeError, ValueError):
+        reference_price = None
 
     # Validation
     if start_time >= end_time:
@@ -359,7 +404,10 @@ def fetch_klines_with_fallback(
     for name, fetcher in sources:
         try:
             klines = fetcher(pair, start_ms, end_ms, interval)
-            if klines:
+            if klines and not price_matches(klines[0], reference_price):
+                last_error = f"{name} serves another instrument (x{klines[0].close / reference_price:.3g} the entry)"
+                log.warning(f"{pair}: {last_error} — trying the next source")
+            elif klines:
                 log.debug(f"Fetched {len(klines)} klines for {pair} from {name}")
                 return klines, name
             else:
