@@ -1,7 +1,10 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
 import EChart, { useChartTokens, inkAlpha } from "./charts/EChart";
+
+// Outcome buckets in display order (best to worst).
+const OUTCOME_ORDER = ["tp4", "tp3", "tp2", "tp1", "sl"];
 
 // ═══════════════════════════════════════════
 // SHARED COIN INTELLIGENCE LOGIC + DETAIL MODAL
@@ -516,14 +519,13 @@ export const MonthlyLineChart = ({ data }) => {
 /** Outcome donut — ECharts pie ring. */
 const OutcomeDonut = ({ dist, closed }) => {
   const tokens = useChartTokens();
-  const order = ["tp4", "tp3", "tp2", "tp1", "sl"];
   const closedN = closed || 0;
   const reachTp = ["tp1", "tp2", "tp3", "tp4"].reduce((a, k) => a + (dist?.[k] || 0), 0);
   const reachPct = closedN ? Math.round((reachTp / closedN) * 100) : 0;
 
   const surface = tokens["surface-raised"] || "#f8f8f8";
   const option = useMemo(() => {
-    const data = order
+    const data = OUTCOME_ORDER
       .map((k) => ({
         name: OC[k]?.l || k.toUpperCase(),
         value: dist?.[k] || 0,
@@ -558,7 +560,7 @@ const OutcomeDonut = ({ dist, closed }) => {
         },
       ],
     };
-  }, [dist, closedN, tokens, surface]);
+  }, [dist, tokens, surface]);
 
   return (
     <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-5">
@@ -574,7 +576,7 @@ const OutcomeDonut = ({ dist, closed }) => {
         </div>
       </div>
       <div className="w-full flex-1 grid grid-cols-1 gap-1.5 font-mono text-[11px]">
-        {order.map((k) => {
+        {OUTCOME_ORDER.map((k) => {
           const v = dist?.[k] || 0;
           const pct = closedN ? Math.round((v / closedN) * 100) : 0;
           return (
@@ -750,22 +752,22 @@ export const CoinDetailModal = ({ coin: coinProp, currentFlow, deskWr, onClose }
   }, []);
 
   // Animated close (mirrors SignalModal)
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
       onClose();
     }, 200);
-  };
+  }, [onClose]);
 
-  // Escape to close
+  // Escape to close — with the current onClose, not the first render's
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") handleClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  }, [handleClose]);
 
   if (!coin) return null;
 

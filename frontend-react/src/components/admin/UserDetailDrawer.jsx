@@ -1176,6 +1176,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
     setAdminNotes(user.admin_notes || "");
     setEditing(false);
     setSaveErr(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset the form when a different user opens, not when this one refreshes mid-edit
   }, [user.id]);
 
   const handleSave = async () => {

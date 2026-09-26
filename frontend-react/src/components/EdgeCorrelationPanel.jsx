@@ -6,6 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import EChart from "./charts/EChart";
 import CoinLogo from "./CoinLogo";
 
+// One shared empty list: `x || []` makes a new array every render, which
+// defeats every useMemo that depends on it.
+const EMPTY = Object.freeze([]);
+
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 function niceTag(t) {
@@ -369,12 +373,12 @@ export default function EdgeCorrelationPanel({
   }, [days, open, embedded]);
 
   const baseline = data?.baseline || {};
-  const prefer = data?.prefer_tags || [];
-  const caution = data?.caution_tags || [];
+  const prefer = data?.prefer_tags || EMPTY;
+  const caution = data?.caution_tags || EMPTY;
   const risk = data?.risk || [];
-  const openScored = data?.open_scored || [];
+  const openScored = data?.open_scored || EMPTY;
   const insights = data?.insights || [];
-  const tags = data?.tags || [];
+  const tags = data?.tags || EMPTY;
 
   const historyLabel =
     days === 0 ? "Full history" : days === 90 ? "Last 90 days" : `Last ${days} days`;

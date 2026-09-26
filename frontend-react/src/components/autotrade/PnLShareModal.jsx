@@ -95,6 +95,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
       .then((d) => setData(d))
       .catch((e) => setError(e.message || "Failed to fetch live data"))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch per order, not per re-created order object
   }, [isOpen, order?.id]);
 
   if (!order) return null;

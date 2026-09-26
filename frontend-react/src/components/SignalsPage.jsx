@@ -803,7 +803,9 @@ const SignalsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+    // bootCache is a useState initialiser, fixed for the component's life, so
+    // listing it keeps this callback as stable as the empty array did.
+  }, [bootCache]);
 
   useEffect(() => {
     // With cached rows already on screen, revalidate WITHOUT the skeleton —
@@ -1889,6 +1891,7 @@ const SignalsPage = () => {
     // on it, not on the page: comparing twenty-five of seventy-five calls and
     // calling it a screen is how you miss the one you were looking for.
     return { signals: paged, allFiltered: filtered, totalPages: pages, totalSignals: total, shariahHidden };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getStreakVal/getWinRateVal are rebuilt each render from coinIntel, which is listed
   }, [
     allSignals,
     shariah,

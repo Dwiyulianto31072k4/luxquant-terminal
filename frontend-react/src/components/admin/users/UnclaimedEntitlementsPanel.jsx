@@ -31,6 +31,10 @@ import {
   ExternalLinkIcon,
 } from "../Icons";
 
+// One shared empty list: `x || []` makes a new array every render, which
+// defeats every useMemo that depends on it.
+const EMPTY = Object.freeze([]);
+
 const SOURCE_META = {
   discord_premium: {
     label: "Discord Premium+",
@@ -162,7 +166,7 @@ export const UnclaimedEntitlementsPanel = ({ defaultOpen = false }) => {
   };
 
   const drillPool =
-    drill === "all" ? rows : drill ? (groups[drill]?.rows || []) : [];
+    drill === "all" ? rows : drill ? (groups[drill]?.rows || EMPTY) : EMPTY;
   const drillBase = useMemo(() => {
     if (seg === "unclaimed") return drillPool.filter((r) => !r.has_account);
     if (seg === "claimed") return drillPool.filter((r) => r.has_account);

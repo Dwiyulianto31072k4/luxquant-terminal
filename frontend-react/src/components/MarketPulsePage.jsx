@@ -38,6 +38,10 @@ import {
 import { SegGroup } from "./ui/SegGroup";
 import { PageHeader } from "./ui/PageHeader";
 
+// One shared empty list: `x || []` makes a new array every render, which
+// defeats every useMemo that depends on it.
+const EMPTY = Object.freeze([]);
+
 // ════════════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════════════
@@ -1457,7 +1461,7 @@ const FlowScreener = ({
       setClosing(false);
     }
   }, [open]);
-  const rawItems = data?.items || [];
+  const rawItems = data?.items || EMPTY;
   // Pulse-only: never list Binance volume-fill coins that aren't on Market Pulse
   const items = useMemo(() => {
     const hasFlags = rawItems.some((r) => r.in_pulse);

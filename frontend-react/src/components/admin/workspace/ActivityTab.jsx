@@ -41,6 +41,10 @@ import {
 } from "../Icons";
 import { UserDetailDrawer } from "../UserDetailDrawer";
 
+// One shared empty list: `x || []` makes a new array every render, which
+// defeats every useMemo that depends on it.
+const EMPTY = Object.freeze([]);
+
 const FEATURE_LABELS = {
   signals: "Signals",
   terminal: "Terminal",
@@ -345,7 +349,7 @@ const ActivityChart = ({ series, days, onDays, loading }) => {
 };
 
 const Heatmap = ({ heatmap, loading }) => {
-  const cells = heatmap?.cells || [];
+  const cells = heatmap?.cells || EMPTY;
   const peak = heatmap?.peak;
   const max = peak?.events || 0;
   const now = new Date();

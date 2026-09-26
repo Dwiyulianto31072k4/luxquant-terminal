@@ -964,6 +964,7 @@ export default function AutoTradePage() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load is rebuilt each render; the only state it reads is hasAutotradeToken
   }, [hasAutotradeToken]);
 
   useEffect(() => {
@@ -1001,6 +1002,7 @@ export default function AutoTradePage() {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", refresh);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- same: re-arming on each render would reset the 60 s poll
   }, [hasAutotradeToken]);
 
   const summaryText = useMemo(() => {

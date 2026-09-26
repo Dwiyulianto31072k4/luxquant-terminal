@@ -930,6 +930,7 @@ const SignalsTable = ({
       const v = getVerdict(s);
       return v && v.band && v.band !== "in_line";
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getVerdict is rebuilt each render; its inputs are listed instead
   }, [signals, coinIntel, verdictByPair, deskWr]);
 
   // Auto-show the verdict coachmark whenever the table loads with verdict data

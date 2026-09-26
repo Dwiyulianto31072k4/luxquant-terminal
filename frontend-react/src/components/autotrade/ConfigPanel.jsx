@@ -127,6 +127,7 @@ export default function ConfigPanel({ account, onClose }) {
     getConfig(account.id)
       .then(setConfig)
       .catch((e) => setError(e.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch per account, not per re-created account object
   }, [account?.id]);
 
   const update = (patch) => {

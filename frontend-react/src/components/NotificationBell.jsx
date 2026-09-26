@@ -85,16 +85,8 @@ const NotificationBell = () => {
     return pollWhileVisible(fetchCount, 60_000, { onFocus: true });
   }, [isAuthenticated, fetchCount]);
 
-  // ── Close on outside click ──
-  useEffect(() => {
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) handleClose();
-    };
-    if (isOpen) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [isOpen]);
-
-  const handleClose = () => {
+  // Declared before the effect below: its dep array is read at call time.
+  const handleClose = useCallback(() => {
     setIsClosing(true);
     setTimeout(() => {
       setIsOpen(false);
@@ -102,7 +94,16 @@ const NotificationBell = () => {
       // FIX: Re-fetch count when dropdown closes — catches any async mark-as-read
       fetchCount();
     }, 150);
-  };
+  }, [fetchCount]);
+
+  // ── Close on outside click ──
+  useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) handleClose();
+    };
+    if (isOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isOpen, handleClose]);
 
   const handleToggle = async () => {
     if (isOpen) {

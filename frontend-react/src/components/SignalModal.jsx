@@ -302,6 +302,7 @@ const SignalModal = ({
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on signalKey/pairKey (see STABLE IDENTITY KEYS above), not the re-created signal object
   }, [isOpen, signalKey]);
 
   // 2. Fetch data detail sinyal saat modal dibuka
@@ -350,6 +351,7 @@ const SignalModal = ({
     };
     fetchDetail();
     return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on signalKey/pairKey (see STABLE IDENTITY KEYS above), not the re-created signal object
   }, [isOpen, signalKey]);
 
   // 3. Fetch data CoinGecko saat buka tab Research
@@ -372,6 +374,7 @@ const SignalModal = ({
       .catch(() => { if (!controller.signal.aborted) coinInfoFetchedRef.current = false; })
       .finally(() => { if (!controller.signal.aborted) setCoinInfoLoading(false); });
     return () => { controller.abort(); coinInfoFetchedRef.current = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per pair and tab; coinInfo is what this effect fills, not an input
   }, [isOpen, signal?.pair, activeTab]);
 
   // 4. Fetch Peak Price AFTER highest TP hit — Binance → Bybit fallback chain
@@ -574,6 +577,7 @@ const SignalModal = ({
 
     fetchPeakPrice();
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on signalKey/pairKey (see STABLE IDENTITY KEYS above), not the re-created signal object
   }, [isOpen, signalKey, signalDetail]);
 
   // Latest price in a ref, so the key-levels effect can read it without taking
@@ -1033,6 +1037,7 @@ const SignalModal = ({
       studies:
         showIndicators && !compact ? ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"] : [],
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuilding the TradingView widget per signal object would reload the chart on every render
   }, [isOpen, pairKey, activeTab, chartMode, showIndicators, appTheme, signal?.pair, chartFull]);
 
   // 7. Handle Render TradingView Mini di Tab Trade

@@ -31,6 +31,10 @@ import {
 } from "recharts";
 import { workspaceApi } from "../../../services/workspaceApi";
 
+// One shared empty list: `x || []` makes a new array every render, which
+// defeats every useMemo that depends on it.
+const EMPTY = Object.freeze([]);
+
 const RANGES = [7, 30, 90, 180];
 
 // same palette the landing Performance chart uses
@@ -216,7 +220,7 @@ export function XApiSpendPanel() {
     return () => clearInterval(t);
   }, [load]);
 
-  const daily = summary?.daily || [];
+  const daily = summary?.daily || EMPTY;
   const avgCost = useMemo(
     () => (daily.length ? daily.reduce((s, d) => s + d.cost, 0) / daily.length : 0),
     [daily],

@@ -2470,6 +2470,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
       canvas.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("pointerleave", onPointerLeave);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the animation mounts once; onArcLand reads only refs, so its first closure stays correct
   }, []);
 
   return (

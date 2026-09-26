@@ -770,6 +770,7 @@ const SinceCallSpark = ({ item, compact = false }) => {
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the row's identity; the item object is rebuilt by the parent
   }, [item.signal_id, item.pair, item.sparkline]);
   // Same line the market table draws below it — thin stroke, no area fill.
   // Same reason as the server: the path starts where the call was made.
@@ -1022,13 +1023,14 @@ export const SignalDetailModal = ({
     fetchCoinHigh();
   }, [detail, created, pair]);
 
-  const handleClose = () => {
+  // Stable, so the keydown listener below is not re-attached on every render.
+  const handleClose = useCallback(() => {
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
       onClose();
     }, 200);
-  };
+  }, [onClose]);
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
