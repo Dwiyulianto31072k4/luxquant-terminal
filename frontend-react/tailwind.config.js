@@ -76,6 +76,9 @@ export default {
       },
       fontFamily: {
         display: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
+        // Editorial serif for the News wire. Playfair Display is already
+        // self-hosted for the landing, so this adds no network request.
+        editorial: ["Playfair Display", "Georgia", "ui-serif", "serif"],
         body: ["Plus Jakarta Sans", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
         sans: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],

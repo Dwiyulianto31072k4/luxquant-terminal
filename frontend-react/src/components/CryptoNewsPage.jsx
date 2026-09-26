@@ -100,6 +100,88 @@ const getCardImage = (item) => {
   return getBrandCover(item);
 };
 
+/** A real photograph, as opposed to a publisher's standing brand plate. */
+const getRealPhoto = (item) => {
+  const raw = getImageSrc(item);
+  return raw && !isLikelyBadImageHost(raw) ? raw : null;
+};
+
+// Headlines arrive in whatever case the source shouted them in. TradingView
+// ships every one in capitals, which in a serif at 34px reads as an alarm
+// rather than a headline, so a wire that mixes sources has to normalise. Known
+// acronyms keep their capitals — "SEC", "ETF", "BTC" are not words.
+const HEADLINE_ACRONYMS = new Set([
+  "AI", "API", "ATH", "BTC", "CEO", "CFO", "CFTC", "CPI", "CTO", "DAO", "DEX",
+  "DOGE", "ECB", "EPS", "ETF", "ETFS", "ETH", "EU", "FBI", "FOMC", "FTX",
+  "GDP", "IMF", "IPO", "IRS", "LTC", "M2", "NFT", "NFTS", "NY", "OTC", "P2P",
+  "PCE", "PPI", "RWA", "SEC", "SOL", "TVL", "UK", "US", "USA", "USD", "USDC",
+  "USDT", "XRP", "ZK",
+]);
+
+const MIXED_CASE_WORDS = { DEFI: "DeFi", NFT: "NFT", TRADFI: "TradFi", ALTFI: "AltFi" };
+
+// Month abbreviations are neither acronyms nor ordinary words: "26 SEP 2026"
+// has to land on "26 Sep 2026", not "26 sep 2026".
+const TITLE_CASE_WORDS = new Set([
+  "JAN", "FEB", "MAR", "APR", "JUN", "JUL", "AUG", "SEP", "SEPT", "OCT", "NOV", "DEC",
+  "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY",
+  // The names this wire repeats every hour. Lower-casing them turned
+  // "Vitalik" into "vitalik" and "Ethereum" into "ethereum", which looks like
+  // a typo rather than a house style. Not a complete list of proper nouns —
+  // no list could be — just the ones that actually recur here.
+  "BITCOIN", "ETHEREUM", "SOLANA", "CARDANO", "RIPPLE", "TETHER", "DOGECOIN",
+  "POLYGON", "CHAINLINK", "AVALANCHE", "LITECOIN", "TRON", "POLKADOT",
+  "BINANCE", "COINBASE", "KRAKEN", "BYBIT", "BITGET", "OKX", "GEMINI",
+  "GRAYSCALE", "BLACKROCK", "FIDELITY", "MICROSTRATEGY", "STRATEGY",
+  "VITALIK", "BUTERIN", "SATOSHI", "TRUMP", "POWELL", "BESSENT", "MUSK",
+  "SAYLOR", "GENSLER", "ATKINS", "CONGRESS", "SENATE", "TREASURY", "NASDAQ",
+  "WALL", "STREET", "FED", "AMERICA", "CHINA", "JAPAN", "EUROPE", "KOREA",
+  "DEEPBOOK", "UNISWAP", "AAVE", "LIDO", "OPENAI", "NVIDIA", "APPLE",
+  "MICROSOFT", "GOOGLE", "TESLA", "AMAZON", "META",
+]);
+
+/**
+ * Sentence case for headlines that arrived shouting; others pass through.
+ *
+ * Works on letter runs, not whitespace tokens: "ALL-IN-ONE" is one token but
+ * three words, and a token-level rewrite left it untouched because the token
+ * and its letters-only form never matched.
+ */
+const headlineCase = (title) => {
+  const t = String(title || "").trim();
+  if (!t) return t;
+  const letters = t.replace(/[^A-Za-z]/g, "");
+  if (letters.length < 12) return t;
+  if (t.replace(/[^A-Z]/g, "").length / letters.length < 0.7) return t;
+
+  let atSentenceStart = true;
+  let out = "";
+  let i = 0;
+  const RUN = /[A-Za-z][A-Za-z']*/g;
+  let m;
+  while ((m = RUN.exec(t)) !== null) {
+    out += t.slice(i, m.index);
+    const gap = t.slice(i, m.index);
+    if (/[.!?:]\s*$/.test(gap)) atSentenceStart = true;
+    const word = m[0];
+    const upper = word.toUpperCase();
+    if (HEADLINE_ACRONYMS.has(upper)) out += upper;
+    else if (MIXED_CASE_WORDS[upper]) out += MIXED_CASE_WORDS[upper];
+    else if (TITLE_CASE_WORDS.has(upper)) out += upper.charAt(0) + upper.slice(1).toLowerCase();
+    else {
+      const lower = word.toLowerCase();
+      out += atSentenceStart ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
+    }
+    atSentenceStart = false;
+    i = m.index + word.length;
+  }
+  return out + t.slice(i);
+};
+
+/** The headline as it should be set: one line, sane case, no trailing debris. */
+const displayTitle = (item) =>
+  headlineCase(newsTitleLine(item?.title) || "").replace(/\s*[-–—]?\s*\.{3}$/, "");
+
 const getVideoSrc = (item) => {
   const url = item?.video_url;
   if (!url || (typeof url === "string" && url.trim() === "")) return null;
@@ -673,26 +755,70 @@ const SourceMark = ({ item, size = 18 }) => {
 };
 
 // ── Card media: only real photos. On fail → hide (parent reflows to text). ──
-const CardMedia = ({ src, hasVideo, tall = false }) => {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed || isLikelyBadImageHost(src)) return null;
+// ════════════════════════════════════════════
+//  EDITORIAL LAYOUT
+//
+//  Measured off fortune.com at 1440px rather than guessed from a screenshot:
+//  a 1344px container inside a 48px gutter, four 306px columns with 40px
+//  between them, the lead image at 3:2, headlines in a serif at 700 — 32px
+//  over 1.2 for the lead, 18px over 1.4 everywhere else — and the deck in the
+//  UI sans at 18px in grey. Nothing is boxed. A newspaper separates stories
+//  with space and a hairline, and a card border around every headline is what
+//  made this page read as a dashboard instead of a wire.
+//
+//  The serif is Playfair Display, which the landing already self-hosts, so
+//  the editorial voice costs no extra font request.
+// ════════════════════════════════════════════
+
+const categoryLabel = (item) => {
+  const key = item?._category;
+  if (!key) return null;
+  return CATEGORY_RULES.find((c) => c.key === key)?.label || null;
+};
+
+/** The small capital line above a headline: topic first, publisher if untagged. */
+const Kicker = ({ item, className = "" }) => {
+  const label = categoryLabel(item) || sourceLabel(item);
+  if (!label) return null;
   return (
-    <div
-      className={`relative w-full overflow-hidden bg-ink/[0.05] ${
-        tall ? "aspect-[16/10] max-h-[260px]" : "aspect-[16/10]"
-      }`}
+    <span
+      className={`block text-[10.5px] font-semibold uppercase tracking-[0.14em] text-text-muted ${className}`}
     >
+      {label}
+    </span>
+  );
+};
+
+/** Publisher and age, the line every story closes on. */
+const Byline = ({ item, className = "" }) => (
+  <div className={`flex items-center gap-2 text-[11.5px] text-text-muted ${className}`}>
+    <SourceMark item={item} size={15} />
+    <span className="min-w-0 truncate font-medium text-text-secondary">{sourceLabel(item)}</span>
+    <span aria-hidden="true" className="text-ink/20">
+      ·
+    </span>
+    <span className="shrink-0 tabular-nums">{timeAgo(item.created_at)}</span>
+  </div>
+);
+
+const EditorialImage = ({ src, hasVideo, ratio = "aspect-[3/2]" }) => {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed || isLikelyBadImageHost(src)) {
+    return <div className={`w-full ${ratio} bg-ink/[0.05]`} aria-hidden="true" />;
+  }
+  return (
+    <div className={`relative w-full overflow-hidden bg-ink/[0.05] ${ratio}`}>
       <img
         src={src}
         alt=""
         loading="lazy"
         decoding="async"
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         onError={() => setFailed(true)}
+        className="absolute inset-0 h-full w-full object-cover"
       />
       {hasVideo && (
-        <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white">
-          <svg className="ml-0.5 h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
+        <span className="absolute bottom-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-scrim/70 text-white">
+          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden="true">
             <path d="M8 5v14l11-7z" />
           </svg>
         </span>
@@ -701,15 +827,13 @@ const CardMedia = ({ src, hasVideo, tall = false }) => {
   );
 };
 
-const cardShell =
-  "group flex h-full w-full flex-col overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised text-left transition-all duration-200 hover:border-ink/[0.14] hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgb(var(--scrim)_/_0.1)]";
-
-// ── Featured (Bitcoin page): image optional · title ALWAYS below on solid surface ──
-const FeaturedCard = ({ item, onSelect }) => {
+/** The lead: picture on the left, the story told on the right. */
+const LeadStory = ({ item, onSelect }) => {
   const src = getCardImage(item);
-  const hasVideo = !!getVideoSrc(item);
   return (
     <article
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(item)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -717,73 +841,69 @@ const FeaturedCard = ({ item, onSelect }) => {
           onSelect(item);
         }
       }}
-      role="button"
-      tabIndex={0}
-      aria-label={`Read: ${newsTitleLine(item.title) || "article"}`}
-      className="h-full cursor-pointer"
+      aria-label={`Read: ${displayTitle(item) || "article"}`}
+      className="group grid cursor-pointer grid-cols-1 gap-5 md:grid-cols-[minmax(0,1.07fr)_minmax(0,1fr)] md:gap-10"
     >
-      <div className={cardShell}>
-        <CardMedia src={src} hasVideo={hasVideo} tall />
-        <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
-          <div className="flex items-center gap-2">
-            <SourceMark item={item} size={16} />
-            <span className="truncate text-[11px] font-medium uppercase tracking-wide text-text-secondary">
-              {sourceLabel(item)}
-            </span>
-            <span className="text-text-muted/40">·</span>
-            <span className="shrink-0 tabular-nums text-[11px] text-text-muted">
-              {timeAgo(item.created_at)}
-            </span>
-          </div>
-          <h2 className="text-[15px] font-semibold leading-snug tracking-tight text-text-primary line-clamp-3 sm:text-[17px]">
-            {newsTitleLine(item.title)}
-          </h2>
-          {item.description ? (
-            <p className="text-[12.5px] leading-relaxed text-text-secondary line-clamp-2">
-              {cleanText(item.description)}
-            </p>
-          ) : null}
-        </div>
+      <EditorialImage src={src} hasVideo={!!getVideoSrc(item)} />
+      <div className="flex flex-col justify-center">
+        <Kicker item={item} />
+        <h2 className="mt-2.5 font-editorial text-[26px] font-bold leading-[1.18] tracking-[-0.005em] text-text-primary decoration-1 underline-offset-4 group-hover:underline sm:text-[30px] lg:text-[34px]">
+          {displayTitle(item)}
+        </h2>
+        {item.description ? (
+          <p className="mt-3 text-[15px] leading-[1.5] text-text-muted sm:text-[17px]">
+            {cleanText(item.description)}
+          </p>
+        ) : null}
+        <Byline item={item} className="mt-4" />
       </div>
     </article>
   );
 };
 
-// ── Story card (grid): same rule — never title-on-image, never logo tile ──
-const StoryCard = ({ item, onSelect }) => {
-  const src = getCardImage(item);
-  const hasVideo = !!getVideoSrc(item);
-  // `title` di DB kadang memuat seluruh isi pesan, bukan judulnya saja.
-  const title = newsTitleLine(item.title) || "Untitled";
+/** The row under the lead: picture over headline, three across. */
+const SecondaryStory = ({ item, onSelect }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(item)}
+    className="group flex w-full flex-col text-left"
+  >
+    <EditorialImage src={getCardImage(item)} hasVideo={!!getVideoSrc(item)} />
+    <Kicker item={item} className="mt-3" />
+    <h3 className="mt-1.5 font-editorial text-[17px] font-bold leading-[1.32] text-text-primary decoration-1 underline-offset-4 group-hover:underline sm:text-[18px]">
+      {displayTitle(item) || "Untitled"}
+    </h3>
+    <Byline item={item} className="mt-2" />
+  </button>
+);
 
-  return (
-    <button type="button" onClick={() => onSelect(item)} className={cardShell}>
-      <CardMedia src={src} hasVideo={hasVideo} />
-      <div className="flex min-h-[108px] flex-1 flex-col gap-2 p-3 sm:min-h-[118px] sm:p-3.5">
-        <h3
-          className="text-[12.5px] font-semibold leading-snug text-text-primary sm:text-[13.5px]"
-          style={{
-            display: "-webkit-box",
-            WebkitLineClamp: src ? 3 : 4,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {title}
-        </h3>
-        <div className="mt-auto flex items-center gap-2 border-t border-ink/[0.06] pt-2">
-          <SourceMark item={item} size={14} />
-          <span className="min-w-0 truncate text-[10px] font-medium uppercase tracking-wide text-text-secondary sm:text-[11px]">
-            {sourceLabel(item)}
-          </span>
-          <span className="ml-auto shrink-0 tabular-nums text-[10px] text-text-muted sm:text-[11px]">
-            {timeAgo(item.created_at)}
-          </span>
-        </div>
-      </div>
-    </button>
-  );
-};
+/** A rail or list entry: no picture, the headline carries it. */
+const HeadlineRow = ({ item, onSelect, compact = false }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(item)}
+    className="group flex w-full flex-col border-b border-ink/[0.08] py-3.5 text-left last:border-b-0"
+  >
+    <h3
+      className={`font-editorial font-bold leading-[1.34] text-text-primary decoration-1 underline-offset-4 group-hover:underline ${
+        compact ? "text-[15px]" : "text-[16px] sm:text-[17px]"
+      }`}
+    >
+      {displayTitle(item) || "Untitled"}
+    </h3>
+    <Byline item={item} className="mt-1.5" />
+  </button>
+);
+
+/** A section heading on a rule — the newspaper's way of starting a column. */
+const RailHeading = ({ children, right }) => (
+  <div className="flex items-baseline justify-between gap-3 border-b-2 border-ink/80 pb-2">
+    <h2 className="font-editorial text-[19px] font-bold leading-none text-text-primary">
+      {children}
+    </h2>
+    {right}
+  </div>
+);
 
 // Right rail — compact desk
 // Client-side safety: never show source handles as "topics"
@@ -819,20 +939,25 @@ const cleanTrendingTopics = (trending, limit = 10) => {
   return raw.filter((t) => !isSourceyTopic(t.topic)).slice(0, limit);
 };
 
+// A rail block is a heading on a rule, like the columns beside it. It used to
+// be a rounded card on its own surface, which put two different languages in
+// one column: boxed panels next to unboxed headlines.
 const SideShell = ({ title, children }) => (
-  <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
-    <div className="px-4 py-3">
-      <h3 className="text-[14px] font-semibold text-text-primary">{title}</h3>
+  <section>
+    <div className="border-b-2 border-ink/80 pb-2">
+      <h2 className="font-editorial text-[19px] font-bold leading-none text-text-primary">
+        {title}
+      </h2>
     </div>
-    <div className="px-2 pb-2">{children}</div>
-  </div>
+    <div className="pt-1">{children}</div>
+  </section>
 );
 
 const MarketDesk = ({ trending, stats, onSearchTopic }) => {
   const topDomains = stats?.top_domains?.slice(0, 7) || [];
   const topics = cleanTrendingTopics(trending, 10);
   return (
-    <aside className="space-y-3">
+    <div className="space-y-8">
       <SideShell title="Trending">
         {topics.length === 0 ? (
           <p className="px-2 py-3 text-[12px] text-text-muted">No topics yet</p>
@@ -902,7 +1027,7 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
           </div>
         </SideShell>
       )}
-    </aside>
+    </div>
   );
 };
 
@@ -1493,37 +1618,61 @@ const CryptoNewsPage = () => {
   // Featured pair only on clean page-1 feed (Bitcoin-page pattern)
   const heroEnabled = page === 1 && !searchQuery && !activeCategory && activeFilter === "all";
 
-  const { featured, gridItems } = useMemo(() => {
-    // Prefer real article photos (not brand fillers) for featured + denser grid.
+  // One lead, three under it, a rail of headlines, then the rest.
+  //
+  // A wire has a front page, not an even grid: the eye needs one story that is
+  // clearly the biggest, a row that is clearly second, and a column it can
+  // skim. Pictures are spent where they buy the most — the lead and the three
+  // beneath it — and everything after that is carried by the headline alone,
+  // which is also what keeps a 28-story page from becoming 28 thumbnails.
+  const { lead, secondary, railItems, gridItems } = useMemo(() => {
     const hasPhoto = (it) => !!getCardImage(it);
-
-    if (!heroEnabled || filteredItems.length === 0) {
-      // Even without hero: put photo stories first so the page looks full.
+    const withPhotoFirst = (list) => {
       const withP = [];
       const noP = [];
-      for (const it of filteredItems) {
-        (hasPhoto(it) ? withP : noP).push(it);
-      }
-      return { featured: [], gridItems: [...withP, ...noP] };
+      for (const it of list) (hasPhoto(it) ? withP : noP).push(it);
+      return [...withP, ...noP];
+    };
+
+    if (!heroEnabled || filteredItems.length === 0) {
+      return { lead: null, secondary: [], railItems: [], gridItems: withPhotoFirst(filteredItems) };
     }
 
     const used = new Set();
-    const featured = [];
-    for (const it of filteredItems) {
-      if (featured.length >= 2) break;
-      if (hasPhoto(it)) {
-        featured.push(it);
+    // The picture band takes real photographs, and never the same picture
+    // twice. Sources that ship no image fall back to a standing brand plate,
+    // and TradingView alone is a fifth of the wire — leading on those put the
+    // identical "News Flow" artwork in the lead and in two of the three slots
+    // beneath it, which reads as a broken page rather than a front page.
+    const seenArt = new Set();
+    const take = (n) => {
+      const out = [];
+      for (const it of filteredItems) {
+        if (out.length >= n) break;
+        if (used.has(it.id)) continue;
+        const photo = getRealPhoto(it);
+        if (!photo || seenArt.has(photo)) continue;
+        out.push(it);
         used.add(it.id);
+        seenArt.add(photo);
       }
-    }
-    // Don't force text-only into featured — keep featured for real visuals only.
+      return out;
+    };
+
+    const leadArr = take(1);
+    const secondaryArr = take(3);
     const rest = filteredItems.filter((it) => !used.has(it.id));
-    const withP = [];
-    const noP = [];
-    for (const it of rest) {
-      (hasPhoto(it) ? withP : noP).push(it);
-    }
-    return { featured, gridItems: [...withP, ...noP] };
+    // The rail reads as a column of headlines, so it takes the next few
+    // regardless of whether they carry a picture.
+    const rail = rest.slice(0, 7);
+    rail.forEach((it) => used.add(it.id));
+
+    return {
+      lead: leadArr[0] || null,
+      secondary: secondaryArr,
+      railItems: rail,
+      gridItems: withPhotoFirst(filteredItems.filter((it) => !used.has(it.id))),
+    };
   }, [filteredItems, heroEnabled]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -1582,19 +1731,24 @@ const CryptoNewsPage = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start lg:gap-5">
-          <div className="min-w-0 space-y-4 lg:col-span-9">
-            {/* Featured — Bitcoin-page dual cards */}
-            {featured.length > 0 && (
-              <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {featured.map((it) => (
-                  <FeaturedCard key={it.id} item={it} onSelect={openArticle} />
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start lg:gap-10">
+          <div className="min-w-0 lg:col-span-9">
+            {lead && (
+              <section className="border-b border-ink/[0.08] pb-8">
+                <LeadStory item={lead} onSelect={openArticle} />
+              </section>
+            )}
+
+            {secondary.length > 0 && (
+              <section className="grid grid-cols-1 gap-7 border-b border-ink/[0.08] py-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+                {secondary.map((it) => (
+                  <SecondaryStory key={it.id} item={it} onSelect={openArticle} />
                 ))}
               </section>
             )}
 
             {/* Mobile insights */}
-            <div className="lg:hidden">
+            <div className="py-6 lg:hidden">
               <CollapsibleInsights
                 trending={trending}
                 stats={stats}
@@ -1602,28 +1756,53 @@ const CryptoNewsPage = () => {
               />
             </div>
 
-            {/* Grid — Choose-news style cards */}
-            <section>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-[14px] font-semibold text-text-primary">{sectionLabel}</h2>
-                <span className="font-mono text-[11px] tabular-nums text-text-muted">
-                  {gridItems.length} headlines
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3">
+            {/* The rail's headlines have nowhere to go on a phone, so they run
+                here instead of being dropped. */}
+            {railItems.length > 0 && (
+              <section className="border-b border-ink/[0.08] pb-6 lg:hidden">
+                <RailHeading>Latest</RailHeading>
+                <div>
+                  {railItems.map((it) => (
+                    <HeadlineRow key={it.id} item={it} onSelect={openArticle} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="pt-8">
+              <RailHeading
+                right={
+                  <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                    {gridItems.length} headlines
+                  </span>
+                }
+              >
+                {sectionLabel === "Latest" ? "More headlines" : sectionLabel}
+              </RailHeading>
+              <div className="grid grid-cols-1 gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
                 {(gridItems.length > 0 ? gridItems : filteredItems).map((it) => (
-                  <StoryCard key={it.id} item={it} onSelect={openArticle} />
+                  <HeadlineRow key={it.id} item={it} onSelect={openArticle} compact />
                 ))}
               </div>
-              <div className="pt-2">
+              <div className="pt-6">
                 <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
               </div>
             </section>
           </div>
 
-          <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-16 lg:self-start">
+          <aside className="hidden lg:col-span-3 lg:block lg:sticky lg:top-16 lg:self-start">
+            {railItems.length > 0 && (
+              <section className="mb-8">
+                <RailHeading>Latest</RailHeading>
+                <div>
+                  {railItems.map((it) => (
+                    <HeadlineRow key={it.id} item={it} onSelect={openArticle} compact />
+                  ))}
+                </div>
+              </section>
+            )}
             <MarketDesk trending={trending} stats={stats} onSearchTopic={handleSearchTopic} />
-          </div>
+          </aside>
         </div>
       )}
 
