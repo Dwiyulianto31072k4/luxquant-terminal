@@ -6,10 +6,14 @@ import "./styles/index.css";
 import "./i18n"; // <--- Baris pemanggil kamus bahasa
 import { captureAcqFromUrl } from "./utils/acqAttribution";
 import { installFetchAuthRefresh } from "./services/authSession";
+import { installGlobalErrorReporting } from "./services/errorReporter";
 
 // Plain fetch() to our API refreshes an expired session once and retries,
 // the same as the axios clients. Before anything renders and fetches.
 installFetchAuthRefresh(window);
+// Crashes outside React's tree (event handlers, timers, stray promises) are
+// reported too; the error boundary reports the ones that take a page down.
+installGlobalErrorReporting(window);
 
 // First-touch UTM / social referrer (before React tree mounts)
 try {

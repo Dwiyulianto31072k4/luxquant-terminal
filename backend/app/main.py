@@ -84,6 +84,7 @@ from app.api.routes import vip_members as vip_members_routes
 from app.api.routes import marketing_x_usage
 from app.api.routes import performance_metrics
 from app.api.routes import entry_planner
+from app.api.routes import client_errors
 
 
 
@@ -438,6 +439,7 @@ app.include_router(vip_members_routes.router, tags=["vip-members"])
 app.include_router(marketing_x_usage.router, tags=["x-usage"])
 app.include_router(performance_metrics.router, prefix="/api/v1", tags=["performance"])
 app.include_router(entry_planner.router, tags=["entry-planner"])
+app.include_router(client_errors.router)
 
 
 # ═══════════════════════════════════════════

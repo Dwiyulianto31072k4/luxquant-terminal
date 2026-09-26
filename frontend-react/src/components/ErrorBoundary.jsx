@@ -4,6 +4,7 @@
 
 import { Component } from "react";
 import { isChunkLoadError } from "../utils/lazyWithRetry";
+import { reportClientError } from "../services/errorReporter";
 
 // Shared with the global handler in main.jsx so the two cannot double-reload.
 const RELOAD_KEY = "lq_chunk_reload_at";
@@ -51,6 +52,9 @@ export default class ErrorBoundary extends Component {
     } catch {
       /* ignore */
     }
+    // This panel is what the visitor is now looking at; until 26 Sep 2026 the
+    // console above was the only record of it anywhere.
+    reportClientError(error, { kind: "boundary", componentStack: info?.componentStack });
   }
 
   handleReload = () => {
