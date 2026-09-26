@@ -1322,6 +1322,7 @@ export const SignalDetailModal = ({
   const recordCells = [];
   recordCells.push({
     k: "peak",
+    lead: true,
     label: "Peak from entry",
     value: gainHero || "—",
     tone: gainIsLoss ? "text-loss" : "text-profit",
@@ -1338,6 +1339,7 @@ export const SignalDetailModal = ({
       tpHitIsSL
         ? {
             k: "plan",
+            lead: true,
             label: "Published plan",
             value: `${planPctNum >= 0 ? "+" : ""}${planPctNum.toFixed(1)}%`,
             tone: "text-loss",
@@ -1347,6 +1349,7 @@ export const SignalDetailModal = ({
         : planEqualsPeak
           ? {
               k: "plan",
+              lead: true,
               label: "Published plan",
               value: lastTpEvent ? `TP${lastTpEvent.level}` : "Target",
               tone: "text-text-primary",
@@ -1355,6 +1358,7 @@ export const SignalDetailModal = ({
             }
           : {
               k: "plan",
+              lead: true,
               label: "Published plan",
               value: `${planPctNum >= 0 ? "+" : ""}${planPctNum.toFixed(1)}%`,
               tone: planPctNum >= 0 ? "text-profit" : "text-loss",
@@ -1518,12 +1522,24 @@ export const SignalDetailModal = ({
           <div className="h-1 w-10 rounded-full bg-ink/20" />
         </div>
 
-        {/* ── Hero header — single clean row, no stacked crumbs ── */}
-        <div className="flex shrink-0 items-center gap-2.5 border-b border-ink/[0.06] px-3.5 py-3 sm:gap-3 sm:px-5 sm:py-3.5">
+        {/* ── Header: what this is, and the controls ──
+            The result used to sit up here in the top-right corner, wedged
+            between the coin's name and the close button. Three things were
+            wrong with that. The corner of a dialog is where the controls
+            live, so a headline number there competes with the button that
+            dismisses it. The number was already stated directly below, in
+            the band that also shows the prices behind it, so the modal
+            opened by saying the same figure twice within 100px. And on a
+            phone it stole enough width to truncate the pair to "SAGA...".
+
+            So the header answers "what am I looking at" and the band answers
+            "what happened". Risk left too: the band says it, with the volume
+            rank that gives it meaning. */}
+        <div className="flex shrink-0 items-center gap-3 border-b border-ink/[0.06] px-3.5 py-3 sm:gap-3.5 sm:px-5 sm:py-3.5">
           <CoinLogo pair={pair} size={36} />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
-              <h2 className="truncate text-[15px] font-semibold tracking-tight text-text-primary sm:text-[17px]">
+              <h2 className="truncate text-[16px] font-semibold tracking-tight text-text-primary sm:text-[18px]">
                 {pair}
               </h2>
               {status && (
@@ -1533,36 +1549,14 @@ export const SignalDetailModal = ({
                   {sLabel(status)}
                 </span>
               )}
-              {detail?.risk_level && (
-                <span className="hidden shrink-0 rounded bg-ink/[0.05] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-text-muted sm:inline">
-                  {detail.risk_level}
-                </span>
-              )}
             </div>
-            <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-text-muted sm:text-[11px]">
+            <p className="mt-0.5 truncate font-mono text-[11px] tabular-nums text-text-muted sm:text-[11.5px]">
               {fmtDt(created)}
               {durationText && durationText !== "—" ? ` · ${durationText}` : ""}
             </p>
           </div>
 
-          {gainHero && (
-            <div className="shrink-0 text-right">
-              <p
-                className={`font-mono text-[18px] font-bold leading-none tabular-nums sm:text-[22px] ${
-                  gainIsLoss ? "text-loss" : "text-profit"
-                }`}
-              >
-                {gainHero}
-              </p>
-              {hitPriceDisplay != null && (
-                <p className="mt-0.5 whitespace-nowrap font-mono text-[10px] tabular-nums text-text-muted">
-                  peak ${formatPrice(hitPriceDisplay)}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1.5">
             <a
               href={xUrl}
               target="_blank"
@@ -1800,9 +1794,9 @@ export const SignalDetailModal = ({
                   <div key={cell.k} className="px-4 py-3.5">
                     <p className="text-[11px] text-text-muted">{cell.label}</p>
                     <p
-                      className={`mt-1.5 text-[18px] font-semibold leading-none tracking-tight ${
-                        cell.mono ? "font-mono tabular-nums" : ""
-                      } ${cell.tone}`}
+                      className={`mt-1.5 font-semibold leading-none tracking-tight ${
+                        cell.lead ? "text-[22px] sm:text-[25px]" : "text-[17px] sm:text-[18px]"
+                      } ${cell.mono ? "font-mono tabular-nums" : ""} ${cell.tone}`}
                     >
                       {cell.value}
                     </p>
