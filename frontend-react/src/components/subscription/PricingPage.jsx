@@ -25,6 +25,33 @@ const Check = ({ className = "h-3.5 w-3.5", tone = "rgb(var(--accent) / 0.85)" }
   </svg>
 );
 
+/* Brand marks, same paths the footer draws, so a tile here and a tile there
+   are the same mark. Monochrome on one plate: a row of six real app icons
+   turns a quiet section into a sticker sheet. */
+const Glyph = ({ children, className = "h-[18px] w-[18px]" }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    {children}
+  </svg>
+);
+
+const MARKS = {
+  telegram: (
+    <Glyph>
+      <path d="M21.2 3.4 2.9 10.5c-1.3.5-1.2 1.2-.2 1.5l4.7 1.5 10.8-6.8c.5-.3 1-.1.6.2l-8.8 7.9-.3 4.7c.5 0 .7-.2 1-.5l2.4-2.3 5 3.7c.9.5 1.6.2 1.8-.9l3.3-15.5c.3-1.4-.5-2-1.5-1.6z" />
+    </Glyph>
+  ),
+  x: (
+    <Glyph>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </Glyph>
+  ),
+  terminal: (
+    <Glyph>
+      <path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h15A1.5 1.5 0 0 1 21 4.5v15a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5zM6.6 8.4a.9.9 0 0 0 0 1.27l2.33 2.33-2.33 2.33a.9.9 0 1 0 1.27 1.27l2.97-2.97a.9.9 0 0 0 0-1.27L7.87 8.4a.9.9 0 0 0-1.27 0m6.3 6.3a.9.9 0 0 0 0 1.8h4.2a.9.9 0 0 0 0-1.8z" />
+    </Glyph>
+  ),
+};
+
 function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false);
   return (
@@ -730,34 +757,71 @@ const PricingPage = () => {
               <p className="mb-6 text-center text-[13px] text-text-primary/40">
                 {t("pricing.how_subtitle")}
               </p>
-              <ol className="grid gap-5 sm:grid-cols-3 sm:gap-6">
+              {/* Numbered plates on a rule that runs between them: three steps
+                  in a row read as a sequence, which loose text columns did not.
+                  The rule is hidden on phones, where the steps stack. */}
+              <ol className="relative grid gap-5 sm:grid-cols-3 sm:gap-6">
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-[16%] right-[16%] top-4 hidden h-px bg-ink/[0.10] sm:block"
+                />
                 {howSteps.map((s) => (
-                  <li key={s.n} className="flex gap-3 sm:block">
-                    <span className="font-mono text-[11px] text-text-primary/30" aria-hidden>
+                  <li key={s.n} className="relative flex gap-3 sm:block sm:text-center">
+                    <span
+                      className="relative z-10 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-ink/[0.10] bg-surface-raised font-mono text-[12px] text-text-primary/60 sm:mx-auto sm:mb-3"
+                      aria-hidden
+                    >
                       {s.n}
                     </span>
                     <div>
-                      <p className="text-[14px] font-medium text-text-primary/85">{s.title}</p>
-                      <p className="mt-1 text-[12px] leading-relaxed text-text-primary/40 sm:text-[13px]">
+                      <p className="text-[14px] font-semibold text-text-primary">{s.title}</p>
+                      <p className="mx-auto mt-1 max-w-[28ch] text-[12.5px] leading-relaxed text-text-primary/45">
                         {s.body}
                       </p>
                     </div>
                   </li>
                 ))}
               </ol>
-              <p className="mt-6 text-center text-[13px] text-text-primary/40">
-                {t("pricing.pay_other_title")}{" "}
-                <button
-                  type="button"
-                  onClick={() => openAssisted(yearlyPlan, "pay")}
-                  className="font-medium text-accent underline-offset-4 hover:underline"
-                >
+
+              {/* The alternative route was one muted sentence under three
+                  steps. 107 of the 143 people who opened an invoice in the last
+                  60 days never sent anything, so the way out of a stuck payment
+                  gets a row of its own, with the channel it actually goes to. */}
+              <button
+                type="button"
+                onClick={() => openAssisted(yearlyPlan, "pay")}
+                className="group mt-8 flex w-full items-center gap-3 rounded-2xl border border-ink/[0.08] bg-surface-raised px-4 py-3.5 text-left transition-all hover:border-ink/[0.16] hover:shadow-[0_10px_30px_-18px_rgb(var(--ink)/0.5)]"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04] text-text-primary/75">
+                  {MARKS.telegram}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-semibold text-text-primary">
+                    {t("pricing.pay_other_title")}
+                  </span>
+                  <span className="block text-[12.5px] leading-snug text-text-primary/45">
+                    {t("pricing.pay_other_body")}
+                  </span>
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-[12.5px] font-medium text-accent">
                   {t("pricing.pay_other_cta")}
-                </button>
-              </p>
+                  <svg
+                    className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </span>
+              </button>
             </section>
 
-            <section className={`mx-auto max-w-lg ${embedded ? "mt-12" : "mt-14 sm:mt-16"}`}>
+            <section className={`mx-auto max-w-3xl ${embedded ? "mt-12" : "mt-14 sm:mt-16"}`}>
               <h2
                 className="mb-1 text-center text-lg font-semibold tracking-tight text-text-primary sm:text-xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
@@ -768,8 +832,84 @@ const PricingPage = () => {
                 {t("pricing.compare_subtitle")}
               </p>
 
+              {/* Desktop reads all four plans at once — switching tabs to
+                  compare means holding the other column in your head. The tab
+                  view stays for phones, where four columns cannot fit. */}
+              <div className="hidden overflow-hidden rounded-2xl border border-ink/[0.08] bg-surface-raised sm:block">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-ink/[0.07]">
+                      <th className="px-5 py-3 text-left text-[12px] font-medium text-text-primary/45">
+                        {t("pricing.compare_title")}
+                      </th>
+                      {includeTabs.map((tab) => (
+                        <th
+                          key={tab.id}
+                          className={`px-3 py-3 text-center text-[12.5px] font-semibold ${
+                            tab.id === "yearly" ? "text-text-primary" : "text-text-primary/60"
+                          }`}
+                        >
+                          {tab.label}
+                          {tab.id === "yearly" ? (
+                            <span className="ml-1.5 align-middle text-[10px] font-medium text-accent">
+                              ★
+                            </span>
+                          ) : null}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {compareMatrix.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-b border-ink/[0.05] last:border-0 hover:bg-ink/[0.015]"
+                      >
+                        <td className="px-5 py-3">
+                          <p className="text-[13.5px] text-text-primary/80">{row.label}</p>
+                          {row.hint ? (
+                            <p className="mt-0.5 text-[12px] leading-snug text-text-primary/35">
+                              {row.hint}
+                            </p>
+                          ) : null}
+                        </td>
+                        {includeTabs.map((tab) => {
+                          const v = formatIncludeValue(row[tab.id]);
+                          return (
+                            <td
+                              key={tab.id}
+                              className={`px-3 py-3 text-center align-middle ${
+                                tab.id === "yearly" ? "bg-accent/[0.03]" : ""
+                              }`}
+                            >
+                              {v.kind === "yes" && (
+                                <span className="inline-flex text-accent">
+                                  <Check className="h-4 w-4" />
+                                  <span className="sr-only">{t("pricing.included")}</span>
+                                </span>
+                              )}
+                              {v.kind === "no" && (
+                                <span
+                                  className="text-[13px] text-text-primary/20"
+                                  aria-label={t("pricing.not_included")}
+                                >
+                                  —
+                                </span>
+                              )}
+                              {(v.kind === "partial" || v.kind === "text") && (
+                                <span className="text-[12px] text-text-primary/55">{v.text}</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
               <div
-                className="mb-4 grid grid-cols-4 gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-1"
+                className="mb-4 grid grid-cols-4 gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-1 sm:hidden"
                 role="tablist"
                 aria-label={t("pricing.compare_title")}
               >
@@ -794,7 +934,7 @@ const PricingPage = () => {
                 })}
               </div>
 
-              <ul className="divide-y divide-ink/[0.06] rounded-xl border border-ink/[0.07] px-1">
+              <ul className="divide-y divide-ink/[0.06] rounded-xl border border-ink/[0.07] px-1 sm:hidden">
                 {compareMatrix.map((row) => {
                   const raw = row[includeTab];
                   const v = formatIncludeValue(raw);
@@ -865,6 +1005,7 @@ const PricingPage = () => {
                   {[
                     {
                       k: "free",
+                      mark: MARKS.terminal,
                       title: t("pricing.notready_free_t"),
                       body: t("pricing.notready_free_b"),
                       cta: t("pricing.notready_free_c"),
@@ -872,14 +1013,18 @@ const PricingPage = () => {
                     },
                     {
                       k: "tg",
+                      mark: MARKS.telegram,
                       title: t("pricing.notready_tg_t"),
+                      meta: "t.me/LuxQuantSignal",
                       body: t("pricing.notready_tg_b"),
                       cta: t("pricing.notready_tg_c"),
                       href: "https://t.me/LuxQuantSignal",
                     },
                     {
                       k: "x",
+                      mark: MARKS.x,
                       title: t("pricing.notready_x_t"),
+                      meta: "@luxquantalgo",
                       body: t("pricing.notready_x_b"),
                       cta: t("pricing.notready_x_c"),
                       href: "https://x.com/luxquantalgo",
@@ -887,14 +1032,28 @@ const PricingPage = () => {
                   ].map((c) => {
                     const inner = (
                       <>
-                        <p className="text-[14px] font-semibold text-text-primary">{c.title}</p>
-                        <p className="mt-1.5 flex-1 text-[12.5px] leading-relaxed text-text-primary/50">
+                        <div className="mb-3 flex items-center gap-2.5">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04] text-text-primary/75 transition-colors group-hover:text-text-primary">
+                            {c.mark}
+                          </span>
+                          <div className="min-w-0 leading-tight">
+                            <p className="truncate text-[14px] font-semibold text-text-primary">
+                              {c.title}
+                            </p>
+                            {c.meta ? (
+                              <p className="truncate font-mono text-[11px] text-text-primary/35">
+                                {c.meta}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                        <p className="flex-1 text-[12.5px] leading-relaxed text-text-primary/50">
                           {c.body}
                         </p>
                         <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-accent">
                           {c.cta}
                           <svg
-                            className="h-3 w-3"
+                            className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -909,7 +1068,7 @@ const PricingPage = () => {
                       </>
                     );
                     const cls =
-                      "flex h-full flex-col rounded-xl border border-ink/[0.07] bg-surface-raised px-4 py-4 text-left transition-colors hover:border-ink/[0.14]";
+                      "group flex h-full flex-col rounded-2xl border border-ink/[0.08] bg-surface-raised px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-ink/[0.16] hover:shadow-[0_10px_30px_-18px_rgb(var(--ink)/0.5)]";
                     return c.href ? (
                       <a key={c.k} href={c.href} target="_blank" rel="noopener noreferrer" className={cls}>
                         {inner}
