@@ -1419,7 +1419,7 @@ function AppShell({ children }) {
       {showFooter && (
         <div className="pb-20 lg:pb-0">
           <Suspense fallback={null}>
-            <FooterV2 onNav={() => navigate("/")} />
+            <FooterV2 onNav={() => navigate("/")} wide />
           </Suspense>
         </div>
       )}

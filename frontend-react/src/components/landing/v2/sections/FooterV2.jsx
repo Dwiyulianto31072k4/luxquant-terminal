@@ -9,7 +9,7 @@ import { isPremiumUser } from "../../../../utils/roles";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { CTA } from "../landingCopy";
 
-export default function FooterV2({ onNav, blend = false }) {
+export default function FooterV2({ onNav, blend = false, wide = false }) {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const isPremium = isPremiumUser(user);
@@ -183,7 +183,17 @@ export default function FooterV2({ onNav, blend = false }) {
           style={{ background: "linear-gradient(to bottom, transparent, rgb(var(--surface-raised)))" }}
         />
       ) : null}
-      <div className="mx-auto max-w-6xl px-5 pb-10 pt-14 sm:px-6 lg:px-8 lg:pt-16">
+      {/* `wide` matches the in-app <main>: max-w-[1600px] with the same small
+          gutters, so the footer's first column starts on the same line as the
+          content above it. The landing keeps its narrower measure — its
+          sections are max-w-6xl and the footer has to line up with those. */}
+      <div
+        className={`mx-auto pb-10 pt-14 lg:pt-16 ${
+          wide
+            ? "max-w-[1600px] px-3 sm:px-4 lg:px-6"
+            : "max-w-6xl px-5 sm:px-6 lg:px-8"
+        }`}
+      >
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
           {/* Brand + ecosystem logos */}
           <div className="max-w-sm">
@@ -235,7 +245,14 @@ export default function FooterV2({ onNav, blend = false }) {
           </div>
 
           {/* Link columns */}
-          <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-10 lg:max-w-xl">
+          {/* On the app's 1600px measure the links must spread, or the brand
+              block and a 576px column of links leave a hole down the middle.
+              The landing keeps the tighter column. */}
+          <div
+            className={`grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-10 ${
+              wide ? "lg:max-w-3xl" : "lg:max-w-xl"
+            }`}
+          >
             {COLUMNS.map((col) => (
               <div key={col.title}>
                 <p className="mb-3.5 text-[12px] font-semibold tracking-wide text-text-secondary">
