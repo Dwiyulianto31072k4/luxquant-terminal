@@ -17,6 +17,7 @@ PRIVASI:
     Tidak pernah ekspos message_link / channel_id / source_msg_id / raw_text.
 """
 import logging
+import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -204,17 +205,52 @@ _CORR_COLS_C = """
 """
 
 
+CORRELATION_LIMIT_MAX = 100
+
+
+def _clamp_limit(limit: int) -> int:
+    """Oversized asks get the maximum rather than a 422.
+
+    A partner asking limit=200 was refused outright on every call (46 of them in
+    two days) because the parameter was declared le=100. For a public feed the
+    polite contract is "you asked for more than we serve, here is all we serve".
+    """
+    return max(1, min(int(limit), CORRELATION_LIMIT_MAX))
+
+
+def _as_pair(value: str) -> str:
+    """'bnb', 'BNB/USDT', 'bnbusdt' -> 'BNBUSDT' (a signals.pair)."""
+    s = (value or "").strip().upper().replace("/", "").replace("-", "").replace(" ", "")
+    return s if s.endswith("USDT") else s + "USDT"
+
+
+def _is_signal_id(value: str) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
+
+
 @router.get("/btc-correlation/recent")
 def list_recent_correlations_public(
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1),
+    pair: Optional[str] = Query(None),
     decoupled_only: bool = False,
     extended_only: bool = False,
     db: Session = Depends(get_db),
 ):
+    limit = _clamp_limit(limit)
     conds = [
         "s.created_at IS NOT NULL",
         "CAST(s.created_at AS timestamptz) >= CAST(:cutoff AS timestamptz)",
     ]
+    params = {"cutoff": _cutoff(), "lim": limit}
+    # `pair` used to be ignored silently: ?pair=BNBUSDT answered 200 with every
+    # coin's rows, and a partner read other coins' correlations as BNB's.
+    if pair:
+        conds.append("s.pair = :pair")
+        params["pair"] = _as_pair(pair)
     if decoupled_only:
         conds.append("c.is_decoupled = TRUE")
     if extended_only:
@@ -228,21 +264,29 @@ def list_recent_correlations_public(
         WHERE {where}
         ORDER BY c.analyzed_at DESC
         LIMIT :lim
-    """), {"cutoff": _cutoff(), "lim": limit}).mappings().all()
+    """), params).mappings().all()
 
     return {"count": len(rows), "items": [_corr_row_to_dict(r) for r in rows]}
 
 
 @router.get("/btc-correlation/{signal_id}")
 def get_btc_correlation_public(signal_id: str, db: Session = Depends(get_db)):
+    # Documented as a signal_id, but partners pass a pair (/btc-correlation/BNBUSDT)
+    # and got 404 every time. A pair now answers with its latest correlation.
+    if _is_signal_id(signal_id):
+        where, params = "c.signal_id = :sid", {"sid": signal_id}
+    else:
+        where, params = "s.pair = :pair", {"pair": _as_pair(signal_id)}
     row = db.execute(text(f"""
         SELECT {_CORR_COLS_C}
         FROM signal_btc_correlation c
         JOIN signals s ON s.signal_id = c.signal_id
-        WHERE c.signal_id = :sid
+        WHERE {where}
           AND s.created_at IS NOT NULL
           AND CAST(s.created_at AS timestamptz) >= CAST(:cutoff AS timestamptz)
-    """), {"sid": signal_id, "cutoff": _cutoff()}).mappings().first()
+        ORDER BY c.analyzed_at DESC
+        LIMIT 1
+    """), {**params, "cutoff": _cutoff()}).mappings().first()
 
     if not row:
         raise HTTPException(status_code=404, detail="BTC correlation not found or not yet computed")
@@ -263,6 +307,11 @@ def get_btc_correlation_public(signal_id: str, db: Session = Depends(get_db)):
 # `def` too, which also hands their blocking DB work to the threadpool instead
 # of stalling the event loop.
 # ───────────────────────────────────────────────────────────────────────────
+# `/market-pulse` alone was never a route, yet one partner polls
+# `/market-pulse?limit=15` every 30 seconds and got 404 on all of it (4,277 calls
+# in two days). It is the feed they want, so it answers as the feed; the
+# documented path stays /market-pulse/feed.
+@router.get("/market-pulse", include_in_schema=False)
 @router.get("/market-pulse/feed")
 def public_pulse_feed(
     source: Optional[str] = Query(None, regex="^(pulse|price_movement)$"),
