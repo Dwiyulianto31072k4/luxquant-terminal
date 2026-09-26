@@ -1,15 +1,14 @@
 // src/components/landing/v2/sections/TerminalPreview.jsx
-// Product stage — no device chrome. Large real UI, pill tabs, honest copy.
-// Pattern: Linear / Vercel / Autopilot — show the product, not the hardware.
+// Product gallery: real screenshots inside a reversible laptop reveal.
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { isPremiumUser } from "../../../../utils/roles";
 import { CTA } from "../landingCopy";
-import HeroSignupPill from "./shared/HeroSignupPill";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
+import "./TerminalPreview.css";
 
 // Where this section's CTA should land someone after the login door. The
 // section sells the premium product, so /pricing is the page that answers it —
@@ -30,6 +29,12 @@ const ICONS = {
   signals: (
     <svg {...svgProps}>
       <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+    </svg>
+  ),
+  signalDetail: (
+    <svg {...svgProps}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 9h18M8 4v5M8 14h4m-2-2v4" />
     </svg>
   ),
   agent: (
@@ -63,7 +68,7 @@ const ICONS = {
       <line x1="13.4" y1="15.8" x2="16.8" y2="18.4" />
     </svg>
   ),
-  pulse: (
+  flow: (
     <svg {...svgProps}>
       <path d="M3 12H7L9 6L13 18L15 12H21" />
     </svg>
@@ -78,54 +83,116 @@ const ICONS = {
 const FEATURES = [
   {
     id: "signals",
-    title: "Algo Calls",
-    short: "Entry · TP · SL on every call",
-    desc: "Precise entries, staged take-profits, hard stops — every call timestamped so you can audit it.",
-    img: "/mockups/mac-signals.webp",
+    title: "Algo Signals",
+    short: "Find a plan as momentum moves",
+    desc: "Explore algorithm-generated calls dating back to 2023. Filter by coin, status, Coin Flow and narratives, then open a call to inspect its entry, targets and stops.",
+    img: "/mockups/landing-algo-signals-16x9.webp",
+    alt: "Algo Signals showing Coin Flow, narratives, filters and timestamped signal results",
     icon: ICONS.signals,
   },
   {
-    id: "agent",
-    title: "Agent",
-    short: "Executes under your limits",
-    desc: "Connect exchange keys and let Agent follow the plan 24/7 — size, caps, and cooldowns stay yours.",
-    img: "/mockups/mac-autotrade.webp",
-    icon: ICONS.agent,
+    id: "signal-detail",
+    title: "Signal Plan & Proof",
+    short: "Check the levels and the outcome",
+    desc: "This QNT/USDT example puts the live chart, published entry, four targets and two stops beside the before-and-after record. Inspect the plan and what happened before acting on another call.",
+    img: "/mockups/landing-signal-plan-proof-16x9.webp",
+    alt: "QNT/USDT signal detail with live chart, entry, targets, stops and before-and-after proof",
+    icon: ICONS.signalDetail,
+  },
+  {
+    id: "flow",
+    title: "Coin Flow",
+    short: "See where momentum is rotating",
+    desc: "Compare coins that woke up, trading activity and narrative performance. Follow capital rotation to decide which coin or theme deserves your attention next.",
+    img: "/mockups/landing-coin-flow-16x9.webp",
+    alt: "Coin Flow table, narrative comparison and capital rotation charts",
+    icon: ICONS.flow,
   },
   {
     id: "ai",
     title: "AI Research",
-    short: "Regime reads in one desk",
-    desc: "Price, derivatives, on-chain, and news compressed into a clear market read — not another feed to babysit.",
-    img: "/mockups/mac-ai.webp",
+    short: "Let Bitcoin set the context",
+    desc: "Read Bitcoin's current stance, target and invalidation levels, plus why the view changed. Use that context to size altcoin signals more carefully or wait for confirmation.",
+    img: "/mockups/landing-ai-btc-research-16x9.webp",
+    alt: "AI Research Bitcoin outlook with neutral stance, target, invalidation and update rationale",
     icon: ICONS.ai,
   },
   {
     id: "onchain",
     title: "On-Chain",
-    short: "Whale moves, live",
-    desc: "Smart-money flows, large wallets, exchange netflow — context before price reacts.",
-    img: "/mockups/mac-onchain.webp",
+    short: "See the activity behind the chart",
+    desc: "Filter large positions, whale and smart-money alerts across chains. Add that activity to your trade plan before deciding whether a move is worth following.",
+    img: "/mockups/landing-onchain-16x9.webp",
+    alt: "On-Chain Intelligence alerts with filters for positions, whales and smart money",
     icon: ICONS.onchain,
   },
   {
-    id: "pulse",
-    title: "Pulse",
-    short: "Market temperature",
-    desc: "Bull/bear ratio, momentum, heatmap, and activity — feel the market without five tabs.",
-    img: "/mockups/mac-pulse.webp",
-    icon: ICONS.pulse,
+    id: "agent",
+    title: "Agent",
+    short: "Automation you can inspect and control",
+    desc: "Connect one exchange, start in dry-run and pause when you choose. Review positions, fills, fees and exits to see what Agent actually did.",
+    img: "/mockups/landing-agent-16x9.webp",
+    alt: "Agent exchange connection options and detailed trade history with fees and exits",
+    icon: ICONS.agent,
   },
 ];
 
 const MORE_SLIDE = {
   id: "more",
   title: "More",
-  short: "Markets · Journal · Portfolio…",
-  desc: "Markets, Money Flow, Bitcoin, News, Journal, Portfolio & more — one terminal, not three apps.",
+  short: "Market context and tools beyond the signal",
+  desc: "Follow Pulse, Markets, Bitcoin and News. Review decisions in Journal and holdings in Portfolio.",
   isMore: true,
   icon: ICONS.more,
 };
+
+const MORE_TOOLS = [
+  {
+    name: "Pulse",
+    detail: "What's moving",
+    icon: <path d="M2 12h4l2-5 4 10 3-7 2 2h5" />,
+  },
+  {
+    name: "Markets",
+    detail: "Compare coins",
+    icon: <path d="M4 20v-5m5 5V9m5 11V4m5 16v-9" />,
+  },
+  {
+    name: "Bitcoin",
+    detail: "BTC context",
+    icon: <path d="M9 4v16m5-16v16M7 7h7a3 3 0 0 1 0 6H7m0 0h8a3 3 0 0 1 0 6H7" />,
+  },
+  {
+    name: "News",
+    detail: "What changed",
+    icon: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M7 8h4v4H7zm7 0h3M14 12h3M7 16h10" />
+      </>
+    ),
+  },
+  {
+    name: "Journal",
+    detail: "Review decisions",
+    icon: (
+      <>
+        <path d="M12 6c-2.2-1.3-5-1.7-9-1v14c4-.7 6.8-.3 9 1 2.2-1.3 5-1.7 9-1V5c-4-.7-6.8-.3-9 1z" />
+        <path d="M12 6v14" />
+      </>
+    ),
+  },
+  {
+    name: "Portfolio",
+    detail: "Track holdings",
+    icon: (
+      <>
+        <path d="M11 3a9 9 0 1 0 10 10h-10z" />
+        <path d="M14 3v7h7a9 9 0 0 0-7-7z" />
+      </>
+    ),
+  },
+];
 
 const TABS = [...FEATURES, MORE_SLIDE];
 
@@ -134,37 +201,95 @@ export default function TerminalPreview() {
   const { isAuthenticated, user } = useAuth();
   const isPremium = isPremiumUser(user);
   const [activeIdx, setActiveIdx] = useState(0);
-  const tabRef = useRef(null);
+  const [displayedIdx, setDisplayedIdx] = useState(0);
+  const [readySlideId, setReadySlideId] = useState(null);
+  const [laptopRevealing, setLaptopRevealing] = useState(false);
+  const [laptopOpened, setLaptopOpened] = useState(false);
+  const laptopRef = useRef(null);
+  const openedRef = useRef(false);
+
+  useEffect(() => {
+    const next = TABS[activeIdx];
+    if (!next.img) {
+      setDisplayedIdx(activeIdx);
+      setReadySlideId(next.id);
+      return;
+    }
+
+    // Keep the previous screenshot in the display until the next one can paint.
+    let cancelled = false;
+    const image = new Image();
+    const showImage = () => {
+      if (cancelled) return;
+      setDisplayedIdx(activeIdx);
+      setReadySlideId(next.id);
+    };
+    image.onload = showImage;
+    image.src = next.img;
+    if (image.complete && image.naturalWidth > 0) showImage();
+    return () => {
+      cancelled = true;
+      image.onload = null;
+    };
+  }, [activeIdx]);
+
+  useEffect(() => {
+    const laptop = laptopRef.current;
+    if (!laptop) return;
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const rect = laptop.getBoundingClientRect();
+      const headerBottom = window.innerWidth >= 768 ? 84 : 0;
+      const fullyLeaving = rect.top < headerBottom - 8 || rect.top > window.innerHeight - 80;
+      const safeToOpen = rect.top >= headerBottom + 12 && rect.top <= window.innerHeight * 0.72;
+
+      // Re-entering from below must wait until the lid clears the fixed header.
+      const imageReady = readySlideId === TABS[activeIdx].id;
+      if (openedRef.current ? fullyLeaving : safeToOpen && imageReady) {
+        openedRef.current = !openedRef.current;
+        setLaptopOpened(openedRef.current);
+      }
+    };
+    const scheduleUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+    setLaptopRevealing(true);
+    scheduleUpdate();
+    return () => {
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [activeIdx, readySlideId]);
 
   // Manual tabs only — auto-rotate competes with reading product UI.
-  const scrollToTab = (i) => {
-    const c = tabRef.current;
-    const el = c?.children?.[i];
-    if (c && el) {
-      c.scrollTo({
-        left: el.offsetLeft - c.offsetWidth / 2 + el.offsetWidth / 2,
-        behavior: "smooth",
-      });
-    }
-  };
-
   const handleTab = (i) => {
     setActiveIdx(i);
-    scrollToTab(i);
   };
 
   const active = TABS[activeIdx];
+  const displayed = TABS[displayedIdx];
+  const isSignalsPreview = active.id === "signals" || active.id === "signal-detail";
 
   // Three different people read this button and only one of them can open a
   // terminal. It used to say "Open terminal" to every signed-in visitor and then
   // send them to /home — /terminal is premium-gated, so a free account was being
   // offered a door it could not walk through.
-  const ctaLabel = isPremium ? CTA.openTerminal : CTA.seePlans;
+  const ctaLabel = isPremium
+    ? isSignalsPreview
+      ? "Open Signals"
+      : CTA.openTerminal
+    : CTA.seePlans;
 
   const goFree = () => {
     if (isPremium) {
       trackFunnel("cta_click", { source: "terminal_preview:open", path: "/" });
-      navigate("/terminal");
+      navigate(isSignalsPreview ? "/signals" : "/terminal");
       return;
     }
     // A guest used to be told "Create free account" and then handed /pricing —
@@ -185,6 +310,7 @@ export default function TerminalPreview() {
   return (
     <section
       id="terminal-preview"
+      data-lq-self
       className="relative z-10 w-full overflow-hidden px-4 pb-20 pt-16 sm:px-6 sm:pt-20 lg:px-8 lg:pb-28 lg:pt-28"
     >
       {/* ambient */}
@@ -199,22 +325,23 @@ export default function TerminalPreview() {
           The terminal
         </p>
         <h2 className="mt-3 sm:mt-4 text-[30px] font-extrabold leading-[1.27] tracking-[-0.025em] text-text-primary sm:text-[38px] lg:text-[48px]">
-          One desk.{" "}
-          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">Every tool that matters.</span>
+          Spot the opportunity.{" "}
+          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
+            Trade with a plan.
+          </span>
         </h2>
         <p className="mx-auto mt-4 max-w-lg text-[14px] font-medium leading-[1.64] text-text-muted sm:text-[17px] lg:text-[20px]">
-          Real product screens — switch a module and see the workspace. Free tools open first;
-          live levels &amp; Agent when you upgrade.
+          Explore the real tools behind each decision: algorithmic calls, live charts, verifiable
+          proof, market context and automation.
         </p>
       </div>
 
-      {/* Pill tabs — wrap on desktop, scroll on narrow without cut-off labels */}
-      <div className="mx-auto mt-8 max-w-4xl sm:mt-10">
+      {/* Keep every module visible on narrow screens; no clipped tabs or sideways scrolling. */}
+      <div className="mx-auto mt-8 max-w-5xl sm:mt-10">
         <div
-          ref={tabRef}
           role="tablist"
           aria-label="Terminal modules"
-          className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:justify-center sm:overflow-visible [&::-webkit-scrollbar]:hidden"
+          className="isolate flex flex-wrap justify-center gap-x-2 gap-y-2 pb-2 pt-1 lg:gap-x-3"
         >
           {TABS.map((t, idx) => {
             const on = activeIdx === idx;
@@ -225,13 +352,11 @@ export default function TerminalPreview() {
                 role="tab"
                 aria-selected={on}
                 onClick={() => handleTab(idx)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold transition-colors sm:px-4 ${
-                  on
-                    ? "lq-chip-on text-text-primary"
-                    : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
-                }`}
+                className="lq-terminal-tab inline-flex min-h-9 shrink-0 items-center rounded-full px-2.5 py-1.5 text-[12px] font-semibold lg:gap-1.5 lg:px-4 lg:py-2 lg:text-[13px]"
               >
-                <span className={on ? "text-accent" : "opacity-70"}>{t.icon}</span>
+                <span className={`hidden lg:inline-flex ${on ? "text-accent" : "opacity-70"}`}>
+                  {t.icon}
+                </span>
                 {t.title}
               </button>
             );
@@ -239,98 +364,75 @@ export default function TerminalPreview() {
         </div>
       </div>
 
-      {/* Product stage — floating UI, no Mac chrome */}
+      {/* The screenshot stays intact; the laptop opens and closes with visibility. */}
       <div className="mx-auto mt-8 max-w-5xl sm:mt-10 lg:mt-12">
-        <div className="relative overflow-hidden rounded-[1.25rem] border border-ink/[0.08] bg-surface-raised sm:rounded-[1.5rem]">
-          {/* thin app chrome */}
-          <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.02] px-3.5 py-2.5 sm:px-4">
-            <div className="flex items-center gap-2 min-w-0">
-              <img
-                src="/logo.png"
-                alt=""
-                className="h-5 w-5 rounded"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-              <span className="truncate text-[12px] font-medium text-text-primary/80 sm:text-[13px]">
-                LuxQuant Terminal
-              </span>
-              <span className="hidden text-[11px] text-text-muted sm:inline">· {active.title}</span>
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-ink/[0.04] px-2 py-0.5 text-[10px] font-medium text-text-muted">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              Preview
-            </span>
-          </div>
+        <div
+          ref={laptopRef}
+          className={`lq-laptop-scene ${laptopRevealing ? "is-revealing" : ""} ${laptopOpened ? "is-open" : ""}`}
+        >
+          <div className="lq-laptop-lid">
+            <div className="lq-laptop-bezel">
+              <div className="lq-laptop-screen relative w-full">
+                <span className="lq-laptop-camera" aria-hidden="true" />
+                <div className="lq-laptop-display relative aspect-video w-full">
+                  {displayed.img && (
+                    <img
+                      key={displayed.id}
+                      src={displayed.img}
+                      alt={displayed.alt}
+                      loading="eager"
+                      decoding="sync"
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
+                  )}
 
-          {/* screen */}
-          <div className="relative aspect-[16/10] w-full bg-surface">
-            {FEATURES.map((f, idx) => (
-              <img
-                key={f.id}
-                src={f.img}
-                alt={`${f.title} — LuxQuant Terminal`}
-                loading={idx === 0 ? "eager" : "lazy"}
-                className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-500 ease-out ${
-                  activeIdx === idx ? "z-10 opacity-100" : "z-0 opacity-0"
-                }`}
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            ))}
-
-            {/* More panel */}
-            <div
-              className={`absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 px-6 text-center transition-opacity duration-500 ${
-                active.isMore ? "opacity-100" : "pointer-events-none opacity-0"
-              }`}
-              style={{
-                background:
-                  "radial-gradient(ellipse 85% 80% at 50% 42%, rgb(var(--surface-raised)) 0%, rgb(var(--surface)) 70%)",
-              }}
-            >
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-text-muted">
-                And more
-              </p>
-              <h3 className="max-w-md text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
-                Markets, Journal, Portfolio, News…
-              </h3>
-              <p className="max-w-sm text-[13px] leading-relaxed text-text-muted sm:text-[14px]">
-                Free tools open first. Live levels &amp; Agent when you upgrade.
-              </p>
-              {/* Only while the More tab is selected. The panel is mounted at
-                  opacity 0 from first paint, so an always-rendered pill logged
-                  an impression for a button nobody had looked at — and reported
-                  it under the hero's own source, on top of the hero's. */}
-              {active.isMore && (
-                <div className="mt-1 w-full max-w-[320px]">
-                  <HeroSignupPill
-                    text="Start free — no card"
-                    shortText="Start free"
-                    source="terminal_more"
-                    redirect={SECTION_REDIRECT}
-                    className="!max-w-[320px]"
-                  />
+                  {displayed.isMore && (
+                    <div className="lq-more-panel absolute inset-0 flex flex-col items-center justify-center px-3 py-3 text-center sm:px-8 sm:py-8">
+                      <h3 className="lq-more-title">Everything around the trade.</h3>
+                      <span className="lq-more-divider" aria-hidden="true" />
+                      <div className="lq-more-tools grid w-full grid-cols-3 gap-x-2 gap-y-3 sm:grid-cols-6 sm:gap-x-4">
+                        {MORE_TOOLS.map((tool) => (
+                          <div key={tool.name} className="lq-more-tool flex flex-col items-center">
+                            <svg {...svgProps} aria-hidden="true">
+                              {tool.icon}
+                            </svg>
+                            <span className="lq-more-tool-name">{tool.name}</span>
+                            <span className="lq-more-tool-detail">{tool.detail}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
+          </div>
+          <div className="lq-laptop-base" aria-hidden="true" />
+          <div className="lq-laptop-feet" aria-hidden="true">
+            <span />
+            <span />
           </div>
         </div>
 
         {/* Caption under stage */}
         <div className="mx-auto mt-5 max-w-xl text-center sm:mt-6">
-          <p
-            key={activeIdx}
-            className="text-[14px] font-medium text-text-primary sm:text-[15px]"
-          >
+          <p key={activeIdx} className="text-[14px] font-medium text-text-primary sm:text-[15px]">
             {active.title}
             <span className="font-normal text-text-muted"> — {active.short}</span>
           </p>
           <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted sm:text-[14px]">
             {active.desc}
           </p>
+          {active.img && (
+            <a
+              href={active.img}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full px-4 text-[13px] font-semibold text-accent underline underline-offset-4 transition-colors hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
+            >
+              View {active.title} screenshot at full size ↗
+            </a>
+          )}
         </div>
 
         {/* CTA */}

@@ -2,26 +2,36 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ensureTelegram } from "../../../../../utils/telegramLoader";
 import { useAuth } from "../../../../../context/AuthContext";
-import { loginUrl, stashPostLoginRedirect, consumePostLoginRedirect } from "../../../../../utils/postLoginRedirect";
-import { trackFunnel } from "../../../../../utils/funnelAnalytics";
 import {
-  clearAuthRescueState,
-  markFailedAuthProvider,
-} from "../../../../../utils/authRescue";
+  loginUrl,
+  stashPostLoginRedirect,
+  consumePostLoginRedirect,
+} from "../../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../../utils/funnelAnalytics";
+import { clearAuthRescueState, markFailedAuthProvider } from "../../../../../utils/authRescue";
 import { CTA } from "../../landingCopy";
 import { PrimaryButton } from "./LandingButtons";
 
-function TelegramIcon() {
+function TelegramIcon({ compact = false }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" fill="#229ED9" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className={compact ? "h-4 w-4" : "h-[19px] w-[19px]"}
+      fill="#229ED9"
+      aria-hidden="true"
+    >
       <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.56 8.23-1.86 8.78c-.14.62-.51.77-1.03.48l-2.85-2.1-1.37 1.32c-.15.15-.28.28-.58.28l.2-2.9 5.28-4.77c.23-.2-.05-.32-.36-.12l-6.52 4.11-2.81-.88c-.61-.19-.62-.61.13-.9l10.98-4.24c.51-.18.96.12.79.94z" />
     </svg>
   );
 }
 
-function GoogleIcon() {
+function GoogleIcon({ compact = false }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className={compact ? "h-4 w-4" : "h-[19px] w-[19px]"}
+      aria-hidden="true"
+    >
       <path
         fill="#EA4335"
         d="M12 10.2v3.9h5.4c-.24 1.26-.96 2.33-2.04 3.05l3.3 2.56c1.92-1.77 3.03-4.38 3.03-7.49 0-.72-.06-1.41-.19-2.01H12z"
@@ -42,9 +52,14 @@ function GoogleIcon() {
   );
 }
 
-function DiscordIcon() {
+function DiscordIcon({ compact = false }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" fill="#5865F2" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className={compact ? "h-4 w-4" : "h-[19px] w-[19px]"}
+      fill="#5865F2"
+      aria-hidden="true"
+    >
       <path d="M20.32 4.57A19.79 19.79 0 0 0 15.43 3c-.24.42-.51.99-.7 1.44a18.3 18.3 0 0 0-5.46 0A12.6 12.6 0 0 0 8.56 3 19.74 19.74 0 0 0 3.68 4.58C.58 9.2-.26 13.7.16 18.14a19.9 19.9 0 0 0 6.03 3.05c.49-.66.92-1.37 1.29-2.11-.71-.27-1.39-.6-2.03-.98.17-.13.34-.26.5-.4a14.2 14.2 0 0 0 12.1 0c.16.14.33.27.5.4-.64.38-1.32.71-2.03.98.37.74.8 1.45 1.29 2.11a19.87 19.87 0 0 0 6.03-3.05c.5-5.15-.84-9.6-3.52-13.57ZM8.02 15.41c-1.18 0-2.15-1.09-2.15-2.42s.95-2.42 2.15-2.42 2.17 1.09 2.15 2.42c0 1.33-.95 2.42-2.15 2.42Zm7.96 0c-1.18 0-2.15-1.09-2.15-2.42s.95-2.42 2.15-2.42 2.17 1.09 2.15 2.42c0 1.33-.95 2.42-2.15 2.42Z" />
     </svg>
   );
@@ -63,6 +78,7 @@ export default function HeroSignupPill({
   className = "",
   source = "hero_pill",
   redirect = "/home",
+  compact = false,
 }) {
   const navigate = useNavigate();
   const { isAuthenticated, loginWithGoogle, loginWithTelegram, loginWithDiscord } = useAuth();
@@ -209,11 +225,12 @@ export default function HeroSignupPill({
   if (isAuthenticated) {
     return (
       <div
-        className={["mx-auto flex w-full max-w-[400px] justify-center sm:max-w-[440px]", className].join(
-          " "
-        )}
+        className={[
+          "mx-auto flex w-full max-w-[400px] justify-center sm:max-w-[440px]",
+          className,
+        ].join(" ")}
       >
-        <PrimaryButton size="lg" onClick={() => navigate("/home")}>
+        <PrimaryButton size={compact ? "sm" : "lg"} onClick={() => navigate("/home")}>
           {CTA.openApp}
         </PrimaryButton>
       </div>
@@ -227,6 +244,7 @@ export default function HeroSignupPill({
         "mx-auto flex w-full max-w-[400px] items-center gap-1.5 rounded-full border border-ink/20",
         "bg-ink/[0.96] p-1.5 backdrop-blur-md",
         "sm:max-w-[440px] sm:gap-2",
+        compact && "!max-w-none !gap-0.5 !p-1 sm:!gap-1",
         className,
       ].join(" ")}
     >
@@ -234,7 +252,7 @@ export default function HeroSignupPill({
       <button
         type="button"
         onClick={() => goPlatform("text")}
-        className="flex h-11 min-w-0 flex-1 items-center truncate rounded-full px-3.5 text-left text-[14px] font-semibold text-accent-fg/80 outline-none transition-colors hover:text-accent-fg sm:px-4"
+        className={`flex min-w-0 flex-1 items-center truncate rounded-full text-left font-semibold text-accent-fg/80 outline-none transition-colors hover:text-accent-fg ${compact ? "h-9 px-2.5 text-[12px] sm:px-3" : "h-11 px-3.5 text-[14px] sm:px-4"}`}
         title={text}
       >
         <span className="truncate sm:hidden">{shortText}</span>
@@ -245,27 +263,27 @@ export default function HeroSignupPill({
         type="button"
         onClick={goTelegram}
         aria-label="Continue with Telegram"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12]"
+        className={`flex shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12] ${compact ? "h-9 w-9" : "h-11 w-11"}`}
       >
-        <TelegramIcon />
+        <TelegramIcon compact={compact} />
       </button>
 
       <button
         type="button"
         onClick={goGoogle}
         aria-label="Continue with Google"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12]"
+        className={`flex shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12] ${compact ? "h-9 w-9" : "h-11 w-11"}`}
       >
-        <GoogleIcon />
+        <GoogleIcon compact={compact} />
       </button>
 
       <button
         type="button"
         onClick={goDiscord}
         aria-label="Continue with Discord"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12]"
+        className={`flex shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12] ${compact ? "h-9 w-9" : "h-11 w-11"}`}
       >
-        <DiscordIcon />
+        <DiscordIcon compact={compact} />
       </button>
     </div>
   );

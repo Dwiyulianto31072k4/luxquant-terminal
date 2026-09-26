@@ -1,0 +1,359 @@
+/* Keep gallery tabs visibly pressable under the landing buttons' light source. */
+.lp-v2 .lq-terminal-tab {
+  position: relative;
+  z-index: 0;
+  user-select: none;
+  border: 1px solid rgb(var(--ink) / 0.16);
+  background: radial-gradient(
+    110% 135% at 18% -30%,
+    rgb(var(--ink) / 0.16) 0%,
+    rgb(var(--surface-raised) / 0.96) 48%,
+    rgb(var(--surface-secondary)) 100%
+  );
+  box-shadow:
+    inset 0 1px 1px rgb(var(--ink) / 0.12),
+    inset 0 -3px 4px rgb(var(--scrim) / 0.3),
+    0 3px 0 rgb(var(--scrim) / 0.24),
+    0 7px 10px rgb(var(--scrim) / 0.16);
+  color: rgb(var(--fg-secondary));
+  transition:
+    transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    filter 180ms ease;
+}
+
+.lp-v2 .lq-terminal-tab[aria-selected="true"] {
+  z-index: 1;
+  border-color: rgb(var(--accent) / 0.6);
+  background: radial-gradient(
+    105% 125% at 18% -28%,
+    rgb(var(--accent-light) / 0.45) 0%,
+    rgb(var(--accent) / 0.27) 44%,
+    rgb(var(--surface-raised) / 0.94) 100%
+  );
+  box-shadow:
+    inset 0 1px 1px rgb(var(--accent-light) / 0.36),
+    inset 0 -3px 4px rgb(var(--scrim) / 0.32),
+    0 3px 0 rgb(var(--accent-dark) / 0.3),
+    0 8px 12px rgb(var(--accent) / 0.13);
+  color: rgb(var(--fg));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lp-v2 .lq-terminal-tab:hover {
+    z-index: 2;
+    transform: translateY(-2px);
+    border-color: rgb(var(--ink) / 0.28);
+    filter: brightness(1.12);
+  }
+
+  .lp-v2 .lq-terminal-tab[aria-selected="true"]:hover {
+    border-color: rgb(var(--accent) / 0.8);
+  }
+}
+
+.lp-v2 .lq-terminal-tab:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 2px 5px rgb(var(--scrim) / 0.34),
+    0 1px 1px rgb(var(--scrim) / 0.12);
+  transition-duration: 90ms;
+}
+
+.lp-v2 .lq-terminal-tab:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-v2 .lq-terminal-tab {
+    transition: none;
+  }
+
+  .lp-v2 .lq-terminal-tab:hover,
+  .lp-v2 .lq-terminal-tab:active {
+    transform: none;
+  }
+}
+
+/* The real 16:9 product screenshot is the display, not a rebuilt mock UI. */
+.lp-v2 .lq-laptop-scene {
+  position: relative;
+  isolation: isolate;
+  perspective: 20000px;
+  padding: 0 2%;
+}
+
+.lp-v2 .lq-laptop-lid {
+  position: relative;
+  z-index: 2;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  transform-origin: center bottom;
+  transform: rotateX(0deg);
+  transition:
+    transform 650ms cubic-bezier(0.25, 0.1, 0.25, 1),
+    clip-path 650ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  will-change: transform;
+}
+
+.lp-v2 .lq-laptop-scene.is-open .lq-laptop-lid {
+  transition-duration: 1100ms, 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0.65, 0.25, 1), ease-out;
+}
+
+.lp-v2 .lq-laptop-scene.is-revealing:not(.is-open) .lq-laptop-lid {
+  /* Taper the flat silver surface into the front edge of a shut MacBook. */
+  clip-path: polygon(7% 0, 93% 0, 100% 100%, 0 100%);
+  transform: rotateX(-83deg) scale(1.07, 0.34);
+}
+
+.lp-v2 .lq-laptop-bezel {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(6px, 0.9vw, 10px) clamp(5px, 0.85vw, 10px) clamp(12px, 1.8vw, 20px);
+  border: 1px solid #65686b;
+  border-bottom-color: #1f2022;
+  border-radius: 15px 15px 3px 3px;
+  background: #08090a;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 10px 32px rgb(0 0 0 / 0.26);
+}
+
+.lp-v2 .lq-laptop-bezel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #d4d6d6 0%, #a9adae 42%, #777d7f 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.75);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.lp-v2 .lq-laptop-scene.is-open .lq-laptop-bezel::after {
+  transition-duration: 0ms;
+}
+
+.lp-v2 .lq-laptop-scene.is-revealing:not(.is-open) .lq-laptop-bezel::after {
+  opacity: 1;
+}
+
+.lp-v2 .lq-laptop-camera {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  width: 10.2%;
+  height: var(--lq-notch-depth);
+  border-radius: 0 0 7px 7px;
+  background: #050607;
+  transform: translateX(-50%);
+}
+
+.lp-v2 .lq-laptop-screen {
+  --lq-notch-depth: clamp(8px, 1.45vw, 16px);
+  position: relative;
+  overflow: hidden;
+  padding-top: var(--lq-notch-depth);
+  border-radius: 5px 5px 1px 1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #050506;
+}
+
+/* The source screenshot has a dark top pixel row; blend it into the white screen. */
+.lp-v2 .lq-laptop-display::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 2px;
+  background: #fff;
+  pointer-events: none;
+}
+
+.lp-v2 .lq-laptop-base {
+  position: relative;
+  z-index: 1;
+  width: 108%;
+  height: clamp(12px, 1.8vw, 19px);
+  margin: -1px -4% 0;
+  overflow: hidden;
+  border: 1px solid #aeb1b2;
+  border-radius: 4px 4px 14px 14px / 3px 3px 12px 12px;
+  background: linear-gradient(
+    180deg,
+    #e4e5e5 0%,
+    #d9dbdb 13%,
+    #bfc3c4 38%,
+    #c6c9c9 70%,
+    #94999b 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.8),
+    0 5px 11px rgb(0 0 0 / 0.16);
+}
+
+.lp-v2 .lq-laptop-base::before {
+  content: "";
+  position: absolute;
+  inset: 0 2% auto;
+  height: 1px;
+  background: rgb(255 255 255 / 0.65);
+}
+
+.lp-v2 .lq-laptop-base::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 42.5%;
+  width: 15%;
+  height: clamp(4px, 0.65vw, 7px);
+  border: 1px solid rgb(86 90 92 / 0.18);
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(180deg, #b6babc, #e3e4e3);
+}
+
+.lp-v2 .lq-laptop-feet {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  justify-content: space-between;
+  width: 108%;
+  height: 6px;
+  margin: -2px -4% 0;
+  padding: 0 5%;
+}
+
+.lp-v2 .lq-laptop-feet span {
+  width: 5.5%;
+  height: 100%;
+  border: 1px solid #8d9294;
+  border-top: 0;
+  background: linear-gradient(180deg, #aeb2b3, #d7d8d7 70%, #8c9091);
+  clip-path: polygon(0 0, 100% 0, 91% 100%, 9% 100%);
+}
+
+.lp-v2 .lq-more-panel {
+  background:
+    radial-gradient(ellipse at 50% 14%, #fff 0%, rgb(255 255 255 / 0) 64%),
+    linear-gradient(180deg, #fff 0%, #f8f9fb 72%, #eef0f3 100%);
+}
+
+.lp-v2 .lq-more-title {
+  max-width: 90%;
+  color: #17191e;
+  font-size: clamp(16px, 3vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.lp-v2 .lq-more-divider {
+  width: clamp(32px, 5vw, 56px);
+  height: 2px;
+  margin: clamp(10px, 1.7vw, 20px) 0 clamp(14px, 2.3vw, 28px);
+  border-radius: 999px;
+  background: #c79416;
+}
+
+.lp-v2 .lq-more-tools {
+  max-width: 860px;
+}
+
+.lp-v2 .lq-more-tool {
+  gap: clamp(4px, 0.6vw, 8px);
+}
+
+.lp-v2 .lq-more-tool svg {
+  width: clamp(17px, 2.5vw, 29px);
+  height: clamp(17px, 2.5vw, 29px);
+  color: #ad7b00;
+  filter: drop-shadow(0 2px 3px rgb(173 123 0 / 0.14));
+}
+
+.lp-v2 .lq-more-tool-name {
+  color: #242830;
+  font-size: clamp(11px, 1.3vw, 16px);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.lp-v2 .lq-more-tool-detail {
+  color: #737b88;
+  font-size: clamp(9px, 1.08vw, 12px);
+  line-height: 1.25;
+}
+
+@media (max-width: 639px) {
+  .lp-v2 .lq-more-title {
+    font-size: clamp(13px, 4vw, 17px);
+  }
+
+  .lp-v2 .lq-more-divider {
+    height: 2px;
+    margin: 7px 0 12px;
+  }
+
+  .lp-v2 .lq-more-tools {
+    gap: 8px 4px;
+  }
+
+  .lp-v2 .lq-more-tool {
+    gap: 2px;
+  }
+
+  .lp-v2 .lq-more-tool-name {
+    font-size: clamp(9px, 2.7vw, 11px);
+  }
+
+  .lp-v2 .lq-more-tool-detail {
+    display: none;
+  }
+}
+
+@media (max-width: 767px), (prefers-reduced-motion: reduce) {
+  .lp-v2 .lq-laptop-lid,
+  .lp-v2 .lq-laptop-scene.is-revealing:not(.is-open) .lq-laptop-lid {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    transform: none;
+    transition: none;
+  }
+
+  .lp-v2 .lq-laptop-scene.is-revealing:not(.is-open) .lq-laptop-bezel::after {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .lp-v2 .lq-laptop-scene {
+    padding: 0 1%;
+  }
+
+  .lp-v2 .lq-laptop-bezel {
+    padding: 5px 4px 8px;
+    border-radius: 9px 9px 2px 2px;
+  }
+
+  .lp-v2 .lq-laptop-screen {
+    --lq-notch-depth: 7px;
+    padding-top: var(--lq-notch-depth);
+  }
+
+  .lp-v2 .lq-laptop-camera {
+    border-radius: 0 0 3px 3px;
+  }
+
+  .lp-v2 .lq-laptop-base {
+    height: 10px;
+    border-radius: 3px 3px 6px 6px / 2px 2px 5px 5px;
+  }
+
+  .lp-v2 .lq-laptop-feet {
+    height: 3px;
+  }
+}
