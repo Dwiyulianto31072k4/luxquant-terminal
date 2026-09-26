@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { authApi } from "../services/authApi";
 import { clearAutotradeAuth, syncCryptobotAuth } from "../services/autotradeApi";
+import { SESSION_EXPIRED_EVENT } from "../services/authSession";
 import { getStoredRef, clearStoredRef, saveRef } from "../utils/referralStorage";
 import { referralCodeFromStartParam } from "../utils/telegramCampaign";
 import { openTelegramAuth } from "../utils/telegramLoader";
@@ -404,6 +405,16 @@ export const AuthProvider = ({ children }) => {
       window.google.accounts.id.disableAutoSelect();
     }
   }, []);
+
+  // ─── Session ended under us ───
+  // A refresh the server rejected (see services/authSession) clears the tokens
+  // and fires this once. Logging out here lets RequireAuth send the user to
+  // /login?redirect=… rather than leaving a signed-in shell with no token.
+  useEffect(() => {
+    const onExpired = () => logout();
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, [logout]);
 
   const value = {
     user,

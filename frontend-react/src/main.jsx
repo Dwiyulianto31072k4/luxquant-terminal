@@ -5,6 +5,11 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import "./styles/index.css";
 import "./i18n"; // <--- Baris pemanggil kamus bahasa
 import { captureAcqFromUrl } from "./utils/acqAttribution";
+import { installFetchAuthRefresh } from "./services/authSession";
+
+// Plain fetch() to our API refreshes an expired session once and retries,
+// the same as the axios clients. Before anything renders and fetches.
+installFetchAuthRefresh(window);
 
 // First-touch UTM / social referrer (before React tree mounts)
 try {

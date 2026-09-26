@@ -87,13 +87,7 @@ export default function ChatLauncher() {
   // thread's own transport is already fetching, and everything is read anyway.
   useEffect(() => {
     if (!isAuthenticated || open) return undefined;
-    const stop = pollWhileVisible(fetchUnread, UNREAD_POLL_MS);
-    const onFocus = () => fetchUnread();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      stop();
-      window.removeEventListener("focus", onFocus);
-    };
+    return pollWhileVisible(fetchUnread, UNREAD_POLL_MS, { onFocus: true });
   }, [isAuthenticated, open, fetchUnread]);
 
   if (!isAuthenticated) return null;

@@ -82,12 +82,7 @@ const NotificationBell = () => {
   // punching Cloudflare SIN (522 on /notifications/unread-count).
   useEffect(() => {
     if (!isAuthenticated) return undefined;
-    const stop = pollWhileVisible(fetchCount, 60_000);
-    window.addEventListener("focus", fetchCount);
-    return () => {
-      stop();
-      window.removeEventListener("focus", fetchCount);
-    };
+    return pollWhileVisible(fetchCount, 60_000, { onFocus: true });
   }, [isAuthenticated, fetchCount]);
 
   // ── Close on outside click ──

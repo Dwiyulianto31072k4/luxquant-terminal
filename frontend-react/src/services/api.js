@@ -5,10 +5,12 @@
 // - request interceptor: auto-inject Bearer token dari localStorage
 // (key: "access_token") ke SETIAP request. Endpoint public aman —
 // server abaikan header kalau nggak perlu.
-// - response interceptor: kalau 401 (token invalid/expired), bersihin
-// token biar guard frontend bisa redirect ke login.
+// - response interceptor: 401 → refresh the session once and retry (shared
+// with authApi and plain fetch, see ./authSession). 403 = role/plan, never
+// touches the tokens.
 // ════════════════════════════════════════════════════════════════
 import axios from "axios";
+import { attachAuthRefresh } from "./authSession";
 
 const API_BASE = "/api/v1";
 
@@ -31,23 +33,10 @@ api.interceptors.request.use(
 );
 
 // ── Response: handle auth errors ───────────────────────────────
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error?.response?.status;
-    // 401 = token invalid/expired → clear biar guard redirect ke login.
-    // (403 = role kurang / subscription → JANGAN clear token, user tetap
-    // login, cuma nggak punya akses fitur itu.)
-    if (status === 401) {
-      try {
-        localStorage.removeItem("access_token");
-      } catch {
-        /* noop */
-      }
-    }
-    return Promise.reject(error);
-  }
-);
+// This used to delete the access token on any 401 and keep the refresh token,
+// leaving the app signed in with no token to send: every later call went out
+// anonymous until something routed through authApi happened to refresh.
+attachAuthRefresh(api);
 
 // ════════════════════════════════════════════════════════════════
 // Domain API helpers
