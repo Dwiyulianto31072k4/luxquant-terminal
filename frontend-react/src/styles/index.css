@@ -1665,36 +1665,82 @@ textarea:focus-visible {
 }
 
 /* ── Recommended plan ring (pricing) ──────────────────────────────
-   Same technique as the locked-value glow above, and deliberately the same
-   `--lq-glow-angle` property and keyframes — two rotating rings in one product
-   that drift out of step look like a bug.
+   A light that travels the border, not a tinted edge.
 
-   Differences that matter here: this one runs on a LIGHT surface too, so the
-   flat under-colour is weaker and the sweep is wider and slower (8s). A ring
-   around a price is an invitation, not an alarm; at the landing's 6s on a
-   bright desk it reads as a warning light.
+   First attempt was a thin conic sweep like the landing's locked-value ring,
+   and on this card it barely read: a 1.5px edge at low contrast, on a card
+   nearly three times taller than it is wide, so the sweep spends most of its
+   turn stretched down the long sides. Three things fix that:
 
-   The ring IS the border: the card inside must not draw its own, or the two
-   edges sit 1px apart and the seam shows on every corner. */
+   1. A HOT CORE. The band goes accent -> accent-light -> white -> back. A
+      single white degree is what the eye tracks; a wash of gold is not.
+   2. A GLOW THAT MOVES WITH IT. ::before repaints the same gradient, blurred,
+      just outside the card. That is what makes it read as a light travelling
+      rather than a border changing colour.
+   3. Its own angle property, registered with `inherits: true`. The landing's
+      is `inherits: false`, so a child (::before) would read 0deg and sit
+      still while the parent turned — the glow would never move.
+
+   Unregistered custom properties are strings, and strings do not interpolate:
+   without @property the angle jumps 0 -> 360 and nothing appears to move. */
+@property --lq-ring-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+@keyframes lq-ring-spin {
+  to {
+    --lq-ring-angle: 360deg;
+  }
+}
+
 .lq-plan-glow {
   position: relative;
-  padding: 1.5px;
-  border-radius: 17.5px;
+  padding: 2px;
+  border-radius: 18px;
   background:
     conic-gradient(
-      from var(--lq-glow-angle),
-      transparent 0deg,
-      rgb(var(--accent-light) / 0.75) 50deg,
-      rgb(var(--accent)) 95deg,
-      rgb(var(--accent-light) / 0.65) 140deg,
-      transparent 200deg,
-      transparent 360deg
-    ),
-    rgb(var(--accent) / 0.3);
-  animation: lq-glow-spin 8s linear infinite;
+      from var(--lq-ring-angle),
+      rgb(var(--accent) / 0.16) 0deg,
+      rgb(var(--accent) / 0.16) 20deg,
+      rgb(var(--accent) / 0.55) 48deg,
+      rgb(var(--accent-light)) 64deg,
+      #fff 70deg,
+      rgb(var(--accent-light)) 76deg,
+      rgb(var(--accent) / 0.55) 96deg,
+      rgb(var(--accent) / 0.16) 130deg,
+      rgb(var(--accent) / 0.16) 360deg
+    );
+  animation: lq-ring-spin 5.5s linear infinite;
+}
+
+/* The travelling glow. Sits behind the card, blurred, so the bright point
+   throws light onto the page instead of stopping at the edge. */
+.lq-plan-glow::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  z-index: 0;
+  border-radius: 23px;
+  background: conic-gradient(
+    from var(--lq-ring-angle),
+    transparent 0deg,
+    transparent 30deg,
+    rgb(var(--accent) / 0.5) 60deg,
+    rgb(var(--accent-light) / 0.9) 70deg,
+    rgb(var(--accent) / 0.5) 82deg,
+    transparent 115deg,
+    transparent 360deg
+  );
+  filter: blur(9px);
+  opacity: 0.75;
+  pointer-events: none;
 }
 
 .lq-plan-glow > * {
+  position: relative;
+  z-index: 1;
   border-radius: 16px;
 }
 
