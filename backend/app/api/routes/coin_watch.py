@@ -22,8 +22,11 @@ router = APIRouter(prefix="/coin-watch", tags=["Coin Watch"])
 
 # Cap per user biar ga di-abuse
 MAX_WATCH = 100
-# Symbol valid setelah normalize: 2-20 char alnum + USDT
-_SYMBOL_RX = re.compile(r"^[A-Z0-9]{2,20}USDT$")
+# Symbol valid setelah normalize: 1-20 letters or digits in ANY script + USDT.
+# It used to demand 2+ Latin characters, which refused 20 pairs we call ourselves
+# (HUSDT, SUSDT, 4USDT … and 币安人生USDT, 龙虾USDT): 13 users pressed "add" and
+# were told "Invalid symbol". [^\W_] is a Unicode letter or digit, never "_".
+_SYMBOL_RX = re.compile(r"^[^\W_]{1,20}USDT$")
 
 
 def normalize_symbol(raw: str) -> str:
