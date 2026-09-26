@@ -510,7 +510,6 @@ function AppShell({ children }) {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const moreMenuRef = useRef(null);
   // Bright always solid chrome; dark themes solidify after slight scroll.
   const headerSolid = theme === "bright" || scrolled;
 

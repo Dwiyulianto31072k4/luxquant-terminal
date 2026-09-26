@@ -769,15 +769,7 @@ const ModelSpendBreakdown = () => {
 };
 
 // ── Generation console: durable progress that survives refresh ──
-const GenerationConsole = ({
-  job,
-  newsId,
-  setNewsId,
-  onGenerate,
-  starting,
-  platform,
-  setPlatform,
-}) => {
+const GenerationConsole = ({ job, newsId, setNewsId, onGenerate, starting }) => {
   const isRunning = job?.status === "running";
   const isDone = job?.status === "done";
   const isError = job?.status === "error";
@@ -1809,7 +1801,6 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   if (!data) return null;
 
   const inv = data.inventory || [];
-  const requests = data.requests || [];
   const primaryName = data.primary_org?.name;
   const pending = inv.filter((i) => i.status === "missing" || i.status === "needs_upload");
 

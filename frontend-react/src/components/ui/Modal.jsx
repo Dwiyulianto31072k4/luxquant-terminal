@@ -49,28 +49,7 @@ const SIZES = {
   reader: "max-w-full sm:max-w-[min(720px,92vw)] md:max-w-[min(800px,90vw)] lg:max-w-[840px]",
 };
 
-export default function Modal({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  eyebrow,
-  icon,
-  header,
-  footer,
-  size = "md",
-  placement = "bottom", // bottom sheet mobile · centered desktop
-  accent = false, // default off — no gold edge
-  accentColor,
-  animate = true,
-  padded = true,
-  usePortal = true,
-  closeOnBackdrop = true,
-  showClose = true,
-  zIndex = Z.modal,
-  children,
-  className = "",
-}) {
+export default function Modal({ isOpen, onClose, title, subtitle, eyebrow, icon, header, footer, size = "md", placement = "bottom", animate = true, padded = true, usePortal = true, closeOnBackdrop = true, showClose = true, zIndex = Z.modal, children, className = "" }) {
   const [mounted, setMounted] = useState(isOpen);
   const [closing, setClosing] = useState(false);
   const timer = useRef(null);

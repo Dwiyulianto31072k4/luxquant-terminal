@@ -106,11 +106,8 @@ const getVideoSrc = (item) => {
   return url;
 };
 
-const hasBrandImage = (item) =>
-  Object.keys(FULL_BLEED_BRAND_IMAGES).some((d) => item?.domain?.includes(d));
 
 // "Visual" = has a real image OR a full-bleed brand promo (good enough to anchor a hero)
-const hasVisual = (item) => !!getCardImage(item);
 
 // Auto-categorize by title keywords (lightweight, client-side)
 // Topic chips. The feed decides which of these a story carries — see
@@ -640,58 +637,6 @@ const sourceLabel = (item) =>
   "Wire";
 
 // Media with real fallback (never leave a blank black hole after img error)
-const MediaBlock = ({ item, className = "", playSize = "md", compact = false }) => {
-  const raw = getImageSrc(item);
-  const [failed, setFailed] = useState(false);
-  const isHeadline = item.content_type === "headline";
-  const hasVideo = !!getVideoSrc(item);
-  const brandKey = Object.keys(FULL_BLEED_BRAND_IMAGES).find((d) => item?.domain?.includes(d));
-  const showPhoto = !!raw && !failed;
-  const playCls = playSize === "sm" ? "w-6 h-6" : "w-9 h-9";
-  const iconCls = playSize === "sm" ? "w-2.5 h-2.5" : "w-3.5 h-3.5";
-
-  return (
-    <div className={`relative overflow-hidden bg-[rgb(var(--surface))] ${className}`}>
-      {showPhoto ? (
-        <img
-          src={raw}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-          onError={() => setFailed(true)}
-        />
-      ) : brandKey ? (
-        <img
-          src={FULL_BLEED_BRAND_IMAGES[brandKey]}
-          alt=""
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{ objectPosition: "10% center" }}
-        />
-      ) : (
-        <div className="absolute inset-0">
-          <BrandThumbnail domain={item.domain} isHeadline={isHeadline} compact={compact} />
-        </div>
-      )}
-      {hasVideo && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span
-            className={`flex items-center justify-center rounded-full bg-scrim/60 border border-ink/25 ${playCls}`}
-          >
-            <svg
-              className={`${iconCls} text-text-primary ml-0.5`}
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </span>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ── Source chip (favicon or letter — never LuxQuant seal) ──
 const SourceMark = ({ item, size = 18 }) => {
@@ -1285,97 +1230,6 @@ const LoadingSkeleton = () => (
 // ════════════════════════════════════════════
 
 // Monochrome SVG icon set for filter rails
-const Icon = ({ name, className = "w-3.5 h-3.5", style }) => {
-  const s = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-  };
-  const fillProps = { fill: "currentColor" };
-  switch (name) {
-    case "all":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <rect x="3" y="3" width="8" height="8" rx="2" />
-          <rect x="13" y="3" width="8" height="8" rx="2" />
-          <rect x="3" y="13" width="8" height="8" rx="2" />
-          <rect x="13" y="13" width="8" height="8" rx="2" />
-        </svg>
-      );
-    case "article":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <path d="M4 5h13v14H6a2 2 0 0 1-2-2V5Z" />
-          <path d="M17 8h3v9a2 2 0 0 1-2 2" />
-          <path d="M7 8.5h7M7 12h7M7 15.5h4" />
-        </svg>
-      );
-    case "photo":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <rect x="3" y="4" width="18" height="16" rx="2" />
-          <circle cx="8.5" cy="9" r="1.5" />
-          <path d="M21 16l-5-5L5 20" />
-        </svg>
-      );
-    case "headline":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <path d="M3 11v2a1 1 0 0 0 1 1h2l9 5V5L6 10H4a1 1 0 0 0-1 1Z" />
-          <path d="M17.5 9a3 3 0 0 1 0 6" />
-        </svg>
-      );
-    case "sparkles":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <path d="M12 3l1.9 5.6L19.5 10l-5.6 1.4L12 17l-1.9-5.6L4.5 10l5.6-1.4L12 3Z" />
-        </svg>
-      );
-    case "bitcoin":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...fillProps}>
-          <path d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.93h.01zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z" />
-        </svg>
-      );
-    case "ethereum":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...fillProps}>
-          <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
-        </svg>
-      );
-    case "altcoins":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <circle cx="9" cy="9" r="5.5" />
-          <path d="M14.4 6.2A5.5 5.5 0 1 1 16.2 17" />
-        </svg>
-      );
-    case "macro":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <path d="M3 21h18M5 10l7-5 7 5M5 10h14M6 10v8M10 10v8M14 10v8M18 10v8" />
-        </svg>
-      );
-    case "defi":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4L12 2.5Z" />
-          <path d="M12 7.5l4 2.3v4.4L12 16.5l-4-2.3V9.8L12 7.5Z" />
-        </svg>
-      );
-    case "listings":
-      return (
-        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
-          <path d="M11 3H4a1 1 0 0 0-1 1v7l9.5 9.5a1 1 0 0 0 1.4 0l6.6-6.6a1 1 0 0 0 0-1.4L11 3Z" />
-          <circle cx="7.2" cy="7.2" r="1.3" />
-        </svg>
-      );
-    default:
-      return null;
-  }
-};
 
 const FilterBar = ({
   searchInput,

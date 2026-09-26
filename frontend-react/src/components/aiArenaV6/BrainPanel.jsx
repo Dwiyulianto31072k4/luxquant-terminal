@@ -11,9 +11,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getBrain } from "../../services/aiArenaV6Api";
-import { Card, SectionHeader, Tag, Tile, StateBox, GhostButton, COLOR } from "./_ui";
+import { Card, SectionHeader, Tag, StateBox, GhostButton, COLOR } from "./_ui";
 
-const STATUS_TONE = { core: "gold", validated: "up", candidate: "neutral", retired: "muted" };
 const W = 720,
   H = 640,
   CX = W / 2,

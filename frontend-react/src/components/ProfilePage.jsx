@@ -509,7 +509,6 @@ const ProfilePage = () => {
     user?.currency_code && user.currency_code !== "USD" && rates?.[user.currency_code];
   const btcPrice = btcTicker?.price;
   const btcLocal = showLocal && btcPrice ? convertPrice(btcPrice, user.currency_code, rates) : null;
-  const btcChangePct = btcTicker?.price_change_pct;
 
   // ════════════════════════════════════════
   // RENDER — Grok-clean settings surface

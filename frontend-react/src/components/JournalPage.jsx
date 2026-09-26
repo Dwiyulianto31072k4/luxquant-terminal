@@ -1117,27 +1117,6 @@ const MetricStrip = ({ stats }) => {
   );
 };
 
-const MetricCell = ({ label, value, accent }) => {
-  const colorMap = {
-    white: "text-text-primary",
-    blue: "text-accent",
-    emerald: "text-profit",
-    profit: "text-profit",
-    red: "text-loss",
-  };
-  return (
-    <div className="px-3 py-3 flex flex-col gap-1.5 min-w-0">
-      <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">
-        {label}
-      </span>
-      <span
-        className={`text-base sm:text-[17px] font-light tabular-nums tracking-tight truncate ${colorMap[accent] || "text-text-primary"}`}
-      >
-        {value}
-      </span>
-    </div>
-  );
-};
 
 // ════════════════════════════════════════════════════════════════
 // EQUITY CURVE CARD
@@ -3228,7 +3207,6 @@ const StrategyBreakdownCard = ({ stats }) => {
         ) : (
           <div className="space-y-2.5">
             {data.map((row, i) => {
-              const isPos = row.pnl >= 0;
               const wrColor =
                 row.winRate >= 60 ? "text-profit" : row.winRate >= 40 ? "text-accent" : "text-loss";
               return (

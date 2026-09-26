@@ -42,7 +42,7 @@ const fmtPct = (pct) => {
 const fmtDate = (iso) => {
   if (!iso) return "—";
   try {
-    const [y, m, d] = iso.split("-");
+    const [, m, d] = iso.split("-");
     const months = [
       "Jan",
       "Feb",

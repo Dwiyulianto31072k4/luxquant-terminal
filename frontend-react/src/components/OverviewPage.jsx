@@ -2,7 +2,6 @@ import Seo from "./Seo";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
-import CoinLogo from "./CoinLogo";
 import GateMarketTable from "./market/GateMarketTable";
 import GateSnapshotRow from "./market/GateSnapshotRow";
 import SectorCoinsModal from "./SectorCoinsModal";
@@ -15,53 +14,10 @@ const API_BASE = "/api/v1";
 // INLINE SVG ICONS (Lucide-style, no emoji)
 // ================================================================
 
-const IconWallet = ({ className = "w-3.5 h-3.5" }) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-    <path
-      d="M4 5.5A2.5 2.5 0 0 1 6.5 3H17a1 1 0 1 1 0 2H6.5a.5.5 0 0 0 0 1H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5.5z"
-      opacity="0.55"
-    />
-    <path d="M21 11v4h-4a2 2 0 0 1 0-4h4zm-3.5 1.4a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2z" />
-  </svg>
-);
 
-const IconChart = ({ className = "w-3.5 h-3.5" }) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-    <rect x="3" y="13" width="4" height="8" rx="1" opacity="0.5" />
-    <rect x="10" y="8" width="4" height="13" rx="1" opacity="0.75" />
-    <rect x="17" y="4" width="4" height="17" rx="1" />
-  </svg>
-);
 
-const IconCrown = ({ className = "w-3.5 h-3.5" }) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-    <path d="M2.6 8.2l3.6 2.9L11.1 5a1.1 1.1 0 0 1 1.8 0l4.9 6.1 3.6-2.9c.7-.6 1.7 0 1.5.9l-1.7 8.1a1 1 0 0 1-1 .8H4.8a1 1 0 0 1-1-.8L2.1 9.1c-.2-.9.8-1.5 1.5-.9z" />
-    <rect x="4.5" y="20" width="15" height="1.8" rx="0.9" opacity="0.6" />
-  </svg>
-);
 
-const IconCoins = ({ className = "w-3.5 h-3.5" }) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-    <ellipse cx="12" cy="16.5" rx="7" ry="2.8" opacity="0.45" />
-    <ellipse cx="12" cy="12" rx="7" ry="2.8" opacity="0.7" />
-    <ellipse cx="12" cy="7.5" rx="7" ry="2.8" />
-  </svg>
-);
 
-const IconFlame = ({ className = "w-3.5 h-3.5" }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden="true"
-  >
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-  </svg>
-);
 
 const IconArrowUp = ({ className = "w-3.5 h-3.5" }) => (
   <svg
@@ -171,7 +127,7 @@ const CardShell = ({ children, className = "", hover = true }) => (
   </div>
 );
 
-const CardHead = ({ icon, label, right }) => (
+const CardHead = ({ label, right }) => (
   // Sentence case, no icon tile, no tinted band. The tables on this page label
   // themselves with plain text; a panel that shouts ITS NAME IN CAPS beside
   // them reads as a different product. `icon` is accepted and ignored so the
@@ -876,32 +832,8 @@ const FGStat = ({ label, value }) => (
  * an optional 24h change or a coloured tag (e.g. Fear & Greed label).
  */
 /** Signed compact money for daily ETF net flow (e.g. -$49.8M, +$226.9M). */
-const fmtFlow = (v) => {
-  if (v == null || Number.isNaN(v)) return "—";
-  const s = v >= 0 ? "+" : "-";
-  const a = Math.abs(v);
-  if (a >= 1e9) return `${s}$${(a / 1e9).toFixed(2)}B`;
-  if (a >= 1e6) return `${s}$${(a / 1e6).toFixed(1)}M`;
-  if (a >= 1e3) return `${s}$${(a / 1e3).toFixed(0)}K`;
-  return `${s}$${a.toFixed(0)}`;
-};
 
 /** Tiny inline sparkline (points oldest→newest). Pure SVG — no per-card chart instance. */
-const Spark = ({ points, color, w = 96, h = 24 }) => {
-  if (!points || points.length < 2) return null;
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const rng = max - min || 1;
-  const step = w / (points.length - 1);
-  const d = points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(h - ((p - min) / rng) * (h - 4) - 2).toFixed(1)}`)
-    .join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <path d={d} fill="none" stroke={color} strokeWidth="1.4" strokeLinejoin="round" />
-    </svg>
-  );
-};
 
 /**
  * Fear & Greed color scale — muted, not neon

@@ -8,64 +8,9 @@
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ZAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  ReferenceLine,
-  LineChart,
-  Line,
-  Legend,
-} from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ReferenceLine, LineChart, Line, Legend } from "recharts";
 import CoinLogo from "../CoinLogo";
-import {
-  API_BASE,
-  GOLD,
-  POS,
-  NEG,
-  CYAN,
-  PURPLE,
-  ORANGE,
-  GRAYBAR,
-  GRID,
-  AXIS,
-  MUTED,
-  SERIES,
-  TICK,
-  TICK_SM,
-  fmtPct,
-  fmtMoney,
-  makeBins,
-  median,
-  fitBound,
-  pctBound,
-  clampTo,
-  pctRange,
-  clampRange,
-  CoinBubble,
-  promote,
-  useChartHeight,
-  SectionBand,
-  Kpi,
-  XCard,
-  RankBars,
-  CoinPill,
-  DarkTip,
-  LegendChips,
-  Warming,
-  Chip,
-  SegControl,
-  ScrollArea,
-  statusColorOf,
-  fmtAxis,
-  useCanvasZoom,
-} from "./vizShared";
+import { API_BASE, GOLD, POS, NEG, CYAN, ORANGE, GRAYBAR, GRID, MUTED, SERIES, TICK, TICK_SM, fmtPct, fmtMoney, makeBins, median, pctBound, clampTo, pctRange, clampRange, promote, useChartHeight, SectionBand, Kpi, XCard, RankBars, CoinPill, DarkTip, Warming, SegControl, ScrollArea, statusColorOf, useCanvasZoom } from "./vizShared";
 import TerminalScatter from "./tabs/TerminalScatter";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 import { getLogoSources } from "../CoinLogo";

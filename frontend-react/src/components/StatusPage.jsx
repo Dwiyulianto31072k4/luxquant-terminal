@@ -11,7 +11,7 @@
 // computed entirely in the browser.
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useState, useCallback } from "react";
-import { palette, tint, gradient } from "./admin/designSystem";
+import { palette, tint } from "./admin/designSystem";
 import Seo from "./Seo";
 
 const REFRESH_MS = 30_000;

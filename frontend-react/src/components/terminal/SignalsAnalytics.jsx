@@ -15,83 +15,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { TOKEN_FLOW_ENABLED } from "../../constants/features";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  ScatterChart,
-  Scatter,
-  ReferenceLine,
-  FunnelChart,
-  Funnel,
-  LabelList,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  LineChart,
-  Line,
-} from "recharts";
 import SignalModal from "../SignalModal";
-import CoinLogo from "../CoinLogo";
-import {
-  API_BASE,
-  authHeaders,
-  GOLD,
-  POS,
-  NEG,
-  PURPLE,
-  ORANGE,
-  CYAN,
-  GRAYBAR,
-  GRID,
-  AXIS,
-  TICK,
-  TICK_SM,
-  STATUS_ORDER,
-  STATUS_LABEL,
-  STATUS_COLORS,
-  RISK_COLORS,
-  fmtPct,
-  median,
-  parseMcap,
-  csv,
-  makeBins,
-  pctBound,
-  PLAUSIBLE_LO,
-  PLAUSIBLE_HI,
-  SectionBand,
-  Kpi,
-  Chip,
-  SegControl,
-  FilterMulti,
-  DarkTip,
-  ScatterTip,
-  LegendChips,
-  XCard,
-  useZoom,
-  CoinPill,
-  RankBars,
-  SectorBars,
-  Donut,
-  statusColorOf,
-  fmtAxis,
-  SectorGlyph,
-  CoinBubble,
-  PairBubble,
-  promote,
-  namedLast,
-  useChartHeight,
-  pctRange,
-  clampRange,
-  sectorKeyOf,
-} from "./vizShared";
-import { STRONG_TAGS, WARN_TAGS } from "./tagGlossary";
+import { API_BASE, authHeaders, GOLD, GRAYBAR, STATUS_ORDER, STATUS_LABEL, fmtPct, median, parseMcap, csv, PLAUSIBLE_LO, PLAUSIBLE_HI, Chip, SegControl, FilterMulti, useChartHeight, sectorKeyOf } from "./vizShared";
 import { ANOM_FLOOR, anomSetupOf } from "./anomSetups";
 import AnomalyTab from "./tabs/AnomalyTab";
 import SectorsTab from "./tabs/SectorsTab";
@@ -287,7 +212,7 @@ export default function SignalsAnalytics() {
       /* keep previous */
     }
   }, []);
-  const [macro, setMacro] = useState(null);
+  const [, setMacro] = useState(null);
   const fetchMacro = useCallback(async () => {
     try {
       const r = await fetch(`${API_BASE}/api/v1/money-flow/macro`, { headers: authHeaders() });
@@ -879,11 +804,6 @@ export default function SignalsAnalytics() {
 
   const fcClamped = useMemo(() => agg.fcVals.filter((v) => v >= -95 && v <= 300), [agg.fcVals]);
   // share of calls in window that have reached at least TP1
-  const tpHitPct = useMemo(() => {
-    if (!view.length) return null;
-    const hit = view.filter((s) => ["tp1", "tp2", "tp3", "closed_win"].includes(s.status)).length;
-    return Math.round((hit / view.length) * 100);
-  }, [view]);
 
 
   // Which points on each of these three carry a coin's mark and ticker. The

@@ -7,53 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "../../CoinLogo";
 import TerminalScatter from "./TerminalScatter";
-import {
-  XCard,
-  Kpi,
-  Chip,
-  SegControl,
-  SectionBand,
-  SectorBars,
-  SectorGlyph,
-  RankBars,
-  Donut,
-  ScrollArea,
-  StatusTag,
-  CoinPill,
-  Methodology,
-  LegendChips,
-  CoinBubble,
-  promote,
-  useChartHeight,
-  pctBound,
-  ChartLens,
-  pctRange,
-  clampTo,
-  fitBound,
-  median,
-  statusColorOf,
-  reliabilityFromSample,
-  fmtPct,
-  fmtMoney,
-  heatPct,
-  heatBias,
-  heatLabelColor,
-  GOLD,
-  POS,
-  NEG,
-  CYAN,
-  PURPLE,
-  GRAYBAR,
-  AXIS,
-  MUTED,
-  SERIES,
-  STATUS_COLORS,
-  STATUS_LABEL,
-  STATUS_ORDER,
-  RISK_COLORS,
-  TIER_COLORS,
-  TIER_LABELS,
-} from "../vizShared";
+import { XCard, Kpi, SectionBand, RankBars, CoinPill, promote, useChartHeight, ChartLens, pctRange, statusColorOf, fmtPct, GOLD, POS, NEG, GRAYBAR, RISK_COLORS } from "../vizShared";
 
 // Where the book stands — what replaced the P&L histogram.
 //
@@ -211,14 +165,7 @@ export function StillRunning({ rows, onPair }) {
   );
 }
 
-export default function LiveTab({
-  agg,
-  view,
-  deriv,
-  openPair,
-  statusMap,
-  fcClamped,
-}) {
+export default function LiveTab({ agg, view, openPair, statusMap, fcClamped }) {
   const { t } = useTranslation();
   const stdH = useChartHeight("std");
   const heroH = useChartHeight("hero");

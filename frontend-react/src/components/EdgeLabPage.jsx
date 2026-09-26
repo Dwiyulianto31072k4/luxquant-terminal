@@ -218,21 +218,9 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
   }, [days, sector, fetchData]);
 
   const totals = data?.totals;
-  const corrPct = totals?.correlation_pct ?? null;
   const resolved = totals?.signals_resolved ?? null;
   const wr = totals?.win_rate ?? null;
 
-  const wrTrend = useMemo(() => {
-    const days_ = (data?.calendar_wr || []).filter((d) => d.total > 0 && d.win_rate != null);
-    const vals = days_.map((d) => d.win_rate);
-    let delta = null;
-    if (vals.length >= 4) {
-      const half = Math.floor(vals.length / 2);
-      const avg = (a) => a.reduce((s, x) => s + x, 0) / a.length;
-      delta = avg(vals.slice(half)) - avg(vals.slice(0, half));
-    }
-    return { vals, delta };
-  }, [data]);
 
   const topEdge = useMemo(() => {
     // Ranked on realized EV. The peak-based figure credits a stopped-out call

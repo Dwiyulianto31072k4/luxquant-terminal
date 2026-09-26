@@ -27,7 +27,6 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
-import CoinLogo from "../../../CoinLogo";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
@@ -48,7 +47,6 @@ const C = {
   amber: "#fbbf24",
   muted: "#8a8f9c",
 };
-const REL = { reliable: C.gold, moderate: C.amber, unreliable: C.loss };
 const RANGES = [
   { id: "30D", days: 30 },
   { id: "90D", days: 90 },
@@ -193,14 +191,6 @@ const INFO = {
 const nfmt = (v) => (v ?? 0).toLocaleString();
 const pct = (v) => `${(v ?? 0).toFixed(1)}%`;
 const signed = (v) => `${v >= 0 ? "+" : ""}${(v ?? 0).toFixed(1)}%`;
-const bigPct = (v) => {
-  const n = v ?? 0;
-  if (n >= 1000) return `+${(n / 1000).toFixed(1)}K%`;
-  if (n >= 100) return `+${Math.round(n)}%`;
-  return `+${n.toFixed(1)}%`;
-};
-const sym = (p) => (p || "").replace(/USDT$/i, "");
-const niceName = (p) => (p || "").replace(/_/g, " ");
 
 function pearson(xs, ys) {
   const n = xs.length;
@@ -459,124 +449,6 @@ function InfoTip({ info }) {
  * The stop keeps its -1.00R label — that is the definition of R, true of every
  * call in every system, and it reveals nothing about this book.
  */
-function RrLadder() {
-  const targets = ["TP1", "TP2", "TP3", "TP4"];
-
-  return (
-    <div
-      className="lq-rr-map overflow-hidden rounded-2xl border border-ink/[0.09] bg-surface-raised p-4 sm:p-5"
-      aria-label="Illustrative reward against risk map. Stop is minus one R. Target R values are available after sign in."
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
-            Reward against risk
-          </p>
-          <p className="mt-1.5 text-[13px] leading-snug text-text-primary/60">
-            One fixed downside. Four ordered reward checkpoints.
-          </p>
-        </div>
-        <span className="lq-private-badge inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.12em]">
-          <LockIcon />
-          Target values private
-        </span>
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(118px,0.68fr)_minmax(0,2.45fr)]">
-        {/* Stop is the only public numeric value: by definition every stop is
-            one risk unit. This solid block is intentionally unlike the reward
-            nodes so downside can be parsed before the eye follows the path. */}
-        <div className="lq-risk-card lq-rr-stop rounded-xl p-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-loss/75">
-              Downside
-            </span>
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-loss/15 text-loss">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-3.5 w-3.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.2}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4v10m0 0-4-4m4 4 4-4M5 20h14"
-                />
-              </svg>
-            </span>
-          </div>
-          <div className="mt-3 flex items-end justify-between gap-2">
-            <span className="text-sm font-semibold text-text-primary">Stop</span>
-            <span className="font-mono text-[15px] font-bold tabular-nums text-loss">−1.00R</span>
-          </div>
-          <div className="lq-rr-stop-track mt-3 h-1.5 overflow-hidden rounded-full">
-            <span className="lq-rr-stop-fill block h-full rounded-full" aria-hidden="true" />
-          </div>
-          <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
-            Risk unit fixed
-          </p>
-        </div>
-
-        <div className="lq-risk-card lq-rr-reward-panel rounded-xl p-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="lq-rr-entry-dot h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
-              <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
-                Entry · 0R
-              </span>
-            </div>
-            <span className="flex items-center gap-1 text-[10px] text-text-muted">
-              <LockIcon />
-              R multiples hidden
-            </span>
-          </div>
-
-          <div className="relative mt-4 pt-1">
-            <span className="lq-rr-rail-base absolute left-[5%] right-[5%] top-[21px] h-px" aria-hidden="true" />
-            <span className="lq-rr-reward-fill absolute left-[5%] right-[5%] top-[20px] h-[2px] origin-left" aria-hidden="true" />
-            <span className="lq-rr-rail-shimmer absolute left-[5%] right-[5%] top-[18px] h-[6px]" aria-hidden="true" />
-
-            <ol className="relative grid grid-cols-4 gap-2" aria-label="Ordered profit targets">
-              {targets.map((target, index) => (
-                <li
-                  key={target}
-                  className="lq-rr-target flex min-w-0 flex-col items-center"
-                  style={{ "--rr-delay": `${520 + index * 130}ms` }}
-                  aria-label={`${target} reward value locked`}
-                >
-                  <span className="lq-rr-target-face relative z-10 flex w-full min-w-0 flex-col items-center justify-center rounded-lg px-1 py-2">
-                    <span className="lq-rr-target-lock flex h-6 w-6 items-center justify-center rounded-md text-accent">
-                      <LockIcon />
-                    </span>
-                    <span className="mt-1.5 font-mono text-[10px] font-semibold text-text-primary">{target}</span>
-                    <span className="mt-0.5 font-mono text-[7.5px] uppercase tracking-[0.1em] text-text-muted">
-                      private
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-col gap-2 border-t border-ink/[0.07] pt-3 text-[10px] text-text-muted sm:flex-row sm:items-center sm:justify-between">
-        <span className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-loss" aria-hidden="true" /> Fixed downside
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" /> Ordered targets
-          </span>
-        </span>
-        <span>Exact target R unlocks after sign-in</span>
-      </div>
-    </div>
-  );
-}
 
 /**
  * A metric the visitor can see exists but not read.
@@ -734,50 +606,7 @@ function RiskEdge({ rGeo, winRate, onUnlock, visible }) {
   );
 }
 
-function LockedStat({ label, hint }) {
-  // Wrapped in the rotating ring rather than blurred flat.
-  //
-  // Blur implies a real figure sitting just out of focus; there is none — the
-  // public payload carries only the break-even rate and the sample size, so a
-  // blurred "0.00" was a number that did not exist pretending to be withheld.
-  // Dots plus a lock say the same thing honestly, and the ring does the work
-  // of making it look worth signing in for.
-  return (
-    <div className="lq-risk-card lq-stat-card min-w-0 w-full flex-1">
-      <div className="px-4 py-3.5">
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
-          {label}
-        </p>
-        <p
-          aria-label={`${label} — sign in to view`}
-          className="mt-2 select-none font-mono text-[26px] font-bold leading-none tracking-[0.12em] text-text-primary/35"
-        >
-          <span aria-hidden="true">••••</span>
-        </p>
-        <p className="mt-2 flex items-center gap-1 text-[11px] text-text-muted">
-          <LockIcon />
-          {hint}
-        </p>
-      </div>
-    </div>
-  );
-}
 
-function LockIcon() {
-  return (
-    <svg
-      className="h-2.5 w-2.5 flex-shrink-0"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.4}
-      aria-hidden="true"
-    >
-      <rect x="4" y="10" width="16" height="11" rx="2" />
-      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-    </svg>
-  );
-}
 
 function CardHead({ title, sub, right, info }) {
   return (
@@ -810,24 +639,6 @@ function Spinner() {
 }
 // Glossy 3D-style progress bar (MEXC-ish): inset track + cylinder-shaded gold
 // fill with top sheen, bottom shadow and a soft glow.
-function Bar3D({ pct, className = "h-2.5" }) {
-  return (
-    <div
-      className={`relative flex-1 overflow-hidden rounded-full bg-scrim/40 ${className}`}
-      style={{ boxShadow: "inset 0 1px 2px rgb(var(--scrim) / 0.35)" }}
-    >
-      <div
-        className="h-full rounded-full"
-        style={{
-          width: `${Math.max(pct || 0, 3)}%`,
-          background: "linear-gradient(180deg, #f6e0a0 0%, #e7c373 34%, #cba24f 68%, #a8842f 100%)",
-          boxShadow:
-            "inset 0 1px 0 rgb(var(--ink) / 0.55), inset 0 -2px 3px rgba(90,60,15,0.4), 0 0 8px rgb(var(--accent) / 0.4)",
-        }}
-      />
-    </div>
-  );
-}
 // candlestick drawn into a recharts range-Bar ([low, high]); body = open→close
 function Candle({ x, y, width, height, payload }) {
   const { o, h, l, c } = payload || {};
@@ -857,49 +668,6 @@ function Candle({ x, y, width, height, payload }) {
 }
 
 // Small icon for the side tab-rail (Allium-style boxy menu).
-function TabIcon({ id, className = "h-4 w-4" }) {
-  const p = {
-    className,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-  };
-  if (id === "wrbtc")
-    return (
-      <svg {...p}>
-        <path d="M3 16l5-5 3 2 4-6 4 3" />
-        <path d="M3 21h18" opacity="0.4" />
-      </svg>
-    );
-  if (id === "patterns")
-    return (
-      <svg {...p}>
-        <rect x="3.5" y="3.5" width="7" height="7" rx="1.2" />
-        <rect x="13.5" y="3.5" width="7" height="7" rx="1.2" />
-        <rect x="3.5" y="13.5" width="7" height="7" rx="1.2" />
-        <rect x="13.5" y="13.5" width="7" height="7" rx="1.2" />
-      </svg>
-    );
-  if (id === "timing")
-    return (
-      <svg {...p}>
-        <circle cx="12" cy="12" r="8.5" />
-        <path d="M12 7.5V12l3 1.8" />
-      </svg>
-    );
-  if (id === "coins")
-    return (
-      <svg {...p}>
-        <ellipse cx="12" cy="6.5" rx="7.5" ry="3" />
-        <path d="M4.5 6.5v5c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-5" />
-        <path d="M4.5 11.5v5c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-5" />
-      </svg>
-    );
-  return null;
-}
 
 /**
  * Segmented control. Selected item is a solid accent fill.
@@ -957,7 +725,7 @@ export default function Performance({ data }) {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [anaTab, setAnaTab] = useState("wrbtc");
+  const [anaTab] = useState("wrbtc");
   // Landing stays light — deep charts optional (skimmers convert first).
   const [showBtc, setShowBtc] = useState(true);
   // Retires the tap cue once the user has actually opened a day.

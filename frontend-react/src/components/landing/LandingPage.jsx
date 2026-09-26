@@ -1440,13 +1440,11 @@ const LandingPage = () => {
 
   const goTerminal = () => navigate("/terminal");
   const goLogin = () => navigate("/login");
-  const goRegister = () => navigate("/register");
   const scrollTo = (id) => {
     setMobileMenuOpen(false);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const stats = performanceData?.stats;
 
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary relative pb-0 overflow-x-hidden">

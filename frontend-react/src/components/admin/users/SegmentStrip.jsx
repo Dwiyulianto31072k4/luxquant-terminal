@@ -4,7 +4,6 @@
 // FilterPanel, this is always visible — one click jumps to a customer
 // segment (resets other filters for focus). Reuses the existing table.
 // ════════════════════════════════════════════════════════════════════
-import { palette, tint } from "../designSystem";
 
 // Each segment maps to a filter combination. `match` builds the filter
 // patch applied on click (starting from DEFAULT_FILTERS for focus).

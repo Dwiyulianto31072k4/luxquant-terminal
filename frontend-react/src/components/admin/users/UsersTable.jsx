@@ -9,7 +9,7 @@
 
 import { ContactBadgeRow } from "../ContactBadge";
 import { DrcBadge } from "./DrcBadge";
-import { Avatar, Badge, LoadingState, EmptyState } from "../primitives";
+import { Avatar, LoadingState, EmptyState } from "../primitives";
 import { palette, surface, tint, motion } from "../designSystem";
 import {
   ProviderIcon,

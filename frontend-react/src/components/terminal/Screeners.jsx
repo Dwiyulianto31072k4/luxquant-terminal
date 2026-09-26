@@ -18,26 +18,7 @@ import {
   ReferenceArea,
 } from "recharts";
 import CoinLogo from "../CoinLogo";
-import {
-  GOLD,
-  GRID,
-  AXIS,
-  TICK_SM,
-  SectionBand,
-  Kpi,
-  Warming,
-  ScrollArea,
-  statusColorOf,
-  useZoom,
-  pickLabels,
-  useChartHeight,
-  pctBound,
-  clampTo,
-  CoinBubble,
-  labelCells,
-  namedLast,
-  ZoomOverlay,
-} from "./vizShared";
+import { GOLD, GRID, TICK_SM, SectionBand, Kpi, Warming, ScrollArea, statusColorOf, useZoom, pickLabels, useChartHeight, pctBound, clampTo, CoinBubble, labelCells, namedLast, ZoomOverlay } from "./vizShared";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
 const sym = (p) => (p || "").replace(/USDT$/i, "");

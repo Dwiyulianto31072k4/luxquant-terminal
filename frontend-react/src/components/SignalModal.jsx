@@ -64,7 +64,6 @@ const SignalModal = ({
   const { currency, rates, shouldShowLocal } = useCurrency();
 
   const chartContainerRef = useRef(null);
-  const widgetRef = useRef(null);
   const coinInfoFetchedRef = useRef(false);
 
   const [signalDetail, setSignalDetail] = useState(null);
@@ -90,7 +89,6 @@ const SignalModal = ({
   // "ping me when it comes back to entry" — see coin_watch.py entry-alert
   const [entryAlert, setEntryAlert] = useState(null); // {armed, triggered}
   const [alertBusy, setAlertBusy] = useState(false);
-  const [savingImg, setSavingImg] = useState(false);
   const [tweetUrl, setTweetUrl] = useState(null);
 
   const [overrideSignal, setOverrideSignal] = useState(null);
@@ -1183,23 +1181,6 @@ const SignalModal = ({
     });
   };
 
-  const calcTimeDiff = (from, to) => {
-    if (!from || !to) return null;
-    const ms = new Date(to) - new Date(from);
-    if (ms < 0) return null;
-    const m = Math.floor(ms / 60000),
-      h = Math.floor(m / 60),
-      d = Math.floor(h / 24);
-    if (d > 0) {
-      const rh = h % 24;
-      return rh > 0 ? `${d}d ${rh}h` : `${d}d`;
-    }
-    if (h > 0) {
-      const rm = m % 60;
-      return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
-    }
-    return `${m}m`;
-  };
 
   const formatPrice = (val) => {
     const p = Number(val);
@@ -1382,15 +1363,6 @@ const SignalModal = ({
       logo: "https://dexscreener.com/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=dexscreener.com&sz=64",
       color: "from-positive/20 to-positive/10 border-positive/30 hover:border-positive",
-    },
-  ];
-  const sentimentLinks = [
-    {
-      name: "Twitter / X",
-      url: `https://x.com/search?q=%24${coinSymbol}&src=typed_query&f=live`,
-      logo: "https://abs.twimg.com/favicons/twitter.3.ico",
-      fallbackLogo: "https://www.google.com/s2/favicons?domain=x.com&sz=64",
-      color: "from-ink/20 to-ink/10 border-line/30 hover:border-line",
     },
   ];
 

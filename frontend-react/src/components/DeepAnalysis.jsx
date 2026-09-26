@@ -632,7 +632,6 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
   }, [v3Data, showLive]);
 
   const facts = activeSnapshot?.facts || {};
-  const tags = activeSnapshot?.tags || [];
   const tagsAnnotated = activeSnapshot?.tags_annotated || [];
   const signalDir = activeSnapshot?.signal_direction || "?";
 

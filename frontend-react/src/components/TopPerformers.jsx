@@ -787,17 +787,6 @@ const SinceCallSpark = ({ item, compact = false }) => {
   );
 };
 
-function formatDuration(s) {
-  if (!s || s <= 0) return "N/A";
-  const d = Math.floor(s / 86400),
-    h = Math.floor((s % 86400) / 3600),
-    m = Math.floor((s % 3600) / 60),
-    sec = Math.floor(s % 60);
-  if (d > 0) return `${d}d ${h}h ${m}m`;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${sec}s`;
-  return `${sec}s`;
-}
 /** "18 Sep" — the day the call went out, under its entry price. */
 function callDay(iso) {
   if (!iso) return "";

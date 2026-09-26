@@ -66,35 +66,7 @@ const SORT_PRESETS = [
   { value: "status", label: "Status" },
 ];
 
-export default function EdgePlaybook({
-  tagWr = [],
-  signalTags = {},
-  selectedTags = [],
-  tagMatchMode = "any",
-  statusFilter = "all",
-  riskFilter = "all",
-  sortBy = "created_at",
-  sortOrder = "desc",
-  sorts = null,
-  edgeFilterActive = false,
-  filteredCount = null,
-  /** Default collapsed — table-first UX; user expands for graph/filters. */
-  defaultOpen = false,
-  /** Hide outer chrome when already inside Advanced shell */
-  embedded = false,
-  onToggleTag,
-  onSetTags,
-  onTagMatchMode,
-  onStatusFilter,
-  onRiskFilter,
-  onSort,
-  onSorts,
-  onApplyEdge,
-  onScreenRunners,
-  onFilterTag,
-  onClear,
-  runnerTags = null,
-}) {
+export default function EdgePlaybook({ tagWr = [], signalTags = {}, selectedTags = [], tagMatchMode = "any", statusFilter = "all", riskFilter = "all", sortBy = "created_at", sortOrder = "desc", sorts = null, edgeFilterActive = false, filteredCount = null, defaultOpen = false, embedded = false, onToggleTag, onTagMatchMode, onStatusFilter, onRiskFilter, onSort, onSorts, onApplyEdge, onScreenRunners, onFilterTag, onClear, runnerTags = null }) {
   const sortChain = normalizeSorts(
     Array.isArray(sorts) && sorts.length
       ? sorts

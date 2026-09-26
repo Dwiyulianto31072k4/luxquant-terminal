@@ -68,7 +68,7 @@ function wilsonHalfPp(wins, n) {
   return Math.round(((hi - lo) / 2) * 1000) / 10; // percentage points
 }
 
-function rebuildPreferSet(tagMap, baseWr) {
+function rebuildPreferSet(tagMap) {
   const preferCandidates = Object.entries(tagMap)
     .filter(
       ([tag, m]) =>

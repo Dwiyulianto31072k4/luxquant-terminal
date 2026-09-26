@@ -9,7 +9,7 @@
 // Hardware frames are pure CSS so any screenshot drops straight in.
 // ════════════════════════════════════════════════════════════════
 import HeroSignupPill from "../shared/HeroSignupPill";
-import { HERO, CTA } from "../../landingCopy";
+import { CTA } from "../../landingCopy";
 
 const hideOnError = (event) => {
   event.currentTarget.style.display = "none";

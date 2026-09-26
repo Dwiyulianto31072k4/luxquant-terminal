@@ -2,75 +2,12 @@
 //
 // Extracted from SignalsAnalytics along with the rest of the tabs. Whatever
 // this tab computes now runs only while it is open.
-import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  ScatterChart,
-  Scatter,
-  ReferenceLine,
-} from "recharts";
+import { ResponsiveContainer, Tooltip, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
 import CoinLogo from "../../CoinLogo";
-import {
-  XCard,
-  Kpi,
-  Chip,
-  SectionBand,
-  SectorBars,
-  SectorGlyph,
-  RankBars,
-  Donut,
-  ScrollArea,
-  StatusTag,
-  CoinPill,
-  Methodology,
-  DarkTip,
-  ScatterTip,
-  useZoom,
-  useChartHeight,
-  statusColorOf,
-  fmtPct,
-  fmtMoney,
-  fmtAxis,
-  median,
-  GOLD,
-  POS,
-  NEG,
-  CYAN,
-  PURPLE,
-  GRAYBAR,
-  GRID,
-  AXIS,
-  MUTED,
-  TICK,
-  TICK_SM,
-  SERIES,
-  STATUS_COLORS,
-  STATUS_LABEL,
-  sectorKeyOf,
-} from "../vizShared";
+import { XCard, SectorBars, SectorGlyph, DarkTip, fmtPct, POS, NEG, AXIS, STATUS_LABEL, sectorKeyOf } from "../vizShared";
 
-export default function SectorsTab({
-  agg,
-  view,
-  deriv,
-  setF,
-  openPair,
-  openSignalRow,
-  pairFc,
-  selSectors,
-}) {
+export default function SectorsTab({ agg, view, setF, openSignalRow, pairFc, selSectors }) {
   const { t } = useTranslation();
 
   return (

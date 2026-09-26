@@ -119,7 +119,6 @@ const StatCard = ({ label, value, sub, color = "text-text-primary", icon }) => (
 const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
   const outcome = call.outcome?.toLowerCase();
   const isOpen = !outcome;
-  const isWin = outcome && outcome !== "sl";
   const isSl = outcome === "sl";
 
   const formatDate = (d) => {

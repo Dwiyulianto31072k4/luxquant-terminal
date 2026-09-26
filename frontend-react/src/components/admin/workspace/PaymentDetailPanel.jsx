@@ -15,16 +15,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { SidePanel } from "./SidePanel";
 import { financeApi } from "../../../services/financeApi";
-import {
-  TrendingUpIcon,
-  DollarIcon,
-  AlertTriangleIcon,
-  CheckCircleIcon,
-  CloseIcon,
-  ExternalLinkIcon,
-  CopyIcon,
-  EditIcon,
-} from "../Icons";
+import { DollarIcon, AlertTriangleIcon, CheckCircleIcon, CloseIcon, ExternalLinkIcon, CopyIcon, EditIcon } from "../Icons";
 import { XCircleIcon, TrashIcon, RotateCcwIcon, ArchiveIcon } from "./finance/icons-supplement";
 import { CalendarDotIcon, TimerIcon, ChevronDownIcon } from "./CategoryIcons";
 import { formatUSDT, formatDateTimeLong, roleStyle } from "./finance/helpers";

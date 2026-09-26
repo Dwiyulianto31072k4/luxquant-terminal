@@ -15,19 +15,7 @@
 //
 
 import React, { useEffect, useState } from "react";
-import {
-  palette,
-  surface,
-  semantic,
-  typography,
-  radius,
-  elevation,
-  gradient,
-  motion,
-  tint,
-  tilePreset,
-  NEUTRAL,
-} from "./designSystem";
+import { palette, surface, semantic, typography, radius, elevation, gradient, motion, tint, NEUTRAL } from "./designSystem";
 import { AlertCircleIcon, CheckCircleIcon, AlertTriangleIcon, CloseIcon } from "./Icons";
 
 // ════════════════════════════════════════════════════════════════════
@@ -66,7 +54,6 @@ export const Surface = React.forwardRef(
     },
     ref
   ) => {
-    const isPremium = variant === "premium";
     const preset = tone
       ? { bg: tint(tone, 0.025), border: tint(tone, 0.18), topGlow: tint(tone, 0.3) }
       : {

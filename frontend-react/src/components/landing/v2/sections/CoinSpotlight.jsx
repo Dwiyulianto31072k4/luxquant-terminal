@@ -15,7 +15,6 @@ import { coinPagePath } from "../../../../utils/coinPage";
 import CoinLogo from "../../../CoinLogo";
 import LockedPct, { isLockedTarget } from "./shared/LockedPct";
 import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
-import { CTA } from "../landingCopy";
 
 const C = {
   gold: "#e7c373",

@@ -4,7 +4,7 @@
 // state (untouched = no follow-up yet, open = being worked, tracked = done).
 // Mirrors AnomalyChips; filters are mutually exclusive with one another.
 // ════════════════════════════════════════════════════════════════════
-import { palette, tint } from "../designSystem";
+import { tint } from "../designSystem";
 
 const CRM_CHIPS = [
   {

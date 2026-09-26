@@ -49,11 +49,6 @@ const toneStyle = (tone) => {
   return "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
 };
 
-const toneDot = (tone) => {
-  if (tone === "gold") return "bg-accent";
-  if (tone === "danger") return "bg-negative";
-  return "bg-ink/40";
-};
 
 // ════════════════════════════════════════════════════════════════
 // TIME AGO HELPER

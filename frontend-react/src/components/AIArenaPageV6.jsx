@@ -39,19 +39,6 @@ function loadPdfJsRuntime() {
   return pdfJsRuntimePromise;
 }
 
-function statusTone(status) {
-  const value = String(status || "").toLowerCase();
-  if (value === "healthy") {
-    return "border-profit/20 bg-profit/10 text-profit";
-  }
-  if (value === "critical" || value === "unavailable") {
-    return "border-negative/20 bg-negative/10 text-loss";
-  }
-  if (value === "degraded" || value === "stale") {
-    return "border-accent/20 bg-accent/10 text-accent";
-  }
-  return "border-ink/10 bg-ink/5 text-text-muted";
-}
 
 // How old the READ is, not the price. The price shown beside this is live, so
 // the age has to say what it measures or it gets read as a stale quote.
@@ -450,7 +437,7 @@ function BtcVisualPanel({ report }) {
 /**
  * Thesis + BTC visual — full-width split on desktop.
  */
-function ThesisBoard({ report, ledger }) {
+function ThesisBoard({ report }) {
   const liveBtc = useLiveBtcPrice();
   const [whyOpen, setWhyOpen] = useState(false);
   if (!report) return null;
@@ -1544,7 +1531,7 @@ function ReaderMetric({ label, value, tone }) {
 
 export default function AIArenaPageV6() {
   const [report, setReport] = useState(null);
-  const [eventRisk, setEventRisk] = useState(null);
+  const [, setEventRisk] = useState(null);
   const [operationalHealth, setOperationalHealth] = useState(null);
   const [ledger, setLedger] = useState(null);
   const [reportArchive, setReportArchive] = useState(null);

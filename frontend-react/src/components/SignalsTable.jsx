@@ -444,60 +444,7 @@ function TakenControl({ value, onPick }) {
   );
 }
 
-const SignalsTable = ({
-  signals,
-  topRunnerIds = null,
-  /** The WHOLE filtered set, not this page of it — the screener compares the
-   *  result of the filters, and a screen over a page is not a screen.
-   *  The modal lives here because this component owns the live price map. */
-  screenerSignals = null,
-  screenerOpen = false,
-  onScreenerClose,
-  screenerLabel = null,
-  loading,
-  page,
-  totalPages,
-  totalSignals,
-  emptyState = null,
-  onEmptyAction = null,
-  onPageChange,
-  sortBy,
-  sortOrder,
-  sorts = null,
-  onSort,
-  onRowClick,
-  onPricesUpdate,
-  isSubscriber = true,
-  onSubscribe,
-  onOpenProof,
-  hideColumnsMenu = false,
-  countLabel = null,
-  rowHint = null,
-  hiddenCount = 0,
-  allPairs,
-  coinIntel = {},
-  verdictByPair = {},
-  currentFlow = null,
-  // The desk's own win rate, from the coin-intel payload. Without it a pair's
-  // rate has nothing to be compared against, so every pair reads "in line" —
-  // never a guess.
-  deskWr = null,
-  tagWrMap = {},
-  edgeScoreMap = {},
-  signalTags = {},
-  onWatchlistChange = null,
-  // Journal mode — only the Watchlist desk. The column is injected here rather
-  // than added to COLS because it is meaningless on every other view, and a
-  // toggle in the Columns menu that does nothing 90% of the time is worse than
-  // no toggle at all.
-  journalMode = false,
-  onMarkTaken = null,
-  // Showcase / teaser: Price = max(live, recorded peak). Live only wins
-  // when the coin is still printing a new high.
-  preferBestPrice = false,
-  onGuideBack = null,
-  teaser = false,
-}) => {
+const SignalsTable = ({ signals, topRunnerIds = null, screenerSignals = null, screenerOpen = false, onScreenerClose, screenerLabel = null, loading, page, totalPages, totalSignals, emptyState = null, onEmptyAction = null, onPageChange, sortBy, sortOrder, sorts = null, onSort, onRowClick, onPricesUpdate, isSubscriber = true, onSubscribe, onOpenProof, hideColumnsMenu = false, countLabel = null, rowHint = null, hiddenCount = 0, allPairs, coinIntel = {}, verdictByPair = {}, currentFlow = null, deskWr = null, tagWrMap = {}, edgeScoreMap = {}, signalTags = {}, onWatchlistChange = null, journalMode = false, onMarkTaken = null, preferBestPrice = false, teaser = false }) => {
   const { t } = useTranslation();
 
   const [selectedCoinIntel, setSelectedCoinIntel] = useState(null); // coin object for CoinDetailModal

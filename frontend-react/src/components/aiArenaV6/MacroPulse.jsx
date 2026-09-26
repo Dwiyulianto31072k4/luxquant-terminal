@@ -250,7 +250,6 @@ export default function MacroPulse() {
   const narrative = (() => {
     const spxCorr = assets?.spx?.correlation_30d;
     const dxyCorr = assets?.dxy?.correlation_30d;
-    const goldCorr = assets?.gold?.correlation_30d;
 
     const parts = [];
 

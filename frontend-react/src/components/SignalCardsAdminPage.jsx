@@ -112,7 +112,7 @@ export default function SignalCardsAdminPage() {
     try {
       const r = await api.get(`${BASE}/config`);
       setCfg(r.data);
-    } catch (e) {
+    } catch {
       /* noop */
     }
   }, []);
@@ -120,7 +120,7 @@ export default function SignalCardsAdminPage() {
     try {
       const r = await api.get(BASE, { params: { status: filter } });
       setDrafts(r.data.drafts || []);
-    } catch (e) {
+    } catch {
       /* noop */
     }
   }, [filter]);
@@ -168,7 +168,7 @@ export default function SignalCardsAdminPage() {
     setBusy("render");
     try {
       await api.post(`${BASE}/render`, { card_key: renderKey });
-    } catch (e) {
+    } catch {
       /* noop */
     }
     setTimeout(() => {
@@ -185,7 +185,7 @@ export default function SignalCardsAdminPage() {
     setBusy(`post-${id}`);
     try {
       await api.post(`${BASE}/${id}/post`);
-    } catch (e) {
+    } catch {
       /* noop */
     }
     setTimeout(() => {

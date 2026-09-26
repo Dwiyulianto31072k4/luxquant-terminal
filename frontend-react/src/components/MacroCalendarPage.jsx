@@ -158,7 +158,7 @@ const MacroCalendarPage = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedImpact, setSelectedImpact] = useState("All");
-  const [now, setNow] = useState(new Date());
+  const [, setNow] = useState(new Date());
   const [expandedDays, setExpandedDays] = useState({});
   const [allStats, setAllStats] = useState(null);
 
@@ -622,7 +622,7 @@ const DaySection = ({
   expanded,
   onToggle,
 }) => {
-  const { weekday, dateLabel, isToday, events, allPast } = group;
+  const { weekday, dateLabel, isToday, events } = group;
   const highCount = events.filter((e) => e.impact === "High").length;
   const unlockCount = events.filter((e) => e.type === "unlock").length;
   const cryptoCount = events.filter((e) => e.type === "crypto_event").length;
@@ -1131,67 +1131,5 @@ const IconRefresh = () => (
   </svg>
 );
 
-const StatIcon = ({ type }) => {
-  const icons = {
-    total: (
-      <svg
-        className="w-3 h-3"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="14" width="4" height="7" />
-        <rect x="10" y="9" width="4" height="12" />
-        <rect x="17" y="5" width="4" height="16" />
-      </svg>
-    ),
-    high: (
-      <svg
-        className="w-3 h-3"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M12 2L2 22h20L12 2z" />
-        <path d="M12 9v4M12 17h.01" />
-      </svg>
-    ),
-    unlock: (
-      <svg
-        className="w-3 h-3"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="11" width="18" height="11" rx="2" />
-        <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-      </svg>
-    ),
-    upcoming: (
-      <svg
-        className="w-3 h-3"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" />
-      </svg>
-    ),
-  };
-  return icons[type] || icons.total;
-};
 
 export default MacroCalendarPage;

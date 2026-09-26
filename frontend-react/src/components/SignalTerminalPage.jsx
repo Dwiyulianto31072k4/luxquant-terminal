@@ -2,35 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { coinDeskBand, signalDeskBand } from "./coinIntelShared";
 import CoinLogo from "./CoinLogo";
-import {
-  ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  ZAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  ReferenceLine,
-} from "recharts";
-import {
-  GOLD,
-  GRID,
-  AXIS,
-  TICK_SM,
-  SectorGlyph,
-  statusColorOf,
-  useZoom,
-  heatDiverging,
-  logTicks,
-  pickLabels,
-  useChartHeight,
-  CoinBubble,
-  labelCells,
-  namedLast,
-  ZoomOverlay,
-} from "./terminal/vizShared";
+import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ReferenceLine } from "recharts";
+import { GRID, AXIS, TICK_SM, SectorGlyph, statusColorOf, useZoom, heatDiverging, logTicks, pickLabels, useChartHeight, CoinBubble, labelCells, namedLast, ZoomOverlay } from "./terminal/vizShared";
 import { useSignalStatus, STATUS_META, timeAgo } from "../context/SignalStatusContext";
 import {
   DEFAULT_FILTERS,
@@ -40,7 +13,6 @@ import {
   parseMcap,
   maxTargetPct,
 } from "../utils/signalFilters";
-import { useDialog } from "../hooks/useDialog";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -195,7 +167,7 @@ export default function SignalTerminalPage() {
   const [macro, setMacro] = useState(null);
   const [prices, setPrices] = useState({});
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [, setLastUpdated] = useState(null);
 
   // which market-map view — now driven by the left nav (?view=)
   const view = searchParams.get("view") || "treemap";
@@ -493,24 +465,6 @@ function openSignal(d, navigate, filters) {
   navigate(`/signals?${p.toString()}`);
 }
 
-const fmtPrice = (v) => {
-  if (!v && v !== 0) return "—";
-  if (v >= 1) return Number(v).toFixed(2);
-  if (v >= 0.01) return Number(v).toFixed(4);
-  return Number(v).toPrecision(3);
-};
-const ST_META = {
-  open: { label: "OPEN", color: "rgb(var(--fg-secondary))", desc: "Live — no target hit yet" },
-  tp1: { label: "TP1 HIT", color: "rgb(var(--pos-text))", desc: "First target reached" },
-  tp2: { label: "TP2 HIT", color: "rgb(var(--pos-text))", desc: "Second target reached" },
-  tp3: { label: "TP3 HIT", color: "rgb(var(--pos-text))", desc: "Third target reached" },
-  closed_win: {
-    label: "TP4 / WIN",
-    color: "rgb(var(--accent-text))",
-    desc: "Final target — closed in profit",
-  },
-  closed_loss: { label: "STOPPED OUT", color: "rgb(var(--neg-text))", desc: "Hit stop loss" },
-};
 
 function Enc({ label, value, onChange }) {
   return (

@@ -77,20 +77,6 @@ const fmtBytes = (n) => {
 // Small building blocks
 // ════════════════════════════════════════════════════════════════════
 
-const SummaryChip = ({ label, value, color }) => (
-  <div
-    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md"
-    style={{ background: tint(color, 0.06), border: `1px solid ${tint(color, 0.18)}` }}
-  >
-    <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-    <span className="text-[10px] font-medium" style={{ color: tint(color, 0.85) }}>
-      {label}
-    </span>
-    <span className="text-[12px] font-bold tabular-nums" style={{ color }}>
-      {value}
-    </span>
-  </div>
-);
 
 const MetaPill = ({ children, color = "rgb(var(--fg-secondary))" }) => (
   <span

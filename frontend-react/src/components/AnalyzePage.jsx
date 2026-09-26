@@ -1,18 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  ResponsiveContainer,
-  Tooltip,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Area,
-  ReferenceLine,
-  LineChart,
-  Line,
-  Legend,
-  ComposedChart,
-} from "recharts";
 import { useTranslation } from "react-i18next";
 import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
@@ -21,16 +7,7 @@ import RiskRSection from "./performance/RiskRSection";
 import WrVsBtcChart from "./performance/WrVsBtcChart";
 import { InfoTip, KPI_INFO, SECTION_INFO } from "./performance/MetricInfo";
 import SignalDrillDrawer from "./edgelab/SignalDrillDrawer";
-import {
-  BarRow,
-  HeroFigure,
-  Panel,
-  PanelHead,
-  Reveal,
-  Rule,
-  SectionHead,
-  Stat,
-} from "./performance/lp";
+import { BarRow, HeroFigure, Reveal, Rule, SectionHead, Stat } from "./performance/lp";
 
 const API_BASE = "/api/v1";
 
@@ -1409,58 +1386,8 @@ const IconRR = () => (
   </div>
 );
 
-const IconRisk = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
-    <svg
-      className="w-3.5 h-3.5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 2L2 22h20L12 2z" />
-      <path d="M12 9v4M12 17h.01" />
-    </svg>
-  </div>
-);
 
-const IconPairs = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
-    <svg
-      className="w-3.5 h-3.5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 15L5 8h14l-7 7z" />
-      <circle cx="12" cy="3" r="1.5" />
-      <circle cx="5" cy="8" r="1.5" />
-      <circle cx="19" cy="8" r="1.5" />
-    </svg>
-  </div>
-);
 
-const IconHistory = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
-    <svg
-      className="w-3.5 h-3.5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  </div>
-);
 
 const IconBolt = () => (
   <svg
@@ -1504,29 +1431,7 @@ const IconArrowDown = () => (
   </svg>
 );
 
-const IconArrowUpMini = () => (
-  <svg
-    className="w-2.5 h-2.5"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="2.5"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-  </svg>
-);
 
-const IconArrowDownMini = () => (
-  <svg
-    className="w-2.5 h-2.5"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="2.5"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-  </svg>
-);
 
 const IconChevronLeft = () => (
   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

@@ -32,7 +32,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { InfoTip, SECTION_INFO } from "./MetricInfo";
-import { GoldAreaDefs, HeroFigure, Reveal, SectionHead, Stat } from "./lp";
+import { HeroFigure, Reveal, SectionHead, Stat } from "./lp";
 
 const API_BASE = "/api/v1";
 
@@ -42,27 +42,6 @@ const fmtNum = (v) => (v == null ? "—" : Number(v).toLocaleString());
 
 /* ── tiny building blocks, styled to match AnalyzePage ─────────── */
 
-function Tile({ label, value, sub, tone = "default", big = false }) {
-  const toneCls =
-    tone === "profit"
-      ? "text-profit"
-      : tone === "loss"
-        ? "text-loss"
-        : tone === "gold"
-          ? "text-accent-text"
-          : "text-text-primary";
-  return (
-    <div className="rounded-xl border border-ink/[0.07] bg-surface-secondary/60 px-3.5 py-3">
-      <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">{label}</p>
-      <p
-        className={`mt-1.5 font-mono font-bold leading-none tabular-nums ${big ? "text-[24px]" : "text-[19px]"} ${toneCls}`}
-      >
-        {value}
-      </p>
-      {sub && <p className="mt-1.5 text-[10px] leading-snug text-text-muted">{sub}</p>}
-    </div>
-  );
-}
 
 function ChartTip({ active, payload, label, unit = "R" }) {
   if (!active || !payload?.length) return null;

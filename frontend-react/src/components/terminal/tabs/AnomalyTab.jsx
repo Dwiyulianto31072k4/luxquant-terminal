@@ -8,18 +8,7 @@ import { useState, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "../../CoinLogo";
 import AnomalyScatter from "./AnomalyScatter";
-import {
-  XCard,
-  Kpi,
-  SectionBand,
-  STATUS_LABEL,
-  RankBars,
-  useChartHeight,
-  GOLD,
-  CYAN,
-  GRAYBAR,
-  fmtPct,
-} from "../vizShared";
+import { XCard, Kpi, SectionBand, STATUS_LABEL, RankBars, useChartHeight, GOLD, CYAN, fmtPct } from "../vizShared";
 import { ANOM_SETUPS, ANOM_FILL } from "../anomSetups";
 import { STRONG_TAGS, WARN_TAGS } from "../tagGlossary";
 

@@ -1,8 +1,8 @@
 // src/components/CountryCurrencyPicker.jsx
 import { useState, useMemo, Fragment } from "react";
-import { Combobox, Listbox, Transition } from "@headlessui/react";
+import { Combobox, Transition } from "@headlessui/react";
 import { useTranslation } from "react-i18next";
-import { COUNTRIES, getCountryByCode, getCountryFlag } from "../data/countries";
+import { COUNTRIES, getCountryByCode } from "../data/countries";
 import { CURRENCY_FLAGS } from "../utils/currencyHelpers";
 
 // Constant, so it lives at module scope: declared inside the component it was a

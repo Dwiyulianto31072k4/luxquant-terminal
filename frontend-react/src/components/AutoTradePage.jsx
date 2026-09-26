@@ -767,7 +767,7 @@ export default function AutoTradePage() {
   const [tradeHistory, setTradeHistory] = useState({ items: [], summary: {} });
   const [executions, setExecutions] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
-  const [signalsById, setSignalsById] = useState({});
+  const [, setSignalsById] = useState({});
   const [strategyConfig, setStrategyConfig] = useState(null);
   const [alertStatus, setAlertStatus] = useState(null);
   const [alertStatusError, setAlertStatusError] = useState("");

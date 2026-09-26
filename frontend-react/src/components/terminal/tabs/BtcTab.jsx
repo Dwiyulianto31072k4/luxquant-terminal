@@ -3,99 +3,12 @@
 // Extracted from SignalsAnalytics, which carried eight tabs and ran every one
 // of their hooks on every render. What this tab computes now runs only while it
 // is open.
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  ComposedChart,
-  ScatterChart,
-  Scatter,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  XAxis,
-  YAxis,
-  ZAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  Cell,
-  ReferenceLine,
-  ReferenceArea,
-} from "recharts";
-import CoinLogo from "../../CoinLogo";
-import {
-  XCard,
-  Kpi,
-  Chip,
-  SegControl,
-  SectionBand,
-  SectorBars,
-  SectorGlyph,
-  RankBars,
-  Donut,
-  ScrollArea,
-  StatusTag,
-  CoinPill,
-  Methodology,
-  DarkTip,
-  ScatterTip,
-  LegendChips,
-  CoinBubble,
-  PairBubble,
-  promote,
-  namedLast,
-  useZoom,
-  useChartHeight,
-  pctBound,
-  pctRange,
-  clampTo,
-  clampRange,
-  fitBound,
-  makeBins,
-  median,
-  statusColorOf,
-  reliabilityFromSample,
-  fmtPct,
-  fmtMoney,
-  fmtAxis,
-  heatPct,
-  heatBias,
-  heatLabelColor,
-  GOLD,
-  POS,
-  NEG,
-  CYAN,
-  PURPLE,
-  GRAYBAR,
-  GRID,
-  AXIS,
-  MUTED,
-  TICK,
-  TICK_SM,
-  SERIES,
-  STATUS_COLORS,
-  STATUS_LABEL,
-  STATUS_ORDER,
-  RISK_COLORS,
-  TIER_COLORS,
-  TIER_LABELS,
-} from "../vizShared";
+import { ResponsiveContainer, BarChart, Bar, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ReferenceLine } from "recharts";
+import { XCard, Kpi, CoinPill, DarkTip, ScatterTip, LegendChips, PairBubble, promote, namedLast, useZoom, useChartHeight, makeBins, statusColorOf, fmtPct, fmtAxis, GOLD, POS, NEG, CYAN, PURPLE, GRAYBAR, GRID, TICK, TICK_SM } from "../vizShared";
 
-export default function BtcTab({
-  agg,
-  view,
-  deriv,
-  openPair,
-  statusMap,
-}) {
+export default function BtcTab({ agg, openPair, statusMap }) {
   const { t } = useTranslation();
   const stdH = useChartHeight("std");
 
