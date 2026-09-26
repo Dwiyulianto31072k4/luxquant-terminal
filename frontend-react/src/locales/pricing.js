@@ -47,6 +47,23 @@ export const pricingEn = {
   equiv_month: "≈ ${{price}} / mo",
   free_forever: "Free forever",
 
+  // One sentence per benefit: what the reader actually gets, not a label.
+  featd_signals: "Entry, targets and stop on every call, the moment it prints.",
+  featd_market: "See which of today's movers we called, marked on the chart.",
+  featd_onchain_ai: "Flows, risk and written research in the same workspace.",
+  featd_basic_support: "A person answers, usually the same day.",
+  featd_support: "Your messages go to the front of the queue.",
+  featd_requests: "Ask for a coin, a screen, or Agent access, and we build around it.",
+  featd_vip_support: "A direct line, with your account already in front of us.",
+  featd_lifetime: "Every feature we ship from here, at no extra cost.",
+  free_featd_1: "Live prices, the market tables, and today's movers.",
+  free_featd_2: "Every call we have published, with the chart it was called on.",
+  free_featd_3: "Market news and your own trade journal.",
+  inherits_monthly: "Everything in Monthly, plus",
+  inherits_yearly: "Everything in Annual, plus",
+  cta_note_paid: "No auto-renewal. No card on file.",
+  cta_note_free: "No card. Upgrade whenever.",
+
   feat_signals: "Live signal levels",
   feat_analytics: "Full charts and analytics",
   feat_performance: "Performance tools",

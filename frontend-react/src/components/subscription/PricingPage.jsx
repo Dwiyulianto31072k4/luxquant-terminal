@@ -63,7 +63,9 @@ function PlanCard({
   suffix,
   meta,
   features,
+  inherits,
   cta,
+  ctaNote,
   onCta,
   disabled,
   recommended,
@@ -71,17 +73,25 @@ function PlanCard({
   busy,
   mutedChecks,
 }) {
+  // Each plan is its own rounded card with air around it, the way the pricing
+  // pages people compare us against are built. The old grid was one hard-edged
+  // block cut by dividers, which made four plans read as one table and left
+  // nowhere to lift the recommended one.
   return (
     <article
-      className={`relative flex h-full flex-col px-5 py-6 sm:px-6 sm:py-7 ${
-        recommended && !current ? "bg-accent/[0.04] ring-1 ring-inset ring-accent/30" : ""
-      } ${current ? "bg-profit/[0.03]" : ""}`}
+      className={`relative flex h-full flex-col rounded-2xl border px-5 py-6 transition-shadow sm:px-6 ${
+        current
+          ? "border-profit/30 bg-profit/[0.03]"
+          : recommended
+            ? "border-accent/45 bg-accent/[0.035] shadow-[0_8px_30px_-12px_rgb(var(--accent)/0.35)] lg:-mt-3 lg:pb-8 lg:pt-8"
+            : "border-ink/[0.09] bg-surface-raised"
+      }`}
     >
-      <div className="mb-5">
+      <div className="mb-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-[15px] font-medium text-text-primary/90">{title}</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary">{title}</h2>
           {recommended && !current && (
-            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-accent">
+            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent-fg">
               {meta?.recommendedLabel}
             </span>
           )}
@@ -89,7 +99,7 @@ function PlanCard({
             <span className="text-[11px] font-medium text-profit/90">{meta?.currentLabel}</span>
           )}
         </div>
-        <p className="mt-1 text-[12px] leading-snug text-text-primary/40">{desc}</p>
+        <p className="mt-1 text-[12.5px] leading-snug text-text-primary/45">{desc}</p>
       </div>
 
       <div className="mb-5">
@@ -110,32 +120,56 @@ function PlanCard({
         ) : null}
       </div>
 
-      <ul className="mb-6 flex-1 space-y-2.5">
-        {features.map((f) => (
-          <li key={f} className="flex gap-2 text-[13px] leading-snug text-text-primary/55">
-            <Check
-              className="mt-0.5 h-3.5 w-3.5 shrink-0"
-              tone={mutedChecks ? "rgb(var(--ink) / 0.25)" : "rgb(var(--accent) / 0.85)"}
-            />
-            {f}
-          </li>
-        ))}
+      {/* A line of text per benefit was the whole list. What a reader wants to
+          know is what each one gives them, so every item carries one plain
+          sentence under it. `inherits` names the tier below instead of
+          repeating its items. */}
+      {inherits ? (
+        <p className="mb-3 border-t border-ink/[0.07] pt-4 text-[12px] font-medium text-text-primary/60">
+          {inherits}
+        </p>
+      ) : (
+        <div className="mb-3 border-t border-ink/[0.07] pt-4" />
+      )}
+
+      <ul className="mb-6 flex-1 space-y-3">
+        {features.map((f) => {
+          const label = typeof f === "string" ? f : f.t;
+          const detail = typeof f === "string" ? null : f.d;
+          return (
+            <li key={label} className="flex gap-2.5">
+              <Check
+                className="mt-[3px] h-3.5 w-3.5 shrink-0"
+                tone={mutedChecks ? "rgb(var(--ink) / 0.3)" : "rgb(var(--accent) / 0.9)"}
+              />
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium leading-snug text-text-primary/85">{label}</p>
+                {detail ? (
+                  <p className="mt-0.5 text-[11.5px] leading-snug text-text-primary/40">{detail}</p>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
       </ul>
 
       <button
         type="button"
         onClick={onCta}
         disabled={disabled || busy}
-        className={`mt-auto w-full rounded-lg py-2.5 text-[13px] font-medium transition disabled:cursor-default active:scale-[0.99] ${
+        className={`mt-auto w-full rounded-xl py-3 text-[13.5px] font-semibold transition disabled:cursor-default active:scale-[0.99] ${
           current
             ? "border border-profit/25 bg-profit/[0.06] text-profit/90"
             : recommended
               ? "bg-accent text-accent-fg hover:brightness-105"
-              : "border border-ink/[0.12] text-text-primary/85 hover:border-ink/25 hover:bg-ink/[0.03]"
+              : "border border-ink/[0.14] text-text-primary hover:border-ink/30 hover:bg-ink/[0.03]"
         }`}
       >
         {cta}
       </button>
+      {ctaNote ? (
+        <p className="mt-2 text-center text-[11px] text-text-primary/35">{ctaNote}</p>
+      ) : null}
     </article>
   );
 }
@@ -151,10 +185,6 @@ const PricingPage = () => {
   const [adminModalPlan, setAdminModalPlan] = useState(null);
   const [adminIntent, setAdminIntent] = useState("pay");
   const [mobileId, setMobileId] = useState("yearly");
-  // The page had no numbers on it at all. These are the public record's own,
-  // fetched from the same endpoints the Home leaderboard uses, so the claim on
-  // the pricing page and the board a reader can audit cannot disagree.
-  const [proof, setProof] = useState(null);
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -171,27 +201,6 @@ const PricingPage = () => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
-
-  useEffect(() => {
-    let alive = true;
-    Promise.all([
-      fetch("/api/v1/signals/top-performers?limit=1&days=7").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/v1/signals/stats").then((r) => (r.ok ? r.json() : null)),
-    ])
-      .then(([board, stats]) => {
-        if (!alive || (!board && !stats)) return;
-        setProof({
-          hits: board?.total_tp_hits ?? null,
-          pairs: board?.unique_pairs ?? null,
-          published: stats?.total_signals ?? null,
-          reached: stats?.win_rate ?? null,
-        });
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -343,33 +352,41 @@ const PricingPage = () => {
     getPlanLabel({ name: subStatus?.plan_name, label: subStatus?.plan_label }) ||
     t("pricing.premium");
 
+  // Each tier lists only what IT adds; `getInherits` names the tier below.
+  // Repeating "Everything in Monthly" as a bullet spent the first line of
+  // every card saying nothing about that card.
   const getFeatures = (plan) => {
     if (plan.name === "monthly") {
       return [
-        t("pricing.feat_signals"),
-        t("pricing.feat_market"),
-        t("pricing.feat_onchain_ai"),
-        t("pricing.feat_basic_support"),
+        { t: t("pricing.feat_signals"), d: t("pricing.featd_signals") },
+        { t: t("pricing.feat_market"), d: t("pricing.featd_market") },
+        { t: t("pricing.feat_onchain_ai"), d: t("pricing.featd_onchain_ai") },
+        { t: t("pricing.feat_basic_support"), d: t("pricing.featd_basic_support") },
       ];
     }
     if (plan.name === "yearly") {
       return [
-        t("pricing.feat_everything_monthly"),
-        t("pricing.feat_support"),
-        t("pricing.feat_requests"),
+        { t: t("pricing.feat_support"), d: t("pricing.featd_support") },
+        { t: t("pricing.feat_requests"), d: t("pricing.featd_requests") },
       ];
     }
     return [
-      t("pricing.feat_everything_yearly"),
-      t("pricing.feat_vip_support"),
-      t("pricing.feat_lifetime"),
+      { t: t("pricing.feat_vip_support"), d: t("pricing.featd_vip_support") },
+      { t: t("pricing.feat_lifetime"), d: t("pricing.featd_lifetime") },
     ];
   };
 
+  const getInherits = (plan) =>
+    plan.name === "yearly"
+      ? t("pricing.inherits_monthly")
+      : plan.name === "lifetime"
+        ? t("pricing.inherits_yearly")
+        : null;
+
   const freeFeatures = [
-    t("pricing.free_feat_1"),
-    t("pricing.free_feat_2"),
-    t("pricing.free_feat_3"),
+    { t: t("pricing.free_feat_1"), d: t("pricing.free_featd_1") },
+    { t: t("pricing.free_feat_2"), d: t("pricing.free_featd_2") },
+    { t: t("pricing.free_feat_3"), d: t("pricing.free_featd_3") },
   ];
 
   const faqs = [
@@ -496,6 +513,7 @@ const PricingPage = () => {
       desc={t("pricing.free_desc")}
       price={t("pricing.free_price")}
       features={freeFeatures}
+      ctaNote={t("pricing.cta_note_free")}
       cta={t("pricing.free_cta")}
       onCta={() => navigate(isAuthenticated ? "/" : "/login")}
       mutedChecks
@@ -514,6 +532,8 @@ const PricingPage = () => {
         price={plan.price_usdt}
         suffix={getPriceSuffix(plan)}
         features={getFeatures(plan)}
+        inherits={getInherits(plan)}
+        ctaNote={t("pricing.cta_note_paid")}
         cta={
           creating && selectedPlan === plan.id ? t("pricing.processing") : getButtonLabel(plan)
         }
@@ -620,57 +640,6 @@ const PricingPage = () => {
           )}
         </header>
 
-        {/* PROOF — the record, before the price.
-            Every number here is the public record's own and links to where a
-            reader can check it. The measured problem this answers: 81% of the
-            people who see this page never pick a plan, and the page gave them
-            nothing to believe. Wording is the honest form of each metric:
-            "reached at least one target" is what the win rate counts, and
-            saying it that way costs nothing it cannot back up. */}
-        {!isPremium && proof && (proof.hits || proof.published) ? (
-          <section className="mx-auto mb-8 max-w-3xl sm:mb-10">
-            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink/[0.07] bg-ink/[0.05] sm:grid-cols-4">
-              {[
-                proof.hits != null && {
-                  v: proof.hits.toLocaleString("en-US"),
-                  l: t("pricing.proof_hits"),
-                },
-                proof.pairs != null && {
-                  v: proof.pairs.toLocaleString("en-US"),
-                  l: t("pricing.proof_pairs"),
-                },
-                proof.published != null && {
-                  v: proof.published.toLocaleString("en-US"),
-                  l: t("pricing.proof_published"),
-                },
-                proof.reached != null && {
-                  v: `${Number(proof.reached).toFixed(1)}%`,
-                  l: t("pricing.proof_reached"),
-                },
-              ]
-                .filter(Boolean)
-                .map((cell) => (
-                  <div key={cell.l} className="bg-surface-raised px-4 py-3.5 text-center">
-                    <p className="font-mono text-[17px] font-semibold tabular-nums text-text-primary sm:text-[19px]">
-                      {cell.v}
-                    </p>
-                    <p className="mt-1 text-[11.5px] leading-snug text-text-primary/45">{cell.l}</p>
-                  </div>
-                ))}
-            </div>
-            <p className="mt-3 text-center text-[12.5px] text-text-primary/45">
-              {t("pricing.proof_note")}{" "}
-              <button
-                type="button"
-                onClick={() => navigate("/performance")}
-                className="font-medium text-accent underline-offset-4 hover:underline"
-              >
-                {t("pricing.proof_cta")}
-              </button>
-            </p>
-          </section>
-        ) : null}
-
         {loading ? (
           <div className="mx-auto h-[340px] max-w-5xl animate-pulse rounded-2xl border border-ink/[0.06] bg-ink/[0.04]" />
         ) : loadError ? (
@@ -718,9 +687,11 @@ const PricingPage = () => {
               </div>
             </div>
 
-            {/* Desktop — four compact columns */}
-            <div className="hidden overflow-hidden rounded-2xl border border-ink/[0.08] bg-ink/[0.015] lg:block">
-              <div className="grid grid-cols-4 divide-x divide-ink/[0.06]">
+            {/* Desktop — four cards with air between them, so the recommended
+                one can lift out of the row. Extra top padding because that card
+                is pulled up by -mt-3 and would otherwise clip its own badge. */}
+            <div className="hidden lg:block lg:pt-3">
+              <div className="grid grid-cols-4 items-stretch gap-4">
                 {freeCard}
                 {paidCards}
               </div>
