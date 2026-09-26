@@ -492,7 +492,8 @@ const PricingPage = () => {
   const trustChips = [
     t("pricing.trust_since"),
     t("pricing.trust_pay"),
-    t("pricing.trust_keys"),
+    t("pricing.trust_norenew"),
+    t("pricing.trust_speed"),
   ];
 
   const howSteps = [
@@ -606,20 +607,22 @@ const PricingPage = () => {
       )}
 
       <div className={shellPad}>
-        <header className={`mx-auto max-w-xl text-center ${embedded ? "mb-6" : "mb-8 sm:mb-10"}`}>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary/35">
+        <header className={`mx-auto max-w-2xl text-center ${embedded ? "mb-6" : "mb-10 sm:mb-12"}`}>
+          <p className="mb-3 text-[12px] font-medium tracking-wide text-text-primary/40">
             {t("pricing.hero_eyebrow")}
           </p>
+          {/* One colour, one weight, balanced wrap. The two-tone split greyed
+              out half the sentence and pushed a lone "pay." onto its own line;
+              `text-balance` keeps the two lines even at any width instead. */}
           <h1
-            className={`font-semibold leading-[1.12] tracking-[-0.03em] text-text-primary ${
-              embedded ? "text-[1.55rem] sm:text-[1.85rem]" : "text-[1.85rem] sm:text-[2.45rem] lg:text-[2.75rem]"
+            className={`text-balance font-semibold leading-[1.1] tracking-[-0.03em] text-text-primary ${
+              embedded ? "text-[1.55rem] sm:text-[1.85rem]" : "text-[2rem] sm:text-[2.6rem] lg:text-[3rem]"
             }`}
             style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
           >
-            {t("pricing.hero_title_line1")}{" "}
-            <span className="text-text-primary/50">{t("pricing.hero_title_line2")}</span>
+            {t("pricing.hero_title_line1")} {t("pricing.hero_title_line2")}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-text-primary/50 sm:text-[15px]">
+          <p className="mx-auto mt-4 max-w-lg text-balance text-[14.5px] leading-relaxed text-text-primary/50 sm:text-[15.5px]">
             {isPremium
               ? `${t("pricing.subscribing_to")} ${getCurrentPlanLabel()}${
                   subStatus?.days_remaining != null
@@ -629,9 +632,11 @@ const PricingPage = () => {
               : t("pricing.hero_subtitle")}
           </p>
           {!isPremium && (
-            <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.12em] text-text-primary/35">
+            /* Sentence case, like every other label on the product now. The
+               all-caps mono row read as a system banner above a headline. */
+            <p className="mt-5 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[12.5px] text-text-primary/40">
               {trustChips.map((c, i) => (
-                <span key={c} className="inline-flex items-center gap-3">
+                <span key={c} className="inline-flex items-center gap-2.5">
                   {i > 0 ? <span className="text-text-primary/20">·</span> : null}
                   {c}
                 </span>

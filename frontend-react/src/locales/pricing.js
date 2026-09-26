@@ -15,10 +15,12 @@ export const pricingEn = {
   lifetime_label: "Lifetime",
 
   hero_eyebrow: "Pricing",
-  hero_title_line1: "Live levels.",
-  hero_title_line2: "Pick how you pay.",
+  // The headline answers the question every buyer has first: do I get less on
+  // the cheaper plan? Kept as two keys so the other locales still compose.
+  hero_title_line1: "The same terminal",
+  hero_title_line2: "on every paid plan.",
   hero_subtitle:
-    "Free: Pulse, Bitcoin, and the public record. Paid: live entry, targets, and stop — plus the full terminal. Same product on every paid plan.",
+    "Free covers Pulse, Bitcoin and the public record. Paid adds live entry, targets and stop, on every call, as it prints.",
 
   monthly: "Monthly",
   yearly: "Annual",
@@ -101,6 +103,8 @@ export const pricingEn = {
 
   same_product: "Paid plans are the same product. Billing and support differ.",
 
+  trust_norenew: "No auto-renewal",
+  trust_speed: "Access in about a minute",
   trust_since: "Since 2023",
   trust_since_body: "Timestamped calls you can audit.",
   trust_pay: "On-chain USDT",
