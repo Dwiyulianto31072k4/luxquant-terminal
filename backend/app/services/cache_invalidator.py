@@ -29,10 +29,18 @@ logger = logging.getLogger(__name__)
 
 CHANNELS = ("new_signal", "signal_update")
 
-# Debounce: burst update (mis. 3 NOTIFY beruntun saat TP1+TP2+TP3 sekaligus)
-# cukup 1 flush. 0.5s tidak terasa oleh user tapi memangkas flush berlebih.
-_DEBOUNCE_SECONDS = 0.5
+# Coalesce a burst into ONE flush. The old rule — flush 0.5 s after the first
+# event — cut a burst into pieces: on 25 Sep 2026, 77 of 302 flushes landed
+# within 3 s of the previous one (14 in the single minute of 11:10), and every
+# flush empties the signal caches the next readers then rebuild from the DB.
+# Now: flush once the channel has been quiet for _QUIET_SECONDS, but never hold
+# a flush longer than _MAX_DELAY_SECONDS, so a steady stream still lands. The
+# site polls every 30 s, so 2 s later is invisible to a reader.
+_QUIET_SECONDS = 2.0
+_MAX_DELAY_SECONDS = 8.0
 _pending_flush: asyncio.Task | None = None
+_burst_started = 0.0
+_last_event = 0.0
 
 
 def _asyncpg_dsn() -> str:
@@ -43,17 +51,30 @@ def _asyncpg_dsn() -> str:
     )
 
 
-async def _flush_after_debounce():
-    await asyncio.sleep(_DEBOUNCE_SECONDS)
+def flush_wait(now: float, burst_started: float, last_event: float) -> float:
+    """Seconds still to wait before flushing; 0 means flush now."""
+    return max(0.0, min(last_event + _QUIET_SECONDS, burst_started + _MAX_DELAY_SECONDS) - now)
+
+
+async def _flush_when_quiet():
+    loop = asyncio.get_event_loop()
+    while True:
+        wait = flush_wait(loop.time(), _burst_started, _last_event)
+        if wait <= 0:
+            break
+        await asyncio.sleep(wait)
     deleted = invalidate_signals_cache()
     print(f"⚡ [cache-invalidator] flushed {deleted} signal cache keys", flush=True)
 
 
 def _on_notify(conn, pid, channel, payload):
-    """Sync callback dari asyncpg — schedule debounced flush."""
-    global _pending_flush
+    """Sync callback from asyncpg: note the event, start a flush if none is waiting."""
+    global _pending_flush, _burst_started, _last_event
+    loop = asyncio.get_event_loop()
+    _last_event = loop.time()
     if _pending_flush is None or _pending_flush.done():
-        _pending_flush = asyncio.get_event_loop().create_task(_flush_after_debounce())
+        _burst_started = _last_event
+        _pending_flush = loop.create_task(_flush_when_quiet())
 
 
 async def cache_invalidator_loop():
