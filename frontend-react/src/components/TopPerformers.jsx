@@ -1333,7 +1333,7 @@ export const SignalDetailModal = ({
       : null;
 
   const iconBtn =
-    "inline-flex h-8 w-8 items-center justify-center rounded-full border border-ink/[0.08] bg-ink/[0.03] text-text-muted transition hover:bg-ink/[0.07] hover:text-text-primary sm:h-9 sm:w-9";
+    "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary";
 
   const journeyNode = (ev, i) => {
     const c = themeColors[ev.key] || themeColors.gold;
@@ -1391,7 +1391,7 @@ export const SignalDetailModal = ({
       <div
         /* Same measure as SignalModal (1280, 1360 past 1440) so a call and its
            proof do not open at two different widths. */
-        className={`relative flex h-[min(var(--lq-modal-maxh),100%)] max-h-[var(--lq-modal-maxh)] w-full flex-col overflow-hidden rounded-t-[1.35rem] border border-ink/[0.07] bg-surface-raised shadow-[0_24px_80px_-20px_rgb(var(--scrim)/0.55)] sm:h-auto sm:max-h-[min(var(--lq-modal-maxh),900px)] sm:max-w-[min(1280px,96vw)] sm:rounded-2xl xl:max-w-[1360px] ${
+        className={`relative flex h-[min(var(--lq-modal-maxh),100%)] max-h-[var(--lq-modal-maxh)] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/[0.07] bg-surface-raised shadow-[0_24px_80px_-20px_rgb(var(--scrim)/0.55)] sm:h-auto sm:max-h-[min(var(--lq-modal-maxh),900px)] sm:max-w-[min(1280px,96vw)] sm:rounded-[14px] xl:max-w-[1360px] ${
           isClosing
             ? "animate-[smSheetDn_.22s_ease-in_forwards] sm:animate-[smCO_.2s_ease-in_forwards]"
             : "animate-[smSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:animate-[smCI_.28s_cubic-bezier(.16,1,.3,1)]"
@@ -1510,17 +1510,17 @@ export const SignalDetailModal = ({
               type="button"
               onClick={() => onNavigate(currentIndex - 1)}
               disabled={currentIndex <= 0}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition hover:bg-ink/[0.06] disabled:opacity-25"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition hover:bg-ink/[0.06] disabled:opacity-25"
             >
               ‹
             </button>
-            <div className="flex items-center gap-1 rounded-full bg-ink/[0.04] p-0.5">
+            <div className="flex items-center gap-1 rounded-lg bg-ink/[0.04] p-0.5">
               {signalIds.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => onNavigate(i)}
-                  className={`h-7 min-w-[1.75rem] rounded-full px-2 font-mono text-[11px] tabular-nums transition ${
+                  className={`h-7 min-w-[1.75rem] rounded-md px-2 font-mono text-[11px] tabular-nums transition ${
                     i === currentIndex
                       ? "bg-surface-raised text-text-primary shadow-sm"
                       : "text-text-muted hover:text-text-primary"
@@ -1534,7 +1534,7 @@ export const SignalDetailModal = ({
               type="button"
               onClick={() => onNavigate(currentIndex + 1)}
               disabled={currentIndex >= total - 1}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition hover:bg-ink/[0.06] disabled:opacity-25"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition hover:bg-ink/[0.06] disabled:opacity-25"
             >
               ›
             </button>
@@ -1548,7 +1548,7 @@ export const SignalDetailModal = ({
             </div>
           ) : detail?.is_redacted ? (
             <div className="space-y-4 pb-1">
-              <div className="rounded-2xl bg-profit/[0.07] px-5 py-5 text-center">
+              <div className="rounded-xl bg-profit/[0.07] px-5 py-5 text-center">
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
                   Peak reached
                 </p>
@@ -1587,7 +1587,7 @@ export const SignalDetailModal = ({
                   {[entryImg, afterImg].filter(Boolean).map((img, i) => (
                     <div
                       key={i}
-                      className="relative h-[200px] overflow-hidden rounded-2xl bg-surface-secondary sm:h-[240px]"
+                      className="relative h-[200px] overflow-hidden rounded-xl bg-surface-secondary sm:h-[240px]"
                     >
                       <img
                         src={img}
@@ -1617,7 +1617,7 @@ export const SignalDetailModal = ({
                 </div>
               )}
 
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-accent/20 bg-accent/[0.06] p-4 sm:flex-row sm:justify-between">
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-accent/20 bg-accent/[0.06] p-4 sm:flex-row sm:justify-between">
                 <div>
                   <p className="text-[13.5px] font-semibold text-text-primary">
                     Entry, targets &amp; stop-loss locked
@@ -1629,7 +1629,7 @@ export const SignalDetailModal = ({
                 <button
                   type="button"
                   onClick={() => navigate("/pricing")}
-                  className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition hover:opacity-95"
+                  className="flex h-9 shrink-0 items-center rounded-lg bg-accent px-4 text-[12px] font-semibold text-accent-fg transition hover:opacity-95"
                 >
                   Unlock signal
                 </button>
@@ -1641,7 +1641,7 @@ export const SignalDetailModal = ({
                   read as four unrelated numbers; on one band with hairlines
                   between them they read as one trade: in here, out there, this
                   long, at this risk. */}
-              <div className="grid grid-cols-2 divide-x divide-y divide-ink/[0.06] overflow-hidden rounded-2xl border border-ink/[0.07] sm:grid-cols-4 sm:divide-y-0">
+              <div className="grid grid-cols-2 divide-x divide-y divide-ink/[0.06] overflow-hidden rounded-xl border border-ink/[0.07] sm:grid-cols-4 sm:divide-y-0">
                 <div className="px-4 py-3">
                   <p className="text-[11px] text-text-muted">Entry</p>
                   <p className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
@@ -1717,11 +1717,11 @@ export const SignalDetailModal = ({
                     {t("top.trade_proof") || "Trade proof"}
                   </p>
                   {hasAnyImg && (
-                    <div className="flex items-center rounded-full bg-ink/[0.05] p-0.5">
+                    <div className="flex items-center rounded-lg bg-ink/[0.05] p-0.5">
                       <button
                         type="button"
                         onClick={() => setShowTV(false)}
-                        className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                        className={`rounded-md px-3 py-1 text-[11px] font-medium transition ${
                           !showInteractiveRight
                             ? "bg-surface-raised text-text-primary shadow-sm"
                             : "text-text-muted hover:text-text-primary"
@@ -1732,7 +1732,7 @@ export const SignalDetailModal = ({
                       <button
                         type="button"
                         onClick={() => setShowTV(true)}
-                        className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                        className={`rounded-md px-3 py-1 text-[11px] font-medium transition ${
                           showInteractiveRight
                             ? "bg-surface-raised text-text-primary shadow-sm"
                             : "text-text-muted hover:text-text-primary"
@@ -1745,13 +1745,13 @@ export const SignalDetailModal = ({
                 </div>
 
                 {!hasAnyImg || showInteractiveRight ? (
-                  <div className="relative h-[280px] overflow-hidden rounded-2xl bg-surface-secondary sm:h-[360px]">
+                  <div className="relative h-[280px] overflow-hidden rounded-xl bg-surface-secondary sm:h-[360px]">
                     <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-[1fr_auto_1fr] md:gap-2">
                     {/* BEFORE — edge-to-edge, floating chip */}
-                    <div className="relative min-w-0 overflow-hidden rounded-2xl bg-surface-secondary">
+                    <div className="relative min-w-0 overflow-hidden rounded-xl bg-surface-secondary">
                       <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex items-center gap-2">
                         <span className="rounded-md bg-scrim/55 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
                           {t("top.before") || "Before"}
@@ -1806,7 +1806,7 @@ export const SignalDetailModal = ({
                     </div>
 
                     {/* AFTER */}
-                    <div className="relative min-w-0 overflow-hidden rounded-2xl bg-surface-secondary">
+                    <div className="relative min-w-0 overflow-hidden rounded-xl bg-surface-secondary">
                       <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-wrap items-center gap-1.5">
                         <span
                           className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm ${
@@ -1864,7 +1864,7 @@ export const SignalDetailModal = ({
                   <p className="mb-2.5 text-[13px] font-semibold text-text-primary">
                     {t("top.journey") || "Signal journey"}
                   </p>
-                  <div className="overflow-x-auto rounded-2xl bg-ink/[0.025] px-2 py-4 sm:px-3">
+                  <div className="overflow-x-auto rounded-xl bg-ink/[0.025] px-2 py-4 sm:px-3">
                     <div
                       className="flex items-start"
                       style={{ minWidth: `${Math.max(events.length * 96, 320)}px` }}
@@ -1895,7 +1895,7 @@ export const SignalDetailModal = ({
                   it. Left is for anyone: keep this call. Right is the one a
                   free reader is here for: the levels on the NEXT one. */}
               <div className={`grid gap-3 ${isEntitledUser ? "" : "lg:grid-cols-2"}`}>
-                <div className="rounded-2xl border border-ink/[0.08] bg-ink/[0.02] px-4 py-3.5">
+                <div className="rounded-xl border border-ink/[0.08] bg-ink/[0.02] px-4 py-3.5">
                   <p className="text-[13px] font-semibold text-text-primary">
                     {proofWatchlisted ? "This call is saved" : "Keep this call"}
                   </p>
@@ -1908,7 +1908,7 @@ export const SignalDetailModal = ({
                     type="button"
                     onClick={armProofValue}
                     disabled={watchBusy || proofWatchlisted}
-                    className="mt-3 rounded-full border border-ink/[0.12] bg-surface-raised px-4 py-2 text-[12.5px] font-semibold text-text-primary transition hover:border-ink/25 disabled:cursor-default disabled:opacity-60"
+                    className="mt-3 flex h-9 items-center rounded-lg border border-ink/[0.1] bg-surface-secondary px-3.5 text-[12px] font-medium text-text-primary transition-colors hover:border-ink/18 disabled:cursor-default disabled:opacity-60"
                   >
                     {watchBusy
                       ? "Saving…"
@@ -1924,7 +1924,7 @@ export const SignalDetailModal = ({
                 </div>
 
                 {!isEntitledUser && (
-                  <div className="rounded-2xl border border-accent/30 bg-accent/[0.06] px-4 py-3.5">
+                  <div className="rounded-xl border border-accent/30 bg-accent/[0.06] px-4 py-3.5">
                     <p className="text-[13px] font-semibold text-text-primary">
                       You are reading this one after it finished
                     </p>
@@ -1938,7 +1938,7 @@ export const SignalDetailModal = ({
                         onClose?.();
                         navigate("/pricing");
                       }}
-                      className="mt-3 rounded-full bg-accent px-4 py-2 text-[12.5px] font-semibold text-accent-fg shadow-[0_4px_12px_rgb(var(--accent)/0.28)]"
+                      className="mt-3 flex h-9 items-center rounded-lg bg-accent px-3.5 text-[12px] font-semibold text-accent-fg transition hover:brightness-105"
                     >
                       See the plans
                     </button>
@@ -1948,7 +1948,7 @@ export const SignalDetailModal = ({
 
               {/* Detailed journey — collapsed by default */}
               {detail.signal_id && (
-                <div className="rounded-2xl border border-ink/[0.06] overflow-hidden">
+                <div className="rounded-xl border border-ink/[0.06] overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setJourneyOpen((v) => !v)}
