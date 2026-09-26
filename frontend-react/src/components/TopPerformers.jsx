@@ -1102,31 +1102,6 @@ export const SignalDetailModal = ({
         ? "bg-loss"
         : "bg-accent";
 
-  // Journey theme — adds glow + gradient-stop classes for the redesigned timeline
-  const themeColors = {
-    gold: {
-      text: "text-accent",
-      dot: "bg-accent",
-      glow: "shadow-accent/30",
-      from: "from-accent/70",
-      to: "to-accent/70",
-    },
-    green: {
-      text: "text-profit",
-      dot: "bg-profit",
-      glow: "shadow-profit/60",
-      from: "from-profit/70",
-      to: "to-profit/70",
-    },
-    red: {
-      text: "text-loss",
-      dot: "bg-loss",
-      glow: "shadow-loss/60",
-      from: "from-loss/70",
-      to: "to-loss/70",
-    },
-  };
-
   const entryImg = detail?.entry_chart_url;
   const rawAfterImg = detail?.latest_chart_url;
   const afterImg = deriveChartWithCard(rawAfterImg) || rawAfterImg;
@@ -1309,7 +1284,12 @@ export const SignalDetailModal = ({
     gainPctNum != null && !Number.isNaN(gainPctNum)
       ? `${gainPctNum >= 0 ? "+" : ""}${Number(gainPctNum).toFixed(1)}%`
       : null;
-  const gainIsLoss = isStopped || tpHitIsSL || (gainPctNum != null && gainPctNum < 0);
+  // The peak figure is coloured by its own sign, not by how the call ended.
+  // A stopped-out call whose price still traded half a point above entry was
+  // printing a red "+0.5%", which is the panel arguing with its own number.
+  // What happened to the trade is said by the WIN/LOSS badge in the header and
+  // by the "Published plan" cell, which carries the stop-out in red.
+  const gainIsLoss = gainPctNum != null && gainPctNum < 0;
 
   // "Hit" in strip = peak price shown in hero (aligned with list %)
   const hitPriceDisplay = peakPriceDisplay;
@@ -1317,8 +1297,106 @@ export const SignalDetailModal = ({
   // Realized to highest TP (if much lower than peak, show as secondary)
   const tpHitPct =
     tpHitPrice != null && entryVal > 0 ? ((tpHitPrice - entryVal) / entryVal) * 100 : null;
-  const showTpRealized =
-    tpHitPct != null && gainPctNum != null && !tpHitIsSL && gainPctNum - tpHitPct > 5;
+  // What the published plan actually paid, and at which target.
+  //
+  // The peak is the loudest number here and it is not the one a reader could
+  // have taken home: the plan closed at a printed target. It used to sit under
+  // the band as the smallest line on the page. It now stands beside the peak at
+  // the same size, because a lone +271% reads as a brag and the pair reads as a
+  // record.
+  const lastTpEvent = [...events].reverse().find((e) => e.kind === "tp");
+  const planPctNum = tpHitPct != null && !Number.isNaN(tpHitPct) ? tpHitPct : null;
+  // Within a tenth of a point the two numbers are the same number, and printing
+  // it twice side by side reads as a bug rather than as agreement.
+  const planEqualsPeak =
+    planPctNum != null && gainPctNum != null && Math.abs(gainPctNum - planPctNum) <= 0.1;
+
+  // Locked-view result.
+  //
+  // peak_pct arrives signed, so the sign is read, never prepended: a "+" glued
+  // in front of it printed "+-2.2%". The wash is neutral and the figure carries
+  // its own sign, because tinting the panel by OUTCOME put a red "+0.5%" on a
+  // call that really did trade half a point above entry before it stopped out.
+  // The badge in the header says how it ended; the number only says what the
+  // price did.
+  const redactedPeakPct =
+    detail?.peak_pct != null && !Number.isNaN(Number(detail.peak_pct))
+      ? Number(detail.peak_pct)
+      : null;
+  const redactedPeakTxt =
+    redactedPeakPct != null
+      ? `${redactedPeakPct >= 0 ? "+" : ""}${redactedPeakPct.toFixed(1)}%`
+      : "—";
+
+  const recordCells = [];
+  recordCells.push({
+    k: "peak",
+    label: "Peak from entry",
+    value: gainHero || "—",
+    tone: gainIsLoss ? "text-loss" : "text-profit",
+    mono: true,
+    sub:
+      entryVal > 0 && hitPriceDisplay != null
+        ? `$${formatPrice(entryVal)} \u2192 $${formatPrice(hitPriceDisplay)}`
+        : entryVal > 0
+          ? `entry $${formatPrice(entryVal)}`
+          : null,
+  });
+  if (planPctNum != null) {
+    recordCells.push(
+      tpHitIsSL
+        ? {
+            k: "plan",
+            label: "Published plan",
+            value: `${planPctNum >= 0 ? "+" : ""}${planPctNum.toFixed(1)}%`,
+            tone: "text-loss",
+            mono: true,
+            sub: tpHitPrice != null ? `stopped out at $${formatPrice(tpHitPrice)}` : "stopped out",
+          }
+        : planEqualsPeak
+          ? {
+              k: "plan",
+              label: "Published plan",
+              value: lastTpEvent ? `TP${lastTpEvent.level}` : "Target",
+              tone: "text-text-primary",
+              mono: true,
+              sub: "the peak was the target",
+            }
+          : {
+              k: "plan",
+              label: "Published plan",
+              value: `${planPctNum >= 0 ? "+" : ""}${planPctNum.toFixed(1)}%`,
+              tone: planPctNum >= 0 ? "text-profit" : "text-loss",
+              mono: true,
+              sub: lastTpEvent
+                ? `closed at TP${lastTpEvent.level} \u00b7 $${formatPrice(tpHitPrice)}`
+                : tpHitPrice != null
+                  ? `closed at $${formatPrice(tpHitPrice)}`
+                  : null,
+            }
+    );
+  }
+  recordCells.push({
+    k: "time",
+    label: "Time to peak",
+    value: durationText,
+    tone: "text-text-primary",
+    mono: true,
+    sub: "from the call",
+  });
+  if (detail?.risk_level) {
+    recordCells.push({
+      k: "risk",
+      label: "Risk at call",
+      value: detail.risk_level,
+      tone: "text-text-primary",
+      mono: false,
+      sub:
+        detail.volume_rank_num && detail.volume_rank_den
+          ? `volume rank ${detail.volume_rank_num} of ${detail.volume_rank_den}`
+          : null,
+    });
+  }
 
   // Live kline high only if clearly above hero peak
   const coinHighPct =
@@ -1335,47 +1413,95 @@ export const SignalDetailModal = ({
   const iconBtn =
     "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary";
 
-  const journeyNode = (ev, i) => {
-    const c = themeColors[ev.key] || themeColors.gold;
+  // A dot on a rule, not a badge.
+  //
+  // Every node used to carry a 26px filled disc with a white tick inside it,
+  // so one fact — this level printed — was stated three times (disc, tick,
+  // green label) and the panel was dated to whatever year that style belonged
+  // to. A ledger keeps: a mark on a rule, the name in plain text, the number
+  // in mono. Colour is spent once, on the figure that carries a sign.
+  // Splitting the detail string is shared by both journey layouts.
+  const journeyDetail = (ev) => {
+    const m = ev.detail ? ev.detail.match(/^(.*?)\s*(\([^)]*\))\s*$/) : null;
+    return { main: m ? m[1] : ev.detail, pct: m ? m[2] : null };
+  };
+
+  // The mark, shared too: a ring for the call, a dot for a level that
+  // printed, a cross for a stop.
+  const journeyMark = (ev, isCall) =>
+    isCall ? (
+      <span className="h-[9px] w-[9px] rounded-full border-[1.5px] border-accent" />
+    ) : ev.isSL ? (
+      <svg
+        className="h-[11px] w-[11px] text-loss"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={3.5}
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    ) : (
+      <span className="h-[9px] w-[9px] rounded-full bg-profit" />
+    );
+
+  // Phone layout. The horizontal rail needs ~100px a node, so on a 375px
+  // screen it scrolled sideways and cut the prices off mid-number — and the
+  // price is the proof. Down the page nothing is clipped and nothing hides
+  // behind a gesture nobody makes.
+  const journeyRow = (ev, i) => {
     const isLast = i === events.length - 1;
+    const { main, pct } = journeyDetail(ev);
     return (
-      <div key={i} className="relative flex flex-1 flex-col items-center min-w-[72px]">
-        {!isLast && <div className="absolute left-1/2 top-[13px] h-px w-full bg-ink/[0.08]" />}
-        <div
-          className={`relative z-10 flex h-[26px] w-[26px] items-center justify-center rounded-full text-text-primary ${c.dot}`}
-        >
-          {i === 0 ? (
-            <span className="h-1.5 w-1.5 rounded-full bg-ink/90" />
-          ) : ev.isSL ? (
-            <svg
-              className="h-3 w-3"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={3}
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg
-              className="h-3 w-3"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={3}
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+      <div key={i} className="relative flex gap-3 pb-3.5 last:pb-0">
+        <div className="relative flex w-[15px] shrink-0 justify-center pt-[3px]">
+          {/* A flex item stretches to the row's CONTENT box, so plain h-full
+              stopped a clear 14px short of the next mark and the rail read as
+              broken. Carry it across the row's own bottom padding. */}
+          {!isLast && (
+            <span className="absolute top-[3px] h-[calc(100%+0.875rem)] w-px bg-ink/[0.1]" />
+          )}
+          <span className="relative z-10 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-surface-raised">
+            {journeyMark(ev, i === 0)}
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="truncate text-[12.5px] font-medium text-text-primary">{ev.label}</p>
+            <p className="shrink-0 font-mono text-[10.5px] tabular-nums text-text-muted">
+              {ev.time}
+            </p>
+          </div>
+          {main && (
+            <p className="mt-0.5 font-mono text-[11px] tabular-nums text-text-secondary">
+              {main}
+              {pct && <span className={ev.isSL ? "text-loss" : "text-profit"}> {pct}</span>}
+            </p>
           )}
         </div>
-        <div className="mt-2 w-full px-0.5 text-center">
-          <p className={`truncate text-[11px] font-semibold ${c.text}`}>{ev.label}</p>
-          <p className="font-mono text-[10px] tabular-nums text-text-muted">{ev.time}</p>
-          {ev.detail && (
-            <p
-              className={`truncate font-mono text-[10px] tabular-nums ${ev.isSL ? "text-loss" : "text-profit"}`}
-            >
-              {ev.detail}
+      </div>
+    );
+  };
+
+  const journeyNode = (ev, i) => {
+    const isLast = i === events.length - 1;
+    const isCall = i === 0;
+    const { main: detailMain, pct: detailPct } = journeyDetail(ev);
+    return (
+      <div key={i} className="relative flex min-w-[88px] flex-1 flex-col items-center">
+        {!isLast && <div className="absolute left-1/2 top-[7px] h-px w-full bg-ink/[0.1]" />}
+        <span className="relative z-10 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-surface-raised">
+          {journeyMark(ev, isCall)}
+        </span>
+        <div className="mt-2.5 w-full px-1 text-center">
+          <p className="truncate text-[11.5px] font-medium text-text-primary">{ev.label}</p>
+          <p className="mt-0.5 font-mono text-[10px] tabular-nums text-text-muted">{ev.time}</p>
+          {detailMain && (
+            <p className="mt-0.5 truncate font-mono text-[10.5px] tabular-nums text-text-secondary">
+              {detailMain}
+              {detailPct && (
+                <span className={ev.isSL ? "text-loss" : "text-profit"}> {detailPct}</span>
+              )}
             </p>
           )}
         </div>
@@ -1503,9 +1629,19 @@ export const SignalDetailModal = ({
           </div>
         </div>
 
-        {/* Multi-call segment */}
+        {/* Multi-call segment.
+            A bare "‹ 1 2 ›" centred in an empty band never said what it paged
+            through, and this pair has been called more than once — which is
+            itself part of the record. Name it, then page it. */}
         {multi && (
-          <div className="flex shrink-0 items-center justify-center gap-1.5 border-b border-ink/[0.05] px-4 py-2.5">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-ink/[0.05] px-4 py-2.5 sm:px-5">
+            <p className="min-w-0 truncate text-[11.5px] text-text-muted">
+              <span className="font-medium text-text-secondary">
+                Call {currentIndex + 1} of {total}
+              </span>{" "}
+              on this pair
+            </p>
+            <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => onNavigate(currentIndex - 1)}
@@ -1538,6 +1674,7 @@ export const SignalDetailModal = ({
             >
               ›
             </button>
+            </div>
           </div>
         )}
 
@@ -1548,19 +1685,31 @@ export const SignalDetailModal = ({
             </div>
           ) : detail?.is_redacted ? (
             <div className="space-y-4 pb-1">
-              <div className="rounded-xl bg-profit/[0.07] px-5 py-5 text-center">
+              {/* A "+" was pasted in front of a number that already carries its
+                  own sign, so a call that never went green printed "+-2.2%" on
+                  a green panel with a LOSS badge beside it. The locked view is
+                  what most readers see first; it has to state the result. */}
+              <div className="rounded-xl bg-ink/[0.03] px-5 py-5 text-center">
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
-                  Peak reached
+                  {isStopped ? "Best price reached" : "Peak reached"}
                 </p>
-                <p className="mt-1.5 font-mono text-[32px] font-bold leading-none text-profit">
-                  {detail.peak_pct != null ? `+${Number(detail.peak_pct).toFixed(1)}%` : "—"}
+                <p
+                  className={`mt-1.5 font-mono text-[32px] font-bold leading-none ${
+                    redactedPeakPct == null
+                      ? "text-text-primary"
+                      : redactedPeakPct < 0
+                        ? "text-loss"
+                        : "text-profit"
+                  }`}
+                >
+                  {redactedPeakTxt}
                 </p>
                 <p className="mt-2 text-[12px] text-text-muted">
-                  This call ran{" "}
-                  {detail.peak_pct != null
-                    ? `+${Number(detail.peak_pct).toFixed(1)}%`
-                    : "in profit"}{" "}
-                  from entry.
+                  {redactedPeakPct != null
+                    ? `This call ran ${redactedPeakTxt} from entry${
+                        isStopped ? ", then stopped out." : "."
+                      }`
+                    : "This call has run from entry."}
                 </p>
               </div>
 
@@ -1623,7 +1772,7 @@ export const SignalDetailModal = ({
                     Entry, targets &amp; stop-loss locked
                   </p>
                   <p className="mt-0.5 text-[12px] text-text-muted">
-                    Unlock with a plan — or open any call older than 7 days free.
+                    Any call older than 7 days opens free. A plan opens this one now.
                   </p>
                 </div>
                 <button
@@ -1637,71 +1786,43 @@ export const SignalDetailModal = ({
             </div>
           ) : detail ? (
             <div className="space-y-5 pb-1">
-              {/* One ticket, not four boxes. Four separate cards at this width
-                  read as four unrelated numbers; on one band with hairlines
-                  between them they read as one trade: in here, out there, this
-                  long, at this risk. */}
-              <div className="grid grid-cols-2 divide-x divide-y divide-ink/[0.06] overflow-hidden rounded-xl border border-ink/[0.07] sm:grid-cols-4 sm:divide-y-0">
-                <div className="px-4 py-3">
-                  <p className="text-[11px] text-text-muted">Entry</p>
-                  <p className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
-                    {entryVal > 0 ? `$${formatPrice(entryVal)}` : "—"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-text-muted">where the call went out</p>
-                </div>
-                <div className="px-4 py-3">
-                  <p className="text-[11px] text-text-muted">Peak</p>
-                  <p className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
-                    {hitPriceDisplay != null ? `$${formatPrice(hitPriceDisplay)}` : "—"}
-                  </p>
-                  {gainHero && (
-                    <p
-                      className={`mt-0.5 font-mono text-[12px] font-semibold tabular-nums ${
-                        gainIsLoss ? "text-loss" : "text-profit"
-                      }`}
-                    >
-                      {gainHero} from entry
-                    </p>
-                  )}
-                </div>
-                <div className="px-4 py-3">
-                  <p className="text-[11px] text-text-muted">Time to peak</p>
-                  <p className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
-                    {durationText}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-text-muted">from the call</p>
-                </div>
-                <div className="px-4 py-3">
-                  <p className="text-[11px] text-text-muted">Risk</p>
-                  <p
-                    className={`mt-1 text-[16px] font-semibold ${
-                      detail.risk_level === "High"
-                        ? "text-loss"
-                        : detail.risk_level === "Medium"
-                          ? "text-accent"
-                          : "text-profit"
-                    }`}
-                  >
-                    {detail.risk_level || "—"}
-                  </p>
-                  {detail.volume_rank_num && detail.volume_rank_den ? (
-                    <p className="mt-0.5 font-mono text-[11px] tabular-nums text-text-muted">
-                      volume rank {detail.volume_rank_num} of {detail.volume_rank_den}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
+              {/* ── The record ──
+                  Four cells used to hold Entry, Peak, Time and Risk: three
+                  facts and one judgement, none of them the number a reader
+                  came for. What they came for is the result, and there are
+                  two of them — what the price did, and what the published
+                  plan paid. Those two now lead at the same size, the prices
+                  sit under the peak as the line that proves it, and risk
+                  drops to context instead of standing as a verdict.
 
-              {showTpRealized && tpHitPrice != null && (
-                <p className="px-0.5 font-mono text-[11px] tabular-nums text-text-muted">
-                  Plan hit TP @ ${formatPrice(tpHitPrice)}{" "}
-                  <span className="text-profit">
-                    ({tpHitPct >= 0 ? "+" : ""}
-                    {tpHitPct.toFixed(1)}%)
-                  </span>
-                  <span className="text-text-muted/70"> · peak ran further</span>
-                </p>
-              )}
+                  Risk is printed neutral on purpose. Colouring "High" red
+                  beside a call that ran +271% makes the panel argue with
+                  itself; risk is an ordinal, not a grade. */}
+              <div
+                className={`grid grid-cols-2 divide-x divide-y divide-ink/[0.06] overflow-hidden rounded-xl border border-ink/[0.07] sm:divide-y-0 ${
+                  { 2: "sm:grid-cols-2", 3: "sm:grid-cols-3", 4: "sm:grid-cols-4" }[
+                    recordCells.length
+                  ] || "sm:grid-cols-4"
+                }`}
+              >
+                {recordCells.map((cell) => (
+                  <div key={cell.k} className="px-4 py-3.5">
+                    <p className="text-[11px] text-text-muted">{cell.label}</p>
+                    <p
+                      className={`mt-1.5 text-[18px] font-semibold leading-none tracking-tight ${
+                        cell.mono ? "font-mono tabular-nums" : ""
+                      } ${cell.tone}`}
+                    >
+                      {cell.value}
+                    </p>
+                    {cell.sub && (
+                      <p className="mt-1.5 break-words font-mono text-[11px] leading-snug tabular-nums text-text-muted">
+                        {cell.sub}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
 
               {showCoinHigh && coinHighPct != null && (
                 <p className="px-0.5 font-mono text-[11px] tabular-nums text-text-muted">
@@ -1750,14 +1871,17 @@ export const SignalDetailModal = ({
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-[1fr_auto_1fr] md:gap-2">
-                    {/* BEFORE — edge-to-edge, floating chip */}
-                    <div className="relative min-w-0 overflow-hidden rounded-xl bg-surface-secondary">
-                      <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex items-center gap-2">
-                        <span className="rounded-md bg-scrim/55 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                    {/* BEFORE — the label sits above the chart, never on it.
+                        Floating chips landed on the top-left of the frame,
+                        which is exactly where a trading chart puts its ticker,
+                        price and OHLC line: the proof was covering itself. */}
+                    <div className="relative min-w-0 overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-secondary">
+                      <div className="flex items-center justify-between gap-2 border-b border-ink/[0.06] px-3 py-2">
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                           {t("top.before") || "Before"}
                         </span>
                         {detail?.entry > 0 && (
-                          <span className="rounded-md bg-scrim/45 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white/90 backdrop-blur-sm">
+                          <span className="font-mono text-[11px] tabular-nums text-text-secondary">
                             ${formatPrice(detail.entry)}
                           </span>
                         )}
@@ -1799,30 +1923,21 @@ export const SignalDetailModal = ({
                         </svg>
                       </div>
                     </div>
-                    <div className="flex items-center justify-center py-0.5 md:hidden">
-                      <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/50">
-                        ↓ after
-                      </span>
-                    </div>
-
                     {/* AFTER */}
-                    <div className="relative min-w-0 overflow-hidden rounded-xl bg-surface-secondary">
-                      <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-wrap items-center gap-1.5">
-                        <span
-                          className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm ${
-                            isStopped ? "bg-loss/80" : "bg-profit/75"
-                          }`}
-                        >
-                          {t("top.after") || "After"} ·{" "}
-                          {status === "open" ? t("top.latest") || "Latest" : sLabel(status)}
+                    <div className="relative min-w-0 overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-secondary">
+                      <div className="flex items-center justify-between gap-2 border-b border-ink/[0.06] px-3 py-2">
+                        <span className="min-w-0 truncate font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                          {t("top.after") || "After"}
+                          <span className="text-ink/25"> · </span>
+                          <span className={isStopped ? "text-loss" : "text-profit"}>
+                            {status === "open" ? t("top.latest") || "Latest" : sLabel(status)}
+                          </span>
                         </span>
                         {afterMark != null && (
-                          <span className="rounded-md bg-scrim/45 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white/90 backdrop-blur-sm">
+                          <span className="shrink-0 font-mono text-[11px] tabular-nums text-text-secondary">
                             ${formatPrice(afterMark)}
                             {afterPct != null && (
-                              <span
-                                className={`ml-1 ${isStopped ? "text-red-200" : "text-emerald-200"}`}
-                              >
+                              <span className={`ml-1 ${isStopped ? "text-loss" : "text-profit"}`}>
                                 {afterPct}%
                               </span>
                             )}
@@ -1864,12 +1979,15 @@ export const SignalDetailModal = ({
                   <p className="mb-2.5 text-[13px] font-semibold text-text-primary">
                     {t("top.journey") || "Signal journey"}
                   </p>
-                  <div className="overflow-x-auto rounded-xl bg-ink/[0.025] px-2 py-4 sm:px-3">
-                    <div
-                      className="flex items-start"
-                      style={{ minWidth: `${Math.max(events.length * 96, 320)}px` }}
-                    >
-                      {events.map((ev, i) => journeyNode(ev, i))}
+                  <div className="rounded-xl border border-ink/[0.07] px-3.5 py-4 sm:px-4 sm:py-5">
+                    <div className="sm:hidden">{events.map((ev, i) => journeyRow(ev, i))}</div>
+                    <div className="hidden overflow-x-auto sm:block">
+                      <div
+                        className="flex items-start"
+                        style={{ minWidth: `${Math.max(events.length * 100, 320)}px` }}
+                      >
+                        {events.map((ev, i) => journeyNode(ev, i))}
+                      </div>
                     </div>
                   </div>
                   {journeyNote && (
