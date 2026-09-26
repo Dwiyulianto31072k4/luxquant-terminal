@@ -49,17 +49,18 @@ def test_header_names_the_report_it_replaces():
 def test_old_numbers_become_new_numbers():
     lines = _lines(build_caption(REPORT, _previous(3)))
     start = lines.index("<b>3h ago → now</b>")
-    assert lines[start + 1:start + 4] == [
-        "Target: $83,200 → $83,166",
-        "Stop: $82,700 → $82,000",
+    assert lines[start + 1:start + 5] == [
         "BTC: $84,063 → $83,941",
+        "Target: $83,200 → $83,166 (-0.9%)",
+        "Ceiling: $85,258 (+1.6%)",
+        "Stop: $82,700 → $82,000 (-2.3%)",
     ]
 
 
 def test_unchanged_levels_say_so():
     caption = build_caption(REPORT, _previous(3, target=83166, stop=82000))
-    assert "Target and stop unchanged" in caption
-    assert "Target: " not in caption
+    assert "Target: $83,166 (-0.9%) · unchanged" in caption
+    assert "Stop: $82,000 (-2.3%) · unchanged" in caption
 
 
 def test_a_flip_and_a_confidence_move_are_listed():
@@ -83,19 +84,22 @@ def test_why_is_labelled_and_not_timed():
     assert "0.5h ago" not in caption
 
 
-def test_first_report_has_no_update_or_changes():
+def test_first_report_lists_levels_without_arrows():
     caption = build_caption(REPORT, None)
     assert "UPDATE" not in caption and "→ now" not in caption
+    assert "<b>Levels</b>" in caption and "Target: $83,166 (-0.9%)" in caption
 
 
 def test_levels_use_plain_words():
     caption = build_caption(REPORT, _previous(1))
-    for word in ("Ceiling", "Now", "Target", "Stop"):
+    for word in ("BTC:", "Target:", "Ceiling:", "Stop:"):
         assert word in caption
-    for jargon in ("Lid ", "Spot ", "Invalid "):
+    for jargon in ("Lid", "Spot", "Invalid"):
         assert jargon not in caption
+    assert "<code>" not in caption  # no monospace column left to break
 
 
 def test_an_older_previous_without_levels_still_posts():
     caption = build_caption(REPORT, _previous(2, target=None, stop=None, price=None))
-    assert "UPDATE" in caption and "Target and stop unchanged" not in caption
+    assert "UPDATE" in caption and "unchanged" not in caption
+    assert "BTC: $83,941" in caption and "Target: $83,166 (-0.9%)" in caption

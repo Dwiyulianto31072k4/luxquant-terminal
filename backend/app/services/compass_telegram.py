@@ -232,91 +232,72 @@ def _trim(text: str, limit: int) -> str:
     return (window[:cut] if cut > 0 else window[:limit]).rstrip() + "…"
 
 
-def _changes(previous: dict, direction: str, conf: Any, touch: Any, inval: Any, ref: Any) -> list[str]:
-    """What moved since the report this one replaces, as "Label: old → new".
+def _range_edge(ref: Any, touch: Any, *, bias: Any = None, support: Any = None,
+                lid: Any = None) -> Optional[tuple[str, float]]:
+    """The other side of a range read, or None.
 
-    Plain text, not the monospace column: "Target: $83,200 → $85,250" is wider
-    than the 22 characters that column survives on a phone, and prose reflows
-    where a column breaks.
+    A range read is two-sided, but the card only ever printed the level the AI
+    expects to touch first. When that level sat below spot the card read as a
+    bearish call under a NEUTRAL verdict, with the lid that made it a range left
+    in the database. Measured over 30 days: 130/130 range contracts had a lid
+    above spot, and none of them printed it.
     """
+    r, t = _num(ref), _num(touch)
+    if not _is_range(bias) or r is None:
+        return None
+    label, level = ("Ceiling", _num(lid)) if (t is not None and t < r) else ("Floor", _num(support))
+    # Only when it really is the opposite side; otherwise say nothing.
+    if level is None or not ((level > r) if label == "Ceiling" else (level < r)):
+        return None
+    return label, level
+
+
+def _level_line(label: str, old: Any, new: Any, ref: Any) -> Optional[str]:
+    n = _num(new)
+    if n is None:
+        return None
+    pct = _pct_from(n, ref, decimals=1)
+    tail = f" ({pct})" if pct else ""
+    o = _num(old)
+    if o is None:
+        return f"{label}: {_fmt_usd(n)}{tail}"
+    if _fmt_usd(o) == _fmt_usd(n):
+        return f"{label}: {_fmt_usd(n)}{tail} · unchanged"
+    return f"{label}: {_fmt_usd(o)} → {_fmt_usd(n)}{tail}"
+
+
+def _level_lines(previous: Optional[dict], direction: str, conf: Any, *, ref: Any,
+                 touch: Any, inval: Any, bias: Any = None, support: Any = None,
+                 lid: Any = None) -> list[str]:
+    """Every number on the card, one per line, old → new where it moved.
+
+    Plain lines, not a monospace column. The column was budgeted at 22
+    characters because that was where a phone broke it, and it still broke on
+    the owner's desktop pane: "+1.6%" dropped onto a line of its own and read as
+    a separate row. Prose reflows instead, and listing the old value beside the
+    new one is what members asked an update to show.
+    """
+    prev = previous or {}
     out: list[str] = []
-    prev_dir = previous.get("direction")
+    prev_dir = prev.get("direction")
     if prev_dir and prev_dir != direction:
         out.append(f"Direction: {prev_dir.upper()} → {direction.upper()}")
-    pc, nc = _num(previous.get("confidence")), _num(conf)
+    pc, nc = _num(prev.get("confidence")), _num(conf)
     if pc is not None and nc is not None and int(pc) != int(nc):
         out.append(f"Confidence: {int(pc)}% → {int(nc)}%")
-    compared = moved = 0
-    for label, old, new in (("Target", previous.get("target"), touch), ("Stop", previous.get("stop"), inval)):
-        o, n = _num(old), _num(new)
-        if o is None or n is None:
-            continue
-        compared += 1
-        if _fmt_usd(o) != _fmt_usd(n):
-            out.append(f"{label}: {_fmt_usd(o)} → {_fmt_usd(n)}")
-            moved += 1
-    if compared and not moved:
-        out.append("Target and stop unchanged")
-    op, np_ = _num(previous.get("price")), _num(ref)
-    if op is not None and np_ is not None:
-        out.append(f"BTC: {_fmt_usd(op)} → {_fmt_usd(np_)}")
+
+    if touch or inval:
+        r, op = _num(ref), _num(prev.get("price"))
+        if r is not None:
+            out.append(f"BTC: {_fmt_usd(op)} → {_fmt_usd(r)}" if op is not None and _fmt_usd(op) != _fmt_usd(r)
+                       else f"BTC: {_fmt_usd(r)}")
+        rows = [_level_line("Target", prev.get("target"), touch, ref)]
+        edge = _range_edge(ref, touch, bias=bias, support=support, lid=lid)
+        if edge:
+            rows.append(_level_line(edge[0], None, edge[1], ref))
+        rows.append(_level_line("Stop", prev.get("stop"), inval, ref))
+        out += [row for row in rows if row]
     return out
-
-
-def _levels_block(ref, touch, inval, *, bias=None,
-                  support=None, lid=None) -> Optional[str]:
-    """The three numbers, in a column narrow enough to survive a phone.
-
-    The first version padded to a wider grid and broke: on the owner's screen
-    `Target     $79,565 (+1.96%)` — 27 characters — wrapped, dropping "(+1.96%)"
-    onto its own line and destroying the alignment the column existed to
-    provide. General guidance says Telegram wraps monospace near 40 characters,
-    but a reply carries a quoted parent above it and that narrows the bubble
-    further, so the real budget here is much smaller than the published one.
-
-    22 characters, measured against where it actually broke. Percentages drop to
-    one decimal to buy the room — the exact figures are in the PDF, and this
-    block exists to be scanned, not cited.
-
-    A wrapped table is worse than no table: prose reflows, a column just looks
-    broken.
-    """
-    if not (touch or inval):
-        return None
-
-    r = _num(ref)
-    # Plain words, not desk jargon: a member read "Invalid $82,000" as an
-    # invalid price and "Lid" meant nothing to him. Now / Target / Stop are the
-    # words the LuxQuant signal cards already use; Ceiling and Floor bound a
-    # range. Seven letters at most, or a $100,000 price touches its label.
-    rows = [("Now", r, None)]
-    if touch:
-        rows.append(("Target", _num(touch), _pct_from(touch, ref, decimals=1)))
-
-    # A range read is two-sided, but the block only ever printed the level the
-    # AI expects to touch first. When that level sat below spot the card read as
-    # a bearish call under a NEUTRAL verdict, with the lid that made it a range
-    # left in the database. Measured over 30 days: 130/130 range contracts had
-    # a lid above spot, and none of them printed it.
-    if _is_range(bias) and r is not None:
-        t = _num(touch)
-        edge = ("Ceiling", _num(lid)) if (t is not None and t < r) else ("Floor", _num(support))
-        label, level = edge
-        # Only when it really is the opposite side; otherwise say nothing.
-        if level is not None and ((level > r) if label == "Ceiling" else (level < r)):
-            rows.append((label, level, _pct_from(level, ref, decimals=1)))
-
-    if inval:
-        rows.append(("Stop", _num(inval), _pct_from(inval, ref, decimals=1)))
-
-    # Read it as a ladder: highest level on top, so where spot sits inside the
-    # band is visible without doing arithmetic.
-    rows.sort(key=lambda row: (row[1] is None, -(row[1] or 0)))
-
-    out = []
-    for label, value, pct in rows:
-        out.append(f"{label:<8}{_fmt_usd(value):>8}{(' ' + pct) if pct else ''}")
-    return "\n".join(out)
 
 
 def build_caption(report: dict, previous: Optional[dict] = None) -> str:
@@ -359,22 +340,16 @@ def build_caption(report: dict, previous: Optional[dict] = None) -> str:
     if verdict.get("headline"):
         lines.append(f"<i>{_trim(verdict['headline'], 130)}</i>")
 
-    if previous:
-        changes = _changes(previous, direction, conf, touch, inval, ref)
-        if changes:
-            lines += ["", f"<b>{gap + ' ago' if gap else 'Previous'} → now</b>", *changes]
-
-    _ext = sc.get("extension_zone") or {}
-    block = _levels_block(
-        ref,
-        touch,
-        inval,
+    ext = sc.get("extension_zone") or {}
+    level_lines = _level_lines(
+        previous, direction, conf, ref=ref, touch=touch, inval=inval,
         bias=sc.get("primary_bias"),
         support=(sc.get("support") or {}).get("level"),
-        lid=_ext.get("price_high", _ext.get("high")),
+        lid=ext.get("price_high", ext.get("high")),
     )
-    if block:
-        lines += ["", f"<code>{block}</code>"]
+    if level_lines:
+        title = f"{gap} ago → now" if previous and gap else ("Changes" if previous else "Levels")
+        lines += ["", f"<b>{title}</b>", *level_lines]
 
     changed = verdict.get("what_changed")
     if changed:
