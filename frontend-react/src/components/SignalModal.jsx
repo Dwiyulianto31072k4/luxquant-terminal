@@ -1,4 +1,5 @@
 import { fetchPublicMarket } from "../services/publicMarket";
+import { createMarketMemo } from "../utils/marketMemo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -625,31 +626,46 @@ const SignalModal = ({
       });
     };
 
+    // Each tick used to re-ask every endpoint below. Only mark price, ticker
+    // and open interest move on the 15 s clock; the rest are read at the pace
+    // they change, and a venue that does not list the pair (spot volume on a
+    // futures-only coin) is asked once per open instead of 4× a minute.
+    const readMarket = createMarketMemo(fetchPublicMarket);
+    const EVERY_TICK = 0;
+    const BUCKET_5M = 60_000;
+    const HOURLY = 5 * 60_000;
+    const FUNDING = 30 * 60_000;
+
     // --- Binance Futures (primary) ---
     const fetchBinance = async () => {
       const [pmRes, oiRes, posRes, accRes, globRes, oi24Res, tickRes, takerRes, fundRes, klineRes, spotRes] =
         await Promise.allSettled([
-          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
-          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`),
-          fetchPublicMarket(
-            `https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`
+          readMarket(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`, EVERY_TICK),
+          readMarket(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`, EVERY_TICK),
+          readMarket(
+            `https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`,
+            BUCKET_5M
           ),
-          fetchPublicMarket(
-            `https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`
+          readMarket(
+            `https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`,
+            BUCKET_5M
           ),
-          fetchPublicMarket(
-            `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`
+          readMarket(
+            `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`,
+            BUCKET_5M
           ),
-          fetchPublicMarket(
-            `https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=25`
+          readMarket(
+            `https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=25`,
+            HOURLY
           ),
-          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`),
-          fetchPublicMarket(
-            `https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${symbol}&period=5m&limit=1`
+          readMarket(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`, EVERY_TICK),
+          readMarket(
+            `https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${symbol}&period=5m&limit=1`,
+            BUCKET_5M
           ),
-          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=6`),
-          fetchPublicMarket(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=8`),
-          fetchPublicMarket(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),
+          readMarket(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=6`, FUNDING),
+          readMarket(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=8`, HOURLY),
+          readMarket(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`, HOURLY),
         ]);
       if (pmRes.status !== "fulfilled" || !pmRes.value.ok) return null;
       const pm = await pmRes.value.json();
@@ -751,20 +767,24 @@ const SignalModal = ({
     // --- Bybit (fallback — accessible from ID/more regions) ---
     const fetchBybit = async () => {
       const [tkRes, oiRes, lsRes, fundRes, klineRes, spotRes] = await Promise.allSettled([
-        fetchPublicMarket(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`),
-        fetchPublicMarket(
-          `https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${symbol}&intervalTime=1h&limit=25`
+        readMarket(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`, EVERY_TICK),
+        readMarket(
+          `https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${symbol}&intervalTime=1h&limit=25`,
+          HOURLY
         ),
-        fetchPublicMarket(
-          `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1`
+        readMarket(
+          `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1`,
+          HOURLY
         ),
-        fetchPublicMarket(
-          `https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${symbol}&limit=6`
+        readMarket(
+          `https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${symbol}&limit=6`,
+          FUNDING
         ),
-        fetchPublicMarket(
-          `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=D&limit=8`
+        readMarket(
+          `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=D&limit=8`,
+          HOURLY
         ),
-        fetchPublicMarket(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}`),
+        readMarket(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}`, HOURLY),
       ]);
       if (tkRes.status !== "fulfilled" || !tkRes.value.ok) return null;
       const tj = await tkRes.value.json();
