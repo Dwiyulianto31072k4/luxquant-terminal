@@ -132,7 +132,11 @@ def _lookup_previous() -> Optional[dict]:
         row = db.execute(text("""
             SELECT p.report_id, p.message_id, p.sent_at,
                    r.report_json::jsonb->'verdict'->'tactical_24h'->>'direction'  AS direction,
-                   r.report_json::jsonb->'verdict'->'tactical_24h'->>'confidence' AS confidence
+                   r.report_json::jsonb->'verdict'->'tactical_24h'->>'confidence' AS confidence,
+                   COALESCE(r.report_json::jsonb->'verdict'->'scenario_contract'->>'reference_price',
+                            r.report_json::jsonb->>'btc_price')                        AS price,
+                   r.report_json::jsonb->'verdict'->'scenario_contract'->'primary_touch'->>'level' AS target,
+                   r.report_json::jsonb->'verdict'->'scenario_contract'->'invalidation'->>'level'  AS stop
               FROM compass_tg_posts p
               LEFT JOIN ai_arena_reports r ON r.report_id = p.report_id
              ORDER BY p.sent_at DESC
@@ -146,6 +150,9 @@ def _lookup_previous() -> Optional[dict]:
             "sent_at": row.sent_at,
             "direction": (row.direction or "").lower() or None,
             "confidence": row.confidence,
+            "price": row.price,
+            "target": row.target,
+            "stop": row.stop,
         }
     except Exception as e:
         logger.warning("previous post lookup failed: %s", e)
@@ -223,6 +230,37 @@ def _trim(text: str, limit: int) -> str:
             return window[: cut + 1].rstrip(" ;—")
     cut = window.rfind(" ")
     return (window[:cut] if cut > 0 else window[:limit]).rstrip() + "…"
+
+
+def _changes(previous: dict, direction: str, conf: Any, touch: Any, inval: Any, ref: Any) -> list[str]:
+    """What moved since the report this one replaces, as "Label: old → new".
+
+    Plain text, not the monospace column: "Target: $83,200 → $85,250" is wider
+    than the 22 characters that column survives on a phone, and prose reflows
+    where a column breaks.
+    """
+    out: list[str] = []
+    prev_dir = previous.get("direction")
+    if prev_dir and prev_dir != direction:
+        out.append(f"Direction: {prev_dir.upper()} → {direction.upper()}")
+    pc, nc = _num(previous.get("confidence")), _num(conf)
+    if pc is not None and nc is not None and int(pc) != int(nc):
+        out.append(f"Confidence: {int(pc)}% → {int(nc)}%")
+    compared = moved = 0
+    for label, old, new in (("Target", previous.get("target"), touch), ("Stop", previous.get("stop"), inval)):
+        o, n = _num(old), _num(new)
+        if o is None or n is None:
+            continue
+        compared += 1
+        if _fmt_usd(o) != _fmt_usd(n):
+            out.append(f"{label}: {_fmt_usd(o)} → {_fmt_usd(n)}")
+            moved += 1
+    if compared and not moved:
+        out.append("Target and stop unchanged")
+    op, np_ = _num(previous.get("price")), _num(ref)
+    if op is not None and np_ is not None:
+        out.append(f"BTC: {_fmt_usd(op)} → {_fmt_usd(np_)}")
+    return out
 
 
 def _levels_block(ref, touch, inval, *, bias=None,
@@ -303,36 +341,34 @@ def build_caption(report: dict, previous: Optional[dict] = None) -> str:
     arrow = _ARROW.get(direction, "•")
     conf_txt = f" · {int(conf)}% confidence" if isinstance(conf, (int, float)) else ""
 
-    prev_dir = (previous or {}).get("direction")
-    flipped = bool(prev_dir and prev_dir != direction)
+    touch = (sc.get("primary_touch") or {}).get("level")
+    inval = (sc.get("invalidation") or {}).get("level")
 
     lines: list[str] = []
 
-    # One line, not two: what kind of update, and how far back the previous
-    # report was. It used to say "levels refreshed · 8h ago", and on 26 Sep 2026
-    # a member read a fresh 08:09 report as eight hours stale and asked whether
-    # it still applied: the 8h was the gap to the report this one replaces.
+    # An update names the report it replaces, then shows what moved: members
+    # asked for exactly "the numbers from N hours ago became these". The header
+    # used to say "levels refreshed · 8h ago", and on 26 Sep 2026 a member read
+    # a fresh report as eight hours stale: the 8h was the gap to the old one.
+    gap = _gap(previous.get("sent_at")) if previous else ""
     if previous:
-        kind = "direction changed" if flipped else "same direction"
-        gap = _gap(previous.get("sent_at"))
-        tail = f" · previous report was {gap} earlier" if gap else ""
-        lines.append(f"<b>UPDATE</b> · {kind}{tail}")
+        lines.append(f"🔄 <b>UPDATE</b>{' · replaces the report from ' + gap + ' ago' if gap else ''}")
 
-    head = f"{arrow} <b>{direction.upper()}</b>{conf_txt}"
-    if flipped:
-        pc = (previous or {}).get("confidence")
-        head += f"  <i>(was {_ARROW.get(prev_dir, '•')} {prev_dir.upper()}"
-        head += f" {pc}%)</i>" if pc else ")</i>"
-    lines.append(head)
+    lines.append(f"{arrow} <b>{direction.upper()}</b>{conf_txt}")
 
     if verdict.get("headline"):
         lines.append(f"<i>{_trim(verdict['headline'], 130)}</i>")
 
+    if previous:
+        changes = _changes(previous, direction, conf, touch, inval, ref)
+        if changes:
+            lines += ["", f"<b>{gap + ' ago' if gap else 'Previous'} → now</b>", *changes]
+
     _ext = sc.get("extension_zone") or {}
     block = _levels_block(
         ref,
-        (sc.get("primary_touch") or {}).get("level"),
-        (sc.get("invalidation") or {}).get("level"),
+        touch,
+        inval,
         bias=sc.get("primary_bias"),
         support=(sc.get("support") or {}).get("level"),
         lid=_ext.get("price_high", _ext.get("high")),
@@ -342,9 +378,10 @@ def build_caption(report: dict, previous: Optional[dict] = None) -> str:
 
     changed = verdict.get("what_changed")
     if changed:
+        # The numbers that moved are listed above; this is the AI's reason.
         # Trim first: the renamed lead is a few characters longer, and must not
         # cost the last sentence of a text that fitted before.
-        lines += ["", f"<b>What changed</b> · {_plain_changed(_trim(changed, 200))}"]
+        lines += ["", f"<b>Why</b> · {_plain_changed(_trim(changed, 200))}"]
 
     lines += ["", f'<a href="{WEB_URL}">Open in LuxQuant →</a>']
 
