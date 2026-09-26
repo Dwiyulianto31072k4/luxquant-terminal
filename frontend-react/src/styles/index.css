@@ -1664,6 +1664,49 @@ textarea:focus-visible {
   }
 }
 
+/* ── Recommended plan ring (pricing) ──────────────────────────────
+   Same technique as the locked-value glow above, and deliberately the same
+   `--lq-glow-angle` property and keyframes — two rotating rings in one product
+   that drift out of step look like a bug.
+
+   Differences that matter here: this one runs on a LIGHT surface too, so the
+   flat under-colour is weaker and the sweep is wider and slower (8s). A ring
+   around a price is an invitation, not an alarm; at the landing's 6s on a
+   bright desk it reads as a warning light.
+
+   The ring IS the border: the card inside must not draw its own, or the two
+   edges sit 1px apart and the seam shows on every corner. */
+.lq-plan-glow {
+  position: relative;
+  padding: 1.5px;
+  border-radius: 17.5px;
+  background:
+    conic-gradient(
+      from var(--lq-glow-angle),
+      transparent 0deg,
+      rgb(var(--accent-light) / 0.75) 50deg,
+      rgb(var(--accent)) 95deg,
+      rgb(var(--accent-light) / 0.65) 140deg,
+      transparent 200deg,
+      transparent 360deg
+    ),
+    rgb(var(--accent) / 0.3);
+  animation: lq-glow-spin 8s linear infinite;
+}
+
+.lq-plan-glow > * {
+  border-radius: 16px;
+}
+
+/* Motion that never stops is the one thing WCAG asks you not to do without an
+   out. The ring holds its last angle instead of disappearing, so the card is
+   still marked when motion is off. */
+@media (prefers-reduced-motion: reduce) {
+  .lq-plan-glow {
+    animation: none;
+  }
+}
+
 /* ── Risk / reward map (landing only) ─────────────────────────────
    This is an ordered relationship, not a progress bar: the public UI knows
    that Stop = -1R and that TP1–TP4 are sequential, but receives none of the

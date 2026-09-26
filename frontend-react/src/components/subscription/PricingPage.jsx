@@ -122,13 +122,20 @@ function PlanCard({
   // pages people compare us against are built. The old grid was one hard-edged
   // block cut by dividers, which made four plans read as one table and left
   // nowhere to lift the recommended one.
-  return (
+  //
+  // The recommended card's border is a rotating conic ring (.lq-plan-glow),
+  // the same one the landing uses for locked value. The ring replaces the
+  // card's own border — drawing both puts a visible seam on every corner.
+  const glow = recommended && !current;
+  const card = (
     <article
       className={`relative flex h-full flex-col rounded-2xl border px-5 py-6 transition-shadow sm:px-6 ${
         current
           ? "border-profit/30 bg-profit/[0.03]"
-          : recommended
-            ? "border-accent/45 bg-accent/[0.035] shadow-[0_8px_30px_-12px_rgb(var(--accent)/0.35)] lg:-mt-3 lg:pb-8 lg:pt-8"
+          : glow
+            ? // OPAQUE, or the conic ring shows through the card and the whole
+              // plan turns gold. The tint has to be baked into a solid layer.
+              "border-transparent bg-[linear-gradient(rgb(var(--accent)/0.045),rgb(var(--accent)/0.045)),linear-gradient(rgb(var(--surface-raised)),rgb(var(--surface-raised)))] lg:pb-8 lg:pt-8"
             : "border-ink/[0.09] bg-surface-raised"
       }`}
     >
@@ -216,6 +223,13 @@ function PlanCard({
         <p className="mt-2 text-center text-[11px] text-text-primary/35">{ctaNote}</p>
       ) : null}
     </article>
+  );
+
+  if (!glow) return card;
+  return (
+    <div className="lq-plan-glow h-full shadow-[0_10px_34px_-14px_rgb(var(--accent)/0.45)] lg:-mt-3">
+      {card}
+    </div>
   );
 }
 
