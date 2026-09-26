@@ -34,7 +34,7 @@ export const pricingEn = {
   // plain words costs the expert nothing; leaving it out costs the beginner
   // the whole page.
   hero_subtitle:
-    "A call is a trade we publish: the coin, where to enter, the targets to take profit, and the stop. You get all four the moment it prints — and every call stays on the public record, win or lose.",
+    "A call is a trade we publish. You see the coin, where to enter, where to take profit and where to stop, the moment it prints. Every call stays on the public record, win or lose.",
 
   monthly: "Monthly",
   yearly: "Annual",
@@ -79,7 +79,7 @@ export const pricingEn = {
   feat_support: "Priority support",
   feat_basic_support: "Standard support",
   feat_lifetime: "Ongoing product updates",
-  feat_autotrade: "Agent — on request",
+  feat_autotrade: "Agent, on request",
   feat_onchain: "On-chain intelligence",
   feat_ai: "AI research",
   feat_onchain_ai: "On-chain & AI research",
@@ -131,7 +131,7 @@ export const pricingEn = {
   trust_keys: "No auto-renewal",
   trust_keys_body: "No card on file.",
 
-  agent_note: "Need automation? Agent is available on request with Annual or Lifetime — if you need it, we can help.",
+  agent_note: "Need automation? Agent comes on request with Annual or Lifetime. Tell us what you want it to do and we will set it up with you.",
   agent_note_cta: "Request Agent",
   agent_yearly_only: "Annual & Lifetime",
   compare_requests_yes: "On request",
@@ -141,7 +141,7 @@ export const pricingEn = {
   how_1_title: "Choose a plan",
   how_1_body: "We open an invoice with a unique receiving address, issued for this payment only.",
   how_2_title: "Send the exact USDT",
-  how_2_body: "BNB Smart Chain (BEP-20) only. Copy the address from this site after you sign in — never from a message.",
+  how_2_body: "BNB Smart Chain (BEP-20) only. Copy the address from this site after you sign in, never from a message.",
   how_3_title: "Paste the transaction hash",
   how_3_body: "We verify it on-chain. Most payments confirm in under a minute. Access opens immediately.",
 
@@ -159,7 +159,7 @@ export const pricingEn = {
   compare_called: "Called overlay on Pulse",
   compare_called_hint: "See which movers we actually called.",
   compare_autotrade: "Agent (automation)",
-  compare_autotrade_hint: "On request — Annual and Lifetime. If you need it, we can help.",
+  compare_autotrade_hint: "On request, with Annual and Lifetime. If you need it, we can help.",
   compare_analytics: "Charts and analytics",
   compare_analytics_hint: "Full terminal on paid. Public views on Free.",
   compare_onchain: "On-chain intelligence",
@@ -203,43 +203,43 @@ export const pricingEn = {
   faq_subtitle: "",
   faq_q1: "What’s free, and what do I pay for?",
   faq_a1:
-    "Free includes Pulse, Bitcoin, Markets, News, journal, and the public track record — so you can audit calls before you pay. Paid unlocks live signal levels (entry, targets, stop), the Called overlay on Pulse, on-chain intelligence, AI research, and the full terminal.",
+    "Free gives you the market and the history. Pulse, Bitcoin, the market tables, News, your own journal, and every call we have ever published with the chart it was called on. What free does not give you is the live part. Paying opens the levels on each new call as it prints, the Called overlay that marks which of today\u2019s movers were ours, on-chain flows, AI research, and the rest of the terminal.",
   faq_q2: "What’s the difference between Monthly, Annual, and Lifetime?",
   faq_a2:
-    "The terminal is the same. Monthly is billed every 30 days when you choose to pay again. Annual is one payment for twelve months (about 17% less). Lifetime is one payment for ongoing access. Support is standard on Monthly, priority on Annual, dedicated on Lifetime. Special requests — including Agent — start at Annual.",
-  faq_q3: "How do I pay — and why USDT?",
+    "Only the billing and the support. Every paid plan opens exactly the same terminal, so nobody gets a smaller product for paying less. Monthly is one payment for 30 days, and you decide each time whether to pay again. Annual is one payment for twelve months and works out about 17% cheaper. Lifetime is one payment and the access stays. Support goes from standard to priority to dedicated as you move up, and special requests, including Agent, start at Annual.",
+  faq_q3: "How do I pay, and why USDT?",
   faq_a3:
-    "Pay with USDT on BNB Smart Chain (BEP-20). We issue a unique address for your invoice, verify the transfer on-chain, and open access automatically. We never send a wallet address by Telegram, email, or chat. If someone messages you an address, it is not us. If you prefer a bank transfer or another network, use “Pay another way” and we’ll match it by hand.",
+    "You pay with USDT on BNB Smart Chain (BEP-20). Every invoice gets its own receiving address, we read the transfer straight off the chain, and access opens by itself once it confirms. USDT holds the price you agreed to, which a volatile coin would not, and the chain is what lets us verify a payment without ever touching your card. One rule worth remembering: we never send a wallet address in a message. The only address we issue appears on this site after you sign in, so if an address reaches you by Telegram, email or chat, it did not come from us. If you would rather send a bank transfer or use another network, choose to pay another way and a person matches it by hand.",
   faq_q4: "Does anything charge me automatically?",
   faq_a4:
-    "No. There is no card on file and no auto-renewal. Access lasts for the period you paid. When it ends, you start a new invoice if you want to continue. You can upgrade, switch, or extend from this page at any time.",
-  faq_q5: "When does access start? What if verification fails?",
+    "No. There is no card on file, no stored payment method, and no subscription quietly renewing in the background. Each payment buys one period and nothing more. When that period ends, access stops until you decide to open a new invoice. Nothing needs cancelling, because there is nothing running. You can upgrade, switch plan, or extend early from this page whenever you want.",
+  faq_q5: "When does access start, and what if verification fails?",
   faq_a5:
-    "Most payments confirm in under a minute after you paste the transaction hash. If the hash does not appear on-chain — for example an exchange settled it internally — your funds are still yours. Keep the page open, or message us with the withdrawal ID and we will match it by hand.",
+    "Access opens the moment the chain confirms your transfer, usually under a minute after you paste the transaction hash. Sometimes a hash never appears on-chain at all. That normally means the exchange you withdrew from settled it internally and handed you an internal reference instead of a real transaction. Your money is not lost. Keep the page open, or send us the withdrawal ID, and a person matches the payment by hand and opens your access.",
   faq_q6: "What is Agent? Do I have to use it?",
   faq_a6:
-    "No. Agent is optional automation on your exchange — only if you want it. It is available on request with Annual or Lifetime. You connect your own keys; we never custody funds. If you need it, tell us and we’ll help you set it up.",
+    "Agent is optional automation, and most members never switch it on. It places calls on your own exchange account through API keys you create yourself, so your funds stay where they are and we never hold them. It comes on request with Annual or Lifetime, because setting it up is a conversation rather than a switch. If you would rather read the calls and place them yourself, nothing else about the product changes.",
   faq_q7: "Is this financial advice?",
   faq_a7:
-    "No. LuxQuant is a market-intelligence terminal. Signals and research inform — they do not decide for you. You remain responsible for execution and risk. Past calls are timestamped so you can audit them; they are not a guarantee of future results.",
+    "No, and we are careful about this. LuxQuant is a market-intelligence terminal. The calls and the research tell you what we see and what we published at that moment. They do not tell you what to do with your money, and nobody here knows your position size, your risk, or your situation. Every past call carries a timestamp so you can check it yourself, and none of them promise the next one will work.",
   faq_q8: "Can I look around before I pay?",
   faq_a8:
-    "Yes. Create a free account — no card. Use Pulse, the public record, News, and journal. Upgrade when you want live levels and the full terminal.",
+    "Yes, and we would rather you did. A free account asks for no card and no payment details. Read the whole public record, open any call and see the chart it was called on, and use Pulse, News and the journal for as long as you like. Plenty of people watch for weeks before paying. Upgrade when the live levels are worth it to you, not before.",
   faq_q9: "What does the 85.9% actually count?",
   faq_a9:
-    "It counts calls that reached at least one published target — TP1 or better — not profit, and not what any one person made. Exits are yours: a call that touches TP1 and turns around is counted as reached, so read it as how often a call goes our way at least once, and audit the rest on the record.",
-  faq_q10: "What if I send the wrong amount, or the wrong network?",
+    "It counts how many published calls reached at least one of their targets, TP1 or better. It is not a profit figure, and it is not what any one person made, because when you close a trade is your decision. A call that touches TP1 and then turns around still counts as reached. Read it as how often a call goes our way at least once, then open the record and check the rest yourself. Every call is there, including the ones that did not work.",
+  faq_q10: "What if I send the wrong amount, or use the wrong network?",
   faq_a10:
-    "Message us on Telegram with the transaction hash. BEP-20 is the only address we issue, and a transfer on another network does not reach it, so nothing is matched automatically — a person checks it and sorts it out. Short or late payments are handled the same way; the invoice stays open for 72 hours.",
+    "Message us on Telegram with the transaction hash and we will sort it out. BEP-20 is the only address we issue, so a transfer sent on another network never arrives at it and nothing matches automatically. The same goes for an amount that lands short or arrives late. A person reads the chain, matches what you sent, and opens your access. Your invoice stays open for 72 hours, and being late does not cost you the payment.",
 
   cta_title: "",
   cta_subtitle: "",
   cta_secondary: "Back to the terminal",
 
   back: "← Back to Terminal",
-  modal_subtitle: "Live levels and the full terminal — same product on every paid plan.",
+  modal_subtitle: "Live levels and the full terminal, the same product on every paid plan.",
   called_context:
-    "{{pair}} was just called — subscribers see the entry, targets, and stop as they print.",
+    "{{pair}} was just called. Subscribers see the entry, the targets and the stop as they print.",
   most_popular: "Recommended",
 
   load_error: "Plans could not be loaded. Please try again.",
@@ -247,7 +247,7 @@ export const pricingEn = {
   recommended: "Recommended",
   limited: "Limited",
 
-  seo_title: "Pricing — LuxQuant Terminal",
+  seo_title: "Pricing | LuxQuant Terminal",
   seo_desc:
     "Free Pulse, Bitcoin, and public track record. Paid plans unlock live signal levels, on-chain intelligence, and research. Agent on request with Annual or Lifetime. USDT on-chain, no auto-renewal.",
 
