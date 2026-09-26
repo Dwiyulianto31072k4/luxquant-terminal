@@ -167,54 +167,68 @@ const ROLE_BADGE = {
   free: "border-ink/15 bg-ink/[0.05] text-text-muted",
 };
 
-const UserHero = ({ user }) => (
-  <div className="flex items-start gap-4">
-    <div
-      className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-ink/[0.08] text-xl font-bold ${
-        user.avatar_url ? "bg-transparent" : "bg-ink/[0.04] text-accent"
-      }`}
-    >
-      {user.avatar_url ? (
-        <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
-      ) : (
-        user.username?.charAt(0).toUpperCase()
-      )}
-    </div>
+const UserHero = ({ user }) => {
+  // Telegram photo URLs expire (about 5% of stored ones were dead on 25 Sep
+  // 2026) and a login refreshes them — until then show the initial, as the
+  // shared Avatar does, not a broken-image glyph.
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [user.avatar_url]);
+  const showImg = Boolean(user.avatar_url) && !broken;
+  return (
+    <div className="flex items-start gap-4">
+      <div
+        className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-ink/[0.08] text-xl font-bold ${
+          showImg ? "bg-transparent" : "bg-ink/[0.04] text-accent"
+        }`}
+      >
+        {showImg ? (
+          <img
+            src={user.avatar_url}
+            alt=""
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+            onError={() => setBroken(true)}
+          />
+        ) : (
+          user.username?.charAt(0).toUpperCase()
+        )}
+      </div>
 
-    <div className="min-w-0 flex-1 pt-0.5">
-      <div className="mb-1 flex items-center gap-2">
-        <h3 className="truncate text-lg font-semibold tracking-tight text-text-primary">
-          {user.username}
-        </h3>
-        <ProviderIcon provider={user.auth_provider} size={14} />
-      </div>
-      <p className="truncate font-mono text-[11px] text-text-muted">{user.email}</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        <span
-          className={`rounded-lg border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
-            ROLE_BADGE[user.role] || ROLE_BADGE.free
-          }`}
-        >
-          {user.role}
-        </span>
-        {isDrc(user) && <DrcBadge compact />}
-        <span className="rounded-lg border border-ink/[0.08] bg-ink/[0.04] px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-text-muted">
-          {user.auth_provider}
-        </span>
-        {!user.is_active && (
-          <span className="rounded-lg border border-loss/25 bg-loss/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-loss">
-            Banned
+      <div className="min-w-0 flex-1 pt-0.5">
+        <div className="mb-1 flex items-center gap-2">
+          <h3 className="truncate text-lg font-semibold tracking-tight text-text-primary">
+            {user.username}
+          </h3>
+          <ProviderIcon provider={user.auth_provider} size={14} />
+        </div>
+        <p className="truncate font-mono text-[11px] text-text-muted">{user.email}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <span
+            className={`rounded-lg border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+              ROLE_BADGE[user.role] || ROLE_BADGE.free
+            }`}
+          >
+            {user.role}
           </span>
-        )}
-        {user.subscription_source && (
-          <span className="rounded-lg border border-accent/25 bg-accent/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-accent">
-            via {user.subscription_source}
+          {isDrc(user) && <DrcBadge compact />}
+          <span className="rounded-lg border border-ink/[0.08] bg-ink/[0.04] px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-text-muted">
+            {user.auth_provider}
           </span>
-        )}
+          {!user.is_active && (
+            <span className="rounded-lg border border-loss/25 bg-loss/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-loss">
+              Banned
+            </span>
+          )}
+          {user.subscription_source && (
+            <span className="rounded-lg border border-accent/25 bg-accent/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-accent">
+              via {user.subscription_source}
+            </span>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const FEATURE_LABEL = {
   signals: "Signals",

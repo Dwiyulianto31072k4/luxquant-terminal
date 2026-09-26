@@ -254,16 +254,26 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
   const fetchProfile = useCallback(
     async (lim) => {
       if (!pair) return;
+      // A coin's past calls are for signed-in accounts; the endpoint refuses
+      // anyone else. A visitor used to get "Failed to load history … HTTP 403"
+      // and a Retry that could never work — now they get the way in.
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        setError("auth");
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
         const exclude = signal?.signal_id || "";
-        const token = localStorage.getItem("access_token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await fetch(
           `${API_BASE}/api/v1/coin-profile/${pair}?limit=${lim}&exclude=${exclude}`,
-          { headers }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
+        if (res.status === 401 || res.status === 403) {
+          setError("auth");
+          return;
+        }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setProfile(data);
@@ -299,6 +309,28 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
             ))}
           </div>
           <div className="h-32 rounded-xl bg-ink/[0.03] border border-ink/[0.05]" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error === "auth" && !profile) {
+    const back = `${window.location.pathname}${window.location.search}`;
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 bg-surface">
+        <div className="text-center max-w-xs">
+          <p className="text-text-secondary text-sm mb-1">
+            Sign in to see every earlier call on {coinSymbol}
+          </p>
+          <p className="text-text-muted text-xs mb-4">
+            Each past call with its result, and how this coin has traded after our calls.
+          </p>
+          <a
+            href={`/login?redirect=${encodeURIComponent(back)}`}
+            className="inline-block rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-accent-fg transition hover:brightness-105"
+          >
+            Sign in
+          </a>
         </div>
       </div>
     );

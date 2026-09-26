@@ -170,10 +170,12 @@ const SignalModal = ({
   useEffect(() => {
     const sid = signal?.signal_id;
     if (!isOpen || !sid) return undefined;
-    let alive = true;
+    // Entry alerts belong to an account; a visitor has none to read.
     const tk = localStorage.getItem("access_token");
+    if (!tk) return undefined;
+    let alive = true;
     fetch(`/api/v1/coin-watch/entry-alert/${encodeURIComponent(sid)}`, {
-      headers: tk ? { Authorization: `Bearer ${tk}` } : {},
+      headers: { Authorization: `Bearer ${tk}` },
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => alive && d && setEntryAlert(d))
@@ -186,6 +188,11 @@ const SignalModal = ({
   const toggleEntryAlert = async () => {
     const sid = signal?.signal_id;
     if (!sid || alertBusy) return;
+    // A visitor's click used to POST, take a 403 and do nothing at all.
+    if (!localStorage.getItem("access_token")) {
+      navigate(`/login?redirect=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`);
+      return;
+    }
     setAlertBusy(true);
     const armed = entryAlert?.armed;
     try {
