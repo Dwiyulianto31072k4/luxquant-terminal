@@ -1389,7 +1389,9 @@ export const SignalDetailModal = ({
     >
       <div className="lq-scrim" onClick={handleClose} aria-hidden="true" />
       <div
-        className={`relative flex h-[min(var(--lq-modal-maxh),100%)] max-h-[var(--lq-modal-maxh)] w-full max-w-5xl flex-col overflow-hidden rounded-t-[1.35rem] border border-ink/[0.07] bg-surface-raised shadow-[0_24px_80px_-20px_rgb(var(--scrim)/0.55)] lg:max-w-[1080px] sm:h-auto sm:max-h-[min(var(--lq-modal-maxh),880px)] sm:rounded-2xl ${
+        /* Same measure as SignalModal (1280, 1360 past 1440) so a call and its
+           proof do not open at two different widths. */
+        className={`relative flex h-[min(var(--lq-modal-maxh),100%)] max-h-[var(--lq-modal-maxh)] w-full flex-col overflow-hidden rounded-t-[1.35rem] border border-ink/[0.07] bg-surface-raised shadow-[0_24px_80px_-20px_rgb(var(--scrim)/0.55)] sm:h-auto sm:max-h-[min(var(--lq-modal-maxh),900px)] sm:max-w-[min(1280px,96vw)] sm:rounded-2xl xl:max-w-[1360px] ${
           isClosing
             ? "animate-[smSheetDn_.22s_ease-in_forwards] sm:animate-[smCO_.2s_ease-in_forwards]"
             : "animate-[smSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:animate-[smCI_.28s_cubic-bezier(.16,1,.3,1)]"
@@ -1635,21 +1637,21 @@ export const SignalDetailModal = ({
             </div>
           ) : detail ? (
             <div className="space-y-5 pb-1">
-              {/* Stats grid — never stacks labels onto one cramped line */}
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
-                    Entry
-                  </p>
-                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
+              {/* One ticket, not four boxes. Four separate cards at this width
+                  read as four unrelated numbers; on one band with hairlines
+                  between them they read as one trade: in here, out there, this
+                  long, at this risk. */}
+              <div className="grid grid-cols-2 divide-x divide-y divide-ink/[0.06] overflow-hidden rounded-2xl border border-ink/[0.07] sm:grid-cols-4 sm:divide-y-0">
+                <div className="px-4 py-3">
+                  <p className="text-[11px] text-text-muted">Entry</p>
+                  <p className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
                     {entryVal > 0 ? `$${formatPrice(entryVal)}` : "—"}
                   </p>
+                  <p className="mt-0.5 text-[11px] text-text-muted">where the call went out</p>
                 </div>
-                <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
-                    Peak
-                  </p>
-                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
+                <div className="px-4 py-3">
+                  <p className="text-[11px] text-text-muted">Peak</p>
+                  <p className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
                     {hitPriceDisplay != null ? `$${formatPrice(hitPriceDisplay)}` : "—"}
                   </p>
                   {gainHero && (
@@ -1658,24 +1660,21 @@ export const SignalDetailModal = ({
                         gainIsLoss ? "text-loss" : "text-profit"
                       }`}
                     >
-                      {gainHero}
+                      {gainHero} from entry
                     </p>
                   )}
                 </div>
-                <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
-                    Time
-                  </p>
-                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
+                <div className="px-4 py-3">
+                  <p className="text-[11px] text-text-muted">Time to peak</p>
+                  <p className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
                     {durationText}
                   </p>
+                  <p className="mt-0.5 text-[11px] text-text-muted">from the call</p>
                 </div>
-                <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
-                    Risk
-                  </p>
+                <div className="px-4 py-3">
+                  <p className="text-[11px] text-text-muted">Risk</p>
                   <p
-                    className={`mt-0.5 font-mono text-[13px] font-semibold ${
+                    className={`mt-1 text-[16px] font-semibold ${
                       detail.risk_level === "High"
                         ? "text-loss"
                         : detail.risk_level === "Medium"
@@ -1686,8 +1685,8 @@ export const SignalDetailModal = ({
                     {detail.risk_level || "—"}
                   </p>
                   {detail.volume_rank_num && detail.volume_rank_den ? (
-                    <p className="mt-0.5 font-mono text-[10px] tabular-nums text-text-muted">
-                      Vol #{detail.volume_rank_num}/{detail.volume_rank_den}
+                    <p className="mt-0.5 font-mono text-[11px] tabular-nums text-text-muted">
+                      volume rank {detail.volume_rank_num} of {detail.volume_rank_den}
                     </p>
                   ) : null}
                 </div>
@@ -1891,25 +1890,25 @@ export const SignalDetailModal = ({
                 </div>
               )}
 
-              {/* The canonical activation step: proof is already open, now
-                  save one concrete call so LuxQuant has value to return to. */}
-              <div className="rounded-2xl border border-accent/25 bg-accent/[0.06] px-4 py-3.5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-[13px] font-semibold text-text-primary">
-                      {proofWatchlisted ? "This call is armed" : "Make this proof useful"}
-                    </p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
-                      {proofWatchlisted
-                        ? "It is saved in your watchlist. LuxQuant will keep the outcome and updates together."
-                        : "Save this resolved call to your watchlist. In Telegram, we will then ask once for permission to deliver alerts."}
-                    </p>
-                  </div>
+              {/* Two next steps, side by side. Stacked, the second gold box
+                  read as a repeat of the first and most readers never reached
+                  it. Left is for anyone: keep this call. Right is the one a
+                  free reader is here for: the levels on the NEXT one. */}
+              <div className={`grid gap-3 ${isEntitledUser ? "" : "lg:grid-cols-2"}`}>
+                <div className="rounded-2xl border border-ink/[0.08] bg-ink/[0.02] px-4 py-3.5">
+                  <p className="text-[13px] font-semibold text-text-primary">
+                    {proofWatchlisted ? "This call is saved" : "Keep this call"}
+                  </p>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">
+                    {proofWatchlisted
+                      ? "It is in your watchlist, and its outcome and updates stay together."
+                      : "Save it to your watchlist and we keep the outcome and every update with it. On Telegram we ask once before sending anything."}
+                  </p>
                   <button
                     type="button"
                     onClick={armProofValue}
                     disabled={watchBusy || proofWatchlisted}
-                    className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-[12px] font-semibold text-accent-fg shadow-[0_4px_12px_rgb(var(--accent)/0.22)] disabled:cursor-default disabled:opacity-65"
+                    className="mt-3 rounded-full border border-ink/[0.12] bg-surface-raised px-4 py-2 text-[12.5px] font-semibold text-text-primary transition hover:border-ink/25 disabled:cursor-default disabled:opacity-60"
                   >
                     {watchBusy
                       ? "Saving…"
@@ -1917,36 +1916,35 @@ export const SignalDetailModal = ({
                         ? "Saved to watchlist"
                         : "Save & enable alerts"}
                   </button>
+                  {activationNote && (
+                    <p className="mt-2 text-[11.5px] leading-relaxed text-text-muted" role="status">
+                      {activationNote}
+                    </p>
+                  )}
                 </div>
-                {activationNote && (
-                  <p className="mt-2 text-[11px] leading-relaxed text-text-muted" role="status">
-                    {activationNote}
-                  </p>
+
+                {!isEntitledUser && (
+                  <div className="rounded-2xl border border-accent/30 bg-accent/[0.06] px-4 py-3.5">
+                    <p className="text-[13px] font-semibold text-text-primary">
+                      You are reading this one after it finished
+                    </p>
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">
+                      The record is free and always will be. Paying is what puts the entry, the
+                      targets and the stop in front of you while the next call is still live.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose?.();
+                        navigate("/pricing");
+                      }}
+                      className="mt-3 rounded-full bg-accent px-4 py-2 text-[12.5px] font-semibold text-accent-fg shadow-[0_4px_12px_rgb(var(--accent)/0.28)]"
+                    >
+                      See the plans
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {/* Free users: upgrade tease on the proof they already value */}
-              {!isEntitledUser && (
-                <div className="rounded-2xl border border-accent/25 bg-accent/[0.07] px-4 py-3.5">
-                  <p className="text-[13px] font-semibold text-text-primary">
-                    Want live levels on new calls?
-                  </p>
-                  <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
-                    Free includes this verified track record. Premium unlocks live entry / SL1 / SL2
-                    / TP on open signals, Terminal, and Agent.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose?.();
-                      navigate("/pricing");
-                    }}
-                    className="mt-3 rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-accent-fg shadow-[0_4px_12px_rgb(var(--accent)/0.28)]"
-                  >
-                    See plans
-                  </button>
-                </div>
-              )}
 
               {/* Detailed journey — collapsed by default */}
               {detail.signal_id && (

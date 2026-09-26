@@ -123,9 +123,15 @@ export function buildProofJourneyEvents({
     },
   ];
 
-  const sorted = [...(Array.isArray(updates) ? updates : [])].sort(
-    (a, b) => new Date(a.update_at || 0) - new Date(b.update_at || 0)
-  );
+  // Time first, then level as the tiebreak. Two targets that fill inside the
+  // same recorded minute carry the same timestamp, and a plain time sort then
+  // leaves their order to chance: TAKEUSDT printed "TP 3 Hit" above "TP 2 Hit"
+  // on the proof timeline, which reads as a broken ladder rather than a tie.
+  const sorted = [...(Array.isArray(updates) ? updates : [])].sort((a, b) => {
+    const byTime = new Date(a.update_at || 0) - new Date(b.update_at || 0);
+    if (byTime) return byTime;
+    return classifyUpdateType(a.update_type).level - classifyUpdateType(b.update_type).level;
+  });
 
   for (const u of sorted) {
     const c = classifyUpdateType(u.update_type);
