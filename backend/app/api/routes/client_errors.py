@@ -281,3 +281,127 @@ def list_client_errors(
         g["urls"] = sorted(g["urls"])[:5]
         out.append(g)
     return {"total_reports": len(raw), "groups": out}
+
+
+# ════════════════════════════════════════════════════════════════════
+# Content-Security-Policy violation reports (audit #10, 2026-09-26)
+# ════════════════════════════════════════════════════════════════════
+# The site shipped no CSP at all. One written blind would break things
+# nobody listed — three.js from cdnjs on the landing globe, the TradingView
+# widget, two inline scripts in index.html — so it goes out as
+# Content-Security-Policy-Report-Only first and browsers report here what an
+# enforced policy WOULD block. Once this stays quiet, the same policy is
+# switched to enforcing.
+#
+# Reports are counted, not stored whole: `lq:csp:counts` maps
+# "<directive> <blocked origin>" to hits, and the newest 200 raw reports are
+# kept for context. Both live 14 days.
+CSP_COUNTS_KEY = "lq:csp:counts"
+CSP_SAMPLES_KEY = "lq:csp:samples"
+CSP_PER_IP_PER_MIN = 60
+
+
+def _csp_items(payload) -> list[dict]:
+    """Both report formats: report-uri's {"csp-report": {...}} and the
+    Reporting API's [{"type": "csp-violation", "body": {...}}]."""
+    if isinstance(payload, dict) and isinstance(payload.get("csp-report"), dict):
+        r = payload["csp-report"]
+        return [{
+            "directive": r.get("effective-directive") or r.get("violated-directive") or "",
+            "blocked": r.get("blocked-uri") or "",
+            "page": r.get("document-uri") or "",
+            "source": r.get("source-file") or "",
+            "sample": r.get("script-sample") or "",
+        }]
+    items = []
+    for rep in payload if isinstance(payload, list) else []:
+        body = rep.get("body") if isinstance(rep, dict) else None
+        if not isinstance(body, dict) or rep.get("type") not in (None, "csp-violation"):
+            continue
+        items.append({
+            "directive": body.get("effectiveDirective") or body.get("violatedDirective") or "",
+            "blocked": body.get("blockedURL") or body.get("blockedURI") or "",
+            "page": body.get("documentURL") or "",
+            "source": body.get("sourceFile") or "",
+            "sample": body.get("sample") or "",
+        })
+    return items
+
+
+def csp_bucket(item: dict) -> str:
+    """'<directive> <what was blocked>' with URLs cut to their origin."""
+    blocked = str(item.get("blocked") or "")
+    if blocked.startswith(("http://", "https://", "wss://", "ws://")):
+        parts = urlsplit(blocked)
+        blocked = f"{parts.scheme}://{parts.netloc}"
+    return f"{str(item.get('directive') or '?')[:40]} {blocked[:120] or '?'}"
+
+
+def _store_csp(items: list[dict], ip: str) -> None:
+    r = get_redis()
+    if not _rate_ok_named(r, "csp", ip, CSP_PER_IP_PER_MIN):
+        return
+    pipe = r.pipeline()
+    for it in items[:20]:
+        pipe.hincrby(CSP_COUNTS_KEY, csp_bucket(it), 1)
+        pipe.lpush(CSP_SAMPLES_KEY, json.dumps({
+            "ts": int(time.time()),
+            "directive": str(it.get("directive"))[:60],
+            "blocked": str(it.get("blocked"))[:300],
+            "page": _page(it.get("page")),
+            "source": str(it.get("source"))[:300],
+            "sample": str(it.get("sample"))[:120],
+        }))
+    pipe.ltrim(CSP_SAMPLES_KEY, 0, 199)
+    pipe.expire(CSP_COUNTS_KEY, TTL_S)
+    pipe.expire(CSP_SAMPLES_KEY, TTL_S)
+    pipe.execute()
+
+
+def _rate_ok_named(r, name: str, ip: str, per_min: int) -> bool:
+    key = f"rl:{name}:{ip or 'unknown'}"
+    now_ms = int(time.time() * 1000)
+    pipe = r.pipeline()
+    pipe.zremrangebyscore(key, 0, now_ms - 60_000)
+    pipe.zcard(key)
+    _, used = pipe.execute()
+    if used >= per_min:
+        return False
+    pipe = r.pipeline()
+    pipe.zadd(key, {f"{now_ms}-{secrets.token_hex(4)}": now_ms})
+    pipe.expire(key, 60)
+    pipe.execute()
+    return True
+
+
+@router.post("/api/v1/csp-report", status_code=status.HTTP_204_NO_CONTENT)
+async def report_csp_violation(request: Request):
+    """Browsers post CSP violations here (report-uri and report-to)."""
+    from fastapi.concurrency import run_in_threadpool
+
+    raw = await request.body()
+    if len(raw) > 64_000:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    try:
+        items = _csp_items(json.loads(raw or b"null"))
+    except ValueError:
+        items = []
+    if items:
+        try:
+            await run_in_threadpool(_store_csp, items, client_ip_from_request(request) or "")
+        except Exception as e:
+            logger.warning("csp-report store failed: %s", e)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/api/v1/admin/csp-report")
+def list_csp_violations(_admin=Depends(get_admin_user)):
+    """What an enforced policy would have blocked, most frequent first."""
+    try:
+        r = get_redis()
+        counts = r.hgetall(CSP_COUNTS_KEY) or {}
+        samples = [json.loads(x) for x in r.lrange(CSP_SAMPLES_KEY, 0, 49)]
+    except Exception as e:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, f"Redis unavailable: {e}")
+    ranked = sorted(((k, int(v)) for k, v in counts.items()), key=lambda kv: -kv[1])
+    return {"buckets": [{"bucket": k, "count": v} for k, v in ranked], "recent": samples}

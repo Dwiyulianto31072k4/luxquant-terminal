@@ -157,3 +157,52 @@ def test_redis_down_still_answers(monkeypatch):
 
     monkeypatch.setattr(ce, "get_redis", down)
     assert client.post("/api/v1/client-errors", json={"message": "m"}).status_code == 204
+
+
+# ── CSP violation reports (report-only rollout, 2026-09-26) ──────────────
+
+class CspRedis(FakeRedis):
+    def __init__(self):
+        super().__init__()
+        self.h = {}
+
+    def hincrby(self, key, field, n):
+        self.h.setdefault(key, {})
+        self.h[key][field] = self.h[key].get(field, 0) + n
+
+    def hgetall(self, key):
+        return dict(self.h.get(key, {}))
+
+
+def _csp_client(monkeypatch):
+    fake = CspRedis()
+    monkeypatch.setattr(ce, "get_redis", lambda: fake)
+    app = FastAPI()
+    app.include_router(ce.router)
+    app.dependency_overrides[deps.get_admin_user] = lambda: object()
+    return TestClient(app), fake
+
+
+def test_both_report_formats_are_counted_by_directive_and_origin(monkeypatch):
+    client, fake = _csp_client(monkeypatch)
+    legacy = {"csp-report": {"effective-directive": "script-src-elem",
+                             "blocked-uri": "https://s3.tradingview.com/tv.js?x=1",
+                             "document-uri": "https://luxquant.tw/signals?signal=1"}}
+    modern = [{"type": "csp-violation", "body": {"effectiveDirective": "script-src-elem",
+                                                  "blockedURL": "https://s3.tradingview.com/other.js",
+                                                  "documentURL": "https://luxquant.tw/"}}]
+    for body, ctype in ((legacy, "application/csp-report"), (modern, "application/reports+json")):
+        r = client.post("/api/v1/csp-report", content=json.dumps(body), headers={"content-type": ctype})
+        assert r.status_code == 204
+    assert fake.h[ce.CSP_COUNTS_KEY] == {"script-src-elem https://s3.tradingview.com": 2}
+    listing = client.get("/api/v1/admin/csp-report").json()
+    assert listing["buckets"][0] == {"bucket": "script-src-elem https://s3.tradingview.com", "count": 2}
+    assert listing["recent"][0]["page"] == "/"
+
+
+def test_inline_and_garbage_reports(monkeypatch):
+    client, fake = _csp_client(monkeypatch)
+    inline = {"csp-report": {"effective-directive": "script-src-elem", "blocked-uri": "inline"}}
+    client.post("/api/v1/csp-report", content=json.dumps(inline))
+    assert client.post("/api/v1/csp-report", content=b"not json").status_code == 204
+    assert fake.h[ce.CSP_COUNTS_KEY] == {"script-src-elem inline": 1}
