@@ -15,14 +15,6 @@ export const pricingEn = {
   lifetime_label: "Lifetime",
 
   hero_eyebrow: "Pricing",
-  // Proof band. Each label states what the number actually counts — the win
-  // rate is "reached at least one target", never "profit".
-  proof_hits: "targets hit in the last 7 days",
-  proof_pairs: "coins called in those 7 days",
-  proof_published: "calls published since 2023",
-  proof_reached: "reached at least one target",
-  proof_note: "Every call is on the record, with the chart it was called on.",
-  proof_cta: "See the record",
   hero_title_line1: "Live levels.",
   hero_title_line2: "Pick how you pay.",
   hero_subtitle:
