@@ -535,8 +535,8 @@ const PricingPage = () => {
   };
 
   const trustChips = [
-    { label: t("pricing.trust_since"), icon: <TrustIcon d="M12 2 4 5.5v6c0 4.6 3.2 8.5 8 10.5 4.8-2 8-5.9 8-10.5v-6z" /> },
-    { label: t("pricing.trust_pay"), icon: <TrustIcon d="M9 17H7a5 5 0 0 1 0-10h2m6 0h2a5 5 0 0 1 0 10h-2M8 12h8" /> },
+    { label: t("pricing.trust_record"), icon: <TrustIcon d="M12 2 4 5.5v6c0 4.6 3.2 8.5 8 10.5 4.8-2 8-5.9 8-10.5v-6z" /> },
+    { label: t("pricing.trust_same"), icon: <TrustIcon d="M3 7.5 12 3l9 4.5-9 4.5zM3 12l9 4.5L21 12M3 16.5 12 21l9-4.5" /> },
     { label: t("pricing.trust_norenew"), icon: <TrustIcon d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5M4 21v-5h5M3 16l2.7 2.4A9 9 0 0 0 21 12" strike /> },
     { label: t("pricing.trust_speed"), icon: <TrustIcon d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0" /> },
   ];
@@ -657,19 +657,19 @@ const PricingPage = () => {
             pushes the plans further below the fold — the one thing a visitor
             came for. Stripe, Linear, Vercel and Notion all open on the
             headline itself. */}
-        <header className={`mx-auto max-w-2xl text-center ${embedded ? "mb-6" : "mb-9 sm:mb-11"}`}>
+        <header className={`mx-auto max-w-3xl text-center ${embedded ? "mb-6" : "mb-9 sm:mb-11"}`}>
           {/* One colour, one weight, balanced wrap. The two-tone split greyed
               out half the sentence and pushed a lone "pay." onto its own line;
               `text-balance` keeps the two lines even at any width instead. */}
           <h1
-            className={`text-balance font-semibold leading-[1.1] tracking-[-0.03em] text-text-primary ${
+            className={`mx-auto max-w-2xl text-balance font-semibold leading-[1.1] tracking-[-0.03em] text-text-primary ${
               embedded ? "text-[1.55rem] sm:text-[1.85rem]" : "text-[2rem] sm:text-[2.6rem] lg:text-[3rem]"
             }`}
             style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
           >
             {t("pricing.hero_title_line1")} {t("pricing.hero_title_line2")}
           </h1>
-          <p className="mx-auto mt-4 max-w-lg text-balance text-[14.5px] leading-relaxed text-text-primary/50 sm:text-[15.5px]">
+          <p className="mx-auto mt-4 max-w-xl text-balance text-[14.5px] leading-relaxed text-text-primary/50 sm:text-[15.5px]">
             {isPremium
               ? `${t("pricing.subscribing_to")} ${getCurrentPlanLabel()}${
                   subStatus?.days_remaining != null
@@ -682,7 +682,9 @@ const PricingPage = () => {
             /* Four facts, each with its own mark. As a run of text separated by
                dots they read as one caption nobody finishes; as marked items
                they read as four separate promises, which is what they are. */
-            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            /* Its own width: the header column is sized for a headline, and at
+               that measure the fourth fact fell to a second line on its own. */
+            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
               {trustChips.map((c) => (
                 <li
                   key={c.label}

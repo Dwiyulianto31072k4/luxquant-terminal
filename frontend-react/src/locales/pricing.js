@@ -15,12 +15,18 @@ export const pricingEn = {
   lifetime_label: "Lifetime",
 
   hero_eyebrow: "Pricing",
-  // The headline answers the question every buyer has first: do I get less on
-  // the cheaper plan? Kept as two keys so the other locales still compose.
-  hero_title_line1: "The same terminal",
-  hero_title_line2: "on every paid plan.",
+  // Written from the reader's side. Someone landing here is asking, in this
+  // order: what do I get for paying, can I trust these people, and is there a
+  // catch. "The same terminal on every paid plan" answered a question that
+  // only matters AFTER they want it, so it moved down to the facts row.
+  //
+  // The headline leads with the thing no screenshot-signal group offers: every
+  // call carries its levels AND its proof — "proof" is the product's own word,
+  // the same one the Signals board uses, so the page and the app agree.
+  hero_title_line1: "Every call, with its levels",
+  hero_title_line2: "and its proof.",
   hero_subtitle:
-    "Free covers Pulse, Bitcoin and the public record. Paid adds live entry, targets and stop, on every call, as it prints.",
+    "Entry, targets and stop the moment a call prints — and every call stays on the public record, win or lose.",
 
   monthly: "Monthly",
   yearly: "Annual",
@@ -103,6 +109,11 @@ export const pricingEn = {
 
   same_product: "Paid plans are the same product. Billing and support differ.",
 
+  // Four facts, each answering a doubt a reader actually arrives with:
+  // are they new, do I get a lesser product on the cheap plan, will this
+  // charge me again, and how long until I am in.
+  trust_record: "Public record since 2023",
+  trust_same: "Same terminal on every plan",
   trust_norenew: "No auto-renewal",
   trust_speed: "Access in about a minute",
   trust_since: "Since 2023",
