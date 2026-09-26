@@ -492,3 +492,15 @@ class TestTwinInstrumentsAreSkipped:
                 'X', datetime(2025, 1, 1, tzinfo=UTC), datetime(2025, 1, 2, tzinfo=UTC),
                 sources=sources, reference_price=ref)
             assert src == 'a'
+
+
+class TestLateListingIsNotTheCall:
+    def test_a_source_that_starts_weeks_after_the_call_is_skipped(self):
+        from app.services.journey_fetcher import Kline
+        call = datetime(2025, 3, 1, tzinfo=UTC)
+        late = [Kline(open_time=call + timedelta(days=40), open=1, high=1, low=1, close=1)]
+        ontime = [Kline(open_time=call, open=1, high=1, low=1, close=1)]
+        sources = [('binance_futures', lambda *a, **k: late), ('bybit_linear', lambda *a, **k: ontime)]
+        klines, src = fetch_klines_with_fallback('X', call, call + timedelta(days=60),
+                                                 sources=sources, reference_price=1.0)
+        assert src == 'bybit_linear'

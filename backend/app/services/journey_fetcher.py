@@ -317,6 +317,10 @@ def _parse_bybit_klines(raw: dict) -> List[Kline]:
 # MAIN ENTRY POINT
 # ============================================================
 
+# A source whose first candle opens this long after the call does not cover
+# the trade (the pair was listed there later).
+MAX_START_LAG_HOURS = 24
+
 # A signal's entry can sit a few percent to tens of percent from the market
 # (limit entries, dip buys); a different instrument is off by 2x to 10^6x.
 PRICE_MATCH_BAND = (0.5, 2.0)
@@ -404,7 +408,13 @@ def fetch_klines_with_fallback(
     for name, fetcher in sources:
         try:
             klines = fetcher(pair, start_ms, end_ms, interval)
-            if klines and not price_matches(klines[0], reference_price):
+            late = (klines[0].open_time - start_time_aligned).total_seconds() / 3600 if klines else 0
+            if klines and late > MAX_START_LAG_HOURS:
+                # Listed on this venue after the call: its candles describe a
+                # later market, not the trade.
+                last_error = f"{name} starts {late / 24:.0f}d after the call"
+                log.info(f"{pair}: {last_error} — trying the next source")
+            elif klines and not price_matches(klines[0], reference_price):
                 last_error = f"{name} serves another instrument (x{klines[0].close / reference_price:.3g} the entry)"
                 log.warning(f"{pair}: {last_error} — trying the next source")
             elif klines:
