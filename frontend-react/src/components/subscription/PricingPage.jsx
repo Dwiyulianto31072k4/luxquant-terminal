@@ -52,6 +52,24 @@ const MARKS = {
   ),
 };
 
+/** Hairline mark for a hero trust item. `strike` crosses it out — the one
+    fact here is a negative ("nothing auto-renews"). */
+const TrustIcon = ({ d, strike = false }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-[14px] w-[14px]"
+    aria-hidden="true"
+  >
+    <path d={d} />
+    {strike ? <path d="M4 20 20 4" /> : null}
+  </svg>
+);
+
 function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false);
   return (
@@ -517,10 +535,10 @@ const PricingPage = () => {
   };
 
   const trustChips = [
-    t("pricing.trust_since"),
-    t("pricing.trust_pay"),
-    t("pricing.trust_norenew"),
-    t("pricing.trust_speed"),
+    { label: t("pricing.trust_since"), icon: <TrustIcon d="M12 2 4 5.5v6c0 4.6 3.2 8.5 8 10.5 4.8-2 8-5.9 8-10.5v-6z" /> },
+    { label: t("pricing.trust_pay"), icon: <TrustIcon d="M9 17H7a5 5 0 0 1 0-10h2m6 0h2a5 5 0 0 1 0 10h-2M8 12h8" /> },
+    { label: t("pricing.trust_norenew"), icon: <TrustIcon d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5M4 21v-5h5M3 16l2.7 2.4A9 9 0 0 0 21 12" strike /> },
+    { label: t("pricing.trust_speed"), icon: <TrustIcon d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0" /> },
   ];
 
   const howSteps = [
@@ -634,10 +652,12 @@ const PricingPage = () => {
       )}
 
       <div className={shellPad}>
-        <header className={`mx-auto max-w-2xl text-center ${embedded ? "mb-6" : "mb-10 sm:mb-12"}`}>
-          <p className="mb-3 text-[12px] font-medium tracking-wide text-text-primary/40">
-            {t("pricing.hero_eyebrow")}
-          </p>
+        {/* No eyebrow. A pricing page that announces "PRICING" above its own
+            headline spends a line saying what the headline already says, and
+            pushes the plans further below the fold — the one thing a visitor
+            came for. Stripe, Linear, Vercel and Notion all open on the
+            headline itself. */}
+        <header className={`mx-auto max-w-2xl text-center ${embedded ? "mb-6" : "mb-9 sm:mb-11"}`}>
           {/* One colour, one weight, balanced wrap. The two-tone split greyed
               out half the sentence and pushed a lone "pay." onto its own line;
               `text-balance` keeps the two lines even at any width instead. */}
@@ -659,16 +679,20 @@ const PricingPage = () => {
               : t("pricing.hero_subtitle")}
           </p>
           {!isPremium && (
-            /* Sentence case, like every other label on the product now. The
-               all-caps mono row read as a system banner above a headline. */
-            <p className="mt-5 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[12.5px] text-text-primary/40">
-              {trustChips.map((c, i) => (
-                <span key={c} className="inline-flex items-center gap-2.5">
-                  {i > 0 ? <span className="text-text-primary/20">·</span> : null}
-                  {c}
-                </span>
+            /* Four facts, each with its own mark. As a run of text separated by
+               dots they read as one caption nobody finishes; as marked items
+               they read as four separate promises, which is what they are. */
+            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              {trustChips.map((c) => (
+                <li
+                  key={c.label}
+                  className="inline-flex items-center gap-1.5 text-[12.5px] text-text-primary/45"
+                >
+                  <span className="text-text-primary/30">{c.icon}</span>
+                  {c.label}
+                </li>
               ))}
-            </p>
+            </ul>
           )}
         </header>
 
