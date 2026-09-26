@@ -25,14 +25,14 @@ def test_range_below_spot_shows_the_lid():
     """The real v6_593764a7ff contract: target below spot under a NEUTRAL read."""
     block = _levels_block(77041, 76413, 75300,
                           bias="NEUTRAL_RANGE", support=76413, lid=78450)
-    assert _labels(block) == ["Lid", "Spot", "Target", "Invalid"]
+    assert _labels(block) == ["Ceiling", "Now", "Target", "Stop"]
     assert "$78,450" in block
 
 
 def test_range_above_spot_shows_the_floor():
     block = _levels_block(77041, 78200, 75300,
                           bias="NEUTRAL_RANGE", support=76413, lid=78450)
-    assert _labels(block) == ["Target", "Spot", "Floor", "Invalid"]
+    assert _labels(block) == ["Target", "Now", "Floor", "Stop"]
     assert "$76,413" in block
 
 
@@ -42,26 +42,26 @@ def test_range_always_brackets_spot():
         block = _levels_block(77041, touch, 75300,
                               bias="NEUTRAL_RANGE", support=76413, lid=78450)
         labels = _labels(block)
-        assert labels[0] != "Spot" and labels[-1] != "Spot"
+        assert labels[0] != "Now" and labels[-1] != "Now"
 
 
 def test_directional_bias_gets_no_extra_edge():
     for bias in ("BULLISH_CONTINUATION", "BEARISH_CONTINUATION"):
         block = _levels_block(77041, 79565, 75300,
                               bias=bias, support=76413, lid=78450)
-        assert set(_labels(block)) == {"Spot", "Target", "Invalid"}
+        assert set(_labels(block)) == {"Now", "Target", "Stop"}
 
 
 def test_edge_on_the_wrong_side_is_dropped():
     """A lid below spot is not a lid; say nothing rather than something false."""
     block = _levels_block(77041, 76413, 75300,
                           bias="NEUTRAL_RANGE", support=76413, lid=76900)
-    assert "Lid" not in _labels(block)
+    assert "Ceiling" not in _labels(block)
 
 
 def test_missing_edge_is_tolerated():
     block = _levels_block(77041, 76413, 75300, bias="NEUTRAL_RANGE")
-    assert _labels(block) == ["Spot", "Target", "Invalid"]
+    assert _labels(block) == ["Now", "Target", "Stop"]
 
 
 def test_rows_descend_by_price():

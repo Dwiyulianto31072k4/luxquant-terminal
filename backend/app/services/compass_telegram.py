@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -175,7 +176,8 @@ def _record(report_id: str, message_id: int) -> None:
         db.close()
 
 
-def _ago(then) -> str:
+def _gap(then) -> str:
+    """How long before this post the previous one went out: "33m", "8h", "2d"."""
     try:
         from datetime import datetime, timezone
 
@@ -183,10 +185,25 @@ def _ago(then) -> str:
     except Exception:
         return ""
     if secs < 3600:
-        return f"{max(1, round(secs / 60))}m ago"
+        return f"{max(1, round(secs / 60))}m"
     if secs < 86400:
-        return f"{secs / 3600:.0f}h ago"
-    return f"{secs / 86400:.0f}d ago"
+        return f"{secs / 3600:.0f}h"
+    return f"{secs / 86400:.0f}d"
+
+
+# what_changed opens with its own clock: "0.5h ago: neutral …", "3h ago: bearish
+# …", "Previous call: …". A bare "0.5h ago" reads as the age of THIS report, the
+# same misreading as the old header, and the header already says how far back
+# the previous report was. So the caption names it instead of timing it.
+_PREV_LEAD = re.compile(
+    r"^\s*(?:\d+(?:\.\d+)?\s*(?:h|hr|hrs|hours?|m|min|mins|minutes?)\s+ago"
+    r"|previous\s+(?:call|read|report))\s*:\s*",
+    re.IGNORECASE,
+)
+
+
+def _plain_changed(text: str) -> str:
+    return _PREV_LEAD.sub("Previous report: ", str(text), count=1)
 
 
 def _trim(text: str, limit: int) -> str:
@@ -230,7 +247,11 @@ def _levels_block(ref, touch, inval, *, bias=None,
         return None
 
     r = _num(ref)
-    rows = [("Spot", r, None)]
+    # Plain words, not desk jargon: a member read "Invalid $82,000" as an
+    # invalid price and "Lid" meant nothing to him. Now / Target / Stop are the
+    # words the LuxQuant signal cards already use; Ceiling and Floor bound a
+    # range. Seven letters at most, or a $100,000 price touches its label.
+    rows = [("Now", r, None)]
     if touch:
         rows.append(("Target", _num(touch), _pct_from(touch, ref, decimals=1)))
 
@@ -241,14 +262,14 @@ def _levels_block(ref, touch, inval, *, bias=None,
     # a lid above spot, and none of them printed it.
     if _is_range(bias) and r is not None:
         t = _num(touch)
-        edge = ("Lid", _num(lid)) if (t is not None and t < r) else ("Floor", _num(support))
+        edge = ("Ceiling", _num(lid)) if (t is not None and t < r) else ("Floor", _num(support))
         label, level = edge
         # Only when it really is the opposite side; otherwise say nothing.
-        if level is not None and ((level > r) if label == "Lid" else (level < r)):
+        if level is not None and ((level > r) if label == "Ceiling" else (level < r)):
             rows.append((label, level, _pct_from(level, ref, decimals=1)))
 
     if inval:
-        rows.append(("Invalid", _num(inval), _pct_from(inval, ref, decimals=1)))
+        rows.append(("Stop", _num(inval), _pct_from(inval, ref, decimals=1)))
 
     # Read it as a ladder: highest level on top, so where spot sits inside the
     # band is visible without doing arithmetic.
@@ -280,24 +301,28 @@ def build_caption(report: dict, previous: Optional[dict] = None) -> str:
     direction = str(tac.get("direction") or "—").lower()
     conf = tac.get("confidence")
     arrow = _ARROW.get(direction, "•")
-    conf_txt = f" · {int(conf)}%" if isinstance(conf, (int, float)) else ""
+    conf_txt = f" · {int(conf)}% confidence" if isinstance(conf, (int, float)) else ""
 
     prev_dir = (previous or {}).get("direction")
     flipped = bool(prev_dir and prev_dir != direction)
 
     lines: list[str] = []
 
-    # One line, not two: what kind of update, and how long the last one stood.
+    # One line, not two: what kind of update, and how far back the previous
+    # report was. It used to say "levels refreshed · 8h ago", and on 26 Sep 2026
+    # a member read a fresh 08:09 report as eight hours stale and asked whether
+    # it still applied: the 8h was the gap to the report this one replaces.
     if previous:
-        why = "direction changed" if flipped else "levels refreshed"
-        when = _ago(previous.get("sent_at"))
-        lines.append(f"<b>UPDATED</b> · {why}{' · ' + when if when else ''}")
+        kind = "direction changed" if flipped else "same direction"
+        gap = _gap(previous.get("sent_at"))
+        tail = f" · previous report was {gap} earlier" if gap else ""
+        lines.append(f"<b>UPDATE</b> · {kind}{tail}")
 
     head = f"{arrow} <b>{direction.upper()}</b>{conf_txt}"
     if flipped:
         pc = (previous or {}).get("confidence")
-        head += f"  <i>was {_ARROW.get(prev_dir, '•')} {prev_dir.upper()}"
-        head += f" {pc}%</i>" if pc else "</i>"
+        head += f"  <i>(was {_ARROW.get(prev_dir, '•')} {prev_dir.upper()}"
+        head += f" {pc}%)</i>" if pc else ")</i>"
     lines.append(head)
 
     if verdict.get("headline"):
@@ -317,7 +342,9 @@ def build_caption(report: dict, previous: Optional[dict] = None) -> str:
 
     changed = verdict.get("what_changed")
     if changed:
-        lines += ["", f"<b>Why</b> · {_trim(changed, 200)}"]
+        # Trim first: the renamed lead is a few characters longer, and must not
+        # cost the last sentence of a text that fitted before.
+        lines += ["", f"<b>What changed</b> · {_plain_changed(_trim(changed, 200))}"]
 
     lines += ["", f'<a href="{WEB_URL}">Open in LuxQuant →</a>']
 
