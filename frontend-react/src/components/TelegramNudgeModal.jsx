@@ -135,7 +135,6 @@ const TelegramNudgeModal = () => {
     }, INITIAL_DELAY_MS);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [neededStage]);
 
   const dismiss = useCallback(() => {

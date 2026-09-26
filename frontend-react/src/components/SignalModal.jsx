@@ -906,7 +906,6 @@ const SignalModal = ({
     };
     // livePrice is intentionally absent: it is read through a ref so a ticking
     // price does not restart the fetch every ten seconds.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     // srTf is deliberately NOT a dependency: every timeframe is computed in
     // one pass, so switching tabs reads what is already in memory.
   }, [isOpen, signal?.pair]);

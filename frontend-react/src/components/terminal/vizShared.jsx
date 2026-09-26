@@ -153,7 +153,6 @@ export const SECTOR_EMOJI = {
   dex: "🔁",
   lending: "🏦",
   metaverse: "🌐",
-  other: "◈",
   other: "◦",
 };
 export const SectorGlyph = ({ sector, size = 13 }) => (

@@ -172,7 +172,6 @@ function Plot({ model, G, onOpen, logos = true, wheel = "modifier" }) {
   // settle instead.
   useEffect(() => {
     if (stateRef.current) setLabels(stateRef.current.place());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model, ctl.w, ctl.h]);
 
   // Ticks for the window actually on screen: filter the full candidate list to

@@ -4719,7 +4719,7 @@ const PulseStyles = () => (
  .animate-wins-marquee {
  animation: wins-marquee-scroll 28s linear infinite;
  }
- .group\/wins:hover .animate-wins-marquee {
+ .group\\/wins:hover .animate-wins-marquee {
  animation-play-state: paused;
  }
  @media (prefers-reduced-motion: reduce) {

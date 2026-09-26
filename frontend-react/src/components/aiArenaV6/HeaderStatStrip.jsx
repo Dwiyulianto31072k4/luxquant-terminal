@@ -164,7 +164,6 @@ function useLiveBtcPrice() {
       if (abortRef.current) abortRef.current.abort();
       document.removeEventListener("visibilitychange", onVisible);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { data, loading };

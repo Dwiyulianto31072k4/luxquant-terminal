@@ -294,7 +294,6 @@ function Plot({ model, G, activeIds, onOpen, wheel = "modifier" }) {
   // settle instead.
   useEffect(() => {
     if (stateRef.current) setLabels(stateRef.current.place());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model, ctl.w, ctl.h]);
 
   const xTicks = useMemo(() => {
