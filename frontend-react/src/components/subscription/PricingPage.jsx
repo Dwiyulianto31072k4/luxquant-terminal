@@ -671,19 +671,26 @@ const PricingPage = () => {
             pushes the plans further below the fold — the one thing a visitor
             came for. Stripe, Linear, Vercel and Notion all open on the
             headline itself. */}
-        <header className={`mx-auto max-w-3xl text-center ${embedded ? "mb-6" : "mb-9 sm:mb-11"}`}>
+        <header className={`mx-auto max-w-5xl text-center ${embedded ? "mb-6" : "mb-9 sm:mb-11"}`}>
           {/* One colour, one weight, balanced wrap. The two-tone split greyed
               out half the sentence and pushed a lone "pay." onto its own line;
               `text-balance` keeps the two lines even at any width instead. */}
           <h1
-            className={`mx-auto max-w-2xl text-balance font-semibold leading-[1.1] tracking-[-0.03em] text-text-primary ${
-              embedded ? "text-[1.55rem] sm:text-[1.85rem]" : "text-[2rem] sm:text-[2.6rem] lg:text-[3rem]"
+            className={`mx-auto max-w-4xl text-balance font-semibold leading-[1.08] tracking-[-0.035em] text-text-primary ${
+              embedded
+                ? "text-[1.55rem] sm:text-[1.85rem]"
+                : "text-[1.9rem] sm:text-[2.7rem] lg:text-[3.35rem]"
             }`}
             style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
           >
-            {t("pricing.hero_title_line1")} {t("pricing.hero_title_line2")}
+            {[t("pricing.hero_title_line1"), t("pricing.hero_title_line2")]
+              .filter(Boolean)
+              .join(" ")}
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-balance text-[14.5px] leading-relaxed text-text-primary/50 sm:text-[15.5px]">
+          {/* Wide enough to fall in two lines under a one-line headline; at
+              the narrower measure it broke into three and the block looked
+              taller than the sentence it carries. */}
+          <p className="mx-auto mt-4 max-w-3xl text-balance text-[14.5px] leading-relaxed text-text-primary/50 sm:text-[15.5px]">
             {isPremium
               ? `${t("pricing.subscribing_to")} ${getCurrentPlanLabel()}${
                   subStatus?.days_remaining != null

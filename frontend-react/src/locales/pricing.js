@@ -23,10 +23,18 @@ export const pricingEn = {
   // The headline leads with the thing no screenshot-signal group offers: every
   // call carries its levels AND its proof — "proof" is the product's own word,
   // the same one the Signals board uses, so the page and the app agree.
-  hero_title_line1: "Every call, with its levels",
-  hero_title_line2: "and its proof.",
+  // One line, so the headline reads as a sentence instead of a narrow block
+  // stacked in the middle of a wide page.
+  hero_title_line1: "Every call, with its proof.",
+  hero_title_line2: "",
+  // The subtitle has two audiences in the same two lines. Someone new needs to
+  // be told what a "call" even is — it is the word the whole product uses and
+  // nowhere on this page defined it. Someone experienced needs the specifics:
+  // entry, targets, stop, and a record that keeps the losses. Saying it in
+  // plain words costs the expert nothing; leaving it out costs the beginner
+  // the whole page.
   hero_subtitle:
-    "Entry, targets and stop the moment a call prints — and every call stays on the public record, win or lose.",
+    "A call is a trade we publish: the coin, where to enter, the targets to take profit, and the stop. You get all four the moment it prints — and every call stays on the public record, win or lose.",
 
   monthly: "Monthly",
   yearly: "Annual",
