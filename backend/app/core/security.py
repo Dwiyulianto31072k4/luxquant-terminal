@@ -64,6 +64,19 @@ def create_tokens(user_id: int, email: str) -> dict:
     }
 
 
+def login_cryptobot_token(user) -> Optional[str]:
+    """The exchange token a sign-in response carries, or None without access.
+
+    Every sign-in used to carry one, and every front end exchanged it at once, so
+    each free account was refused by the Agent with a 403 on every login (41 in
+    two days of logs, all noise). The Agent page mints its own through
+    /auth/me/cryptobot-token and still gets the explained refusal there.
+    """
+    if not getattr(user, "has_active_access", False):
+        return None
+    return create_cryptobot_exchange_token(user)
+
+
 def create_cryptobot_exchange_token(user) -> Optional[str]:
     """Generate short-lived LuxQuant JWT for Cryptobot token exchange.
 

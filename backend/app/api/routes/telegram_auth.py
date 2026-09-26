@@ -37,7 +37,7 @@ from pydantic import BaseModel, Field
 
 from app.core.database import get_db
 from app.core.avatar_storage import is_uploaded_avatar
-from app.core.security import create_cryptobot_exchange_token, create_tokens
+from app.core.security import create_tokens, login_cryptobot_token
 from app.models.user import User
 from app.models.legacy_member import LegacyMember
 from app.schemas.user import (
@@ -468,7 +468,7 @@ async def _issue_telegram_session(
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
         user=UserResponse.model_validate(user),
-        cryptobot_token=create_cryptobot_exchange_token(user),
+        cryptobot_token=login_cryptobot_token(user),
         is_new_user=is_new_user,
     )
 

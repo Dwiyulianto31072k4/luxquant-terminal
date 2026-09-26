@@ -29,7 +29,7 @@ from google.auth.transport import requests as google_requests
 
 from app.core.database import get_db
 from app.core.avatar_storage import is_uploaded_avatar
-from app.core.security import create_cryptobot_exchange_token, create_tokens, decode_token
+from app.core.security import create_cryptobot_exchange_token, create_tokens, login_cryptobot_token, decode_token
 from app.models.user import User
 from app.schemas.user import (
     GoogleLogin,
@@ -196,7 +196,7 @@ def google_login(
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
         user=UserResponse.model_validate(user),
-        cryptobot_token=create_cryptobot_exchange_token(user),
+        cryptobot_token=login_cryptobot_token(user),
         is_new_user=is_new_user,
     )
 
@@ -270,7 +270,7 @@ def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
         user=UserResponse.model_validate(user),
-        cryptobot_token=create_cryptobot_exchange_token(user)
+        cryptobot_token=login_cryptobot_token(user)
     )
 
 
@@ -493,7 +493,7 @@ async def google_callback(
         logger.exception("auto-provision referral code failed google redirect user=%s", user.id)
 
     tokens = create_tokens(user.id, user.email)
-    cryptobot_token = create_cryptobot_exchange_token(user)
+    cryptobot_token = login_cryptobot_token(user)
 
     user_response = UserResponse.model_validate(user)
     user_json = quote(json.dumps(user_response.model_dump(mode="json")))

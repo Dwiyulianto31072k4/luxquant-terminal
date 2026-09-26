@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.avatar_storage import is_uploaded_avatar
-from app.core.security import create_cryptobot_exchange_token, create_tokens
+from app.core.security import create_tokens, login_cryptobot_token
 from app.models.user import User
 from app.schemas.user import UserResponse
 from app.api.deps import get_current_user
@@ -339,7 +339,7 @@ async def discord_callback(
         logger.exception("auto-provision referral code failed discord user=%s", user.id)
 
     tokens = create_tokens(user.id, user.email)
-    cryptobot_token = create_cryptobot_exchange_token(user)
+    cryptobot_token = login_cryptobot_token(user)
 
     user_response = UserResponse.model_validate(user)
     user_json = quote(json.dumps(user_response.model_dump(mode="json")))
