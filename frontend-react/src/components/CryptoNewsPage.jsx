@@ -20,8 +20,6 @@ import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
 import NewsBody from "./NewsBody";
 import { newsTitleLine } from "../utils/newsFormat";
-import { SegGroup } from "./ui/SegGroup";
-import { PageHeader } from "./ui/PageHeader";
 
 const PAGE_SIZE = 28; // multiple of 4 → fills the desktop 4-col grid without lone trailing cards
 
@@ -1356,7 +1354,82 @@ const LoadingSkeleton = () => (
 
 // Monochrome SVG icon set for filter rails
 
-const FilterBar = ({
+// ── Masthead and section nav ──
+//
+// The page below is a wire; the top of it was a dashboard — a rounded panel
+// holding a filled search field and two rows of yellow pills, sitting above
+// an editorial grid that has no boxes anywhere. A newspaper puts its name in
+// the same type as its headlines, draws a rule under it, and lists its
+// sections as plain words. That is all this is.
+//
+// The active section is marked with weight and an ink underline rather than
+// the brand gold: on this product gold means "act on this", and spending it
+// on a filter state puts a view switch above the stories it filters.
+
+const NavLink = ({ label, count, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-current={active ? "page" : undefined}
+    className={`group relative shrink-0 whitespace-nowrap py-1 text-[13px] transition-colors ${
+      active ? "font-semibold text-text-primary" : "text-text-muted hover:text-text-primary"
+    }`}
+  >
+    {label}
+    {count != null && (
+      <span className="ml-1.5 font-mono text-[10.5px] tabular-nums text-text-muted/70">
+        {count}
+      </span>
+    )}
+    <span
+      aria-hidden="true"
+      className={`absolute -bottom-[7px] left-0 right-0 h-[2px] bg-text-primary transition-opacity ${
+        active ? "opacity-100" : "opacity-0"
+      }`}
+    />
+  </button>
+);
+
+const NewsSearch = ({ value, onChange, onClear, className = "" }) => (
+  <div className={`relative flex items-center ${className}`}>
+    <svg
+      className="pointer-events-none absolute left-0 h-3.5 w-3.5 text-text-muted/60"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+      />
+    </svg>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="Search headlines, topics, sources…"
+      aria-label="Search the wire"
+      className="h-9 w-full border-0 border-b border-ink/[0.14] bg-transparent pl-6 pr-6 text-[13px] text-text-primary placeholder:text-text-muted/80 focus:border-ink/40 focus:outline-none focus:ring-0"
+    />
+    {value && (
+      <button
+        type="button"
+        onClick={onClear}
+        title="Clear search"
+        className="absolute right-0 flex h-5 w-5 items-center justify-center text-text-muted hover:text-text-primary"
+      >
+        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    )}
+  </div>
+);
+
+const Masthead = ({
+  stats,
   searchInput,
   onSearchChange,
   onClearSearch,
@@ -1365,7 +1438,6 @@ const FilterBar = ({
   activeCategory,
   onCategoryChange,
   categoryCounts,
-  stats,
 }) => {
   const typeOptions = [
     { key: "all", label: "All", badge: stats?.total },
@@ -1373,76 +1445,90 @@ const FilterBar = ({
     { key: "photo", label: "Photos", badge: stats?.photos },
     { key: "headline", label: "Headlines", badge: stats?.headlines },
   ];
-  const topicOptions = [
-    { key: "__all__", label: "Topics" },
-    ...CATEGORY_RULES.map((cat) => ({
-      key: cat.key,
-      label: cat.label,
-      badge: categoryCounts[cat.key],
-    })),
-  ];
+  const topicOptions = CATEGORY_RULES.map((cat) => ({
+    key: cat.key,
+    label: cat.label,
+    badge: categoryCounts[cat.key],
+  }));
 
   return (
-    <div className="space-y-2.5 overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised p-3 sm:p-3.5">
-      <div className="relative">
-        <svg
-          className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted/55"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-          />
-        </svg>
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search headlines, topics, sources…"
-          className="h-10 w-full rounded-lg border border-ink/[0.08] bg-surface-secondary pl-9 pr-9 text-[13px] text-text-primary placeholder:text-text-muted transition-colors focus:border-ink/20 focus:outline-none"
-        />
-        {searchInput && (
-          <button
-            type="button"
-            onClick={onClearSearch}
-            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
-            title="Clear search"
-          >
-            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+    <header className="mb-6 sm:mb-8">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 pb-3">
+        <div className="min-w-0">
+          <h1 className="font-editorial text-[34px] font-bold leading-none tracking-[-0.01em] text-text-primary sm:text-[42px]">
+            News
+          </h1>
+          <p className="mt-2 text-[13px] text-text-muted">Markets wire · live crypto headlines</p>
+        </div>
+        {stats?.total != null && (
+          <p className="font-mono text-[11.5px] tabular-nums text-text-muted">
+            {Number(stats.total).toLocaleString()} stories
+            {stats.last_hour != null ? (
+              <>
+                <span aria-hidden="true" className="mx-1.5 text-ink/20">
+                  ·
+                </span>
+                <span className="font-semibold text-text-primary">{stats.last_hour}</span> in the
+                last hour
+              </>
+            ) : null}
+          </p>
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-        <SegGroup
-          size="sm"
-          wrap
+      <div className="border-t-2 border-ink/80" />
+
+      {/* Two rows, both wrapping. Fifteen sections on one scrolling line put
+          DeFi and Macro behind the search field on a 1440px screen, which is
+          a filter nobody can see. Primary sections first, topics under them,
+          the way a section page carries a sub-nav. */}
+      <div className="flex flex-col gap-2.5 py-2.5 lg:flex-row lg:items-center lg:gap-6">
+        <nav
           aria-label="Content type"
-          value={activeFilter}
-          onChange={onFilterChange}
-          options={typeOptions}
-        />
-        <SegGroup
-          size="sm"
-          wrap
-          aria-label="Topic"
-          value={activeCategory || "__all__"}
-          onChange={(key) => onCategoryChange(key === "__all__" ? null : key)}
-          options={topicOptions}
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1"
+        >
+          {typeOptions.map((o) => (
+            <NavLink
+              key={o.key}
+              label={o.label}
+              count={o.badge}
+              active={activeFilter === o.key}
+              onClick={() => onFilterChange(o.key)}
+            />
+          ))}
+        </nav>
+        <NewsSearch
+          value={searchInput}
+          onChange={onSearchChange}
+          onClear={onClearSearch}
+          className="w-full shrink-0 lg:w-[300px]"
         />
       </div>
-    </div>
+
+      <div className="border-t border-ink/[0.09]" />
+
+      <nav
+        aria-label="Topics"
+        className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 sm:gap-x-5"
+      >
+        <NavLink
+          label="All topics"
+          active={!activeCategory}
+          onClick={() => onCategoryChange(null)}
+        />
+        {topicOptions.map((o) => (
+          <NavLink
+            key={o.key}
+            label={o.label}
+            count={o.badge}
+            active={activeCategory === o.key}
+            onClick={() => onCategoryChange(o.key)}
+          />
+        ))}
+      </nav>
+
+      <div className="border-t border-ink/[0.12]" />
+    </header>
   );
 };
 
@@ -1688,24 +1774,8 @@ const CryptoNewsPage = () => {
     <div className="space-y-3 pb-10 sm:space-y-4">
       {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
-      <PageHeader
-        title="News"
-        subtitle="Markets wire · live crypto headlines"
-        right={
-          stats?.total != null ? (
-            <span className="font-mono text-[12px] tabular-nums text-text-muted">
-              {Number(stats.total).toLocaleString()} stories
-              {stats.last_hour != null ? (
-                <span className="ml-2 text-text-secondary">
-                  · <span className="font-semibold text-text-primary">{stats.last_hour}</span> / 1h
-                </span>
-              ) : null}
-            </span>
-          ) : null
-        }
-      />
-
-      <FilterBar
+      <Masthead
+        stats={stats}
         searchInput={searchInput}
         onSearchChange={handleSearchInput}
         onClearSearch={handleClearSearch}
@@ -1714,7 +1784,6 @@ const CryptoNewsPage = () => {
         activeCategory={activeCategory}
         onCategoryChange={handleCategoryChange}
         categoryCounts={categoryCounts}
-        stats={stats}
       />
 
       {loading ? (
