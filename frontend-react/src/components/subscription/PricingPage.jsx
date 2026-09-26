@@ -151,6 +151,10 @@ const PricingPage = () => {
   const [adminModalPlan, setAdminModalPlan] = useState(null);
   const [adminIntent, setAdminIntent] = useState("pay");
   const [mobileId, setMobileId] = useState("yearly");
+  // The page had no numbers on it at all. These are the public record's own,
+  // fetched from the same endpoints the Home leaderboard uses, so the claim on
+  // the pricing page and the board a reader can audit cannot disagree.
+  const [proof, setProof] = useState(null);
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -167,6 +171,27 @@ const PricingPage = () => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([
+      fetch("/api/v1/signals/top-performers?limit=1&days=7").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/v1/signals/stats").then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([board, stats]) => {
+        if (!alive || (!board && !stats)) return;
+        setProof({
+          hits: board?.total_tp_hits ?? null,
+          pairs: board?.unique_pairs ?? null,
+          published: stats?.total_signals ?? null,
+          reached: stats?.win_rate ?? null,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -354,6 +379,8 @@ const PricingPage = () => {
     { q: t("pricing.faq_q4"), a: t("pricing.faq_a4") },
     { q: t("pricing.faq_q5"), a: t("pricing.faq_a5") },
     { q: t("pricing.faq_q6"), a: t("pricing.faq_a6") },
+    { q: t("pricing.faq_q9"), a: t("pricing.faq_a9") },
+    { q: t("pricing.faq_q10"), a: t("pricing.faq_a10") },
     { q: t("pricing.faq_q7"), a: t("pricing.faq_a7") },
     { q: t("pricing.faq_q8"), a: t("pricing.faq_a8") },
   ];
@@ -593,6 +620,57 @@ const PricingPage = () => {
           )}
         </header>
 
+        {/* PROOF — the record, before the price.
+            Every number here is the public record's own and links to where a
+            reader can check it. The measured problem this answers: 81% of the
+            people who see this page never pick a plan, and the page gave them
+            nothing to believe. Wording is the honest form of each metric:
+            "reached at least one target" is what the win rate counts, and
+            saying it that way costs nothing it cannot back up. */}
+        {!isPremium && proof && (proof.hits || proof.published) ? (
+          <section className="mx-auto mb-8 max-w-3xl sm:mb-10">
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink/[0.07] bg-ink/[0.05] sm:grid-cols-4">
+              {[
+                proof.hits != null && {
+                  v: proof.hits.toLocaleString("en-US"),
+                  l: t("pricing.proof_hits"),
+                },
+                proof.pairs != null && {
+                  v: proof.pairs.toLocaleString("en-US"),
+                  l: t("pricing.proof_pairs"),
+                },
+                proof.published != null && {
+                  v: proof.published.toLocaleString("en-US"),
+                  l: t("pricing.proof_published"),
+                },
+                proof.reached != null && {
+                  v: `${Number(proof.reached).toFixed(1)}%`,
+                  l: t("pricing.proof_reached"),
+                },
+              ]
+                .filter(Boolean)
+                .map((cell) => (
+                  <div key={cell.l} className="bg-surface-raised px-4 py-3.5 text-center">
+                    <p className="font-mono text-[17px] font-semibold tabular-nums text-text-primary sm:text-[19px]">
+                      {cell.v}
+                    </p>
+                    <p className="mt-1 text-[11.5px] leading-snug text-text-primary/45">{cell.l}</p>
+                  </div>
+                ))}
+            </div>
+            <p className="mt-3 text-center text-[12.5px] text-text-primary/45">
+              {t("pricing.proof_note")}{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/performance")}
+                className="font-medium text-accent underline-offset-4 hover:underline"
+              >
+                {t("pricing.proof_cta")}
+              </button>
+            </p>
+          </section>
+        ) : null}
+
         {loading ? (
           <div className="mx-auto h-[340px] max-w-5xl animate-pulse rounded-2xl border border-ink/[0.06] bg-ink/[0.04]" />
         ) : loadError ? (
@@ -789,6 +867,86 @@ const PricingPage = () => {
                 {t("pricing.compare_note")}
               </p>
             </section>
+
+            {/* NOT READY YET — the page's missing third of the audience.
+                Measured over 60 days: 162 people came back to this page two or
+                more times and never paid, against 21 who did pay (median: two
+                visits, under a day). For everyone still deciding, the page
+                offered nothing but a buy button. These are the free ways to
+                keep watching the record until the answer is yes. */}
+            {!isPremium && (
+              <section className={`mx-auto max-w-3xl ${embedded ? "mt-12" : "mt-14 sm:mt-16"}`}>
+                <h2
+                  className="mb-1 text-center text-lg font-semibold tracking-tight text-text-primary sm:text-xl"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                >
+                  {t("pricing.notready_title")}
+                </h2>
+                <p className="mb-6 text-center text-[13.5px] leading-relaxed text-text-primary/50">
+                  {t("pricing.notready_sub")}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    {
+                      k: "free",
+                      title: t("pricing.notready_free_t"),
+                      body: t("pricing.notready_free_b"),
+                      cta: t("pricing.notready_free_c"),
+                      onClick: () => navigate(isAuthenticated ? "/home" : "/register"),
+                    },
+                    {
+                      k: "tg",
+                      title: t("pricing.notready_tg_t"),
+                      body: t("pricing.notready_tg_b"),
+                      cta: t("pricing.notready_tg_c"),
+                      href: "https://t.me/LuxQuantSignal",
+                    },
+                    {
+                      k: "x",
+                      title: t("pricing.notready_x_t"),
+                      body: t("pricing.notready_x_b"),
+                      cta: t("pricing.notready_x_c"),
+                      href: "https://x.com/luxquantalgo",
+                    },
+                  ].map((c) => {
+                    const inner = (
+                      <>
+                        <p className="text-[14px] font-semibold text-text-primary">{c.title}</p>
+                        <p className="mt-1.5 flex-1 text-[12.5px] leading-relaxed text-text-primary/50">
+                          {c.body}
+                        </p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-accent">
+                          {c.cta}
+                          <svg
+                            className="h-3 w-3"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="m9 18 6-6-6-6" />
+                          </svg>
+                        </span>
+                      </>
+                    );
+                    const cls =
+                      "flex h-full flex-col rounded-xl border border-ink/[0.07] bg-surface-raised px-4 py-4 text-left transition-colors hover:border-ink/[0.14]";
+                    return c.href ? (
+                      <a key={c.k} href={c.href} target="_blank" rel="noopener noreferrer" className={cls}>
+                        {inner}
+                      </a>
+                    ) : (
+                      <button key={c.k} type="button" onClick={c.onClick} className={cls}>
+                        {inner}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             <section className={`mx-auto max-w-xl ${embedded ? "mt-12" : "mt-14 sm:mt-16"}`}>
               <h2

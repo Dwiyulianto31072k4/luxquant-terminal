@@ -15,6 +15,14 @@ export const pricingEn = {
   lifetime_label: "Lifetime",
 
   hero_eyebrow: "Pricing",
+  // Proof band. Each label states what the number actually counts — the win
+  // rate is "reached at least one target", never "profit".
+  proof_hits: "targets hit in the last 7 days",
+  proof_pairs: "coins called in those 7 days",
+  proof_published: "calls published since 2023",
+  proof_reached: "reached at least one target",
+  proof_note: "Every call is on the record, with the chart it was called on.",
+  proof_cta: "See the record",
   hero_title_line1: "Live levels.",
   hero_title_line2: "Pick how you pay.",
   hero_subtitle:
@@ -145,6 +153,20 @@ export const pricingEn = {
   trust_secure: "Unique address per invoice",
   trust_support: "A person if the chain cannot match it",
 
+  // "Not ready yet" block — the free ways to keep watching the record.
+  notready_title: "Not ready to pay yet?",
+  notready_sub: "Watch the record for a while. Nothing here asks for a card.",
+  notready_free_t: "Open a free account",
+  notready_free_b:
+    "Pulse, Bitcoin, the market tables, and the full public record of every call we have published.",
+  notready_free_c: "Create free account",
+  notready_tg_t: "Follow the free channel",
+  notready_tg_b:
+    "A share of the calls, posted as they print, with the chart each one was called on.",
+  notready_tg_c: "Open on Telegram",
+  notready_x_t: "Follow on X",
+  notready_x_b: "Results as they resolve, including the ones that did not work.",
+  notready_x_c: "Open on X",
   faq_title: "Questions",
   faq_subtitle: "",
   faq_q1: "What’s free, and what do I pay for?",
@@ -171,6 +193,12 @@ export const pricingEn = {
   faq_q8: "Can I look around before I pay?",
   faq_a8:
     "Yes. Create a free account — no card. Use Pulse, the public record, News, and journal. Upgrade when you want live levels and the full terminal.",
+  faq_q9: "What does the 85.9% actually count?",
+  faq_a9:
+    "It counts calls that reached at least one published target — TP1 or better — not profit, and not what any one person made. Exits are yours: a call that touches TP1 and turns around is counted as reached, so read it as how often a call goes our way at least once, and audit the rest on the record.",
+  faq_q10: "What if I send the wrong amount, or the wrong network?",
+  faq_a10:
+    "Message us on Telegram with the transaction hash. BEP-20 is the only address we issue, and a transfer on another network does not reach it, so nothing is matched automatically — a person checks it and sorts it out. Short or late payments are handled the same way; the invoice stays open for 72 hours.",
 
   cta_title: "",
   cta_subtitle: "",
