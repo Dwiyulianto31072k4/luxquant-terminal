@@ -58,6 +58,7 @@ OK = "ok"
 WARN = "warn"
 DOWN = "down"
 UNCONFIGURED = "unconfigured"
+OFF = "off"  # switched off on purpose; not a fault
 ERROR = "error"
 
 
@@ -547,6 +548,13 @@ async def _probe_sosovalue(client: httpx.AsyncClient, k: dict[str, str]) -> Prob
 
 
 async def _probe_dune(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResult:
+    from app.services.dune_tokenflow_service import ENABLED
+    if not ENABLED:
+        return ProbeResult(
+            OFF,
+            "switched off 26 Sep 2026 — the free plan cannot run queries since the "
+            "trial ended; set DUNE_TOKENFLOW_ENABLED=1 after upgrading",
+        )
     r = await client.get(
         "https://api.dune.com/api/v1/query/1/results",
         headers={"X-Dune-Api-Key": k["DUNEAPIKEY_TERMINAL"]},

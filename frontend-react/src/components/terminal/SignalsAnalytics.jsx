@@ -12,6 +12,7 @@
 // session's data, refresh happens silently in the background
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { TOKEN_FLOW_ENABLED } from "../../constants/features";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -205,8 +206,11 @@ export default function SignalsAnalytics() {
   // unknown id lands on the default instead.
   const KNOWN_TABS = new Set([
     "confluence", "live", "anomaly", "oi", "ls", "funding", "squeeze", "flow",
-    "liquidations", "vsbtc", "btc", "momentum", "sectors", "tokenflow", "rsi",
+    "liquidations", "vsbtc", "btc", "momentum", "sectors", "rsi",
     "atr", "vsqueeze", "edge", "risk", "treemap", "bubble", "matrix", "explore",
+    // Switched off (see constants/features): an old ?tab=tokenflow link opens
+    // the default tab instead of an empty one.
+    ...(TOKEN_FLOW_ENABLED ? ["tokenflow"] : []),
   ]);
   const rawTab = searchParams.get("tab") || "confluence";
   const tab = KNOWN_TABS.has(rawTab) ? rawTab : "confluence";

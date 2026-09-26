@@ -19,6 +19,16 @@ Expected query result columns (see LUXQUANT_INTEL_ROADMAP §Token Flow):
 Env (set in backend/.env on the VPS):
   DUNEAPIKEY_TERMINAL      = <your Dune API key>
   DUNE_QUERY_ID_TOKENFLOW  = <the query id you created>
+  DUNE_TOKENFLOW_ENABLED   = 1 to run the worker (default: off)
+
+SWITCHED OFF 2026-09-26. The Dune account's 14-day trial of paid features ended
+on 24 Sep, and Dune's free plan can no longer run queries — every refresh got
+HTTP 402 and the feature has shown nothing since. Upgrading (Analyst plan, billed
+yearly) was judged not worth it: we used ~70 of 2,500 credits a month, the data
+covers Ethereum tokens only (about a quarter of the coins we call), and its
+measured edge was +3.1 pp over 14 days. To bring it back: upgrade Dune, set
+DUNE_TOKENFLOW_ENABLED=1, restart luxquant-poller, and flip TOKEN_FLOW_ENABLED
+in frontend-react/src/constants/features.js.
 """
 import os
 import time
@@ -33,6 +43,7 @@ from app.core.leader import is_leader
 DUNE_BASE = "https://api.dune.com/api/v1"
 API_KEY = os.getenv("DUNEAPIKEY_TERMINAL", "")
 QUERY_ID = os.getenv("DUNE_QUERY_ID_TOKENFLOW", "")
+ENABLED = os.getenv("DUNE_TOKENFLOW_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
 
 REFRESH_INTERVAL = 6 * 3600   # 6h (credit-safe: ~120 executions/month)
 POLL_EVERY = 3                # seconds between status polls
@@ -178,6 +189,9 @@ async def token_flow_loop():
 
 def start_token_flow_worker():
     """Register in poller_main.py (staggered) — same place as Coinalyze."""
+    if not ENABLED:
+        print("⏸️ Dune token-flow worker switched off (DUNE_TOKENFLOW_ENABLED is not set)")
+        return
     if not API_KEY or not QUERY_ID:
         print("⚠️ Dune token-flow worker NOT started (DUNEAPIKEY_TERMINAL / DUNE_QUERY_ID_TOKENFLOW missing)")
         return

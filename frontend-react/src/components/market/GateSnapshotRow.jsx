@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import CoinLogo from "../CoinLogo";
 import { API_BASE, authHeaders } from "../terminal/vizShared";
+import { TOKEN_FLOW_ENABLED } from "../../constants/features";
 
 /**
  * The four-card strip above the market table.
  *
  * Two cards are plain market context (Hot Coins, Gainers); two are LuxQuant's
- * own terminal signal surfaced publicly on Home — Volume Spikes and Token Flow.
+ * own terminal signal surfaced publicly on Home — Volume Spikes and Token Flow
+ * (Token Flow is switched off for now; see constants/features.js).
  * Every card carries an arrow to its full view, which is where the terminal's
  * depth (and the reason to subscribe) actually lives.
  */
@@ -38,8 +40,10 @@ const Arrow = () => (
  * One card. `to` turns the header into a link — the arrow is the affordance
  * that there is more behind it.
  */
-const Card = ({ icon, title, to, note, children }) => (
-  <div className="flex flex-col rounded-xl border border-ink/[0.06] bg-surface-raised p-4 transition-colors hover:border-ink/[0.12]">
+const Card = ({ icon, title, to, note, className = "", children }) => (
+  <div
+    className={`flex flex-col rounded-xl border border-ink/[0.06] bg-surface-raised p-4 transition-colors hover:border-ink/[0.12] ${className}`}
+  >
     <div className="mb-3 flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2">
         {icon}
@@ -175,11 +179,12 @@ const GateSnapshotRow = ({ hot, gainers }) => {
       }
     };
 
+    // Token Flow is switched off (see constants/features): nothing to ask for.
     loadSpikes();
-    loadFlow();
+    if (TOKEN_FLOW_ENABLED) loadFlow();
     const iv = setInterval(() => {
       loadSpikes();
-      loadFlow();
+      if (TOKEN_FLOW_ENABLED) loadFlow();
     }, 300000);
     return () => {
       alive = false;
@@ -198,7 +203,9 @@ const GateSnapshotRow = ({ hot, gainers }) => {
   const maxFlow = leaving?.[0]?.usd || 1;
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div
+      className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${TOKEN_FLOW_ENABLED ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}
+    >
       <Card icon={<Flame />} title="Hot Coins" to="/markets">
         {hot?.length ? hot.slice(0, 3).map((c) => <CoinRow key={c.id || c.symbol} coin={c} />) : <Empty />}
       </Card>
@@ -212,6 +219,8 @@ const GateSnapshotRow = ({ hot, gainers }) => {
         title="Volume Spikes"
         to="/terminal/scan?tab=anomaly"
         note="Notional traded vs each coin's typical pace · 15m"
+        // With three cards, the third would sit alone in the two-column row.
+        className={TOKEN_FLOW_ENABLED ? "" : "sm:col-span-2 xl:col-span-1"}
       >
         {spikes === null ? (
           <Empty />
@@ -230,28 +239,30 @@ const GateSnapshotRow = ({ hot, gainers }) => {
         )}
       </Card>
 
-      <Card
-        icon={<Swap />}
-        title="Token Flow"
-        to="/terminal/scan?tab=tokenflow"
-        note="Spot leaving exchanges — accumulation · 24h"
-      >
-        {leaving === null ? (
-          <Empty />
-        ) : leaving.length ? (
-          leaving.map((r) => (
-            <BarRow
-              key={r.symbol}
-              symbol={r.symbol}
-              ratio={r.usd / maxFlow}
-              label={fmtUsd(r.usd)}
-              tone="rgb(var(--pos))"
-            />
-          ))
-        ) : (
-          <Empty label="No net accumulation in this window" />
-        )}
-      </Card>
+      {TOKEN_FLOW_ENABLED && (
+        <Card
+          icon={<Swap />}
+          title="Token Flow"
+          to="/terminal/scan?tab=tokenflow"
+          note="Spot leaving exchanges — accumulation · 24h"
+        >
+          {leaving === null ? (
+            <Empty />
+          ) : leaving.length ? (
+            leaving.map((r) => (
+              <BarRow
+                key={r.symbol}
+                symbol={r.symbol}
+                ratio={r.usd / maxFlow}
+                label={fmtUsd(r.usd)}
+                tone="rgb(var(--pos))"
+              />
+            ))
+          ) : (
+            <Empty label="No net accumulation in this window" />
+          )}
+        </Card>
+      )}
     </div>
   );
 };

@@ -11,6 +11,7 @@
 // keeps its own route so its filter query params never clash.
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback } from "react";
+import { TOKEN_FLOW_ENABLED } from "../../constants/features";
 import { Outlet, useNavigate, useLocation, Navigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { SignalStatusProvider } from "../../context/SignalStatusContext";
@@ -54,7 +55,8 @@ const GROUPS = [
       ["sectors", "scan"],
     ],
   },
-  { g: "gFlow", items: [["tokenflow", "scan"]] },
+  // Token Flow is switched off (see constants/features); it was this group's only tab.
+  ...(TOKEN_FLOW_ENABLED ? [{ g: "gFlow", items: [["tokenflow", "scan"]] }] : []),
   {
     g: "gScreen",
     items: [

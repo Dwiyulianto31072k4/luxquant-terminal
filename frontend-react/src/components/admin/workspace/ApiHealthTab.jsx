@@ -22,6 +22,8 @@ const STATUS = {
   down: { label: "DOWN", color: "#dc2626", bg: "rgba(220,38,38,0.10)" },
   error: { label: "ERROR", color: "#dc2626", bg: "rgba(220,38,38,0.10)" },
   unconfigured: { label: "NO KEY", color: "#6b7280", bg: "rgba(107,114,128,0.10)" },
+  // Switched off on purpose (e.g. Dune after its trial ended) — not a fault.
+  off: { label: "OFF", color: "#6b7280", bg: "rgba(107,114,128,0.10)" },
 };
 
 const SIGNAL_LABEL = {
@@ -34,7 +36,7 @@ const SIGNAL_LABEL = {
 
 // Sort by urgency, never alphabetically: anything broken must sit in the first
 // row without the reader hunting for it.
-const SEVERITY = { down: 0, error: 1, warn: 2, unconfigured: 3, ok: 4 };
+const SEVERITY = { down: 0, error: 1, warn: 2, unconfigured: 3, off: 3, ok: 4 };
 
 const fmtAge = (ts) => {
   if (!ts) return "—";

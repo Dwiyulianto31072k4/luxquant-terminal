@@ -13,6 +13,7 @@
 // · item.status — the signal's latest lifecycle state (open/tp1…/sl)
 // ════════════════════════════════════════════════════════════════
 import { useState, useMemo, useEffect } from "react";
+import { TOKEN_FLOW_ENABLED } from "../../constants/features";
 import { useTranslation } from "react-i18next";
 import useShariahFilter from "../../hooks/useShariahFilter";
 import ShariahFilterNotice from "../ShariahFilterNotice";
@@ -705,9 +706,12 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
           fetch(`${API_BASE}/api/v1/terminal/liquidations`, { headers: authHeaders() }).then((r) =>
             r.json()
           ),
-          fetch(`${API_BASE}/api/v1/terminal/token-flow`, { headers: authHeaders() }).then((r) =>
-            r.json()
-          ),
+          // Switched off (see constants/features): no token-flow chips or weight.
+          TOKEN_FLOW_ENABLED
+            ? fetch(`${API_BASE}/api/v1/terminal/token-flow`, { headers: authHeaders() }).then((r) =>
+                r.json()
+              )
+            : Promise.resolve(null),
           fetch(`${API_BASE}/api/v1/market/bitcoin`, { headers: authHeaders() })
             .then((r) => r.json())
             .catch(() => null),
