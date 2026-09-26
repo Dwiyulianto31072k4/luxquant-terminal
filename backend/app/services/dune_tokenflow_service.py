@@ -42,6 +42,29 @@ POLL_MAX = 90                 # give up after ~4.5 min
 
 CACHE_KEY = "lq:terminal:tokenflow"   # single JSON string {symbol: blob}
 CACHE_TTL = 8 * 3600                   # 8h (a bit > refresh so stale never gaps)
+# What the last refresh did, read by the API Health row. On 25 Sep the account
+# ran out of execution credits: every refresh got HTTP 402 while the Terminal
+# kept serving the last good rows and API Health stayed green, because its
+# probe only reads an old result, which costs no credits.
+STATUS_KEY = "lq:terminal:tokenflow:status"
+
+
+def refresh_status(ok: bool, error: Exception | None, prev: dict | None, now: int) -> dict:
+    """The status record after one refresh: ok, when, last good, and why not."""
+    prev = prev or {}
+    status = {"ok": ok, "at": now, "last_ok_at": now if ok else prev.get("last_ok_at")}
+    if not ok:
+        code = getattr(getattr(error, "response", None), "status_code", None)
+        status["http"] = code
+        status["error"] = f"HTTP {code}" if code else (type(error).__name__ if error else "no rows returned")
+    return status
+
+
+def _record_status(ok: bool, error: Exception | None = None) -> None:
+    try:
+        cache_set(STATUS_KEY, refresh_status(ok, error, cache_get(STATUS_KEY), int(time.time())), ttl=30 * 86400)
+    except Exception:
+        pass  # a status write must never cost a refresh
 
 
 def _headers() -> dict:
@@ -145,9 +168,11 @@ async def token_flow_loop():
             continue
         try:
             if is_redis_available():
-                await refresh()
+                out = await refresh()
+                _record_status(bool(out))
         except Exception as e:
             print(f"❌ Dune token-flow worker error: {type(e).__name__}: {e}")
+            _record_status(False, e)
         await asyncio.sleep(REFRESH_INTERVAL)
 
 

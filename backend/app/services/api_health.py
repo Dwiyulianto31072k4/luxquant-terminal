@@ -555,8 +555,27 @@ async def _probe_dune(client: httpx.AsyncClient, k: dict[str, str]) -> ProbeResu
         return ProbeResult(DOWN, f"key rejected (HTTP {r.status_code})")
     if r.status_code == 429:
         return ProbeResult(WARN, "credits exhausted or rate limited")
+    # Reading a result costs no credits, so an accepted key says nothing about
+    # whether the token-flow query can still EXECUTE. Its worker records what the
+    # last refresh did; a 402 there is the credit outage this row used to hide.
+    last = _tokenflow_status()
+    if last and not last.get("ok"):
+        good = last.get("last_ok_at")
+        stale = f"; data stale since {time.strftime('%d %b %H:%M UTC', time.gmtime(good))}" if good else ""
+        if last.get("http") == 402:
+            return ProbeResult(DOWN, f"out of credits: token-flow refresh refused (HTTP 402){stale}")
+        return ProbeResult(WARN, f"token-flow refresh failing ({last.get('error')}){stale}")
     # 404 / 400 mean the probe query is not ours but the key itself passed auth.
     return ProbeResult(OK, f"key accepted (HTTP {r.status_code})")
+
+
+def _tokenflow_status() -> dict | None:
+    try:
+        from app.services.dune_tokenflow_service import STATUS_KEY
+        raw = get_redis().get(STATUS_KEY)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
 
 
 def _mk_reachable(url: str, expect: str = "", parse: Callable[[str], str] | None = None):
